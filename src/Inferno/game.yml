@@ -261,7 +261,7 @@ Weapons:
     LightRadius: 14
     LightColor: 1, .5, .25, 2
     ExplosionColor: 1, 0.25, 0.0, 10
-    FlashColor: 1, .5, .25, 5
+    FlashColor: 1, .5, .25, 1.5
     Size: 1 # was 1.5
 
   - id: 15
@@ -403,7 +403,7 @@ Weapons:
     LightRadius: 16
     Glow: 1, 0, 0, 25
     LightColor: 1, 0.025, 0.025
-    FlashColor: 1, 0.25, 0.25, 20
+    FlashColor: 1, 0.25, 0.25, 2
 
   - id: 25
     Name: robot green laser
@@ -534,11 +534,14 @@ Robots:
     Multishot: 1
     ChaseChance: 0
     SuppressChance: 0.5
+    Curiosity: 0.1 # Very rarely move to investigate sounds
+    Score: 650 # Was 500, these are rather dangerous
   - id: 1 # Medium lifter
     CircleDistance: 12
     Mass: 8
     MeleeDamage: [ 6, 7, 8, 9, 10 ]
     ChaseChance: 1
+    Curiosity: 0.4 # Don't always give away position
   - id: 2 # Spider
     CircleDistance: 80 # Hide in back and spawn spiderlings
     Mass: 5.5
@@ -550,27 +553,35 @@ Robots:
     AlertRadius: 110 # Drones are scouts and have a larger radius than normal
     FleeThreshold: 0.5
     ChaseChance: 1
+    Curiosity: 0.95 # Scouts should nearly always investigate noises
   - id: 4 # Class 2 drone
     CircleDistance: 40
     Drag: 0.03
     Mass: 3.0
+    Curiosity: 0.85
   - id: 5 # Cloaked driller
     CircleDistance: 100 # sniper
     Mass: 6.5 # Heavier than regular due to cloaking device
     Drag: 0.15
     SuppressChance: .05
     ChaseChance: .4
+    Score: 1000 # Was 600, less than the regular driller
+    Curiosity: 0.3 # Don't want these moving around too much
   - id: 6 # Cloaked hulk
     CircleDistance: 60
     Multishot: 2
     Mass: 6.5
     ChaseChance: 0
     SuppressChance: .25
+    Score: 800 # Was 700
+    Curiosity: 0.05 # Very rarely move to investigate sounds
   - id: 7 # Supervisor
     Mass: 3.25
     AlertRadius: 250 # Alert all nearby robots!
     Script: Supervisor
     OpenKeyDoors: 1 # Can open key doors!
+    Score: 800 # Was 400. These are rare and much more dangerous now
+    Curiosity: 1 # Always investigate, it's a supervisor!
   - id: 8 # Secondary Lifter (one arm)
     CircleDistance: 25
     Mass: 3.5
@@ -578,6 +589,7 @@ Robots:
     FleeThreshold: 0.4 # Scout
     ChaseChance: 1
     Radius: 6.5 # Increase radius to help arm clipping through walls
+    Curiosity: 0.95 # Scout
   - id: 9 # Heavy driller
     CircleDistance: 40
     Multishot: 2
@@ -587,29 +599,37 @@ Robots:
     SuppressChance: .25
     FireDelay: [ 1, .75, 1, .75, 0.9 ] # Was 1, .75, .75, .75, .75. Adjusted to compensate for extra shots on hotshot and insane
     Shots: [ 2, 2, 4, 4, 6 ] # Was 2, 2, 3, 4, 5
+    Curiosity: 0.25 # Usually hold position
   - id: 10 # Gopher
     FleeThreshold: 0.4
+    Score: 400 # Was 200, too low for their mine laying annoyance and hit points
   - id: 11 # Laser platform
     CircleDistance: 20
     Mass: 2.5
     Multishot: 7 # shotgun all available projectiles
-    Aim: 125
+    FireDelay: [ 1.5, 1.25, 1, 0.9, 0.8 ]
+    Shots: [ 3, 4, 4, 5, 7 ] 
+    Aim: 0
     Drag: 0.03
-    SuppressChance: 0.75
+    SuppressChance: 0.9
+    Score: 500 # Was 300, these are now more dangerous
+    Curiosity: 0.5
   - id: 12 # Missile platform
     #FireDelay: [ 3, 2, 2, 1.75, 1.5 ]
     #Shots: [ 2, 2, 2, 3, 4 ]
-    FireDelay: [ 1.5, 1.5, 1, 1, .75 ]
+    FireDelay: [ 1.5, 1.5, 1, 0.75, .65 ]
     Shots: 1
     CircleDistance: 20
     Mass: 2.5
     Drag: 0.03
+    Curiosity: 0.25 # Usually hold position
   - id: 13 # Pod
   - id: 14 # Baby spider
     CircleDistance: 12.5
     Mass: 1.9
     Drag: 0.025
     ChaseChance: 1
+    Curiosity: 1
   - id: 15 # Fusion hulk
     FireDelay: [ 2, 1.25, 1.5, 1, .5 ] # Reduced by 1 second due to charge time
     Shots: [ 1, 1, 2, 2, 2 ]
@@ -621,21 +641,23 @@ Robots:
     AlertRadius: 160 # Miniboss alert radius
     ChaseChance: 0
     SuppressChance: 1.2
+    Curiosity: 0 # Don't investigate sounds
     # DeathRollSound: 185 # d1
   - id: 16 # Red hulk
     CircleDistance: 80
     Multishot: 1
     Mass: 7
     ChaseChance: 0
+    Curiosity: 0.05 # Very rarely move to investigate sounds
   - id: 17 # Level 7 boss
-    Mass: 100
+    Mass: 40
     Multishot: 2
     CircleDistance: 200
-    TurnTime: 0.025 # Turn time reduced to compensate for increased mass
+    # TurnTime: 0.025 # Turn time reduced to compensate for increased mass
     # D2 has hit points of 4000
     # HitPoints: 3000 # Increased from 2000 due to teleporting being more generous to player
     DeathRollSound: 185 # d1
-    DeathRoll: 10 # max death roll
+    DeathRoll: 10 # maximum death roll
     SeeSound: 183 # d1
     AlertRadius: 240
     TeleportInterval: 6 # 8 original. lowered due to removing engine reductions in teleport delay such as firing or taking damage.
@@ -644,12 +666,14 @@ Robots:
     Mass: 9.5
     MeleeDamage: [ 5, 6, 7, 8, 9 ]
     ChaseChance: 1
+    Score: 800 # Was 1000
   - id: 19 # Class 1 driller
     CircleDistance: 100 # sniper
     Mass: 5.5
     Drag: 0.05
     SuppressChance: .2
     ChaseChance: .2
+    Score: 900 # Was 1000, but are quite flimsy. Moved down to make cloak drillers 1000.
   - id: 20 # Green hulk / Small hulk
     CircleDistance: 40
     Mass: 6.5
@@ -659,11 +683,13 @@ Robots:
     Drag: 0.03
     ChaseChance: 0
     SuppressChance: 1
+    Curiosity: 0.2 # Rarely move to investigate sounds. Has slow move speed.
   - id: 21 # Advanced lifter
     CircleDistance: 12
     Mass: 9
     MeleeDamage: [ 5, 6, 7, 8, 9 ]
     ChaseChance: 1
+    Score: 750 # Was 800
   - id: 22 # PTMC Defense Prototype
     CircleDistance: 40
     Aim: 190 # 255 is perfect aim
@@ -684,8 +710,8 @@ Robots:
     Guns: 5 # Actually 4, but data is loaded incorrectly causing gun 2 to be blank
     AlertRadius: 240
     # HitPoints: 5000, 7500 (D1, D2)
-  - id: 24 # BEPR
-  - id: 25 # Smelter
+#  - id: 24 # BEPR
+#  - id: 25 # Smelter
 #Ice Spider
 #Bulk Destroyer
 #TRN Racer
@@ -697,8 +723,8 @@ Robots:
 #Defense Robot
 #Evil Twin
 #ITSC
-  - id: 37 # IT droid
-    Mass: 2
+#  - id: 37 # IT droid
+#    Mass: 2
 
 Powerups:
   - id: 0 # Extra life

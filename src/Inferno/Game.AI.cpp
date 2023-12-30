@@ -78,10 +78,10 @@ namespace Inferno {
     }
 
     // Returns true if able to reach the target
-    bool ChaseTarget(AIRuntime& ai, const Object& robot, const NavPoint& target, ChaseMode chase) {
+    bool ChaseTarget(AIRuntime& ai, const Object& robot, const NavPoint& target, ChaseMode chase, float maxDist = AI_MAX_CHASE_DISTANCE) {
         ai.PathDelay = 0;
         ai.TargetPosition = target;
-        if (SetPathGoal(Game::Level, robot, ai, target, AI_MAX_CHASE_DISTANCE)) {
+        if (SetPathGoal(Game::Level, robot, ai, target, maxDist)) {
             ai.State = AIState::Chase;
             ai.Chase = chase;
             return true;
@@ -1525,21 +1525,28 @@ namespace Inferno {
         // Turn towards point of interest if we have one
         if (ai.TargetPosition) {
             TurnTowardsPoint(robot, ai.TargetPosition->Position, Difficulty(robotInfo).TurnTime);
-            bool validChaseState = ai.CombatState == AICombatState::Normal || ai.CombatState == AICombatState::Chase;
+            bool validState = ai.CombatState == AICombatState::Normal || ai.CombatState == AICombatState::Chase;
 
             if (Settings::Cheats.ShowPathing)
                 Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, 0, 1));
 
-            if (ai.Awareness >= AI_AWARENESS_MAX &&
-                validChaseState &&
-                robot.Control.AI.Behavior != AIBehavior::Still &&
-                !ai.TriedFindingHelp) {
-                // Only path to target if we can't see it
-                if (!HasLineOfSight(robot, ai.TargetPosition->Position)) {
-                    // todo: sometimes the target isn't reachable due to locked doors or walls, use other behaviors
-                    // todo: limit chase segment depth so robot doesn't path around half the level
-                    Chat(robot, "I better check it out");
-                    ChaseTarget(ai, robot, *ai.TargetPosition, ChaseMode::Sound);
+            if (validState && ai.ChaseTimer <= 0 &&
+                ai.Awareness >= AI_AWARENESS_MAX &&
+                robot.Control.AI.Behavior != AIBehavior::Still) {
+
+                ai.ChaseTimer = AI_CURIOSITY_INTERVAL; // Only check periodically
+
+                if (Random() < robotInfo.Curiosity) {
+                    // Only path to target if we can't see it
+                    if (!HasLineOfSight(robot, ai.TargetPosition->Position)) {
+                        // todo: sometimes the target isn't reachable due to locked doors or walls, use other behaviors
+                        // todo: limit chase segment depth so robot doesn't path around half the level
+                        Chat(robot, "I better check it out");
+                        ChaseTarget(ai, robot, *ai.TargetPosition, ChaseMode::Sound);
+                    }
+                }
+                else {
+                    Chat(robot, "I hear something but will wait here");
                 }
             }
         }

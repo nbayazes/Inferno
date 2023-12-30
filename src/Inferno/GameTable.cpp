@@ -338,6 +338,7 @@ namespace Inferno {
         READ_PROP(FleeThreshold);
         READ_PROP(ChaseChance);
         READ_PROP(SuppressChance);
+        READ_PROP(Curiosity);
         READ_PROP(OpenKeyDoors);
 #undef READ_PROP
 

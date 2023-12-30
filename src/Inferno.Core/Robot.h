@@ -93,7 +93,9 @@ namespace Inferno {
         float FleeThreshold = 0; // Will flee to find another robot when under this amount of life or getting scared
 
         float ChaseChance = 0.5f; // Chance to chase when target leaves sight
-        float SuppressChance = 0.25f; // Chance to fire at out of sight target
+        float SuppressChance = 0.25f; // Chance to fire at out of sight 
+
+        float Curiosity = 0.75f; // Chance to investigate noises while not in combat
 
         string Script; // Custom behavior script
         bool OpenKeyDoors = false; // Can open key doors

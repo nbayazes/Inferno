@@ -19,6 +19,7 @@ namespace Inferno {
     constexpr float AI_HELP_SEARCH_RADIUS = 350;
     constexpr float AI_MINE_LAYER_DELAY = 5; // Seconds between robots dropping mines
     constexpr float AI_DOOR_AWARENESS_RADIUS = 150; // Noise distance of opening a door
+    constexpr float AI_CURIOSITY_INTERVAL = 1.0f; // Interval to decide to investigate a noise
 
     struct AITarget {
         Vector3 Position;
