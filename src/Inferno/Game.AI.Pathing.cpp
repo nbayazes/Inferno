@@ -382,21 +382,15 @@ namespace Inferno {
             }
         }
 
-        if (auto seg = Game::Level.TryGetSegment(robot.Segment); ai.DodgeDelay <= 0 && seg) {
-            for (auto& oid : seg->Objects) {
-                if (auto obj = Game::Level.TryGetObject(oid)) {
-                    if (obj->IsRobot() && obj->Signature != robot.Signature) {
-                        auto angle = Random() * DirectX::XM_2PI;
-                        auto transform = Matrix::CreateFromAxisAngle(robot.Rotation.Forward(), angle);
-                        auto dir = Vector3::Transform(robot.Rotation.Right(), transform);
+        // Try dodging if collided with something recently
+        if (Game::Time - ai.LastCollision < 0.5 && ai.DodgeDelay <= 0) {
+            auto angle = Random() * DirectX::XM_2PI;
+            auto transform = Matrix::CreateFromAxisAngle(robot.Rotation.Forward(), angle);
+            auto dir = Vector3::Transform(robot.Rotation.Right(), transform);
 
-                        ai.DodgeDirection = dir;
-                        ai.DodgeDelay = 2.5f;
-                        ai.DodgeTime = 1.25f;
-                        break;
-                    }
-                }
-            }
+            ai.DodgeDirection = dir;
+            ai.DodgeDelay = 1.0f;
+            ai.DodgeTime = 0.5f;
         }
 
         if (stopOnceVisible && robot.Segment != ai.Path.front().Segment && HasLineOfSight(robot, goal.Position)) {

@@ -183,10 +183,13 @@ namespace Inferno {
     }
 
     // Alerts nearby robots of a target. Used when a robot fires to wake up nearby robots, or by observer robots.
-    void AlertRobotsOfTarget(const Object& source, float radius, const NavPoint& target, float awareness) {
+    // Returns true if a robot became fully alert.
+    bool AlertRobotsOfTarget(const Object& source, float radius, const NavPoint& target, float awareness) {
         auto& level = Game::Level;
         auto srcRoom = level.GetRoomID(source);
-        if (srcRoom == RoomID::None) return;
+        if (srcRoom == RoomID::None) return false;
+
+        bool alertedRobot = false;
 
         auto action = [&](const Room& room) {
             for (auto& segId : room.Segments) {
@@ -212,6 +215,7 @@ namespace Inferno {
                             ai.State = AIState::Alert;
                             ai.TargetPosition = target;
                             ai.AddAwareness(awareness * random);
+                            alertedRobot = true;
                         }
                     }
                 }
@@ -221,6 +225,7 @@ namespace Inferno {
         };
 
         TraverseRoomsByDistance(level, srcRoom, source.Position, radius, true, action);
+        return alertedRobot;
     }
 
     void PlayDistressSound(const Object& robot) {
@@ -646,9 +651,14 @@ namespace Inferno {
     void RobotTouchObject(const Object& robot, const Object& obj) {
         ASSERT(robot.IsRobot());
 
+        auto& ai = GetAI(robot);
+
+        if(obj.IsRobot() || obj.IsPlayer()) {
+            ai.LastCollision = Game::Time;
+        }
+
         if (obj.IsPlayer()) {
-            auto& ai = GetAI(robot);
-            if (ai.State != AIState::Path) {
+            if (ai.State != AIState::Path && ai.State != AIState::FindHelp) {
                 if (ai.State != AIState::Combat) {
                     PlayAlertSound(robot, ai);
                     Chat(robot, "Something touched me!");
@@ -1212,6 +1222,7 @@ namespace Inferno {
                 Chat(robot, "Maybe drone {} can help me", nearestHelp->Signature);
                 ai.State = AIState::FindHelp;
                 ai.Ally = Game::GetObjectRef(*nearestHelp);
+                ai.AlertTimer = 3 + Random() * 2;
             }
             ai.Fear = 0;
             return true;
@@ -1235,11 +1246,18 @@ namespace Inferno {
             return;
         }
 
+        if (ai.AlertTimer <= 0) {
+            PlayDistressSound(robot);
+            AlertRobotsOfTarget(robot, Resources::GetRobotInfo(robot).AlertRadius, *ai.TargetPosition, 0.5f);
+            ai.AlertTimer = 3 + Random() * 2;
+            Chat(robot, "Help!");
+        }
+
         PathTowardsGoal(robot, ai, false, false);
 
         auto [goalDir, goalDist] = GetDirectionAndDistance(ai.Path.back().Position, robot.Position);
 
-        constexpr float REACHED_GOAL_DIST = 40;
+        constexpr float REACHED_GOAL_DIST = 50;
         if (goalDist > REACHED_GOAL_DIST) return;
 
         auto ally = Game::GetObject(ai.Ally);
@@ -1261,6 +1279,7 @@ namespace Inferno {
                 allyAI.Target = ai.Target;
                 allyAI.TargetPosition = ai.TargetPosition;
                 ai.State = AIState::Alert;
+                robot.Control.AI.Behavior = AIBehavior::Still;
                 // Maybe alert another robot?
             }
             else {
@@ -1271,6 +1290,9 @@ namespace Inferno {
                 ai.State = AIState::Chase;
                 allyAI.State = AIState::Chase;
             }
+
+            ai.Fear = 0;
+            ai.FleeTimer = 15 + Random() * 10; // Don't flee again for a while
         }
         //else {
         //    // Path to their new location
@@ -1490,8 +1512,8 @@ namespace Inferno {
                 UpdateMeleeAI(robot, robotInfo, ai, target, targetDir, dt);
         }
 
-        // Only robots that flee can find help
-        if (robotInfo.FleeThreshold > 0 && robot.Control.AI.Behavior != AIBehavior::Still) {
+        // Only robots that flee can find help. Limit to hotshot and above.
+        if (robotInfo.FleeThreshold > 0 && robot.Control.AI.Behavior != AIBehavior::Still && Game::Difficulty > 1) {
             if (!ai.FleeTimer.IsSet()) {
                 ai.FleeTimer = 2 + Random(); // Periodically think about fleeing
             }
@@ -1499,7 +1521,7 @@ namespace Inferno {
             if (ai.FleeTimer.Expired()) {
                 if (robot.HitPoints / robot.MaxHitPoints <= robotInfo.FleeThreshold || ai.Fear >= 1) {
                     // Wounded or scared enough to flee, but would rather fight if there's allies nearby
-                    auto allies = CountNearbyAllies(robot, robotInfo.AlertRadius);
+                    auto allies = CountNearbyAllies(robot, AI_COUNT_ALLY_RANGE);
                     //SPDLOG_INFO("Nearby allies: {}", allies);
 
                     if (allies < AI_ALLY_FLEE_MIN) {
