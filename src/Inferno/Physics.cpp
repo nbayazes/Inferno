@@ -277,7 +277,7 @@ namespace Inferno {
     //using PotentialSegments = Array<SegID, 10>;
     List<SegID> g_VisitedStack; // global visited segments buffer
 
-    List<SegID>& GetPotentialSegments(Level& level, SegID start, const Vector3& point, float radius, const Vector3& velocity, float /*dt*/) {
+    List<SegID>& GetPotentialSegments(Level& level, SegID start, const Vector3& point, float radius, const Vector3& velocity, float /*dt*/, ObjectType objType) {
         g_VisitedStack.clear();
         g_VisitedStack.push_back(start);
         int index = 0;
@@ -296,9 +296,12 @@ namespace Inferno {
             for (auto& sideId : SIDE_IDS) {
                 auto& side = seg.GetSide(sideId);
 
-                // Don't hit the other side of walls. Note that projectiles will still pass through transparent pixels.
-                if (level.TryGetWall(side.Wall))
-                    continue;
+                if (objType == ObjectType::Weapon) {
+                    // Don't hit the other side of doors with weapons. Note that projectiles will still pass through transparent pixels.
+                    auto wall = level.TryGetWall(side.Wall);
+                    if (wall && (wall->Type == WallType::Door || wall->Type == WallType::Destroyable))
+                        continue;
+                }
 
                 //if (needsRaycast) {
                 //    auto raySide = IntersectRaySegmentSide(level, ray, { segId, sideId }, travelDist);
@@ -474,7 +477,7 @@ namespace Inferno {
         ASSERT(explosion.Room != RoomID::None);
         ASSERT(explosion.Segment != SegID::None);
 
-        if (explosion.Damage == 0 && explosion.Force == 0) 
+        if (explosion.Damage == 0 && explosion.Force == 0)
             return; // No effect
 
         auto action = [&](const Segment& seg, bool) {
@@ -582,7 +585,7 @@ namespace Inferno {
                     case ObjectType::Reactor:
                     {
                         // apply damage if source is player
-                        if (!Settings::Cheats.DisableWeaponDamage && source && source->Parent.Id == ObjID(0))
+                        if (!Settings::Cheats.DisableWeaponDamage && source && source->IsInFaction(Faction::Player))
                             target.ApplyDamage(damage);
 
                         break;
@@ -1161,7 +1164,7 @@ namespace Inferno {
 
         // Use a larger radius for the object so the large objects in adjacent segments are found.
         // Needs testing against boss robots
-        auto& pvs = GetPotentialSegments(level, obj.Segment, obj.Position, obj.Radius * 2, obj.Physics.Velocity, dt);
+        auto& pvs = GetPotentialSegments(level, obj.Segment, obj.Position, obj.Radius * 2, obj.Physics.Velocity, dt, obj.Type);
 
         // Did we hit any objects?
         for (auto& segId : pvs) {
@@ -1241,7 +1244,7 @@ namespace Inferno {
     // Finds the nearest sphere-level intersection for debris
     // Debris only collide with robots, players and walls
     bool IntersectLevelDebris(Level& level, const BoundingSphere& debris, SegID segId, LevelHit& hit) {
-        auto& pvs = GetPotentialSegments(level, segId, debris.Center, debris.Radius * 2, Vector3::Zero, Game::TICK_RATE);
+        auto& pvs = GetPotentialSegments(level, segId, debris.Center, debris.Radius * 2, Vector3::Zero, Game::TICK_RATE, ObjectType::None);
 
         // Did we hit any objects?
         for (auto& segment : pvs) {
