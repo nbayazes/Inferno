@@ -363,17 +363,17 @@ namespace Inferno {
         return true;
     }
 
-    bool PathTowardsGoal(Object& obj, AIRuntime& ai, bool alwaysFaceGoal, bool stopOnceVisible) {
+    bool PathTowardsGoal(Object& robot, AIRuntime& ai, bool alwaysFaceGoal, bool stopOnceVisible) {
         // Travel along a designated path, incrementing the node index as we go
         if (!Seq::inRange(ai.Path, ai.PathIndex))
             return false; // Empty or invalid index
 
         auto& node = ai.Path[ai.PathIndex];
         auto& goal = ai.Path.back();
-        auto& robot = Resources::GetRobotInfo(obj.ID);
+        auto& robotInfo = Resources::GetRobotInfo(robot.ID);
 
         if (Settings::Cheats.ShowPathing) {
-            Render::Debug::DrawLine(obj.Position, node.Position, Color(0, 1, 0));
+            Render::Debug::DrawLine(robot.Position, node.Position, Color(0, 1, 0));
 
             for (int i = 0; i < ai.Path.size() - 1; i++) {
                 auto& a = ai.Path[i];
@@ -382,24 +382,41 @@ namespace Inferno {
             }
         }
 
-        if (stopOnceVisible && obj.Segment != ai.Path.front().Segment && HasLineOfSight(obj, goal.Position)) {
-            PlayAlertSound(obj, ai);
-            SPDLOG_INFO("Robot {} can see the goal!", obj.Signature);
+        if (auto seg = Game::Level.TryGetSegment(robot.Segment); ai.DodgeDelay <= 0 && seg) {
+            for (auto& oid : seg->Objects) {
+                if (auto obj = Game::Level.TryGetObject(oid)) {
+                    if (obj->IsRobot() && obj->Signature != robot.Signature) {
+                        auto angle = Random() * DirectX::XM_2PI;
+                        auto transform = Matrix::CreateFromAxisAngle(robot.Rotation.Forward(), angle);
+                        auto dir = Vector3::Transform(robot.Rotation.Right(), transform);
+
+                        ai.DodgeDirection = dir;
+                        ai.DodgeDelay = 2.5f;
+                        ai.DodgeTime = 1.25f;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (stopOnceVisible && robot.Segment != ai.Path.front().Segment && HasLineOfSight(robot, goal.Position)) {
+            PlayAlertSound(robot, ai);
+            SPDLOG_INFO("Robot {} can see the goal!", robot.Signature);
             ai.Path.clear();
             return false;
         }
 
-        MoveTowardsPoint(obj, ai, node.Position, 1);
+        MoveTowardsPoint(robot, ai, node.Position, 1);
 
         Vector3 targetPosition = alwaysFaceGoal ? goal.Position : node.Position;
-        auto goalDir = targetPosition - obj.Position;
+        auto goalDir = targetPosition - robot.Position;
         goalDir.Normalize();
 
         if (goalDir != Vector3::Zero) // Can be zero when object starts on top of the path
-            TurnTowardsDirection(obj, goalDir, robot.Difficulty[Game::Difficulty].TurnTime);
+            TurnTowardsDirection(robot, goalDir, robotInfo.Difficulty[Game::Difficulty].TurnTime);
 
         // Move towards each path node until sufficiently close
-        if (Vector3::Distance(obj.Position, node.Position) <= std::max(obj.Radius, 5.0f)) {
+        if (Vector3::Distance(robot.Position, node.Position) <= std::max(robot.Radius, 5.0f)) {
             ai.PathIndex++;
         }
 
