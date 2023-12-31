@@ -31,6 +31,16 @@ void Inferno::File::WriteAllBytes(const std::filesystem::path& path, span<ubyte>
     SPDLOG_INFO("Wrote {} bytes to {}", data.size(), path.string());
 }
 
+std::string Inferno::File::ReadAllText(const filesystem::path& path) {
+    std::ifstream stream(path);
+    if (!stream) {
+        SPDLOG_WARN("Unable to open file `{}`", path.string());
+        return {};
+    }
+
+    return { std::istreambuf_iterator(stream), std::istreambuf_iterator<char>() };
+}
+
 namespace Inferno::FileSystem {
     List<filesystem::path> Directories;
 
@@ -97,15 +107,5 @@ namespace Inferno::FileSystem {
         }
 
         return {};
-    }
-
-    string ReadFileText(const filesystem::path& path) {
-        std::ifstream stream(path);
-        if (!stream) {
-            SPDLOG_WARN("Unable to open file `{}`", path.string());
-            return {};
-        }
-
-        return { std::istreambuf_iterator(stream), std::istreambuf_iterator<char>() };
     }
 }

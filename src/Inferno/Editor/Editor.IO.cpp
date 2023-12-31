@@ -2,7 +2,7 @@
 #include "logging.h"
 #include "Editor.IO.h"
 #include "Editor.Segment.h"
-#include "LevelSettings.h"
+#include "LevelMetadata.h"
 #include "Events.h"
 #include "Game.h"
 #include "Settings.h"
@@ -14,7 +14,7 @@
 #include "Graphics/MaterialLibrary.h"
 
 namespace Inferno::Editor {
-    constexpr auto METADATA_EXTENSION = "ied"; // inferno engine data
+    constexpr auto METADATA_EXTENSION = ".ied"; // inferno engine data
 
     size_t SaveLevel(Level& level, StreamWriter& writer) {
         if (level.Walls.size() >= (int)WallID::Max)
@@ -194,7 +194,7 @@ namespace Inferno::Editor {
                 throw Exception("Level filename is empty!");
 
             auto baseName = String::NameWithoutExtension(level.FileName);
-            auto metadataName = baseName + "." + METADATA_EXTENSION;
+            auto metadataName = baseName + METADATA_EXTENSION;
             HogWriter writer(tempPath); // write to temp
             fmt::print("Copying existing HOG files:\n");
 
@@ -252,7 +252,7 @@ namespace Inferno::Editor {
         }
 
         BackupFile(path);
-        filesystem::remove(path);           // Remove existing
+        filesystem::remove(path); // Remove existing
         filesystem::rename(tempPath, path); // Rename temp to destination
         fmt::print("\n");
     }
@@ -275,7 +275,7 @@ namespace Inferno::Editor {
 
                     // Show hog editor if there's more than one level and game data is present.
                     // If there's no game data, the config dialog will conflict causing the UI to get stuck.
-                    if (levelEntries.size() > 1 && Resources::HasGameData()) 
+                    if (levelEntries.size() > 1 && Resources::HasGameData())
                         Events::ShowDialog(DialogType::HogEditor);
                 }
             }
@@ -290,17 +290,35 @@ namespace Inferno::Editor {
         }
     }
 
-    void LoadLevelFromHOG(string name) {
+    void LoadLevelFromHOG(const string& name) {
         try {
             auto level = Resources::ReadLevel(name);
             level.FileName = name;
             // Load metadata
-            auto metadataPath = String::NameWithoutExtension(level.FileName) + "." + METADATA_EXTENSION;
-            auto metadata = Game::Mission->TryReadEntry(metadataPath);
-            if (!metadata.empty()) {
-                string buffer((char*)metadata.data(), metadata.size());
-                LoadLevelMetadata(level, buffer);
+            auto metadataFile = String::NameWithoutExtension(level.FileName) + METADATA_EXTENSION;
+            auto metadata = Game::Mission->TryReadEntryAsString(metadataFile);
+
+            if (metadata.empty()) {
+                auto fn = String::ToLower(Game::Mission->Path.filename().string());
+                auto stem = Game::Mission->Path.stem();
+
+                string path;
+
+                if (fn == "descent.hog")
+                    path = "data/d1/" + metadataFile;
+                else if (fn == "descent2.hog")
+                    path = "data/d2/" + metadataFile;
+                else if (fn == "d2x.hog")
+                    path = "data/d2/vertigo" + metadataFile; // Vertigo
+
+                if (filesystem::exists(path)) {
+                    SPDLOG_INFO("Reading level metadata from `{}`", path);
+                    metadata = File::ReadAllText(path);
+                }
             }
+
+            if (!metadata.empty())
+                LoadLevelMetadata(level, metadata);
 
             Game::LoadLevel(std::move(level));
         }

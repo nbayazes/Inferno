@@ -204,7 +204,7 @@
     <ClCompile Include="HUD.cpp" />
     <ClCompile Include="imgui_local.cpp" />
     <ClCompile Include="Intersect.cpp" />
-    <ClCompile Include="LevelSettings.cpp" />
+    <ClCompile Include="LevelMetadata.cpp" />
     <ClCompile Include="LightInfo.cpp" />
     <ClCompile Include="Editor\UI\LightingWindow.cpp" />
     <ClCompile Include="MaterialInfo.cpp" />
@@ -309,7 +309,7 @@
     <ClInclude Include="HUD.h" />
     <ClInclude Include="Intersect.h" />
     <ClInclude Include="LegitProfiler.h" />
-    <ClInclude Include="LevelSettings.h" />
+    <ClInclude Include="LevelMetadata.h" />
     <ClInclude Include="LightInfo.h" />
     <ClInclude Include="Editor\UI\MaterialEditor.h" />
     <ClInclude Include="Material2D.h" />
@@ -397,25 +397,26 @@
     </CopyFileToFolders>
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="game.yml">
+    <None Include="data\d1\game.yml">
       <FileType>Text</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="lights.yml">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+    </None>
+    <None Include="data\d1\lights.yml">
       <DeploymentContent>true</DeploymentContent>
       <FileType>Text</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="lights2.yml">
+    </None>
+    <None Include="data\d2\lights.yml">
       <DeploymentContent>true</DeploymentContent>
       <FileType>Text</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="materials.yml">
+    </None>
+    <None Include="data\d1\material.yml">
       <DeploymentContent>true</DeploymentContent>
       <FileType>Text</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="materials2.yml">
+    </None>
+    <None Include="data\d2\material.yml">
       <DeploymentContent>true</DeploymentContent>
       <FileType>Text</FileType>
-    </CopyFileToFolders>
+    </None>
     <None Include="packages.config" />
     <CopyFileToFolders Include="shaders\Common.hlsli">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>

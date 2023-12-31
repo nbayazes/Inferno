@@ -754,7 +754,7 @@ namespace Inferno::Game {
         StuckObjects = {};
         Sound::WaitInitialized();
         Sound::Reset();
-        Resources::LoadGameTable();
+        Resources::LoadGameTables(Level);
         Render::ResetEffects();
         Render::Materials->UnloadNamedTextures();
         Render::Materials->LoadGameTextures();

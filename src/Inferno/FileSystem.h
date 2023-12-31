@@ -6,6 +6,7 @@ namespace Inferno::File {
     // Reads the file at the given path. Throws an exception if not found.
     List<ubyte> ReadAllBytes(const std::filesystem::path& path);
     void WriteAllBytes(const std::filesystem::path& path, span<ubyte> data);
+    string ReadAllText(const filesystem::path& path);
 }
 
 /*
@@ -17,5 +18,4 @@ namespace Inferno::FileSystem {
     Option<std::filesystem::path> TryFindFile(const std::filesystem::path&);
     filesystem::path FindFile(const std::filesystem::path&);
     span<filesystem::path> GetDirectories();
-    string ReadFileText(const filesystem::path& path);
 }

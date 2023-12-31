@@ -533,7 +533,7 @@ Robots:
     Mass: 6.5
     Multishot: 1
     ChaseChance: 0
-    SuppressChance: 0.5
+    SuppressChance: 0.75
     Curiosity: 0.1 # Very rarely move to investigate sounds
     Score: 650 # Was 500, these are rather dangerous
   - id: 1 # Medium lifter
@@ -630,6 +630,7 @@ Robots:
     Drag: 0.025
     ChaseChance: 1
     Curiosity: 1
+    SuppressChance: 0
   - id: 15 # Fusion hulk
     FireDelay: [ 2, 1.25, 1.5, 1, .5 ] # Reduced by 1 second due to charge time
     Shots: [ 1, 1, 2, 2, 2 ]
@@ -640,7 +641,7 @@ Robots:
     ExplosionStrength: 15
     AlertRadius: 160 # Miniboss alert radius
     ChaseChance: 0
-    SuppressChance: 1.2
+    SuppressChance: 0.2
     Curiosity: 0 # Don't investigate sounds
     # DeathRollSound: 185 # d1
   - id: 16 # Red hulk
@@ -649,6 +650,7 @@ Robots:
     Mass: 7
     ChaseChance: 0
     Curiosity: 0.05 # Very rarely move to investigate sounds
+    SuppressChance: .35
   - id: 17 # Level 7 boss
     Mass: 40
     Multishot: 2

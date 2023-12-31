@@ -396,21 +396,13 @@ namespace Inferno {
 #undef READ_PROP
     }
 
-    void LoadGameTable(filesystem::path path, HamFile& ham) {
+    void LoadGameTable(const string& data, HamFile& ham) {
         try {
-            std::ifstream file(path);
-            if (!file) {
-                SPDLOG_ERROR(L"Unable to open game table `{}`", path.c_str());
-                return;
-            }
-
-            std::stringstream buffer;
-            buffer << file.rdbuf();
-            ryml::Tree doc = ryml::parse_in_arena(ryml::to_csubstr(buffer.str()));
+            ryml::Tree doc = ryml::parse_in_arena(ryml::to_csubstr(data));
             ryml::NodeRef root = doc.rootref();
 
             if (!root.is_map()) {
-                SPDLOG_WARN(L"Game table `{}` is empty", path.c_str());
+                SPDLOG_WARN(L"Game table is empty");
                 return;
             }
 

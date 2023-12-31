@@ -568,36 +568,88 @@ namespace Inferno::Resources {
         Textures.clear();
     }
 
-    void LoadLightInfo(const filesystem::path& path) {
-        try {
-            auto file = FileSystem::ReadFileText(path);
-            LightInfoTable = LoadLightTable(file);
+    void LoadGameTables(const Level& level) {
+        // Load order matters. Changes get layered onto each other (root, game, mission)
+        // Should we reload data from the HAM?
+
+        auto commonPath = "data/game.yml";
+        if (FileSystem::TryFindFile(commonPath)) {
+            auto data = File::ReadAllText(commonPath);
+            SPDLOG_INFO("Reading game table from `{}`", commonPath);
+            LoadGameTable(data, GameData);
         }
-        catch (...) {
-            SPDLOG_ERROR("Unable to read light table from {}", path.string());
+
+        auto gamePath = level.IsDescent1() ? "data/d1/game.yml" : "data/d2/game.yml";
+
+        if (FileSystem::TryFindFile(gamePath)) {
+            auto data = File::ReadAllText(gamePath);
+            SPDLOG_INFO("Reading game table from `{}`", gamePath);
+            LoadGameTable(data, GameData);
+        }
+
+        if (Game::Mission) {
+            auto data = Game::Mission->TryReadEntryAsString("game.yml");
+            SPDLOG_INFO("Reading game table from mission");
+
+            if (!data.empty())
+                LoadGameTable(data, GameData);
         }
     }
 
-    void LoadMaterialInfo(const filesystem::path& path) {
-        try {
-            auto file = FileSystem::ReadFileText(path);
-            LoadMaterialTable(file, Resources::Materials.GetAllMaterialInfo());
+    void LoadLightTables(const Level& level) {
+        auto commonPath = "data/lights.yml";
+        if (FileSystem::TryFindFile(commonPath)) {
+            auto data = File::ReadAllText(commonPath);
+            SPDLOG_INFO("Reading light table from `{}`", commonPath);
+            LoadLightTable(data, LightInfoTable);
         }
-        catch (...) {
-            SPDLOG_ERROR("Unable to read material table from {}", path.string());
+
+        auto gamePath = level.IsDescent1() ? "data/d1/lights.yml" : "data/d2/lights.yml";
+
+        if (FileSystem::TryFindFile(gamePath)) {
+            auto data = File::ReadAllText(gamePath);
+            SPDLOG_INFO("Reading light table from `{}`", gamePath);
+            LoadLightTable(data, LightInfoTable);
+        }
+
+        if (Game::Mission) {
+            auto data = Game::Mission->TryReadEntryAsString("lights.yml");
+            SPDLOG_INFO("Reading light table from mission");
+
+            if (!data.empty())
+                LoadLightTable(data, LightInfoTable);
+        }
+    }
+
+    void LoadMaterialTables(const Level& level) {
+        auto commonPath = "data/material.yml";
+        if (FileSystem::TryFindFile(commonPath)) {
+            auto data = File::ReadAllText(commonPath);
+            SPDLOG_INFO("Reading material table from `{}`", commonPath);
+            LoadMaterialTable(data, Resources::Materials.GetAllMaterialInfo());
+        }
+
+        auto gamePath = GetMaterialTablePath(level);
+
+        if (FileSystem::TryFindFile(gamePath)) {
+            auto data = File::ReadAllText(gamePath);
+            SPDLOG_INFO("Reading material table from `{}`", gamePath);
+            LoadMaterialTable(data, Resources::Materials.GetAllMaterialInfo());
+        }
+
+        if (Game::Mission) {
+            auto data = Game::Mission->TryReadEntryAsString("material.yml");
+            SPDLOG_INFO("Reading material table from mission");
+
+            if (!data.empty())
+                LoadMaterialTable(data, Resources::Materials.GetAllMaterialInfo());
         }
     }
 
     void LoadDataTables(const Level& level) {
-        // todo: support loading from hog file. note that file names need to be shortened to 8.3
-        LoadLightInfo(GetLightFileName(level));
-        LoadMaterialInfo(GetMaterialFileName(level));
-    }
-
-    void LoadGameTable() {
-        // todo: support handle loading game.yml from hog file
-        if (auto file = FileSystem::TryFindFile("game.yml"))
-            LoadGameTable(*file, GameData);
+        LoadLightTables(level);
+        LoadMaterialTables(level);
+        LoadGameTables(level);
     }
 
     span<JointPos> GetRobotJoints(int robotId, int gun, AnimState state) {
@@ -633,7 +685,6 @@ namespace Inferno::Resources {
 
             Materials = { Render::MATERIAL_COUNT };
 
-            LoadGameTable();
             LoadDataTables(level);
             LoadStringTable();
             UpdateAverageTextureColor();

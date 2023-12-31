@@ -2,5 +2,5 @@
 #include "HamFile.h"
 
 namespace Inferno {
-    void LoadGameTable(filesystem::path path, HamFile& ham);
+    void LoadGameTable(const string& data, HamFile& ham);
 }

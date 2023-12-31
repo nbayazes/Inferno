@@ -39,7 +39,8 @@ namespace Inferno {
     };
 
     // Loads light info from a YAML file
-    Dictionary<LevelTexID, TextureLightInfo> LoadLightTable(const string& yaml);
+    void LoadLightTable(const string& yaml, Dictionary<LevelTexID, TextureLightInfo>& lightInfo);
+
     // Loads material info from a YAML file
     void SaveLightTable(std::ostream& stream, const Dictionary<LevelTexID, TextureLightInfo>& lightInfo);
 }

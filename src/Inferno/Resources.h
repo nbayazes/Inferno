@@ -57,21 +57,16 @@ namespace Inferno::Resources {
     TexID LookupModelTexID(const Model&, int16);
     inline LevelTexID LookupLevelTexID(TexID id) { return GameData.LevelTexIdx[(int)id]; }
 
-    inline const char* GetMaterialFileName(const Level& level) {
-        return level.IsDescent1() ? "materials.yml" : "materials2.yml";
+    inline const char* GetMaterialTablePath(const Level& level) {
+        return level.IsDescent1() ? "data/d1/material.yml" : "data/d2/material.yml";
     }
-
-    inline const char* GetLightFileName(const Level& level) {
-        return level.IsDescent1() ? "lights.yml" : "lights2.yml";
-    }
-
 
     // Returns true if the id corresponds to a level texture
     bool IsLevelTexture(TexID id);
 
     Weapon& GetWeapon(WeaponID);
     inline Weapon& GetWeapon(const Object& obj) {
-        assert(obj.IsWeapon());
+        ASSERT(obj.IsWeapon());
         return GetWeapon(WeaponID(obj.ID));
     }
 
@@ -128,7 +123,7 @@ namespace Inferno::Resources {
     const string_view GetPrimaryNameShort(PrimaryWeaponIndex id);
     const string_view GetSecondaryNameShort(SecondaryWeaponIndex id);
 
-    void LoadGameTable();
+    void LoadGameTables(const Level& level);
     span<JointPos> GetRobotJoints(int robotId, int gun, AnimState state);
 
     inline MaterialInfoLibrary Materials;

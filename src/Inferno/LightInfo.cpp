@@ -60,14 +60,12 @@ namespace Inferno {
         node["Color"] << EncodeColor(info.Color);
     }
 
-    Dictionary<LevelTexID, TextureLightInfo> LoadLightTable(const string& yaml) {
-        Dictionary<LevelTexID, TextureLightInfo> lightInfo;
-
+    void LoadLightTable(const string& yaml, Dictionary<LevelTexID, TextureLightInfo>& lightInfo) {
         try {
             ryml::Tree doc = ryml::parse_in_arena(ryml::to_csubstr(yaml));
             ryml::NodeRef root = doc.rootref();
 
-            if (!root.is_map()) return lightInfo;
+            if (!root.is_map()) return;
 
             if (auto node = root["Lights"]; node.valid() && !node.is_seed()) {
                 for (const auto& child : node.children()) {
@@ -85,8 +83,6 @@ namespace Inferno {
         catch (const std::exception& e) {
             SPDLOG_ERROR("Error loading light info:\n{}", e.what());
         }
-
-        return lightInfo;
     }
 
 

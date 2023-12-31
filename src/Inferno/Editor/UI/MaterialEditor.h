@@ -1,5 +1,6 @@
 #pragma once
 #include "Procedural.h"
+#include "Resources.h"
 #include "WindowBase.h"
 
 namespace Inferno::Editor {
@@ -37,8 +38,8 @@ namespace Inferno::Editor {
             try {
                 SPDLOG_INFO("Saving materials");
                 // todo: save materials to hog toggle?
-                auto name = Resources::GetMaterialFileName(Game::Level);
-                std::ofstream stream(name);
+                auto path = Resources::GetMaterialTablePath(Game::Level);
+                std::ofstream stream(path);
                 auto materials = Resources::Materials.GetAllMaterialInfo();
                 SaveMaterialTable(stream, materials);
                 _backup = Seq::toList(materials);

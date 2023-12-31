@@ -241,7 +241,7 @@ int Inferno::Shell::Show(int width, int height, int nCmdShow) const {
 
     AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
 
-    // TODO: Change to CreateWindowExW(WS_EX_TOPMOST, , , WS_POPUP, to default to fullscreen.
+    // Change to CreateWindowExW(WS_EX_TOPMOST, , , WS_POPUP, to default to fullscreen.
     HWND hwnd = CreateWindowEx(0, WindowClass, Convert::ToWideString(APP_TITLE).c_str(),
                                WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
                                rc.right - rc.left, rc.bottom - rc.top,

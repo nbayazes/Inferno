@@ -58,6 +58,12 @@ namespace Inferno {
         List<ubyte> TryReadEntry(int index) const;
         List<ubyte> TryReadEntry(string_view entry) const;
 
+        string TryReadEntryAsString(string_view entry) const {
+            auto data = TryReadEntry(entry);
+            if (data.empty()) return {};
+            return string((char*)data.data(), data.size());
+        }
+
         bool Exists(string_view entry) const;
         const HogEntry& FindEntry(string_view entry) const;
 

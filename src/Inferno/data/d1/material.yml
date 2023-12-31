@@ -149,8 +149,8 @@ Materials:
     Roughness: 0.4
   - TexID: 30
     NormalStrength: 0.3
-    SpecularStrength: 1.5
-    Metalness: 0.96
+    SpecularStrength: 2
+    Metalness: 1
     Roughness: 0.426
   - TexID: 31
     NormalStrength: 0.3
