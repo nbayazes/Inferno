@@ -227,35 +227,11 @@
     <ResourceCompile Include="Inferno.rc" />
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="shaders\Utility.hlsli" />
-    <CopyFileToFolders Include="shaders\imgui.hlsl" />
-    <CopyFileToFolders Include="shaders\Common.hlsli" />
-    <CopyFileToFolders Include="shaders\LightGrid.hlsli" />
-    <CopyFileToFolders Include="shaders\Lighting.hlsli" />
-    <CopyFileToFolders Include="shaders\level.hlsl" />
-    <CopyFileToFolders Include="shaders\editor.hlsl" />
-    <CopyFileToFolders Include="shaders\sprite.hlsl" />
-    <CopyFileToFolders Include="shaders\object.hlsl" />
     <CopyFileToFolders Include="d1filter.txt" />
     <CopyFileToFolders Include="d2filter.txt" />
     <CopyFileToFolders Include="powerups.txt" />
     <CopyFileToFolders Include="robots.txt" />
-    <CopyFileToFolders Include="shaders\BloomExtractDownsampleCS.hlsl" />
-    <CopyFileToFolders Include="shaders\BlurCS.hlsl" />
-    <CopyFileToFolders Include="shaders\DownsampleBloomCS.hlsl" />
-    <CopyFileToFolders Include="shaders\ToneMapCS-NoUAVL.hlsl" />
-    <CopyFileToFolders Include="shaders\levelflat.hlsl" />
-    <CopyFileToFolders Include="shaders\ToneMapCS.hlsl" />
-    <CopyFileToFolders Include="shaders\UpsampleAndBlurCS.hlsl" />
     <CopyFileToFolders Include="..\..\thirdparty.txt" />
-    <CopyFileToFolders Include="shaders\ScanlineCS.hlsl" />
-    <CopyFileToFolders Include="shaders\LinearizeDepthCS.hlsl" />
-    <CopyFileToFolders Include="shaders\DepthCutout.hlsl" />
-    <CopyFileToFolders Include="shaders\Depth.hlsl" />
-    <CopyFileToFolders Include="shaders\DepthObject.hlsl" />
-    <CopyFileToFolders Include="shaders\HUD.hlsl" />
-    <CopyFileToFolders Include="shaders\FillLightGridCS.hlsl" />
-    <CopyFileToFolders Include="shaders\ObjectDistortion.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -265,5 +241,29 @@
     <None Include="data\d1\game.yml" />
     <None Include="data\d2\lights.yml" />
     <None Include="data\d2\material.yml" />
+    <None Include="shaders\BlurCS.hlsl" />
+    <None Include="shaders\Common.hlsli" />
+    <None Include="shaders\Depth.hlsl" />
+    <None Include="shaders\DepthCutout.hlsl" />
+    <None Include="shaders\DepthObject.hlsl" />
+    <None Include="shaders\DownsampleBloomCS.hlsl" />
+    <None Include="shaders\editor.hlsl" />
+    <None Include="shaders\FillLightGridCS.hlsl" />
+    <None Include="shaders\HUD.hlsl" />
+    <None Include="shaders\imgui.hlsl" />
+    <None Include="shaders\level.hlsl" />
+    <None Include="shaders\levelflat.hlsl" />
+    <None Include="shaders\LightGrid.hlsli" />
+    <None Include="shaders\Lighting.hlsli" />
+    <None Include="shaders\LinearizeDepthCS.hlsl" />
+    <None Include="shaders\object.hlsl" />
+    <None Include="shaders\ScanlineCS.hlsl" />
+    <None Include="shaders\ObjectDistortion.hlsl" />
+    <None Include="shaders\ToneMapCS.hlsl" />
+    <None Include="shaders\sprite.hlsl" />
+    <None Include="shaders\ToneMapCS-NoUAVL.hlsl" />
+    <None Include="shaders\UpsampleAndBlurCS.hlsl" />
+    <None Include="shaders\Utility.hlsli" />
+    <None Include="shaders\BloomExtractDownsampleCS.hlsl" />
   </ItemGroup>
 </Project>

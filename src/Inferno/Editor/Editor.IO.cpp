@@ -299,16 +299,14 @@ namespace Inferno::Editor {
             auto metadata = Game::Mission->TryReadEntryAsString(metadataFile);
 
             if (metadata.empty()) {
-                auto fn = String::ToLower(Game::Mission->Path.filename().string());
-                auto stem = Game::Mission->Path.stem();
-
+                auto mission = String::ToLower(Game::Mission->Path.filename().string());
                 string path;
 
-                if (fn == "descent.hog")
+                if (mission == "descent.hog")
                     path = "data/d1/" + metadataFile;
-                else if (fn == "descent2.hog")
+                else if (mission == "descent2.hog")
                     path = "data/d2/" + metadataFile;
-                else if (fn == "d2x.hog")
+                else if (mission == "d2x.hog")
                     path = "data/d2/vertigo" + metadataFile; // Vertigo
 
                 if (filesystem::exists(path)) {
