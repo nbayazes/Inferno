@@ -223,68 +223,6 @@ namespace Inferno::Game {
         }
     }
 
-    void CloakObject(Object& obj, float duration, bool playSound) {
-        ASSERT(duration != 0);
-        SetFlag(obj.Effects.Flags, EffectFlags::Cloaked);
-        obj.Effects.CloakDuration = duration;
-        obj.Effects.CloakTimer = 0;
-
-        if (playSound) {
-            Sound3D sound(SoundID::CloakOn);
-            sound.Merge = false;
-
-            if (obj.IsPlayer())
-                Sound::AtPlayer(sound);
-            else
-                Sound::PlayFrom(sound, obj);
-        }
-    }
-
-    void UncloakObject(Object& obj, bool playSound) {
-        ClearFlag(obj.Effects.Flags, EffectFlags::Cloaked);
-
-        if (playSound) {
-            Sound3D sound(SoundID::CloakOff);
-            sound.Merge = false;
-
-            if (obj.IsPlayer())
-                Sound::AtPlayer(sound);
-            else
-                Sound::PlayFrom(sound, obj);
-        }
-    }
-
-    void MakeInvulnerable(Object& obj, float duration, bool playSound) {
-        ASSERT(duration != 0);
-        SetFlag(obj.Effects.Flags, EffectFlags::Invulnerable);
-        obj.Effects.InvulnerableDuration = duration;
-        obj.Effects.InvulnerableTimer = 0;
-
-        if (playSound) {
-            Sound3D sound(SoundID::InvulnOn);
-            sound.Merge = false;
-
-            if (obj.IsPlayer())
-                Sound::AtPlayer(sound);
-            else
-                Sound::PlayFrom(sound, obj);
-        }
-    }
-
-    void MakeVulnerable(Object& obj, bool playSound) {
-        ClearFlag(obj.Effects.Flags, EffectFlags::Invulnerable);
-
-        if (playSound) {
-            Sound3D sound(SoundID::InvulnOff);
-            sound.Merge = false;
-
-            if (obj.IsPlayer())
-                Sound::AtPlayer(sound);
-            else
-                Sound::PlayFrom(sound, obj);
-        }
-    }
-
     Object* GetObject(ObjRef ref) {
         if (!Seq::inRange(Level.Objects, (int)ref.Id)) return nullptr;
         auto& obj = Level.Objects[(int)ref.Id];
@@ -739,7 +677,7 @@ namespace Inferno::Game {
         ResetDeltaTime = true;
 
         // Activate game mode
-        Editor::InitObject(Level, *player, ObjectType::Player);
+        InitObject(Level, *player, ObjectType::Player);
         Player.Reference = { ObjID(0), player->Signature };
         Player.SpawnPosition = player->Position;
         Player.SpawnRotation = player->Rotation;

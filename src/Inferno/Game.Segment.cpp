@@ -545,7 +545,7 @@ namespace Inferno {
 
             // Create a new robot
             Object obj{};
-            Editor::InitObject(Game::Level, obj, ObjectType::Robot, type);
+            InitObject(Game::Level, obj, ObjectType::Robot, type);
             obj.Position = seg->Center;
             obj.Segment = matcen.Segment;
             obj.SourceMatcen = matcenId;

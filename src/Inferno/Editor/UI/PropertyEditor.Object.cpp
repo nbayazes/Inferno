@@ -2,6 +2,7 @@
 #include "Game.AI.h"
 #include "PropertyEditor.h"
 #include "Game.h"
+#include "Game.Object.h"
 #include "../Editor.h"
 #include "SoundSystem.h"
 #include "Editor/Editor.Object.h"

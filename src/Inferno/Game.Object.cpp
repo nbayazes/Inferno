@@ -254,7 +254,7 @@ namespace Inferno {
 
     void CreateRobot(SegID segment, const Vector3& position, int8 type, MatcenID srcMatcen) {
         Object obj{};
-        Editor::InitObject(Game::Level, obj, ObjectType::Robot, type);
+        InitObject(Game::Level, obj, ObjectType::Robot, type);
         obj.Position = position;
         obj.Segment = segment;
         obj.SourceMatcen = srcMatcen;
@@ -287,7 +287,7 @@ namespace Inferno {
         }
 
         Object powerup{};
-        Editor::InitObject(Level, powerup, ObjectType::Powerup, (int)pid);
+        InitObject(Level, powerup, ObjectType::Powerup, (int)pid);
         powerup.Position = position;
         powerup.Segment = segId;
 
@@ -330,7 +330,7 @@ namespace Inferno {
             {
                 for (int i = 0; i < contains.Count; i++) {
                     Object spawn{};
-                    Editor::InitObject(level, spawn, ObjectType::Robot, contains.ID);
+                    InitObject(level, spawn, ObjectType::Robot, contains.ID);
                     spawn.Position = position;
                     spawn.Segment = segId;
                     spawn.Type = ObjectType::Robot;
@@ -631,7 +631,7 @@ namespace Inferno {
         // Note this won't update weapons
         for (int id = 0; id < level.Objects.size(); id++) {
             auto& obj = level.Objects[id];
-            Editor::InitObject(level, obj, obj.Type, obj.ID, false);
+            InitObject(level, obj, obj.Type, obj.ID, false);
             if (auto seg = level.TryGetSegment(obj.Segment)) {
                 obj.Ambient.SetTarget(seg->VolumeLight, Game::Time, 0);
             }
@@ -838,5 +838,260 @@ namespace Inferno {
 
         force.Normalize();
         TurnTowardsDirection(obj, force, rate);
+    }
+
+
+    void Game::CloakObject(Object& obj, float duration, bool playSound) {
+        ASSERT(duration != 0);
+        SetFlag(obj.Effects.Flags, EffectFlags::Cloaked);
+        obj.Effects.CloakDuration = duration;
+        obj.Effects.CloakTimer = 0;
+
+        if (playSound) {
+            Sound3D sound(SoundID::CloakOn);
+            sound.Merge = false;
+
+            if (obj.IsPlayer())
+                Sound::AtPlayer(sound);
+            else
+                Sound::PlayFrom(sound, obj);
+        }
+    }
+
+    void Game::UncloakObject(Object& obj, bool playSound) {
+        ClearFlag(obj.Effects.Flags, EffectFlags::Cloaked);
+
+        if (playSound) {
+            Sound3D sound(SoundID::CloakOff);
+            sound.Merge = false;
+
+            if (obj.IsPlayer())
+                Sound::AtPlayer(sound);
+            else
+                Sound::PlayFrom(sound, obj);
+        }
+    }
+
+    void Game::MakeInvulnerable(Object& obj, float duration, bool playSound) {
+        ASSERT(duration != 0);
+        SetFlag(obj.Effects.Flags, EffectFlags::Invulnerable);
+        obj.Effects.InvulnerableDuration = duration;
+        obj.Effects.InvulnerableTimer = 0;
+
+        if (playSound) {
+            Sound3D sound(SoundID::InvulnOn);
+            sound.Merge = false;
+
+            if (obj.IsPlayer())
+                Sound::AtPlayer(sound);
+            else
+                Sound::PlayFrom(sound, obj);
+        }
+    }
+
+    void Game::MakeVulnerable(Object& obj, bool playSound) {
+        ClearFlag(obj.Effects.Flags, EffectFlags::Invulnerable);
+
+        if (playSound) {
+            Sound3D sound(SoundID::InvulnOff);
+            sound.Merge = false;
+
+            if (obj.IsPlayer())
+                Sound::AtPlayer(sound);
+            else
+                Sound::PlayFrom(sound, obj);
+        }
+    }
+
+
+    float GetObjectRadius(const Object& obj) {
+        constexpr float playerRadius = FixToFloat(0x46c35L);
+
+        switch (obj.Type) {
+            case ObjectType::Player:
+            case ObjectType::Coop:
+                return playerRadius;
+
+            case ObjectType::Robot:
+            {
+                auto& ri = Resources::GetRobotInfo(obj.ID);
+                if (ri.Radius > 0)
+                    return ri.Radius;
+                else
+                    return Resources::GetModel(ri.Model).Radius;
+            }
+
+            case ObjectType::Hostage:
+                return 5;
+
+            case ObjectType::Powerup:
+                return Resources::GetPowerup((PowerupID)obj.ID).Size;
+
+            case ObjectType::Reactor:
+            {
+                if (auto info = Seq::tryItem(Resources::GameData.Reactors, obj.ID))
+                    return Resources::GetModel(info->Model).Radius;
+                else
+                    return obj.Radius;
+            }
+
+            case ObjectType::Weapon:
+            {
+                if (obj.Render.Type == RenderType::Model) {
+                    return Resources::GetModel(obj.Render.Model.ID).Radius;
+                }
+                else {
+                    return obj.Radius;
+                }
+            }
+        }
+
+        return 5;
+    }
+
+    void InitPlaceableMine(Object& obj) {
+        auto& weapon = Resources::GetWeapon(WeaponID::LevelMine);
+
+        obj.Control.Type = ControlType::Weapon;
+        obj.Control.Weapon.Parent = {};
+        obj.Control.Weapon.ParentType = obj.Type;
+        obj.Movement = MovementType::Physics;
+
+        obj.Physics.Mass = weapon.Mass;
+        obj.Physics.Drag = weapon.Drag;
+        obj.Physics.Flags = PhysicsFlag::Bounce | PhysicsFlag::FixedAngVel;
+        obj.ID = (int8)WeaponID::LevelMine;
+        obj.Render.Type = RenderType::Model;
+        obj.Render.Model = { .ID = ModelID::Mine };
+        obj.HitPoints = 20;
+    }
+
+    void InitObject(const Level& level, Object& obj, ObjectType type, int8 id, bool fullReset) {
+        const ModelID coopModel = level.IsDescent1() ? ModelID::D1Coop : ModelID::D2Player;
+
+        obj.Type = type;
+        obj.ID = id;
+        if (fullReset) {
+            obj.Movement = {};
+            obj.Control = {};
+            obj.Render = {};
+            obj.Light = {};
+            obj.Physics = {};
+            obj.Radius = GetObjectRadius(obj); // Hostages can have custom radii
+        }
+
+        switch (type) {
+            case ObjectType::Player:
+            {
+                obj.Control.Type = obj.ID == 0 ? ControlType::None : ControlType::Slew; // Player 0 only
+                obj.Movement = MovementType::Physics;
+
+                const auto& ship = Resources::GameData.PlayerShip;
+                auto& physics = obj.Physics;
+                physics.Brakes = physics.TurnRoll = 0;
+                physics.Drag = ship.Drag;
+                physics.Mass = ship.Mass;
+
+                physics.Flags |= PhysicsFlag::TurnRoll | PhysicsFlag::AutoLevel | PhysicsFlag::Wiggle | PhysicsFlag::UseThrust;
+                obj.Render.Type = RenderType::Model;
+                obj.Render.Model = {
+                    .ID = ship.Model,
+                    .TextureOverride = LevelTexID::None
+                };
+
+                for (auto& angle : obj.Render.Model.Angles)
+                    angle = Vector3::Zero;
+
+                obj.Flags = (ObjectFlag)0;
+                obj.ID = 0; // can only have one ID 0 player, fix it later
+                break;
+            }
+
+            case ObjectType::Coop:
+                obj.Movement = MovementType::Physics;
+                obj.Render.Type = RenderType::Model;
+                obj.Render.Model = { .ID = coopModel };
+                obj.ID = 0;
+                break;
+
+            case ObjectType::Robot:
+            {
+                auto& ri = Resources::GetRobotInfo(id);
+                obj.Control.Type = ControlType::AI;
+                obj.Movement = MovementType::Physics;
+                obj.Physics.Mass = ri.Mass;
+                obj.Physics.Drag = ri.Drag;
+                obj.Render.Type = RenderType::Model;
+                obj.HitPoints = ri.HitPoints;
+                obj.Render.Model.ID = ri.Model;
+                if (ri.Cloaking != CloakType::None)
+                    Game::CloakObject(obj, -1, false);
+
+                if (fullReset) {
+                    obj.Control.AI.Behavior = AIBehavior::Normal;
+                    obj.Contains.Type = ObjectType::None;
+                }
+                break;
+            }
+            case ObjectType::Hostage:
+                obj.Control.Type = ControlType::Powerup;
+                obj.Render.Type = RenderType::Hostage;
+                obj.Render.VClip = { .ID = VClipID(33) };
+                break;
+
+            case ObjectType::Powerup:
+            {
+                obj.Control.Type = ControlType::Powerup;
+                obj.Render.Type = RenderType::Powerup;
+                auto& info = Resources::GetPowerup((PowerupID)id);
+                obj.Render.VClip = { .ID = info.VClip };
+                obj.Radius = info.Size;
+                obj.Light.Radius = info.LightRadius;
+                obj.Light.Color = info.LightColor;
+                obj.Light.Mode = info.LightMode;
+                obj.Render.Emissive = info.Glow;
+
+                if ((PowerupID)id == PowerupID::Vulcan || (PowerupID)id == PowerupID::Gauss)
+                    obj.Control.Powerup.Count = VULCAN_AMMO_PICKUP;
+
+                break;
+            }
+
+            case ObjectType::Reactor:
+            {
+                obj.Control.Type = ControlType::Reactor;
+                obj.Render.Type = RenderType::Model;
+
+                if (Seq::inRange(Resources::GameData.Reactors, id)) {
+                    auto& info = Resources::GameData.Reactors[id];
+                    obj.Render.Model = { .ID = info.Model };
+                }
+
+                obj.HitPoints = 200;
+                break;
+            }
+
+            case ObjectType::Weapon: // For placeable mines
+            {
+                obj.Physics.Flags = {};
+                auto& weapon = Resources::GetWeapon((WeaponID)id);
+                if (weapon.Extended.PointCollideWalls)
+                    obj.Physics.Flags = PhysicsFlag::PointCollideWalls;
+
+                if ((WeaponID)id == WeaponID::LevelMine)
+                    InitPlaceableMine(obj);
+
+                break;
+            }
+        }
+
+        obj.MaxHitPoints = obj.HitPoints;
+        obj.NextThinkTime = 0;
+
+        if (obj.Render.Type == RenderType::Model)
+            Render::LoadModelDynamic(obj.Render.Model.ID);
+
+        if (obj.Render.Type == RenderType::Hostage || obj.Render.Type == RenderType::Powerup)
+            Render::LoadTextureDynamic(obj.Render.VClip.ID);
     }
 }

@@ -50,8 +50,6 @@ namespace Inferno {
     // Flags an object to be destroyed
     void ExplodeObject(Object& obj, float delay = 0);
 
-    void SpawnContained(const ContainsData& contains, Level& level, const Vector3& position, SegID segment, const Vector3& force);
-
     // Filter predicates
 
     inline bool IsReactor(const Object& obj) { return obj.Type == ObjectType::Reactor; }
@@ -65,7 +63,7 @@ namespace Inferno {
     void TurnTowardsDirection(Object& obj, Vector3 direction, float rate);
 
     // Modifies an object's rotation to face towards a point at a given rate per second
-    void TurnTowardsPoint(Object& obj, const Vector3& target, float rate);
+    void TurnTowardsPoint(Object& obj, const Vector3& point, float rate);
 
     // Similar to TurnTowardsVector but adds angular thrust, allowing overshoot
     void RotateTowards(Object& obj, Vector3 point, float angularThrust);
@@ -83,12 +81,21 @@ namespace Inferno {
         void FreeObject(ObjID id);
         void InitObjects(Inferno::Level& level);
         ObjRef DropPowerup(PowerupID pid, const Vector3& position, SegID segId, const Vector3& force = Vector3::Zero);
+
+        void CloakObject(Object& obj, float duration, bool playSound = true);
+        void UncloakObject(Object& obj, bool playSound = true);
+        void MakeInvulnerable(Object& obj, float duration, bool playSound = true);
+        void MakeVulnerable(Object& obj, bool playSound = true);
     }
 
     void DestroyObject(Object& obj);
-    void ExplodeSubmodels(ModelID model, Object& obj);
-    Tuple<ObjRef, float> FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask);
+    //void ExplodeSubmodels(ModelID model, Object& obj);
 
     // Returns true if object is a prox mine, smart mine or editor placed mine
     bool ObjectIsMine(const Object& obj);
+
+    // Reloads various properties for the object from the game data.
+    // The editor snapshots certain props such as health and it's best to refresh them.
+    void InitObject(const Level&, Object&, ObjectType type, int8 id = 0, bool fullReset = true);
+    float GetObjectRadius(const Object& obj);
 }

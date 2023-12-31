@@ -196,11 +196,6 @@ namespace Inferno::Game {
         return Level.GetRoom(GetPlayerObject());
     }
 
-    void CloakObject(Object& obj, float duration, bool playSound = true);
-    void UncloakObject(Object& obj, bool playSound = true);
-    void MakeInvulnerable(Object& obj, float duration, bool playSound = true);
-    void MakeVulnerable(Object& obj, bool playSound = true);
-
     // Stupid intellisense
 #undef GetObject
 

@@ -7,12 +7,9 @@ namespace Inferno::Editor {
     //bool AlignObjectToSide(Level&, ObjID, PointTag);
     bool MoveObjectToSegment(Level&, ObjID, SegID);
     int GetObjectCount(const Level& level, ObjectType type);
-    float GetObjectRadius(const Object& obj);
 
     ObjID AddObject(Level&, PointTag, ObjectType);
     void DeleteObject(Level&, ObjID);
-    void InitObject(const Level&, Object&, ObjectType type, int8 id = 0, bool fullReset = true);
-
     void UpdateSecretLevelReturnMarker();
 
     // Ensures object direction vectors are normalized
