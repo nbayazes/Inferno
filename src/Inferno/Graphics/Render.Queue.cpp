@@ -416,7 +416,7 @@ namespace Inferno::Render {
         
         auto room = level.GetRoom(srcPortal.RoomLink);
         if (!room) return;
-        auto srcFace = Face2::FromSide(level, srcPortal.Tag);
+        //auto srcFace = Face2::FromSide(level, srcPortal.Tag);
 
         for (auto& portal : room->Portals) {
             //if (Seq::contains(_roomQueue, portal.RoomLink))
@@ -429,9 +429,10 @@ namespace Inferno::Render {
                 continue; // Don't go back to the connected room
 
             auto face = Face2::FromSide(level, portal.Tag);
-            auto dot = face.AverageNormal().Dot(srcFace.AverageNormal());
-            if (dot < 0)
-                continue; // Portal is facing away from portal
+            //auto dot = face.AverageNormal().Dot(srcFace.AverageNormal());
+            auto dot = face.AverageNormal().Dot(Render::Camera.GetForward());
+            if (dot >= 0)
+                continue; // Portal is facing away from camera (prevent going backwards / recursion)
 
             auto ndc = GetNdc(face, Render::ViewProjection);
             if (!ndc) continue;
