@@ -36,7 +36,7 @@ namespace Inferno::Game {
         constexpr size_t OBJECT_BUFFER_SIZE = 100; // How many new objects to keep in reserve
     }
 
-    void StartLevel();
+    bool StartLevel();
 
     void ResetCountdown() {
         ControlCenterDestroyed = false;
@@ -446,7 +446,10 @@ namespace Inferno::Game {
                     Input::SetMouseMode(Input::MouseMode::Mouselook);
                 }
                 else {
-                    StartLevel();
+                    if (!StartLevel()) {
+                        RequestedState = State;
+                        return;
+                    }
                 }
 
                 break;
@@ -664,12 +667,21 @@ namespace Inferno::Game {
         Render::Materials->LoadTextures(customHudTextures);
     }
 
-    void StartLevel() {
+    bool StartLevel() {
         auto player = Level.TryGetObject(ObjID(0));
 
         if (!player || !player->IsPlayer()) {
-            SPDLOG_ERROR("No player start at object 0!");
-            return; // no player start!
+            ShowErrorMessage(L"No player start at object 0!", L"Unable to playtest");
+            return false;
+        }
+
+        if (Input::ControlDown && State == GameState::Editor) {
+            // Move player to selected segment if control is held down
+            Editor::Selection.Object = ObjID(0);
+            Editor::Commands::MoveObjectToSegment();
+        }
+        else {
+            Editor::History.SnapshotLevel("Playtest");
         }
 
         // Reset level timing
@@ -685,7 +697,6 @@ namespace Inferno::Game {
         Player.Lives = PlayerData::INITIAL_LIVES;
         player->Faction = Faction::Player;
 
-        Editor::History.SnapshotLevel("Playtest");
         State = GameState::Game;
 
         ResetCountdown();
@@ -757,6 +768,7 @@ namespace Inferno::Game {
         Settings::Editor.RenderMode = RenderMode::Shaded;
         Input::SetMouseMode(Input::MouseMode::Mouselook);
         Player.Respawn(false);
+        return true;
     }
 
     void SetState(GameState state) {
