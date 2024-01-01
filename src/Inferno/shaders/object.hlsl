@@ -161,21 +161,19 @@ float4 psmain(PS_INPUT input) : SV_Target {
             ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
             lighting += colorSum * material.LightReceived;
             lighting += emissive * diffuse.rgb;
-            lighting += diffuse.rgb * ambient * 0.20 * material.LightReceived * (1 - material.Metalness * .50); // ambient
+            lighting += diffuse.rgb * ambient * 0.20 * material.LightReceived * (1 - material.Metalness * .20); // ambient
 
             //lighting += ApplyAmbientSpecular(Environment, Sampler, viewDir, normal, material, ambient * 1, diffuse.rgb * 1, pow(specularMask + 1, 1.5) - 0.9, .5, .75);
 
             {
                 // Add some fake specular highlights so objects without direct lighting aren't completely flat
                 float nDotH = HalfLambert(normal, -viewDir);
-                float gloss = RoughnessToGloss(material.Roughness);
+                float gloss = RoughnessToGloss(material.Roughness) / 4;
+                //float gloss = 16;
                 float eyeTerm = pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
-                gloss *= 0.25;
-                eyeTerm += pow(nDotH, gloss) * (gloss + 2) / 8;
-                eyeTerm *= 0.5;
-                float3 specularColor = lerp(ambient, diffuse.rgb * diffuse.rgb * ambient, material.Metalness);
-                lighting += eyeTerm * specularColor * specularMask;
-                lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, ambient, diffuse.rgb, specularMask, .25) * nDotH;
+                float3 specularColor = lerp(ambient, diffuse.rgb * diffuse.rgb * ambient, material.Metalness) * 3;
+                lighting += eyeTerm * specularColor /** specularMask*/ * input.col.rgb;
+                //lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, ambient, diffuse.rgb, specularMask, .25) * nDotH;
             }
         }
 
