@@ -361,6 +361,14 @@ namespace Inferno {
         auto gunOffset = GetSubmodelOffset(obj, { robot.GunSubmodels[gun], robot.GunPoints[gun] });
         auto position = Vector3::Transform(gunOffset, obj.GetTransform());
         auto direction = NormalizeDirection(target, position);
+
+        if (obj.Rotation.Forward().Dot(direction) < 0) {
+            // tried to fire backwards. Can rarely happen if target is in front of robot but behind gunpoint.
+            // Just fire directly ahead instead
+            SPDLOG_WARN("Robot {} tried to shoot backwards", obj.Signature);
+            direction = obj.Rotation.Forward();
+        }
+
         auto id = Game::GetObjectRef(obj);
         Game::FireWeapon(id, weapon, gun, &direction);
     }
@@ -369,9 +377,8 @@ namespace Inferno {
     constexpr float SLOW_WEAPON_SPEED = 30;
 
     void DecayAwareness(AIRuntime& ai, float rate = AI_AWARENESS_DECAY) {
-        auto deltaTime = float(Game::Time - ai.LastUpdate);
         auto random = .75f + Random() * 0.25f; // Add some randomness so robots don't all stop firing at the same time
-        ai.Awareness -= rate * deltaTime * random;
+        ai.Awareness -= rate * ai.GetDeltaTime() * random;
         if (ai.Awareness < 0) ai.Awareness = 0;
     }
 
@@ -396,16 +403,16 @@ namespace Inferno {
     }
 
     // Returns the new position to fire at
-    Vector3 LeadTarget(const Vector3& gunPosition, SegID gunSeg, const Object& target, const Weapon& weapon) {
-        auto targetSpeed = target.Physics.Velocity.Length();
+    Vector3 LeadTarget(const Object& robot, SegID gunSeg, const Object& target, const Weapon& weapon) {
+        //auto targetSpeed = target.Physics.Velocity.Length();
 
-        if (targetSpeed < 10)
-            return target.Position; // Don't lead slow targets
+        //if (targetSpeed < 10)
+        //    return target.Position; // Don't lead slow targets
 
         if (weapon.Speed[Game::Difficulty] > FAST_WEAPON_SPEED)
-            return target.Position; // Don't lead with fast weapons (vulcan, drillers). Unfair to player.
+            return target.Position; // Don't lead with fast weapons (vulcan, gauss, drillers). Unfair to player.
 
-        auto targetDist = Vector3::Distance(target.Position, gunPosition);
+        auto targetDist = Vector3::Distance(target.Position, robot.Position);
         Vector3 targetVelDir;
         target.Physics.Velocity.Normalize(targetVelDir);
         float expectedTravelTime = targetDist / weapon.Speed[Game::Difficulty];
@@ -413,15 +420,15 @@ namespace Inferno {
 
         {
             // Check target projected position
-            Ray ray(target.Position, targetVelDir);
+            Ray targetTrajectory(target.Position, targetVelDir);
             RayQuery query;
             query.MaxDistance = (target.Physics.Velocity * expectedTravelTime).Length();
             query.Start = target.Segment;
             LevelHit hit;
-            if (Game::Intersect.RayLevel(ray, query, hit)) {
+            if (Game::Intersect.RayLevel(targetTrajectory, query, hit)) {
                 // target will hit wall, aim at wall minus object radius
                 projectedTarget = hit.Point - targetVelDir * target.Radius;
-                targetDist = Vector3::Distance(projectedTarget, gunPosition);
+                targetDist = Vector3::Distance(projectedTarget, robot.Position);
                 expectedTravelTime = targetDist / weapon.Speed[Game::Difficulty];
             }
 
@@ -429,14 +436,16 @@ namespace Inferno {
         }
 
         {
-            auto targetDir = projectedTarget - gunPosition;
+            auto targetDir = projectedTarget - robot.Position;
             targetDir.Normalize();
 
+            //auto dot = robot.Rotation.Forward().Dot(targetDir);
+
             // Check shot line of sight
-            Ray ray(gunPosition, targetDir);
+            Ray ray(robot.Position, targetDir);
             RayQuery query;
             query.Start = gunSeg;
-            query.MaxDistance = Vector3::Distance(projectedTarget, gunPosition);
+            query.MaxDistance = Vector3::Distance(projectedTarget, robot.Position);
             LevelHit hit;
             if (!Game::Intersect.RayLevel(ray, query, hit)) {
                 // Won't hit level, lead the target!
@@ -462,7 +471,7 @@ namespace Inferno {
             target += RandomVector() * 5.0f;
         }
         else if (auto targetObj = Game::GetObject(ai.Target); targetObj && lead) {
-            target = LeadTarget(robot.Position, robot.Segment, *targetObj, weapon);
+            target = LeadTarget(robot, robot.Segment, *targetObj, weapon);
         }
 
         target += RandomVector(float(4 - Game::Difficulty)) * 0.5f; // Add some inaccuracy based on difficulty level
@@ -653,7 +662,7 @@ namespace Inferno {
 
         auto& ai = GetAI(robot);
 
-        if(obj.IsRobot() || obj.IsPlayer()) {
+        if (obj.IsRobot() || obj.IsPlayer()) {
             ai.LastCollision = Game::Time;
         }
 
@@ -1127,26 +1136,40 @@ namespace Inferno {
     }
 
     bool ScanForTarget(const Object& robot, AIRuntime& ai) {
-        // For now always use player 0.
+        // For now always use the player object
         // Instead this should scan nearby targets (other robots or players)
         auto& target = Game::GetPlayerObject();
 
-        auto targetDir = GetDirection(target.Position, robot.Position);
-        if (target.CloakIsEffective() || !HasLineOfSight(robot, target.Position))
+        auto [targetDir, targetDist] = GetDirectionAndDistance(target.Position, robot.Position);
+        if (target.IsCloakEffective() || !HasLineOfSight(robot, target.Position))
             return false;
 
         auto& robotInfo = Resources::GetRobotInfo(robot);
         if (!PointIsInFOV(robot, targetDir, robotInfo))
             return false;
 
-        ai.Awareness = AI_AWARENESS_MAX;
+        float falloff = 1.0f;
+        // Add a distance falloff, but don't go to zero even at max range
+        if (targetDist > AI_VISION_FALLOFF_NEAR)
+            falloff = 1 - Saturate((targetDist - AI_VISION_FALLOFF_NEAR) / (AI_VISION_FALLOFF_FAR - AI_VISION_FALLOFF_NEAR)) * AI_VISION_MAX_PENALTY;
+
+        // Account for visibility, but only when not very close
+        if (targetDist > AI_VISION_FALLOFF_NEAR * .5f)
+            falloff *= Game::Player.GetShipVisibility();
+
+        auto reactionTime = AI_REACTION_TIME * (5 - Game::Difficulty);
+        ai.Awareness += falloff * ai.GetDeltaTime() / reactionTime;
+        ai.Awareness = Saturate(ai.Awareness);
+
         ai.Target = Game::GetObjectRef(target);
         ai.TargetPosition = { target.Segment, target.Position };
         return true;
     }
 
     void OnIdle(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo) {
-        if (ScanForTarget(robot, ai)) {
+        ScanForTarget(robot, ai);
+
+        if (ai.Awareness >= 1 && ai.Target) {
             // Delay weapons so robots don't shoot immediately on waking up
             ai.FireDelay = Difficulty(robotInfo).FireDelay * .5f;
             ai.FireDelay2 = Difficulty(robotInfo).FireDelay2 * .5f;
@@ -1439,14 +1462,14 @@ namespace Inferno {
         auto hasLos = HasLineOfSight(robot, target.Position);
 
         // Use the last known position as the target dir if target is obscured
-        if (!hasLos || target.CloakIsEffective())
+        if (!hasLos || target.IsCloakEffective())
             targetDir = GetDirection(ai.TargetPosition->Position, robot.Position);
 
         // Track the known target position, even without LOS. Causes AI to look more intelligent by pre-aiming.
         TurnTowardsDirection(robot, targetDir, Difficulty(robotInfo).TurnTime);
 
         // Update target location if it is in line of sight and not cloaked
-        if ((hasLos && !target.IsCloaked()) || (hasLos && target.IsCloaked() && !target.CloakIsEffective())) {
+        if ((hasLos && !target.IsCloaked()) || (hasLos && target.IsCloaked() && !target.IsCloakEffective())) {
             ai.TargetPosition = { target.Segment, target.Position };
             ai.Awareness = AI_AWARENESS_MAX;
             ai.CombatState = AICombatState::Normal;
@@ -1540,7 +1563,9 @@ namespace Inferno {
     void UpdateAlertAI(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float /*dt*/) {
         CheckProjectiles(Game::Level, robot, ai, robotInfo);
 
-        if (ScanForTarget(robot, ai)) {
+        ScanForTarget(robot, ai);
+
+        if (ai.Awareness >= 1 && ai.Target) {
             ai.State = AIState::Combat;
             ai.CombatState = AICombatState::Normal;
             Chat(robot, "I found a bad guy!");
@@ -1603,8 +1628,9 @@ namespace Inferno {
         }
         else {
             DecayAwareness(ai);
+            ScanForTarget(robot, ai);
 
-            if (ScanForTarget(robot, ai)) {
+            if (ai.Awareness >= 1 && ai.Target) {
                 auto target = Game::GetObject(ai.Target);
                 ai.State = AIState::Path;
                 ai.CombatState = AICombatState::Normal;
@@ -1621,9 +1647,7 @@ namespace Inferno {
     }
 
     void MineLayerBehavior(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float /*dt*/) {
-        if (ScanForTarget(robot, ai)) {
-            ai.Awareness = 1;
-        }
+        ScanForTarget(robot, ai);
 
         // Periodically alert allies while not idle
         if (ai.State != AIState::Idle && ai.AlertTimer <= 0 && ai.TargetPosition) {
@@ -1707,7 +1731,9 @@ namespace Inferno {
                         ai.TargetPosition = {};
                     }
 
-                    if (ScanForTarget(robot, ai)) {
+                    ScanForTarget(robot, ai);
+
+                    if (ai.Awareness >= 1) {
                         ai.ClearPath(); // Stop chasing if robot finds a target
                         ai.State = AIState::Combat;
                         Chat(robot, "You can't hide from me!");
@@ -1805,5 +1831,10 @@ namespace Inferno {
         else if (obj.Type == ObjectType::Reactor) {
             Game::UpdateReactorAI(obj, dt);
         }
+    }
+
+    float AIRuntime::GetDeltaTime() const {
+        // the update rate of AI can vary based on state, so calculate it here
+        return float(Game::Time - LastUpdate);
     }
 }

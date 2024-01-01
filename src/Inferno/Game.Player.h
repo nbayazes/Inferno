@@ -162,6 +162,8 @@ namespace Inferno {
         void ApplyDamage(float damage, bool playSound);
         void Respawn(bool died);
 
+        float GetShipVisibility() const;
+
     private:
         float GetWeaponEnergyCost(const Weapon& weapon) const;
 

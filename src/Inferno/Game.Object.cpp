@@ -509,7 +509,7 @@ namespace Inferno {
 
         for (int i = 0; i < Level.Objects.size(); i++) {
             auto& obj = Level.Objects[i];
-            if (!obj.PassesMask(mask) || !obj.IsAlive()) continue;
+            if (!obj.PassesMask(mask) || !obj.IsAlive() || obj.IsCloakEffective()) continue;
             ObjRef ref = { (ObjID)i, obj.Signature };
             if (Seq::contains(objFilter, ref)) continue;
             auto dir = obj.Position - point.Position;
@@ -1094,4 +1094,9 @@ namespace Inferno {
         if (obj.Render.Type == RenderType::Hostage || obj.Render.Type == RenderType::Powerup)
             Render::LoadTextureDynamic(obj.Render.VClip.ID);
     }
+
+    // Tries to shift objects into their segments and away from other objects
+    //void FixObjectPositions(Level& level) {
+    //    
+    //}
 }

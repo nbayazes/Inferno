@@ -753,6 +753,17 @@ namespace Inferno {
         SPDLOG_INFO("Respawning player");
     }
 
+    float Player::GetShipVisibility() const {
+        if (auto player = Game::Level.TryGetObject(Reference)) {
+            auto lum = Luminance(player->Ambient.GetColor().ToVector3());
+            lum = Saturate(lum - 0.1f); // Make slightly darker so dim segments are stealthy
+            if (LastPrimaryFireTime + .5f > Game::Time) lum = std::max(lum, 2.0f);
+            return lum;
+        }
+
+        return 1.0f;
+    }
+
     float Player::GetWeaponEnergyCost(const Weapon& weapon) const {
         bool quadFire = false;
         if (HasPowerup(PowerupFlag::QuadLasers)) {

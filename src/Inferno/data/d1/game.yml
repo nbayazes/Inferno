@@ -308,7 +308,7 @@ Weapons:
     ModelName: smartmissile.OOF
     Decal: scorchC
     DecalRadius: 4
-    LightRadius: 18
+    LightRadius: 14
     LightColor: 0.25, 0.75, 0, 1.5
     SpawnCount: 6
     Spawn: 19
@@ -358,8 +358,8 @@ Weapons:
     DecalRadius: 8
     Mass: 4
     ExplosionColor: 15, 0.5, 0.5
-    LightRadius: 60
-    LightColor: 0.75, 0.125, 0.125, 2
+    LightRadius: 40
+    LightColor: 1, 0.08, 0.08, 2
     Size: 1.25 # was 0.2 due odd length ratio
     Recoil: 175
     HomingFov: 45
@@ -373,8 +373,8 @@ Weapons:
     DecalRadius: 8
     Mass: 4
     ExplosionColor: 15, 0.5, 0.5
-    LightRadius: 60
-    LightColor: 0.75, 0.125, 0.125, 2
+    LightRadius: 40
+    LightColor: 1, 0.01, 0.01, 2
     Size: 1.25
     Recoil: 175
     HomingFov: 45
@@ -451,10 +451,10 @@ Weapons:
     ExplosionSize: 2.4
     ExplosionTime: 0.6
     Damage: 20
+    SplashRadius: 15 # Increased from 10 to make more distinct from vulcan
     AmmoUsage: 60
     LightRadius: 6
-    #ExplosionSound: ExpHardBullet
-    ExplosionSound:
+    ExplosionSound: # ExpHardBullet
     Model: -1
     FlashColor: 1, 1, 1, 15
 
@@ -551,6 +551,7 @@ Robots:
   - id: 3 # Class 1 drone
     CircleDistance: 60
     FOV: [ 110, 130, 150, 170, 200 ]
+    Speed: [ 40, 40, 45, 50, 60 ] # Speed boosted at lower difficulty 30, 30, 35, 40, 60
     Mass: 2.5
     Drag: 0.025
     AlertRadius: 110 # Drones are scouts and have a larger radius than normal

@@ -24,6 +24,7 @@ namespace Inferno::Input {
     //inline bool ScrolledUp() { return GetWheelDelta() > 0; }
     //inline bool ScrolledDown() { return GetWheelDelta() < 0; }
 
+    // Special conditions that check for left or right modifier keys. Also works reliably in editor mode.
     inline bool ControlDown;
     inline bool ShiftDown;
     inline bool AltDown;

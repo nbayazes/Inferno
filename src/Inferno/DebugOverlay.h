@@ -66,6 +66,7 @@ namespace Inferno {
                 }
                 ImGui::Text("Ship vel: %.2f", Debug::ShipVelocity.Length());
                 ImGui::Text("Ship thrust: %.2f", Debug::ShipThrust.Length());
+                ImGui::Text("Ship visibility: %.2f", Game::Player.GetShipVisibility());
             }
 
             //ImGui::Text("Active rooms: %d", GetActiveRooms().size());

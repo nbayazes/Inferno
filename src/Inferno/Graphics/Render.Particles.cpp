@@ -413,7 +413,9 @@ namespace Inferno::Render {
     }
 
     void AddBeam(BeamInfo& beam) {
-        beam.Segment = FindContainingSegment(Game::Level, beam.Start);
+        auto segId = FindContainingSegment(Game::Level, beam.Start);
+        if (segId != SegID::None) beam.Segment = segId;
+        
         std::array tex = { beam.Texture };
         Render::Materials->LoadTextures(tex);
 

@@ -14,12 +14,16 @@ namespace Inferno {
     constexpr float AI_AWARENESS_MAX = 1.0f;
     constexpr float AI_AWARENESS_COMBAT = 0.6f; // Robot will fire at its last known target position
     constexpr float AI_AWARENESS_INVESTIGATE = 0.5f; // when a robot exceeds this threshold it will investigate the point of interest
-    constexpr float AI_COUNT_ALLY_RANGE = 200; // How far to search for allies
+    constexpr float AI_COUNT_ALLY_RANGE = 140; // How far to search for allies
     constexpr uint AI_ALLY_FLEE_MIN = 2; // Will flee if fewer than this number of allies are nearby
     constexpr float AI_HELP_SEARCH_RADIUS = 350;
     constexpr float AI_MINE_LAYER_DELAY = 5; // Seconds between robots dropping mines
     constexpr float AI_DOOR_AWARENESS_RADIUS = 150; // Noise distance of opening a door
     constexpr float AI_CURIOSITY_INTERVAL = 1.0f; // Interval to decide to investigate a noise
+    constexpr float AI_VISION_FALLOFF_NEAR = 100.0f; // Vision starts getting worse at this range
+    constexpr float AI_VISION_FALLOFF_FAR = 300.0f; // Max vision penalty distance
+    constexpr float AI_VISION_MAX_PENALTY = 0.8f; // Max vision penalty
+    constexpr float AI_REACTION_TIME = 0.1f; // Seconds per difficulty to react to the player in a lit room
 
     struct AITarget {
         Vector3 Position;
@@ -155,6 +159,8 @@ namespace Inferno {
             if (Awareness > maxAwareness)
                 Awareness = maxAwareness;
         }
+
+        float GetDeltaTime() const;
     };
 
     class NavNetwork {
@@ -331,6 +337,5 @@ namespace Inferno {
 
     struct RobotInfo;
     void MoveTowardsDir(Object& robot, const Vector3& dir, float dt, float scale = 1);
-    Vector3 LeadTarget(const Vector3& gunPosition, SegID gunSeg, const Object& target, const Weapon& weapon);
     bool HasLineOfSight(const Object& obj, const Vector3& point, bool precise = false);
 }

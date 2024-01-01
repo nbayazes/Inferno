@@ -56,7 +56,7 @@ namespace Inferno::Game {
 
     // Returns true if an object has line of sight to a target. Also checks if the target is cloaked.
     inline bool ObjectCanSeeObject(const Object& obj, const Object& target, float maxDist = -1) {
-        if (target.CloakIsEffective() || !target.IsAlive()) return false;
+        if (target.IsCloakEffective() || !target.IsAlive()) return false;
         auto [dir, dist] = GetDirectionAndDistance(target.Position, obj.Position);
         if (maxDist > 0)
             if (dist >= maxDist) return false;
@@ -128,7 +128,7 @@ namespace Inferno::Game {
     WeaponBehavior& GetWeaponBehavior(const string& name);
 
     constexpr float DOOR_WAIT_TIME = 5; // How long a door stays open before automatically closing
-    constexpr float MINE_ARM_TIME = 2.0f; // How long before an object can collide with their own mines. Also disables splash damage for the duration.
+    constexpr float MINE_ARM_TIME = 1.5f; // How long before an object can collide with their own mines. Also disables splash damage for the duration.
     constexpr int EXTRA_LIFE_POINTS = 50'000;
     constexpr uint HOSTAGE_SCORE = 1000;
     constexpr uint REACTOR_SCORE = 5000;

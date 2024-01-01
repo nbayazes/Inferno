@@ -458,7 +458,7 @@ namespace Inferno {
 
             auto bombs = player.SecondaryAmmo[(int)bomb];
             if (bombs > 0)
-                DrawMonitorText(fmt::format("B:{:02}", bombs), info);
+                DrawMonitorText(fmt::format("B:{:02}", std::min(bombs, (uint16)99)), info);
         }
 
         // Draw Keys
