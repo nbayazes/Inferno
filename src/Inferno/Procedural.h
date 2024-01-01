@@ -43,6 +43,7 @@ namespace Inferno {
         Outrage::TextureInfo Info;
         TexID ID; // Texture slot to replace with this procedural effect
         std::mutex CopyMutex;
+        bool Enabled = false;
 
         ProceduralTextureBase(const Outrage::TextureInfo& info, TexID baseTexture);
 
@@ -65,7 +66,7 @@ namespace Inferno {
 
         // Updates and uploads data to buffer texture (produce buffer)
         bool Update(ID3D12GraphicsCommandList* cmdList, double currentTime) {
-            if (_nextTime > currentTime) return false;
+            if (_nextTime > currentTime || !Enabled) return false;
 
             OnUpdate(currentTime);
             _frameCount++;
@@ -109,6 +110,7 @@ namespace Inferno {
 
     ProceduralTextureBase* GetProcedural(TexID id);
     void AddProcedural(Outrage::TextureInfo& info, TexID dest);
+    void EnableProcedural(TexID id, bool enabled = true);
     void CopyProceduralsToMainThread();
     void StartProceduralWorker();
     void StopProceduralWorker();

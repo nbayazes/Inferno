@@ -7,6 +7,7 @@
 #include "Editor.Wall.h"
 #include "Editor.IO.h"
 #include "Face.h"
+#include "Procedural.h"
 #include "Resources.h"
 
 namespace Inferno::Editor {
@@ -293,6 +294,12 @@ namespace Inferno::Editor {
 
             if (dclip != DClipID::None)
                 SetTextureFromDoorClip(Game::Level, tag, dclip);
+
+            if (side.TMap != LevelTexID::None)
+                EnableProcedural(Resources::LookupTexID(tmap1));
+
+            if (side.TMap2 > LevelTexID::Unset)
+                EnableProcedural(Resources::LookupTexID(tmap2));
         }
 
         Events::LevelChanged();

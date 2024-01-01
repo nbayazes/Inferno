@@ -219,6 +219,12 @@ namespace Inferno {
         if (ProcWorker) ProcWorker->AddProcedural(info, dest);
     }
 
+    void EnableProcedural(TexID id, bool enabled) {
+        if (id == TexID::None) return;
+        if (auto proc = GetProcedural(id))
+            proc->Enabled = enabled;
+    }
+
     ProceduralTextureBase::ProceduralTextureBase(const Outrage::TextureInfo& info, TexID baseTexture) {
         ID = baseTexture;
         Info = info;

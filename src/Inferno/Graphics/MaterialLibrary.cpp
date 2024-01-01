@@ -7,6 +7,7 @@
 #include "FileSystem.h"
 #include "ScopedTimer.h"
 #include "NormalMap.h"
+#include "Procedural.h"
 
 using namespace DirectX;
 
@@ -617,6 +618,10 @@ namespace Inferno::Render {
         Render::Adapter->WaitForGpu();
         KeepLoaded.clear();
         auto ids = GetLevelTextures(level, PreloadDoors);
+
+        for (auto& id : ids)
+            EnableProcedural(id);
+
         auto tids = Seq::ofSet(ids);
         LoadMaterials(tids, force);
     }
