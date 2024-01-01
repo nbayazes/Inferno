@@ -1129,6 +1129,7 @@ namespace Inferno {
         // For now always use the player object
         // Instead this should scan nearby targets (other robots or players)
         auto& target = Game::GetPlayerObject();
+        if (target.Type == ObjectType::Ghost) return false;
 
         auto [targetDir, targetDist] = GetDirectionAndDistance(target.Position, robot.Position);
         if (target.IsCloakEffective() || !HasLineOfSight(robot, target.Position))
@@ -1161,13 +1162,14 @@ namespace Inferno {
 
         if (ai.Awareness >= 1 && ai.Target) {
             // Delay weapons so robots don't shoot immediately on waking up
-            // Note that an additional delay happens due to awareness buildup
-            ai.FireDelay = ai.FireDelay2 = (4 - Game::Difficulty) * 0.1f;
+            ai.FireDelay = Difficulty(robotInfo).FireDelay * .4f;
+            ai.FireDelay2 = Difficulty(robotInfo).FireDelay2 * .4f;
 
             // Time to fight!
             Chat(robot, "I see a bad guy!");
             ai.State = AIState::Combat;
             PlayAlertSound(robot, ai);
+            //PlayRobotAnimation(robot, AnimState::Alert);
         }
         else if (ai.Awareness >= 1) {
             Chat(robot, "I need to fight but don't see anything");
@@ -1551,7 +1553,7 @@ namespace Inferno {
         CheckProjectiles(Game::Level, robot, ai, robotInfo);
 
         if (!ai.PlayingAnimation() && ai.AnimationState != AnimState::Alert)
-            PlayRobotAnimation(robot, AnimState::Alert);
+            PlayRobotAnimation(robot, AnimState::Alert, 1);
 
         if (ScanForTarget(robot, ai) && ai.Awareness >= 1 && ai.Target) {
             ai.State = AIState::Combat;

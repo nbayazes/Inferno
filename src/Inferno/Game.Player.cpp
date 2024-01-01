@@ -607,9 +607,6 @@ namespace Inferno {
     }
 
     void Player::ApplyDamage(float damage, bool playSound) {
-        if (IsDead)
-            return;
-
         //if (Endlevel_sequence)
         //    return;
 
@@ -617,19 +614,21 @@ namespace Inferno {
         if (auto player = Game::Level.TryGetObject(Reference)) {
             constexpr float SCALE = 20;
             auto flash = std::max(damage / SCALE, 0.1f);
-            if (player->IsInvulnerable() || Settings::Cheats.DisableWeaponDamage) {
-                AddScreenFlash({ 0, 0, flash });
-            }
-            else {
-                Shields -= damage;
-                AddScreenFlash({ flash, -flash, -flash });
+
+            if (!IsDead) {
+                if (player->IsInvulnerable() || Settings::Cheats.DisableWeaponDamage) {
+                    AddScreenFlash({ 0, 0, flash });
+                }
+                else {
+                    Shields -= damage;
+                    AddScreenFlash({ flash, -flash, -flash });
+                }
             }
 
             if (Shields < 0) {
                 IsDead = true;
                 Input::ResetState(); // Reset state so fusion charging releases
             }
-
 
             player->HitPoints = Shields;
 
@@ -749,7 +748,6 @@ namespace Inferno {
         }
 
         ResetHUD();
-        ResetAITargets();
         SPDLOG_INFO("Respawning player");
     }
 
@@ -1320,6 +1318,7 @@ namespace Inferno {
         if (TimeDead > PLAYER_DEATH_EXPLODE_TIME) {
             if (!Exploded) {
                 Exploded = true;
+                ResetAITargets();
                 Lives--;
 
                 GameExplosion explosion;
@@ -1370,26 +1369,26 @@ namespace Inferno {
                     Render::CreateExplosion(*e, player.Segment, playerPos);
                 }
             }
+
+            ASSERT(camera->Type == ObjectType::Camera);
+            auto fvec = camera->Position - playerPos;
+            //auto cameraDist = fvec.Length();
+            fvec.Normalize();
+            camera->Rotation = VectorToRotation(fvec);
+
+            //auto goalCameraDist = std::min(TimeDead * 8, 20.0f) + player.Radius;
+            //if (cameraDist < 20) {
+            //    float delta = dt * 10;
+            //    Ray ray(camera->Position, fvec);
+            //    RayQuery query{ .MaxDistance = delta };
+            //    LevelHit hit{};
+            //    if (!Game::Intersect.RayLevel(ray, query, hit)) {
+            //        camera->Position += fvec * delta;
+            //    }
+            //}
+
+            Game::MoveCameraToObject(Render::Camera, *camera, Game::LerpAmount);
         }
-
-        ASSERT(camera->Type == ObjectType::Camera);
-        auto fvec = camera->Position - playerPos;
-        //auto cameraDist = fvec.Length();
-        fvec.Normalize();
-        camera->Rotation = VectorToRotation(fvec);
-
-        //auto goalCameraDist = std::min(TimeDead * 8, 20.0f) + player.Radius;
-        //if (cameraDist < 20) {
-        //    float delta = dt * 10;
-        //    Ray ray(camera->Position, fvec);
-        //    RayQuery query{ .MaxDistance = delta };
-        //    LevelHit hit{};
-        //    if (!Game::Intersect.RayLevel(ray, query, hit)) {
-        //        camera->Position += fvec * delta;
-        //    }
-        //}
-
-        Game::MoveCameraToObject(Render::Camera, *camera, Game::LerpAmount);
     }
 
     constexpr PowerupID PrimaryWeaponToPowerup(PrimaryWeaponIndex index) {
