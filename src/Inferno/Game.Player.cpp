@@ -716,7 +716,8 @@ namespace Inferno {
         GiveWeapon(PrimaryWeaponIndex::Laser);
 
         // Give the player some free missiles
-        SecondaryAmmo[(int)SecondaryWeaponIndex::Concussion] = uint16(2 + (int)DifficultyLevel::Count - Game::Difficulty);
+        auto& concussions = SecondaryAmmo[(int)SecondaryWeaponIndex::Concussion];
+        concussions = std::max(concussions, uint16(2 + (int)DifficultyLevel::Count - Game::Difficulty));
 
         if (Settings::Cheats.Invulnerable)
             Game::MakeInvulnerable(player, -1, false);
