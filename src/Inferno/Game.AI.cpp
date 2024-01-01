@@ -521,9 +521,9 @@ namespace Inferno {
         //    dodgeDir += targetDir * .5;
         //    dodgeDir.Normalize();
         //}
-
-        ai.DodgeDirection = dodgeDir;
-        ai.DodgeDelay = (5 - Game::Difficulty) / 2.0f * 2.0f * Random(); // (2.5 to 0.5) * 2 delay
+        
+        ai.DodgeVelocity = dodgeDir * Difficulty(robotInfo).EvadeSpeed * 30;
+        ai.DodgeDelay = (5 - Game::Difficulty) / 2.0f + 0.25f + Random() * 0.5f; // (2 to 0) + 0.25 + (0..0.5) delay
         ai.DodgeTime = AI_DODGE_TIME * 0.5f + AI_DODGE_TIME * 0.5f * Random();
 
         if (robotInfo.FleeThreshold > 0 && ai.State == AIState::Combat)
@@ -829,16 +829,6 @@ namespace Inferno {
             ai.WeaponCharge = 0;
         }
     }
-
-    // Wiggles a robot along its x/y plane
-    //void WiggleRobot(const Object& robot, AIRuntime& ai, float time) {
-    //    if (ai.WiggleTime > 0) return; // Don't wiggle if already doing so
-    //    // dir is a random vector on the xy/plane of the robot
-    //    Vector3 dir(RandomN11(), RandomN11(), 0);
-    //    dir.Normalize();
-    //    ai.DodgeDirection = Vector3::Transform(dir * 0.5f, robot.Rotation);
-    //    ai.WiggleTime = time;
-    //}
 
     // Tries to circle strafe the target.
     void CircleStrafe(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo) {
@@ -1171,20 +1161,22 @@ namespace Inferno {
 
         if (ai.Awareness >= 1 && ai.Target) {
             // Delay weapons so robots don't shoot immediately on waking up
-            ai.FireDelay = Difficulty(robotInfo).FireDelay * .5f;
-            ai.FireDelay2 = Difficulty(robotInfo).FireDelay2 * .5f;
+            // Note that an additional delay happens due to awareness buildup
+            ai.FireDelay = ai.FireDelay2 = (4 - Game::Difficulty) * 0.1f;
 
             // Time to fight!
             Chat(robot, "I see a bad guy!");
             ai.State = AIState::Combat;
             PlayAlertSound(robot, ai);
-            PlayRobotAnimation(robot, AnimState::Alert); // break out of idle
         }
         else if (ai.Awareness >= 1) {
             Chat(robot, "I need to fight but don't see anything");
             ai.State = AIState::Alert;
         }
         else {
+            if (!ai.PlayingAnimation() && ai.AnimationState != AnimState::Rest)
+                PlayRobotAnimation(robot, AnimState::Rest);
+
             robot.NextThinkTime = Game::Time + 0.125f;
         }
 
@@ -1200,11 +1192,6 @@ namespace Inferno {
     void MakeIdle(AIRuntime& ai) {
         ai.TargetPosition = {}; // Clear target if robot loses interest.
         ai.State = AIState::Idle;
-    }
-
-    void MakeAlert(AIRuntime& ai) {
-        ai.State = AIState::Alert;
-        // Alert robots decide to either roam or blind fire
     }
 
     bool FindHelp(AIRuntime& ai, const Object& robot) {
@@ -1563,9 +1550,10 @@ namespace Inferno {
     void UpdateAlertAI(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float /*dt*/) {
         CheckProjectiles(Game::Level, robot, ai, robotInfo);
 
-        ScanForTarget(robot, ai);
+        if (!ai.PlayingAnimation() && ai.AnimationState != AnimState::Alert)
+            PlayRobotAnimation(robot, AnimState::Alert);
 
-        if (ai.Awareness >= 1 && ai.Target) {
+        if (ScanForTarget(robot, ai) && ai.Awareness >= 1 && ai.Target) {
             ai.State = AIState::Combat;
             ai.CombatState = AICombatState::Normal;
             Chat(robot, "I found a bad guy!");
@@ -1579,6 +1567,13 @@ namespace Inferno {
 
             if (Settings::Cheats.ShowPathing)
                 Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, 0, 1));
+
+            // Move around a little to look more alive
+            if (ai.DodgeDelay <= 0) {
+                ai.DodgeVelocity = RandomLateralDirection(robot) * 1.25f;
+                ai.DodgeDelay = 2.0f + Random() * 0.5f;
+                ai.DodgeTime = 0.6f;
+            }
 
             if (validState && ai.ChaseTimer <= 0 &&
                 ai.Awareness >= AI_AWARENESS_MAX &&
@@ -1628,9 +1623,8 @@ namespace Inferno {
         }
         else {
             DecayAwareness(ai);
-            ScanForTarget(robot, ai);
 
-            if (ai.Awareness >= 1 && ai.Target) {
+            if (ScanForTarget(robot, ai) && ai.Awareness >= 1) {
                 auto target = Game::GetObject(ai.Target);
                 ai.State = AIState::Path;
                 ai.CombatState = AICombatState::Normal;
@@ -1640,7 +1634,7 @@ namespace Inferno {
                 Chat(robot, "Hostile sighted!");
             }
             else if (ai.Awareness <= 0 && ai.State != AIState::Idle) {
-                ai.State = AIState::Idle;
+                MakeIdle(ai);
                 Chat(robot, "All quiet");
             }
         }
@@ -1683,7 +1677,8 @@ namespace Inferno {
                 ai.AlertTimer = 1 + Random() * 2;
             }
             else if (ai.Awareness <= 0) {
-                ai.State = AIState::Idle;
+                PlayRobotAnimation(robot, AnimState::Rest);
+                MakeIdle(ai);
             }
 
             DecayAwareness(ai);
@@ -1731,9 +1726,7 @@ namespace Inferno {
                         ai.TargetPosition = {};
                     }
 
-                    ScanForTarget(robot, ai);
-
-                    if (ai.Awareness >= 1) {
+                    if (ScanForTarget(robot, ai) && ai.Awareness >= 1) {
                         ai.ClearPath(); // Stop chasing if robot finds a target
                         ai.State = AIState::Combat;
                         Chat(robot, "You can't hide from me!");
@@ -1808,9 +1801,8 @@ namespace Inferno {
         else
             DefaultBehavior(ai, robot, robotInfo, dt);
 
-        if (ai.DodgeTime > 0 && ai.DodgeDirection != Vector3::Zero /*|| ai.WiggleTime > 0*/) {
-            ai.Velocity += ai.DodgeDirection * Difficulty(robotInfo).EvadeSpeed * 32;
-        }
+        if (ai.DodgeTime > 0 && ai.DodgeVelocity != Vector3::Zero)
+            ai.Velocity += ai.DodgeVelocity;
 
         ai.Awareness = std::clamp(ai.Awareness, 0.0f, 1.0f);
 

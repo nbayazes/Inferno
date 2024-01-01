@@ -1095,6 +1095,12 @@ namespace Inferno {
             Render::LoadTextureDynamic(obj.Render.VClip.ID);
     }
 
+    Vector3 RandomLateralDirection(const Object& obj) {
+        auto angle = Random() * DirectX::XM_2PI;
+        auto transform = Matrix::CreateFromAxisAngle(obj.Rotation.Forward(), angle);
+        return Vector3::Transform(obj.Rotation.Right(), transform);
+    }
+
     // Tries to shift objects into their segments and away from other objects
     //void FixObjectPositions(Level& level) {
     //    

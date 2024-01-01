@@ -97,5 +97,9 @@ namespace Inferno {
     // Reloads various properties for the object from the game data.
     // The editor snapshots certain props such as health and it's best to refresh them.
     void InitObject(const Level&, Object&, ObjectType type, int8 id = 0, bool fullReset = true);
+
     float GetObjectRadius(const Object& obj);
+
+    // Returns a random direction on the object's forward plane
+    Vector3 RandomLateralDirection(const Object& obj);
 }

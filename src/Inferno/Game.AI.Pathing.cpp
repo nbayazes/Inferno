@@ -384,11 +384,7 @@ namespace Inferno {
 
         // Try dodging if collided with something recently
         if (Game::Time - ai.LastCollision < 0.5 && ai.DodgeDelay <= 0) {
-            auto angle = Random() * DirectX::XM_2PI;
-            auto transform = Matrix::CreateFromAxisAngle(robot.Rotation.Forward(), angle);
-            auto dir = Vector3::Transform(robot.Rotation.Right(), transform);
-
-            ai.DodgeDirection = dir;
+            ai.DodgeVelocity = RandomLateralDirection(robot) * 10;
             ai.DodgeDelay = 1.0f;
             ai.DodgeTime = 0.5f;
         }

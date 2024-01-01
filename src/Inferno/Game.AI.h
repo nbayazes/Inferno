@@ -112,7 +112,7 @@ namespace Inferno {
         GameTimer DodgeDelay = 0; // Delay before trying to dodge
         GameTimer DodgeTime = 0; // Remaining time to dodge for
         GameTimer PathDelay; // Delay before trying to path to a new location
-        Vector3 DodgeDirection;
+        Vector3 DodgeVelocity; // Direction to dodge in, doesn't have to be normalized.
 
         Vector3 Velocity; // Desired velocity for this update. Clamped at end by max speed.
 
