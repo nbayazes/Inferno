@@ -484,7 +484,9 @@ namespace Inferno::Game {
             Input::NextFrame();
 
         Inferno::Input::Update();
-        CheckGlobalHotkeys();
+        if (Game::State == GameState::Editor)
+            CheckGlobalHotkeys(); // Doesn't behave properly to call this in game mode
+
         Bindings.Update();
         Render::Debug::BeginFrame(); // enable debug calls during updates
         Game::DeltaTime = 0;

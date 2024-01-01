@@ -151,6 +151,7 @@ namespace Inferno {
 
     void FixedUpdateInput() {
         // Call any player game input that requires using IsKeyPressed here
+        CheckGlobalHotkeys();
 
         if (Input::IsKeyPressed(Keys::Back) && Input::IsKeyDown(Keys::LeftAlt))
             Game::SelfDestructMine();
