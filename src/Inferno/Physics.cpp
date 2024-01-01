@@ -1106,7 +1106,7 @@ namespace Inferno {
 
                     if (hitDistance < obj.Radius + 0.001f) {
                         // Check if hit is transparent (duplicate check due to triangle edges)
-                        if (obj.Type == ObjectType::Weapon && WallPointIsTransparent(hitPoint, face, tri))
+                        if (obj.Type == ObjectType::Weapon && !ObjectIsMine(obj) && WallPointIsTransparent(hitPoint, face, tri))
                             continue; // skip projectiles that hit transparent part of a wall
 
                         hitSpeed = abs(hitNormal.Dot(obj.Physics.Velocity));
