@@ -987,7 +987,7 @@ namespace Inferno {
         return (bool)hit.Tag;
     }
 
-    void IntersectLevelMesh(Level& level, Object& obj, span<SegID> pvs, LevelHit& hit, float dt) {
+    bool IntersectLevelMesh(Level& level, Object& obj, span<SegID> pvs, LevelHit& hit, float dt) {
         Vector3 averagePosition;
         int hits = 0;
         auto speed = obj.Physics.Velocity.Length();
@@ -1159,18 +1159,11 @@ namespace Inferno {
 
         if (hits > 0 && !sticky)
             obj.Position = averagePosition / (float)hits;
+
+        return hit && hit.Tag;
     }
 
-    bool IntersectLevel(Level& level, Object& obj, ObjID id, LevelHit& hit, float dt) {
-        // Don't hit test objects that haven't moved unless they are weapons (mines don't move).
-        // Also always hit-test player so bouncing powerups will get collected.
-        if (obj.Physics.Velocity.LengthSquared() <= MIN_TRAVEL_DISTANCE && obj.Type != ObjectType::Weapon && obj.Type != ObjectType::Player)
-            return false;
-
-        // Use a larger radius for the object so the large objects in adjacent segments are found.
-        // Needs testing against boss robots
-        auto& pvs = GetPotentialSegments(level, obj.Segment, obj.Position, obj.Radius * 2, obj.Physics.Velocity, dt, obj.Type);
-
+    bool IntersectObjects(Level& level, Object& obj, ObjID id, span<SegID> pvs, LevelHit& hit, float dt) {
         // Did we hit any objects?
         for (auto& segId : pvs) {
             auto& seg = level.GetSegment(segId);
@@ -1203,7 +1196,8 @@ namespace Inferno {
 
                     case CollisionType::SphereSphere:
                     {
-                        auto r1 = obj.Radius, r2 = other->Radius;
+                        auto r1 = obj.Radius;
+                        auto r2 = other->Radius;
 
                         // for robots their spheres are too large... apply multiplier. Having some overlap is okay.
                         if (obj.IsRobot() && other->IsRobot()) {
@@ -1241,10 +1235,8 @@ namespace Inferno {
             }
         }
 
-        IntersectLevelMesh(level, obj, pvs, hit, dt);
-        return (bool)hit;
+        return hit.HitObj != nullptr;
     }
-
 
     // Finds the nearest sphere-level intersection for debris
     // Debris only collide with robots, players and walls
@@ -1282,10 +1274,6 @@ namespace Inferno {
     }
 
 
-    void BumpObject(Object& obj, Vector3 hitDir, float damage) {
-        hitDir *= damage;
-        ApplyForce(obj, hitDir);
-    }
 
     void ScrapeWall(Object& obj, const LevelHit& hit, const LevelTexture& ti, float dt) {
         if (ti.HasFlag(TextureFlag::Volatile) || ti.HasFlag(TextureFlag::Water)) {
@@ -1406,18 +1394,18 @@ namespace Inferno {
             //if (id != 0) continue; // player only testing
             LevelHit hit{ .Source = &obj };
 
-            if (IntersectLevel(level, obj, objId, hit, dt)) {
-                if (obj.Type == ObjectType::Weapon) {
-                    if (hit.HitObj) {
-                        Game::WeaponHitObject(hit, obj);
-                    }
-                    else {
-                        Game::WeaponHitWall(hit, obj, level, objId);
-                    }
-                }
+            // Don't hit test objects that haven't moved unless they are weapons (mines don't move).
+            // Also always hit-test player so bouncing powerups will get collected.
+            if (obj.Physics.Velocity.LengthSquared() <= MIN_TRAVEL_DISTANCE && obj.Type != ObjectType::Weapon && obj.Type != ObjectType::Player)
+                continue;
 
-                if (auto wall = level.TryGetWall(hit.Tag)) {
-                    HitWall(level, hit.Point, obj, *wall);
+            // Use a larger radius for the object so the large objects in adjacent segments are found.
+            // Needs testing against boss robots
+            auto& pvs = GetPotentialSegments(level, obj.Segment, obj.Position, obj.Radius * 2, obj.Physics.Velocity, dt, obj.Type);
+
+            if (IntersectObjects(level, obj, objId, pvs, hit, dt)) {
+                if (obj.Type == ObjectType::Weapon) {
+                    Game::WeaponHitObject(hit, obj);
                 }
 
                 if (obj.Type == ObjectType::Player && hit.HitObj) {
@@ -1429,6 +1417,14 @@ namespace Inferno {
 
                 if (hit.HitObj && hit.HitObj->IsRobot())
                     RobotTouchObject(*hit.HitObj, obj);
+            }
+
+            if (IntersectLevelMesh(level, obj, pvs, hit, dt)) {
+                if (obj.Type == ObjectType::Weapon)
+                    Game::WeaponHitWall(hit, obj, level, objId);
+
+                if (auto wall = level.TryGetWall(hit.Tag))
+                    HitWall(level, hit.Point, obj, *wall);
 
                 const LevelTexture* ti = nullptr;
                 if (auto side = level.TryGetSide(hit.Tag))
