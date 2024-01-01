@@ -87,6 +87,18 @@ namespace Inferno::Game {
             }
         }
 
+        if (!mine.Control.Weapon.Flags && mine.Control.Weapon.AliveTime > Game::MINE_ARM_TIME) {
+            Sound3D sound(SoundID(155));
+            sound.Radius = 100;
+            sound.Volume = 0.55f;
+            sound.Pitch = 0.275f;
+            Sound::PlayFrom(sound, mine);
+
+            //sound.Delay = 0.15f;
+            //Sound::PlayFrom(sound, mine);
+            mine.Control.Weapon.Flags = true;
+        }
+
         if (!cw.TrackingTarget)
             return; // Still no target
 
@@ -169,7 +181,7 @@ namespace Inferno::Game {
                 // Players don't take direct damage from explosive weapons for balance reasons
                 // The secondary explosion will still inflict damage.
                 // However we still apply damage so the correct sound effect plays.
-                if (weapon.IsExplosive())
+                if (weapon.IsExplosive() || weapon.Extended.NoContactDamage)
                     damage = 0;
 
                 Game::Player.ApplyDamage(damage * weapon.PlayerDamageScale, true);
@@ -181,9 +193,11 @@ namespace Inferno::Game {
                 // Explosive weapons stun more due to their damage being split
                 float stunMult = weapon.IsExplosive() ? weapon.Extended.StunMult * 1.5f : weapon.Extended.StunMult;
                 NavPoint srcPos = { target.Segment, target.Position - srcDir * 10 };
-                DamageRobot(srcPos, target, damage, stunMult, parent);
+
+                if (!weapon.Extended.NoContactDamage)
+                    DamageRobot(srcPos, target, damage, stunMult, parent);
             }
-            else {
+            else if (!weapon.Extended.NoContactDamage) {
                 target.ApplyDamage(damage);
             }
 
@@ -1117,7 +1131,7 @@ namespace Inferno::Game {
                 SPDLOG_INFO("Redirecting missile to mine {}", mine);
             }
         }
-        
+
         if (!target) {
             // Find a new target
             auto mask = ObjectMask::Robot | ObjectMask::Mine;

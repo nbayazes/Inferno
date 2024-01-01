@@ -173,7 +173,7 @@ namespace Inferno {
         return (v - a) / (b - a);
     }
 
-    constexpr float Saturate(float v) {
+    [[nodiscard]] constexpr float Saturate(float v) {
         return std::clamp(v, 0.0f, 1.0f);
     }
 

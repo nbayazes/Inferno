@@ -294,9 +294,12 @@ Weapons:
     InheritParentVelocity: 1
     PointCollideWalls: 0
     FlashColor: 0, 0, 0
-    LightRadius: 14
-    LightColor: 1, 0.1, 0.1
+    LightRadius: 18
+    LightColor: 1, 0.05, 0.05
     Glow: 0.75, 0.75, 0.75
+    NoContactDamage: 1
+    Damage: 120 # Mines detonate before touching enemies
+    PlayerDamageScale: 0.25 # Reduce player damage to original 30
 
   - id: 17
     Name: smart missile

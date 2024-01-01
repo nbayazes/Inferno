@@ -40,7 +40,7 @@ namespace Inferno {
     enum class ObjectFlag : uint16 {
         None = 0,
         Exploding = 1, // Object is exploding with a delay. Prevents exploding immediately when hp reaches 0.
-        Dead = 2, // Scheduled for deletion
+        Dead = 2, // Free to be reused
         Destroyed = 4, // Object has been destroyed from damage. Can change model appearance.
         Silent = 8, // No sound when colliding
         Attached = 16, // Object is attached to another object or wall. Disables hit testing.
@@ -226,8 +226,8 @@ namespace Inferno {
 
         ObjRef TrackingTarget = {}; // Object this weapon is tracking.
         float Multiplier{}; // Power if this is a fusion bolt
-        float SoundDelay = 0;
         bool DetonateMine = false;
+        uint16 Flags = 0;
 
         uint8 HitIndex = 0;
         Array<ObjSig, 10> RecentHits{}; // to prevent piercing weapons from hitting the same obj multiple times
@@ -439,7 +439,7 @@ namespace Inferno {
         bool IsAlive() const { return !HasFlag(Flags, ObjectFlag::Dead); }
 
         bool IsCloaked() const { return HasFlag(Effects.Flags, EffectFlags::Cloaked); }
-        bool CloakIsEffective() const { return HasFlag(Effects.Flags, EffectFlags::Cloaked) && Effects.CloakFlickerTimer <= 0; }
+        bool IsCloakEffective() const { return HasFlag(Effects.Flags, EffectFlags::Cloaked) && Effects.CloakFlickerTimer <= 0; }
 
         bool IsInvulnerable() const { return HasFlag(Effects.Flags, EffectFlags::Invulnerable); }
 

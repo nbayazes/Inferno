@@ -158,6 +158,7 @@ namespace Inferno {
 
         READ_PROP_EXT(HomingFov);
         READ_PROP_EXT(HomingDistance);
+        READ_PROP_EXT(NoContactDamage);
 
         if (weapon.Extended.HomingFov > 0)
             weapon.Extended.HomingFov = sin(weapon.Extended.HomingFov * DegToRad);

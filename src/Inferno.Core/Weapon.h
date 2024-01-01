@@ -137,7 +137,7 @@ namespace Inferno {
         string Sparks; // Sparks to create while alive
         string DeathSparks; // Sparks to create when expiring
         int Bounces = 0;
-        bool Sticky = false; // Sticks to surfaces once Bounces = 0
+        bool Sticky = false; // Sticks to surfaces after running out of bounces
         bool InheritParentVelocity = false; // Adds the parent velocity to weapon when firing
         Vector3 RotationalVelocity; // Initial rotational velocity
         float Size = -1; // Overrides Blob Size and Model Size
@@ -152,23 +152,7 @@ namespace Inferno {
         float Recoil = 0; // How much backwards force to apply when firing
         float HomingFov = 0; // Homing FOV in degrees
         float HomingDistance = 0; // Distance to look for new targets
-        //float HomingTurnRate = 0; // Amount of rotational force to apply each second for homing weapons
-
-        //struct FiringPattern {
-        //    string Crosshair;
-
-        //    // Fires a projectile from an object using:
-        //    // Object.FVec + Direction +- Spread
-        //    struct Projectile {
-        //        int Gun = 0;
-        //        Vector3 Direction = { 0, 0, 1 }; // Fixed direction firing vector (Z-forward)
-        //        bool QuadOnly = false;
-        //        float DamageMultiplier = 1;
-        //    };
-        //};
-
-        //List<FiringPattern> Pattern;
-        //ubyte State[32]; // Buffer to serialize arbitrary weapon state. Helix / Spreadfire rotation. Omega charge?
+        bool NoContactDamage = false; // Disables direct damage for explosive weapons. Always true for explosive weapons against players.
     };
 
     struct Weapon {
@@ -227,7 +211,7 @@ namespace Inferno {
         float ModelSizeRatio;  // Ratio of length / width for models
         float Light;
         float Lifetime;
-        float SplashRadius;
+        float SplashRadius; // Applies damage in an area. Effectively doubles damage on direct hits.
         TexID Icon = TexID::None, HiresIcon = TexID::None;  // Texture to use in the cockpit or UI
 
         WeaponExtended Extended{};

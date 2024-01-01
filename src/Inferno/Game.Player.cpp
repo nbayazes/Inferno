@@ -352,6 +352,8 @@ namespace Inferno {
             auto offset = (int)Secondary + i;
             offset = offset % count;
             auto index = SecondaryWeaponIndex(offset);
+            if (index == SecondaryWeaponIndex::ProximityMine)
+                continue; // Don't autoselect prox mines
 
             if (HasWeapon(index)) {
                 newIndex = index;
