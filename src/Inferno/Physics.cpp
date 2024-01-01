@@ -597,6 +597,11 @@ namespace Inferno {
                         if (!source || source->LastHitObject != target.Signature)
                             ApplyRotation(target, forceVec);
 
+                        if (source && source->IsWeapon()) {
+                            auto& weapon = Resources::GetWeapon(WeaponID(source->ID));
+                            damage *= weapon.PlayerDamageScale;
+                        }
+
                         // Quarter damage explosions on trainee
                         if (Game::Difficulty == 0) damage /= 4;
                         Game::Player.ApplyDamage(damage, false);
