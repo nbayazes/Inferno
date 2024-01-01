@@ -173,7 +173,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
                 gloss *= 0.25;
                 eyeTerm += pow(nDotH, gloss) * (gloss + 2) / 8;
                 eyeTerm *= 0.5;
-                float3 specularColor = lerp(ambient, diffuse.rgb * ambient, material.Metalness);
+                float3 specularColor = lerp(ambient, diffuse.rgb * diffuse.rgb * ambient, material.Metalness);
                 lighting += eyeTerm * specularColor * specularMask;
                 lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, ambient, diffuse.rgb, specularMask, .25) * nDotH;
             }
