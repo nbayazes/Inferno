@@ -85,8 +85,8 @@ namespace Inferno::Render {
         DrawFacingCircle(object.Position, object.Radius, color);
     }
 
-    void OutlineTeleportSegments() {
-        if (!Settings::Editor.OutlineTeleportSegments) return;
+    void OutlineBossTeleportSegments() {
+        if (!Settings::Editor.OutlineBossTeleportSegments) return;
         for (auto& [segid, pos] : Game::GetTeleportSegments()) {
             if (auto seg = Game::Level.TryGetSegment(segid))
                 Render::Debug::OutlineSegment(Game::Level, *seg, Color(0, 1, 0));
@@ -534,7 +534,7 @@ namespace Inferno::Render {
         }
         DrawPath(Inferno::Debug::NavigationPath, Color(0.25, .5, 1));
         DrawRooms(level);
-        OutlineTeleportSegments();
+        OutlineBossTeleportSegments();
 
         if (Settings::Graphics.OutlineVisibleRooms) {
             if (auto seg = level.TryGetSegment(Editor::Selection.Segment))

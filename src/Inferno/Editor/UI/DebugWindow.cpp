@@ -29,9 +29,9 @@ namespace Inferno::Editor {
 
         ImGui::Checkbox("Load D3 data", &Settings::Inferno.Descent3Enhanced);
         ImGui::Checkbox("Draw Portals", &Settings::Editor.ShowPortals);
-        ImGui::Checkbox("Draw lights", &Settings::Editor.ShowLights);
         ImGui::Checkbox("Outline visible rooms", &Settings::Graphics.OutlineVisibleRooms);
-        ImGui::Checkbox("Outline teleport segs", &Settings::Editor.OutlineTeleportSegments);
+        ImGui::Checkbox("Draw lights", &Settings::Editor.ShowLights);
+        ImGui::Checkbox("Outline boss teleport segs", &Settings::Editor.OutlineBossTeleportSegments);
 
         ImGui::Separator();
 
@@ -84,6 +84,8 @@ namespace Inferno::Editor {
         ImGui::Checkbox("Fully loaded", &Settings::Cheats.FullyLoaded);
         ImGui::SameLine();
         ImGui::Checkbox("Low shields", &Settings::Cheats.LowShields);
+
+        ImGui::Combo("Ship wiggle", (int*)&Settings::Inferno.ShipWiggle, "Normal\0Reduced\0Off");
 
         if (ImGui::Button("Reset inventory")) {
             auto& player = Game::Player;

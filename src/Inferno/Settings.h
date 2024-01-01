@@ -29,6 +29,10 @@ namespace Inferno {
         Point, EnhancedPoint, Smooth
     };
 
+    enum class WiggleMode {
+        Normal, Reduced, Off
+    };
+
     struct LightSettings {
         Color Ambient = { 0.0f, 0.0f, 0.0f };
         float Multiplier = 1.00f;
@@ -74,7 +78,7 @@ namespace Inferno {
         bool PasteSegmentObjects = true;
         bool PasteSegmentWalls = true;
         bool PasteSegmentSpecial = true;
-        bool OutlineTeleportSegments = false;
+        bool OutlineBossTeleportSegments = false;
 
         float ObjectRenderDistance = 300.0f;
 
@@ -163,6 +167,7 @@ namespace Inferno {
         float MasterVolume = 0.1f;
         bool GenerateMaps = true; // Generate specular and normal maps if missing
         bool Descent3Enhanced = false;
+        WiggleMode ShipWiggle = WiggleMode::Normal;
     };
 
     struct CheatSettings {

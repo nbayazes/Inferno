@@ -485,6 +485,7 @@ namespace Inferno {
             doc["MasterVolume"] << Settings::Inferno.MasterVolume;
             doc["GenerateMaps"] << Settings::Inferno.GenerateMaps;
             doc["Descent3Enhanced"] << Settings::Inferno.Descent3Enhanced;
+            doc["ShipWiggle"] << (int)Settings::Inferno.ShipWiggle;
 
             WriteSequence(doc["DataPaths"], Settings::Inferno.DataPaths);
             SaveEditorSettings(doc["Editor"], Settings::Editor);
@@ -522,6 +523,7 @@ namespace Inferno {
                 ReadValue(root["MasterVolume"], Settings::Inferno.MasterVolume);
                 ReadValue(root["GenerateMaps"], Settings::Inferno.GenerateMaps);
                 ReadValue(root["Descent3Enhanced"], Settings::Inferno.Descent3Enhanced);
+                ReadValue(root["ShipWiggle"], (int&)Settings::Inferno.ShipWiggle);
 
                 auto dataPaths = root["DataPaths"];
                 if (!dataPaths.is_seed()) {

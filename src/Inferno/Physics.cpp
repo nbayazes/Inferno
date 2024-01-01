@@ -191,6 +191,15 @@ namespace Inferno {
         obj.Rotation.Normalize();
     }
 
+    // Applies wiggle to an object
+    void WiggleObject(Object& obj, double t, float dt, float amplitude, float rate) {
+        //const auto stepScale = dt / Game::TICK_RATE; // Rescale for sub-steps
+        //auto angle = std::sin(t * XM_2PI * rate) * 20 * stepScale; // multiplier tweaked to cause 0.5 units of movement at a 1/64 tick rate
+        auto angle = std::sin(t * XM_2PI * rate) * 20; // multiplier tweaked to cause 0.5 units of movement at a 1/64 tick rate
+        auto wiggle = obj.Rotation.Up() * angle * amplitude * dt;
+        obj.Physics.Velocity += wiggle;
+    }
+
     void LinearPhysics(Object& obj, float dt) {
         auto& pd = obj.Physics;
         const auto stepScale = dt / Game::TICK_RATE;
@@ -203,6 +212,23 @@ namespace Inferno {
         // Apply weapon thrust
         if (weapon && weapon->Thrust != 0)
             pd.Thrust = obj.Rotation.Forward() * weapon->Thrust * dt;
+
+        if (obj.Physics.Wiggle > 0) {
+            float mult = 1;
+            auto offset = (float)obj.Signature * 0.8191f; // random offset to keep objects from wiggling at same time
+
+            if (obj.IsPlayer()) {
+                if (Settings::Inferno.ShipWiggle == WiggleMode::Reduced)
+                    mult = 0.5f;
+                else if (Settings::Inferno.ShipWiggle == WiggleMode::Off)
+                    mult = 0;
+
+                offset = 0.25; // Align offset so wiggle doesn't shift from start position
+            }
+
+            if (mult > 0)
+                WiggleObject(obj, Game::Time + offset, dt, obj.Physics.Wiggle * mult, obj.Physics.WiggleRate);
+        }
 
         if (pd.Velocity == Vector3::Zero && pd.Thrust == Vector3::Zero)
             return;
@@ -224,11 +250,6 @@ namespace Inferno {
         }
 
         obj.Position += pd.Velocity * dt;
-
-        if (obj.Physics.Wiggle > 0) {
-            //auto offset = (float)obj.Signature * 0.8191f; // random offset to keep objects from wiggling at same time
-            //WiggleObject(obj, t + offset, dt, obj.Physics.Wiggle, obj.Physics.WiggleRate);
-        }
     }
 
     void PlotPhysics(double t, const PhysicsData& pd) {
@@ -250,13 +271,6 @@ namespace Inferno {
         else {
             index = 1;
         }
-    }
-
-    // Applies wiggle to an object
-    void WiggleObject(Object& obj, double t, float dt, float amplitude, float rate) {
-        auto angle = std::sinf((float)t * XM_2PI * rate) * 20; // multiplier tweaked to cause 0.5 units of movement at a 1/64 tick rate
-        auto wiggle = obj.Rotation.Up() * angle * amplitude * dt;
-        obj.Physics.Velocity += wiggle;
     }
 
     // Moves a projectile in a sine pattern
@@ -1272,7 +1286,6 @@ namespace Inferno {
         IntersectLevelMesh(level, dummyObj, pvs, hit, Game::TICK_RATE);
         return (bool)hit;
     }
-
 
 
     void ScrapeWall(Object& obj, const LevelHit& hit, const LevelTexture& ti, float dt) {
