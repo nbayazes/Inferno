@@ -75,6 +75,57 @@ namespace Inferno::Render {
         }
     };
 
+    class RoomStack {
+        List<RoomID> _stack;
+        int _index = 0;
+
+    public:
+        RoomStack(size_t size) : _stack(size) {
+            Reset();
+        }
+
+        void Reset() {
+            _index = 0;
+            ranges::fill(_stack, RoomID::None);
+        }
+
+        bool Push(RoomID id) {
+            //ASSERT(!Contains(id));
+            //if (Contains(id)) return false;
+
+            if (_index + 1 >= _stack.size()) {
+                SPDLOG_WARN("Reached max portal stack depth");
+                return false;
+            }
+
+            _stack[_index++] = id;
+            return true;
+        }
+
+        bool Contains(RoomID id) {
+            return Seq::contains(_stack, id);
+        }
+
+        void Rewind(RoomID id) {
+            ASSERT(Seq::contains(_stack, id));
+
+            //while (_index > 0) {
+            //    _index--;
+
+            //    if (_stack[_index] == id)
+            //        break;
+
+            //    _stack[_index] = RoomID::None;
+            //}
+            for (; _index > 0; _index--) {
+                if (_stack[_index] == id)
+                    break;
+
+                _stack[_index] = RoomID::None;
+            }
+        }
+    };
+
     class RenderQueue {
         struct SegDepth {
             SegID Seg = SegID::None;
@@ -88,8 +139,8 @@ namespace Inferno::Render {
         List<RenderCommand> _distortionQueue;
         Set<SegID> _visited;
         std::queue<SegDepth> _search;
-        List<RoomID> _roomQueue;
         List<RoomID> _visibleRooms;
+        RoomStack _roomStack = { 50 };
 
         struct ObjDepth {
             Object* Obj = nullptr;
@@ -110,7 +161,7 @@ namespace Inferno::Render {
     private:
         void QueueEditorObject(Object& obj, float lerp);
         void QueueRoomObjects(Level& level, const Room& room);
-        void CheckRoomVisibility(Level& level, const Portal& srcPortal, const Bounds2D& srcBounds, int depth, RoomID prev);
+        void CheckRoomVisibility(Level& level, const Portal& srcPortal, const Bounds2D& srcBounds);
         void TraverseLevelRooms(RoomID startRoomId, Level& level, span<LevelMesh> wallMeshes);
     };
 }

@@ -24,8 +24,8 @@ namespace Inferno::Render {
         _decalQueue.clear();
         _visited.clear();
         _distortionQueue.clear();
-        _roomQueue.clear();
         _visibleRooms.clear();
+        _roomStack.Reset();
 
         if (Settings::Editor.RenderMode == RenderMode::None) return;
 
@@ -410,29 +410,23 @@ namespace Inferno::Render {
         DebugCanvas->Draw(payload);
     }
 
-    void RenderQueue::CheckRoomVisibility(Level& level, const Portal& srcPortal, const Bounds2D& srcBounds, int depth, RoomID prev) {
-        if (depth > MAX_PORTAL_DEPTH)
-            return; // Prevent stack overflow
-        
+    void RenderQueue::CheckRoomVisibility(Level& level, const Portal& srcPortal, const Bounds2D& srcBounds) {
         auto room = level.GetRoom(srcPortal.RoomLink);
         if (!room) return;
-        //auto srcFace = Face2::FromSide(level, srcPortal.Tag);
+
+        _roomStack.Push(srcPortal.RoomLink);
 
         for (auto& portal : room->Portals) {
             //if (Seq::contains(_roomQueue, portal.RoomLink))
-            //    continue; // Already visited linked room
+            if (_roomStack.Contains(portal.RoomLink))
+                continue; // Already visited linked room
 
             if (!SideIsTransparent(level, portal.Tag))
                 continue; // stop at opaque walls
 
-            if (portal.RoomLink == prev)
-                continue; // Don't go back to the connected room
 
             auto face = Face2::FromSide(level, portal.Tag);
             //auto dot = face.AverageNormal().Dot(srcFace.AverageNormal());
-            auto dot = face.AverageNormal().Dot(Render::Camera.GetForward());
-            if (dot >= 0)
-                continue; // Portal is facing away from camera (prevent going backwards / recursion)
 
             auto ndc = GetNdc(face, Render::ViewProjection);
             if (!ndc) continue;
@@ -444,9 +438,6 @@ namespace Inferno::Render {
                 bounds = srcBounds.Intersection(bounds);
 
             if (!bounds.Empty()) {
-                //if (!Seq::contains(_roomQueue, portal.RoomLink))
-                //    _roomQueue.push_back(portal.RoomLink);
-
                 if (!Seq::contains(_visibleRooms, portal.RoomLink))
                     _visibleRooms.push_back(portal.RoomLink);
 
@@ -454,9 +445,11 @@ namespace Inferno::Render {
                 if (Settings::Editor.ShowPortals)
                     DrawBounds(bounds, Color(0, 1, 0, 0.2f));
 
-                CheckRoomVisibility(level, portal, bounds, depth++, srcPortal.RoomLink);
+                CheckRoomVisibility(level, portal, bounds);
             }
         }
+
+        _roomStack.Rewind(srcPortal.RoomLink);
     }
 
     void RenderQueue::TraverseLevelRooms(RoomID startRoomId, Level& level, span<LevelMesh> wallMeshes) {
@@ -469,6 +462,8 @@ namespace Inferno::Render {
         //auto screenBounds = Bounds2D({ -.75f, -.75f }, { .75f, .75f });
         auto screenBounds = Bounds2D({ -1, -1 }, { 1, 1 });
 
+        _roomStack.Push(startRoomId);
+
         // this fails when circular rooms join each other
         for (auto& portal : startRoom->Portals) {
             if (!SideIsTransparent(level, portal.Tag))
@@ -480,6 +475,7 @@ namespace Inferno::Render {
             // Reset the visited rooms for each portal
             //_roomQueue.clear();
             //_roomQueue.push_back(startRoomId);
+
 
             // Search next room if portal is on screen
             if (basePoints) {
@@ -500,7 +496,7 @@ namespace Inferno::Render {
                 if (Settings::Editor.ShowPortals)
                     DrawBounds(bounds, Color(0, 0, 1, 0.2f));
 
-                CheckRoomVisibility(level, portal, bounds, 0, RoomID::None);
+                CheckRoomVisibility(level, portal, bounds);
             }
         }
 
