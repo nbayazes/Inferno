@@ -59,23 +59,17 @@ Materials:
     EmissiveStrength: 15
   - TexID: 12
     NormalStrength: 0.3
-    SpecularStrength: 1.5
     Metalness: 1
     Roughness: 0.409
-    LightReceived: 2
   - TexID: 13
     NormalStrength: 0.3
-    SpecularStrength: 1.5
     Metalness: 1
     Roughness: 0.409
-    LightReceived: 2
   - TexID: 14
     NormalStrength: 0.3
-    SpecularStrength: 1.5
     Metalness: 1
     Roughness: 0.409
     EmissiveStrength: 7.009
-    LightReceived: 2
   - TexID: 15
     NormalStrength: 0.4
     SpecularStrength: 3

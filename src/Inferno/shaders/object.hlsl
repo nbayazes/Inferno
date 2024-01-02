@@ -157,13 +157,14 @@ float4 psmain(PS_INPUT input) : SV_Target {
             uint2 pixelPos = uint2(input.pos.xy);
             ambient *= Frame.GlobalDimming;
             specularMask *= material.SpecularStrength;
-
-            ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
-            lighting += colorSum * material.LightReceived;
+            
             lighting += emissive * diffuse.rgb;
             lighting += diffuse.rgb * ambient * 0.20 * material.LightReceived * (1 - material.Metalness * .20); // ambient
 
-            //lighting += ApplyAmbientSpecular(Environment, Sampler, viewDir, normal, material, ambient * 1, diffuse.rgb * 1, pow(specularMask + 1, 1.5) - 0.9, .5, .75);
+            // saturate metallic diffuse. It looks better and removes white highlights. Causes yellow to look orange.
+            diffuse.rgb = pow(diffuse.rgb, 1 + material.Metalness);
+            ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
+            lighting += colorSum * material.LightReceived;
 
             {
                 // Add some fake specular highlights so objects without direct lighting aren't completely flat
@@ -171,8 +172,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
                 float gloss = RoughnessToGloss(material.Roughness) / 4;
                 //float gloss = 16;
                 float eyeTerm = pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
-                float3 specularColor = lerp(ambient, diffuse.rgb * diffuse.rgb * ambient, material.Metalness) * 3;
-                lighting += eyeTerm * specularColor /** specularMask*/ * input.col.rgb;
+                float3 specularColor = diffuse.rgb * ambient * 3;
+                lighting += eyeTerm * specularColor /** specularMask*/ * input.col.rgb * material.SpecularStrength;
                 //lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, ambient, diffuse.rgb, specularMask, .25) * nDotH;
             }
         }
