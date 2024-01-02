@@ -323,6 +323,12 @@ namespace Inferno {
         auto& ri = Resources::GetRobotInfo(obj);
 
         if (elapsedTime > rollDuration - soundDuration) {
+            auto& ai = GetAI(obj);
+            if (ai.AmbientSound != SoundUID::None) {
+                Sound::Stop(ai.AmbientSound);
+                ai.AmbientSound = SoundUID::None;
+            }
+
             // Going critical!
             if (!dyingSoundPlaying) {
                 Sound3D sound(resource);
@@ -1779,11 +1785,8 @@ namespace Inferno {
         if (HasFlag(robot.Physics.Flags, PhysicsFlag::NoCollideRobots) && Game::Time >= robot.NextThinkTime)
             ClearFlag(robot.Physics.Flags, PhysicsFlag::NoCollideRobots);
 
-        if (robotInfo.IsBoss)
-            if (!Game::UpdateBoss(robot, dt))
-                return; // UpdateBoss returns false when dying
-
-        if (robot.HitPoints <= 0 && robotInfo.DeathRoll > 0) {
+        // Bosses have their own death roll
+        if (robot.HitPoints <= 0 && robotInfo.DeathRoll > 0 && !robotInfo.IsBoss) {
             ai.DeathRollTimer += dt;
             auto duration = (float)std::min(robotInfo.DeathRoll / 2 + 1, 6);
             auto volume = robotInfo.IsBoss ? 2 : robotInfo.DeathRoll / 4.0f;
@@ -1814,7 +1817,9 @@ namespace Inferno {
         if (robot.NextThinkTime == NEVER_THINK || robot.NextThinkTime > Game::Time)
             return;
 
-        if (robotInfo.Script == "Supervisor")
+        if (robotInfo.IsBoss && Game::Level.IsDescent1())
+            Game::BossBehaviorD1(ai, robot, robotInfo, dt);
+        else if (robotInfo.Script == "Supervisor")
             SupervisorBehavior(ai, robot, robotInfo, dt);
         else if (robot.Control.AI.Behavior == AIBehavior::RunFrom)
             MineLayerBehavior(ai, robot, robotInfo, dt);

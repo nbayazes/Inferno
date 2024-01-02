@@ -1,4 +1,5 @@
 #pragma once
+#include "Game.AI.h"
 #include "Object.h"
 
 namespace Inferno::Game {
@@ -9,7 +10,7 @@ namespace Inferno::Game {
     };
 
     span<TeleportTarget> GetTeleportSegments();
-    bool UpdateBoss(Inferno::Object& boss, float dt);
+    void BossBehaviorD1(AIRuntime& ai, Object& boss, const RobotInfo& info, float dt);
     void InitBoss();
     void StartBossDeath();
 }

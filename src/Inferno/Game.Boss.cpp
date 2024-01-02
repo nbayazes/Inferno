@@ -1,8 +1,7 @@
 #include "pch.h"
-#include "Game.Boss.h"
 
 #include <numeric>
-
+#include "Game.Boss.h"
 #include "Game.AI.h"
 #include "Game.h"
 #include "Game.Reactor.h"
@@ -10,7 +9,6 @@
 #include "Physics.h"
 #include "Resources.h"
 #include "SoundSystem.h"
-#include "Editor/Editor.Object.h"
 #include "Graphics/Render.Particles.h"
 
 namespace Inferno::Game {
@@ -207,10 +205,7 @@ namespace Inferno::Game {
         ai.ClearPath();
     }
 
-    bool UpdateBoss(Object& boss, float dt) {
-        auto& ri = Resources::GetRobotInfo(boss);
-        auto& ai = GetAI(boss);
-
+    void BossBehaviorD1(AIRuntime& ai, Object& boss, const RobotInfo& info, float dt) {
         if (boss.HitPoints <= 0)
             BossDying = true;
 
@@ -220,13 +215,13 @@ namespace Inferno::Game {
                 boss.PhaseIn(boss.Effects.PhaseTimer / 2, BOSS_PHASE_COLOR);
 
             BossDyingElapsed += dt;
-            bool explode = DeathRoll(boss, BOSS_DEATH_DURATION, BossDyingElapsed, ri.DeathRollSound,
+            bool explode = DeathRoll(boss, BOSS_DEATH_DURATION, BossDyingElapsed, info.DeathRollSound,
                                      BossDyingSoundPlaying, BOSS_DEATH_SOUND_VOLUME, dt);
             if (explode) {
                 SelfDestructMine();
                 ExplodeObject(boss);
                 BossDying = false; // safeguard
-                Sound3D sound(ri.ExplosionSound2);
+                Sound3D sound(info.ExplosionSound2);
                 sound.Volume = 3;
                 sound.Radius = 1000;
                 Sound::Play(sound, boss.Position, boss.Segment);
@@ -239,34 +234,56 @@ namespace Inferno::Game {
                 light.Segment = boss.Segment;
                 Render::AddDynamicLight(light);
             }
-            return false;
+            return /*false*/;
         }
 
         if (Settings::Cheats.DisableAI)
-            return false;
+            return /*false*/;
+
+        if (ScanForTarget(boss, ai)) {
+            // Once a boss is in combat it never goes back to idle
+            ai.Awareness = 1;
+
+            if (ai.AmbientSound == SoundUID::None) {
+                Sound3D sound(info.SeeSound);
+                sound.Radius = 400;
+                sound.Looped = true;
+                sound.Volume = 0.85f;
+                sound.Occlusion = false;
+                ai.AmbientSound = Sound::PlayFrom(sound, boss);
+            }
+
+            ai.State = AIState::Combat;
+        }
+
+        if (ai.State == AIState::Idle)
+            return;
+
+        UpdateCombatAI(ai, boss, info, dt);
 
         if (Game::Level.IsDescent1()) {
-            if (!ri.GatedRobots.empty()) {
+            if (!info.GatedRobots.empty()) {
                 GateTimer += dt;
                 if (GateTimer >= GateInterval) {
-                    auto robotId = ri.GatedRobots[RandomInt((int)ri.GatedRobots.size() - 1)];
+                    auto robotId = info.GatedRobots[RandomInt((int)info.GatedRobots.size() - 1)];
                     GateInRobotD1(robotId);
                 }
             }
         }
 
-        if (ai.Awareness > 0.3f)
+        if (ai.Awareness >= 1.0f) {
             ai.TeleportDelay -= dt; // Only teleport when aware of player
+        }
 
         if (ai.TeleportDelay <= BOSS_PHASE_TIME && !boss.IsPhasing()) {
             boss.PhaseOut(BOSS_PHASE_TIME, BOSS_PHASE_COLOR);
         }
 
         if (ai.TeleportDelay <= 0) {
-            TeleportBoss(boss, ai, ri);
+            TeleportBoss(boss, ai, info);
         }
 
-        return true;
+        ai.State = AIState::Combat; // Always stay in combat after waking up
     }
 
     void StartBossDeath() {
@@ -274,7 +291,7 @@ namespace Inferno::Game {
     }
 
     void InitBoss() {
-        // todo: add hack for D2 level 4 boss to check past 1 wall for teleport targets
+        // todo: add hack for D2 level 4 boss to check past 1 wall for teleport targets if starting room only has one segment
         GateSegments.clear();
         TeleportTargets = FindTeleportTargets(Game::Level, true);
         if (Game::Level.IsDescent1()) {
@@ -290,7 +307,6 @@ namespace Inferno::Game {
 
         if (Game::GetState() == GameState::Editor) return;
 
-        // Attach sound to boss
         for (auto& obj : Game::Level.Objects) {
             if (obj.IsRobot()) {
                 auto& info = Resources::GetRobotInfo(obj);
@@ -298,13 +314,6 @@ namespace Inferno::Game {
 
                 auto& ai = GetAI(obj);
                 ai.TeleportDelay = info.TeleportInterval;
-
-                Sound3D sound(info.SeeSound);
-                sound.Radius = 400;
-                sound.Looped = true;
-                sound.Volume = 0.85f;
-                sound.Occlusion = false;
-                Sound::PlayFrom(sound, obj);
             }
         }
     }

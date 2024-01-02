@@ -671,7 +671,7 @@ Robots:
     DeathRoll: 10 # maximum death roll
     SeeSound: 183 # d1
     AlertRadius: 240
-    TeleportInterval: 4 # 8 original. lowered due to removing engine reductions in teleport delay such as firing or taking damage.
+    TeleportInterval: 6 # 8 original. lowered due to removing engine reductions in teleport delay such as firing or taking damage.
   - id: 18 # Cloaked lifter
     CircleDistance: 12
     Mass: 9.5

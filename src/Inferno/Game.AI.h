@@ -5,7 +5,6 @@
 #include "Level.h"
 #include "Object.h"
 #include "SoundTypes.h"
-#include "Weapon.h"
 
 namespace Inferno {
     constexpr float AI_PATH_DELAY = 1; // Default delay for trying to path to the player
@@ -141,6 +140,7 @@ namespace Inferno {
         GameTimer ChaseTimer; // Delay for chase attempts
 
         bool Angry = false;
+        SoundUID AmbientSound = SoundUID::None;
 
         double LastCollision{}; // Last time this robot collided with another object
 
@@ -340,5 +340,7 @@ namespace Inferno {
 
     struct RobotInfo;
     void MoveTowardsDir(Object& robot, const Vector3& dir, float dt, float scale = 1);
+    bool ScanForTarget(const Object& robot, AIRuntime& ai);
     bool HasLineOfSight(const Object& obj, const Vector3& point, bool precise = false);
+    void UpdateCombatAI(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float dt);
 }

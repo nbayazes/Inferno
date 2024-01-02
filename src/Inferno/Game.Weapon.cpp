@@ -1043,7 +1043,7 @@ namespace Inferno::Game {
             dir = RandomVector();
         }
 
-        SPDLOG_INFO("Tracking: {} dir: {}", targetId, dir);
+        //SPDLOG_INFO("Tracking: {} dir: {}", targetId, dir);
         auto parentRef = Game::GetObjectRef(parent);
         auto blob = CreateWeaponProjectile(type, parent.Position, dir, parent.Segment, parentRef, 1, 0);
         blob.Control.Weapon.TrackingTarget = targetId;
@@ -1068,13 +1068,13 @@ namespace Inferno::Game {
         Sound::Play(sound, missile.Position, missile.Segment);
 
         if (targetCount > 0) {
-            SPDLOG_INFO("Found blob targets");
+            //SPDLOG_INFO("Found blob targets");
             // if found targets, pick random target from array
             for (size_t i = 0; i < blobs; i++)
                 CreateHomingBlob(spawn, missile, targets[RandomInt(targetCount - 1)]);
         }
         else {
-            SPDLOG_INFO("No blob targets");
+            //SPDLOG_INFO("No blob targets");
             // Otherwise random points
             for (size_t i = 0; i < blobs; i++)
                 CreateHomingBlob(spawn, missile);
@@ -1116,7 +1116,7 @@ namespace Inferno::Game {
                 targetingMine = ObjectIsMine(*targetObj);
 
             if (!targetObj || !CanTrackTarget(weapon, *targetObj, fov, distance)) {
-                SPDLOG_INFO("Lost tracking target");
+                //SPDLOG_INFO("Lost tracking target");
                 target = {}; // target destroyed or out of view
             }
         }
@@ -1128,7 +1128,7 @@ namespace Inferno::Game {
 
             if (auto mine = GetClosestObjectInFOV(weapon, fov / 2, distance / 2, ObjectMask::Mine, targetFaction)) {
                 target = mine;
-                SPDLOG_INFO("Redirecting missile to mine {}", mine);
+                //SPDLOG_INFO("Redirecting missile to mine {}", mine);
             }
         }
 
@@ -1140,8 +1140,8 @@ namespace Inferno::Game {
                     mask = ObjectMask::Player;
 
             target = GetClosestObjectInFOV(weapon, fov, distance, mask, FlipFlags(weapon.Faction));
-            if (target)
-                SPDLOG_INFO("Locking onto {}", target);
+            //if (target)
+            //    SPDLOG_INFO("Locking onto {}", target);
         }
         else if (auto targetObj = Game::GetObject(target)) {
             // turn towards target
