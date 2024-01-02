@@ -152,7 +152,7 @@ namespace Inferno {
         float Recoil = 0; // How much backwards force to apply when firing
         float HomingFov = 0; // Homing FOV in degrees
         float HomingDistance = 0; // Distance to look for new targets
-        bool NoContactDamage = false; // Disables direct damage for explosive weapons. Always true for explosive weapons against players.
+        bool DirectDamage = true; // Enables direct damage on a hit. Disable for explosive weapons to make only the explosion do damage.
     };
 
     struct Weapon {

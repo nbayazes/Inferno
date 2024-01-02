@@ -167,7 +167,7 @@ namespace Inferno {
         float MasterVolume = 0.1f;
         bool GenerateMaps = true; // Generate specular and normal maps if missing
         bool Descent3Enhanced = false;
-        WiggleMode ShipWiggle = WiggleMode::Normal;
+        WiggleMode ShipWiggle = WiggleMode::Reduced;
     };
 
     struct CheatSettings {

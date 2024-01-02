@@ -158,7 +158,7 @@ namespace Inferno {
 
         READ_PROP_EXT(HomingFov);
         READ_PROP_EXT(HomingDistance);
-        READ_PROP_EXT(NoContactDamage);
+        READ_PROP_EXT(DirectDamage);
 
         if (weapon.Extended.HomingFov > 0)
             weapon.Extended.HomingFov = sin(weapon.Extended.HomingFov * DegToRad);
@@ -341,6 +341,7 @@ namespace Inferno {
         READ_PROP(SuppressChance);
         READ_PROP(Curiosity);
         READ_PROP(OpenKeyDoors);
+        READ_PROP(AngerBehavior);
 #undef READ_PROP
 
         Array<float, 5> fov{}, fireDelay{}, fireDelay2{}, turnTime{}, speed{}, circleDistance{}, meleeDamage{};

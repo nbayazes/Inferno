@@ -24,6 +24,7 @@ namespace Inferno {
     constexpr float AI_VISION_FALLOFF_FAR = 300.0f; // Max vision penalty distance
     constexpr float AI_VISION_MAX_PENALTY = 0.8f; // Max vision penalty
     constexpr float AI_REACTION_TIME = 0.1f; // Seconds per difficulty to react to the player in a lit room
+    constexpr float AI_ANGER_SPEED = 0.6f; // Multiplier for attacks while angry
 
     struct AITarget {
         Vector3 Position;
@@ -138,6 +139,8 @@ namespace Inferno {
         GameTimer CombatSoundTimer; // For playing combat sounds
         GameTimer FleeTimer; // Finds help when this triggers
         GameTimer ChaseTimer; // Delay for chase attempts
+
+        bool Angry = false;
 
         double LastCollision{}; // Last time this robot collided with another object
 

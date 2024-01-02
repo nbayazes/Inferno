@@ -99,6 +99,7 @@ namespace Inferno {
 
         string Script; // Custom behavior script
         bool OpenKeyDoors = false; // Can open key doors
+        bool AngerBehavior = false; // Gets angry when alone
     };
 
 }

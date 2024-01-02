@@ -181,7 +181,7 @@ namespace Inferno::Game {
                 // Players don't take direct damage from explosive weapons for balance reasons
                 // The secondary explosion will still inflict damage.
                 // However we still apply damage so the correct sound effect plays.
-                if (weapon.IsExplosive() || weapon.Extended.NoContactDamage)
+                if (weapon.IsExplosive() || !weapon.Extended.DirectDamage)
                     damage = 0;
 
                 Game::Player.ApplyDamage(damage * weapon.PlayerDamageScale, true);
@@ -194,10 +194,10 @@ namespace Inferno::Game {
                 float stunMult = weapon.IsExplosive() ? weapon.Extended.StunMult * 1.5f : weapon.Extended.StunMult;
                 NavPoint srcPos = { target.Segment, target.Position - srcDir * 10 };
 
-                if (!weapon.Extended.NoContactDamage)
+                if (weapon.Extended.DirectDamage)
                     DamageRobot(srcPos, target, damage, stunMult, parent);
             }
-            else if (!weapon.Extended.NoContactDamage) {
+            else if (weapon.Extended.DirectDamage) {
                 target.ApplyDamage(damage);
             }
 

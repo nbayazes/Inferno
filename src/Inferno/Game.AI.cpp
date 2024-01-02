@@ -77,6 +77,32 @@ namespace Inferno {
         return info.Difficulty[Game::Difficulty];
     }
 
+    uint CountNearbyAllies(const Object& robot, float range, bool inCombat = false) {
+        uint allies = 0;
+        auto range2 = range * range;
+
+        IterateNearbySegments(Game::Level, robot, range, [&](const Segment& seg, bool) {
+            for (auto& objid : seg.Objects) {
+                if (auto obj = Game::Level.TryGetObject(objid)) {
+                    if (obj->IsRobot() && obj->Signature != robot.Signature) {
+                        if (Vector3::DistanceSquared(obj->Position, robot.Position) > range2)
+                            continue;
+
+                        if (inCombat) {
+                            if (GetAI(*obj).State == AIState::Combat)
+                                allies++;
+                        }
+                        else {
+                            allies++;
+                        }
+                    }
+                }
+            }
+        });
+
+        return allies;
+    }
+
     // Returns true if able to reach the target
     bool ChaseTarget(AIRuntime& ai, const Object& robot, const NavPoint& target, ChaseMode chase, float maxDist = AI_MAX_CHASE_DISTANCE) {
         ai.PathDelay = 0;
@@ -390,13 +416,13 @@ namespace Inferno {
     // Returns the max amount of aim assist a weapon can have when fired by a robot
     float GetMaxAimAssistAngle(const Weapon& weapon) {
         // Fast weapons get less assistance for balance reasons
-        return weapon.Speed[Game::Difficulty] > FAST_WEAPON_SPEED ? 12.5f * DegToRad : 25.0f * DegToRad;
+        return weapon.Speed[Game::Difficulty] > FAST_WEAPON_SPEED ? 12.5f * DegToRad : 30.0f * DegToRad;
     }
 
     void CycleGunpoint(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo) {
         ai.GunIndex = robotInfo.Guns > 0 ? (ai.GunIndex + 1) % robotInfo.Guns : 0;
         if (Game::Level.IsDescent1() && robot.ID == 23 && ai.GunIndex == 2)
-            ai.GunIndex = 3; // HACK: skip to 3 due to gunpoint 2 being zero-filled on the D1 final boss
+            ai.GunIndex = 3; // HACK: skip to 3 due to gunpoint 2 being zero-filled on the D1 final boss. This should be fixed on the D2 model.
 
         if (robotInfo.WeaponType2 != WeaponID::None && ai.GunIndex == 0)
             ai.GunIndex = 1; // Reserve gun 0 for secondary weapon if present
@@ -521,7 +547,7 @@ namespace Inferno {
         //    dodgeDir += targetDir * .5;
         //    dodgeDir.Normalize();
         //}
-        
+
         ai.DodgeVelocity = dodgeDir * Difficulty(robotInfo).EvadeSpeed * 30;
         ai.DodgeDelay = (5 - Game::Difficulty) / 2.0f + 0.25f + Random() * 0.5f; // (2 to 0) + 0.25 + (0..0.5) delay
         ai.DodgeTime = AI_DODGE_TIME * 0.5f + AI_DODGE_TIME * 0.5f * Random();
@@ -779,16 +805,20 @@ namespace Inferno {
         // A multishot of 1 and a burst of 3 would fire 2 projectiles then 1 projectile
         // Multishot incurs extra fire delay per projectile
         auto burstDelay = std::min(1 / 8.0f, Difficulty(robotInfo).FireDelay / 2);
+        if (ai.Angry) burstDelay *= AI_ANGER_SPEED;
+
         auto shouldLead = RollShouldLead(); // only roll once per fire
 
         for (int i = 0; i < robotInfo.Multishot; i++) {
+            // Use an even lower burst delay when angry
             ai.FireDelay += burstDelay;
 
             FireRobotWeapon(robot, ai, robotInfo, target, true, blind, shouldLead);
             ai.BurstShots++;
             if (ai.BurstShots >= Difficulty(robotInfo).ShotCount) {
                 ai.BurstShots = 0;
-                ai.FireDelay += Difficulty(robotInfo).FireDelay;
+                auto fireDelay = Difficulty(robotInfo).FireDelay;
+                ai.FireDelay += ai.Angry ? fireDelay * AI_ANGER_SPEED : fireDelay;
                 ai.FireDelay -= burstDelay; // undo burst delay if this was the last shot
                 break; // Ran out of shots
             }
@@ -1108,20 +1138,30 @@ namespace Inferno {
             robot.Physics.Velocity = idealVel;
 
         auto speed = robot.Physics.Velocity.Length();
-        if (speed > Difficulty(robotInfo).Speed)
+        auto maxSpeed = Difficulty(robotInfo).Speed;
+        if (ai.State == AIState::FindHelp) maxSpeed *= 2.0f;
+
+        if (speed > maxSpeed)
             robot.Physics.Velocity *= 0.75f;
 
         //SPDLOG_INFO("Speed: {}", robot.Physics.Velocity.Length());
     }
 
-    void MakeCombatNoise(const Object& robot, AIRuntime& ai) {
+    void PlayCombatNoise(const Object& robot, AIRuntime& ai) {
         if (ai.CombatSoundTimer > 0) return;
 
-        ai.CombatSoundTimer = (1 + Random() * 0.75f) * 2.5f;
+        // Strange to check for being cornered here, but it is convenient with the sound timer
         auto& robotInfo = Resources::GetRobotInfo(robot);
+
+        if (robotInfo.AngerBehavior) {
+            ai.Angry = CountNearbyAllies(robot, AI_COUNT_ALLY_RANGE) == 0;
+        }
+
+        ai.CombatSoundTimer = (1 + Random() * 0.75f) * 2.5f;
 
         Sound3D sound(robotInfo.AttackSound);
         sound.Pitch = Random() < 0.60f ? 0.0f : -0.05f - Random() * 0.10f;
+        if (ai.Angry) sound.Pitch = 0.3f;
         Sound::PlayFrom(sound, robot);
     }
 
@@ -1410,28 +1450,6 @@ namespace Inferno {
         ai.AlertTimer = ALERT_FREQUENCY;
     }
 
-    uint CountNearbyAllies(const Object& robot, float range, bool inCombat = false) {
-        uint allies = 0;
-
-        IterateNearbySegments(Game::Level, robot, range, [&](const Segment& seg, bool) {
-            for (auto& objid : seg.Objects) {
-                if (auto obj = Game::Level.TryGetObject(objid)) {
-                    if (obj->IsRobot() && obj->Signature != robot.Signature) {
-                        if (inCombat) {
-                            if (GetAI(*obj).State == AIState::Combat)
-                                allies++;
-                        }
-                        else {
-                            allies++;
-                        }
-                    }
-                }
-            }
-        });
-
-        return allies;
-    }
-
     void UpdateCombatAI(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float dt) {
         CheckProjectiles(Game::Level, robot, ai, robotInfo);
 
@@ -1472,7 +1490,7 @@ namespace Inferno {
                 Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, 0, 0));
 
             AlertNearby(ai, robot, robotInfo);
-            MakeCombatNoise(robot, ai);
+            PlayCombatNoise(robot, ai);
         }
         else {
             ai.LostSightDelay -= dt;
@@ -1666,7 +1684,7 @@ namespace Inferno {
                 Game::FireWeapon(Game::GetObjectRef(robot), weapon, 0, nullptr, 1, false);
                 ai.FireDelay = AI_MINE_LAYER_DELAY;
             }
-            MakeCombatNoise(robot, ai);
+            PlayCombatNoise(robot, ai);
         }
         else {
             // Keep pathing until awareness fully decays

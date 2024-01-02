@@ -287,6 +287,7 @@ Weapons:
     Size: 1 # was 1.5
     HomingFov: 45
     HomingDistance: 300
+    Damage: [ 10, 15, 20, 25, 30 ] # Changed to match D2 values. Original game deals 49 damage on insane.
 
   - id: 16
     Name: proximity mine
@@ -297,7 +298,7 @@ Weapons:
     LightRadius: 18
     LightColor: 1, 0.05, 0.05
     Glow: 0.75, 0.75, 0.75
-    NoContactDamage: 1
+    DirectDamage: 0
     Damage: 120 # Mines detonate before touching enemies
     PlayerDamageScale: 0.25 # Reduce player damage to original 30
 
@@ -450,9 +451,10 @@ Weapons:
     ExplosionTexture: vaussimpact
     ExplosionSize: 2.4
     ExplosionTime: 0.6
-    Damage: 20
-    SplashRadius: 15 # Increased from 10 to make more distinct from vulcan
-    AmmoUsage: 60
+    Damage: 25 # Original value of 25 is 167 DPS with no direct damage, 30 is 200 DPS
+    DirectDamage: 0 # Only deal splash damage for balance reasons
+    SplashRadius: 20 # Increased from 10 to make more distinct from vulcan, similar to a flak cannon. Missiles are 30
+    AmmoUsage: 40
     LightRadius: 6
     ExplosionSound: # ExpHardBullet
     Model: -1
@@ -481,6 +483,7 @@ Weapons:
     LightRadius: 16
     LightColor: 0.6, 0.2, 0
     FlashColor: 1, 1, 1, 25
+    PlayerDamageScale: 0.5 # Halve self damage
 
   - id: 35
     Name: omega cannon
@@ -551,7 +554,7 @@ Robots:
   - id: 3 # Class 1 drone
     CircleDistance: 60
     FOV: [ 110, 130, 150, 170, 200 ]
-    Speed: [ 40, 40, 45, 50, 60 ] # Speed boosted at lower difficulty 30, 30, 35, 40, 60
+    # Speed: [ 40, 40, 45, 50, 60 ] # Speed boosted at lower difficulty 30, 30, 35, 40, 60
     Mass: 2.5
     Drag: 0.025
     AlertRadius: 110 # Drones are scouts and have a larger radius than normal
@@ -563,6 +566,7 @@ Robots:
     Drag: 0.03
     Mass: 3.0
     Curiosity: 0.85
+    AngerBehavior: 1 # Gets angry when alone
   - id: 5 # Cloaked driller
     CircleDistance: 100 # sniper
     Mass: 6.5 # Heavier than regular due to cloaking device
@@ -648,25 +652,26 @@ Robots:
     SuppressChance: 0.2
     Curiosity: 0 # Don't investigate sounds
     # DeathRollSound: 185 # d1
-  - id: 16 # Red hulk
+  - id: 16 # Red hulk / Super hulk
     CircleDistance: 80
     Multishot: 1
     Mass: 7
     ChaseChance: 0
     Curiosity: 0.05 # Very rarely move to investigate sounds
     SuppressChance: .35
+    SeeSound: 177
   - id: 17 # Level 7 boss
     Mass: 40
     Multishot: 2
     CircleDistance: 200
     # TurnTime: 0.025 # Turn time reduced to compensate for increased mass
     # D2 has hit points of 4000
-    # HitPoints: 3000 # Increased from 2000 due to teleporting being more generous to player
+    HitPoints: 3000 # Increased from 2000 due to teleporting and missiles being more generous to player
     DeathRollSound: 185 # d1
     DeathRoll: 10 # maximum death roll
     SeeSound: 183 # d1
     AlertRadius: 240
-    TeleportInterval: 6 # 8 original. lowered due to removing engine reductions in teleport delay such as firing or taking damage.
+    TeleportInterval: 4 # 8 original. lowered due to removing engine reductions in teleport delay such as firing or taking damage.
   - id: 18 # Cloaked lifter
     CircleDistance: 12
     Mass: 9.5
@@ -695,6 +700,7 @@ Robots:
     Mass: 9
     MeleeDamage: [ 5, 6, 7, 8, 9 ]
     ChaseChance: 1
+    SeeSound: 179
     Score: 750 # Was 800
   - id: 22 # PTMC Defense Prototype
     CircleDistance: 40
