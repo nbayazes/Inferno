@@ -121,7 +121,7 @@ namespace Inferno::Render {
         shader.SetDissolveTexture(cmdList, Render::Materials->Get("noise").Handle());
         shader.SetSampler(cmdList, GetWrappedTextureSampler());
         double x;
-        constants.DissolveAmount = (float)std::modf(Clock.GetTotalTimeSeconds() * 0.5, &x);
+        constants.PhaseAmount = (float)std::modf(Clock.GetTotalTimeSeconds() * 0.5, &x);
 #else
         if (object.IsPhasing()) {
             shader.SetDissolveTexture(cmdList, Render::Materials->Get("noise").Handle());
@@ -395,15 +395,15 @@ namespace Inferno::Render {
 
         ObjectShader::Constants constants = {};
 #ifdef DEBUG_DISSOLVE
-        constants.DissolveColor = object.Effects.PhaseColor;
+        constants.PhaseColor = object.Effects.PhaseColor;
         effect.Shader->SetDissolveTexture(cmdList, Render::Materials->Get("noise").Handle());
         effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
         double x;
-        constants.DissolveAmount = (float)std::modf(Clock.GetTotalTimeSeconds() * 0.5, &x);
+        constants.PhaseAmount = (float)std::modf(Clock.GetTotalTimeSeconds() * 0.5, &x);
 #else
         if (object.IsPhasing()) {
             effect.Shader->SetDissolveTexture(cmdList, Render::Materials->Get("noise").Handle());
-            constants.PhaseAmount = std::max(1 - object.Effects.GetPhasePercent(), 0.01f); // Shader checks for 0 to skip effect
+            constants.PhaseAmount = std::max(1 - object.Effects.GetPhasePercent(), 0.001f); // Shader checks for 0 to skip effect
             constants.PhaseColor = object.Effects.PhaseColor;
         }
 #endif

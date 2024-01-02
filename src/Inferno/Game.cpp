@@ -257,7 +257,7 @@ namespace Inferno::Game {
         if (HasFlag(e.Flags, EffectFlags::PhaseOut)) {
             e.PhaseTimer += dt;
             if (e.PhaseTimer >= e.PhaseDuration)
-                ClearFlag(e.Flags, EffectFlags::PhaseOut);
+                e.PhaseTimer = e.PhaseDuration;
         }
 
         if (HasFlag(e.Flags, EffectFlags::Ignited)) {
