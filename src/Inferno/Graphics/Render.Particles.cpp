@@ -25,6 +25,18 @@ namespace Inferno::Render {
         List<Ptr<EffectBase>> VisualEffects;
     }
 
+    bool IsExpired(const EffectBase& effect) {
+        return Game::Time >= effect.CreationTime + effect.Duration;
+    }
+
+    float EffectBase::GetRemainingTime() const {
+        return std::max(0.0f, float(Duration + CreationTime - Game::Time));
+    }
+
+    float EffectBase::GetElapsedTime() const {
+        return Duration - GetRemainingTime();
+    }
+
     EffectBase* GetEffect(EffectID effect) {
         if (!Seq::inRange(VisualEffects, (int)effect)) return nullptr;
         return VisualEffects[(int)effect].get();
@@ -65,6 +77,7 @@ namespace Inferno::Render {
         ASSERT(e->Segment > SegID::None);
         if (e->Segment <= SegID::None) return EffectID::None;
 
+        e->CreationTime = Game::Time;
         e->UpdatePositionFromParent();
         e->OnInit();
         auto& seg = Game::Level.GetSegment(e->Segment);
@@ -123,18 +136,18 @@ namespace Inferno::Render {
     }
 
     void Particle::Draw(Graphics::GraphicsContext& ctx) {
-        if (Delay > 0 || Elapsed >= Duration) return;
+        if (Delay > 0 || IsExpired(*this)) return;
 
         auto& vclip = Resources::GetVideoClip(Clip);
 
         auto* up = Up == Vector3::Zero ? nullptr : &Up;
         auto color = Color;
-        float remaining = Duration - Elapsed;
+        float remaining = GetRemainingTime();
         if (FadeTime != 0 && remaining <= FadeTime) {
             color.w = 1 - std::clamp((FadeTime - remaining) / FadeTime, 0.0f, 1.0f);
         }
 
-        auto tid = vclip.GetFrameClamped(Elapsed);
+        auto tid = vclip.GetFrameClamped(GetElapsedTime());
         DrawBillboard(ctx, tid, Position, Radius, color, true, Rotation, up);
     }
 
@@ -261,7 +274,6 @@ namespace Inferno::Render {
     void Debris::OnFixedUpdate(float dt, EffectID effectId) {
         Velocity += Game::Gravity * dt;
         Velocity *= 1 - Drag;
-        Duration -= dt;
         PrevTransform = Transform;
         auto position = Transform.Translation() + Velocity * dt;
         //Transform.Translation(Transform.Translation() + Velocity * dt);
@@ -276,7 +288,7 @@ namespace Inferno::Render {
         DirectX::BoundingSphere sphere{ Transform.Translation(), Radius };
 
         if (IntersectLevelDebris(Game::Level, sphere, Segment, hit)) {
-            Elapsed = Duration; // destroy on contact
+            Duration = 0; // destroy on contact
             // todo: scorch marks on walls
         }
 
@@ -370,7 +382,8 @@ namespace Inferno::Render {
         TravelDist += Direction.Length();
         Direction.Normalize();
 
-        if (TravelDist < Length * TRACER_MIN_DIST_MULT) Elapsed = 0; // Don't start effect until tracer clears the start
+        //if (TravelDist < Length * TRACER_MIN_DIST_MULT)
+        //    Elapsed = 0; // Don't start effect until tracer clears the start
     }
 
     void TracerInfo::Draw(Graphics::GraphicsContext& ctx) {
@@ -384,14 +397,14 @@ namespace Inferno::Render {
         if (TravelDist < Length * TRACER_MIN_DIST_MULT) return; // don't draw tracers that are too short
         if (Direction == Vector3::Zero || PrevPosition == Position) return;
 
+        const auto elapsed = GetElapsedTime();
         float fade = 1;
-        float remaining = Duration - Elapsed;
-        if (remaining < FadeTime) {
+        if (GetRemainingTime() < FadeTime) {
             //fade = 1 - (FadeTime - remaining) / FadeTime;
         }
-        else if (Elapsed < FadeTime) {
-            fade = 1 - (FadeTime - Elapsed) / FadeTime;
-            fade = Elapsed / FadeTime;
+        else if (elapsed < FadeTime) {
+            fade = 1 - (FadeTime - elapsed) / FadeTime;
+            fade = elapsed / FadeTime;
         }
 
         fade = std::clamp(fade, 0.0f, 1.0f);
@@ -452,7 +465,6 @@ namespace Inferno::Render {
             tracer.PrevPosition = tracer.Position = obj->Position;
         }
 
-        tracer.Elapsed = 0;
         tracer.Duration = 5;
         AddEffect(MakePtr<TracerInfo>(tracer));
     }
@@ -482,7 +494,7 @@ namespace Inferno::Render {
         auto radius = decal.Radius;
         auto color = decal.Color;
         if (decal.FadeTime > 0) {
-            float remaining = decal.Duration - decal.Elapsed;
+            float remaining = decal.GetRemainingTime();
             auto t = std::lerp(1.0f, 0.0f, std::clamp((decal.FadeTime - remaining) / decal.FadeTime, 0.0f, 1.0f));
             color.w = t;
             radius += (1 - t) * decal.Radius * 0.5f; // expand as fading out
@@ -507,7 +519,7 @@ namespace Inferno::Render {
             auto& effect = Effects->SpriteMultiply;
 
             for (auto& decal : Decals) {
-                if (decal.Elapsed >= decal.Duration) continue;
+                if (IsExpired(decal)) continue;
 
                 if (ctx.ApplyEffect(effect)) {
                     ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
@@ -530,7 +542,7 @@ namespace Inferno::Render {
             auto& effect = Effects->SpriteAdditiveBiased;
 
             for (auto& decal : AdditiveDecals) {
-                if (decal.Elapsed >= decal.Duration) continue;
+                if (IsExpired(decal)) continue;
 
                 if (ctx.ApplyEffect(effect)) {
                     ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
@@ -560,7 +572,7 @@ namespace Inferno::Render {
         for (auto& decal : Decals) {
             Tag decalTag = { decal.Segment, decal.Side };
             if (decalTag == tag || (cside && decalTag == cside))
-                decal.Elapsed = FLT_MAX;
+                decal.Duration = 0;
         }
     }
 
@@ -569,7 +581,28 @@ namespace Inferno::Render {
         for (size_t effectId = 0; effectId < VisualEffects.size(); effectId++) {
             auto& effect = VisualEffects[effectId];
             if (effect && effect->Parent == id)
-                effect->Elapsed = effect->Duration; // expire the effect
+                effect->Duration = 0; // expire the effect
+        }
+    }
+
+    void DetachEffects(EffectBase& effect) {
+        // Had a parent but it was destroyed
+        if (effect.FadeTime > 0) {
+            // Detach from parent and fade out
+            effect.Duration = float(Game::Time - effect.CreationTime) + effect.FadeTime;
+            effect.Parent = {};
+        }
+        else {
+            effect.Duration = 0; // Remove
+        }
+    }
+
+    void DetachEffects(ObjRef id) {
+        // Expire effects attached to an object when it is destroyed
+        for (size_t effectId = 0; effectId < VisualEffects.size(); effectId++) {
+            auto& effect = VisualEffects[effectId];
+            if (effect && effect->Parent == id)
+                DetachEffects(*effect);
         }
     }
 
@@ -686,7 +719,7 @@ namespace Inferno::Render {
         effect.Shader->SetDiffuse(cmdList, material.Handle());
         g_SpriteBatch->Begin(cmdList);
 
-        auto remaining = Duration - Elapsed;
+        auto remaining = GetRemainingTime();
         float fade = remaining < FadeTime ? remaining / FadeTime : 1; // global emitter fade
 
         for (auto& spark : _sparks) {
@@ -796,7 +829,7 @@ namespace Inferno::Render {
         // Expire effects in case other effects add new ones mid-frame
         for (size_t effectId = 0; effectId < VisualEffects.size(); effectId++) {
             auto& effect = VisualEffects[effectId];
-            if (effect && effect->Elapsed >= effect->Duration) {
+            if (effect && IsExpired(*effect)) {
                 effect->OnExpire();
 
                 UnlinkEffect(*effect, EffectID(effectId));
@@ -835,7 +868,7 @@ namespace Inferno::Render {
             }
 
             // Remove dead effects
-            if (effect->Elapsed >= effect->Duration) {
+            if (IsExpired(*effect)) {
                 effect->OnExpire();
 
                 UnlinkEffect(*effect, (EffectID)id);
@@ -860,22 +893,10 @@ namespace Inferno::Render {
     void EffectBase::Update(float dt, EffectID id) {
         StartDelay -= dt;
         if (StartDelay > 0 /*|| Updates > 0*/) return;
-        Elapsed += dt;
         PrevPosition = Position;
 
-        if (Parent && !UpdatePositionFromParent()) {
-            // Had a parent but it was destroyed
-            if (FadeTime > 0) {
-                // Detach from parent and fade out
-                Duration = FadeTime;
-                Elapsed = 0;
-                Parent = {};
-            }
-            else {
-                Elapsed = Duration;
-                return;
-            }
-        }
+        if (Parent && !UpdatePositionFromParent())
+            DetachEffects(*this);
 
         OnUpdate(dt, id);
     }
@@ -938,7 +959,7 @@ namespace Inferno::Render {
         Color lightColor = LightColor;
 
         if (FadeTime > 0) {
-            auto t = std::clamp((Duration - Elapsed) / FadeTime, 0.0f, 1.0f);
+            auto t = std::clamp(GetRemainingTime() / FadeTime, 0.0f, 1.0f);
             if (t <= 0) return; // Invisible at t = 0
             //lightRadius = std::lerp(lightRadius * 0.75f, lightRadius, t);
             lightColor = Color::Lerp(Color(0, 0, 0), lightColor, t);

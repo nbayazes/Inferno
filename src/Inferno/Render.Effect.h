@@ -14,7 +14,7 @@ namespace Inferno::Render {
         SegID Segment = SegID::None;
         Vector3 Position, PrevPosition;
         float Duration = 0; // How long the effect lasts
-        float Elapsed = 0; // How long the effect has been alive for
+        double CreationTime = 0; // Game time when created
         RenderQueueType Queue = RenderQueueType::Transparent; // Which queue to render to
         float FadeTime = 0; // Fade time at the end of the effect's life
         float StartDelay = 0; // How long to wait in seconds before starting the effect
@@ -29,6 +29,9 @@ namespace Inferno::Render {
         void FixedUpdate(float dt, EffectID);
 
         bool UpdatePositionFromParent();
+
+        float GetRemainingTime() const;
+        float GetElapsedTime() const;
 
         virtual void OnUpdate(float /*dt*/, EffectID) {}
         virtual void OnFixedUpdate(float /*dt*/, EffectID) {}

@@ -15,7 +15,9 @@ namespace Inferno {
 namespace Inferno::Render {
     struct RenderCommand;
     float GetRenderDepth(const Vector3& pos);
-    
+
+    bool IsExpired(const EffectBase& effect);
+
     struct DynamicLight final : EffectBase {
         DynamicLight() { Queue = RenderQueueType::None; }
 
@@ -73,7 +75,7 @@ namespace Inferno::Render {
 
     public:
         ParticleEmitter(const ParticleEmitterInfo& info, size_t capacity)
-            : _info(info), _particles([](auto& p) { return p.Elapsed < p.Duration; }, capacity) {
+            : _info(info), _particles(IsExpired, capacity) {
             StartDelay = info.StartDelay;
             Position = info.Position;
         }
@@ -174,6 +176,9 @@ namespace Inferno::Render {
 
     // Removes all effects associated with an object
     void RemoveEffects(ObjRef);
+
+    // Detach effects from an object and cause them to fade out
+    void DetachEffects(ObjRef);
 
     struct Spark {
         float Life = 0;

@@ -52,7 +52,6 @@ namespace Inferno::Render {
         beam.Start = start;
         beam.End = end;
         beam.Duration = life;
-        beam.Elapsed = 0;
         AddBeam(beam);
     }
 
@@ -71,7 +70,6 @@ namespace Inferno::Render {
             beam.Segment = obj->Segment;
             beam.End = end;
             beam.Duration = life;
-            beam.Elapsed = 0;
             AddBeam(beam);
         }
     }
@@ -91,7 +89,6 @@ namespace Inferno::Render {
             beam.Segment = obj->Segment;
             beam.EndObj = end;
             beam.Duration = duration;
-            beam.Elapsed = 0;
             AddBeam(beam);
         }
     }
@@ -137,10 +134,6 @@ namespace Inferno::Render {
             StartDelay -= Game::FrameTime;
             return;
         }
-
-        Elapsed += Game::FrameTime;
-
-        if (Elapsed > Duration) return;
 
         auto startObj = Game::Level.TryGetObject(Parent);
         auto endObj = Game::Level.TryGetObject(EndObj);
@@ -246,11 +239,12 @@ namespace Inferno::Render {
 
         float fade = 1;
         if (FadeInOutTime > 0) {
-            if (Elapsed < FadeInOutTime) {
-                fade = 1 - (FadeInOutTime - Elapsed) / FadeInOutTime;
+            auto elapsed = GetElapsedTime();
+            if (elapsed < FadeInOutTime) {
+                fade = 1 - (FadeInOutTime - elapsed) / FadeInOutTime;
             }
-            else if (Elapsed > Duration - FadeInOutTime) {
-                fade = (Duration - Elapsed) / FadeInOutTime;
+            else if (elapsed > Duration - FadeInOutTime) {
+                fade = (Duration - elapsed) / FadeInOutTime;
             }
         }
 
