@@ -37,6 +37,16 @@ namespace Inferno::Game {
         Sound::AddEmitter(std::move(creaks));
     }
 
+    int GetCountdown() {
+        if (Level.BaseReactorCountdown != DEFAULT_REACTOR_COUNTDOWN) {
+            return Level.BaseReactorCountdown + Level.BaseReactorCountdown * (5 - Difficulty - 1) / 2;
+        }
+        else {
+            constexpr std::array DefaultCountdownTimes = { 90, 60, 45, 35, 30 };
+            return DefaultCountdownTimes[Difficulty];
+        }
+    } 
+
     void SelfDestructMine() {
         for (auto& tag : Level.ReactorTriggers) {
             if (auto wall = Level.TryGetWall(tag)) {
@@ -48,13 +58,7 @@ namespace Inferno::Game {
             }
         }
 
-        if (Level.BaseReactorCountdown != DEFAULT_REACTOR_COUNTDOWN) {
-            TotalCountdown = Level.BaseReactorCountdown + Level.BaseReactorCountdown * (5 - Difficulty - 1) / 2;
-        }
-        else {
-            constexpr std::array DefaultCountdownTimes = { 90, 60, 45, 35, 30 };
-            TotalCountdown = DefaultCountdownTimes[Difficulty];
-        }
+        TotalCountdown = GetCountdown();
 
         for (auto& obj : Level.Objects) {
             if (obj.IsReactor())
@@ -91,6 +95,8 @@ namespace Inferno::Game {
         sound.Volume = 2;
         Sound::Play(sound, obj.Position, obj.Segment);
 
+        int instances = 1000; // Want this to last forever in case multiple reactor levels are ever added
+
         if (auto e = Render::EffectLibrary.GetSparks("reactor_destroyed"))
             Render::AddSparkEmitter(*e, obj.Segment, obj.Position);
 
@@ -103,13 +109,13 @@ namespace Inferno::Game {
         if (auto e = Render::EffectLibrary.GetExplosion("reactor_large_explosions")) {
             // Larger periodic explosions with sound
             e->Variance = obj.Radius * 0.45f;
-            e->Instances = TotalCountdown;
+            e->Instances = instances;
             Render::CreateExplosion(*e, obj.Segment, obj.Position);
         }
 
         if (auto e = Render::EffectLibrary.GetExplosion("reactor_small_explosions")) {
             e->Variance = obj.Radius * 0.55f;
-            e->Instances = TotalCountdown * 10;
+            e->Instances = instances * 10;
             Render::CreateExplosion(*e, obj.Segment, obj.Position);
         }
 
@@ -126,7 +132,7 @@ namespace Inferno::Game {
             for (int i = 0; i < 4; i++) {
                 auto startObj = Game::GetObjectRef(obj);
                 beam->StartDelay = i * 0.4f + Random() * 0.125f;
-                Render::AddBeam(*beam, (float)TotalCountdown + 5, startObj);
+                Render::AddBeam(*beam, (float)instances, startObj);
             }
         }
 
