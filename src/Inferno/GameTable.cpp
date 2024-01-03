@@ -342,6 +342,7 @@ namespace Inferno {
         READ_PROP(Curiosity);
         READ_PROP(OpenKeyDoors);
         READ_PROP(AngerBehavior);
+        READ_PROP(AimAngle);
 #undef READ_PROP
 
         Array<float, 5> fov{}, fireDelay{}, fireDelay2{}, turnTime{}, speed{}, circleDistance{}, meleeDamage{};

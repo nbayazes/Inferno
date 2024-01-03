@@ -100,6 +100,7 @@ namespace Inferno {
         string Script; // Custom behavior script
         bool OpenKeyDoors = false; // Can open key doors
         bool AngerBehavior = false; // Gets angry when alone
+        float AimAngle = 50.0f; // Field of view of a robot's guns in degrees
     };
 
 }

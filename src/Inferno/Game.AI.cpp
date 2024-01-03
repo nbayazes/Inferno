@@ -370,41 +370,6 @@ namespace Inferno {
         ai.Velocity += dir * Difficulty(info).Speed * scale;
     }
 
-    void FireWeaponAtPoint(const Object& obj, const RobotInfo& robot, uint8 gun, const Vector3& point, WeaponID weapon) {
-        auto aim = 8.0f - 7.0f * FixToFloat(robot.Aim << 8);
-
-        // todo: seismic disturbance inaccuracy (self destruct, earthshaker)
-
-        // Randomize target based on difficulty
-        //Vector3 target = {
-        //    point.x + RandomN11() * (5 - Game::Difficulty - 1) * aim,
-        //    point.y + RandomN11() * (5 - Game::Difficulty - 1) * aim,
-        //    point.z + RandomN11() * (5 - Game::Difficulty - 1) * aim
-        //};
-
-        // Randomize target based on aim
-        Vector3 target = {
-            point.x + RandomN11() * aim,
-            point.y + RandomN11() * aim,
-            point.z + RandomN11() * aim
-        };
-
-        // this duplicates position/direction calculation in FireWeapon...
-        auto gunOffset = GetSubmodelOffset(obj, { robot.GunSubmodels[gun], robot.GunPoints[gun] });
-        auto position = Vector3::Transform(gunOffset, obj.GetTransform());
-        auto direction = NormalizeDirection(target, position);
-
-        if (obj.Rotation.Forward().Dot(direction) < 0) {
-            // tried to fire backwards. Can rarely happen if target is in front of robot but behind gunpoint.
-            // Just fire directly ahead instead
-            SPDLOG_WARN("Robot {} tried to shoot backwards", obj.Signature);
-            direction = obj.Rotation.Forward();
-        }
-
-        auto id = Game::GetObjectRef(obj);
-        Game::FireWeapon(id, weapon, gun, &direction);
-    }
-
     constexpr float FAST_WEAPON_SPEED = 200;
     constexpr float SLOW_WEAPON_SPEED = 30;
 
@@ -419,12 +384,6 @@ namespace Inferno {
         return std::atan2(a.Cross(b).Dot(normal), a.Dot(b));
     }
 
-    // Returns the max amount of aim assist a weapon can have when fired by a robot
-    float GetMaxAimAssistAngle(const Weapon& weapon) {
-        // Fast weapons get less assistance for balance reasons
-        return weapon.Speed[Game::Difficulty] > FAST_WEAPON_SPEED ? 12.5f * DegToRad : 30.0f * DegToRad;
-    }
-
     void CycleGunpoint(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo) {
         ai.GunIndex = robotInfo.Guns > 0 ? (ai.GunIndex + 1) % robotInfo.Guns : 0;
         if (Game::Level.IsDescent1() && robot.ID == 23 && ai.GunIndex == 2)
@@ -436,10 +395,8 @@ namespace Inferno {
 
     // Returns the new position to fire at
     Vector3 LeadTarget(const Object& robot, SegID gunSeg, const Object& target, const Weapon& weapon) {
-        //auto targetSpeed = target.Physics.Velocity.Length();
-
-        //if (targetSpeed < 10)
-        //    return target.Position; // Don't lead slow targets
+        if (target.Physics.Velocity.Length() < 20)
+            return target.Position; // Don't lead slow targets
 
         if (weapon.Speed[Game::Difficulty] > FAST_WEAPON_SPEED)
             return target.Position; // Don't lead with fast weapons (vulcan, gauss, drillers). Unfair to player.
@@ -491,12 +448,14 @@ namespace Inferno {
     void FireRobotWeapon(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, Vector3 target, bool primary, bool blind, bool lead) {
         if (!primary && robotInfo.WeaponType2 == WeaponID::None) return; // no secondary set
 
-        auto& weapon = Resources::GetWeapon(primary ? robotInfo.WeaponType : robotInfo.WeaponType2);
-
-        uint8 gunIndex = primary ? ai.GunIndex : 0;
-
-        float maxAimAssit = GetMaxAimAssistAngle(weapon);
+        auto weaponId = primary ? robotInfo.WeaponType : robotInfo.WeaponType2;
+        auto& weapon = Resources::GetWeapon(weaponId);
+        uint8 gun = primary ? ai.GunIndex : 0;
         auto forward = robot.Rotation.Forward();
+
+        // Find world position of gunpoint
+        auto gunOffset = GetSubmodelOffset(robot, { robotInfo.GunSubmodels[gun], robotInfo.GunPoints[gun] });
+        auto gunPosition = Vector3::Transform(gunOffset, robot.GetTransform());
 
         if (blind) {
             // add inaccuracy if target is cloaked or doing a blind-fire
@@ -506,24 +465,43 @@ namespace Inferno {
             target = LeadTarget(robot, robot.Segment, *targetObj, weapon);
         }
 
-        target += RandomVector(float(4 - Game::Difficulty)) * 0.5f; // Add some inaccuracy based on difficulty level
+        // project target to centerline of gunpoint
+        auto projTarget = forward * forward.Dot(target - gunPosition) + gunPosition;
+        //Render::Debug::DrawLine(projTarget, gunPosition, Color(1, 0, 0));
+        auto projDist = Vector3::Distance(gunPosition, projTarget);
 
-        auto [aimDir, aimDist] = GetDirectionAndDistance(target, robot.Position);
 
-        if (AngleBetweenVectors(aimDir, forward) > maxAimAssit) {
-            // clamp the angle if target it outside of the max aim assist
-            auto normal = forward.Cross(aimDir);
-            if (normal.Dot(robot.Rotation.Up()) < 0) normal *= -1;
+        auto aimDir = GetDirection(target, gunPosition);
+        //auto aimAngle = AngleBetweenVectors(aimDir, forward);
+        //SPDLOG_INFO("Aim angle deg: {}", aimAngle * RadToDeg);
 
-            auto angle = SignedAngleBetweenVectors(forward, aimDir, normal);
-            auto aimAngle = maxAimAssit;
-            if (angle < 0) aimAngle *= -1;
+        if (AngleBetweenVectors(aimDir, forward) > robotInfo.AimAngle * DegToRad * 0.5f) {
+            auto projDir = target - projTarget;
+            projDir.Normalize();
+            auto maxLeadDist = tanf(robotInfo.AimAngle * DegToRad * 0.5f) * projDist;
+            target = projTarget + maxLeadDist * projDir;
 
-            auto transform = Matrix::CreateFromAxisAngle(normal, aimAngle);
-            target = robot.Position + Vector3::Transform(forward, transform) * aimDist;
+            //auto [aimDir2, aimDist2] = GetDirectionAndDistance(target, gunPosition);
+            //auto aimAngle2 = AngleBetweenVectors(aimDir2, forward);
+            //SPDLOG_INFO("Aim angle deg 2: {}", aimAngle2 * RadToDeg);
         }
 
-        FireWeaponAtPoint(robot, robotInfo, gunIndex, target, robotInfo.WeaponType);
+        {
+            auto aim = 8.0f - 7.0f * FixToFloat(robotInfo.Aim << 8);
+
+            // todo: seismic disturbance inaccuracy (self destruct, earthshaker)
+
+            // Randomize target based on aim
+            target += { RandomN11()* aim, RandomN11()* aim, RandomN11()* aim };
+            target += RandomVector(float(4 - Game::Difficulty)) * 0.5f; // Add some inaccuracy based on difficulty level
+
+            //target += RandomLateralDirection(robot) * aim;
+            auto targetDir = target - gunPosition;
+            targetDir.Normalize();
+
+            auto id = Game::GetObjectRef(robot);
+            Game::FireWeapon(id, weaponId, gun, &targetDir);
+        }
 
         if (primary)
             CycleGunpoint(robot, ai, robotInfo);
@@ -735,47 +713,52 @@ namespace Inferno {
             }
         }
 
-        // Apply slow
-        float damageScale = 1 - (info.HitPoints - damage * stunMult) / info.HitPoints; // percentage of life dealt
-        float slowTime = std::lerp(0.0f, 1.0f, damageScale / MAX_SLOW_THRESHOLD);
-        if (ai.RemainingSlow > 0) slowTime += ai.RemainingSlow;
-        ai.RemainingSlow = std::clamp(slowTime, 0.1f, MAX_SLOW_TIME);
+        if (!Settings::Cheats.DisableWeaponDamage) {
+            // Make phasing robots (bosses and matcens) take less damage
+            if (robot.Effects.GetPhasePercent() > 0)
+                damage *= std::max(1 - robot.Effects.GetPhasePercent(), 0.1f);
 
-        float stunTime = damageScale / MAX_STUN_PERCENT * MAX_STUN_TIME;
-
-        // Apply stun
-        if (damage * stunMult > STUN_THRESHOLD && stunTime > MIN_STUN_TIME) {
-            //SPDLOG_INFO("Stunning {} for {}", robot.Signature, stunTime > MAX_STUN_TIME ? MAX_STUN_TIME : stunTime);
-            if (ai.RemainingStun > 0) stunTime += ai.RemainingStun;
-            stunTime = std::clamp(stunTime, MIN_STUN_TIME, MAX_STUN_TIME);
-            ai.RemainingStun = stunTime;
-            PlayRobotAnimation(robot, AnimState::Flinch, 0.2f);
-
-            if (auto beam = Render::EffectLibrary.GetBeamInfo("stunned object arcs")) {
-                auto startObj = Game::GetObjectRef(robot);
-                beam->Radius = { robot.Radius * 0.6f, robot.Radius * 0.9f };
-                Render::AddBeam(*beam, stunTime, startObj);
-                beam->StartDelay = stunTime / 3;
-                Render::AddBeam(*beam, stunTime - beam->StartDelay, startObj);
-                beam->StartDelay = stunTime * 2 / 3;
-                Render::AddBeam(*beam, stunTime - beam->StartDelay, startObj);
-                //SetFlag(robot.Physics.Flags, PhysicsFlag::Gravity);
-            }
+            // Apply damage
+            robot.HitPoints -= damage;
         }
 
-        if (Settings::Cheats.DisableWeaponDamage) return;
+        if (info.IsBoss) {
+            // Bosses are immune to stun and slow and perform special actions when hit
+            Game::DamageBoss(robot, sourcePos, damage, source);
+        }
+        else {
+            // Apply slow
+            float damageScale = 1 - (info.HitPoints - damage * stunMult) / info.HitPoints; // percentage of life dealt
+            float slowTime = std::lerp(0.0f, 1.0f, damageScale / MAX_SLOW_THRESHOLD);
+            if (ai.RemainingSlow > 0) slowTime += ai.RemainingSlow;
+            ai.RemainingSlow = std::clamp(slowTime, 0.1f, MAX_SLOW_TIME);
 
-        // Make phasing robots (bosses and matcens) take less damage
-        if (robot.Effects.GetPhasePercent() > 0)
-            damage *= std::max(1 - robot.Effects.GetPhasePercent(), 0.1f);
+            float stunTime = damageScale / MAX_STUN_PERCENT * MAX_STUN_TIME;
 
-        // Apply damage
-        robot.HitPoints -= damage;
+            // Apply stun
+            if (damage * stunMult > STUN_THRESHOLD && stunTime > MIN_STUN_TIME) {
+                //SPDLOG_INFO("Stunning {} for {}", robot.Signature, stunTime > MAX_STUN_TIME ? MAX_STUN_TIME : stunTime);
+                if (ai.RemainingStun > 0) stunTime += ai.RemainingStun;
+                stunTime = std::clamp(stunTime, MIN_STUN_TIME, MAX_STUN_TIME);
+                ai.RemainingStun = stunTime;
+                PlayRobotAnimation(robot, AnimState::Flinch, 0.2f);
 
-        if (info.IsBoss) return;
-        if (robot.HitPoints <= 0 && info.DeathRoll == 0) {
-            AlertAlliesOfDeath(robot);
-            ExplodeObject(robot); // Explode normal robots immediately
+                if (auto beam = Render::EffectLibrary.GetBeamInfo("stunned object arcs")) {
+                    auto startObj = Game::GetObjectRef(robot);
+                    beam->Radius = { robot.Radius * 0.6f, robot.Radius * 0.9f };
+                    Render::AddBeam(*beam, stunTime, startObj);
+                    beam->StartDelay = stunTime / 3;
+                    Render::AddBeam(*beam, stunTime - beam->StartDelay, startObj);
+                    beam->StartDelay = stunTime * 2 / 3;
+                    Render::AddBeam(*beam, stunTime - beam->StartDelay, startObj);
+                    //SetFlag(robot.Physics.Flags, PhysicsFlag::Gravity);
+                }
+            }
+
+            if (robot.HitPoints <= 0 && info.DeathRoll == 0) {
+                AlertAlliesOfDeath(robot);
+                ExplodeObject(robot); // Explode normal robots immediately
+            }
         }
     }
 
@@ -987,8 +970,9 @@ namespace Inferno {
 
                 auto aimDir = ai.TargetPosition->Position - robot.Position;
                 aimDir.Normalize();
-                float aimAssist = GetMaxAimAssistAngle(weapon);
-                if (AngleBetweenVectors(aimDir, robot.Rotation.Forward()) <= aimAssist) {
+
+                // Purposely don't halve aim angle here to give a larger pre-fire buffer
+                if (AngleBetweenVectors(aimDir, robot.Rotation.Forward()) <= robotInfo.AimAngle * DegToRad) {
                     // Target is within the cone of the weapon, start firing
                     PlayRobotAnimation(robot, AnimState::Fire, ai.FireDelay.Remaining() * 0.8f);
                 }
@@ -1489,8 +1473,8 @@ namespace Inferno {
             ai.LostSightDelay = 1.0f; // Let the AI 'cheat' for 1 second after losing direct sight (object permeance?)
 
             // Try to get behind target unless dodging. Maybe make this only happen sometimes?
-            if (robot.Control.AI.Behavior != AIBehavior::Still && ai.DodgeTime <= 0)
-                GetBehindTarget(robot, ai, robotInfo, target);
+            //if (robot.Control.AI.Behavior != AIBehavior::Still && ai.DodgeTime <= 0)
+            //    GetBehindTarget(robot, ai, robotInfo, target);
 
             if (Settings::Cheats.ShowPathing)
                 Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, 0, 0));
@@ -1551,7 +1535,7 @@ namespace Inferno {
         // Only robots that flee can find help. Limit to hotshot and above.
         if (robotInfo.FleeThreshold > 0 && robot.Control.AI.Behavior != AIBehavior::Still && Game::Difficulty > 1) {
             if (!ai.FleeTimer.IsSet()) {
-                ai.FleeTimer = 2 + Random(); // Periodically think about fleeing
+                ai.FleeTimer = 2 + Random() * 2; // Periodically think about fleeing
             }
 
             if (ai.FleeTimer.Expired()) {
@@ -1832,7 +1816,7 @@ namespace Inferno {
         ai.Awareness = std::clamp(ai.Awareness, 0.0f, 1.0f);
 
         // Force aware robots to always update
-        SetFlag(robot.Flags, ObjectFlag::AlwaysUpdate, ai.Awareness > 0);
+        SetFlag(robot.Flags, ObjectFlag::AlwaysUpdate, ai.State != AIState::Idle);
 
         //ClampThrust(robot, ai);
         ApplyVelocity(robot, ai, dt);
