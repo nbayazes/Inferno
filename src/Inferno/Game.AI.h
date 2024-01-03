@@ -342,6 +342,6 @@ namespace Inferno {
     void MoveTowardsDir(Object& robot, const Vector3& dir, float dt, float scale = 1);
     bool ScanForTarget(const Object& robot, AIRuntime& ai);
     bool HasLineOfSight(const Object& obj, const Vector3& point, bool precise = false);
-    bool HasFiringLineOfSight(const Object& obj, int8 gun, const Vector3& target, ObjectMask mask);
+    bool HasFiringLineOfSight(const Object& obj, uint8 gun, const Vector3& target, ObjectMask mask);
     void UpdateCombatAI(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float dt);
 }

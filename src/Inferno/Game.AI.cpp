@@ -289,7 +289,7 @@ namespace Inferno {
     }
 
     // Returns true if gun has precise visibility to a target
-    bool HasFiringLineOfSight(const Object& obj, int8 gun, const Vector3& target, ObjectMask mask) {
+    bool HasFiringLineOfSight(const Object& obj, uint8 gun, const Vector3& target, ObjectMask mask) {
         auto gunPosition = GetGunpointWorldPosition(obj, gun);
 
         auto [dir, distance] = GetDirectionAndDistance(target, gunPosition);
@@ -470,7 +470,6 @@ namespace Inferno {
         //Render::Debug::DrawLine(projTarget, gunPosition, Color(1, 0, 0));
         auto projDist = Vector3::Distance(gunPosition, projTarget);
 
-
         auto aimDir = GetDirection(target, gunPosition);
         //auto aimAngle = AngleBetweenVectors(aimDir, forward);
         //SPDLOG_INFO("Aim angle deg: {}", aimAngle * RadToDeg);
@@ -487,13 +486,19 @@ namespace Inferno {
         }
 
         {
+            // todo: seismic disturbance inaccuracy from earthshaker
+
+            // Randomize target based on aim. 255 -> 1, 0 -> 8
             auto aim = 8.0f - 7.0f * FixToFloat(robotInfo.Aim << 8);
+            aim += float(4 - Game::Difficulty) * 0.5f; // Add inaccuracy based on difficulty (2 to 0)
 
-            // todo: seismic disturbance inaccuracy (self destruct, earthshaker)
+            if (Game::ControlCenterDestroyed) {
+                // 1 to 3.0f as timer counts down
+                auto seismic = 1.0f + (16 - std::min(Game::CountdownSeconds, 16)) / 8.0f;
+                aim += seismic * 6;
+            }
 
-            // Randomize target based on aim
-            target += { RandomN11() * aim, RandomN11() * aim, RandomN11() * aim };
-            target += RandomVector(float(4 - Game::Difficulty)) * 0.5f; // Add some inaccuracy based on difficulty level
+            target += { RandomN11()* aim, RandomN11()* aim, RandomN11()* aim };
 
             //target += RandomLateralDirection(robot) * aim;
             auto targetDir = target - gunPosition;
