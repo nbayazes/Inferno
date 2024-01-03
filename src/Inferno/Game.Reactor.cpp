@@ -313,6 +313,8 @@ namespace Inferno::Game {
     }
 
     void InitReactor(const Inferno::Level& level, Object& reactor) {
+        Reactor = {}; // Reset state
+
         if (Seq::findIndex(Game::Level.Objects, IsBossRobot)) {
             reactor.Lifespan = -1; // Remove reactor on levels with a boss robot
             return;
