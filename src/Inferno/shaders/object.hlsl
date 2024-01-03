@@ -160,9 +160,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
             
             lighting += emissive * diffuse.rgb;
             lighting += diffuse.rgb * ambient * 0.20 * material.LightReceived * (1 - material.Metalness * .20); // ambient
-
-            // saturate metallic diffuse. It looks better and removes white highlights. Causes yellow to look orange.
-            diffuse.rgb = pow(diffuse.rgb, 1 + material.Metalness);
             ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
             lighting += colorSum * material.LightReceived;
 
@@ -172,6 +169,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
                 float gloss = RoughnessToGloss(material.Roughness) / 4;
                 //float gloss = 16;
                 float eyeTerm = pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
+                // saturate metallic diffuse. It looks better and removes white highlights. Causes yellow to look orange.
+                diffuse.rgb = pow(diffuse.rgb, 1 + material.Metalness);
                 float3 specularColor = diffuse.rgb * ambient * 3;
                 lighting += eyeTerm * specularColor /** specularMask*/ * input.col.rgb * material.SpecularStrength;
                 //lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, ambient, diffuse.rgb, specularMask, .25) * nDotH;
