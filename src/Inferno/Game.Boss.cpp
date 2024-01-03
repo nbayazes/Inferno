@@ -201,6 +201,7 @@ namespace Inferno::Game {
 
         ai.TeleportDelay = info.TeleportInterval;
         ai.Awareness = 0; // Make unaware of player so teleport doesn't start counting down immediately
+        ai.State = AIState::Alert; // Wait until player is spotted again to start teleporting
         boss.PhaseIn(BOSS_PHASE_TIME, BOSS_PHASE_COLOR);
         ai.ClearPath();
     }
@@ -241,7 +242,6 @@ namespace Inferno::Game {
             return /*false*/;
 
         if (ScanForTarget(boss, ai)) {
-            // Once a boss is in combat it never goes back to idle
             ai.Awareness = 1;
 
             if (ai.AmbientSound == SoundUID::None) {
@@ -259,7 +259,24 @@ namespace Inferno::Game {
         if (ai.State == AIState::Idle)
             return;
 
-        UpdateCombatAI(ai, boss, info, dt);
+        if (ai.State == AIState::Combat) {
+            UpdateCombatAI(ai, boss, info, dt);
+            ai.Awareness = 1; // The boss will stay in combat until it teleports again
+            ai.TeleportDelay -= dt; // Only teleport when aware of player
+
+            if (ai.TeleportDelay <= BOSS_PHASE_TIME && !boss.IsPhasing())
+                boss.PhaseOut(BOSS_PHASE_TIME, BOSS_PHASE_COLOR);
+
+            if (ai.TeleportDelay <= 0)
+                TeleportBoss(boss, ai, info);
+        }
+        else {
+            // Always turn boss towards last known target location after teleporting
+            if (ai.TargetPosition) {
+                auto targetDir = GetDirection(ai.TargetPosition->Position, boss.Position);
+                TurnTowardsDirection(boss, targetDir, info.Difficulty[Game::Difficulty].TurnTime);
+            }
+        }
 
         if (Game::Level.IsDescent1()) {
             if (!info.GatedRobots.empty()) {
@@ -270,24 +287,39 @@ namespace Inferno::Game {
                 }
             }
         }
-
-        if (ai.Awareness >= 1.0f) {
-            ai.TeleportDelay -= dt; // Only teleport when aware of player
-        }
-
-        if (ai.TeleportDelay <= BOSS_PHASE_TIME && !boss.IsPhasing()) {
-            boss.PhaseOut(BOSS_PHASE_TIME, BOSS_PHASE_COLOR);
-        }
-
-        if (ai.TeleportDelay <= 0) {
-            TeleportBoss(boss, ai, info);
-        }
-
-        ai.State = AIState::Combat; // Always stay in combat after waking up
     }
 
     void StartBossDeath() {
         BossDying = true;
+    }
+
+    void DamageBoss(const Object& boss, const NavPoint& sourcePos, float /*damage*/, const Object* source) {
+        if (source && source->IsPlayer()) {
+            auto& ai = GetAI(boss);
+            ai.State = AIState::Combat; // Taking any damage puts the boss in combat and starts teleport timer
+            ai.Awareness = 1;
+
+            // Check if boss can retaliate
+            if (ai.LostSightDelay <= 0) {
+                bool hasLos = false;
+                auto& info = Resources::GetRobotInfo(boss);
+                for (uint gun = 0; gun < info.Guns; gun++) {
+                    if (HasFiringLineOfSight(boss, gun, source->Position, ObjectMask::None)) {
+                        hasLos = true;
+                        break;
+                    }
+                }
+
+                if (!hasLos) {
+                    if (ai.TeleportDelay > 3) {
+                        SPDLOG_INFO("Player hit boss without LOS, teleporting.");
+                        ai.TeleportDelay = 3;
+                    }
+                }
+            }
+        }
+
+        // todo: D2 - spawn robots
     }
 
     void InitBoss() {

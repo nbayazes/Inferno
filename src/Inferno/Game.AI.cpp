@@ -492,7 +492,7 @@ namespace Inferno {
             // todo: seismic disturbance inaccuracy (self destruct, earthshaker)
 
             // Randomize target based on aim
-            target += { RandomN11()* aim, RandomN11()* aim, RandomN11()* aim };
+            target += { RandomN11() * aim, RandomN11() * aim, RandomN11() * aim };
             target += RandomVector(float(4 - Game::Difficulty)) * 0.5f; // Add some inaccuracy based on difficulty level
 
             //target += RandomLateralDirection(robot) * aim;
@@ -1459,8 +1459,15 @@ namespace Inferno {
         auto hasLos = HasLineOfSight(robot, target.Position);
 
         // Use the last known position as the target dir if target is obscured
-        if (!hasLos || target.IsCloakEffective())
+        if (!hasLos || target.IsCloakEffective()) {
+            if (!ai.TargetPosition) {
+                SPDLOG_WARN("Robot {} had a target with no target position, clearing target", robot.Signature);
+                ai.Target = {};
+                return;
+            }
+
             targetDir = GetDirection(ai.TargetPosition->Position, robot.Position);
+        }
 
         // Track the known target position, even without LOS. Causes AI to look more intelligent by pre-aiming.
         TurnTowardsDirection(robot, targetDir, Difficulty(robotInfo).TurnTime);
@@ -1473,8 +1480,8 @@ namespace Inferno {
             ai.LostSightDelay = 1.0f; // Let the AI 'cheat' for 1 second after losing direct sight (object permeance?)
 
             // Try to get behind target unless dodging. Maybe make this only happen sometimes?
-            //if (robot.Control.AI.Behavior != AIBehavior::Still && ai.DodgeTime <= 0)
-            //    GetBehindTarget(robot, ai, robotInfo, target);
+            if (robotInfo.GetBehind && robot.Control.AI.Behavior != AIBehavior::Still && ai.DodgeTime <= 0)
+                GetBehindTarget(robot, ai, robotInfo, target);
 
             if (Settings::Cheats.ShowPathing)
                 Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, 0, 0));

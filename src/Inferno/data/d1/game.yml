@@ -534,7 +534,7 @@ Weapons:
     
 Robots:
   - id: 0 # Medium hulk
-    CircleDistance: 60
+    CircleDistance: 80 # Prefer staying away and lobbing missiles
     FOV: [ 90, 110, 130, 150, 180 ]
     Mass: 6.5
     Multishot: 1
@@ -542,12 +542,14 @@ Robots:
     SuppressChance: 0.75
     Curiosity: 0.1 # Very rarely move to investigate sounds
     Score: 650 # Was 500, these are rather dangerous
+    AimAngle: 25 # Unfair to lead much and looks odd
   - id: 1 # Medium lifter
     CircleDistance: 12
     Mass: 8
     MeleeDamage: [ 6, 7, 8, 9, 10 ]
     ChaseChance: 1
     Curiosity: 0.4 # Don't always give away position
+    GetBehind: 1
   - id: 2 # Spider
     CircleDistance: 80 # Hide in back and spawn spiderlings
     Mass: 5.5
@@ -561,12 +563,15 @@ Robots:
     FleeThreshold: 0.5
     ChaseChance: 1
     Curiosity: 0.95 # Scouts should nearly always investigate noises
+    GetBehind: 1
   - id: 4 # Class 2 drone
     CircleDistance: 40
     Drag: 0.03
     Mass: 3.0
     Curiosity: 0.85
     AngerBehavior: 1 # Gets angry when alone
+    AimAngle: 60 # Increased to make it a bit more unique
+    GetBehind: 1
   - id: 5 # Cloaked driller
     CircleDistance: 100 # sniper
     Mass: 6.5 # Heavier than regular due to cloaking device
@@ -575,6 +580,8 @@ Robots:
     ChaseChance: .4
     Score: 1000 # Was 600, less than the regular driller
     Curiosity: 0.3 # Don't want these moving around too much
+    AimAngle: 20 # Don't let drillers lead very much for balance reasons
+    GetBehind: 1
   - id: 6 # Cloaked hulk
     CircleDistance: 60
     Multishot: 2
@@ -598,6 +605,7 @@ Robots:
     ChaseChance: 1
     Radius: 6.5 # Increase radius to help arm clipping through walls
     Curiosity: 0.95 # Scout
+    GetBehind: 1
   - id: 9 # Heavy driller
     CircleDistance: 40
     Multishot: 2
@@ -615,13 +623,15 @@ Robots:
     CircleDistance: 20
     Mass: 2.5
     Multishot: 7 # shotgun all available projectiles
-    FireDelay: [ 1.5, 1.25, 1, 0.9, 0.8 ]
+    FireDelay: [ 1.5, 1.25, 1, 0.8, 0.5 ]
     Shots: [ 3, 4, 4, 5, 7 ] 
     Aim: 0
     Drag: 0.03
     SuppressChance: 0.9
     Score: 500 # Was 300, these are now more dangerous
     Curiosity: 0.5
+    AimAngle: 25 # Looks odd to lead much
+    GetBehind: 1
   - id: 12 # Missile platform
     #FireDelay: [ 3, 2, 2, 1.75, 1.5 ]
     #Shots: [ 2, 2, 2, 3, 4 ]
@@ -631,6 +641,7 @@ Robots:
     Mass: 2.5
     Drag: 0.03
     Curiosity: 0.25 # Usually hold position
+    AimAngle: 20 # Looks odd to lead much
   - id: 13 # Pod
   - id: 14 # Baby spider
     CircleDistance: 12.5
@@ -639,6 +650,7 @@ Robots:
     ChaseChance: 1
     Curiosity: 1
     SuppressChance: 0
+    GetBehind: 1
   - id: 15 # Fusion hulk
     FireDelay: [ 2, 1.25, 1.5, 1, .5 ] # Reduced by 1 second due to charge time
     Shots: [ 1, 1, 2, 2, 2 ]
@@ -672,19 +684,23 @@ Robots:
     SeeSound: 183 # d1
     AlertRadius: 240
     TeleportInterval: 6 # 8 original. lowered due to removing engine reductions in teleport delay such as firing or taking damage.
+    AimAngle: 45 # Looks odd if boss leads very much
   - id: 18 # Cloaked lifter
     CircleDistance: 12
     Mass: 9.5
     MeleeDamage: [ 5, 6, 7, 8, 9 ]
     ChaseChance: 1
     Score: 800 # Was 1000
+    GetBehind: 1
   - id: 19 # Class 1 driller
     CircleDistance: 100 # sniper
     Mass: 5.5
-    Drag: 0.05
+    Drag: 0.04
     SuppressChance: .2
     ChaseChance: .2
     Score: 900 # Was 1000, but are quite flimsy. Moved down to make cloak drillers 1000.
+    AimAngle: 20 # Don't let drillers lead very much for balance reasons
+    GetBehind: 1
   - id: 20 # Green hulk / Small hulk
     CircleDistance: 40
     Mass: 6.5
@@ -702,6 +718,7 @@ Robots:
     ChaseChance: 1
     SeeSound: 179
     Score: 750 # Was 800
+    GetBehind: 1
   - id: 22 # PTMC Defense Prototype
     CircleDistance: 40
     Aim: 190 # 255 is perfect aim
@@ -721,6 +738,7 @@ Robots:
     FireDelay: 1
     Guns: 5 # Actually 4, but data is loaded incorrectly causing gun 2 to be blank
     AlertRadius: 240
+    AimAngle: 25 # Looks odd if boss leads very much
     # HitPoints: 5000, 7500 (D1, D2)
 #  - id: 24 # BEPR
 #  - id: 25 # Smelter

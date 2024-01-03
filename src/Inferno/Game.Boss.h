@@ -13,4 +13,5 @@ namespace Inferno::Game {
     void BossBehaviorD1(AIRuntime& ai, Object& boss, const RobotInfo& info, float dt);
     void InitBoss();
     void StartBossDeath();
+    void DamageBoss(const Object& boss, const NavPoint& sourcePos, float damage, const Object* source);
 }

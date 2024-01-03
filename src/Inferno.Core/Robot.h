@@ -101,6 +101,6 @@ namespace Inferno {
         bool OpenKeyDoors = false; // Can open key doors
         bool AngerBehavior = false; // Gets angry when alone
         float AimAngle = 50.0f; // Field of view of a robot's guns in degrees
+        bool GetBehind = false; // Robot tries to get behind the target by strafing
     };
-
 }
