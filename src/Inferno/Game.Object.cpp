@@ -3,13 +3,11 @@
 #include "Level.h"
 #include "Game.Object.h"
 #include "Game.AI.h"
-#include "Game.AI.Pathing.h"
 #include "Game.h"
 #include "Game.Segment.h"
 #include "Game.Wall.h"
 #include "Physics.h"
 #include "SoundSystem.h"
-#include "Editor/Editor.Object.h"
 #include "Graphics/Render.h"
 #include "Graphics/Render.Particles.h"
 
@@ -742,7 +740,7 @@ namespace Inferno {
     void FixedUpdateObject(float dt, ObjID id, Object& obj) {
         if (HasFlag(obj.Flags, ObjectFlag::Updated)) return;
         SetFlag(obj.Flags, ObjectFlag::Updated);
-        ObjRef objRef{ id, obj.Signature };
+        ObjRef ref{ id, obj.Signature };
 
         UpdatePhysics(Game::Level, id, dt);
         obj.Ambient.Update(Game::Time);
@@ -753,13 +751,16 @@ namespace Inferno {
             DestroyObject(obj);
             // Keep playing effects from a dead reactor
             if (obj.Type != ObjectType::Reactor) {
-                Render::RemoveEffects(objRef);
-                Sound::Stop(objRef); // stop any sounds playing from this object
+                Render::RemoveEffects(ref);
+                Sound::Stop(ref); // stop any sounds playing from this object
             }
         }
         else if (obj.Lifespan <= 0 && !HasFlag(obj.Flags, ObjectFlag::Dead)) {
             Game::ExplodeWeapon(Game::Level, obj); // explode expired weapons
             Game::FreeObject(id);
+            // Detach effects on expired objects so out of view effects fade properly.
+            // Mainly affects flares.
+            Render::DetachEffects(ref);
         }
 
         if (!HasFlag(obj.Flags, ObjectFlag::Dead)) {
