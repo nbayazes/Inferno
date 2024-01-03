@@ -693,6 +693,8 @@ namespace Inferno {
             Secondary = SecondaryWeaponIndex::Concussion;
             PrimarySwapTime = PrimaryDelay = 0;
             SecondarySwapTime = SecondaryDelay = 0;
+            Shields = 100;
+            Energy = 100;
 
             for (int i = 0; i < 10; i++) {
                 SecondaryAmmo[i] = 0;
@@ -749,6 +751,21 @@ namespace Inferno {
 
         ResetHUD();
         SPDLOG_INFO("Respawning player");
+    }
+
+    void Player::StartNewLevel(bool secret) {
+        if (!secret) {
+            // Clear keys on level load
+            RemovePowerup(PowerupFlag::BlueKey);
+            RemovePowerup(PowerupFlag::GoldKey);
+            RemovePowerup(PowerupFlag::RedKey);
+
+            RemovePowerup(PowerupFlag::FullMap);
+            if (auto player = Game::Level.TryGetObject(Reference)) {
+                Game::UncloakObject(*player, false);
+                Game::MakeVulnerable(*player, false);
+            }
+        }
     }
 
     float Player::GetShipVisibility() const {

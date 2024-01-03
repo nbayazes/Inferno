@@ -161,7 +161,7 @@ namespace Inferno {
 
         void ApplyDamage(float damage, bool playSound);
         void Respawn(bool died);
-
+        void StartNewLevel(bool secret);
         float GetShipVisibility() const;
 
     private:

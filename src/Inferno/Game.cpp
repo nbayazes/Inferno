@@ -119,6 +119,7 @@ namespace Inferno::Game {
             NeedsResourceReload = false;
             //Rooms.clear();
             IsLoading = true;
+            bool wasSecret = LevelNumber < 0;
 
             Level = std::move(level); // Move to global so resource loading works properly
             FreeProceduralTextures();
@@ -149,6 +150,14 @@ namespace Inferno::Game {
             Editor::OnLevelLoad(reload);
             Render::Materials->Prune();
             Render::Adapter->PrintMemoryUsage();
+
+            // Check if we travelled to or from a secret level in D2
+            bool secretFlag = false;
+            if (Level.IsDescent2()) {
+                secretFlag = LevelNumber < 0 || wasSecret;
+            }
+
+            Player.StartNewLevel(secretFlag);
             IsLoading = false;
         }
         catch (const std::exception& e) {
