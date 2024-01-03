@@ -17,7 +17,6 @@ namespace Inferno::Render {
     using Graphics::GraphicsContext;
 
     namespace {
-        DataPool<BeamInfo> Beams(&BeamInfo::IsAlive, 50);
         Array<DecalInfo, 100> Decals;
         Array<DecalInfo, 20> AdditiveDecals;
         uint16 DecalIndex = 0;
@@ -94,6 +93,22 @@ namespace Inferno::Render {
         //SPDLOG_INFO("Add effect {}", SegmentEffects[seg].size());
     }
 
+    void AddBeam(BeamInfo& beam) {
+        auto segId = FindContainingSegment(Game::Level, beam.Start);
+        if (segId != SegID::None) beam.Segment = segId;
+
+        std::array tex = { beam.Texture };
+        Render::Materials->LoadTextures(tex);
+
+        if (beam.HasRandomEndpoints())
+            InitRandomBeamPoints(beam, Game::Level.TryGetObject(beam.Parent));
+
+        beam.Runtime.Length = (beam.Start - beam.End).Length();
+        beam.Runtime.Width = beam.Width.GetRandom();
+        beam.Runtime.OffsetU = Random();
+        AddEffect(MakePtr<BeamInfo>(beam));
+    }
+
     void AddParticle(Particle& p, SegID seg, const Vector3& position) {
         auto& vclip = Resources::GetVideoClip(p.Clip);
         if (vclip.NumFrames <= 0) return;
@@ -105,32 +120,6 @@ namespace Inferno::Render {
 
         Render::LoadTextureDynamic(p.Clip);
         AddEffect(MakePtr<Particle>(p));
-    }
-
-    // Returns the offset and submodel
-    SubmodelRef GetRandomPointOnObject(const Object& obj) {
-        if (obj.Render.Type == RenderType::Model && obj.Render.Model.ID != ModelID::None) {
-            auto& model = Resources::GetModel(obj.Render.Model.ID);
-            auto sm = (short)RandomInt(std::max((int)model.Submodels.size() - 1, 0));
-            if (sm < 0) return { 0 };
-            int index = -1;
-            if (!model.Submodels[sm].Indices.empty()) {
-                auto i = RandomInt((int)model.Submodels[sm].Indices.size() - 1);
-                index = model.Submodels[sm].Indices[i];
-            }
-            else if (!model.Submodels[sm].FlatIndices.empty()) {
-                auto i = RandomInt((int)model.Submodels[sm].FlatIndices.size() - 1);
-                index = model.Submodels[sm].FlatIndices[i];
-            }
-
-            if (index < 0) return { 0 };
-            Vector3 vert = model.Vertices[index];
-            return { sm, vert };
-        }
-        else {
-            auto point = obj.GetPosition(Game::LerpAmount) + RandomPointOnSphere() * obj.Radius;
-            return { 0, point };
-        }
     }
 
     void Particle::Draw(Graphics::GraphicsContext& ctx) {
@@ -374,363 +363,6 @@ namespace Inferno::Render {
         }
     }
 
-    // gets a random point at a given radius, intersecting the level
-    Vector3 GetRandomPoint(const Vector3& pos, SegID seg, float radius) {
-        //Vector3 end;
-        LevelHit hit;
-        auto dir = RandomVector(1);
-        dir.Normalize();
-
-        RayQuery query{ .MaxDistance = radius, .Start = seg };
-        if (Game::Intersect.RayLevel({ pos, dir }, query, hit))
-            return hit.Point;
-        else
-            return pos + dir * radius;
-    }
-
-    // Beam code based on xash3d-fwgs gl_beams.c
-
-    struct Beam {
-        SegID Segment = SegID::None;
-        List<ObjectVertex> Mesh{};
-        float NextUpdate = 0;
-        BeamInfo Info;
-    };
-
-    void InitRandomBeamPoints(BeamInfo& beam, const Object* object) {
-        if (HasFlag(beam.Flags, BeamFlag::RandomObjStart)) {
-            if (object)
-                beam.StartSubmodel = GetRandomPointOnObject(*object);
-        }
-
-        if (HasFlag(beam.Flags, BeamFlag::RandomObjEnd)) {
-            if (object)
-                beam.EndSubmodel = GetRandomPointOnObject(*object);
-        }
-        else if (HasFlag(beam.Flags, BeamFlag::RandomEnd)) {
-            beam.End = GetRandomPoint(beam.Start, beam.Segment, beam.Radius.GetRandom());
-        }
-    }
-
-    void AddBeam(BeamInfo& beam) {
-        auto segId = FindContainingSegment(Game::Level, beam.Start);
-        if (segId != SegID::None) beam.Segment = segId;
-        
-        std::array tex = { beam.Texture };
-        Render::Materials->LoadTextures(tex);
-
-        if (beam.HasRandomEndpoints())
-            InitRandomBeamPoints(beam, Game::Level.TryGetObject(beam.StartObj));
-
-        beam.Runtime.Length = (beam.Start - beam.End).Length();
-        beam.Runtime.Width = beam.Width.GetRandom();
-        beam.Runtime.OffsetU = Random();
-        Beams.Add(beam);
-    }
-
-    void AddBeam(BeamInfo beam, float life, const Vector3& start, const Vector3& end) {
-        beam.Segment = FindContainingSegment(Game::Level, start);
-        beam.Start = start;
-        beam.End = end;
-        beam.StartLife = beam.Life = life;
-        AddBeam(beam);
-    }
-
-    void AddBeam(BeamInfo beam, float life, ObjRef start, const Vector3& end, int startGun) {
-        auto obj = Game::Level.TryGetObject(start);
-
-        if (obj) {
-            beam.StartObj = start;
-            if (startGun >= 0) {
-                beam.Start = GetGunpointOffset(*obj, (uint8)startGun);
-                beam.StartSubmodel = GetGunpointSubmodelOffset(*obj, (uint8)startGun);
-            }
-            else {
-                beam.Start = obj->Position;
-            }
-            beam.Segment = obj->Segment;
-            beam.End = end;
-            beam.StartLife = beam.Life = life;
-            AddBeam(beam);
-        }
-    }
-
-    void AddBeam(BeamInfo beam, float life, ObjRef start, ObjRef end, int startGun) {
-        auto obj = Game::Level.TryGetObject(start);
-
-        if (obj) {
-            beam.StartObj = start;
-            if (startGun >= 0) {
-                beam.Start = GetGunpointOffset(*obj, (uint8)startGun);
-                beam.StartSubmodel = GetGunpointSubmodelOffset(*obj, (uint8)startGun);
-            }
-            else {
-                beam.Start = obj->Position;
-            }
-            beam.Segment = obj->Segment;
-            beam.EndObj = end;
-            beam.StartLife = beam.Life = life;
-            AddBeam(beam);
-        }
-    }
-
-    // returns a vector perpendicular to the camera and the start/end points
-    Vector3 GetBeamNormal(const Vector3& start, const Vector3 end) {
-        auto tangent = start - end;
-        auto dirToBeam = start - Render::Camera.Position;
-        auto normal = dirToBeam.Cross(tangent);
-        normal.Normalize();
-        return normal;
-    }
-
-    Vector2 SinCos(float x) {
-        return { sin(x), cos(x) };
-    }
-
-    // Fractal noise generator, power of 2 wavelength
-    void FractalNoise(span<float> noise) {
-        if (noise.size() < 2) return;
-        int div2 = (int)noise.size() >> 1;
-
-        // noise is normalized to +/- scale
-        noise[div2] = (noise.front() + noise.back()) * 0.5f + noise.size() * RandomN11() * 0.125f;
-
-        if (div2 > 1) {
-            FractalNoise(noise.subspan(0, div2 + 1));
-            FractalNoise(noise.subspan(div2));
-        }
-    }
-
-    void SineNoise(span<float> noise) {
-        float freq = 0;
-        float step = DirectX::XM_PI / (float)noise.size();
-
-        for (auto& n : noise) {
-            n = sin(freq);
-            freq += step;
-        }
-    }
-
-    Vector3 GetBeamPerpendicular(const Vector3 delta) {
-        Vector3 dir;
-        delta.Normalize(dir);
-        auto perp = Camera.GetForward().Cross(dir);
-        perp.Normalize();
-        return perp;
-    }
-
-    void DrawBeams(Graphics::GraphicsContext& ctx) {
-        auto& effect = Effects->SpriteAdditive;
-        ctx.ApplyEffect(effect);
-        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-        auto cmdList = ctx.GetCommandList();
-        effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
-        effect.Shader->SetSampler(cmdList, Render::GetWrappedTextureSampler());
-
-        for (auto& beam : Beams) {
-            if (beam.StartDelay > 0) {
-                beam.StartDelay -= Game::FrameTime;
-                continue;
-            }
-            beam.Life -= Game::FrameTime;
-
-            if (!beam.IsAlive()) continue;
-
-            Object* startObj = nullptr;
-            Object* endObj = nullptr;
-            if (!beam.StartObj.IsNull()) startObj = Game::Level.TryGetObject(beam.StartObj);
-            if (!beam.EndObj.IsNull()) endObj = Game::Level.TryGetObject(beam.EndObj);
-
-            if (!beam.StartObj.IsNull() && !HasFlag(beam.Flags, BeamFlag::RandomObjStart)) {
-                if (startObj) {
-                    if (beam.StartSubmodel.ID > -1) {
-                        auto offset = GetSubmodelOffset(*startObj, beam.StartSubmodel);
-                        beam.Start = Vector3::Transform(offset, startObj->GetTransform(Game::LerpAmount));
-                    }
-                    else {
-                        beam.Start = startObj->GetPosition(Game::LerpAmount);
-                    }
-                }
-            }
-
-            float dissolveFade = 1;
-
-            if (HasFlag(beam.Flags, BeamFlag::RandomObjStart) && startObj) {
-                auto offset = GetSubmodelOffset(*startObj, beam.StartSubmodel);
-                beam.Start = Vector3::Transform(offset, startObj->GetTransform(Game::LerpAmount));
-                if (startObj->IsPhasing())
-                    dissolveFade = 1 - startObj->Effects.GetPhasePercent();
-            }
-
-            if (HasFlag(beam.Flags, BeamFlag::RandomObjEnd) && startObj) {
-                // note that this effect uses the start object for begin and end
-                auto offset = GetSubmodelOffset(*startObj, beam.EndSubmodel);
-                beam.End = Vector3::Transform(offset, startObj->GetTransform(Game::LerpAmount));
-            }
-            else if (endObj) {
-                beam.End = endObj->GetPosition(Game::LerpAmount);
-            }
-
-            if (beam.HasRandomEndpoints() && Game::Time > beam.Runtime.NextStrikeTime) {
-                InitRandomBeamPoints(beam, startObj); // Relies on beam.Start being updated
-                beam.Runtime.NextStrikeTime = Game::Time + beam.StrikeTime;
-            }
-
-            beam.Time += Game::FrameTime;
-            auto& noise = beam.Runtime.Noise;
-            auto delta = beam.End - beam.Start;
-            auto length = delta.Length();
-            if (length < 1) continue; // don't draw really short beams
-
-            // DrawSegs()
-            auto scale = beam.Amplitude;
-
-            int segments = (int)(length / (beam.Runtime.Width * 0.5 * 1.414)) + 1;
-            segments = std::clamp(segments, 2, 64);
-            auto div = 1.0f / (segments - 1);
-
-            auto vLast = std::fmodf(beam.Time * beam.ScrollSpeed, 1);
-            if (HasFlag(beam.Flags, BeamFlag::SineNoise)) {
-                if (segments < 16) {
-                    segments = 16;
-                    div = 1.0f / (segments - 1);
-                }
-                scale *= 100;
-                length = segments * 0.1f;
-            }
-            else {
-                scale *= length * 2;
-            }
-
-            noise.resize(segments);
-
-            if (beam.Amplitude > 0 && Game::Time > beam.Runtime.NextUpdate) {
-                if (HasFlag(beam.Flags, BeamFlag::SineNoise))
-                    SineNoise(noise);
-                else
-                    FractalNoise(noise);
-
-                beam.Runtime.NextUpdate = Game::Time + beam.Frequency;
-                beam.Runtime.OffsetU = Random();
-            }
-
-            struct BeamSeg {
-                Vector3 pos;
-                float texcoord;
-                Color color;
-            };
-
-            BeamSeg curSeg{};
-            auto vStep = length / 20 * div * beam.Scale;
-
-            auto& material = Render::Materials->Get(beam.Texture);
-            effect.Shader->SetDiffuse(cmdList, material.Handle());
-            Stats::DrawCalls++;
-            g_SpriteBatch->Begin(cmdList);
-
-            Vector3 prevNormal;
-            Vector3 prevUp;
-
-            auto tangent = GetBeamNormal(beam.Start, beam.End);
-
-            float fade = 1;
-            if (beam.FadeInOutTime > 0) {
-                auto elapsedLife = beam.StartLife - beam.Life;
-                if (elapsedLife < beam.FadeInOutTime) {
-                    fade = 1 - (beam.FadeInOutTime - elapsedLife) / beam.FadeInOutTime;
-                }
-                else if (beam.Life < beam.FadeInOutTime) {
-                    fade = 1 - (beam.FadeInOutTime - beam.Life) / beam.FadeInOutTime;
-                }
-            }
-
-            fade *= dissolveFade;
-
-            for (int i = 0; i < segments; i++) {
-                BeamSeg nextSeg{ .color = beam.Color };
-                auto fraction = i * div;
-
-                nextSeg.pos = beam.Start + delta * fraction;
-
-                if (beam.Amplitude != 0) {
-                    //auto factor = beam.Runtime.Noise[noiseIndex >> 16] * beam.Amplitude;
-                    auto factor = noise[i] * beam.Amplitude;
-
-                    if (HasFlag(beam.Flags, BeamFlag::SineNoise)) {
-                        // rotate the noise along the perpendicluar axis a bit to keep the bolt from looking diagonal
-                        auto c = SinCos(fraction * DirectX::XM_PI * length + beam.Time);
-                        nextSeg.pos += Render::Camera.Up * factor * c.x;
-                        nextSeg.pos += Render::Camera.GetRight() * factor * c.y;
-                    }
-                    else {
-                        //nextSeg.pos += perp1 * factor;
-                        nextSeg.pos += tangent * factor;
-                    }
-                }
-
-                nextSeg.texcoord = beam.Runtime.OffsetU + vLast;
-                float brightness = HasFlag(beam.Flags, BeamFlag::FadeStart) ? 0.0f : 1.0f;
-                if (HasFlag(beam.Flags, BeamFlag::FadeStart) && HasFlag(beam.Flags, BeamFlag::FadeEnd)) {
-                    if (fraction < 0.5f)
-                        brightness = 2.0f * fraction;
-                    else
-                        brightness = 2.0f * (1.0f - fraction);
-                }
-                else if (HasFlag(beam.Flags, BeamFlag::FadeStart)) {
-                    brightness = fraction;
-                }
-                else if (HasFlag(beam.Flags, BeamFlag::FadeEnd)) {
-                    brightness = 1 - fraction;
-                }
-
-                brightness = std::clamp(brightness, 0.0f, 1.0f);
-                nextSeg.color *= brightness;
-
-                if (i > 0) {
-                    Vector3 avgNormal;
-                    auto normal = GetBeamNormal(curSeg.pos, nextSeg.pos);
-
-                    if (i > 1) {
-                        // Average with previous normal
-                        avgNormal = (normal + prevNormal) * 0.5f;
-                        avgNormal.Normalize();
-                    }
-                    else {
-                        avgNormal = normal;
-                    }
-
-                    prevNormal = normal;
-
-                    // draw rectangular segment
-                    auto start = curSeg.pos;
-                    auto end = nextSeg.pos;
-                    auto up = avgNormal * beam.Runtime.Width * 0.5f;
-                    if (i == 1) prevUp = up;
-
-                    ObjectVertex v0{ start + prevUp, { 0, curSeg.texcoord }, curSeg.color * fade };
-                    ObjectVertex v1{ start - prevUp, { 1, curSeg.texcoord }, curSeg.color * fade };
-                    ObjectVertex v2{ end - up, { 1, nextSeg.texcoord }, nextSeg.color * fade };
-                    ObjectVertex v3{ end + up, { 0, nextSeg.texcoord }, nextSeg.color * fade };
-
-                    g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
-                    prevUp = up;
-                }
-
-                curSeg = nextSeg;
-                vLast += vStep; // next segment tex V coord
-            }
-
-            g_SpriteBatch->End();
-        }
-    }
-
-    //void QueueBeams() {
-    //    for (auto& beam : Beams) {
-    //        auto depth = GetRenderDepth(beam.Start);
-    //        RenderCommand cmd(&beam, depth);
-    //        QueueTransparent(cmd);
-    //    }
-    //}
     constexpr float TRACER_MIN_DIST_MULT = 0.75;
 
     void TracerInfo::OnUpdate(float /*dt*/, EffectID) {
@@ -933,11 +565,6 @@ namespace Inferno::Render {
     }
 
     void RemoveEffects(ObjRef id) {
-        for (auto& beam : Beams) {
-            if (beam.StartObj == id)
-                beam.Life = 0;
-        }
-
         // Expire effects attached to an object when it is destroyed
         for (size_t effectId = 0; effectId < VisualEffects.size(); effectId++) {
             auto& effect = VisualEffects[effectId];
@@ -1224,7 +851,7 @@ namespace Inferno::Render {
         VisualEffects.clear();
         VisualEffects.reserve(200);
 
-        Beams.Clear();
+        //Beams.Clear();
 
         for (auto& decal : Decals)
             decal.Duration = 0;
@@ -1236,19 +863,17 @@ namespace Inferno::Render {
         Elapsed += dt;
         PrevPosition = Position;
 
-        if (Parent) {
-            if (!UpdatePositionFromParent()) {
-                // Had a parent but it was destroyed
-                if (FadeTime > 0) {
-                    // Detach from parent and fade out
-                    Duration = FadeTime;
-                    Elapsed = 0;
-                    Parent = {};
-                }
-                else {
-                    Elapsed = Duration;
-                    return;
-                }
+        if (Parent && !UpdatePositionFromParent()) {
+            // Had a parent but it was destroyed
+            if (FadeTime > 0) {
+                // Detach from parent and fade out
+                Duration = FadeTime;
+                Elapsed = 0;
+                Parent = {};
+            }
+            else {
+                Elapsed = Duration;
+                return;
             }
         }
 
@@ -1261,7 +886,8 @@ namespace Inferno::Render {
 
     bool EffectBase::UpdatePositionFromParent() {
         auto parent = Game::Level.TryGetObject(Parent);
-        if (!parent || !parent->IsAlive() || HasFlag(parent->Flags, ObjectFlag::Destroyed))
+        //if (!parent || !parent->IsAlive() || HasFlag(parent->Flags, ObjectFlag::Destroyed))
+        if (!parent || !parent->IsAlive())
             return false;
 
         auto pos = parent->GetPosition(Game::LerpAmount);

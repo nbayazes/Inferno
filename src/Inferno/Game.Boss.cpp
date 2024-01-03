@@ -293,17 +293,17 @@ namespace Inferno::Game {
         BossDying = true;
     }
 
-    void DamageBoss(const Object& boss, const NavPoint& sourcePos, float /*damage*/, const Object* source) {
+    void DamageBoss(const Object& boss, const NavPoint& /*sourcePos*/, float /*damage*/, const Object* source) {
         if (source && source->IsPlayer()) {
             auto& ai = GetAI(boss);
             ai.State = AIState::Combat; // Taking any damage puts the boss in combat and starts teleport timer
             ai.Awareness = 1;
 
-            // Check if boss can retaliate
+            // Check if boss can retaliate by checking LOS of each gunpoint
             if (ai.LostSightDelay <= 0) {
                 bool hasLos = false;
                 auto& info = Resources::GetRobotInfo(boss);
-                for (uint gun = 0; gun < info.Guns; gun++) {
+                for (uint8 gun = 0; gun < info.Guns; gun++) {
                     if (HasFiringLineOfSight(boss, gun, source->Position, ObjectMask::None)) {
                         hasLos = true;
                         break;

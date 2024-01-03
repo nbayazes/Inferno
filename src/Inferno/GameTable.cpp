@@ -199,7 +199,7 @@ namespace Inferno {
         READ_PROP(Frequency);
         READ_PROP(StrikeTime);
         READ_PROP(Amplitude);
-        READ_PROP(Life);
+        READ_PROP(Duration);
         READ_PROP(Scale);
         READ_PROP(FadeInOutTime);
 #undef READ_PROP

@@ -196,6 +196,7 @@
     <ClCompile Include="Graphics\LevelMesh.cpp" />
     <ClCompile Include="Graphics\Lighting.cpp" />
     <ClCompile Include="Graphics\Mesh.cpp" />
+    <ClCompile Include="Graphics\Render.Beam.cpp" />
     <ClCompile Include="Graphics\Render.Canvas.cpp" />
     <ClCompile Include="Graphics\GatherLights.cpp" />
     <ClCompile Include="Graphics\Render.Level.cpp" />
@@ -321,6 +322,8 @@
     <ClInclude Include="Physics.Hit.h" />
     <ClInclude Include="Physics.Math.h" />
     <ClInclude Include="Procedural.h" />
+    <ClInclude Include="Render.Beam.h" />
+    <ClInclude Include="Render.Effect.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="SoundTypes.h" />
     <ClInclude Include="unordered_dense.h" />

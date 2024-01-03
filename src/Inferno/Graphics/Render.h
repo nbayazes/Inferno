@@ -125,6 +125,15 @@ namespace Inferno::Render {
     //const string TEST_MODEL = "robottesttube(orbot).OOF"; // mixed transparency test
     const string TEST_MODEL = "gyro.OOF";
 
+    // returns a vector perpendicular to the camera and the start/end points
+    inline Vector3 GetBeamNormal(const Vector3& start, const Vector3 end) {
+        auto tangent = start - end;
+        auto dirToBeam = start - Camera.Position;
+        auto normal = dirToBeam.Cross(tangent);
+        normal.Normalize();
+        return normal;
+    }
+
     namespace Stats {
         inline uint16 VisitedSegments = 0;
         inline uint16 DrawCalls = 0;

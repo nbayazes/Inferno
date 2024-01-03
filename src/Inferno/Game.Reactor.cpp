@@ -56,6 +56,11 @@ namespace Inferno::Game {
             TotalCountdown = DefaultCountdownTimes[Difficulty];
         }
 
+        for (auto& obj : Level.Objects) {
+            if (obj.IsReactor())
+                DestroyReactor(obj);
+        }
+
         //TotalCountdown = 1; // debug
         CountdownTimer = (float)TotalCountdown;
         ControlCenterDestroyed = true;
@@ -69,9 +74,9 @@ namespace Inferno::Game {
         player.Physics.AngularVelocity.x += signY * .5f;
     }
 
-    void DestroyReactor(Object& obj) {
+    bool DestroyReactor(Object& obj) {
         assert(obj.Type == ObjectType::Reactor);
-        if (HasFlag(obj.Flags, ObjectFlag::Destroyed)) return;
+        if (HasFlag(obj.Flags, ObjectFlag::Destroyed)) return false;
         SetFlag(obj.Flags, ObjectFlag::Destroyed);
 
         if (Seq::inRange(Resources::GameData.DeadModels, (int)obj.Render.Model.ID)) {
@@ -80,7 +85,6 @@ namespace Inferno::Game {
         }
 
         AddPointsToScore(REACTOR_SCORE);
-        SelfDestructMine();
 
         // Big boom
         Sound3D sound(SoundID::Explosion);
@@ -133,10 +137,11 @@ namespace Inferno::Game {
         //        Render::AddBeam(*beam, CountdownTimer + 5, startObj);
         //    }
         //}
+        return true;
     }
 
     void UpdateReactorCountdown(float dt) {
-        // Shake the player ship
+        // Shake the player ship due to seismic disturbance
         auto& player = Game::GetPlayerObject();
         auto fc = std::min(CountdownSeconds, 16);
         auto scale = Difficulty == 0 ? 0.25f : 1; // reduce shaking on trainee
@@ -234,8 +239,10 @@ namespace Inferno::Game {
     void UpdateReactor(Inferno::Object& reactor) {
         // Update reactor is separate from AI because the player might destroy it with a guided missile
         // outside of the normal AI update range
-        if (reactor.HitPoints <= 0)
-            DestroyReactor(reactor);
+        if (reactor.HitPoints <= 0) {
+            if (DestroyReactor(reactor))
+                SelfDestructMine();
+        }
     }
 
     void UpdateReactorAI(const Inferno::Object& reactor, float dt) {

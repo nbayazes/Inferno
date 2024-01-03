@@ -91,6 +91,7 @@
     <ClCompile Include="SoundTypes.cpp" />
     <ClCompile Include="GameTimer.cpp" />
     <ClCompile Include="Game.Bindings.cpp" />
+    <ClCompile Include="Graphics\Render.Beam.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\Audio.h" />
@@ -222,6 +223,8 @@
     <ClInclude Include="Yaml.h" />
     <ClInclude Include="GameTimer.h" />
     <ClInclude Include="Game.Bindings.h" />
+    <ClInclude Include="Render.Beam.h" />
+    <ClInclude Include="Render.Effect.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />

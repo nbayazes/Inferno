@@ -877,7 +877,7 @@ Effects:
       RandomObjEnd: 1
       RandomObjStart: 1
       StrikeTime: 2
-      Life: 1.5
+      Duration: 1.5
       Scale: 8
       FadeInOutTime: 0.5
 
@@ -892,7 +892,7 @@ Effects:
       RandomObjEnd: 1
       RandomObjStart: 1
       StrikeTime: 2
-      Life: 2
+      Duration: 2
       Scale: 8
       FadeInOutTime: 0.5
 

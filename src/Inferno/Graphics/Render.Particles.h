@@ -4,6 +4,8 @@
 #include "EffectClip.h"
 #include "DirectX.h"
 #include "Game.Object.h"
+#include "Render.Beam.h"
+#include "Render.Effect.h"
 #include "Graphics/CommandContext.h"
 
 namespace Inferno {
@@ -13,53 +15,7 @@ namespace Inferno {
 namespace Inferno::Render {
     struct RenderCommand;
     float GetRenderDepth(const Vector3& pos);
-
-    enum class RenderQueueType {
-        None,
-        Opaque,
-        Transparent
-    };
-
-    struct EffectBase {
-        SegID Segment = SegID::None;
-        Vector3 Position, PrevPosition;
-        float Duration = 0; // How long the effect lasts
-        float Elapsed = 0; // How long the effect has been alive for
-        RenderQueueType Queue = RenderQueueType::Transparent; // Which queue to render to
-        float FadeTime = 0; // Fade time at the end of the effect's life
-        float StartDelay = 0; // How long to wait in seconds before starting the effect
-        ObjRef Parent;
-        SubmodelRef ParentSubmodel;
-        bool FadeOnParentDeath = false; // Detaches from the parent when it dies and uses FadeTime
-
-        // Called once per frame
-        void Update(float dt, EffectID id);
-
-        // Called per game tick
-        void FixedUpdate(float dt, EffectID);
-
-        bool UpdatePositionFromParent();
-
-        virtual void OnUpdate(float /*dt*/, EffectID) {}
-        virtual void OnFixedUpdate(float /*dt*/, EffectID) {}
-
-        virtual void Draw(Graphics::GraphicsContext&) {}
-
-        virtual void DepthPrepass(Graphics::GraphicsContext&) {
-            ASSERT(Queue == RenderQueueType::Transparent); // must provide a depth prepass if not transparent
-        }
-
-        virtual void OnExpire() {}
-        virtual void OnInit() {}
-
-        EffectBase() = default;
-        virtual ~EffectBase() = default;
-        EffectBase(const EffectBase&) = default;
-        EffectBase(EffectBase&&) = default;
-        EffectBase& operator=(const EffectBase&) = default;
-        EffectBase& operator=(EffectBase&&) = default;
-    };
-
+    
     struct DynamicLight final : EffectBase {
         DynamicLight() { Queue = RenderQueueType::None; }
 
@@ -125,6 +81,8 @@ namespace Inferno::Render {
         void OnUpdate(float dt, EffectID) override;
     };
 
+    void AddBeam(BeamInfo& beam);
+
     void AddParticle(Particle&, SegID, const Vector3& position);
 
     // Remains of a destroyed robot
@@ -170,64 +128,6 @@ namespace Inferno::Render {
     };
 
     void CreateExplosion(ExplosionInfo&, SegID, const Vector3& position);
-
-    enum class BeamFlag {
-        SineNoise = 1 << 0, // Sine noise when true, Fractal noise when false
-        RandomEnd = 1 << 1, // Uses a random world end point
-        FadeStart = 1 << 2, // fades the start of the beam to 0 transparency
-        FadeEnd = 1 << 3, // fades the end of the beam to 0 transparency
-        RandomObjStart = 1 << 4, // Uses a random start point on start object
-        RandomObjEnd = 1 << 5, // Uses a random end point on start object
-    };
-
-    // An 'electric beam' connecting two points animated by noise
-    struct BeamInfo {
-        Vector3 Start; // Input: start of beam
-        Vector3 End; // Input: end of beam
-        ObjRef StartObj; // attaches start of beam to this object. Sets Start each update if valid.
-        ObjRef EndObj; // attaches end of beam to this object. Sets End each update if valid
-        SubmodelRef StartSubmodel, EndSubmodel;
-
-        NumericRange<float> Radius; // If RandomEnd is true, randomly strike targets within this radius
-        NumericRange<float> Width = { 2.0f, 2.0f };
-        float Life = 0; // How long to live for
-        float StartLife = 0; // How much life the beam started with (runtime variable)
-        Color Color = { 1, 1, 1 };
-        float Noise = 0;
-        string Texture;
-        float ScrollSpeed = 0; // Texture scroll speed in UV/second
-        float Frequency = 1 / 60.0f; // How often in seconds to recalculate noise
-        SegID Segment;
-        float Scale = 4; // Scale for texture vs beam width
-        float Time = 0; // animates noise and determines the phase
-        float Amplitude = 0; // Peak to peak height of noise. 0 for straight beam.
-        float StrikeTime = 1; // when using random end, how often to pick a new point
-        float StartDelay = 0; // Delay in seconds before playing the effect
-        float FadeInOutTime = 0;
-
-        BeamFlag Flags{};
-        bool HasRandomEndpoints() const {
-            return HasFlag(Flags, BeamFlag::RandomEnd) || HasFlag(Flags, BeamFlag::RandomObjEnd) || HasFlag(Flags, BeamFlag::RandomObjStart);
-        } 
-        
-        struct {
-            float Length;
-            int Segments;
-            List<float> Noise;
-            double NextUpdate;
-            double NextStrikeTime;
-            float Width;
-            float OffsetU; // Random amount to offset the texture by
-        } Runtime{};
-
-        bool IsAlive() const { return Life > 0; }
-    };
-
-    void AddBeam(BeamInfo, float life, const Vector3& start, const Vector3& end);
-    void AddBeam(BeamInfo, float life, ObjRef start, const Vector3& end, int startGun);
-    void AddBeam(BeamInfo, float life, ObjRef start, ObjRef end = {}, int startGun = -1);
-
-    void DrawBeams(Graphics::GraphicsContext& ctx);
 
     struct TracerInfo final : EffectBase {
         float Length = 20; // How long the tracer is

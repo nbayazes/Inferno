@@ -195,7 +195,7 @@ namespace Inferno {
     void WiggleObject(Object& obj, double t, float dt, float amplitude, float rate) {
         //const auto stepScale = dt / Game::TICK_RATE; // Rescale for sub-steps
         //auto angle = std::sin(t * XM_2PI * rate) * 20 * stepScale; // multiplier tweaked to cause 0.5 units of movement at a 1/64 tick rate
-        auto angle = std::sin(t * XM_2PI * rate) * 20; // multiplier tweaked to cause 0.5 units of movement at a 1/64 tick rate
+        auto angle = (float)std::sin(t * XM_2PI * rate) * 20; // multiplier tweaked to cause 0.5 units of movement at a 1/64 tick rate
         auto wiggle = obj.Rotation.Up() * angle * amplitude * dt;
         obj.Physics.Velocity += wiggle;
     }

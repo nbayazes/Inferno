@@ -444,6 +444,7 @@ namespace Inferno {
         }
 
         Object* TryGetObject(ObjRef ref) {
+            if (ref.IsNull()) return nullptr;
             auto obj = TryGetObject(ref.Id);
             if (!obj || obj->Signature != ref.Signature) return nullptr;
             return obj;

@@ -584,8 +584,6 @@ namespace Inferno::Render {
 
             // Draw heat volumes
             //    _levelResources->Volumes.Draw(cmdList);
-
-            DrawBeams(ctx);
         }
 
         Canvas->SetSize(Adapter->GetWidth(), Adapter->GetHeight());

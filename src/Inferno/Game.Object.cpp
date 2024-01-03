@@ -734,7 +734,7 @@ namespace Inferno {
 
             if (auto beam = Render::EffectLibrary.GetBeamInfo(effect)) {
                 auto startObj = Game::GetObjectRef(obj);
-                Render::AddBeam(*beam, beam->Life, startObj);
+                Render::AddBeam(*beam, beam->Duration, startObj);
             }
         }
     }
@@ -1099,6 +1099,33 @@ namespace Inferno {
         auto angle = Random() * DirectX::XM_2PI;
         auto transform = Matrix::CreateFromAxisAngle(obj.Rotation.Forward(), angle);
         return Vector3::Transform(obj.Rotation.Right(), transform);
+    }
+
+
+    // Returns the offset and submodel
+    SubmodelRef GetRandomPointOnObject(const Object& obj) {
+        if (obj.Render.Type == RenderType::Model && obj.Render.Model.ID != ModelID::None) {
+            auto& model = Resources::GetModel(obj.Render.Model.ID);
+            auto sm = (short)RandomInt(std::max((int)model.Submodels.size() - 1, 0));
+            if (sm < 0) return { 0 };
+            int index = -1;
+            if (!model.Submodels[sm].Indices.empty()) {
+                auto i = RandomInt((int)model.Submodels[sm].Indices.size() - 1);
+                index = model.Submodels[sm].Indices[i];
+            }
+            else if (!model.Submodels[sm].FlatIndices.empty()) {
+                auto i = RandomInt((int)model.Submodels[sm].FlatIndices.size() - 1);
+                index = model.Submodels[sm].FlatIndices[i];
+            }
+
+            if (index < 0) return { 0 };
+            Vector3 vert = model.Vertices[index];
+            return { sm, vert };
+        }
+        else {
+            auto point = obj.GetPosition(Game::LerpAmount) + RandomPointOnSphere() * obj.Radius;
+            return { 0, point };
+        }
     }
 
     // Tries to shift objects into their segments and away from other objects
