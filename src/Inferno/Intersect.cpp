@@ -413,16 +413,19 @@ namespace Inferno {
                     case RayQueryMode::Precise:
                     {
                         if (auto wall = _level->TryGetWall(face.Side->Wall)) {
-                            if (wall->Type != WallType::Open && WallIsTransparent(*_level, *wall)) {
+                            if (wall->Type == WallType::Illusion || wall->Type == WallType::Open || wall->Type == WallType::None) {
+                                intersects = false;
+                            }
+                            else if (WallIsTransparent(*_level, *wall)) {
                                 auto intersect = ray.position + ray.direction * dist;
                                 intersects = !WallPointIsTransparent(intersect, face, tri);
                             }
                             else {
-                                intersects = false;
+                                intersects = true; // Other walls are solid
                             }
                         }
                         else {
-                            intersects = !SideIsTransparent(*_level, tag); // also checks if side is open
+                            intersects = !seg.SideHasConnection(side);
                         }
 
                         break;

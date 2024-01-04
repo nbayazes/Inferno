@@ -49,7 +49,8 @@ namespace Inferno {
                     if (HasFlag(flags, IterateFlags::StopKeyDoor) && wall->IsKeyDoor())
                         continue;
 
-                    if (HasFlag(flags, IterateFlags::StopOpaqueWall) && !WallIsTransparent(level, *wall))
+                    if (HasFlag(flags, IterateFlags::StopOpaqueWall) && /*wall->IsSolid() &&*/
+                        !WallIsTransparent(level, *wall))
                         continue;
                 }
 

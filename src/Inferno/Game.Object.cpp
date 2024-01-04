@@ -503,26 +503,28 @@ namespace Inferno {
 
     Tuple<ObjRef, float> Game::FindNearestVisibleObject(const NavPoint& point, float maxDist, ObjectMask mask, span<ObjRef> objFilter) {
         ObjRef id;
-        float minDist = FLT_MAX;
+        float bestDist = FLT_MAX;
 
-        for (int i = 0; i < Level.Objects.size(); i++) {
-            auto& obj = Level.Objects[i];
-            if (!obj.PassesMask(mask) || !obj.IsAlive() || obj.IsCloakEffective()) continue;
-            ObjRef ref = { (ObjID)i, obj.Signature };
-            if (Seq::contains(objFilter, ref)) continue;
-            auto dir = obj.Position - point.Position;
-            auto d = dir.Length();
-            dir.Normalize();
-            Ray ray(point.Position, dir);
-            LevelHit hit;
-            RayQuery query{ .MaxDistance = d, .Start = point.Segment, .Mode = RayQueryMode::Precise };
-            if (d <= maxDist && d < minDist && !Game::Intersect.RayLevel(ray, query, hit)) {
-                id = ref;
-                minDist = d;
+        IterateNearbySegments(Game::Level, point, maxDist, IterateFlags::StopOpaqueWall, [&] (const Segment& seg, bool) {
+            for (auto& objid : seg.Objects) {
+                auto obj = Game::Level.TryGetObject(objid);
+                if (!obj->PassesMask(mask) || !obj->IsAlive() || obj->IsCloakEffective()) continue;
+                ObjRef ref = { objid, obj->Signature };
+                if (Seq::contains(objFilter, ref)) continue;
+                auto dir = obj->Position - point.Position;
+                auto d = dir.Length();
+                dir.Normalize();
+                Ray ray(point.Position, dir);
+                LevelHit hit;
+                RayQuery query{ .MaxDistance = d, .Start = point.Segment, .Mode = RayQueryMode::Precise };
+                if (d <= maxDist && d < bestDist && !Game::Intersect.RayLevel(ray, query, hit)) {
+                    id = ref;
+                    bestDist = d;
+                }
             }
-        }
+        });
 
-        return { id, minDist };
+        return { id, bestDist };
     }
 
     // Attaches a light to an object based on its settings

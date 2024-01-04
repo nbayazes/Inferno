@@ -815,11 +815,11 @@ namespace Inferno {
     }
 
     bool WallIsTransparent(const Level& level, const Wall& wall) {
-        if (wall.Type == WallType::WallTrigger)
-            return false;
+        //if (wall.Type == WallType::WallTrigger)
+        //    return false;
 
-        if (wall.Type == WallType::Open)
-            return true;
+        //if (wall.Type == WallType::Open)
+        //    return true;
 
         if (auto side = level.TryGetSide(wall.Tag)) {
             auto& tmap1 = Resources::GetTextureInfo(side->TMap);
