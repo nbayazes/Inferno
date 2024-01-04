@@ -628,7 +628,7 @@ namespace Inferno {
             }
         };
 
-        IterateNearbySegments(level, { explosion.Segment, explosion.Position }, explosion.Radius * 2, action);
+        IterateNearbySegments(level, { explosion.Segment, explosion.Position }, explosion.Radius * 2, IterateFlags::StopOpaqueWall, action);
     }
 
     void IntersectBoundingBoxes(const Object& obj) {

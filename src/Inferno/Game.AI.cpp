@@ -81,7 +81,7 @@ namespace Inferno {
         uint allies = 0;
         auto range2 = range * range;
 
-        IterateNearbySegments(Game::Level, robot, range, [&](const Segment& seg, bool) {
+        IterateNearbySegments(Game::Level, robot, range, IterateFlags::StopWall, [&](const Segment& seg, bool) {
             for (auto& objid : seg.Objects) {
                 if (auto obj = Game::Level.TryGetObject(objid)) {
                     if (obj->IsRobot() && obj->Signature != robot.Signature) {
@@ -186,7 +186,7 @@ namespace Inferno {
 
     // adds awareness to robots in nearby rooms
     void AlertRobotsOfNoise(const NavPoint& source, float soundRadius, float awareness) {
-        IterateNearbySegments(Game::Level, source, soundRadius, [&](const Segment& seg, bool) {
+        IterateNearbySegments(Game::Level, source, soundRadius, IterateFlags::StopDoor, [&](const Segment& seg, bool) {
             AlertEnemiesInSegment(Game::Level, seg, source, soundRadius, awareness);
         });
     }
@@ -548,7 +548,7 @@ namespace Inferno {
     void CheckProjectiles(Level& level, const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo) {
         if (ai.DodgeDelay > 0) return; // not ready to dodge again
 
-        IterateNearbySegments(level, robot, 100, [&](const Segment& seg, bool) {
+        IterateNearbySegments(level, robot, 100, IterateFlags::StopOpaqueWall, [&](const Segment& seg, bool) {
             for (auto& objId : seg.Objects) {
                 if (auto weapon = level.TryGetObject(objId)) {
                     if (weapon->Type != ObjectType::Weapon) continue;
@@ -1259,8 +1259,7 @@ namespace Inferno {
             stop = nearestHelp != nullptr;
         };
 
-        // todo: this should account for locked doors
-        IterateNearbySegments(Game::Level, robot, AI_HELP_SEARCH_RADIUS, action);
+        IterateNearbySegments(Game::Level, robot, AI_HELP_SEARCH_RADIUS, IterateFlags::StopLockedDoor, action);
 
         if (nearestHelp) {
             NavPoint goal = { nearestHelp->Segment, nearestHelp->Position };

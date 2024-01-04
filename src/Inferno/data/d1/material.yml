@@ -1980,10 +1980,9 @@ Materials:
     Metalness: 1
     Roughness: 0.654
   - TexID: 1535
-    NormalStrength: 0.59
-    SpecularStrength: 0.1
-    Metalness: 0.854
-    Roughness: 0.608
+    NormalStrength: 0.296
+    SpecularStrength: 1.597
+    Roughness: 0.6
   - TexID: 1536
     NormalStrength: 0.179
     Metalness: 0.881

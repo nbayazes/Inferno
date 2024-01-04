@@ -680,10 +680,12 @@ namespace Inferno {
         player.Physics.BankState = PhysicsData().BankState;
         player.Physics.TurnRoll = 0;
         player.Type = ObjectType::Player;
+        player.Render.Type = RenderType::None; // Hide the player model
 
         RelinkObject(Game::Level, player, SpawnSegment == SegID::None ? player.Segment : SpawnSegment);
 
-        player.Render.Type = RenderType::None; // Hide the player model
+        // Max vulcan ammo changes between D1 and D2
+        PyroGX.Weapons[(int)PrimaryWeaponIndex::Vulcan].MaxAmmo = Game::Level.IsDescent1() ? 10000 : 20000;
 
         if (died) {
             LaserLevel = 0;
@@ -733,9 +735,7 @@ namespace Inferno {
             //GivePowerup(PowerupFlag::FullMap);
             //GivePowerup(PowerupFlag::QuadLasers);
 
-            // Max vulcan ammo changes between D1 and D2
-            PyroGX.Weapons[(int)PrimaryWeaponIndex::Vulcan].MaxAmmo = Game::Level.IsDescent1() ? 10000 : 20000;
-
+            
             PrimaryWeapons = 0xffff;
             SecondaryWeapons = 0xffff;
             int weaponCount = Game::Level.IsDescent2() ? 10 : 5;

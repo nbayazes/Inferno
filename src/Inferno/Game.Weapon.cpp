@@ -776,7 +776,7 @@ namespace Inferno::Game {
         float bestDotFov = -1;
         auto forward = src.Rotation.Forward();
 
-        IterateNearbySegments(Game::Level, src, maxDist, [&](const Segment& seg, bool&) {
+        IterateNearbySegments(Game::Level, src, maxDist, IterateFlags::StopOpaqueWall, [&](const Segment& seg, bool&) {
             for (auto& objId : seg.Objects) {
                 if (auto obj = Game::Level.TryGetObject(objId)) {
                     if (!obj->IsAlive() || !obj->PassesMask(mask) || !obj->IsInFaction(faction)) continue;

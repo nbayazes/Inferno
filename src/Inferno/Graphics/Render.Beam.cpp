@@ -48,7 +48,6 @@ namespace Inferno::Render {
     }
 
     void AddBeam(BeamInfo beam, float life, const Vector3& start, const Vector3& end) {
-        beam.Segment = FindContainingSegment(Game::Level, start);
         beam.Start = start;
         beam.End = end;
         beam.Duration = life;

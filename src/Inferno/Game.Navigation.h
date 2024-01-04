@@ -77,7 +77,16 @@ namespace Inferno {
         List<SegID> NavigateWithinRoom(SegID start, SegID goal, Room& room);
     };
 
-    void IterateNearbySegments(Level& level, NavPoint start, float distance, const std::function<void(Segment&, bool&)>&);
+    enum class IterateFlags {
+        None,
+        StopWall = 1 << 1, // Stop at any wall (except fly-through triggers)
+        StopOpaqueWall = 1 << 2, // Stop at walls that block sight. Includes doors.
+        StopDoor = 1 << 3, // Stop at any doors
+        StopLockedDoor = 1 << 4, // Stop at locked doors
+        StopKeyDoor = 1 << 5, // Stop at keyed doors
+    };
+
+    void IterateNearbySegments(Level& level, NavPoint start, float distance, IterateFlags flags, const std::function<void(Segment&, bool&)>&);
     
     // Returns false if a side is blocked for navigation purposes
     bool CanNavigateSide(Level& level, Tag tag, NavigationFlags flags);

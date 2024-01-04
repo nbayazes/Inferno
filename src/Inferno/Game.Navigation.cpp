@@ -1,14 +1,15 @@
 #include "pch.h"
-#include "Game.h"
 #include "Game.Navigation.h"
+#include <numeric>
+#include "Game.h"
 #include "Game.Segment.h"
+#include "Game.Wall.h"
 #include "logging.h"
 #include "Resources.h"
-#include <numeric>
 
 namespace Inferno {
     // Executes a function on each segment within range. Return false from action to stop iterating.
-    void IterateNearbySegments(Level& level, NavPoint start, float distance, const std::function<void(Segment&, bool&)>& action) {
+    void IterateNearbySegments(Level& level, NavPoint start, float distance, IterateFlags flags, const std::function<void(Segment&, bool&)>& action) {
         ASSERT_STA();
 
         static List<SegID> queue;
@@ -35,12 +36,28 @@ namespace Inferno {
             if (stop) break;
 
             for (auto& sideid : SIDE_IDS) {
-                if (seg->SideIsSolid(sideid, level)) continue;
+                if (auto wall = level.TryGetWall(seg->GetSide(sideid).Wall)) {
+                    if (HasFlag(flags, IterateFlags::StopWall))
+                        continue;
+
+                    if (HasFlag(flags, IterateFlags::StopDoor) && (wall->Type == WallType::Door || wall->Type == WallType::Destroyable))
+                        continue;
+
+                    if (HasFlag(flags, IterateFlags::StopLockedDoor) && wall->HasFlag(WallFlag::DoorLocked))
+                        continue;
+
+                    if (HasFlag(flags, IterateFlags::StopKeyDoor) && wall->IsKeyDoor())
+                        continue;
+
+                    if (HasFlag(flags, IterateFlags::StopOpaqueWall) && !WallIsTransparent(level, *wall))
+                        continue;
+                }
 
                 if (Vector3::DistanceSquared(start.Position, seg->GetSide(sideid).Center) > distSq)
                     continue;
 
                 auto connection = seg->GetConnection(sideid);
+                if (connection == SegID::None) continue;
                 if (visited[(int)connection]) continue; // already visited
                 queue.push_back(connection);
             }

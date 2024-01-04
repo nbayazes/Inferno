@@ -244,9 +244,11 @@ namespace Inferno {
                 target += edgeMidpoint + vec * 25;
                 target /= 2;
                 //auto target = edgeMidpoint + vec * 20;
-                Render::Debug::DrawLine(edgeMidpoint + vec * 20, edgeMidpoint, Color(1, 0, 1));
-                Render::Debug::DrawPoint(target, Color(1, 0, 1));
-                Render::Debug::DrawPoint(side.Center, Color(1, 0, 1));
+                if (Settings::Cheats.ShowPathing) {
+                    Render::Debug::DrawLine(edgeMidpoint + vec * 20, edgeMidpoint, Color(1, 0, 1));
+                    Render::Debug::DrawPoint(target, Color(1, 0, 1));
+                    Render::Debug::DrawPoint(side.Center, Color(1, 0, 1));
+                }
                 //MoveTowardsPoint(obj, target, thrust);
 
                 // avoid this edge

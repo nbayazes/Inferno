@@ -423,6 +423,8 @@ namespace Inferno {
             Render::AddDynamicLight(light);
 
             if (auto beam = Render::EffectLibrary.GetBeamInfo("matcen")) {
+                beam->Segment = segId;
+
                 for (int i = 0; i < 4; i++) {
                     //beam->StartDelay = i * 0.4f + Random() * 0.125f;
                     Render::AddBeam(*beam, vclip.PlayTime, top, bottom);
@@ -430,6 +432,8 @@ namespace Inferno {
             }
 
             if (auto beam = Render::EffectLibrary.GetBeamInfo("matcen arcs")) {
+                beam->Segment = segId;
+
                 for (int i = 0; i < 8; i++) {
                     //beam->StartDelay = i * 0.4f + Random() * 0.125f;
                     Render::AddBeam(*beam, vclip.PlayTime, seg->Center, {});
