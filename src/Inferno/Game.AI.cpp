@@ -470,21 +470,6 @@ namespace Inferno {
         //Render::Debug::DrawLine(projTarget, gunPosition, Color(1, 0, 0));
         auto projDist = Vector3::Distance(gunPosition, projTarget);
 
-        auto aimDir = GetDirection(target, gunPosition);
-        //auto aimAngle = AngleBetweenVectors(aimDir, forward);
-        //SPDLOG_INFO("Aim angle deg: {}", aimAngle * RadToDeg);
-
-        if (AngleBetweenVectors(aimDir, forward) > robotInfo.AimAngle * DegToRad * 0.5f) {
-            auto projDir = target - projTarget;
-            projDir.Normalize();
-            auto maxLeadDist = tanf(robotInfo.AimAngle * DegToRad * 0.5f) * projDist;
-            target = projTarget + maxLeadDist * projDir;
-
-            //auto [aimDir2, aimDist2] = GetDirectionAndDistance(target, gunPosition);
-            //auto aimAngle2 = AngleBetweenVectors(aimDir2, forward);
-            //SPDLOG_INFO("Aim angle deg 2: {}", aimAngle2 * RadToDeg);
-        }
-
         {
             // todo: seismic disturbance inaccuracy from earthshaker
 
@@ -499,14 +484,37 @@ namespace Inferno {
             }
 
             target += { RandomN11()* aim, RandomN11()* aim, RandomN11()* aim };
-
-            //target += RandomLateralDirection(robot) * aim;
-            auto targetDir = target - gunPosition;
-            targetDir.Normalize();
-
-            auto id = Game::GetObjectRef(robot);
-            Game::FireWeapon(id, weaponId, gun, &targetDir);
         }
+
+        auto halfAimRads = robotInfo.AimAngle * DegToRad * 0.5f;
+
+        auto aimDir = GetDirection(target, gunPosition);
+        auto aimAngle = AngleBetweenVectors(aimDir, forward);
+        //SPDLOG_INFO("Aim angle deg: {}", aimAngle * RadToDeg);
+
+        if (aimAngle > DirectX::XM_PIDIV2) {
+            // If the projected target is behind the gunpoint, fire straight instead.
+            // Otherwise the aim clamping causes the robot to shoot backwards.
+            target = gunPosition + forward * 20;
+        }
+        else if (aimAngle > halfAimRads) {
+            // Clamp the target to the robot's aim angle
+            auto projDir = target - projTarget;
+            projDir.Normalize();
+            auto maxLeadDist = tanf(halfAimRads) * projDist;
+            target = projTarget + maxLeadDist * projDir;
+
+            //auto [aimDir2, aimDist2] = GetDirectionAndDistance(target, gunPosition);
+            //auto aimAngle2 = AngleBetweenVectors(aimDir2, forward);
+            //SPDLOG_INFO("Aim angle deg 2: {}", aimAngle2 * RadToDeg);
+            //ASSERT(aimAngle2 <= robotInfo.AimAngle * DegToRad);
+        }
+
+        // Fire the weapon
+        auto targetDir = target - gunPosition;
+        targetDir.Normalize();
+        auto id = Game::GetObjectRef(robot);
+        Game::FireWeapon(id, weaponId, gun, &targetDir);
 
         if (primary)
             CycleGunpoint(robot, ai, robotInfo);
