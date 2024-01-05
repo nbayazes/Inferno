@@ -26,35 +26,40 @@ namespace Yaml {
 
     // Tries to read a value from the node. Value is unchanged if node is invalid.
     template<class T>
-    void ReadValue(ryml::ConstNodeRef node, T& value) {
+    bool ReadValue(ryml::ConstNodeRef node, T& value) {
         static_assert(!std::is_same_v<T, const char*>, "Must be writable value");
-        if (!node.valid()) return;
+        if (!node.valid()) return false;
         node >> value;
+        return true;
     }
 
     template<Inferno::IsEnum T>
-    void ReadValue(ryml::ConstNodeRef node, T& id) {
-        if (!node.valid()) return;
+    bool ReadValue(ryml::ConstNodeRef node, T& id) {
+        if (!node.valid()) return false;
         node >> (std::underlying_type_t<T>&)id;
+        return true;
     }
 
     template<>
-    inline void ReadValue(ryml::ConstNodeRef node, bool& value) {
-        if (!node.valid()) return;
+    inline bool ReadValue(ryml::ConstNodeRef node, bool& value) {
+        if (!node.valid()) return false;
         int val = 0;
         node >> val;
         value = val;
+        return true;
     }
 
     template<>
-    inline void ReadValue(ryml::ConstNodeRef node, std::filesystem::path& value) {
-        if (!node.valid()) return;
+    inline bool ReadValue(ryml::ConstNodeRef node, std::filesystem::path& value) {
+        if (!node.valid()) return false;
         std::string path;
         node >> path;
-        if (std::filesystem::exists(path))
+        value = path;
+        return true;
+        /*if (std::filesystem::exists(path))
             value = path;
         else
-            SPDLOG_WARN("Invalid path in config:\n{}", path);
+            SPDLOG_WARN("Invalid path in config:\n{}", path);*/
     }
 
     inline void ReadValue(ryml::ConstNodeRef node, std::array<bool, 4>& a) {
@@ -72,13 +77,13 @@ namespace Yaml {
     }
 
     template<>
-    inline void ReadValue(ryml::ConstNodeRef node, DirectX::SimpleMath::Color& value) {
-        if (!node.valid()) return;
+    inline bool ReadValue(ryml::ConstNodeRef node, DirectX::SimpleMath::Color& value) {
+        if (!node.valid()) return false;
         std::string str;
         node >> str;
         auto token = Inferno::String::Split(str, ',', true);
         if (token.size() != 4 && token.size() != 3)
-            return;
+            return false;
 
         ParseFloat(token[0], value.x);
         ParseFloat(token[1], value.y);
@@ -88,53 +93,59 @@ namespace Yaml {
             ParseFloat(token[3], value.w);
         else
             Inferno::ColorRGBToRGBV(value);
+
+        return true;
     }
 
     template<>
-    inline void ReadValue(ryml::ConstNodeRef node, DirectX::SimpleMath::Vector3& value) {
-        if (!node.valid()) return;
+    inline bool ReadValue(ryml::ConstNodeRef node, DirectX::SimpleMath::Vector3& value) {
+        if (!node.valid()) return false;
         std::string str;
         node >> str;
         auto token = Inferno::String::Split(str, ',', true);
         if (token.size() != 3)
-            return;
+            return false;
 
         ParseFloat(token[0], value.x);
         ParseFloat(token[1], value.y);
         ParseFloat(token[2], value.z);
+        return true;
     }
 
     template<>
-    inline void ReadValue(ryml::ConstNodeRef node, DirectX::SimpleMath::Vector2& value) {
-        if (!node.valid()) return;
+    inline bool ReadValue(ryml::ConstNodeRef node, DirectX::SimpleMath::Vector2& value) {
+        if (!node.valid()) return false;
         std::string str;
         node >> str;
         auto token = Inferno::String::Split(str, ',', true);
         if (token.size() != 2)
-            return;
+            return false;
 
         ParseFloat(token[0], value.x);
         ParseFloat(token[1], value.y);
+        return true;
     }
 
     template<>
-    inline void ReadValue(ryml::ConstNodeRef node, Inferno::Tag& value) {
-        if (!node.valid()) return;
+    inline bool ReadValue(ryml::ConstNodeRef node, Inferno::Tag& value) {
+        if (!node.valid()) return false;
         std::string str;
         node >> str;
         auto token = Inferno::String::Split(str, ':', true);
         if (token.size() != 2)
-            return;
+            return false;
 
         try {
             value.Segment = (Inferno::SegID)std::stoi(token[0]);
             value.Side = (Inferno::SideID)std::stoi(token[1]);
+            return true;
         }
         catch (...) {
+            return false;
         }
     }
 
-    inline void ReadString(ryml::ConstNodeRef node, std::string& value) {
+    inline bool ReadString(ryml::ConstNodeRef node, std::string& value) {
         return ReadValue<std::string>(node, value);
     }
 
@@ -162,12 +173,12 @@ namespace Yaml {
         return fmt::format("{}:{}", (int)tag.Segment, (int)tag.Side);
     }
 
-    inline void ReadString(const ryml::NodeRef& node, std::string& value) {
+    inline bool ReadString(const ryml::NodeRef& node, std::string& value) {
         return ReadValue<std::string>(node, value);
     }
 
     template<class T>
-    void WriteSequence(ryml::NodeRef node, T&& src) {
+    void WriteSequence(ryml::NodeRef node, T& src) {
         node |= ryml::SEQ;
 
         for (auto& item : src)

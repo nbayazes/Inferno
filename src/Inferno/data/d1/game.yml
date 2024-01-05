@@ -338,6 +338,7 @@ Weapons:
     InitialSpeed: 22.5 # How fast when spawning
     HomingFov: 30
     HomingDistance: 150
+    UseThrust: 1
 
   - id: 29
     Name: robot smart missile blob
@@ -357,6 +358,7 @@ Weapons:
     InitialSpeed: 22.5 # How fast when spawning
     HomingFov: 30 # Reduced due to overly aggressive tracking
     HomingDistance: 150
+    UseThrust: 1
 
   - id: 18
     Name: mega missile

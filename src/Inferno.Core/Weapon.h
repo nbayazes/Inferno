@@ -153,6 +153,7 @@ namespace Inferno {
         float HomingFov = 0; // Homing FOV in degrees
         float HomingDistance = 0; // Distance to look for new targets
         bool DirectDamage = true; // Enables direct damage on a hit. Disable for explosive weapons to make only the explosion do damage.
+        bool UseThrust = false; // Uses thrust value
     };
 
     struct Weapon {
