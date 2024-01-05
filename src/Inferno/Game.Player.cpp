@@ -64,12 +64,14 @@ namespace Inferno {
             if (oldCount != count) {} // drop blobs
             thrust = 1 + std::min(0.5f, AfterburnerCharge) * 2; // Falloff from 2 under 50% charge
         }
-        else {
+        else if (AfterburnerCharge < 1) {
             float chargeUp = std::min(dt / 8, 1 - AfterburnerCharge); // 8 second recharge
             float energy = std::max(Energy - 10, 0.0f); // don't drop below 10 energy
             chargeUp = std::min(chargeUp, energy / 10); // limit charge if <= 10 energy
             AfterburnerCharge += chargeUp;
-            AddEnergy(-chargeUp * 100 / 10); // full charge uses 10% energy
+            if (AfterburnerCharge > 1) AfterburnerCharge = 1;
+
+            SubtractEnergy(chargeUp * 100 / 10); // full charge uses 10% energy
         }
 
         if (AfterburnerCharge <= 0 && active)
@@ -235,7 +237,7 @@ namespace Inferno {
                 if (RefuelSoundTime <= Game::Time) {
                     Sound::Play2D({ SoundID::Refuel }, 0.5f);
                     constexpr float REFUEL_SOUND_DELAY = 0.25f;
-                    RefuelSoundTime = (float)Game::Time + REFUEL_SOUND_DELAY;
+                    RefuelSoundTime = Game::Time + REFUEL_SOUND_DELAY;
                 }
             }
         }
@@ -658,7 +660,7 @@ namespace Inferno {
 
         auto& player = Game::GetPlayerObject();
         HostagesOnShip = 0;
-        AfterburnerCharge = 1;
+        _prevAfterburnerCharge = AfterburnerCharge = 1;
         AfterburnerActive = false;
         WeaponCharge = 0;
         KilledBy = {};
@@ -668,6 +670,7 @@ namespace Inferno {
         Exploded = false;
         PrimaryDelay = SecondaryDelay = 0;
         _nextFlareFireTime = 0;
+        RefuelSoundTime = 0;
 
         player.Effects = {};
         player.Physics.Wiggle = Resources::GameData.PlayerShip.Wiggle;
@@ -735,7 +738,7 @@ namespace Inferno {
             //GivePowerup(PowerupFlag::FullMap);
             //GivePowerup(PowerupFlag::QuadLasers);
 
-            
+
             PrimaryWeapons = 0xffff;
             SecondaryWeapons = 0xffff;
             int weaponCount = Game::Level.IsDescent2() ? 10 : 5;

@@ -50,7 +50,7 @@ namespace Inferno {
         uint8 FiringIndex = 0, MissileFiringIndex = 0;
 
         FireState PrimaryState{}, SecondaryState{};
-        float RefuelSoundTime = 0;
+        double RefuelSoundTime = 0; // Next time an energy center can make noise
         bool AfterburnerActive = false;
         int BombIndex = 0; // 0 is proxy, 1 is smart mine
         double LastPrimaryFireTime = 0;
