@@ -1158,7 +1158,7 @@ namespace Inferno {
 
         auto speed = robot.Physics.Velocity.Length();
         auto maxSpeed = Difficulty(robotInfo).Speed;
-        if (ai.State == AIState::FindHelp) maxSpeed *= 2.0f;
+        if (ai.State == AIState::FindHelp) maxSpeed *= 1.5f;
 
         if (speed > maxSpeed)
             robot.Physics.Velocity *= 0.75f;

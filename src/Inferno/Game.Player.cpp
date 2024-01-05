@@ -1265,7 +1265,7 @@ namespace Inferno {
 
         // todo: autoselect priority
         if (!CanFireSecondary(Secondary) || (startAmmo == 0 && Secondary < index && index != SecondaryWeaponIndex::ProximityMine))
-            AutoselectSecondary();
+            SelectSecondary(index);
 
         // todo: spawn individual missiles if count > 1 and full
         return true;

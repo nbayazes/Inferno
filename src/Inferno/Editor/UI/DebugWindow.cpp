@@ -18,6 +18,18 @@ namespace Inferno {
 namespace Inferno::Editor {
     DebugWindow::DebugWindow(): WindowBase("Debug", &Settings::Editor.Windows.Debug) {}
 
+    void ResetPlayerInventory() {
+        auto& player = Game::Player;
+        player.Powerups = {}; // Clear keys
+        player.LaserLevel = 0;
+        player.PrimaryWeapons = 0;
+        player.SecondaryWeapons = 0;
+        player.Primary = PrimaryWeaponIndex::Laser;
+        player.Secondary = SecondaryWeaponIndex::Concussion;
+        ranges::fill(player.PrimaryAmmo, 0);
+        ranges::fill(player.SecondaryAmmo, 0);
+    }
+
     void DebugWindow::OnUpdate() {
         ImGui::Text("Cheats");
         ImGui::Checkbox("Disable weapon damage", &Settings::Cheats.DisableWeaponDamage);
@@ -81,23 +93,17 @@ namespace Inferno::Editor {
         ImGui::SameLine();
         ImGui::Checkbox("Cloaked", &Settings::Cheats.Cloaked);
 
-        ImGui::Checkbox("Fully loaded", &Settings::Cheats.FullyLoaded);
+        if (ImGui::Checkbox("Fully loaded", &Settings::Cheats.FullyLoaded)) {
+            if (!Settings::Cheats.FullyLoaded)
+                ResetPlayerInventory();
+        }
         ImGui::SameLine();
         ImGui::Checkbox("Low shields", &Settings::Cheats.LowShields);
 
         ImGui::Combo("Ship wiggle", (int*)&Settings::Inferno.ShipWiggle, "Normal\0Reduced\0Off");
 
-        if (ImGui::Button("Reset inventory")) {
-            auto& player = Game::Player;
-            player.Powerups = {}; // Clear keys
-            player.LaserLevel = 0;
-            player.PrimaryWeapons = 0;
-            player.SecondaryWeapons = 0;
-            player.Primary = PrimaryWeaponIndex::Laser;
-            player.Secondary = SecondaryWeaponIndex::Concussion;
-            ranges::fill(player.PrimaryAmmo, 0);
-            ranges::fill(player.SecondaryAmmo, 0);
-        }
+        if (ImGui::Button("Reset inventory"))
+            ResetPlayerInventory();
 
         ImGui::Separator();
 
