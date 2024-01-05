@@ -277,12 +277,32 @@ namespace Inferno {
         return level.Objects.emplace_back(Object{});
     }
 
+    bool FindNearbyCloak(const NavPoint& start, float distance) {
+        bool foundCloak = false;
+
+        IterateNearbySegments(Game::Level, start, distance, IterateFlags::None, [&foundCloak](const Segment& seg, bool& stop) {
+            for (auto& id : seg.Objects) {
+                if (auto obj = Game::Level.TryGetObject(id)) {
+                    if (obj->IsPowerup() && obj->ID == (int)PowerupID::Cloak) {
+                        foundCloak = true;
+                        stop = true;
+                    }
+                }
+            }
+        });
+
+        return foundCloak;
+    }
+
     ObjRef Game::DropPowerup(PowerupID pid, const Vector3& position, SegID segId, const Vector3& force) {
         auto& pinfo = Resources::GetPowerup(pid);
         if (pinfo.VClip == VClipID::None) {
             //SPDLOG_WARN("Tried to drop an invalid powerup!");
             return {};
         }
+
+        if (pid == PowerupID::Cloak && FindNearbyCloak({ segId, position }, 80))
+            return {}; // Cloak was already nearby. Original uses a segdepth of 3
 
         Object powerup{};
         InitObject(Level, powerup, ObjectType::Powerup, (int)pid);
@@ -505,7 +525,7 @@ namespace Inferno {
         ObjRef id;
         float bestDist = FLT_MAX;
 
-        IterateNearbySegments(Game::Level, point, maxDist, IterateFlags::StopOpaqueWall, [&] (const Segment& seg, bool) {
+        IterateNearbySegments(Game::Level, point, maxDist, IterateFlags::StopOpaqueWall, [&](const Segment& seg, bool) {
             for (auto& objid : seg.Objects) {
                 auto obj = Game::Level.TryGetObject(objid);
                 if (!obj->PassesMask(mask) || !obj->IsAlive() || obj->IsCloakEffective()) continue;
