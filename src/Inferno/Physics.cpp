@@ -473,17 +473,54 @@ namespace Inferno {
         return angles;
     }
 
-    void ApplyRotationalForce(Object& object, const Vector3& hitPoint, Vector3 force, float targetMass) {
+    // Applies random rotation to an object based on a force, relative to a source position.
+    // Is very disorienting and can cause objects to roll and spin.
+    void ApplyRotationalForce(Object& object, const Vector3& hitPoint, Vector3 force) {
         Matrix basis(object.Rotation);
         basis = basis.Invert();
         force = Vector3::Transform(force, basis); // transform force to basis of object
 
         auto arm = Vector3::Transform(hitPoint - object.Position, basis);
         const auto torque = force.Cross(arm);
+        auto mass = object.Physics.Mass <= 0 ? 1 : object.Physics.Mass;
+
         // moment of inertia. solid sphere I = 2/5 MR^2. Thin shell: 2/3 MR^2
-        const auto inertia = 1.0f / 6.0f * targetMass * object.Radius * object.Radius;
+        const auto inertia = 1.0f / 6.0f * mass * object.Radius * object.Radius;
         auto accel = torque / inertia;
         object.Physics.AngularAcceleration += accel;
+    }
+
+    void ApplyRandomRotationalForce(Object& obj, const Vector3& srcPosition, const Vector3& force) {
+        auto pt = RandomPointOnCircle(obj.Radius);
+        auto edgePt = Vector3::Transform(pt, obj.GetTransform());
+        auto edgeDir = edgePt - srcPosition;
+        edgeDir.Normalize();
+        ApplyRotationalForce(obj, edgePt, force);
+    }
+
+    // Applies rotation to an object based on a force. Does not apply roll.
+    // ApplyRotationalForce is more realistic but too disorienting for the player.
+    void ApplyRotationForcePlayer(Object& obj, Vector3 force) {
+        if (obj.Movement != MovementType::Physics || obj.Physics.Mass <= 0) return;
+        auto vecmag = force.Length();
+        if (vecmag == 0) return;
+        vecmag /= 8.0f;
+
+        if (force == Vector3::Zero) return;
+
+        float rate = obj.Physics.Mass / vecmag;
+        if (rate < 0.5f) rate = 0.5f;
+
+        // transform towards to local coordinates
+        Matrix basis(obj.Rotation);
+        basis = basis.Invert();
+        force = Vector3::Transform(force, basis); // transform towards to basis of object
+        force.z *= -1; // hack: correct for LH object matrix
+
+        auto rotation = Quaternion::FromToRotation(Vector3::UnitZ, force); // rotation to the target vector
+        auto euler = rotation.ToEuler() / rate / DirectX::XM_2PI; // Physics update multiplies by XM_2PI so divide it here
+        euler.z = 0; // remove roll
+        obj.Physics.AngularVelocity = euler;
     }
 
     // Creates an explosion that can cause damage or knockback
@@ -585,14 +622,9 @@ namespace Inferno {
 
                         //Vector3 negForce = forceVec * 2.0f * float(7 - Game::Difficulty) / 8.0f;
                         // Don't apply rotation if source directly hit this object, so that it doesn't rotate oddly
-                        if (!source || source->LastHitObject != target.Signature) {
-                            auto pt = RandomPointOnCircle(target.Radius);
-                            auto edgePt = Vector3::Transform(pt, target.GetTransform());
-                            auto edgeDir = edgePt - hit.Point;
-                            edgeDir.Normalize();
-                            auto& robot = Resources::GetRobotInfo(target);
-                            ApplyRotationalForce(target, edgePt, forceVec, robot.Mass);
-                        }
+                        if (!source || source->LastHitObject != target.Signature)
+                            ApplyRandomRotationalForce(target, hit.Point, forceVec);
+
                         break;
                     }
 
@@ -609,7 +641,8 @@ namespace Inferno {
                     {
                         ApplyForce(target, forceVec);
                         if (!source || source->LastHitObject != target.Signature)
-                            ApplyRotation(target, forceVec);
+                            ApplyRotationForcePlayer(target, forceVec);
+                            //ApplyRandomRotationalForce(target, hit.Point, forceVec * 0.25f);
 
                         if (source && source->IsWeapon()) {
                             auto& weapon = Resources::GetWeapon(WeaponID(source->ID));
@@ -708,7 +741,7 @@ namespace Inferno {
         if (/*a.Type == ObjectType::Weapon &&*/ target.Type == ObjectType::Robot) {
             //if (obj.Type == ObjectType::Weapon) force *= 2; // make weapon hits apply more rotation force
             //if (obj.Type == ObjectType::Player) force *= 0.25f; // Less rotation from players
-            ApplyRotationalForce(target, hit.Point, force, m2);
+            ApplyRotationalForce(target, hit.Point, force);
         }
     }
 
@@ -1340,7 +1373,7 @@ namespace Inferno {
             Sound::Play({ SoundID::PlayerHitForcefield }, hit.Point, obj.Segment);
 
             auto force = Vector3(RandomN11(), RandomN11(), RandomN11()) * 20;
-            ApplyRotation(obj, force);
+            ApplyRotationForcePlayer(obj, force);
         }
         else if (damage > DAMAGE_THRESHOLD) {
             auto volume = isForceField ? 1 : std::clamp((speed - DAMAGE_SCALE * DAMAGE_THRESHOLD) / 20, 0.0f, 1.0f);

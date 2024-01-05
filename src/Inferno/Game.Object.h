@@ -69,7 +69,6 @@ namespace Inferno {
     void RotateTowards(Object& obj, Vector3 point, float angularThrust);
 
     void ApplyForce(Object& obj, const Vector3& force);
-    void ApplyRotation(Object& obj, Vector3 force);
 
     namespace Game {
         Tuple<ObjRef, float> FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask);

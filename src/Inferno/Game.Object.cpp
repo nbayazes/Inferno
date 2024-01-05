@@ -842,27 +842,8 @@ namespace Inferno {
         if (obj.Movement != MovementType::Physics) return;
         if (obj.Physics.Mass == 0) return;
         obj.Physics.Velocity += force / obj.Physics.Mass;
+        obj.LastHitForce = force;
     }
-
-    void ApplyRotation(Object& obj, Vector3 force) {
-        if (obj.Movement != MovementType::Physics || obj.Physics.Mass <= 0) return;
-        auto vecmag = force.Length();
-        if (vecmag == 0) return;
-        vecmag /= 8.0f;
-
-        // rate should go down as vecmag or mass goes up
-        float rate = obj.Physics.Mass / vecmag;
-        if (obj.Type == ObjectType::Robot) {
-            if (rate < 0.25f) rate = 0.25f;
-        }
-        else {
-            if (rate < 0.5f) rate = 0.5f;
-        }
-
-        force.Normalize();
-        TurnTowardsDirection(obj, force, rate);
-    }
-
 
     void Game::CloakObject(Object& obj, float duration, bool playSound) {
         ASSERT(duration != 0);
