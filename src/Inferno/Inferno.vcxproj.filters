@@ -261,7 +261,7 @@
     <None Include="shaders\LinearizeDepthCS.hlsl" />
     <None Include="shaders\object.hlsl" />
     <None Include="shaders\ScanlineCS.hlsl" />
-    <None Include="shaders\ObjectDistortion.hlsl" />
+    <None Include="shaders\Cloak.hlsl" />
     <None Include="shaders\ToneMapCS.hlsl" />
     <None Include="shaders\sprite.hlsl" />
     <None Include="shaders\ToneMapCS-NoUAVL.hlsl" />

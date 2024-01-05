@@ -61,7 +61,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float3 normal = normalize(cross(deltax, deltay));
     float2 scale = 5 / Frame.Size * Frame.RenderScale * Frame.RenderScale;
 
-    float noise = 0.98 - (Instance.Noise * 0.2);
+    float noise = 0.98 - (Instance.Noise * 0.4);
     float time = Frame.Time + Instance.TimeOffset;
     float2 offset = float2(sin(input.pos.y * scale.y + time), cos(input.pos.x * scale.x + time) * 3);
     float2 samplePos = (input.pos.xy + offset) / Frame.Size * Frame.RenderScale;
@@ -74,5 +74,5 @@ float4 psmain(PS_INPUT input) : SV_Target {
     sample += FrameTexture.SampleLevel(LinearBorder, samplePos + float2(-scale.x, -scale.y), 0).rgb * 0.5;
     sample += FrameTexture.SampleLevel(LinearBorder, samplePos + float2(scale.x, scale.y), 0).rgb * 0.5;
     sample /= 8;
-    return float4(sample.rgb * noise, 0.75);
+    return float4(sample.rgb * noise, 0.80);
 }

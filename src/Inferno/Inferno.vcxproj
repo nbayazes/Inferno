@@ -634,7 +634,7 @@
     <ResourceCompile Include="Inferno.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\ObjectDistortion.hlsl">
+    <None Include="shaders\Cloak.hlsl">
       <FileType>Document</FileType>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
       <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)\shaders</DestinationFolders>

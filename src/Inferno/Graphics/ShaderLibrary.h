@@ -577,7 +577,7 @@ namespace Inferno {
         HudShader Hud = ShaderInfo{ L"shaders/HUD.hlsl" };
         SpriteShader Sprite = ShaderInfo{ L"shaders/sprite.hlsl" };
         ObjectShader Object = ShaderInfo{ L"shaders/object.hlsl" };
-        ObjectDistortionShader ObjectDistortion = ShaderInfo{ L"shaders/ObjectDistortion.hlsl" };
+        ObjectDistortionShader ObjectDistortion = ShaderInfo{ L"shaders/Cloak.hlsl" };
     };
 
     class EffectResources {
