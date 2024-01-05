@@ -770,6 +770,8 @@ namespace Inferno::Game {
 
             if (obj.IsWeapon() && obj.ID == (int)WeaponID::LevelMine)
                 obj.Faction = Faction::Robot;
+
+            FixObjectPosition(obj);
         }
 
         MarkAmbientSegments(SoundFlag::AmbientLava, TextureFlag::Volatile);

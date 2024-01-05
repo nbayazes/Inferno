@@ -278,13 +278,11 @@ namespace Inferno::Game {
             }
         }
 
-        if (Game::Level.IsDescent1()) {
-            if (!info.GatedRobots.empty()) {
-                GateTimer += dt;
-                if (GateTimer >= GateInterval) {
-                    auto robotId = info.GatedRobots[RandomInt((int)info.GatedRobots.size() - 1)];
-                    GateInRobotD1(robotId);
-                }
+        if (!info.GatedRobots.empty()) {
+            GateTimer += dt;
+            if (GateTimer >= GateInterval) {
+                auto robotId = info.GatedRobots[RandomInt((int)info.GatedRobots.size() - 1)];
+                GateInRobotD1(robotId);
             }
         }
     }

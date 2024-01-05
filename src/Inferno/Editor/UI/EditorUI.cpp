@@ -183,10 +183,9 @@ namespace Inferno::Editor {
                     if (ImGui::MenuItem("Go To Exit")) Commands::GoToExit();
                     if (ImGui::MenuItem("Go To Secret Exit", nullptr, nullptr, Game::Level.HasSecretExit())) Commands::GoToSecretExit();
                     if (ImGui::MenuItem("Go To Secret Exit Return", nullptr, nullptr, Game::Level.IsDescent2() && Game::Level.HasSecretExit())) Commands::GoToSecretExitReturn();
-                    if (ImGui::MenuItem("Go To Segment...", "Ctrl+G"))
-                        Events::ShowDialog(DialogType::GotoSegment);
-                    if (ImGui::MenuItem("Go To Object..."))
-                        Events::ShowDialog(DialogType::GotoObject);
+
+                    MenuCommandEx(Commands::GotoObject, "Go To Object...", EditorAction::ShowGotoObject);
+                    MenuCommandEx(Commands::GotoSegment, "Go To Segment...", EditorAction::ShowGotoSegment);
 
                     ImGui::EndMenu();
                 }
@@ -351,6 +350,13 @@ namespace Inferno::Editor {
                 ImGui::Separator();
                 if (ImGui::MenuItem("Clean level"))
                     Commands::CleanLevel();
+
+                if (ImGui::MenuItem("Fix object positions")) {
+                    for (auto& obj : Game::Level.Objects)
+                        FixObjectPosition(obj);
+
+                    Editor::History.SnapshotLevel("Fix object positions");
+                }
 
                 ImGui::Separator();
 

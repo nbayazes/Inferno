@@ -484,7 +484,7 @@ namespace Inferno::Render {
 
         FrameConstants frameConstants{};
         frameConstants.ElapsedTime = (float)ElapsedTime;
-        frameConstants.ViewProjection = Camera.ViewProj();
+        frameConstants.ViewProjection = ViewProjection;
         frameConstants.NearClip = Camera.NearClip;
         frameConstants.FarClip = Camera.FarClip;
         frameConstants.Eye = Camera.Position;

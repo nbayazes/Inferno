@@ -143,6 +143,11 @@ namespace Inferno::Editor {
             .Name = "Go to Segment"
         };
 
+        Command GotoObject{
+            .Action = [] { Events::ShowDialog(DialogType::GotoObject); },
+            .Name = "Go to Object"
+        };
+
         Command HideMarks{ .Action = [] {}, .Name = "Hide Marks" };
         Command HoldMouselook{ .Action = [] {}, .Name = "Hold Mouselook" };
     }
@@ -187,7 +192,8 @@ namespace Inferno::Editor {
             case EditorAction::ZoomExtents: return Commands::ZoomExtents;
             case EditorAction::ShowHogEditor: return Commands::OpenHogEditor;
             case EditorAction::ShowMissionEditor: return Commands::OpenMissionEditor;
-            case EditorAction::ShowGotoDialog: return Commands::GotoSegment;
+            case EditorAction::ShowGotoSegment: return Commands::GotoSegment;
+            case EditorAction::ShowGotoObject: return Commands::GotoObject;
             case EditorAction::AlignMarked: return Commands::AlignMarked;
             case EditorAction::ResetUVs: return Commands::ResetUVs;
             case EditorAction::FitUVs: return Commands::FitUVs;
@@ -371,7 +377,8 @@ namespace Inferno::Editor::Bindings {
 
         bindings.Add({ .Action = EditorAction::ShowHogEditor, .Key = Keys::H, .Control = true });
         bindings.Add({ .Action = EditorAction::ShowMissionEditor, .Key = Keys::M, .Control = true });
-        bindings.Add({ .Action = EditorAction::ShowGotoDialog, .Key = Keys::G, .Control = true });
+        bindings.Add({ .Action = EditorAction::ShowGotoSegment, .Key = Keys::G, .Control = true });
+        bindings.Add({ .Action = EditorAction::ShowGotoObject, .Key = Keys::G, .Shift = true, .Control = true });
         bindings.Add({ .Action = EditorAction::HoldMouselook });
         bindings.Add({ .Action = EditorAction::HideMarks, .Key = Keys::OemTilde });
         bindings.Add({ .Action = EditorAction::InsertAlignedSegment, .Key = Keys::Insert, .Control = true });

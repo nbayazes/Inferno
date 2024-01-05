@@ -102,4 +102,7 @@ namespace Inferno {
     // Returns a random direction on the object's forward plane
     Vector3 RandomLateralDirection(const Object& obj);
     SubmodelRef GetRandomPointOnObject(const Object& obj);
+
+    // Tries to shift object away from intersecting walls
+    void FixObjectPosition(Object& obj);
 }

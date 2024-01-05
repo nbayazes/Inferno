@@ -1132,8 +1132,61 @@ namespace Inferno {
         }
     }
 
-    // Tries to shift objects into their segments and away from other objects
-    //void FixObjectPositions(Level& level) {
-    //    
-    //}
+    bool SphereIntersectsSide(const Level& level, const Segment& seg, SideID sideId, const DirectX::BoundingSphere& sphere, Vector3& normal, float& distance) {
+        auto face = Face2::FromSide(level, seg, sideId);
+        auto& indices = face.Side->GetRenderIndices();
+
+        // Check the position against each triangle
+        for (int tri = 0; tri < 2; tri++) {
+            const Vector3 p0 = face[indices[tri * 3 + 0]];
+            const Vector3 p1 = face[indices[tri * 3 + 1]];
+            const Vector3 p2 = face[indices[tri * 3 + 2]];
+
+            if (sphere.Intersects(p0, p1, p2)) {
+                Plane plane(p0, p1, p2);
+                normal = face.Side->Normals[tri];
+                distance = sphere.Radius - plane.DotCoordinate(sphere.Center);
+                if (std::abs(distance) <= 0.01f) continue; // too close to bother
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    void FixObjectPosition(Object& obj) {
+        if (obj.IsReactor()) return; // Reactors always intersect with walls
+
+        auto& level = Game::Level;
+        auto seg = level.TryGetSegment(obj.Segment);
+        if (!seg) return;
+
+        for (auto& side : SIDE_IDS) {
+            if (!seg->SideIsSolid(side, level)) continue;
+
+            DirectX::BoundingSphere sphere(obj.Position, obj.Radius);
+            Vector3 normal;
+            float distance = 0;
+            if (!SphereIntersectsSide(level, *seg, side, sphere, normal, distance)) continue;
+
+            //auto dir = GetDirection(seg->Center, obj.Position);
+            obj.Position += normal * distance * 1.1f;
+
+            auto segid = FindContainingSegment(level, obj.Position);
+            if (segid != SegID::None)
+                obj.Segment = segid;
+
+            SPDLOG_INFO("Shifted intersecting object {}", Game::GetObjectRef(obj).Id);
+
+            //if (dir.Length() < obj.Radius) {}
+            //else {
+            //    // Move one radius towards center
+            //    dir.Normalize();
+            //    obj.Position += dir * obj.Radius;
+            //    auto segid = FindContainingSegment(level, obj.Position);
+            //    if (segid != SegID::None)
+            //        obj.Segment = segid;
+            //}
+        }
+    }
 }
