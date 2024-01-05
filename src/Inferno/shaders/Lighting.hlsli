@@ -709,7 +709,7 @@ float3 ApplyRectLight2(
     // https://alextardif.com/arealights.html
     // https://www.shadertoy.com/view/3dsBD4
 
-    //lightPos += planeNormal; // shift diffuse out of wall slightly
+    lightPos += lightNormal * 1.4; // shift diffuse out of wall slightly to preserve color (prevent oversaturation)
 
     // shift the rectangle off of the surface so it lights it more evenly
     // note that this does not affect the position of the reflection
@@ -729,7 +729,8 @@ float3 ApplyRectLight2(
 
     float3 specular = float3(0, 0, 0);
     {
-        lightPos -= lightNormal * 1; // shift specular back to surface (unsure why 1 unit off)
+        lightPos -= lightNormal * 2.1; // shift specular back to surface (unsure why 1 unit off)
+        //lightPos -= lightNormal; // shift specular back to surface (unsure why 1 unit off)
 
         // Calculate reflected point
         float3 r = reflect(viewDir, normal);

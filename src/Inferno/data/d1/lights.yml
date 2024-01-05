@@ -213,15 +213,15 @@ Lights:
     # lava
     - ID: 333
       Points: []
-      Color: 1.0, 0.25, .05, .75
+      Color: 1.0, 0.25, .05, .25 # Dim by default to prevent oversaturation
 
     - ID: 356
       Points: []
-      Color: 0.4, 0.05, 0.0
+      Color: 1, 0.125, 0, .25
 
     - ID: 355 # lavafall
       Points: []
-      Color: 0.1, 0.00, 0.00
+      Color: 1, 0, 0, .1
       # Points: 0.5, 0.5
       # Type: 2
       # Width: .1

@@ -1537,7 +1537,7 @@ Materials:
         - '{"Type": 1,"X1": 60,"Y1": 70,"Frequency": 60,"Size": 14,"Speed": 3}'
   - TexID: 1080
     Roughness: 0.8
-    EmissiveStrength: 0.5
+    EmissiveStrength: 0.1
     LightReceived: 0
     Procedural:
       EvalTime: 0.033333335
