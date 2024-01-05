@@ -226,7 +226,7 @@ namespace Inferno::Render {
         Adapter->GetHdrDepthBuffer().Transition(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
     }
 
-    void DrawLevelMesh(const GraphicsContext& ctx, const Inferno::LevelMesh& mesh, bool decals) {
+    void DrawLevelMesh(const GraphicsContext& ctx, const Inferno::LevelMesh& mesh, bool decalSubpass) {
         if (!mesh.Chunk) return;
         auto& chunk = *mesh.Chunk;
 
@@ -236,7 +236,7 @@ namespace Inferno::Render {
         auto cmdList = ctx.GetCommandList();
         auto& ti = Resources::GetLevelTextureInfo(chunk.TMap1);
 
-        if (decals && chunk.TMap2 == LevelTexID::Unset) return;
+        if (decalSubpass && chunk.TMap2 == LevelTexID::Unset) return;
 
         if (chunk.Cloaked) {
             // todo: cloaked walls will have to be rendered with a different shader -> prefer glass / distortion
@@ -246,8 +246,8 @@ namespace Inferno::Render {
             constants.LightingScale = 1;
         }
         else {
-            constants.HasOverlay = !decals && chunk.TMap2 > LevelTexID::Unset;
-            constants.IsOverlay = decals;
+            constants.HasOverlay = !decalSubpass && chunk.TMap2 > LevelTexID::Unset;
+            constants.IsOverlay = decalSubpass;
 
             // Only walls have tags
             auto side = Game::Level.TryGetSide(chunk.Tag);
@@ -255,7 +255,7 @@ namespace Inferno::Render {
             if (SideIsDoor(side)) {
                 // Use the current texture for this side, as walls are drawn individually
 
-                if (!decals) {
+                if (!decalSubpass) {
                     auto& map1 = Materials->Get(side->TMap);
                     Shaders->Level.SetDiffuse1(cmdList, map1.Handles[0]);
                     Shaders->Level.SetMaterial1(cmdList, map1);
@@ -267,7 +267,7 @@ namespace Inferno::Render {
                 }
             }
             else {
-                if (!decals) {
+                if (!decalSubpass) {
                     if (auto proc = GetLevelProcedural(chunk.TMap1)) {
                         // For procedural textures the animation is baked into it
                         auto& map1 = Materials->Get(chunk.TMap1);
@@ -300,13 +300,16 @@ namespace Inferno::Render {
         constants.Distort = ti.Slide != Vector2::Zero;
         constants.Tex1 = (int)ti.TexID;
 
-        if (decals) {
+        // Tell the shader to skip discards because procedurals do not handle transparency
+        if (chunk.SkipDecalCull) constants.HasOverlay = false;
+
+        if (decalSubpass) {
             constants.Tex1 = (int)Resources::LookupTexID(chunk.TMap2);
             Shaders->Level.SetDiffuse2(cmdList, Materials->Black().Handle()); // Default overlay textures to prevent crashes on some AMD hardware
         }
         else if (constants.HasOverlay) {
             // Pass tex2 when drawing base texture to discard pixels behind the decal
-            auto decal = chunk.EffectClip2 == EClipID::None ? Resources::LookupTexID(chunk.TMap2) : Resources::GetEffectClip(chunk.TMap2).VClip.GetFrame(ElapsedTime);
+            auto decal = chunk.EffectClip2 == EClipID::None ? Resources::LookupTexID(chunk.TMap2) : Resources::GetEffectClip(chunk.TMap2).VClip.GetFrame(ElapsedTime);\
             constants.Tex2 = (int)decal;
             Shaders->Level.SetDiffuse2(cmdList, Materials->Get(decal).Handle());
             Shaders->Level.SetMaterial2(cmdList, Materials->Get(decal));

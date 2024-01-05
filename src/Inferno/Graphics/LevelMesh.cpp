@@ -2,6 +2,7 @@
 #include "LevelMesh.h"
 
 #include "MaterialLibrary.h"
+#include "Procedural.h"
 #include "Render.h"
 #include "Resources.h"
 
@@ -278,10 +279,15 @@ namespace Inferno {
                     chunk.EffectClip1 = Resources::GetEffectClipID(side.TMap);
                     chunk.ID = id;
 
-                    if (side.HasOverlay())
-                        chunk.EffectClip2 = Resources::GetEffectClipID(side.TMap2);
+                    auto verts = Face::FromSide(level, seg, sideId).CopyPoints();
+                    auto tex1 = Resources::LookupTexID(side.TMap);
+                    auto tex2 = side.HasOverlay() ? Resources::LookupTexID(side.TMap2) : TexID::None;
 
                     Array<Color, 4> lt = side.Light;
+                    AddPolygon(verts, side.UVs, lt, _geometry, chunk, side, tex1, tex2);
+
+                    if (side.HasOverlay())
+                        chunk.EffectClip2 = Resources::GetEffectClipID(side.TMap2);
 
                     if (wall) {
                         chunk.Blend = GetWallBlendMode(side.TMap);
@@ -292,12 +298,7 @@ namespace Inferno {
                             chunk.Cloaked = true;
                         }
                     }
-
-                    auto verts = Face::FromSide(level, seg, sideId).CopyPoints();
-                    auto tex1 = Resources::LookupTexID(side.TMap);
-                    auto tex2 = side.HasOverlay() ? Resources::LookupTexID(side.TMap2) : TexID::None;
-                    AddPolygon(verts, side.UVs, lt, _geometry, chunk, side, tex1, tex2);
-
+                
                     // Overlays should slide in the same direction as the base texture regardless of their rotation
                     if (needsOverlaySlide)
                         chunk.OverlaySlide = ApplyOverlayRotation(side, ti.Slide);
@@ -310,18 +311,21 @@ namespace Inferno {
                     uint16 overlayBit = needsOverlaySlide ? (uint16)side.OverlayRotation : 0;
                     uint32 chunkId = (uint16)side.TMap | (uint16)side.TMap2 << 15 | overlayBit << 30;
 
+                    auto verts = Face::FromSide(level, seg, sideId).CopyPoints();
+                    auto tex1 = Resources::LookupTexID(side.TMap);
+                    auto tex2 = side.HasOverlay() ? Resources::LookupTexID(side.TMap2) : TexID::None;
+
                     LevelChunk& chunk = _chunks[chunkId];
                     chunk.TMap1 = side.TMap;
                     chunk.TMap2 = side.TMap2;
+                    // Don't cull overlay procedural textures as they are not handled properly by the renderer
+                    chunk.SkipDecalCull = GetProcedural(tex2) != nullptr && Resources::GetTextureInfo(tex2).Transparent;
                     chunk.EffectClip1 = Resources::GetEffectClipID(side.TMap);
                     chunk.ID = id;
 
                     if (side.HasOverlay())
                         chunk.EffectClip2 = Resources::GetEffectClipID(side.TMap2);
 
-                    auto verts = Face::FromSide(level, seg, sideId).CopyPoints();
-                    auto tex1 = Resources::LookupTexID(side.TMap);
-                    auto tex2 = side.HasOverlay() ? Resources::LookupTexID(side.TMap2) : TexID::None;
                     AddPolygon(verts, side.UVs, side.Light, _geometry, chunk, side, tex1, tex2);
 
                     // Overlays should slide in the same direction as the base texture regardless of their rotation
