@@ -20,9 +20,13 @@ namespace Inferno {
         List<AIRuntime> RuntimeState;
         IntersectContext Intersect(Game::Level);
 
+        uint DronesInCombat = 0, DronesInCombatCounter = 0;
+        uint FleeingDrones = 0, FleeingDronesCounter = 0;
+
         constexpr float AI_DODGE_TIME = 0.5f; // Time to dodge a projectile. Should probably scale based on mass.
         constexpr float AI_MAX_DODGE_DISTANCE = 60; // Range at which projectiles are dodged
         constexpr float DEATH_SOUND_DURATION = 2.68f;
+        constexpr float AI_SOUND_RADIUS = 300.0f; // Radius for combat sounds
 
         constexpr float AI_AWARENESS_DECAY = 1 / 5.0f; // Awareness lost per second
 
@@ -38,7 +42,7 @@ namespace Inferno {
 
     template <typename... Args>
     void Chat(const Object& robot, const string_view fmt, Args&&... args) {
-        string message = fmt::vformat(fmt, fmt::make_format_args(std::forward<Args>(args)...));
+        string message = fmt::vformat(fmt, fmt::make_format_args(args...));
         fmt::println("{:6.2f}  DRONE {}: {}", Game::Time, robot.Signature, message);
     }
 
@@ -141,7 +145,9 @@ namespace Inferno {
         auto& robotInfo = Resources::GetRobotInfo(robot);
         if (robotInfo.IsBoss) return; // Bosses handle sound differently
         ai.CombatSoundTimer = 2 + Random() * 2;
-        Sound::PlayFrom(Sound3D(robotInfo.SeeSound), robot);
+        Sound3D sound(robotInfo.SeeSound);
+        sound.Radius = AI_SOUND_RADIUS;
+        Sound::PlayFrom(sound, robot);
     }
 
     void AlertEnemiesInSegment(Level& level, const Segment& seg, const NavPoint& source, float soundRadius, float awareness) {
@@ -258,6 +264,7 @@ namespace Inferno {
         // todo: always use class 1 drone sound (170)? 177 for tougher robots?
         Sound3D sound(Resources::GetRobotInfo(robot).AttackSound);
         sound.Pitch = 0.45f;
+        sound.Radius = AI_SOUND_RADIUS;
         //sound.Radius = 250;
         Sound::PlayFrom(sound, robot);
 
@@ -269,7 +276,7 @@ namespace Inferno {
     void PlayAgonySound(const Object& robot) {
         Sound3D sound(SoundID(179)); // D1 sound
         sound.Volume = 1.25f;
-        sound.Radius = 400;
+        sound.Radius = AI_SOUND_RADIUS;
         Sound::PlayFrom(sound, robot);
     }
 
@@ -333,7 +340,7 @@ namespace Inferno {
             if (!dyingSoundPlaying) {
                 Sound3D sound(resource);
                 sound.Volume = volume;
-                sound.Radius = 400; // Should be a global radius for bosses
+                sound.Radius = 1000; // Should be a global radius for bosses
                 Sound::PlayFrom(sound, obj);
                 dyingSoundPlaying = true;
             }
@@ -483,7 +490,7 @@ namespace Inferno {
                 aim += seismic * 6;
             }
 
-            target += { RandomN11()* aim, RandomN11()* aim, RandomN11()* aim };
+            target += { RandomN11() * aim, RandomN11() * aim, RandomN11() * aim };
         }
 
         auto halfAimRads = robotInfo.AimAngle * DegToRad * 0.5f;
@@ -491,6 +498,7 @@ namespace Inferno {
         auto aimDir = GetDirection(target, gunPosition);
         auto aimAngle = AngleBetweenVectors(aimDir, forward);
         //SPDLOG_INFO("Aim angle deg: {}", aimAngle * RadToDeg);
+
 
         if (aimAngle > DirectX::XM_PIDIV2) {
             // If the projected target is behind the gunpoint, fire straight instead.
@@ -508,6 +516,13 @@ namespace Inferno {
             //auto aimAngle2 = AngleBetweenVectors(aimDir2, forward);
             //SPDLOG_INFO("Aim angle deg 2: {}", aimAngle2 * RadToDeg);
             //ASSERT(aimAngle2 <= robotInfo.AimAngle * DegToRad);
+        }
+
+        // Check that the target point is in front of the gun, otherwise set it to shoot straight
+        Plane plane(gunPosition, forward);
+        if (plane.DotCoordinate(target) <= 0) {
+            SPDLOG_WARN("Robot tried to shoot backwards");
+            target = gunPosition + forward * 20;
         }
 
         // Fire the weapon
@@ -841,7 +856,9 @@ namespace Inferno {
 
             if (auto fx = Render::EffectLibrary.GetSparks("robot_fusion_charge")) {
                 fx->Parent = Game::GetObjectRef(robot);
-                ai.SoundHandle = Sound::PlayFrom(Sound3D(SoundID::FusionWarmup), robot);
+                Sound3D sound(SoundID::FusionWarmup);
+                sound.Radius = AI_SOUND_RADIUS;
+                ai.SoundHandle = Sound::PlayFrom(sound, robot);
 
                 for (uint8 i = 0; i < robotInfo.Guns; i++) {
                     fx->ParentSubmodel.Offset = GetGunpointOffset(robot, i);
@@ -984,8 +1001,7 @@ namespace Inferno {
                 auto aimDir = ai.TargetPosition->Position - robot.Position;
                 aimDir.Normalize();
 
-                // Purposely don't halve aim angle here to give a larger pre-fire buffer
-                if (AngleBetweenVectors(aimDir, robot.Rotation.Forward()) <= robotInfo.AimAngle * DegToRad) {
+                if (AngleBetweenVectors(aimDir, robot.Rotation.Forward()) <= robotInfo.AimAngle * DegToRad * 0.5f) {
                     // Target is within the cone of the weapon, start firing
                     PlayRobotAnimation(robot, AnimState::Fire, ai.FireDelay.Remaining() * 0.8f);
                 }
@@ -1157,7 +1173,7 @@ namespace Inferno {
         auto& robotInfo = Resources::GetRobotInfo(robot);
 
         if (robotInfo.AngerBehavior) {
-            ai.Angry = CountNearbyAllies(robot, AI_COUNT_ALLY_RANGE) == 0;
+            ai.Angry = DronesInCombat <= 2;
         }
 
         ai.CombatSoundTimer = (1 + Random() * 0.75f) * 2.5f;
@@ -1165,6 +1181,7 @@ namespace Inferno {
         Sound3D sound(robotInfo.AttackSound);
         sound.Pitch = Random() < 0.60f ? 0.0f : -0.05f - Random() * 0.10f;
         if (ai.Angry) sound.Pitch = 0.3f;
+        sound.Radius = AI_SOUND_RADIUS;
         Sound::PlayFrom(sound, robot);
     }
 
@@ -1557,13 +1574,12 @@ namespace Inferno {
                 ai.FleeTimer = 2 + Random() * 2; // Periodically think about fleeing
             }
 
-            if (ai.FleeTimer.Expired()) {
+            if (ai.FleeTimer.Expired() && FleeingDrones == 0) {
                 if (robot.HitPoints / robot.MaxHitPoints <= robotInfo.FleeThreshold || ai.Fear >= 1) {
                     // Wounded or scared enough to flee, but would rather fight if there's allies nearby
-                    auto allies = CountNearbyAllies(robot, AI_COUNT_ALLY_RANGE);
                     //SPDLOG_INFO("Nearby allies: {}", allies);
 
-                    if (allies < AI_ALLY_FLEE_MIN) {
+                    if (DronesInCombat <= AI_ALLY_FLEE_MIN) {
                         FindHelp(ai, robot);
                     }
                     else {
@@ -1574,6 +1590,14 @@ namespace Inferno {
                 ai.FleeTimer.Reset();
             }
         }
+    }
+
+    void BeginAIFrame() {
+        DronesInCombat = DronesInCombatCounter;
+        DronesInCombatCounter = 0;
+
+        FleeingDrones = FleeingDronesCounter;
+        FleeingDronesCounter = 0;
     }
 
     void UpdateAlertAI(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float /*dt*/) {
@@ -1840,6 +1864,12 @@ namespace Inferno {
         //ClampThrust(robot, ai);
         ApplyVelocity(robot, ai, dt);
         ai.LastUpdate = Game::Time;
+
+        if (ai.State == AIState::Combat || ai.State == AIState::FindHelp /*|| ai.State == AIState::Alert*/)
+            DronesInCombatCounter++;
+
+        if (ai.State == AIState::FindHelp)
+            FleeingDronesCounter++;
     }
 
     void UpdateAI(Object& obj, float dt) {

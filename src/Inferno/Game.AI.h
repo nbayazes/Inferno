@@ -14,7 +14,7 @@ namespace Inferno {
     constexpr float AI_AWARENESS_COMBAT = 0.6f; // Robot will fire at its last known target position
     constexpr float AI_AWARENESS_INVESTIGATE = 0.5f; // when a robot exceeds this threshold it will investigate the point of interest
     constexpr float AI_COUNT_ALLY_RANGE = 140; // How far to search for allies
-    constexpr uint AI_ALLY_FLEE_MIN = 2; // Will flee if fewer than this number of allies are nearby
+    constexpr uint AI_ALLY_FLEE_MIN = 2; // Will flee if fewer than this number of robots are in combat (counting self)
     constexpr float AI_HELP_SEARCH_RADIUS = 350;
     constexpr float AI_MINE_LAYER_DELAY = 5; // Seconds between robots dropping mines
     constexpr float AI_DOOR_AWARENESS_RADIUS = 150; // Noise distance of opening a door
@@ -344,4 +344,5 @@ namespace Inferno {
     bool HasLineOfSight(const Object& obj, const Vector3& point, bool precise = false);
     bool HasFiringLineOfSight(const Object& obj, uint8 gun, const Vector3& target, ObjectMask mask);
     void UpdateCombatAI(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float dt);
+    void BeginAIFrame();
 }

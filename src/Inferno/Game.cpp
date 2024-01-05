@@ -285,6 +285,7 @@ namespace Inferno::Game {
         FixedUpdateInput();
         Debug::ActiveRobots = 0;
         Player.Update(dt);
+        BeginAIFrame();
 
         UpdateAmbientSounds();
         UpdateMatcens(Game::Level, dt);
