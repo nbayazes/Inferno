@@ -123,7 +123,7 @@ namespace Inferno {
                 door = {}; // free door slot because it won't close
             }
             else {
-                fmt::print("Waiting door\n");
+                //fmt::print("Waiting door\n");
                 wall.State = WallState::DoorWaiting;
                 if (cwall) cwall->State = WallState::DoorWaiting;
                 door.Time = 0;
@@ -225,7 +225,7 @@ namespace Inferno {
             door->Time = 0;
         }
 
-        fmt::print("Opening door {}:{}\n", tag.Segment, tag.Side);
+        //fmt::print("Opening door {}:{}\n", tag.Segment, tag.Side);
         wall->State = WallState::DoorOpening;
         door->Front = side.Wall;
 
@@ -271,7 +271,7 @@ namespace Inferno {
             else if (wall->State == WallState::DoorWaiting) {
                 door.Time += dt;
                 if (door.Time > Game::DOOR_WAIT_TIME) {
-                    fmt::print("Closing door {}\n", door.Front);
+                    //fmt::print("Closing door {}\n", door.Front);
                     wall->State = WallState::DoorClosing;
                     door.Time = 0;
                 }

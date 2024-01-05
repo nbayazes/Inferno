@@ -43,7 +43,8 @@ namespace Inferno {
                     if (HasFlag(flags, IterateFlags::StopDoor) && (wall->Type == WallType::Door || wall->Type == WallType::Destroyable))
                         continue;
 
-                    if (HasFlag(flags, IterateFlags::StopLockedDoor) && wall->HasFlag(WallFlag::DoorLocked))
+                    // Should the player inventory be checked if key door can be unlocked?
+                    if (HasFlag(flags, IterateFlags::StopLockedDoor) && (wall->HasFlag(WallFlag::DoorLocked) || wall->IsKeyDoor()))
                         continue;
 
                     if (HasFlag(flags, IterateFlags::StopKeyDoor) && wall->IsKeyDoor())
