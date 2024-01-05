@@ -263,6 +263,7 @@ Weapons:
     ExplosionColor: 1, 0.25, 0.0, 10
     FlashColor: 1, .5, .25, 1.5
     Size: 1 # was 1.5
+    SoundRadius: 350 # Large radius so player hears them coming
 
   - id: 15
     Name: homing missile
@@ -288,6 +289,7 @@ Weapons:
     HomingFov: 45
     HomingDistance: 300
     Damage: [ 10, 15, 20, 25, 30 ] # Changed to match D2 values. Original game deals 49 damage on insane.
+    SoundRadius: 350 # Large radius so player hears them coming
 
   - id: 16
     Name: proximity mine
@@ -300,7 +302,10 @@ Weapons:
     Glow: 0.75, 0.75, 0.75
     DirectDamage: 0
     Damage: 120 # Mines detonate before touching enemies
+    StunMult: 0.4 # Reduce stun and knockback force
     PlayerDamageScale: 0.25 # Reduce player damage to original 30
+    Mass: 1
+    Thrust: 1 # Thrust when accelerating towards target
 
   - id: 17
     Name: smart missile
@@ -382,7 +387,7 @@ Weapons:
     HomingDistance: 300
     FlashSize: 12
     FlashColor: 0.75, 0.125, 0.125, 15
-    SoundRadius: 500
+    SoundRadius: 500 # Large radius so player hears them coming
 
   - id: 20 
     Name: robot spreadfire

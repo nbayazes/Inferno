@@ -210,7 +210,7 @@ namespace Inferno {
             pd.Velocity += Game::Gravity * dt;
 
         // Apply weapon thrust
-        if (weapon && weapon->Thrust != 0)
+        if (HasFlag(obj.Physics.Flags, PhysicsFlag::UseThrust) && weapon && weapon->Thrust != 0)
             pd.Thrust = obj.Rotation.Forward() * weapon->Thrust * dt;
 
         if (obj.Physics.Wiggle > 0) {
@@ -240,7 +240,7 @@ namespace Inferno {
             pd.Velocity *= 1 - pd.Drag * stepScale;
 
         // Cap the max speed of weapons with thrust
-        if (weapon && weapon->Thrust != 0) {
+        if (HasFlag(obj.Physics.Flags, PhysicsFlag::UseThrust) && weapon && weapon->Thrust != 0) {
             auto maxSpeed = weapon->Speed[Game::Difficulty];
             if (pd.Velocity.Length() > maxSpeed) {
                 Vector3 dir;

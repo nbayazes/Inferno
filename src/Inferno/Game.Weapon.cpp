@@ -49,7 +49,7 @@ namespace Inferno::Game {
 
             GameExplosion ge{};
             ge.Damage = damage;
-            ge.Force = damage;
+            ge.Force = damage * weapon.Extended.StunMult;
             ge.Radius = weapon.SplashRadius;
             ge.Segment = obj.Segment;
             ge.Position = obj.Position;
@@ -58,7 +58,7 @@ namespace Inferno::Game {
         }
 
         if (weapon.Spawn != WeaponID::None && weapon.SpawnCount > 0)
-            CreateMissileSpawn(obj, 6);
+            CreateMissileSpawn(obj, weapon.SpawnCount);
 
         // Alert enemies when a player weapon is destroyed
         //if (obj.Parent == Game::Player.Reference)
@@ -125,9 +125,10 @@ namespace Inferno::Game {
                 ClearFlag(mine.Physics.Flags, PhysicsFlag::Bounce); // explode on contacting walls
 
                 if (target) {
+                    auto& weapon = Resources::GetWeapon(WeaponID::ProxMine);
                     auto delta = target->Position - mine.Position;
                     delta.Normalize();
-                    mine.Physics.Thrust = delta * 0.9f; // fire and forget thrust
+                    mine.Physics.Thrust = delta * weapon.Thrust; // fire and forget thrust
                 }
             }
         }
@@ -500,8 +501,17 @@ namespace Inferno::Game {
         bullet.Physics.Velocity = direction * speed;
 
         //bullet.Physics.Velocity *= 0.5f;
-        if (weapon.Extended.InheritParentVelocity && parent)
-            bullet.Physics.Velocity += parent->Physics.Velocity;
+        if (weapon.Extended.InheritParentVelocity && parent) {
+            if (WeaponIsMine(id) && parent->IsRobot()) {
+                // Randomize the drop direction a bit when a robot drops a mine
+                auto veldir = parent->Rotation.Backward() * 3 + RandomVector();
+                veldir.Normalize();
+                bullet.Physics.Velocity += 20 * veldir;
+            }
+            else {
+                bullet.Physics.Velocity += parent->Physics.Velocity;
+            }
+        }
 
         if (!weapon.Extended.PointCollideWalls)
             ClearFlag(bullet.Physics.Flags, PhysicsFlag::PointCollideWalls);
