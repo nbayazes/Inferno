@@ -528,7 +528,7 @@ namespace Inferno {
         IterateNearbySegments(Game::Level, point, maxDist, IterateFlags::StopOpaqueWall, [&](const Segment& seg, bool) {
             for (auto& objid : seg.Objects) {
                 auto obj = Game::Level.TryGetObject(objid);
-                if (!obj->PassesMask(mask) || !obj->IsAlive() || obj->IsCloakEffective()) continue;
+                if (!obj->PassesMask(mask) || !obj->IsAlive() || obj->IsCloaked()) continue;
                 ObjRef ref = { objid, obj->Signature };
                 if (Seq::contains(objFilter, ref)) continue;
                 auto dir = obj->Position - point.Position;
