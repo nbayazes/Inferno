@@ -1,20 +1,20 @@
 #include "pch.h"
+
 #define NOMINMAX
-#include "Types.h"
-#include "Level.h"
-#include "Utility.h"
-#include "Resources.h"
-#include "Game.h"
+#include "Editor.Lighting.h"
 #include "Editor.h"
 #include "Face.h"
-#include "ScopedTimer.h"
-#include "Editor.Lighting.h"
-
+#include "Game.h"
 #include "Game.Room.h"
 #include "Game.Segment.h"
-#include "WindowsDialogs.h"
-#include "unordered_dense.h"
+#include "Level.h"
 #include "logging.h"
+#include "Resources.h"
+#include "ScopedTimer.h"
+#include "Types.h"
+#include "unordered_dense.h"
+#include "Utility.h"
+#include "WindowsDialogs.h"
 
 namespace Inferno::Editor {
     constexpr float PLANE_TOLERANCE = -0.01f;
@@ -77,6 +77,7 @@ namespace Inferno::Editor {
         float LightPlaneTolerance = -0.45f;
         bool EnableOcclusion = true;
         float DynamicMultiplier = 1; // To reduce the intensity of flickering lights
+        Vector3 Position;
 
         Color MaxBrightness() const {
             Color max;
@@ -86,23 +87,26 @@ namespace Inferno::Editor {
         }
     };
 
+    struct SideLightingDelta {
+        Array<Color, 4> Light;
+        Array<uint16, 4> RayHits = {};
+        Array<Vector3, 4> RaySum;
+    };
+
     // light info during ray casting
     struct LightRayCast {
-        Dictionary<Tag, SideLighting> Accumulated; // Accumulated light for all passes
-        Dictionary<Tag, SideLighting> Pass; // Light for this pass, cleared after each iteration
+        Dictionary<Tag, SideLightingDelta> Accumulated; // Accumulated light for all passes
+        Dictionary<Tag, SideLightingDelta> Pass; // Light for this pass, cleared after each iteration
         // Maximum value of light in the pass.
         // This prevents faces adjacent to a light source exceeding the source brightness.
         Color PassMaxValue;
         const LightSource* Source = nullptr;
 
-        void AddLight(Tag tag, const Color& light, int16 point) {
-            Pass[tag][point] += light;
-        }
 
         void UpdateMaxValueFromPass(float reflectance) {
             Color max;
-            for (auto& colors : Pass | views::values)
-                for (auto& color : colors)
+            for (auto& values : Pass | views::values)
+                for (auto& color : values.Light)
                     if (max.ToVector3().Length() < color.ToVector3().Length())
                         max = color;
 
@@ -112,14 +116,25 @@ namespace Inferno::Editor {
         // Accumulates lighting from the pass
         void AccumulatePass(bool keep = true) {
             for (auto& [dest, target] : Pass) {
-                for (auto& light : target)
+                for (auto& light : target.Light)
                     ClampColor(light, { 0, 0, 0, 0 }, PassMaxValue);
 
                 auto& light = Accumulated[dest]; // will create in place if missing
 
                 if (keep) {
-                    for (int i = 0; i < 4; i++)
-                        light[i] += target[i]; // change to assignment instead of sum to view the final pass contribution
+                    for (int i = 0; i < 4; i++) {
+                        // debugging: change to assignment instead of sum to view the final pass contribution
+                        light.Light[i] += target.Light[i];
+                        /*light.RaySum[i] += target.RaySum[i];
+                        light.RayHits[i] += target.RayHits[i];*/
+
+                        if (target.RayHits[i] > 0) {
+                            auto avg = target.RaySum[i] / target.RayHits[i];
+                            avg.Normalize();
+                            light.RaySum[i] += avg;
+                            light.RayHits[i]++;
+                        }
+                    }
                 }
             }
         }
@@ -149,7 +164,6 @@ namespace Inferno::Editor {
     constexpr bool CheckMinLight(const Color& color) {
         return color.x + color.y + color.z >= 0.001f;
     }
-
 
     // Returns sides that are coplanar to the source within an angle
     List<Tag> FindCoplanarSides(const Level& level, Tag src, float thresholdAngle = 10.0f, bool sameTexture = false) {
@@ -452,14 +466,15 @@ namespace Inferno::Editor {
                         bool fullBright = !bouncePass && (src == dest || Seq::contains(lightVertIds, destVertIds[vertIndex]));
                         auto dist = Vector3::Distance(destFace[vertIndex], lightPos); // use the real vertex position and not the sample for attenuation
                         auto attenuation = fullBright ? 1 : Attenuate2(dist, cast.Source->Radius, ctx.Settings.Falloff);
-                        if (attenuation <= 0) return Color();
+                        if (attenuation <= 0) return Tuple{ Color(), 0.0f };
 
                         if (cast.Source->EnableOcclusion &&
                             HitTest(level, segmentsToLight, destVertIds[vertIndex], lightVertIds[lightIndex], lightSamples[lightIndex], destSamples[vertIndex], src, dest, ctx))
-                            return Color();
+                            return Tuple{ Color(), 0.0f };
 
                         auto multiplier = bouncePass ? ctx.Settings.Reflectance : ctx.Settings.Multiplier;
-                        return lightColor * attenuation * multiplier;
+                        auto color = lightColor * attenuation * multiplier;
+                        return Tuple{ color, attenuation };
                     };
 
                     //auto planeSamples = destFace.Inset(1, 1.01f);
@@ -475,31 +490,44 @@ namespace Inferno::Editor {
 
                     if (destFace.Side.Type == SideSplitType::Quad) {
                         // Quads are flat and can be treated as a single polygon
-                        for (int vertIndex = 0; vertIndex < 4; vertIndex++) {
+                        for (int i = 0; i < 4; i++) {
                             // for each vert on side
-                            if (!checkPlanes(vertIndex, vertIndex)) continue;
-                            auto intensity = calcIntensity(vertIndex);
-                            if (CheckMinLight(intensity))
-                                cast.Pass[dest][vertIndex] += intensity;
+                            if (!checkPlanes(i, i)) continue;
+                            auto [intensity, attenuation] = calcIntensity(i);
+                            if (CheckMinLight(intensity)) {
+                                auto& vertex = cast.Pass[dest];
+                                vertex.Light[i] += intensity;
+                                vertex.RaySum[i] += GetDirection(lightPos, destFace[i]) * attenuation;
+                                vertex.RayHits[i]++;
+
+                                //vertex.RaySum[i] += GetDirection(cast.Source->Position, destFace[i]) * attenuation;
+                                //vertex.RayHits[i]++;
+                            }
                         }
                     }
                     else {
                         // Light triangulated faces twice using the clip plane for each normal. Then average along seam.
                         Color face0Color[4]{}, face1Color[4]{};
+                        float faceAtten[4]{};
+
                         auto& ri = destFace.Side.GetRenderIndices();
 
                         for (int i = 0; i < 3; i++) {
                             // for each vert of triangle 1
                             auto vertIndex = ri[i];
                             if (!checkPlanes(vertIndex, 0)) continue;
-                            face0Color[vertIndex] += calcIntensity(vertIndex);
+                            auto [intensity, attenuation] = calcIntensity(vertIndex);
+                            face0Color[vertIndex] += intensity;
+                            faceAtten[vertIndex] += attenuation;
                         }
 
                         for (int i = 3; i < 6; i++) {
                             // for each vert of triangle 2
                             auto vertIndex = ri[i];
                             if (!checkPlanes(vertIndex, 2)) continue;
-                            face1Color[vertIndex] += calcIntensity(vertIndex);
+                            auto [intensity, attenuation] = calcIntensity(vertIndex);
+                            face1Color[vertIndex] += intensity;
+                            faceAtten[vertIndex] += attenuation;
                         }
 
                         for (int i = 0; i < 4; i++) {
@@ -513,8 +541,14 @@ namespace Inferno::Editor {
                                 if (i == 1 || i == 3) intensity *= 0.5f;
                             }
 
-                            if (CheckMinLight(intensity))
-                                cast.Pass[dest][i] += intensity;
+                            if (CheckMinLight(intensity)) {
+                                cast.Pass[dest].Light[i] += intensity;
+                                cast.Pass[dest].RaySum[i] += GetDirection(lightPos, destFace[i]) * faceAtten[i];
+                                cast.Pass[dest].RayHits[i]++;
+
+                                //cast.Pass[dest].RaySum[i] += GetDirection(cast.Source->Position, destFace[i]) * faceAtten[i];
+                                //cast.Pass[dest].RayHits[i]++;
+                            }
                         }
                     }
                 }
@@ -526,10 +560,10 @@ namespace Inferno::Editor {
         cast.UpdateMaxValueFromPass(ctx.Settings.Reflectance);
 
         // Use the previous pass targets as the light sources
-        Dictionary<Tag, SideLighting> prevPass = std::move(cast.Pass);
+        Dictionary<Tag, SideLightingDelta> prevPass = std::move(cast.Pass);
         cast.Pass = {};
 
-        for (const auto& [src, lightColors] : prevPass) {
+        for (const auto& [src, light] : prevPass) {
             auto [srcSeg, srcSide] = level.GetSegmentAndSide(src);
 
             // don't emit from open connections (from accurate volumes setting)
@@ -539,11 +573,11 @@ namespace Inferno::Editor {
             Color tmapColor = Resources::GetTextureInfo(srcSide.TMap).AverageColor;
             tmapColor.AdjustSaturation(2); // boost saturation to look nicer
             ScaleColor2(tmapColor, 1); // 100% brightness
-            SideLighting adjColors = lightColors;
-            for (auto& c : adjColors)
+            SideLightingDelta adjacent = light;
+            for (auto& c : adjacent.Light)
                 c *= tmapColor; // premultiply the texture color into the light color
 
-            LightSegments(level, adjColors, segmentsToLight, src, true, cast, ctx);
+            LightSegments(level, adjacent.Light, segmentsToLight, src, true, cast, ctx);
         }
 
         return cast;
@@ -633,7 +667,8 @@ namespace Inferno::Editor {
                     .Radius = side.LightRadiusOverride.value_or(settings.Radius),
                     .LightPlaneTolerance = side.LightPlaneOverride.value_or(settings.LightPlaneTolerance),
                     .EnableOcclusion = side.EnableOcclusion,
-                    .DynamicMultiplier = side.DynamicMultiplierOverride.value_or(1)
+                    .DynamicMultiplier = side.DynamicMultiplierOverride.value_or(1),
+                    .Position = side.Center
                 };
                 sources.push_back(light);
             }
@@ -676,29 +711,6 @@ namespace Inferno::Editor {
         }
     }
 
-    // Scales the brightness of values over 1 while retaining color
-    constexpr void ClampColorBrightness(Level& level, float maxValue) {
-        for (auto& seg : level.Segments) {
-            for (auto& side : seg.Sides) {
-                for (auto& color : side.Light) {
-                    ScaleColor(color, maxValue);
-                    //color.A(1);
-
-                    //constexpr auto whiteMagnitude = 1.73205078f; // (1,1,1).Length()
-                    //auto overbright = color.ToVector3().Length() - whiteMagnitude;
-                    //if (overbright <= 0) continue;
-                    //// if overbright = 2
-                    //color *= 1 + overbright / (settings.MaxValue);
-                    //    
-                    //auto mult = pow(overbright, 3); // smooth scaling from 1 to 2
-                    //color *= 1 / (mult + 1);
-                    // auto contrast = 1.0f / (overbright * settings.ClampStrength + 1);
-                    //color.AdjustContrast(contrast);
-                }
-            }
-        }
-    };
-
     // Approximate area of side based on UVs.
     float AreaOfSide(const SegmentSide& side) {
         auto width = (side.UVs[1] - side.UVs[0]).Length();
@@ -711,6 +723,7 @@ namespace Inferno::Editor {
         for (auto& seg : Game::Level.Segments) {
             for (auto& side : seg.Sides) {
                 for (int i = 0; i < 4; i++) {
+                    side.LightDirs[i] = Vector3(0, 0, 0);
                     if (side.LockLight[i]) continue;
                     side.Light[i] = ambient;
                 }
@@ -746,7 +759,8 @@ namespace Inferno::Editor {
                 Tag Tag;
                 SideLighting Lighting;
             };
-            auto accumulated = Seq::map(light.Accumulated, [](auto x) { return Accumulated{ x.first, x.second }; });
+
+            auto accumulated = Seq::map(light.Accumulated, [](auto x) { return Accumulated{ x.first, x.second.Light }; });
             Seq::sortBy(accumulated, [](auto& a, auto& b) { return AverageBrightness(a.Lighting) > AverageBrightness(b.Lighting); });
 
             uint8 deltaCount = 0;
@@ -777,13 +791,16 @@ namespace Inferno::Editor {
     }
 
     // Copies accumulated light to the level faces
-    void SetSideLighting(Level& level, const Dictionary<Tag, LightRayCast>& rayCasts, Color max, bool color) {
+    void SetSideLighting(Level& level, const Dictionary<Tag, LightRayCast>& rayCasts, Color max, bool color, Dictionary<Tag, Array<uint16, 4>>& rayCount) {
         for (const auto& light : rayCasts | views::values) {
             for (auto& [dest, l] : light.Accumulated) {
                 auto& side = level.GetSide(dest);
                 for (int vert = 0; vert < 4; vert++) {
                     if (side.LockLight[vert]) continue;
-                    side.Light[vert] += l[vert];
+                    side.Light[vert] += l.Light[vert];
+                    side.LightDirs[vert] += l.RaySum[vert];
+                    rayCount[dest][vert] += l.RayHits[vert];
+
                     if (!color)
                         ClampColor(side.Light[vert], { 0, 0, 0, 1 }, max); // clamp accumulated values to max
                 }
@@ -795,8 +812,8 @@ namespace Inferno::Editor {
     void DesaturateAccumulated(Dictionary<Tag, LightRayCast>& rayCasts) {
         for (auto& cast : rayCasts | views::values)
             for (auto& side : cast.Accumulated | views::values)
-                for (auto& l : side)
-                    l.AdjustSaturation(0);
+                for (auto& color : side.Light)
+                    color.AdjustSaturation(0);
     }
 
     struct OctreeLeaf {
@@ -982,18 +999,34 @@ namespace Inferno::Editor {
 
             auto maxValue = std::clamp(settings.MaxValue, 0.0f, 10.0f);
             const Color max = { maxValue, maxValue, maxValue, 1 };
+            Dictionary<Tag, Array<uint16, 4>> rayCount;
 
             // Merge the results from each light
             for (auto& ctx : threads) {
                 // updating the level must be done in serial
-                SetSideLighting(level, ctx.RayCasts, max, settings.EnableColor);
-                //if (settings.EnableColor)
-                //    ClampColorBrightness(level, settings.MaxValue);
-
+                SetSideLighting(level, ctx.RayCasts, max, settings.EnableColor, rayCount);
                 SetDynamicLights(level, ctx.RayCasts);
                 Metrics::CacheHits += ctx.CacheHits;
                 Metrics::RayHits += ctx.HitStats;
                 Metrics::RaysCast += ctx.CastStats;
+            }
+
+            // Average light directions after merging
+            for (int segid = 0; segid < level.Segments.size(); segid++) {
+                auto& seg = level.Segments[segid];
+
+                for (auto& sideid : SIDE_IDS) {
+                    auto& side = seg.GetSide(sideid);
+                    Tag tag = { (SegID)segid, sideid };
+                    auto& entry = rayCount[tag];
+
+                    for (int i = 0; i < 4; i++) {
+                        if (entry[i] > 1) {
+                            side.LightDirs[i] = side.LightDirs[i] / entry[i];
+                            side.LightDirs[i].Normalize();
+                        }
+                    }
+                }
             }
 
             SPDLOG_INFO("Delta lights: {} of {}; Indices: {} of {}", level.LightDeltaIndices.size(), MAX_DYNAMIC_LIGHTS, level.LightDeltas.size(), MAX_LIGHT_DELTAS);

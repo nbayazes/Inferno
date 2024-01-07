@@ -121,11 +121,10 @@ namespace Inferno {
     void AddPolygon(const Array<Vector3, 4>& verts,
                     const Array<Vector2, 4>& uvs,
                     const Array<Color, 4>& colors,
+                    const Array<Vector3, 4>& lightDirs,
                     LevelGeometry& geo,
                     LevelChunk& chunk,
-                    const SegmentSide& side,
-                    TexID tex1,
-                    TexID tex2) {
+                    const SegmentSide& side) {
         auto startIndex = geo.Vertices.size();
         chunk.AddQuad((uint16)startIndex);
 
@@ -138,13 +137,15 @@ namespace Inferno {
             auto& pos = verts[indices[i]];
             auto& normal = side.NormalForEdge(indices[i]);
             auto& uv = uvs[indices[i]];
+            auto& lightDir = lightDirs[indices[i]];
             auto& color = colors[indices[i]];
             Vector2 uv2 = side.HasOverlay() ? ApplyOverlayRotation(side, uv) : Vector2();
             chunk.Center += pos;
 
             auto& tangent = i < 3 ? tangent1 : tangent2;
             auto& bitangent = i < 3 ? bitangent1 : bitangent2;
-            LevelVertex vertex = { pos, uv, color, uv2, normal, tangent, bitangent, (int)tex1, (int)tex2 };
+            //LevelVertex vertex = { pos, uv, color, uv2, normal, tangent, bitangent, (int)tex1, (int)tex2 };
+            LevelVertex vertex = { pos, uv, color, uv2, normal, tangent, bitangent, lightDir };
             geo.Vertices.push_back(vertex);
         }
 
@@ -152,12 +153,11 @@ namespace Inferno {
     }
 
     void Tessellate(Array<Vector3, 4>& verts,
+                    Array<Vector3, 4>& lightDirs,
                     LevelGeometry& geo,
                     LevelChunk& chunk,
                     SegmentSide& side,
-                    int steps,
-                    TexID tex1,
-                    TexID tex2) {
+                    int steps) {
         auto incr = 1 / ((float)steps + 1);
         auto vTop = (verts[1] - verts[0]) * incr; // top
         auto vBottom = (verts[2] - verts[3]) * incr; // bottom
@@ -213,7 +213,7 @@ namespace Inferno {
                 lt[2] = ltEdge0b + ltRight * (fy + 1); // bottom right
                 lt[3] = ltEdge0a + ltLeft * (fy + 1); // bottom left
 
-                AddPolygon(p, uv, lt, geo, chunk, side, tex1, tex2);
+                AddPolygon(p, uv, lt, lightDirs, geo, chunk, side);
             }
         }
     }
@@ -280,11 +280,11 @@ namespace Inferno {
                     chunk.ID = id;
 
                     auto verts = Face::FromSide(level, seg, sideId).CopyPoints();
-                    auto tex1 = Resources::LookupTexID(side.TMap);
-                    auto tex2 = side.HasOverlay() ? Resources::LookupTexID(side.TMap2) : TexID::None;
+                    //auto tex1 = Resources::LookupTexID(side.TMap);
+                    //auto tex2 = side.HasOverlay() ? Resources::LookupTexID(side.TMap2) : TexID::None;
 
-                    Array<Color, 4> lt = side.Light;
-                    AddPolygon(verts, side.UVs, lt, _geometry, chunk, side, tex1, tex2);
+                    AddPolygon(verts, side.UVs, side.Light, side.LightDirs, _geometry, chunk, side);
+                    AddPolygon(verts, side.UVs, side.Light, side.LightDirs, _geometry, chunk, side);
 
                     if (side.HasOverlay())
                         chunk.EffectClip2 = Resources::GetEffectClipID(side.TMap2);
@@ -294,7 +294,7 @@ namespace Inferno {
                         if (wall->Type == WallType::Cloaked) {
                             chunk.Blend = BlendMode::Alpha;
                             auto alpha = 1 - wall->CloakValue();
-                            Seq::iter(lt, [alpha](auto& x) { x.A(alpha); });
+                            Seq::iter(side.Light, [alpha](auto& x) { x.A(alpha); });
                             chunk.Cloaked = true;
                         }
                     }
@@ -312,7 +312,7 @@ namespace Inferno {
                     uint32 chunkId = (uint16)side.TMap | (uint16)side.TMap2 << 15 | overlayBit << 30;
 
                     auto verts = Face::FromSide(level, seg, sideId).CopyPoints();
-                    auto tex1 = Resources::LookupTexID(side.TMap);
+                    //auto tex1 = Resources::LookupTexID(side.TMap);
                     auto tex2 = side.HasOverlay() ? Resources::LookupTexID(side.TMap2) : TexID::None;
 
                     LevelChunk& chunk = _chunks[chunkId];
@@ -326,7 +326,7 @@ namespace Inferno {
                     if (side.HasOverlay())
                         chunk.EffectClip2 = Resources::GetEffectClipID(side.TMap2);
 
-                    AddPolygon(verts, side.UVs, side.Light, _geometry, chunk, side, tex1, tex2);
+                    AddPolygon(verts, side.UVs, side.Light, side.LightDirs, _geometry, chunk, side);
 
                     // Overlays should slide in the same direction as the base texture regardless of their rotation
                     if (needsOverlaySlide)

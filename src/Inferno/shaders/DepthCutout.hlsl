@@ -34,8 +34,9 @@ struct LevelVertex {
     float2 uv : TEXCOORD0;
     float2 uv2 : TEXCOORD1;
     float3 normal : NORMAL;
-    nointerpolation int Tex1 : BASE;
-    nointerpolation int Tex2 : OVERLAY;
+    float3 lightdir: LIGHTDIR;
+    //nointerpolation int Tex1 : BASE;
+    //nointerpolation int Tex2 : OVERLAY;
 };
 
 struct PS_INPUT {

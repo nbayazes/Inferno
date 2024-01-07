@@ -8,6 +8,34 @@
 using namespace Yaml;
 
 namespace Inferno {
+    // Encodes a unit vector to a 2D vector
+    // https://knarkowicz.wordpress.com/2014/04/16/octahedron-normal-vector-encoding/
+    Vector2 EncodeDir(Vector3 n) {
+        auto octWrap = [](float v) {
+            return (1.0f - abs(v)) * (v >= 0.0f ? 1.0f : -1.0f);
+        };
+
+        n /= (abs(n.x) + abs(n.y) + abs(n.z));
+        n.x = n.z >= 0.0f ? n.x : octWrap(n.x);
+        n.y = n.z >= 0.0f ? n.y : octWrap(n.y);
+        n.x = n.x * 0.5f + 0.5f;
+        n.y = n.y * 0.5f + 0.5f;
+        return { n.x, n.y };
+    }
+
+    Vector3 DecodeDir(Vector2 f) {
+        f.x = f.x * 2.0f - 1.0f;
+        f.y = f.y * 2.0f - 1.0f;
+
+        auto n = Vector3(f.x, f.y, 1.0f - abs(f.x) - abs(f.y));
+        float t = Saturate(-n.z);
+        n.x += n.x >= 0.0f ? -t : t;
+        n.y += n.y >= 0.0f ? -t : t;
+        n.Normalize();
+        return n;
+    }
+
+
     // Declared in settings
     void SaveLightSettings(ryml::NodeRef node, const LightSettings& s);
     LightSettings LoadLightSettings(ryml::NodeRef node);
@@ -180,7 +208,7 @@ namespace Inferno {
 
     constexpr int SEGMENT_LIGHT_VALUES = 1 + 4 * 6;
 
-    List<Color> ParseSegmentLighting(const string& line) {
+    bool ParseSegmentLighting(const string& line, Segment& seg) {
         List<string> tokens;
 
         {
@@ -214,26 +242,56 @@ namespace Inferno {
             }
         }
 
-        ASSERT(tokens.size() == SEGMENT_LIGHT_VALUES);
-
         List<Color> colors;
-        for (auto& token : tokens) {
-            if (token.empty()) {
-                colors.push_back({});
-                continue;
+        List<Vector3> dirs;
+
+        if (tokens.size() >= SEGMENT_LIGHT_VALUES) {
+            for (int t = 0; t < tokens.size(); t++) {
+                auto& token = tokens[t];
+
+                // Unlit entries
+                if (token.empty()) {
+                    colors.push_back({});
+                    dirs.push_back({});
+                    continue;
+                }
+
+                auto channels = Inferno::String::Split(token, ',', true);
+                //Vector3 dir;
+
+                float rgb[3]{};
+                float dir[3]{};
+                for (int i = 0; i < channels.size(); i++) {
+                    if (i < 3)
+                        ParseFloat(channels[i], rgb[i]);
+                    else if (i < 6)
+                        ParseFloat(channels[i], dir[i - 3]);
+                }
+
+                colors.push_back({ rgb[0], rgb[1], rgb[2] });
+                // First color is segment color and has no light direction
+                if (t > 0)
+                    dirs.push_back({ dir[0], dir[1], dir[2] });
             }
 
-            auto channels = Inferno::String::Split(token, ',', true);
-
-            float rgb[3]{};
-            for (int i = 0; i < channels.size(); i++)
-                ParseFloat(channels[i], rgb[i]);
-
-            colors.push_back({ rgb[0], rgb[1], rgb[2] });
+            ASSERT(tokens.size() == SEGMENT_LIGHT_VALUES);
+            ASSERT(colors.size() == SEGMENT_LIGHT_VALUES);
+        }
+        else {
+            SPDLOG_WARN("Invalid number of tokens in seg light data");
+            return false;
         }
 
-        ASSERT(colors.size() == SEGMENT_LIGHT_VALUES);
-        return colors;
+        seg.VolumeLight = colors[0];
+
+        for (int i = 0; i < 6; i++) {
+            for (auto j = 0; j < 4; j++) {
+                seg.Sides[i].Light[j] = colors[1 + 4 * i + j];
+                seg.Sides[i].LightDirs[j] = dirs[4 * i + j];
+            }
+        }
+
+        return true;
     }
 
     void ReadLevelLighting(ryml::NodeRef node, Level& level) {
@@ -244,19 +302,10 @@ namespace Inferno {
             string line;
             child >> line;
 
-            auto colors = ParseSegmentLighting(line);
-
-            if (colors.size() != SEGMENT_LIGHT_VALUES) {
+            auto& seg = level.Segments[segid];
+            if (!ParseSegmentLighting(line, seg)) {
                 SPDLOG_WARN("Unexpected number of color light elements, skipping seg {}", segid);
                 continue;
-            }
-
-            auto& seg = level.Segments[segid];
-            seg.VolumeLight = colors[0];
-            for (int i = 0; i < 6; i++) {
-                for (auto j = 0; j < 4; j++) {
-                    seg.Sides[i].Light[j] = colors[1 + 4 * i + j];
-                }
             }
 
             segid++;
@@ -269,14 +318,18 @@ namespace Inferno {
     }
 
     void SaveLevelLighting(ryml::NodeRef node, const Level& level) {
-        // Array of colors. First value is volume light. Followed by six x4 vertex light colors.
+        // Array of colors and directions. First value is volume light. Followed by six sides, (vertex light colors + direction) x4.
         // 0 skips the side
-        // [1, 1, 1], 0, [3, 0, 1], [0.11, 0.22, 0.33], ...
+        // [1, 1, 1], 0, [3, 0, 1, 0, 1, 0], [0.11, 0.22, 0.33, 1, 0, 0], ...
 
         node |= ryml::SEQ;
 
         auto encodeColor = [](const Color& color) {
             return fmt::format("[{:.3g},{:.3g},{:.3g}]", color.x, color.y, color.z);
+        };
+
+        auto encodeSideColor = [](const Color& color, const Vector3& dir) {
+            return fmt::format("[{:.3g},{:.3g},{:.3g},{:.2g},{:.2g},{:.2g}]", color.x, color.y, color.z, dir.x, dir.y, dir.z);
         };
 
         for (auto& seg : level.Segments) {
@@ -291,9 +344,8 @@ namespace Inferno {
                     line += ",0";
                 }
                 else {
-                    for (auto& light : side.Light) {
-                        line += "," + encodeColor(light);
-                    }
+                    for (int i = 0; i < 4; i++)
+                        line += "," + encodeSideColor(side.Light[i], side.LightDirs[i]);
                 }
             }
 
@@ -343,6 +395,7 @@ namespace Inferno {
                 ReadValue(root["CameraUp"], level.CameraUp);
                 ReadLevelLighting(root["LevelLighting"], level);
             }
+            SPDLOG_INFO("Finished loading level metadata");
         }
         catch (const std::exception& e) {
             SPDLOG_ERROR("Error loading level metadata:\n{}", e.what());

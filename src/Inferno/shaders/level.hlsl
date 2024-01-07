@@ -63,19 +63,21 @@ struct LevelVertex {
     float3 normal : NORMAL;
     float3 tangent : TANGENT;
     float3 bitangent : BITANGENT;
-    nointerpolation int Tex1 : BASE;
-    nointerpolation int Tex2 : OVERLAY;
+    float3 lightDir: LIGHTDIR;
+    //nointerpolation int Tex1 : BASE;
+    //nointerpolation int Tex2 : OVERLAY;
 };
 
 struct PS_INPUT {
     float4 pos : SV_POSITION;
-    centroid float4 col : COLOR0;
+    centroid float4 col : COLOR0; // Ambient light color. Centroid fixes edge flickering artfiacts.
     float2 uv : TEXCOORD0;
     float2 uv2 : TEXCOORD1;
     float3 normal : NORMAL;
     float3 tangent : TANGENT;
     float3 bitangent : BITANGENT;
     float3 world : TEXCOORD2;
+    centroid float3 lightDir: LIGHTDIR; // Light direction for ambient
     //nointerpolation int Tex1 : BASE;
     //nointerpolation int Tex2 : OVERLAY;
 };
@@ -96,6 +98,7 @@ PS_INPUT vsmain(LevelVertex input) {
     output.tangent = input.tangent;
     output.bitangent = input.bitangent;
     output.world = input.pos; // level geometry is already in world coordinates
+    output.lightDir = input.lightDir;
     //output.Tex1 = input.Tex1;
     //output.Tex2 = input.Tex2;
     return output;
@@ -277,13 +280,16 @@ float4 psmain(PS_INPUT input) : SV_Target {
         float3 directLight = float3(0, 0, 0);
         uint2 pixelPos = uint2(input.pos.xy);
         ambient *= Frame.GlobalDimming; // Dim ambient during self destruct
+        //ambient *= HalfLambert(normal, normalize(float3(1, 0, 0)));
+        ambient *= pow(Lambert(normal, input.lightDir), 2); // Apply ambient light directions
+        //return float4(ambient, 1);
         emissive *= Frame.GlobalDimming;
 
         ShadeLights(directLight, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
         lighting += directLight * material.LightReceived;
         lighting += emissive * diffuse.rgb; // emissive
         lighting += emissive * diffuse.rgb * ambient * material.LightReceived * .5; // also tint emissive by ambient
-        lighting += diffuse.rgb * ambient * 0.20 * material.LightReceived * (1 - material.Metalness * .95); // ambient
+        lighting += diffuse.rgb * ambient * .3 * material.LightReceived * (1 - material.Metalness * .9); // ambient
         lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, ambient * .2, diffuse.rgb, specularMask, .25) * diffuse.a;
         return float4(lighting, diffuse.a);
     }
