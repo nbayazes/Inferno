@@ -313,7 +313,7 @@ namespace Inferno {
 
     void Player::FireFlare() {
         if (_nextFlareFireTime > Game::Time) return;
-        Game::FireWeapon(Reference, WeaponID::Flare, 6);
+        Game::FireWeapon(Game::GetPlayerObject(), WeaponID::Flare, 6);
         auto& weapon = Resources::GetWeapon(WeaponID::Flare);
         _nextFlareFireTime = Game::Time + weapon.FireDelay;
         AlertRobotsOfNoise(Game::GetPlayerObject(), GetWeaponSoundRadius(weapon), weapon.Extended.Noise);
@@ -405,7 +405,7 @@ namespace Inferno {
 
         auto id = GetSecondaryWeaponID(bomb);
         auto& weapon = Resources::GameData.Weapons[(int)id];
-        Game::FireWeapon(Reference, id, 7);
+        Game::FireWeapon(Game::GetPlayerObject(), id, 7);
         ammo -= (uint16)weapon.AmmoUsage;
 
         // Switch active bomb type if ran out of ammo
@@ -503,7 +503,7 @@ namespace Inferno {
 
         for (uint8 i = 0; i < 8; i++) {
             if (sequence[MissileFiringIndex].Gunpoints[i])
-                Game::FireWeapon(Reference, id, i);
+                Game::FireWeapon(Game::GetPlayerObject(), id, i);
         }
 
         MissileFiringIndex = (MissileFiringIndex + 1) % 2;
@@ -1438,7 +1438,7 @@ namespace Inferno {
                 SecondaryAmmo[(int)index]--;
                 if (Random() < armChance) {
                     armChance *= 0.5f;
-                    auto mineRef = Game::FireWeapon(Reference, WeaponID::ProxMine, 7, nullptr, 1, false, 0);
+                    auto mineRef = Game::FireWeapon(player, WeaponID::ProxMine, 7, nullptr, 1, false, 0);
                     if (auto mine = Game::GetObject(mineRef))
                         mine->Physics.Velocity += RandomVector(64) + player.Physics.Velocity;
                 }

@@ -251,7 +251,7 @@ namespace Inferno::Game {
         }
     }
 
-    void UpdateReactorAI(const Inferno::Object& reactor, float dt) {
+    void UpdateReactorAI(Inferno::Object& reactor, float dt) {
         if (Settings::Cheats.DisableAI) return;
         Reactor.ThinkDelay -= dt;
         Reactor.FireDelay -= dt;
@@ -296,7 +296,7 @@ namespace Inferno::Game {
                 auto dir = Reactor.KnownPlayerPosition - gunPoint;
                 dir.Normalize();
 
-                FireWeapon(Game::GetObjectRef(reactor), WeaponID::ReactorBlob, (uint8)gun, &dir);
+                FireWeapon(reactor, WeaponID::ReactorBlob, (uint8)gun, &dir);
 
                 // Randomly fire more blobs based on level number and difficulty
                 auto chance = 1.0f / ((float)Game::LevelNumber / 4 + 2);
@@ -304,7 +304,7 @@ namespace Inferno::Game {
                 while (count++ < Game::Difficulty && Random() > chance) {
                     dir += RandomVector(1 / 6.0f);
                     dir.Normalize();
-                    FireWeapon(Game::GetObjectRef(reactor), WeaponID::ReactorBlob, (uint8)gun, &dir);
+                    FireWeapon(reactor, WeaponID::ReactorBlob, (uint8)gun, &dir);
                 }
             }
 

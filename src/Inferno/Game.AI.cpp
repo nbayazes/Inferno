@@ -452,7 +452,7 @@ namespace Inferno {
         return target.Position; // Wasn't able to lead target
     }
 
-    void FireRobotWeapon(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, Vector3 target, bool primary, bool blind, bool lead) {
+    void FireRobotWeapon(Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, Vector3 target, bool primary, bool blind, bool lead) {
         if (!primary && robotInfo.WeaponType2 == WeaponID::None) return; // no secondary set
 
         auto weaponId = primary ? robotInfo.WeaponType : robotInfo.WeaponType2;
@@ -476,22 +476,6 @@ namespace Inferno {
         auto projTarget = forward * forward.Dot(target - gunPosition) + gunPosition;
         //Render::Debug::DrawLine(projTarget, gunPosition, Color(1, 0, 0));
         auto projDist = Vector3::Distance(gunPosition, projTarget);
-
-        {
-            // todo: seismic disturbance inaccuracy from earthshaker
-
-            // Randomize target based on aim. 255 -> 1, 0 -> 8
-            auto aim = 8.0f - 7.0f * FixToFloat(robotInfo.Aim << 8);
-            aim += float(4 - Game::Difficulty) * 0.5f; // Add inaccuracy based on difficulty (2 to 0)
-
-            if (Game::ControlCenterDestroyed) {
-                // 1 to 3.0f as timer counts down
-                auto seismic = 1.0f + (16 - std::min(Game::CountdownSeconds, 16)) / 8.0f;
-                aim += seismic * 6;
-            }
-
-            target += { RandomN11() * aim, RandomN11() * aim, RandomN11() * aim };
-        }
 
         auto halfAimRads = robotInfo.AimAngle * DegToRad * 0.5f;
 
@@ -518,6 +502,35 @@ namespace Inferno {
             //ASSERT(aimAngle2 <= robotInfo.AimAngle * DegToRad);
         }
 
+        // Add inaccuracy
+        auto targetDir = target - gunPosition;
+        targetDir.Normalize();
+
+        {
+            // Randomize target based on aim. 255 -> 1, 0 -> 8
+            auto aim = 8.0f - 7.0f * FixToFloat(robotInfo.Aim << 8);
+            aim += float(4 - Game::Difficulty) * 0.5f; // Add inaccuracy based on difficulty (2 to 0)
+
+            // todo: seismic disturbance inaccuracy from earthshaker
+
+            if (Game::ControlCenterDestroyed) {
+                // 1 to 3.0f as timer counts down
+                auto seismic = 1.0f + (16 - std::min(Game::CountdownSeconds, 16)) / 8.0f;
+                aim += seismic * 6;
+            }
+
+            auto matrix = VectorToRotation(targetDir);
+            auto spread = RandomPointInCircle(aim);
+
+            //auto direction = Game::GetSpreadDirection(robot, { point.x, point.y });
+            target += matrix.Right() * spread.x;
+            target += matrix.Up() * spread.y;
+
+            // Recalculate target dir
+            targetDir = target - gunPosition;
+            targetDir.Normalize();
+        }
+
         // Check that the target point is in front of the gun, otherwise set it to shoot straight
         Plane plane(gunPosition, forward);
         if (plane.DotCoordinate(target) <= 0) {
@@ -526,10 +539,7 @@ namespace Inferno {
         }
 
         // Fire the weapon
-        auto targetDir = target - gunPosition;
-        targetDir.Normalize();
-        auto id = Game::GetObjectRef(robot);
-        Game::FireWeapon(id, weaponId, gun, &targetDir);
+        Game::FireWeapon(robot, weaponId, gun, &targetDir);
 
         if (primary)
             CycleGunpoint(robot, ai, robotInfo);
@@ -629,7 +639,7 @@ namespace Inferno {
         auto minDist = std::min(circleDistance * 0.75f, circleDistance - 10);
         auto maxDist = std::max(circleDistance * 1.25f, circleDistance + 10);
 
-        if (robotInfo.Attack == AttackType::Ranged && (dist > minDist || dist < maxDist))
+        if (robotInfo.Attack == AttackType::Ranged && (dist > minDist && dist < maxDist))
             return; // in deadzone, no need to move. Otherwise robots clump up on each other.
         else if (robotInfo.Attack == AttackType::Melee && dist < circleDistance)
             return;
@@ -815,7 +825,7 @@ namespace Inferno {
         return shouldLead;
     }
 
-    void FireRobotPrimary(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, const Vector3& target, bool blind) {
+    void FireRobotPrimary(Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, const Vector3& target, bool blind) {
         ai.FireDelay = 0;
 
         // multishot: consume as many projectiles as possible based on burst count
@@ -847,7 +857,7 @@ namespace Inferno {
     // start charging when player is in FOV and can fire
     // keep charging even if player goes out of view
     // fire at last known location
-    void WeaponChargeBehavior(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, float dt) {
+    void WeaponChargeBehavior(Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, float dt) {
         ai.NextChargeSoundDelay -= dt;
         ai.WeaponCharge += dt;
 
@@ -964,7 +974,7 @@ namespace Inferno {
         ai.Velocity += ai.StrafeDir * Difficulty(robotInfo).Speed * 0.5f;
     }
 
-    void UpdateRangedAI(const Object& robot, const RobotInfo& robotInfo, AIRuntime& ai, float dt, bool blind) {
+    void UpdateRangedAI(Object& robot, const RobotInfo& robotInfo, AIRuntime& ai, float dt, bool blind) {
         if (ai.CombatState == AICombatState::Wait && blind)
             return; // Don't allow supressing fire when waiting
 
@@ -1693,20 +1703,23 @@ namespace Inferno {
         }
     }
 
-    void MineLayerBehavior(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float /*dt*/) {
+    void MineLayerBehavior(AIRuntime& ai, Object& robot, const RobotInfo& /*robotInfo*/, float /*dt*/) {
         ScanForTarget(robot, ai);
 
         // Periodically alert allies while not idle
-        if (ai.State != AIState::Idle && ai.AlertTimer <= 0 && ai.TargetPosition) {
-            AlertRobotsOfTarget(robot, robotInfo.AlertRadius, *ai.TargetPosition, 0.75f);
-            ai.AlertTimer = 4 + Random() * 2;
-            Sound3D sound(robotInfo.SeeSound);
-            sound.Volume = 0.4f;
-            Sound::PlayFrom(sound, robot);
-        }
+        //if (ai.State != AIState::Idle && ai.AlertTimer <= 0 && ai.TargetPosition) {
+        //    AlertRobotsOfTarget(robot, robotInfo.AlertRadius, *ai.TargetPosition, 0.75f);
+        //    ai.AlertTimer = 4 + Random() * 2;
+        //    Sound3D sound(robotInfo.SeeSound);
+        //    sound.Volume = 0.4f;
+        //    Sound::PlayFrom(sound, robot);
+        //}
 
         // Mine layers are either in path mode or idle. They cannot peform any other action.
         if (ai.State == AIState::Path) {
+            if (!ai.PlayingAnimation() && ai.AnimationState != AnimState::Alert)
+                PlayRobotAnimation(robot, AnimState::Alert);
+
             if (!PathTowardsGoal(robot, ai, false, false)) {
                 ai.ClearPath();
                 ai.State = AIState::Alert;
@@ -1714,28 +1727,35 @@ namespace Inferno {
 
             if (ai.FireDelay <= 0) {
                 auto weapon = robot.Control.AI.SmartMineFlag() ? WeaponID::SmartMine : WeaponID::ProxMine;
-                Game::FireWeapon(Game::GetObjectRef(robot), weapon, 0, nullptr, 1, false);
+                Game::FireWeapon(robot, weapon, 0, nullptr, 1, false);
                 ai.FireDelay = AI_MINE_LAYER_DELAY;
             }
+
             PlayCombatNoise(robot, ai);
         }
-        else {
+        else if (ai.Awareness > 0 && ai.Path.empty()) {
             // Keep pathing until awareness fully decays
-            if (ai.Awareness >= 1 && ai.Path.empty()) {
-                auto target = Game::GetObject(ai.Target);
-                ai.State = AIState::Path;
-                ai.CombatState = AICombatState::Normal;
-                ai.Path = GenerateRandomPath(robot.Segment, 15, NavigationFlags::None, target ? target->Segment : SegID::None);
-                ai.PathIndex = 0;
-                ai.AlertTimer = 1 + Random() * 2;
-            }
-            else if (ai.Awareness <= 0) {
-                PlayRobotAnimation(robot, AnimState::Rest);
-                MakeIdle(ai);
-            }
+            auto target = Game::GetObject(ai.Target);
+            ai.State = AIState::Path;
+            ai.CombatState = AICombatState::Normal;
+            ai.Path = GenerateRandomPath(robot.Segment, 12, NavigationFlags::None, target ? target->Segment : SegID::None);
 
-            DecayAwareness(ai);
+            // If path is short, it might be due to being cornered by the player. Try again ignoring the player.
+            if (ai.Path.size() < 6) 
+                ai.Path = GenerateRandomPath(robot.Segment, 12, NavigationFlags::None);
+
+            ai.PathIndex = 0;
+            ai.AlertTimer = 1 + Random() * 2;
         }
+
+        if (ai.Awareness <= 0) {
+            // Go to sleep
+            ai.ClearPath();
+            PlayRobotAnimation(robot, AnimState::Rest);
+            MakeIdle(ai);
+        }
+
+        DecayAwareness(ai, 1 / 10.0f); // 10 second awake time
     }
 
 
