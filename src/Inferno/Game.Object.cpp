@@ -842,7 +842,6 @@ namespace Inferno {
         if (obj.Movement != MovementType::Physics) return;
         if (obj.Physics.Mass == 0) return;
         obj.Physics.Velocity += force / obj.Physics.Mass;
-        obj.LastHitForce = force;
     }
 
     void Game::CloakObject(Object& obj, float duration, bool playSound) {

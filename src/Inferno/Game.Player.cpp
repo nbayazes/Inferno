@@ -259,6 +259,9 @@ namespace Inferno {
 
                 AddScreenFlash(FLASH_FUSION_CHARGE);
                 FusionNextSoundDelay -= dt;
+
+                float physicsMult = std::min(1 + WeaponCharge * 0.5f, 4.0f);
+
                 if (FusionNextSoundDelay < 0) {
                     if (WeaponCharge > weapon.Extended.MaxCharge) {
                         // Self damage
@@ -283,7 +286,14 @@ namespace Inferno {
                     }
 
                     FusionNextSoundDelay = 0.125f + Random() / 8;
+                    
+                    // Shake the player while charging
+                    //player.Physics.AngularVelocity.x = RandomN11() * .02f * physicsMult;
+                    //player.Physics.AngularVelocity.z = RandomN11() * .02f * physicsMult;
                 }
+
+                auto dir = RandomVector(Game::FUSION_SHAKE_STRENGTH * physicsMult);
+                ApplyForce(player, dir);
             }
             else if (PrimaryState == FireState::Release || Energy <= 0) {
                 if (WeaponCharge > 0) {
