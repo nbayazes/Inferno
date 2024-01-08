@@ -709,7 +709,7 @@ namespace Inferno {
                 auto hit = IntersectSegmentPathing(Game::Level, ray, curNode.Segment);
                 if (!hit) {
                     //__debugbreak();
-                    SPDLOG_WARN("PATH FAILURE");
+                    SPDLOG_WARN("PATH FAILURE: NO SEG-RAY HIT");
                     return; // return the original path
                 }
                 //auto edgeDistance = hit.EdgeDistance;
@@ -743,6 +743,12 @@ namespace Inferno {
                     curNode.Position = hit.Point + centerDir * (objRadius - hit.EdgeDistance);
                     curNode.Segment = TraceSegment(Game::Level, curNode.Segment, curNode.Position);
                     buffer.push_back(curNode/* { nodeSeg, position }*/);
+
+                    if (buffer.size() > 100) {
+                        // This is rarely caused by a logic error in the hit tag traversal
+                        SPDLOG_WARN("PATH FAILURE: BUFFER SIZE EXCEEDED");
+                        return; // return the original path
+                    }
                 }
 
                 //prevHitPoint = hit.Point;

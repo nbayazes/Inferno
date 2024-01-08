@@ -352,7 +352,7 @@ namespace Inferno {
                     spawn.Position = position;
                     spawn.Segment = segId;
                     spawn.Type = ObjectType::Robot;
-                    spawn.Physics.Velocity = RandomVector(50) * (0.75f + Random() * 0.25f) + force;
+                    spawn.Physics.Velocity = RandomVector(40) * (0.75f + Random() * 0.25f) + force;
                     spawn.Physics.AngularVelocity.x = 3 + Random();
                     spawn.Physics.AngularVelocity.y = 3 + Random();
                     spawn.Physics.AngularVelocity.z = 3 + Random();

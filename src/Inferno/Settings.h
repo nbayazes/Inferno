@@ -175,7 +175,7 @@ namespace Inferno {
         bool DisableWallCollision = false;
         bool DisableAI = true;
         bool ShowPathing = false;
-        bool FullyLoaded = true; // Max weapons on spawn
+        bool FullyLoaded = false; // Max weapons on spawn
         bool Invulnerable = false;
         bool Cloaked = false;
         bool LowShields = false;

@@ -1224,7 +1224,7 @@ namespace Inferno {
 
         ai.Target = Game::GetObjectRef(target);
         ai.TargetPosition = { target.Segment, target.Position };
-        return true;
+        return ai.Awareness >= 1;
     }
 
     void OnIdle(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo) {
@@ -1616,7 +1616,7 @@ namespace Inferno {
         if (!ai.PlayingAnimation() && ai.AnimationState != AnimState::Alert)
             PlayRobotAnimation(robot, AnimState::Alert, 1);
 
-        if (ScanForTarget(robot, ai) && ai.Awareness >= 1 && ai.Target) {
+        if (ScanForTarget(robot, ai) && ai.Target) {
             ai.State = AIState::Combat;
             ai.CombatState = AICombatState::Normal;
             Chat(robot, "I found a bad guy!");
@@ -1687,7 +1687,7 @@ namespace Inferno {
         else {
             DecayAwareness(ai);
 
-            if (ScanForTarget(robot, ai) && ai.Awareness >= 1) {
+            if (ScanForTarget(robot, ai)) {
                 auto target = Game::GetObject(ai.Target);
                 ai.State = AIState::Path;
                 ai.CombatState = AICombatState::Normal;
@@ -1741,7 +1741,7 @@ namespace Inferno {
             ai.Path = GenerateRandomPath(robot.Segment, 12, NavigationFlags::None, target ? target->Segment : SegID::None);
 
             // If path is short, it might be due to being cornered by the player. Try again ignoring the player.
-            if (ai.Path.size() < 6) 
+            if (ai.Path.size() < 6)
                 ai.Path = GenerateRandomPath(robot.Segment, 12, NavigationFlags::None);
 
             ai.PathIndex = 0;
@@ -1773,11 +1773,30 @@ namespace Inferno {
             case AIState::Roam:
                 break;
             case AIState::Path:
-                if (!PathTowardsGoal(robot, ai, false, false)) {
+            {
+                bool fromMatcen = robot.SourceMatcen != MatcenID::None;
+
+                if (!PathTowardsGoal(robot, ai, false, fromMatcen)) {
                     ai.ClearPath();
                     ai.State = AIState::Alert;
                 }
+
+                if (ScanForTarget(robot, ai)) {
+                    ai.ClearPath();
+                    ai.State = AIState::Combat;
+                }
+
+                // todo: mode to follow path while fighting
+
+                // Stop pathing if an enemy is seen and not still in the matcen
+                //  !ai.Path.empty() && robot.Segment != ai.Path.front().Segment
+                //bool canStopPathing = !fromMatcen ? true : !ai.Path.empty() && robot.Segment != ai.Path.front().Segment;
+                //if (canStopPathing && ScanForTarget(robot, ai)) {
+                //    ai.ClearPath();
+                //    ai.State = AIState::Combat;
+                //}
                 break;
+            }
             case AIState::FindHelp:
                 UpdateFindHelp(ai, robot);
                 break;
@@ -1799,7 +1818,7 @@ namespace Inferno {
                         ai.TargetPosition = {};
                     }
 
-                    if (ScanForTarget(robot, ai) && ai.Awareness >= 1) {
+                    if (ScanForTarget(robot, ai)) {
                         ai.ClearPath(); // Stop chasing if robot finds a target
                         ai.State = AIState::Combat;
                         Chat(robot, "You can't hide from me!");
