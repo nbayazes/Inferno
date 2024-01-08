@@ -234,7 +234,7 @@ Weapons:
     LightRadius: 20
     LightColor: 0.6, 0.1, 1, 4
     FlashColor: .6, .1, 1, 15
-    Mass: 3
+    Mass: 2
     Behavior: fusion
     StunMult: 0.4
     Recoil: 50
@@ -304,7 +304,7 @@ Weapons:
     Damage: 120 # Mines detonate before touching enemies
     StunMult: 0.4 # Reduce stun and knockback force
     PlayerDamageScale: 0.25 # Reduce player damage to original 30
-    Mass: 1
+    Mass: 1 # Original 1
     Thrust: 1 # Thrust when accelerating towards target
 
   - id: 17
@@ -548,7 +548,6 @@ Robots:
     ChaseChance: 0
     SuppressChance: 0.75
     Curiosity: 0.1 # Very rarely move to investigate sounds
-    Score: 650 # Was 500, these are rather dangerous
     AimAngle: 25 # Unfair to lead much and looks odd
   - id: 1 # Medium lifter
     CircleDistance: 12
@@ -627,18 +626,18 @@ Robots:
     FleeThreshold: 0.4
     Score: 400 # Was 200, too low for their mine laying annoyance and hit points
   - id: 11 # Laser platform
-    CircleDistance: 20
+    CircleDistance: 50
     Mass: 2.5
     Multishot: 7 # shotgun all available projectiles
-    FireDelay: [ 1.5, 1.25, 1, 0.8, 0.5 ]
-    Shots: [ 3, 4, 4, 5, 7 ] 
+    FireDelay: [ 1.5, 1.25, 0.8, 0.6, 0.4 ]
+    Shots: [ 3, 4, 4, 5, 6 ] 
     Aim: 0
     Drag: 0.03
     SuppressChance: 0.9
     Score: 500 # Was 300, these are now more dangerous
     Curiosity: 0.5
-    AimAngle: 25 # Looks odd to lead much
-    GetBehind: 1
+    AimAngle: 35 # Looks odd to lead much
+    GetBehind: 0
   - id: 12 # Missile platform
     #FireDelay: [ 3, 2, 2, 1.75, 1.5 ]
     #Shots: [ 2, 2, 2, 3, 4 ]
