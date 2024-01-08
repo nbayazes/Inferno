@@ -281,7 +281,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
         uint2 pixelPos = uint2(input.pos.xy);
         ambient *= Frame.GlobalDimming; // Dim ambient during self destruct
         //ambient *= HalfLambert(normal, normalize(float3(1, 0, 0)));
-        ambient *= pow(Lambert(normal, input.lightDir), 2); // Apply ambient light directions
+        if (any(input.lightDir))
+            ambient *= pow(Lambert(normal, input.lightDir), 2); // Apply ambient light directions
         //return float4(ambient, 1);
         emissive *= Frame.GlobalDimming;
 

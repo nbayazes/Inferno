@@ -36,7 +36,7 @@ namespace Inferno {
         OverlayRotation OverlayRotation = OverlayRotation::Rotate0;
         Array<Vector2, 4> UVs = { Vector2(0, 0), Vector2(0, 1), Vector2(1, 1), Vector2(1, 0) };
         Array<Color, 4> Light = { Color(1, 1, 1), Color(1, 1, 1), Color(1, 1, 1), Color(1, 1, 1) };
-        Array<Vector3, 4> LightDirs = { Vector3(0, -1, 0), Vector3(0, -1, 0), Vector3(0, -1, 0), Vector3(0, -1, 0) }; // Ambient light directions
+        Array<Vector3, 4> LightDirs = {}; // Ambient light directions
         Array<bool, 4> LockLight = { false, false, false, false }; // Locks light values from being updated from the light algorithm
 
         Option<Color> LightOverride; // Editor defined override for amount of light emitted
