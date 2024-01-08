@@ -475,6 +475,22 @@ namespace Inferno {
         return s;
     }
 
+    void SaveGameSettings(ryml::NodeRef node, const InfernoSettings& settings) {
+        node |= ryml::MAP;
+
+        node["ShipWiggle"] << (int)settings.ShipWiggle;
+        node["InvertY"] << settings.InvertY;
+        node["MouseSensitivity"] << settings.MouseSensitivity;
+    }
+
+    void LoadGameSettings(ryml::NodeRef node, InfernoSettings& settings) {
+        if (node.is_seed()) return;
+
+        ReadValue(node["ShipWiggle"], settings.ShipWiggle);
+        ReadValue(node["InvertY"], settings.InvertY);
+        ReadValue(node["MouseSensitivity"], settings.MouseSensitivity);
+    }
+
     void Settings::Save(const filesystem::path& path) {
         try {
             ryml::Tree doc(128, 128);
@@ -487,6 +503,7 @@ namespace Inferno {
             doc["Descent3Enhanced"] << Settings::Inferno.Descent3Enhanced;
             doc["ShipWiggle"] << (int)Settings::Inferno.ShipWiggle;
 
+            SaveGameSettings(doc["Game"], Settings::Inferno);
             WriteSequence(doc["DataPaths"], Settings::Inferno.DataPaths);
             SaveEditorSettings(doc["Editor"], Settings::Editor);
             SaveGraphicsSettings(doc["Render"], Settings::Graphics);
@@ -523,7 +540,6 @@ namespace Inferno {
                 ReadValue(root["MasterVolume"], Settings::Inferno.MasterVolume);
                 ReadValue(root["GenerateMaps"], Settings::Inferno.GenerateMaps);
                 ReadValue(root["Descent3Enhanced"], Settings::Inferno.Descent3Enhanced);
-                ReadValue(root["ShipWiggle"], (int&)Settings::Inferno.ShipWiggle);
 
                 auto dataPaths = root["DataPaths"];
                 if (!dataPaths.is_seed()) {
@@ -534,6 +550,7 @@ namespace Inferno {
                     }
                 }
 
+                LoadGameSettings(root["Game"], Settings::Inferno);
                 Settings::Editor = LoadEditorSettings(root["Editor"], Settings::Inferno);
                 Settings::Graphics = LoadGraphicsSettings(root["Render"]);
                 Settings::Cheats = LoadCheatSettings(root["Cheats"]);

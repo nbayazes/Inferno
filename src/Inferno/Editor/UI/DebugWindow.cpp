@@ -38,11 +38,13 @@ namespace Inferno::Editor {
         ImGui::Checkbox("No wall collision", &Settings::Cheats.DisableWallCollision);
         ImGui::Separator();
         ImGui::Combo("Difficulty", &Game::Difficulty, "Trainee\0Rookie\0Hotshot\0Ace\0Insane");
+        ImGui::SliderFloat("Sensitivity", &Settings::Inferno.MouseSensitivity, 0.001f, 0.050f);
+        ImGui::Checkbox("Invert Y", &Settings::Inferno.InvertY);
 
         ImGui::Checkbox("Load D3 data", &Settings::Inferno.Descent3Enhanced);
+        ImGui::Checkbox("Draw lights", &Settings::Editor.ShowLights);
         ImGui::Checkbox("Draw Portals", &Settings::Editor.ShowPortals);
         ImGui::Checkbox("Outline visible rooms", &Settings::Graphics.OutlineVisibleRooms);
-        ImGui::Checkbox("Draw lights", &Settings::Editor.ShowLights);
         ImGui::Checkbox("Outline boss teleport segs", &Settings::Editor.OutlineBossTeleportSegments);
 
         ImGui::Separator();

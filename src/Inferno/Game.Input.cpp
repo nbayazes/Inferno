@@ -224,9 +224,8 @@ namespace Inferno {
         physics.Thrust += player.Rotation.Up() * thrust.y;
         physics.Thrust += player.Rotation.Forward() * thrust.z;
 
-        float invertMult = -1;
-        float sensitivity = 1 / 64.0f;
-        float scale = sensitivity * Game::TICK_RATE / dt;
+        float invertMult = Settings::Inferno.InvertY ? 1 : -1;
+        float scale = Settings::Inferno.MouseSensitivity * Game::TICK_RATE / dt;
 
         physics.AngularThrust.x += Input::MouseDelta.y * scale * invertMult; // pitch
         physics.AngularThrust.y += Input::MouseDelta.x * scale; // yaw
