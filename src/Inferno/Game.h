@@ -130,7 +130,7 @@ namespace Inferno::Game {
     WeaponBehavior& GetWeaponBehavior(const string& name);
 
     constexpr float DOOR_WAIT_TIME = 5; // How long a door stays open before automatically closing
-    constexpr float MINE_ARM_TIME = 1.5f; // How long before an object can collide with their own mines. Also disables splash damage for the duration.
+    constexpr float MINE_ARM_TIME = 1.25f; // How long before an object can collide with their own mines. Also disables splash damage for the duration.
     constexpr int EXTRA_LIFE_POINTS = 50'000;
     constexpr uint HOSTAGE_SCORE = 1000;
     constexpr uint REACTOR_SCORE = 5000;

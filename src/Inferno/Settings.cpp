@@ -1,13 +1,14 @@
 #include "pch.h"
+
 #define MAGIC_ENUM_RANGE_MIN 0
 #define MAGIC_ENUM_RANGE_MAX 256
+
+#include <Settings.h>
+#include <fstream>
 #include <magic_enum.hpp>
 #include <spdlog/spdlog.h>
-#include <fstream>
-
-#include "Settings.h"
-
 #include "Game.Bindings.h"
+#include "Game.h"
 #include "Yaml.h"
 #include "Editor/Bindings.h"
 
@@ -481,6 +482,7 @@ namespace Inferno {
         node["ShipWiggle"] << (int)settings.ShipWiggle;
         node["InvertY"] << settings.InvertY;
         node["MouseSensitivity"] << settings.MouseSensitivity;
+        node["Difficulty"] << Game::Difficulty;
     }
 
     void LoadGameSettings(ryml::NodeRef node, InfernoSettings& settings) {
@@ -489,6 +491,8 @@ namespace Inferno {
         ReadValue(node["ShipWiggle"], settings.ShipWiggle);
         ReadValue(node["InvertY"], settings.InvertY);
         ReadValue(node["MouseSensitivity"], settings.MouseSensitivity);
+        ReadValue(node["Difficulty"], Game::Difficulty);
+        Game::Difficulty = std::clamp(Game::Difficulty, 0, 4);
     }
 
     void Settings::Save(const filesystem::path& path) {
@@ -560,6 +564,8 @@ namespace Inferno {
                     LoadEditorBindings(bindings["Editor"]);
                     LoadGameBindings(bindings["Game"]);
                 }
+
+                Settings::Editor.Windows.Debug = true; // Always show debug window for alpha
             }
         }
         catch (const std::exception& e) {
