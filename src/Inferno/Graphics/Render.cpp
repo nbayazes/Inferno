@@ -392,8 +392,8 @@ namespace Inferno::Render {
         for (auto& obj : level.Objects) {
             if (obj.Render.Type == RenderType::Model) {
                 _meshBuffer->LoadModel(obj.Render.Model.ID);
-                _meshBuffer->LoadModel(Resources::GameData.DeadModels[(int)obj.Render.Model.ID]);
-                _meshBuffer->LoadModel(Resources::GameData.DyingModels[(int)obj.Render.Model.ID]);
+                _meshBuffer->LoadModel(Resources::GetDeadModelID(obj.Render.Model.ID));
+                _meshBuffer->LoadModel(Resources::GetDyingModelID(obj.Render.Model.ID));
             }
         }
 

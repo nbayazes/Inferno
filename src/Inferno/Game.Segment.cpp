@@ -404,6 +404,8 @@ namespace Inferno {
             const auto& top = seg->GetSide(SideID::Top).Center;
             const auto& bottom = seg->GetSide(SideID::Bottom).Center;
 
+            if (vclip.PlayTime == 0) return; // Data not found
+
             Render::Particle p{};
             auto up = top - bottom;
             p.Clip = VClipID::Matcen;

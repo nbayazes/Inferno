@@ -46,9 +46,12 @@ namespace Inferno::Resources {
     const Model& GetModel(ModelID);
     const Model& GetModel(const Object&);
 
+    ModelID GetDeadModelID(ModelID);
+    ModelID GetDyingModelID(ModelID);
+
     const RobotInfo& GetRobotInfo(uint);
     inline const RobotInfo& GetRobotInfo(const Object& obj) {
-        assert(obj.IsRobot());
+        ASSERT(obj.IsRobot());
         return GetRobotInfo(obj.ID);
     }
 

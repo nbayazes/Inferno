@@ -172,6 +172,16 @@ namespace Inferno::Resources {
         return DEFAULT_MODEL;
     }
 
+    ModelID GetDeadModelID(ModelID id) {
+        if (!Seq::inRange(GameData.DeadModels, (int)id)) return ModelID::None;
+        return GameData.DeadModels[(int)id];
+    }
+
+    ModelID GetDyingModelID(ModelID id) {
+        if (!Seq::inRange(GameData.DyingModels, (int)id)) return ModelID::None;
+        return GameData.DyingModels[(int)id];
+    }
+
     const RobotInfo& GetRobotInfo(uint id) {
         if (!Seq::inRange(GameData.Robots, id)) return DEFAULT_ROBOT;
         return GameData.Robots[id];

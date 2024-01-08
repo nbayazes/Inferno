@@ -174,7 +174,7 @@ namespace Inferno {
     struct CheatSettings {
         bool DisableWeaponDamage = false;
         bool DisableWallCollision = false;
-        bool DisableAI = true;
+        bool DisableAI = false;
         bool ShowPathing = false;
         bool FullyLoaded = false; // Max weapons on spawn
         bool Invulnerable = false;
