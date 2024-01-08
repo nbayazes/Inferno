@@ -135,8 +135,10 @@ namespace Inferno::Game {
     constexpr uint HOSTAGE_SCORE = 1000;
     constexpr uint REACTOR_SCORE = 5000;
     constexpr float PLAYER_HIT_WALL_NOISE = 1;
-    constexpr float PLAYER_HIT_WALL_RADIUS = 80;
-    constexpr float PLAYER_FUSION_SOUND_RADIUS = 100;
+    constexpr float PLAYER_HIT_WALL_RADIUS = 100;
+    constexpr float PLAYER_FUSION_SOUND_RADIUS = 120;
+    constexpr float FUSION_SHAKE_STRENGTH = 3.5f; // Amount charging fusion shakes the player
+
     // 255 marks where weapons aren't considered for autoselection
 
     constexpr Array<uint8, 11> DefaultPrimaryPriority{ 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 255 };
@@ -150,7 +152,7 @@ namespace Inferno::Game {
     void AddPointsToScore(int points);
 
     inline Color ScreenFlash = { 0, 0, 0 }; // Used when picking up an item or taking damage
-    constexpr float MAX_FLASH = 0.5f;
+    constexpr float MAX_FLASH = 0.4f;
     constexpr float FLASH_DECAY_RATE = MAX_FLASH * 0.75f;
 
     void AddScreenFlash(const Color&);

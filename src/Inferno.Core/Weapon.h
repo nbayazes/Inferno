@@ -356,7 +356,7 @@ namespace Inferno {
                     .Firing = {
                         {.Gunpoints = { 0, 0, 0, 0, 0, 0, 0, 1 } } // 7 is rear gunpoint
                     },
-                    .MaxAmmo = 20
+                    .MaxAmmo = 12
                 }
             },
             {
