@@ -204,10 +204,10 @@ errno_t CreateConsoleWindow() {
     return err;
 }
 
-extern "C" {
-    __declspec(dllexport) extern const UINT D3D12SDKVersion = D3D12_SDK_VERSION;
-    __declspec(dllexport) extern const char8_t* D3D12SDKPath = u8".\\D3D12\\";
-}
+//extern "C" {
+//    __declspec(dllexport) extern const UINT D3D12SDKVersion = D3D12_SDK_VERSION;
+//    __declspec(dllexport) extern const char8_t* D3D12SDKPath = u8".\\D3D12\\";
+//}
 
 int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
                      _In_opt_ HINSTANCE /*hPrevInstance*/,
@@ -216,13 +216,27 @@ int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
     try {
         CreateConsoleWindow();
 
+        filesystem::remove("inferno.log"); // Erase old log file
+        std::vector<spdlog::sink_ptr> sinks;
+        sinks.push_back(std::make_shared<spdlog::sinks::wincolor_stdout_sink_st>());
+        sinks.push_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>("inferno.log"));
+        //sinks.push_back(spdlog::basic_logger_mt("file logger", "inferno.log"));
+
+        auto logger = std::make_shared<spdlog::logger>("loggers", begin(sinks), end(sinks));
+        //register it if you need to access it globally
+        spdlog::register_logger(logger);
+        spdlog::set_default_logger(logger);
+
+        //spdlog::register_logger(std::make_shared<spdlog::sinks::wincolor_stdout_sink_st>());
+        //spdlog::basic_logger_mt("file logger", "inferno.log");
+        //spdlog::register_logger();
+
         // https://github.com/gabime/spdlog/wiki/3.-Custom-formatting#pattern-flags
         spdlog::set_pattern("[%M:%S.%e] [%^%l%$] [TID:%t] [%s:%#] %v");
+
         //std::srand((uint)std::time(nullptr)); // seed c-random
         InitRandom();
         OpenSimplex2::Init();
-
-        TestClipConvexPolygon();
 
         // Replace ryml abort with exceptions
         RymlExceptionHandler handler;
