@@ -30,157 +30,7 @@ namespace Inferno::Editor {
         ranges::fill(player.SecondaryAmmo, 0);
     }
 
-    void DebugWindow::OnUpdate() {
-        ImGui::Text("Cheats");
-        ImGui::Checkbox("Disable weapon damage", &Settings::Cheats.DisableWeaponDamage);
-        ImGui::Checkbox("Disable AI", &Settings::Cheats.DisableAI);
-        ImGui::Checkbox("Show AI pathing", &Settings::Cheats.ShowPathing);
-        ImGui::Checkbox("No wall collision", &Settings::Cheats.DisableWallCollision);
-        ImGui::Separator();
-        ImGui::Combo("Difficulty", &Game::Difficulty, "Trainee\0Rookie\0Hotshot\0Ace\0Insane");
-        ImGui::SliderFloat("Sensitivity", &Settings::Inferno.MouseSensitivity, 0.001f, 0.050f);
-        ImGui::Checkbox("Invert Y", &Settings::Inferno.InvertY);
-
-        ImGui::Checkbox("Load D3 data", &Settings::Inferno.Descent3Enhanced);
-        ImGui::Checkbox("Draw lights", &Settings::Editor.ShowLights);
-        ImGui::Checkbox("Draw Portals", &Settings::Editor.ShowPortals);
-        ImGui::Checkbox("Outline visible rooms", &Settings::Graphics.OutlineVisibleRooms);
-        ImGui::Checkbox("Outline boss teleport segs", &Settings::Editor.OutlineBossTeleportSegments);
-
-        ImGui::Separator();
-
-        if (ImGui::Checkbox("Generate spec and normal maps", &Settings::Inferno.GenerateMaps)) {
-            Game::NeedsResourceReload = true;
-        }
-
-        if (ImGui::Checkbox("Procedural Textures", &Settings::Graphics.EnableProcedurals)) {
-            EnableProceduralTextures(Settings::Graphics.EnableProcedurals);
-        }
-
-        //if (ImGui::Button("Update probes")) {
-        //    auto camera =  Render::Camera;
-        //    if (auto seg = Game::Level.TryGetSegment(Editor::Selection.Segment)) {
-        //        Render::RenderProbe(seg->Center);
-        //        Render::Camera = camera;
-        //        Render::ProbesComputed = true;
-        //    }
-        //}
-
-        ImGui::Combo("Filtering", (int*)&Settings::Graphics.FilterMode, "Point\0Enhanced point\0Smooth");
-
-        {
-            static constexpr std::array angles = { "25%%", "50%%", "75%%", "100%%" };
-            int renderScale = std::clamp(int(Render::RenderScale * 4) - 1, 0, 3);
-            ImGui::SetNextItemWidth(175);
-            if (ImGui::SliderInt("Render scale", &renderScale, 0, 3, angles[renderScale]))
-                Render::RenderScale = (renderScale + 1) / 4.0f;
-        }
-
-        ImGui::Separator();
-        ImGui::Text("Player");
-        auto blueKey = Game::Player.HasPowerup(PowerupFlag::BlueKey);
-        auto goldKey = Game::Player.HasPowerup(PowerupFlag::GoldKey);
-        auto redKey = Game::Player.HasPowerup(PowerupFlag::RedKey);
-
-        ImGui::Text("Keys:");
-        ImGui::SameLine(0, 5);
-        if (ImGui::Checkbox("Blue", &blueKey)) Game::Player.SetPowerup(PowerupFlag::BlueKey, blueKey);
-        ImGui::SameLine();
-        if (ImGui::Checkbox("Gold", &goldKey)) Game::Player.SetPowerup(PowerupFlag::GoldKey, goldKey);
-        ImGui::SameLine();
-        if (ImGui::Checkbox("Red", &redKey)) Game::Player.SetPowerup(PowerupFlag::RedKey, redKey);
-
-        ImGui::Checkbox("Invulnerable", &Settings::Cheats.Invulnerable);
-
-        ImGui::SameLine();
-        ImGui::Checkbox("Cloaked", &Settings::Cheats.Cloaked);
-
-        if (ImGui::Checkbox("Fully loaded", &Settings::Cheats.FullyLoaded)) {
-            if (!Settings::Cheats.FullyLoaded)
-                ResetPlayerInventory();
-        }
-        ImGui::SameLine();
-        ImGui::Checkbox("Low shields", &Settings::Cheats.LowShields);
-
-        ImGui::Combo("Ship wiggle", (int*)&Settings::Inferno.ShipWiggle, "Normal\0Reduced\0Off");
-
-        if (ImGui::Button("Reset inventory"))
-            ResetPlayerInventory();
-
-        ImGui::Separator();
-
-        static bool stopAtKeyDoors = true;
-
-        if (ImGui::Button("Set path target")) {
-            if (auto obj = Game::Level.TryGetObject(Editor::Selection.Object)) {
-                //auto path = Game::Navigation.NavigateTo(obj->Segment, Editor::Selection.Segment, NavigationFlags::None, Game::Level);
-                auto path = GenerateRandomPath(Editor::Selection.Segment, 20, NavigationFlags::OpenKeyDoors);
-                List<NavPoint> original = path;
-                //OptimizePath(path);
-
-                if (obj->IsRobot()) {
-                    //auto& ai = GetAI(*obj);
-                    //ai.GoalPath = path;
-                    /*
-                    auto& seg = Game::Level.GetSegment(Editor::Selection.Segment);
-                    ai.GoalSegment = Editor::Selection.Segment;
-                    ai.GoalPosition = seg.Center;
-                    ai.GoalRoom = Game::Level.FindRoomBySegment(Editor::Selection.Segment);
-                    obj->GoalPath = path;
-                    obj->GoalPathIndex = 0;
-                    obj->Room = Game::Level.FindRoomBySegment(obj->Segment);*/
-
-                    //auto tag = GetNextConnection(path, Game::Level, obj->Segment);
-                    //auto& side = Game::Level.GetSide(tag);
-                    //auto delta = (side.Center - obj->Position) / 4;
-
-                    //ai.RoomCurve.Points = {
-                    //    obj->Position,
-                    //    obj->Position + delta,
-                    //    obj->Position + delta * 2,
-                    //    obj->Position + delta * 3
-                    //};
-                    //ai.CurveProgress = 1;
-                }
-
-                Debug::NavigationPath.clear();
-
-                for (auto& node : path) {
-                    Debug::NavigationPath.push_back(node);
-                }
-
-                //for (auto& node : original) {
-                //    Debug::NavigationPath.push_back(node);
-                //}
-            }
-        }
-
-        ImGui::SameLine();
-        ImGui::Checkbox("Stop at key doors", &stopAtKeyDoors);
-
-        if (ImGui::Button("Update rooms")) {
-            Game::Level.Rooms = Game::CreateRooms(Game::Level);
-            Render::LevelChanged = true;
-        }
-
-        if (ImGui::Button("Mark room")) {
-            if (auto room = Game::Level.GetRoom(Editor::Selection.Segment)) {
-                Editor::Marked.Segments.clear();
-                Seq::insert(Editor::Marked.Segments, room->Segments);
-            }
-        }
-
-        ImGui::SameLine();
-        if (ImGui::Button("Mark connected room")) {
-            if (auto portal = Game::Level.GetPortal(Editor::Selection.Tag())) {
-                if (auto room = Game::Level.GetRoom(portal->RoomLink)) {
-                    Editor::Marked.Segments.clear();
-                    Seq::insert(Editor::Marked.Segments, room->Segments);
-                }
-            }
-        }
-
-        ImGui::Separator();
+    void OldDebugInfo() {
 
         /*_timeCounter += Render::FrameTime;
 
@@ -225,16 +75,16 @@ namespace Inferno::Editor {
         /*ImGui::Text("Ray pos: %.2f, %.2f, %.2f", ray.position.x, ray.position.y, ray.position.z);
             ImGui::Text("Ray dir: %.2f, %.2f, %.2f", ray.direction.x, ray.direction.y, ray.direction.z);*/
 
-        /* auto& beginDrag = Editor::Selection.BeginDrag;
-                ImGui::Text("Begin drag: %.2f, %.2f, %.2f", beginDrag.x, beginDrag.y, beginDrag.z);
+            /* auto& beginDrag = Editor::Selection.BeginDrag;
+                    ImGui::Text("Begin drag: %.2f, %.2f, %.2f", beginDrag.x, beginDrag.y, beginDrag.z);
 
-                auto& endDrag = Editor::Selection.EndDrag;
-                ImGui::Text("End drag: %.2f, %.2f, %.2f", endDrag.x, endDrag.y, endDrag.z);
+                    auto& endDrag = Editor::Selection.EndDrag;
+                    ImGui::Text("End drag: %.2f, %.2f, %.2f", endDrag.x, endDrag.y, endDrag.z);
 
-                auto& dragVec = Editor::Selection.DragVector;
-                auto& mag = Editor::Selection.DragMagnitude;
-                ImGui::Text("Drag: %.2f, %.2f, %.2f", dragVec.x, dragVec.y, dragVec.z);
-                ImGui::Text("Drag mag: %.2f, %.2f, %.2f", mag.x, mag.y, mag.z);*/
+                    auto& dragVec = Editor::Selection.DragVector;
+                    auto& mag = Editor::Selection.DragMagnitude;
+                    ImGui::Text("Drag: %.2f, %.2f, %.2f", dragVec.x, dragVec.y, dragVec.z);
+                    ImGui::Text("Drag mag: %.2f, %.2f, %.2f", mag.x, mag.y, mag.z);*/
 
         for (auto& hit : Editor::Selection.Hits)
             ImGui::Text("Hit seg %d:%d normal: %.2f, %.2f, %.2f", hit.Tag.Segment, hit.Tag.Side, hit.Normal.x, hit.Normal.y, hit.Normal.z);
@@ -247,5 +97,173 @@ namespace Inferno::Editor {
         ImGui::Text("Nearest hit: %.2f, %.2f, %.2f", hit.x, hit.y, hit.z);
         ImGui::Text("Nearest dist: %.2f", Editor::DebugHitDistance);
         ImGui::Text("Drag angle: %.2f", Editor::DebugAngle);
+    }
+
+    void DebugWindow::OnUpdate() {
+        {
+            ImGui::Combo("Difficulty", &Game::Difficulty, "Trainee\0Rookie\0Hotshot\0Ace\0Insane");
+            ImGui::SliderFloat("Sensitivity", &Settings::Inferno.MouseSensitivity, 0.001f, 0.050f);
+            ImGui::Checkbox("Invert Y", &Settings::Inferno.InvertY);
+
+            ImGui::Separator();
+        }
+
+        {
+            ImGui::Text("Cheats");
+            ImGui::Checkbox("Disable weapon damage", &Settings::Cheats.DisableWeaponDamage);
+            ImGui::Checkbox("Disable AI", &Settings::Cheats.DisableAI);
+            ImGui::Checkbox("Show AI pathing", &Settings::Cheats.ShowPathing);
+            ImGui::Checkbox("No wall collision", &Settings::Cheats.DisableWallCollision);
+            ImGui::Separator();
+        }
+
+        {
+            ImGui::Text("Player");
+            auto blueKey = Game::Player.HasPowerup(PowerupFlag::BlueKey);
+            auto goldKey = Game::Player.HasPowerup(PowerupFlag::GoldKey);
+            auto redKey = Game::Player.HasPowerup(PowerupFlag::RedKey);
+
+            ImGui::Text("Keys:");
+            ImGui::SameLine(0, 5);
+            if (ImGui::Checkbox("Blue", &blueKey)) Game::Player.SetPowerup(PowerupFlag::BlueKey, blueKey);
+            ImGui::SameLine();
+            if (ImGui::Checkbox("Gold", &goldKey)) Game::Player.SetPowerup(PowerupFlag::GoldKey, goldKey);
+            ImGui::SameLine();
+            if (ImGui::Checkbox("Red", &redKey)) Game::Player.SetPowerup(PowerupFlag::RedKey, redKey);
+
+            ImGui::Checkbox("Invulnerable", &Settings::Cheats.Invulnerable);
+
+            ImGui::SameLine();
+            ImGui::Checkbox("Cloaked", &Settings::Cheats.Cloaked);
+
+            if (ImGui::Checkbox("Fully loaded", &Settings::Cheats.FullyLoaded)) {
+                if (!Settings::Cheats.FullyLoaded)
+                    ResetPlayerInventory();
+            }
+            ImGui::SameLine();
+            ImGui::Checkbox("Low shields", &Settings::Cheats.LowShields);
+
+            ImGui::Combo("Ship wiggle", (int*)&Settings::Inferno.ShipWiggle, "Normal\0Reduced\0Off");
+
+            if (ImGui::Button("Reset inventory"))
+                ResetPlayerInventory();
+
+            ImGui::Separator();
+        }
+
+        {
+            ImGui::Checkbox("Load D3 data", &Settings::Inferno.Descent3Enhanced);
+            ImGui::Checkbox("Draw lights", &Settings::Editor.ShowLights);
+            ImGui::Checkbox("Draw Portals", &Settings::Editor.ShowPortals);
+            ImGui::Checkbox("Outline visible rooms", &Settings::Graphics.OutlineVisibleRooms);
+            ImGui::Checkbox("Outline boss teleport segs", &Settings::Editor.OutlineBossTeleportSegments);
+            ImGui::Separator();
+        }
+
+        {
+            if (ImGui::Checkbox("Generate spec and normal maps", &Settings::Inferno.GenerateMaps)) {
+                Game::NeedsResourceReload = true;
+            }
+
+            if (ImGui::Checkbox("Procedural Textures", &Settings::Graphics.EnableProcedurals)) {
+                EnableProceduralTextures(Settings::Graphics.EnableProcedurals);
+            }
+
+            //if (ImGui::Button("Update probes")) {
+            //    auto camera =  Render::Camera;
+            //    if (auto seg = Game::Level.TryGetSegment(Editor::Selection.Segment)) {
+            //        Render::RenderProbe(seg->Center);
+            //        Render::Camera = camera;
+            //        Render::ProbesComputed = true;
+            //    }
+            //}
+
+            ImGui::Combo("Filtering", (int*)&Settings::Graphics.FilterMode, "Point\0Enhanced point\0Smooth");
+
+            {
+                static constexpr std::array angles = { "25%%", "50%%", "75%%", "100%%" };
+                int renderScale = std::clamp(int(Render::RenderScale * 4) - 1, 0, 3);
+                ImGui::SetNextItemWidth(175);
+                if (ImGui::SliderInt("Render scale", &renderScale, 0, 3, angles[renderScale]))
+                    Render::RenderScale = (renderScale + 1) / 4.0f;
+            }
+
+            ImGui::Separator();
+        }
+
+        {
+            static bool stopAtKeyDoors = true;
+
+            if (ImGui::Button("Set path target")) {
+                if (auto obj = Game::Level.TryGetObject(Editor::Selection.Object)) {
+                    //auto path = Game::Navigation.NavigateTo(obj->Segment, Editor::Selection.Segment, NavigationFlags::None, Game::Level);
+                    auto path = GenerateRandomPath(Editor::Selection.Segment, 20, NavigationFlags::OpenKeyDoors);
+                    List<NavPoint> original = path;
+                    //OptimizePath(path);
+
+                    if (obj->IsRobot()) {
+                        //auto& ai = GetAI(*obj);
+                        //ai.GoalPath = path;
+                        /*
+                        auto& seg = Game::Level.GetSegment(Editor::Selection.Segment);
+                        ai.GoalSegment = Editor::Selection.Segment;
+                        ai.GoalPosition = seg.Center;
+                        ai.GoalRoom = Game::Level.FindRoomBySegment(Editor::Selection.Segment);
+                        obj->GoalPath = path;
+                        obj->GoalPathIndex = 0;
+                        obj->Room = Game::Level.FindRoomBySegment(obj->Segment);*/
+
+                        //auto tag = GetNextConnection(path, Game::Level, obj->Segment);
+                        //auto& side = Game::Level.GetSide(tag);
+                        //auto delta = (side.Center - obj->Position) / 4;
+
+                        //ai.RoomCurve.Points = {
+                        //    obj->Position,
+                        //    obj->Position + delta,
+                        //    obj->Position + delta * 2,
+                        //    obj->Position + delta * 3
+                        //};
+                        //ai.CurveProgress = 1;
+                    }
+
+                    Debug::NavigationPath.clear();
+
+                    for (auto& node : path) {
+                        Debug::NavigationPath.push_back(node);
+                    }
+
+                    //for (auto& node : original) {
+                    //    Debug::NavigationPath.push_back(node);
+                    //}
+                }
+            }
+
+            ImGui::SameLine();
+            ImGui::Checkbox("Stop at key doors", &stopAtKeyDoors);
+
+            if (ImGui::Button("Update rooms")) {
+                Game::Level.Rooms = Game::CreateRooms(Game::Level);
+                Render::LevelChanged = true;
+            }
+
+            if (ImGui::Button("Mark room")) {
+                if (auto room = Game::Level.GetRoom(Editor::Selection.Segment)) {
+                    Editor::Marked.Segments.clear();
+                    Seq::insert(Editor::Marked.Segments, room->Segments);
+                }
+            }
+
+            ImGui::SameLine();
+            if (ImGui::Button("Mark connected room")) {
+                if (auto portal = Game::Level.GetPortal(Editor::Selection.Tag())) {
+                    if (auto room = Game::Level.GetRoom(portal->RoomLink)) {
+                        Editor::Marked.Segments.clear();
+                        Seq::insert(Editor::Marked.Segments, room->Segments);
+                    }
+                }
+            }
+
+            ImGui::Separator();
+        }
     }
 }
