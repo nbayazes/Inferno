@@ -10,6 +10,7 @@
 #include "Editor/Gizmo.h"
 #include "Game.h"
 #include "Game.Room.h"
+#include "SoundSystem.h"
 
 namespace Inferno {
     Tag GetNextConnection(span<SegID> path, Level& level, SegID segId);
@@ -104,6 +105,9 @@ namespace Inferno::Editor {
             ImGui::Combo("Difficulty", &Game::Difficulty, "Trainee\0Rookie\0Hotshot\0Ace\0Insane");
             ImGui::SliderFloat("Sensitivity", &Settings::Inferno.MouseSensitivity, 0.001f, 0.050f);
             ImGui::Checkbox("Invert Y", &Settings::Inferno.InvertY);
+            auto masterVol = Sound::GetVolume();
+            if (ImGui::SliderFloat("Volume", &masterVol, 0, 1))
+                Sound::SetVolume(masterVol);
 
             ImGui::Separator();
         }
