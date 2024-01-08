@@ -138,6 +138,9 @@ namespace Inferno::Game {
     constexpr float PLAYER_HIT_WALL_RADIUS = 100;
     constexpr float PLAYER_FUSION_SOUND_RADIUS = 120;
     constexpr float FUSION_SHAKE_STRENGTH = 3.5f; // Amount charging fusion shakes the player
+    constexpr uint16 VULCAN_AMMO_PICKUP = 2000; // Amount of ammo to give when picking up vulcan ammo
+    constexpr float CLOAK_TIME = 30.0f;
+    constexpr float INVULNERABLE_TIME = 30.0f;
 
     // 255 marks where weapons aren't considered for autoselection
 

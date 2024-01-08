@@ -65,11 +65,7 @@ namespace Inferno {
         Vector3 SpawnPosition; // Can be moved based on checkpoints
         Matrix3x3 SpawnRotation;
 
-        void GiveWeapon(PrimaryWeaponIndex weapon) {
-            PrimaryWeapons |= 1 << (uint16)weapon;
-            if (weapon == PrimaryWeaponIndex::Vulcan || weapon == PrimaryWeaponIndex::Gauss)
-                PrimaryAmmo[(int)PrimaryWeaponIndex::Vulcan] += 2500;
-        }
+        void GiveWeapon(PrimaryWeaponIndex weapon);
 
         void RemoveWeapon(PrimaryWeaponIndex weapon) {
             ClearFlag(PrimaryWeapons, (uint16)weapon);

@@ -286,7 +286,7 @@ namespace Inferno {
                     }
 
                     FusionNextSoundDelay = 0.125f + Random() / 8;
-                    
+
                     // Shake the player while charging
                     //player.Physics.AngularVelocity.x = RandomN11() * .02f * physicsMult;
                     //player.Physics.AngularVelocity.z = RandomN11() * .02f * physicsMult;
@@ -327,6 +327,12 @@ namespace Inferno {
         auto& weapon = Resources::GetWeapon(WeaponID::Flare);
         _nextFlareFireTime = Game::Time + weapon.FireDelay;
         AlertRobotsOfNoise(Game::GetPlayerObject(), GetWeaponSoundRadius(weapon), weapon.Extended.Noise);
+    }
+
+    void Player::GiveWeapon(PrimaryWeaponIndex weapon) {
+        PrimaryWeapons |= 1 << (uint16)weapon;
+        if (weapon == PrimaryWeaponIndex::Vulcan || weapon == PrimaryWeaponIndex::Gauss)
+            PrimaryAmmo[(int)PrimaryWeaponIndex::Vulcan] += Game::VULCAN_AMMO_PICKUP;
     }
 
     SecondaryWeaponIndex Player::GetActiveBomb() const {
@@ -746,8 +752,8 @@ namespace Inferno {
             //GivePowerup(PowerupFlag::AmmoRack);
             //GivePowerup(PowerupFlag::Headlight);
             //GivePowerup(PowerupFlag::FullMap);
-            //GivePowerup(PowerupFlag::QuadLasers);
-
+            GivePowerup(PowerupFlag::QuadLasers);
+            LaserLevel = Game::Level.IsDescent2() ? 5 : 3;
 
             PrimaryWeapons = 0xffff;
             SecondaryWeapons = 0xffff;
@@ -1129,15 +1135,20 @@ namespace Inferno {
                 break;
 
             case PowerupID::VulcanAmmo:
-                if (PickUpAmmo(PrimaryWeaponIndex::Vulcan, VULCAN_AMMO_PICKUP)) {
+            {
+                auto amount = PickUpAmmo(PrimaryWeaponIndex::Vulcan, Game::VULCAN_AMMO_PICKUP);
+
+                if (amount > 0) {
                     AddScreenFlash(FLASH_PRIMARY * 0.66f);
-                    PrintHudMessage("vulcan ammo!");
+                    auto msg = fmt::format("{} vulcan rounds!", amount);
+                    PrintHudMessage(msg);
                     used = true;
                 }
                 else {
                     PrintHudMessage(fmt::format("you already have {} vulcan rounds!", PrimaryAmmo[1]));
                 }
                 break;
+            }
 
             case PowerupID::Cloak:
             {
@@ -1148,7 +1159,7 @@ namespace Inferno {
                 else {
                     GivePowerup(PowerupFlag::Cloak);
                     PrintHudMessage(fmt::format("{}!", Resources::GetString(GameString::CloakingDevice)));
-                    Game::CloakObject(Game::GetPlayerObject(), CLOAK_TIME);
+                    Game::CloakObject(Game::GetPlayerObject(), Game::CLOAK_TIME);
                     used = true;
                     playSound = false;
                 }
@@ -1161,7 +1172,7 @@ namespace Inferno {
                     PrintHudMessage(msg);
                 }
                 else {
-                    Game::MakeInvulnerable(Game::GetPlayerObject(), INVULNERABLE_TIME);
+                    Game::MakeInvulnerable(Game::GetPlayerObject(), Game::INVULNERABLE_TIME);
                     PrintHudMessage(fmt::format("{}!", Resources::GetString(GameString::Invulnerability)));
                     used = true;
                     playSound = false;

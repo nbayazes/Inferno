@@ -1055,7 +1055,7 @@ namespace Inferno {
                 obj.Render.Emissive = info.Glow;
 
                 if ((PowerupID)id == PowerupID::Vulcan || (PowerupID)id == PowerupID::Gauss)
-                    obj.Control.Powerup.Count = VULCAN_AMMO_PICKUP;
+                    obj.Control.Powerup.Count = Game::VULCAN_AMMO_PICKUP;
 
                 break;
             }

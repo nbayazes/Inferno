@@ -128,10 +128,6 @@ namespace Inferno {
         FlagRed = 47,
     };
 
-    constexpr float CLOAK_TIME = 30.0f;
-    constexpr float INVULNERABLE_TIME = 30.0f;
-    constexpr int VULCAN_AMMO_PICKUP = 2500; // Ammo per vulcan pickup
-
     // Object types
     enum class ObjectType : uint8 {
         None = 255, // unused object
