@@ -54,11 +54,11 @@ namespace Inferno::Editor {
         //auto sz = ImGui::GetItemRectSize();
         ImGui::HelpMarker("A lower value causes light to travel further");
 
-        {
-            DisableControls disable(settings.EnableColor); // Clamp does nothing in color mode
-            ImGui::SliderFloat("Clamp", &settings.MaxValue, 1, 2);
-        }
-        ImGui::HelpMarker("The maximum brightness of any surface\n\nDoes not apply to color lighting");
+        //{
+        //    DisableControls disable(settings.EnableColor); // Clamp does nothing in color mode
+        //    ImGui::SliderFloat("Clamp", &settings.MaxValue, 1, 2);
+        //}
+        //ImGui::HelpMarker("The maximum brightness of any surface\n\nDoes not apply to color lighting");
 
         //ImGui::SliderFloat("Light plane", &settings.LightPlaneTolerance, -0.01f, -1);
         //ImGui::HelpMarker("Tolerance to use when determining if a light should hit a surface.\nReduce if undesired bleeding occurs.");

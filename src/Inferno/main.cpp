@@ -218,7 +218,7 @@ int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
 
         filesystem::remove("inferno.log"); // Erase old log file
         std::vector<spdlog::sink_ptr> sinks;
-        sinks.push_back(std::make_shared<spdlog::sinks::wincolor_stdout_sink_st>());
+        sinks.push_back(std::make_shared<spdlog::sinks::wincolor_stdout_sink_mt>());
         sinks.push_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>("inferno.log"));
         //sinks.push_back(spdlog::basic_logger_mt("file logger", "inferno.log"));
 

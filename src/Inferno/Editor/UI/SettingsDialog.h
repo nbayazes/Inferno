@@ -404,11 +404,10 @@ namespace Inferno::Editor {
             ImGui::BeginChild("container");
 
             constexpr auto flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY;
-            if (ImGui::BeginTable("binds", 3, flags)) {
+            if (ImGui::BeginTable("binds", 2, flags)) {
                 ImGui::TableSetupScrollFreeze(0, 1); // Make top row always visible
                 ImGui::TableSetupColumn("Action", ImGuiTableColumnFlags_WidthFixed/*, ImGuiTableColumnFlags_DefaultSort, 0.0f*/);
                 ImGui::TableSetupColumn("Shortcut");
-                //ImGui::TableSetupColumn("Alt Shortcut");
                 ImGui::TableHeadersRow();
 
                 using Input::Keys;
@@ -457,7 +456,9 @@ namespace Inferno::Editor {
                 uint i = 0;
                 for (auto& binding : Game::Bindings.GetBindings()) {
                     auto& label = Game::Bindings.GetLabel(binding.Action);
-                    if (label == "undefined") continue;
+                    if (label == "undefined") 
+                        continue;
+
                     ImGui::PushID(i++);
 
                     ImGui::TableNextRow();
