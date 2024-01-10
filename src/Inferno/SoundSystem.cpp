@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "DirectX.h"
 #include "SoundSystem.h"
+#include "FileSystem.h"
 #include "Resources.h"
 #include "Game.h"
 #include "logging.h"
@@ -381,6 +382,24 @@ namespace Inferno::Sound {
         if (SoundsD1[id]) return SoundsD1[int(id)].get();
 
         std::scoped_lock lock(ResetMutex);
+
+        // Prioritize reading wavs from filesystem
+        if (auto info = Seq::tryItem(Resources::SoundsD1.Sounds, id)) {
+            const auto paths = {
+                fmt::format("data/d1/{}.wav", info->Name),
+                fmt::format("data/{}.wav", info->Name)
+            };
+
+            for (auto& path : paths) {
+                if (filesystem::exists(path)) {
+                    auto data = Inferno::File::ReadAllBytes(path);
+                    SPDLOG_INFO("Reading D1 sound {} from `{}`", id, path);
+                    return (SoundsD1[int(id)] = MakePtr<SoundEffect>(CreateSoundEffectWav(*Engine, data))).get();
+                }
+            }
+        }
+
+        // Read sound from game data
         float trimStart = 0;
         if (id == 47)
             trimStart = 0.05f; // Trim the first 50ms from the door close sound due to a popping noise
@@ -400,6 +419,24 @@ namespace Inferno::Sound {
 
         std::scoped_lock lock(ResetMutex);
         int frequency = FREQUENCY_22KHZ;
+
+        // Prioritize reading wavs from filesystem
+        if (auto info = Seq::tryItem(Resources::SoundsD2.Sounds, id)) {
+            const auto paths = {
+                fmt::format("data/d2/{}.wav", info->Name),
+                fmt::format("data/{}.wav", info->Name)
+            };
+
+            for (auto& path : paths) {
+                if (filesystem::exists(path)) {
+                    auto data = Inferno::File::ReadAllBytes(path);
+                    SPDLOG_INFO("Reading D2 sound {} from `{}`", id, path);
+                    return (SoundsD2[int(id)] = MakePtr<SoundEffect>(CreateSoundEffectWav(*Engine, data))).get();
+                }
+            }
+        }
+
+        // Read sound from game data
 
         // The Class 1 driller sound was not resampled for D2 and should be a lower frequency
         if (id == 127)
