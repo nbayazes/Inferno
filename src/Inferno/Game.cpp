@@ -537,7 +537,9 @@ namespace Inferno::Game {
                 if (!Settings::Inferno.ScreenshotMode) EditorUI.OnRender();
                 break;
             case GameState::Paused:
-                // todo: Separate game bindings
+                if (Input::IsKeyPressed(Input::Keys::OemTilde) && Input::IsKeyDown(Input::Keys::LeftAlt))
+                    Game::SetState(Game::GetState() == GameState::Paused ? GameState::Game : GameState::Paused);
+
                 Editor::Bindings::Update(); // Using editor camera bindings
                 Editor::UpdateCamera(Render::Camera);
                 break;
