@@ -278,15 +278,8 @@ namespace Inferno::Resources {
         for (auto& entry : Pig.Entries) {
             auto& bmp = GetBitmap(entry.ID);
             entry.AverageColor = GetAverageColor(bmp.Data);
+            entry.AverageColor.AdjustSaturation(2); // boost saturation to look nicer
         }
-        //for (auto& tid : GameData.LevelTexIdx) {
-        //    auto id = LookupLevelTexID(tid);
-        //    if (!Seq::inRange(Pig.Entries, (int)id)) continue;
-
-        //    auto& entry = Pig.Entries[(int)id];
-        //    auto& bmp = ReadBitmap(id);
-        //    entry.AverageColor = GetAverageColor(bmp.Data);
-        //}
     }
 
     // Reads a file from the current mission or the file system

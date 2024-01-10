@@ -570,12 +570,20 @@ namespace Inferno::Editor {
             if (srcSeg.SideHasConnection(src.Side) && !srcSeg.SideIsWall(src.Side)) continue;
 
             Set<SegID> segmentsToLight = GetSegmentsInRange(level, src, ctx.Settings.DistanceThreshold);
-            Color tmapColor = Resources::GetTextureInfo(srcSide.TMap).AverageColor;
-            tmapColor.AdjustSaturation(2); // boost saturation to look nicer
-            ScaleColor2(tmapColor, 1); // 100% brightness
+            Color color = Resources::GetTextureInfo(srcSide.TMap).AverageColor;
+            //color.AdjustSaturation(2); // boost saturation to look nicer
+
+            //auto hsv = Vector3(DirectX::XMColorRGBToHSV(color));
+            //hsv.y = 1; // fully saturate
+            //color = DirectX::XMColorHSVToRGB(hsv);
+
+            //ColorRGBToRGBV(color);
+            //auto v = hsv.z;
+
+            //ScaleColor2(color, 1); // 100% brightness
             SideLightingDelta adjacent = light;
             for (auto& c : adjacent.Light)
-                c *= tmapColor; // premultiply the texture color into the light color
+                c *= color; // premultiply the texture color into the light color
 
             LightSegments(level, adjacent.Light, segmentsToLight, src, true, cast, ctx);
         }
