@@ -174,7 +174,7 @@ namespace Inferno {
         Vector3 AngularAcceleration;
         Vector3 AngularThrust; // Rotational acceleration from player input (pitch, yaw, roll)
         float TurnRoll; // Rotation caused by turn banking
-        PhysicsFlag Flags = PhysicsFlag::PointCollideWalls;
+        PhysicsFlag Flags{};
         Vector3 SpinRate; // Fixed speed rotation. Was part of Spinning type.
         int Bounces = 0; // Number of remaining bounces
         float Wiggle = 0; // Amplitude of wiggle

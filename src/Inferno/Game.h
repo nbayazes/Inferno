@@ -41,7 +41,7 @@ namespace Inferno::Game {
     constexpr Color MATCEN_PHASING_COLOR = Color(8, 0, 8);
     constexpr float MATCEN_SOUND_RADIUS = 300;
     constexpr float FRIENDLY_FIRE_MULT = 0.5f; // Multiplier on damage robots do to each other or themselves
-    constexpr float POWERUP_RADIUS_MULT = 1.25f; // Make powerups easier to pick up
+    constexpr float POWERUP_RADIUS_MULT = 2.00f; // Make powerups easier to pick up
 
     inline int Difficulty = 2; // 0 to 4 for trainee to insane
     inline int LevelNumber = 0; // Index of loaded level starting at 1. Secret levels are negative. 0 means no level loaded.
