@@ -212,7 +212,10 @@ namespace Inferno {
             }
 
             for (auto& sid : SIDE_IDS) {
-                if (seg->SideHasConnection(sid)) {
+                if (auto conn = level.TryGetSegment(seg->GetConnection(sid))) {
+                    if (conn->IsZeroVolume()) 
+                        continue; // Zero volume segs can't contain points
+
                     if (distances[(int)sid] < biggestVal) {
                         biggestVal = distances[(int)sid];
                         biggestSide = sid;

@@ -245,7 +245,7 @@ namespace Inferno {
         void UpdateGeometricProps(const Level&);
         float GetEstimatedVolume() const;
         float GetLongestEdge() const;
-        bool IsZeroVolume(Level&);
+        bool IsZeroVolume() const { return GetEstimatedVolume() < 0.01f; }
 
         // Returns the vertices of the segment
         Array<const Vector3*, 8> GetVertices(const Level&) const;

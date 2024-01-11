@@ -458,7 +458,7 @@ namespace Inferno::Editor {
 
                     // Move occlusion sample points off of faces to improve light wrapping around corners
                     auto destSamples =
-                        destSeg.IsZeroVolume(level)
+                        destSeg.IsZeroVolume()
                         ? InsetTowardsPointPercentage(destFace.Center() + destFace.AverageNormal() * 5, destFace, 0.25f)
                         : InsetTowardsPointPercentage(destSeg.Center, destFace, 0.1f);
 

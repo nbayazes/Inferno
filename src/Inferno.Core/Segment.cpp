@@ -153,23 +153,6 @@ namespace Inferno {
         return std::max(d0, std::max(d1, d2));
     }
 
-
-    bool Segment::IsZeroVolume(Level& level) {
-        auto front = Face::FromSide(level, *this, SideID::Front);
-        auto back = Face::FromSide(level, *this, SideID::Back);
-        if (front.Distance(back.Center()) <= 0.1f) return true;
-
-        auto bottom = Face::FromSide(level, *this, SideID::Bottom);
-        auto top = Face::FromSide(level, *this, SideID::Top);
-        if (bottom.Distance(top.Center()) <= 0.1f) return true;
-
-        auto right = Face::FromSide(level, *this, SideID::Right);
-        auto left = Face::FromSide(level, *this, SideID::Left);
-        if (right.Distance(left.Center()) <= 0.1f) return true;
-
-        return false;
-    }
-
     Array<const Vector3*, 8> Segment::GetVertices(const Level& level) const {
         auto front = GetVertexIndices(SideID::Front);
         auto back = GetVertexIndices(SideID::Back);
