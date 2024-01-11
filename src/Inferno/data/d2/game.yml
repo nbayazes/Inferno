@@ -559,7 +559,6 @@ Robots:
   - id: 2 # Spider
     CircleDistance: 80 # Hide in back and spawn spiderlings
     Mass: 5.5
-    Radius: 4.5 # Default radius is too large and causes problems in level 10 tunnels
   - id: 3 # Class 1 drone
     CircleDistance: 60
     FOV: [ 110, 130, 150, 170, 200 ]
@@ -610,7 +609,7 @@ Robots:
     Drag: 0.03
     FleeThreshold: 0.4 # Scout
     ChaseChance: 1
-    Radius: 5.0
+    Radius: 6.5 # Increase radius to help arm clipping through walls
     Curiosity: 0.95 # Scout
     GetBehind: 1
   - id: 9 # Heavy driller

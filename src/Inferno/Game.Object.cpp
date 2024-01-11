@@ -348,7 +348,7 @@ namespace Inferno {
             {
                 for (int i = 0; i < contains.Count; i++) {
                     Object spawn{};
-                    InitObject(level, spawn, ObjectType::Robot, contains.ID);
+                    InitObject(level, spawn, ObjectType::Robot, contains.ID, true);
                     spawn.Position = position;
                     spawn.Segment = segId;
                     spawn.Type = ObjectType::Robot;
@@ -814,6 +814,7 @@ namespace Inferno {
 
         obj.Rotation = VectorToRotation(goal, Vector3::Zero, obj.Rotation.Right());
         obj.Rotation.Forward(-obj.Rotation.Forward());
+        ASSERT(IsNormalized(obj.Rotation.Forward()));
     }
 
     void TurnTowardsPoint(Object& obj, const Vector3& point, float rate) {
@@ -1028,6 +1029,9 @@ namespace Inferno {
                 obj.Render.Type = RenderType::Model;
                 obj.HitPoints = ri.HitPoints;
                 obj.Render.Model.ID = ri.Model;
+                if (ri.Radius != 0)
+                    obj.Radius = ri.Radius; // Override radius with game table if present
+
                 if (ri.Cloaking != CloakType::None)
                     Game::CloakObject(obj, -1, false);
 

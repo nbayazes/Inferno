@@ -189,6 +189,7 @@ namespace Inferno {
         }
 
         obj.Rotation.Normalize();
+        //ASSERT(IsNormalized(obj.Rotation.Forward()));
     }
 
     // Applies wiggle to an object
