@@ -215,23 +215,6 @@ namespace Inferno::Game {
         }
     }
 
-    void UpdateLiveObjectCount() {
-        Stats::LiveObjects = 0;
-
-        if (auto currentRoom = GetCurrentRoom()) {
-            for (auto& roomId : currentRoom->VisibleRooms) {
-                auto room = Level.GetRoom(roomId);
-                if (!room) continue;
-
-                for (auto& segId : room->Segments) {
-                    if (auto seg = Level.TryGetSegment(segId)) {
-                        Stats::LiveObjects += (int)seg->Objects.size();
-                    }
-                }
-            }
-        }
-    }
-
     Object* GetObject(ObjRef ref) {
         if (!Seq::inRange(Level.Objects, (int)ref.Id)) return nullptr;
         auto& obj = Level.Objects[(int)ref.Id];
@@ -284,6 +267,7 @@ namespace Inferno::Game {
     void FixedUpdate(float dt) {
         FixedUpdateInput();
         Debug::ActiveRobots = 0;
+        Stats::LiveObjects = 0;
         Player.Update(dt);
         BeginAIFrame();
 
@@ -310,13 +294,27 @@ namespace Inferno::Game {
             UpdateEffects(obj, dt);
         }
 
-        if (auto currentRoom = GetCurrentRoom()) {
-            for (auto& segId : currentRoom->VisibleSegments) {
-                if (auto seg = Level.TryGetSegment(segId)) {
-                    for (auto& objId : seg->Objects) {
-                        auto obj = Level.TryGetObject(objId);
-                        if (obj && !ShouldAlwaysUpdate(*obj)) {
-                            FixedUpdateObject(dt, objId, *obj);
+
+        auto playerRoom = Level.GetRoomID(GetPlayerObject());
+
+        if (auto currentRoom = Level.GetRoom(playerRoom)) {
+            // Merge the nearby rooms with the visible rooms
+            List<RoomID> visibleRooms = currentRoom->NearbyRooms;
+            for (auto& id : Render::GetVisibleRooms()) {
+                if (!Seq::contains(visibleRooms, id)) visibleRooms.push_back(id);
+            }
+
+            for (auto& roomId : visibleRooms) {
+                if (auto room = Level.GetRoom(roomId)) {
+
+                    for (auto& segId : room->Segments) {
+                        if (auto seg = Level.TryGetSegment(segId)) {
+                            for (auto& objId : seg->Objects) {
+                                auto obj = Level.TryGetObject(objId);
+                                if (obj && !ShouldAlwaysUpdate(*obj)) {
+                                    FixedUpdateObject(dt, objId, *obj);
+                                }
+                            }
                         }
                     }
                 }
@@ -403,7 +401,7 @@ namespace Inferno::Game {
         if (Game::ShowDebugOverlay && Game::GetState() != GameState::Editor) {
             auto vp = ImGui::GetMainViewport();
             constexpr float topOffset = 50;
-            UpdateLiveObjectCount();
+            //UpdateLiveObjectCount();
             DrawDebugOverlay({ vp->Size.x, topOffset }, { 1, 0 });
             DrawGameDebugOverlay({ 10, topOffset }, { 0, 0 });
         }

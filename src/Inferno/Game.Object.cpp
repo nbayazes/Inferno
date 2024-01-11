@@ -763,6 +763,7 @@ namespace Inferno {
         if (HasFlag(obj.Flags, ObjectFlag::Updated)) return;
         SetFlag(obj.Flags, ObjectFlag::Updated);
         ObjRef ref{ id, obj.Signature };
+        Game::Stats::LiveObjects++;
 
         UpdatePhysics(Game::Level, id, dt);
         obj.Ambient.Update(Game::Time);

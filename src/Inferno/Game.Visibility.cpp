@@ -3,20 +3,20 @@
 
 namespace Inferno {
 
-    List<RoomID> GetRoomsByDepth(Inferno::Level& level, RoomID startRoom, float maxDistance) {
+    List<RoomID> GetRoomsByDepth(span<Room> rooms, RoomID startRoom, float maxDistance) {
         struct TravelInfo {
             Portal Portal;
             float Distance;
         };
 
         Stack<TravelInfo> stack;
-        Set<RoomID> rooms;
+        Set<RoomID> results;
         //SPDLOG_INFO("Traversing rooms");
 
         {
-            auto room = level.GetRoom(startRoom);
+            auto room = Seq::tryItem(rooms, (int)startRoom);
             if (!room) return {};
-            rooms.insert(startRoom);
+            results.insert(startRoom);
 
             for (auto& portal : room->Portals) {
                 stack.push({ portal, 0 });
@@ -26,12 +26,11 @@ namespace Inferno {
         while (!stack.empty()) {
             TravelInfo info = stack.top();
             stack.pop();
-            auto room = level.GetRoom(info.Portal.RoomLink);
+            auto room = Seq::tryItem(rooms, (int)info.Portal.RoomLink);
             if (!room) continue;
             //SPDLOG_INFO("Executing on room {} Distance {}", (int)info.Portal.RoomLink, info.Distance);
-            rooms.insert(info.Portal.RoomLink);
+            results.insert(info.Portal.RoomLink);
 
-            auto& startPortal = room->Portals[info.Portal.PortalLink];
             auto& portalDistances = room->PortalDistances[info.Portal.PortalLink];
 
             // check room portal distances
@@ -40,14 +39,14 @@ namespace Inferno {
                 auto distance = info.Distance + portalDistances[i];
                 auto& endPortal = room->Portals[i];
 
-                if (distance < maxDistance && !rooms.contains(startPortal.RoomLink)) {
+                if (distance < maxDistance && !results.contains(endPortal.RoomLink)) {
                     stack.push({ endPortal, distance });
                     //SPDLOG_INFO("Checking portal {}:{} dist: {}", endPortal.Tag.Segment, endPortal.Tag.Side, distance);
                 }
             }
         }
 
-        return Seq::ofSet(rooms);
+        return Seq::ofSet(results);
     }
 
 }

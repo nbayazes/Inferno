@@ -3,6 +3,7 @@
 #include "Game.Room.h"
 #include "Face.h"
 #include "Game.Segment.h"
+#include "Game.Visibility.h"
 #include "Physics.Capsule.h"
 #include "Physics.h"
 #include "ScopedTimer.h"
@@ -1028,13 +1029,13 @@ namespace Inferno::Game {
         ASSERT(steps >= 2);
         auto roomId = RoomID(&room - &rooms[0]);
         //SPDLOG_INFO("Room Visibility: {}", roomId);
-        room.VisibleRooms.clear();
-        room.VisibleRooms.push_back(roomId); // Can see self
+        room.NearbyRooms.clear();
+        room.NearbyRooms.push_back(roomId); // Can see self
 
         IntersectContext intersect(level);
 
         for (auto& srcPortal : room.Portals) {
-            room.VisibleRooms.push_back(srcPortal.RoomLink); // all adjacent rooms are visible
+            room.NearbyRooms.push_back(srcPortal.RoomLink); // all adjacent rooms are visible
             auto& srcSeg = level.GetSegment(srcPortal.Tag);
             auto srcFace = Face2::FromSide(level, srcSeg, srcPortal.Tag.Side);
             auto connectedSide = level.GetConnectedSide(srcPortal.Tag);
@@ -1064,7 +1065,7 @@ namespace Inferno::Game {
                 // Adds all portals in the room this portal links to
                 auto addLinkedRooms = [&visited, &room, &rooms, &stack](const Portal& portal) {
                     if (!visited.contains(portal.RoomLink)) {
-                        room.VisibleRooms.push_back(portal.RoomLink);
+                        room.NearbyRooms.push_back(portal.RoomLink);
                         visited.insert(portal.RoomLink);
 
                         if (auto nextRoom = GetRoom(rooms, portal.RoomLink))
@@ -1091,7 +1092,7 @@ namespace Inferno::Game {
                         // Add the final leaf room without recursion if it is nearby
                         constexpr float NEARBY_DIST = 120; // max dist for final leaf rooms
                         if (Vector3::Distance(srcFace.Center(), destFace.Center()) < NEARBY_DIST)
-                            room.VisibleRooms.push_back(destPortal->RoomLink);
+                            room.NearbyRooms.push_back(destPortal->RoomLink);
                     };
 
                     // Check if the portals are in front of each other (note that src plane is flipped)
@@ -1139,10 +1140,10 @@ namespace Inferno::Game {
             }
         }
 
-        Seq::distinct(room.VisibleRooms); // Clean up duplicates
+        Seq::distinct(room.NearbyRooms); // Clean up duplicates
 
         // Store visible segments
-        for (auto& rid : room.VisibleRooms) {
+        for (auto& rid : room.NearbyRooms) {
             if (auto pRoom = GetRoom(rooms, rid)) {
                 Seq::append(room.VisibleSegments, pRoom->Segments);
             }
@@ -1294,18 +1295,25 @@ namespace Inferno::Game {
         PrepassSolidEdges(level);
         SPDLOG_INFO("Room generation time {}", timer.GetElapsedSeconds());
 
-        timer = {};
-        List<Tuple<int, int>> visiblePortalLinks;
-        visiblePortalLinks.reserve(rooms.size() * 3);
+        //timer = {};
+        //List<Tuple<int, int>> visiblePortalLinks;
+        //visiblePortalLinks.reserve(rooms.size() * 3);
 
-        int visibilitySteps = 4;
+        //int visibilitySteps = 4;
 
-        for (auto& room : rooms) {
-            ComputeRoomVisibility(level, rooms, room, visiblePortalLinks, visibilitySteps);
-            //UpdateNavNodes(level, room);
+        //for (auto& room : rooms) {
+        //    ComputeRoomVisibility(level, rooms, room, visiblePortalLinks, visibilitySteps);
+        //    //UpdateNavNodes(level, room);
+        //}
+
+        //SPDLOG_INFO("Room visibility time {}", timer.GetElapsedSeconds());
+
+        constexpr float PORTAL_DEPTH = 200.0f;
+
+        // Use all nearby connected rooms up to a maximum distance as 'nearby'
+        for (int i = 0; i < rooms.size(); i++) {
+            Seq::append(rooms[i].NearbyRooms, GetRoomsByDepth(rooms, RoomID(i), PORTAL_DEPTH));
         }
-
-        SPDLOG_INFO("Room visibility time {}", timer.GetElapsedSeconds());
 
         return rooms;
     }

@@ -471,10 +471,19 @@ namespace Inferno::Render {
 
         Color color(0.39f, 0.58f, .93f, 0.5f);
 
-        for (auto& segId : room->VisibleSegments) {
+        for (auto& nid : room->NearbyRooms) {
+            if (auto r = level.GetRoom(nid)) {
+                for (auto& segId : r->Segments) {
+                    if (auto seg = level.TryGetSegment(segId))
+                        Debug::OutlineSegment(level, *seg, color);
+                }
+            }
+        }
+
+        /*for (auto& segId : room->VisibleSegments) {
             if (auto seg = level.TryGetSegment(segId))
                 Debug::OutlineSegment(level, *seg, color);
-        }
+        }*/
     }
 
     void DrawEditor(ID3D12GraphicsCommandList* cmdList, Level& level) {

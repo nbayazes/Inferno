@@ -18,7 +18,7 @@ namespace Inferno {
     struct Room {
         List<SegID> Segments;
         List<Portal> Portals; // Which tags of this room have connections to other rooms
-        List<RoomID> VisibleRooms; // Rooms potentially visible from this one
+        List<RoomID> NearbyRooms; // Rooms potentially visible from this one
         List<SegID> VisibleSegments; // Segments potentially visible from this room
         List<EffectID> Effects; // Effects visible in this room
         List<int> WallMeshes; // Index for which wall meshes to render

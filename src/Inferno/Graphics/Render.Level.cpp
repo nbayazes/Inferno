@@ -608,4 +608,8 @@ namespace Inferno::Render {
     int GetTransparentQueueSize() {
         return (int)_renderQueue.Transparent().size();
     }
+
+    span<RoomID> GetVisibleRooms() {
+        return _renderQueue.GetVisibleRooms();
+    }
 }
