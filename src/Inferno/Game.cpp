@@ -143,6 +143,12 @@ namespace Inferno::Game {
                 batch.End(Render::Adapter->BatchUploadQueue->Get());
             }
 
+            for (auto& seg : Level.Segments) {
+                // Clamp volume light if overly bright segments are saved
+                if (seg.VolumeLight.x == seg.VolumeLight.y && seg.VolumeLight.x == seg.VolumeLight.z && seg.VolumeLight.x > 2.0f)
+                    seg.VolumeLight = Color(1, 1, 1);
+            }
+
             Render::LoadLevel(Level);
             Render::ResetEffects();
             InitObjects(Game::Level);
@@ -306,7 +312,6 @@ namespace Inferno::Game {
 
             for (auto& roomId : visibleRooms) {
                 if (auto room = Level.GetRoom(roomId)) {
-
                     for (auto& segId : room->Segments) {
                         if (auto seg = Level.TryGetSegment(segId)) {
                             for (auto& objId : seg->Objects) {
