@@ -1074,6 +1074,7 @@ namespace Inferno {
 
                     float hitDistance = FLT_MAX;
                     Vector3 hitPoint, hitNormal;
+                    bool hitEdge = false;
 
 #ifdef DEBUG_LEVEL_OUTLINE
                     Render::Debug::DrawLine(p0, p1, { 0, 1, 0 });
@@ -1140,6 +1141,7 @@ namespace Inferno {
                                     tanVec = p0 - p2;
 
                                 tanVec.Normalize(tangent);
+                                hitEdge = true;
                             }
                         }
                     }
@@ -1148,7 +1150,7 @@ namespace Inferno {
                     if (hitDistance < -.5f && hitDistance > -obj.Radius) {
                         //if (obj.Type != ObjectType::Debris)
                         //    SPDLOG_WARN("Moved object {} to wall surface", Game::GetObjectRef(obj).Id);
-                        obj.Position = hit.Point + hit.Normal * obj.Radius;
+                        obj.Position = hitPoint + hitNormal * obj.Radius;
                     }
 
                     if (hitDistance < obj.Radius + 0.001f) {
@@ -1164,7 +1166,10 @@ namespace Inferno {
                             // bounce velocity is handled after all hits are resolved so that overlapping
                             // triangle edges don't double the effect
                         }
-                        else if (!HasFlag(obj.Physics.Flags, PhysicsFlag::Piercing) && !HasFlag(obj.Physics.Flags, PhysicsFlag::Stick)) {
+                        else if (/*!HasFlag(obj.Physics.Flags, PhysicsFlag::Piercing) &&*/ 
+                                 !HasFlag(obj.Physics.Flags, PhysicsFlag::Stick) && !hitEdge) {
+                            // Note that wall sliding is disabled when the object is touching the edge of a triangle.
+                            // Edge sliding would cause objects to randomly bounce off at high speeds.
                             obj.Physics.Velocity += hitNormal * hitSpeed; // slide along wall
                             //SPDLOG_INFO("Sliding along wall, speed: {}", hitSpeed);
                         }
