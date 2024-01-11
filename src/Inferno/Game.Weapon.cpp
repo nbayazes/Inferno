@@ -512,8 +512,7 @@ namespace Inferno::Game {
             }
         }
 
-        if (!weapon.Extended.PointCollideWalls)
-            ClearFlag(bullet.Physics.Flags, PhysicsFlag::PointCollideWalls);
+        SetFlag(bullet.Physics.Flags, PhysicsFlag::PointCollideWalls, weapon.Extended.PointCollideWalls);
 
         if (weapon.Extended.UseThrust)
             SetFlag(bullet.Physics.Flags, PhysicsFlag::UseThrust);
