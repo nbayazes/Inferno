@@ -268,5 +268,7 @@
     <None Include="shaders\UpsampleAndBlurCS.hlsl" />
     <None Include="shaders\Utility.hlsli" />
     <None Include="shaders\BloomExtractDownsampleCS.hlsl" />
+    <None Include="data\d2\game.yml" />
+    <None Include="shaders\UnpackBufferCS.hlsl" />
   </ItemGroup>
 </Project>

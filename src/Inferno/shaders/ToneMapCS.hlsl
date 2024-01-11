@@ -12,15 +12,20 @@
 // 
 // HDR input with Typed UAV loads (32 bit -> 24 bit assignment) to a SDR output
 
-#include "utility.hlsli"
+#include "Utility.hlsli"
+
+#ifndef SUPPORT_TYPED_UAV_LOADS
+#define SUPPORT_TYPED_UAV_LOADS 1
+#endif
 
 #define RS \
-    "RootConstants(b0, num32BitConstants = 7), " \
+    "RootConstants(b0, num32BitConstants = 8), " \
     "DescriptorTable(UAV(u0))," \
     "DescriptorTable(UAV(u1))," \
     "DescriptorTable(SRV(t0))," \
     "DescriptorTable(SRV(t1))," \
     "DescriptorTable(SRV(t2))," \
+    "DescriptorTable(SRV(t3))," \
     "StaticSampler(s0," \
         "addressU = TEXTURE_ADDRESS_CLAMP," \
         "addressV = TEXTURE_ADDRESS_CLAMP," \
@@ -28,10 +33,16 @@
         "filter = FILTER_MIN_MAG_MIP_LINEAR)"
 
 Texture2D<float3> Bloom : register(t0);
-Texture3D<float3> tony_mc_mapface_lut : register(t1);
+Texture3D<float3> TonyMcMapfaceLUT : register(t1);
 Texture2D<float3> Dirt : register(t2);
 
+#if SUPPORT_TYPED_UAV_LOADS
 RWTexture2D<float3> ColorRW : register(u0);
+#else
+RWTexture2D<uint> DstColor : register(u0);
+Texture2D<float3> SrcColor : register(t3);
+#endif
+
 RWTexture2D<float> OutLuma : register(u1);
 
 SamplerState LinearSampler : register(s0);
@@ -43,6 +54,7 @@ struct Constants {
     bool NewLightMode;
     int ToneMapper;
     bool EnableDirt;
+    bool EnableBloom;
 };
 
 ConstantBuffer<Constants> Args : register(b0);
@@ -114,14 +126,14 @@ float3 lumaBasedReinhardToneMapping(float3 color, float gamma = 1) {
 }
 
 // https://github.com/h3r2tic/tony-mc-mapface
-float3 tony_mc_mapface(float3 stimulus) {
+float3 TonyMcMapface(float3 stimulus) {
     // Apply a non-linear transform that the LUT is encoded with.
     const float3 encoded = stimulus / (stimulus + 1.0);
 
     // Align the encoded range to texel centers.
     const float LUT_DIMS = 48.0;
     const float3 uv = encoded * ((LUT_DIMS - 1.0) / LUT_DIMS) + 0.5 / LUT_DIMS;
-    return tony_mc_mapface_lut.SampleLevel(LinearSampler, uv, 0);
+    return TonyMcMapfaceLUT.SampleLevel(LinearSampler, uv, 0);
 }
 
 [RootSignature(RS)]
@@ -130,27 +142,33 @@ void main(uint3 DTid : SV_DispatchThreadID) {
     float2 TexCoord = (DTid.xy + 0.5) * Args.RcpBufferDim;
 
     // Load HDR and bloom
+#if SUPPORT_TYPED_UAV_LOADS
     float3 hdrColor = ColorRW[DTid.xy];
-    //if (l > 1.00)
-    //    hdrColor += (l - 1) / 3;
-    float3 bloom = Args.BloomStrength * Bloom.SampleLevel(LinearSampler, TexCoord, 0);
-    
-    hdrColor += bloom;
-    // todo: dirt texture needs to maintain aspect ratio when scaling
-    if (Args.EnableDirt)
-        hdrColor += Dirt.SampleLevel(LinearSampler, TexCoord, 0) * clamp(bloom * 20, 0, 4) * 0.4;
+#else
+    float3 hdrColor = SrcColor[DTid.xy];
+#endif
+
+    if (Args.EnableBloom) {
+        float3 bloom = Args.BloomStrength * Bloom.SampleLevel(LinearSampler, TexCoord, 0);
+        hdrColor += bloom;
+
+        // todo: dirt texture needs to maintain aspect ratio when scaling
+        if (Args.EnableDirt)
+            hdrColor += Dirt.SampleLevel(LinearSampler, TexCoord, 0) * clamp(bloom * 20, 0, 4) * 0.4;
+    }
+
     hdrColor *= Args.Exposure;
+
+    float3 sdrColor = hdrColor;
 
     // Tone map to SDR
     if (Args.NewLightMode) {
-        float3 toneMappedColor = hdrColor;
-
         switch (Args.ToneMapper) {
             case 0:
-                toneMappedColor = Uncharted2ToneMapping(hdrColor);
+                sdrColor = Uncharted2ToneMapping(hdrColor);
                 break;
             case 1:
-                toneMappedColor = tony_mc_mapface(hdrColor);
+                sdrColor = TonyMcMapface(hdrColor);
                 break;
             //case 2:
             //    toneMappedColor = reinhard_extended_luminance(hdrColor, 8.0);
@@ -170,9 +188,14 @@ void main(uint3 DTid : SV_DispatchThreadID) {
         // it also causes bright white areas to blend more smoothly
         //float t0 = max(0, smoothstep(0.2, 0.4, lum));
         float t0 = max(0, smoothstep(0, 2, lum));
-        hdrColor = toneMappedColor * t0 + hdrColor * (1 - t0); // slightly darker and more contrast in high ranges
+        sdrColor = sdrColor * t0 + hdrColor * (1 - t0); // slightly darker and more contrast in high ranges
     }
 
-    hdrColor = pow(hdrColor, 1.0 / 2.2); // linear to sRGB
-    ColorRW[DTid.xy] = hdrColor;
+    sdrColor = pow(sdrColor, 1.0 / 2.2); // linear to sRGB
+
+#if SUPPORT_TYPED_UAV_LOADS
+    ColorRW[DTid.xy] = sdrColor;
+#else
+    DstColor[DTid.xy] = Pack_R11G11B10_FLOAT(sdrColor);
+#endif
 }

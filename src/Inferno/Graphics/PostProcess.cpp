@@ -115,11 +115,17 @@ namespace Inferno::PostFx {
         Dispatch2D(commandList, dest);
     }
 
-    void ToneMapCS::Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& tonyMcMapface, PixelBuffer& bloom, PixelBuffer& colorDest, PixelBuffer& lumaDest, Texture2D& dirt) const {
+    void ToneMapCS::Execute(ID3D12GraphicsCommandList* commandList,
+                            PixelBuffer& tonyMcMapface,
+                            PixelBuffer& bloom,
+                            PixelBuffer& colorDest,
+                            PixelBuffer& lumaDest,
+                            PixelBuffer* source,
+                            Texture2D& dirt) const {
+        // todo: disable bloom option
         bloom.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
         tonyMcMapface.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
         if (dirt) dirt.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-        colorDest.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
         lumaDest.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
         struct ToneMapConstants {
@@ -129,6 +135,7 @@ namespace Inferno::PostFx {
             HlslBool NewLightMode;
             int32 ToneMapper;
             HlslBool EnableDirt;
+            HlslBool EnableBloom;
         };
 
         ToneMapConstants constants = {
@@ -137,17 +144,25 @@ namespace Inferno::PostFx {
             Exposure,
             (HlslBool)Settings::Graphics.NewLightMode,
             Settings::Graphics.ToneMapper,
-            (HlslBool)(dirt && Game::GetState() == GameState::Game)
+            (HlslBool)(dirt && Game::GetState() == GameState::Game),
+            (HlslBool)Settings::Graphics.EnableBloom
         };
 
+        commandList->SetPipelineState(_pso.Get());
         commandList->SetComputeRootSignature(_rootSignature.Get());
         commandList->SetComputeRoot32BitConstants(B0_Constants, sizeof(constants) / 4, &constants, 0);
-        commandList->SetComputeRootDescriptorTable(U0_Color, colorDest.GetUAV());
-        commandList->SetComputeRootDescriptorTable(U1_Luma, lumaDest.GetUAV());
         commandList->SetComputeRootDescriptorTable(T0_Bloom, bloom.GetSRV());
         commandList->SetComputeRootDescriptorTable(T1_LUT, tonyMcMapface.GetSRV());
         if (dirt) commandList->SetComputeRootDescriptorTable(T2_DIRT, dirt.GetSRV());
-        commandList->SetPipelineState(_pso.Get());
+
+        colorDest.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        commandList->SetComputeRootDescriptorTable(U0_Color, colorDest.GetUAV());
+
+        if (!Render::Adapter->TypedUAVLoadSupport_R11G11B10_FLOAT()) {
+            // Without UAV loads, need to separate the read and write buffers
+            source->Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+            commandList->SetComputeRootDescriptorTable(T3_SRC_COLOR, source->GetSRV());
+        }
 
         Dispatch2D(commandList, colorDest);
     }
@@ -195,7 +210,32 @@ namespace Inferno::PostFx {
         Upsample[3].AddShaderResourceView();
     }
 
-    void Bloom::LoadResources(DirectX::ResourceUploadBatch& batch) {
+    void UnpackPostBuffer::Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, PixelBuffer& dest) const {
+        PIXScopedEvent(commandList, PIX_COLOR_DEFAULT, "Unpack buffer");
+
+        commandList->SetPipelineState(_pso.Get());
+        commandList->SetComputeRootSignature(_rootSignature.Get());
+        source.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+        dest.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        commandList->SetComputeRootDescriptorTable(T0_SOURCE, source.GetSRV());
+        commandList->SetComputeRootDescriptorTable(U0_DEST, dest.GetUAV());
+        Dispatch2D(commandList, source);
+    }
+
+    void ToneMapping::Create(UINT width, UINT height, UINT scale) {
+        Buffers.Create(width / scale, height / scale);
+
+        if (!Render::Adapter->TypedUAVLoadSupport_R11G11B10_FLOAT()) {
+            _post.Create(L"Post process buffer", width, height, DXGI_FORMAT_R32_UINT, 1);
+            _post.AddUnorderedAccessView();
+            _post.AddShaderResourceView();
+        }
+        else {
+            _post.Release();
+        }
+    }
+
+    void ToneMapping::LoadResources(DirectX::ResourceUploadBatch& batch) {
         if (auto path = FileSystem::TryFindFile("tony_mc_mapface.dds")) {
             TonyMcMapFace.LoadDDS(batch, *path);
             TonyMcMapFace.AddShaderResourceView();
@@ -210,24 +250,41 @@ namespace Inferno::PostFx {
         }
     }
 
-    void Bloom::ReloadShaders() {
+    void ToneMapping::ReloadShaders() {
         BloomExtractDownsample.Load(L"shaders/BloomExtractDownsampleCS.hlsl");
         DownsampleBloom.Load(L"shaders/DownsampleBloomCS.hlsl");
         Upsample.Load(L"shaders/UpsampleAndBlurCS.hlsl");
-        ToneMap.Load(L"shaders/ToneMapCS.hlsl");
+        if (Render::Adapter->TypedUAVLoadSupport_R11G11B10_FLOAT())
+            ToneMap.Load(L"shaders/ToneMapCS.hlsl");
+        else
+            ToneMap.Load(L"shaders/ToneMapCS-NoUAVL.hlsl");
+
         Blur.Load(L"shaders/BlurCS.hlsl");
+        UnpackPost.Load("shaders/UnpackBufferCS.hlsl");
     }
 
-    void Bloom::Apply(ID3D12GraphicsCommandList* commandList, PixelBuffer& source) {
-        //g_Descriptors->SetDescriptorHeaps(commandList);
-        PIXScopedEvent(commandList, PIX_COLOR_DEFAULT, "Bloom");
-        BloomExtractDownsample.Execute(commandList, source, Buffers.DownsampleBlur, Buffers.DownsampleLuma);
-        DownsampleBloom.Execute(commandList, Buffers.DownsampleBlur, Buffers.Downsample[0]);
-        Blur.Execute(commandList, Buffers.Downsample[3], Buffers.Blur);
-        Upsample.Execute(commandList, Buffers.Downsample[2], Buffers.Blur, Buffers.Upsample[3]);
-        Upsample.Execute(commandList, Buffers.Downsample[1], Buffers.Upsample[3], Buffers.Upsample[2]);
-        Upsample.Execute(commandList, Buffers.Downsample[0], Buffers.Upsample[2], Buffers.Upsample[1]);
-        Upsample.Execute(commandList, Buffers.DownsampleBlur, Buffers.Upsample[1], Buffers.Upsample[0]);
-        ToneMap.Execute(commandList, TonyMcMapFace, Buffers.Upsample[0], source, Buffers.OutputLuma, Dirt);
+    void ToneMapping::Apply(ID3D12GraphicsCommandList* commandList, PixelBuffer& source) {
+        if (Settings::Graphics.EnableBloom) {
+            PIXScopedEvent(commandList, PIX_COLOR_DEFAULT, "Bloom");
+            BloomExtractDownsample.Execute(commandList, source, Buffers.DownsampleBlur, Buffers.DownsampleLuma);
+            DownsampleBloom.Execute(commandList, Buffers.DownsampleBlur, Buffers.Downsample[0]);
+            Blur.Execute(commandList, Buffers.Downsample[3], Buffers.Blur);
+            Upsample.Execute(commandList, Buffers.Downsample[2], Buffers.Blur, Buffers.Upsample[3]);
+            Upsample.Execute(commandList, Buffers.Downsample[1], Buffers.Upsample[3], Buffers.Upsample[2]);
+            Upsample.Execute(commandList, Buffers.Downsample[0], Buffers.Upsample[2], Buffers.Upsample[1]);
+            Upsample.Execute(commandList, Buffers.DownsampleBlur, Buffers.Upsample[1], Buffers.Upsample[0]);
+        }
+
+        {
+            PIXScopedEvent(commandList, PIX_COLOR_DEFAULT, "Tone map");
+
+            if (Render::Adapter->TypedUAVLoadSupport_R11G11B10_FLOAT()) {
+                ToneMap.Execute(commandList, TonyMcMapFace, Buffers.Upsample[0], source, Buffers.OutputLuma, nullptr, Dirt);
+            }
+            else {
+                ToneMap.Execute(commandList, TonyMcMapFace, Buffers.Upsample[0], _post, Buffers.OutputLuma, &source, Dirt);
+                UnpackPost.Execute(commandList, _post, source);
+            }
+        }
     }
 }

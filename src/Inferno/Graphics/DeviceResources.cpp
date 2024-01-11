@@ -167,16 +167,19 @@ namespace Inferno {
         m_d3dFeatureLevel = SUCCEEDED(hr) ? featLevels.MaxSupportedFeatureLevel : m_d3dMinFeatureLevel;
 
         {
-            D3D12_FEATURE_DATA_FORMAT_SUPPORT Support = {
+            D3D12_FEATURE_DATA_FORMAT_SUPPORT support = {
                 DXGI_FORMAT_R11G11B10_FLOAT,
                 D3D12_FORMAT_SUPPORT1_NONE,
                 D3D12_FORMAT_SUPPORT2_NONE
             };
 
-            if (SUCCEEDED(m_d3dDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &Support, sizeof(Support))) &&
-                (Support.Support2 & D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD) != 0) {
+            if (SUCCEEDED(m_d3dDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &support, sizeof(support))) &&
+                (support.Support2 & D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD) != 0) {
                 _typedUAVLoadSupport_R11G11B10_FLOAT = true;
                 SPDLOG_INFO("GPU supports R11G11B10 UAV Loading");
+            }
+            else {
+                SPDLOG_WARN("GPU does not support R11G11B10 UAV Loading");
             }
         }
 
@@ -457,7 +460,7 @@ namespace Inferno {
             Render::Effects->Compile(m_d3dDevice.Get(), Settings::Graphics.MsaaSamples);
             Scanline.Load(L"shaders/ScanlineCS.hlsl");
             Render::LightGrid->Load(L"shaders/FillLightGridCS.hlsl");
-            Render::Bloom->ReloadShaders();
+            Render::ToneMapping->ReloadShaders();
 
             CreateBuffers(width, height);
             PrintMemoryUsage();
@@ -622,7 +625,6 @@ namespace Inferno {
         BriefingScanlineBuffer.Create(L"Briefing scanline buffer", 640, 480, DXGI_FORMAT_R8G8B8A8_UNORM, { 0, 0, 0, 0 });
         BriefingScanlineBuffer.AddUnorderedAccessView();
         //FrameConstantsBuffer.CreateGenericBuffer(L"Frame constants");
-
 
         if (Settings::Graphics.MsaaSamples > 1) {
             MsaaColorBuffer.Create(L"MSAA Color Buffer", width, height, IntermediateFormat, clearColor, Settings::Graphics.MsaaSamples);

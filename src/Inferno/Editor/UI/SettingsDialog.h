@@ -149,7 +149,7 @@ namespace Inferno::Editor {
                 }(_graphics.MsaaSamples);
 
                 if (ImGui::SliderInt("##MSAA", &msaa, 0, (int)std::size(_msaaSamples) - 1, std::to_string(_msaaSamples[msaa]).c_str())) {
-                    _graphics.MsaaSamples = [&msaa]() {
+                    _graphics.MsaaSamples = [&msaa] {
                         switch (msaa) {
                             default:
                             case 0: return 1;
@@ -165,12 +165,9 @@ namespace Inferno::Editor {
                 ImGui::Checkbox("##filtering", &_graphics.HighRes);
                 ImGui::NextColumn();
 
-                {
-                    DisableControls disable(!Render::Adapter->TypedUAVLoadSupport_R11G11B10_FLOAT());
-                    ImGui::ColumnLabelEx("Bloom", "Bloom is an effect that has no impact on the level.\nCustom emissive textures are suggested to appear correctly.\n\nRequires a GPU that supports typed UAV loads");
-                    ImGui::Checkbox("##Bloom", &_graphics.EnableBloom);
-                    ImGui::NextColumn();
-                }
+                ImGui::ColumnLabel("Bloom");
+                ImGui::Checkbox("##Bloom", &_graphics.EnableBloom);
+                ImGui::NextColumn();
 
                 ImGui::ColumnLabel("Wireframe opacity");
                 ImGui::SetNextItemWidth(-1);
@@ -456,7 +453,7 @@ namespace Inferno::Editor {
                 uint i = 0;
                 for (auto& binding : Game::Bindings.GetBindings()) {
                     auto& label = Game::Bindings.GetLabel(binding.Action);
-                    if (label == "undefined") 
+                    if (label == "undefined")
                         continue;
 
                     ImGui::PushID(i++);

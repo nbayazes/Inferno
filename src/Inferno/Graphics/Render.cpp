@@ -161,7 +161,7 @@ namespace Inferno::Render {
                 SPDLOG_ERROR("tony_mc_mapface.dds not found");
             }
             else {
-                Bloom->LoadResources(batch);
+                ToneMapping->LoadResources(batch);
             }
         }
         catch (const std::exception& e) {
@@ -174,7 +174,7 @@ namespace Inferno::Render {
     void CreateDeviceDependentResources() {
         Shaders = MakePtr<ShaderResources>();
         Effects = MakePtr<EffectResources>(Shaders.get());
-        Bloom = MakePtr<PostFx::Bloom>();
+        ToneMapping = MakePtr<PostFx::ToneMapping>();
         MaterialInfoUploadBuffer = MakePtr<UploadBuffer<MaterialInfo>>(MATERIAL_COUNT);
         MaterialInfoBuffer = MakePtr<StructuredBuffer>();
         MaterialInfoBuffer->Create(L"MaterialInfo", sizeof MaterialInfo, MATERIAL_COUNT);
@@ -228,7 +228,7 @@ namespace Inferno::Render {
     }
 
     void CreateWindowSizeDependentResources(int width, int height) {
-        Bloom->Create(width, height);
+        ToneMapping->Create(width, height);
         LightGrid->CreateBuffers(width, height);
     }
 
@@ -290,7 +290,7 @@ namespace Inferno::Render {
         _meshBuffer.reset();
 
         Adapter.reset();
-        Bloom.reset();
+        ToneMapping.reset();
         LightGrid.reset();
         _postBatch.reset();
         Debug::Shutdown();
@@ -423,10 +423,7 @@ namespace Inferno::Render {
         ctx.SetViewportAndScissor((UINT)backBuffer->GetWidth(), (UINT)backBuffer->GetHeight());
 
         auto cmdList = ctx.GetCommandList();
-
-        if (Settings::Graphics.EnableBloom && Adapter->TypedUAVLoadSupport_R11G11B10_FLOAT())
-            Bloom->Apply(cmdList, Adapter->SceneColorBuffer);
-
+        ToneMapping->Apply(cmdList, Adapter->SceneColorBuffer);
         Adapter->SceneColorBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         // draw to backbuffer using a shader + polygon
         _postBatch->SetViewport(Adapter->GetScreenViewport());

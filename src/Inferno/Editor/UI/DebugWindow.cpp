@@ -102,27 +102,25 @@ namespace Inferno::Editor {
 
     void DebugWindow::OnUpdate() {
         {
+            ImGui::SeparatorText("Game");
             ImGui::Combo("Difficulty", &Game::Difficulty, "Trainee\0Rookie\0Hotshot\0Ace\0Insane");
             ImGui::SliderFloat("Sensitivity", &Settings::Inferno.MouseSensitivity, 0.001f, 0.050f);
             ImGui::Checkbox("Invert Y", &Settings::Inferno.InvertY);
             auto masterVol = Sound::GetVolume();
             if (ImGui::SliderFloat("Volume", &masterVol, 0, 1))
                 Sound::SetVolume(masterVol);
-
-            ImGui::Separator();
         }
 
         {
-            ImGui::Text("Cheats");
+            ImGui::SeparatorText("Cheats");
             ImGui::Checkbox("Disable weapon damage", &Settings::Cheats.DisableWeaponDamage);
             ImGui::Checkbox("Disable AI", &Settings::Cheats.DisableAI);
             ImGui::Checkbox("Show AI pathing", &Settings::Cheats.ShowPathing);
             ImGui::Checkbox("No wall collision", &Settings::Cheats.DisableWallCollision);
-            ImGui::Separator();
         }
 
         {
-            ImGui::Text("Player");
+            ImGui::SeparatorText("Player");
             auto blueKey = Game::Player.HasPowerup(PowerupFlag::BlueKey);
             auto goldKey = Game::Player.HasPowerup(PowerupFlag::GoldKey);
             auto redKey = Game::Player.HasPowerup(PowerupFlag::RedKey);
@@ -152,19 +150,21 @@ namespace Inferno::Editor {
             if (ImGui::Button("Reset inventory"))
                 ResetPlayerInventory();
 
-            ImGui::Separator();
         }
 
         {
+            ImGui::SeparatorText("Misc");
             ImGui::Checkbox("Load D3 data", &Settings::Inferno.Descent3Enhanced);
             ImGui::Checkbox("Draw lights", &Settings::Editor.ShowLights);
             ImGui::Checkbox("Draw Portals", &Settings::Editor.ShowPortals);
             ImGui::Checkbox("Outline visible rooms", &Settings::Graphics.OutlineVisibleRooms);
             ImGui::Checkbox("Outline boss teleport segs", &Settings::Editor.OutlineBossTeleportSegments);
-            ImGui::Separator();
         }
 
         {
+            ImGui::SeparatorText("Graphics");
+            ImGui::Checkbox("Bloom", &Settings::Graphics.EnableBloom);
+
             if (ImGui::Checkbox("Generate spec and normal maps", &Settings::Inferno.GenerateMaps)) {
                 Game::NeedsResourceReload = true;
             }
@@ -192,10 +192,11 @@ namespace Inferno::Editor {
                     Render::RenderScale = (renderScale + 1) / 4.0f;
             }
 
-            ImGui::Separator();
         }
 
         {
+            ImGui::SeparatorText("Path debugging");
+
             static bool stopAtKeyDoors = true;
 
             if (ImGui::Button("Set path target")) {

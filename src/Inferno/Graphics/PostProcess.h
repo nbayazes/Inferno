@@ -65,8 +65,17 @@ namespace Inferno::PostFx {
         void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& highResSrc, PixelBuffer& lowerResSrc, PixelBuffer& dest) const;
     };
 
+    // Unpacks a R32_UINT buffer to a color buffer
+    class UnpackPostBuffer : public ComputeShader {
+        enum { T0_SOURCE, U0_DEST };
+    public:
+        UnpackPostBuffer() : ComputeShader(8, 8) {}
+
+        void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, PixelBuffer& dest) const;
+    };
+
     class ToneMapCS : public ComputeShader {
-        enum RootSig { B0_Constants, U0_Color, U1_Luma, T0_Bloom, T1_LUT, T2_DIRT };
+        enum RootSig { B0_Constants, U0_Color, U1_Luma, T0_Bloom, T1_LUT, T2_DIRT, T3_SRC_COLOR };
 
     public:
         ToneMapCS() : ComputeShader(8, 8) {}
@@ -74,7 +83,13 @@ namespace Inferno::PostFx {
         float Exposure = 1.0f; // final scene exposure
         float BloomStrength = 0.35f;
 
-        void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& tonyMcMapface, PixelBuffer& bloom, PixelBuffer& colorDest, PixelBuffer& lumaDest, Texture2D& dirt) const;
+        void Execute(ID3D12GraphicsCommandList* commandList,
+                     PixelBuffer& tonyMcMapface,
+                     PixelBuffer& bloom, 
+                     PixelBuffer& colorDest,
+                     PixelBuffer& lumaDest,
+                     PixelBuffer* source,
+                     Texture2D& dirt) const;
     };
 
 
@@ -90,7 +105,9 @@ namespace Inferno::PostFx {
         void Create(UINT width, UINT height, DXGI_FORMAT format = DXGI_FORMAT_R11G11B10_FLOAT);
     };
 
-    class Bloom {
+    class ToneMapping {
+        ColorBuffer _post;
+
     public:
         // ExtractLumaCS ExtractLuma;
         BloomBuffers Buffers;
@@ -101,10 +118,9 @@ namespace Inferno::PostFx {
         BlurCS Blur;
         Texture3D TonyMcMapFace;
         Texture2D Dirt;
+        UnpackPostBuffer UnpackPost;
 
-        void Create(UINT width, UINT height, UINT scale = 3) {
-            Buffers.Create(width / scale, height / scale);
-        }
+        void Create(UINT width, UINT height, UINT scale = 3);
 
         void LoadResources(DirectX::ResourceUploadBatch& batch);
 

@@ -83,7 +83,7 @@ namespace Inferno::Graphics {
         uint32 _width = 1, _height = 1;
 
     public:
-        FillLightGridCS() : ComputeShader(LIGHT_GRID, LIGHT_GRID), _lightUploadBuffer(MAX_LIGHTS) { }
+        FillLightGridCS() : ComputeShader(LIGHT_GRID, LIGHT_GRID), _lightUploadBuffer(MAX_LIGHTS) {}
 
         const ByteAddressBuffer& GetBitMask() { return _bitMask; }
         const ByteAddressBuffer& GetLightGrid() { return _lightGrid; }
@@ -122,10 +122,16 @@ namespace Inferno::Graphics {
     };
 
     class LightBuffer {
-        Array<LightData, MAX_LIGHTS> _lights[2]{}; // double buffered
+        List<LightData> _lights[2]{}; // double buffered
         int _index = 0;
         int _dispatchCount = 0;
+
     public:
+        LightBuffer() {
+            _lights[0].resize(MAX_LIGHTS);
+            _lights[1].resize(MAX_LIGHTS);
+        }
+
         void Dispatch(ID3D12GraphicsCommandList* cmdList);
 
         void AddLight(const LightData&);

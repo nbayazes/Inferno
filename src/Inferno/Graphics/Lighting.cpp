@@ -88,7 +88,7 @@ namespace Inferno::Graphics {
 
     using namespace Render;
 
-    void ResetBuffer(Array<LightData, MAX_LIGHTS>& buffer) {
+    void ResetBuffer(span<LightData> buffer) {
         for (int i = 0; i < buffer.size(); i++) {
             buffer[i].radius = 0;
         }

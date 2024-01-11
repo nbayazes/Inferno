@@ -374,6 +374,10 @@
     <ClInclude Include="Shell.h" />
     <ClInclude Include="Editor\UI\TextureBrowserUI.h" />
     <ClInclude Include="Yaml.h" />
+    <None Include="data\d2\game.yml">
+      <FileType>Text</FileType>
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="shaders\Utility.hlsli">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
       <FileType>Document</FileType>
@@ -641,6 +645,12 @@
       <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)\shaders</DestinationFolders>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
       <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)\shaders</DestinationFolders>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\UnpackBufferCS.hlsl">
+      <DeploymentContent>true</DeploymentContent>
+      <FileType>Document</FileType>
     </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

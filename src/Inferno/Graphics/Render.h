@@ -22,7 +22,7 @@ namespace Inferno::Render {
     inline Ptr<DeviceResources> Adapter;
     inline Ptr<ShaderResources> Shaders;
     inline Ptr<EffectResources> Effects;
-    inline Ptr<Inferno::PostFx::Bloom> Bloom;
+    inline Ptr<Inferno::PostFx::ToneMapping> ToneMapping;
     inline Ptr<Inferno::PostFx::ScanlineCS> Scanline;
     inline Ptr<DirectX::PrimitiveBatch<ObjectVertex>> g_SpriteBatch;
     inline Ptr<Canvas2D> Canvas, BriefingCanvas, DebugCanvas;
