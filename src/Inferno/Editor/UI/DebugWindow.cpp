@@ -105,7 +105,10 @@ namespace Inferno::Editor {
             ImGui::SeparatorText("Game");
             ImGui::Combo("Difficulty", &Game::Difficulty, "Trainee\0Rookie\0Hotshot\0Ace\0Insane");
             ImGui::SliderFloat("Sensitivity", &Settings::Inferno.MouseSensitivity, 0.001f, 0.050f);
-            ImGui::Checkbox("Invert Y", &Settings::Inferno.InvertY);
+            ImGui::Checkbox("Invert mouse pitch", &Settings::Inferno.InvertY);
+            ImGui::Checkbox("Halve pitch speed", &Settings::Inferno.HalvePitchSpeed);
+            ImGui::SetItemTooltip("The original game limits pitch speed to half the yaw speed");
+
             auto masterVol = Sound::GetVolume();
             if (ImGui::SliderFloat("Volume", &masterVol, 0, 1))
                 Sound::SetVolume(masterVol);

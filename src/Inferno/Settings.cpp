@@ -483,6 +483,7 @@ namespace Inferno {
         node["InvertY"] << settings.InvertY;
         node["MouseSensitivity"] << settings.MouseSensitivity;
         node["Difficulty"] << Game::Difficulty;
+        node["HalvePitchSpeed"] << Settings::Inferno.HalvePitchSpeed;
     }
 
     void LoadGameSettings(ryml::NodeRef node, InfernoSettings& settings) {
@@ -492,6 +493,7 @@ namespace Inferno {
         ReadValue(node["InvertY"], settings.InvertY);
         ReadValue(node["MouseSensitivity"], settings.MouseSensitivity);
         ReadValue(node["Difficulty"], Game::Difficulty);
+        ReadValue(node["HalvePitchSpeed"], settings.HalvePitchSpeed);
         Game::Difficulty = std::clamp(Game::Difficulty, 0, 4);
     }
 
@@ -505,7 +507,6 @@ namespace Inferno {
             doc["MasterVolume"] << Settings::Inferno.MasterVolume;
             doc["GenerateMaps"] << Settings::Inferno.GenerateMaps;
             doc["Descent3Enhanced"] << Settings::Inferno.Descent3Enhanced;
-            doc["ShipWiggle"] << (int)Settings::Inferno.ShipWiggle;
 
             SaveGameSettings(doc["Game"], Settings::Inferno);
             WriteSequence(doc["DataPaths"], Settings::Inferno.DataPaths);

@@ -250,7 +250,8 @@ namespace Inferno {
             physics.AngularThrust.z += 1;
 
         // Clamp angular speeds
-        Vector3 maxAngVec(Settings::Inferno.LimitPitchSpeed ? maxAngularThrust / 2 : maxAngularThrust, maxAngularThrust, maxAngularThrust);
+        const auto maxPitch = Settings::Inferno.HalvePitchSpeed ? maxAngularThrust / 2 : maxAngularThrust;
+        Vector3 maxAngVec(maxPitch, maxAngularThrust, maxAngularThrust);
         physics.AngularThrust.Clamp(-maxAngVec, maxAngVec);
     }
 }
