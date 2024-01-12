@@ -846,16 +846,12 @@ namespace Inferno {
         if (ammo >= max)
             return 0;
 
-        bool canFire = CanFirePrimary(Primary);
         ammo += amount;
 
         if (ammo > max) {
             amount += max - ammo;
             ammo = max;
         }
-
-        if (!canFire)
-            AutoselectPrimary(); // maybe picking up ammo lets us fire a weapon
 
         return amount;
     }
@@ -1143,6 +1139,10 @@ namespace Inferno {
                     auto msg = fmt::format("{} vulcan rounds!", amount);
                     PrintHudMessage(msg);
                     used = true;
+
+                    // Picking up ammo lets us fire a weapon!
+                    if (!CanFirePrimary(Primary))
+                        AutoselectPrimary();
                 }
                 else {
                     PrintHudMessage(fmt::format("you already have {} vulcan rounds!", PrimaryAmmo[1]));
