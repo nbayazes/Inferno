@@ -252,7 +252,7 @@ Weapons:
     ExplosionColor: 1, 0.25, 0.0, 10
     FlashColor: 1, .5, .25, 3
     Size: 1.5 # was 1.5
-    Mass: 1.5 # was 1
+    Mass: 1.0 # was 1
 
   - id: 22
     Name: robot concussion missile
@@ -333,7 +333,7 @@ Weapons:
     LightColor: 0.1, 1, 0.1
     FlashColor: 1, 1, 1, 4
     Glow: 1, 1, 1, 1.5
-    Mass: 1
+    Mass: 0.15
     Thrust: 40 # Thrust to apply each second
     InitialSpeed: 22.5 # How fast when spawning
     HomingFov: 30
@@ -353,7 +353,7 @@ Weapons:
     LightColor: 0.1, 1, 0.1
     FlashColor: 1, 1, 1, 4
     Glow: 1, 1, 1, 1.5
-    Mass: 1
+    Mass: 0.15
     Thrust: 40 # Thrust to apply each second
     InitialSpeed: 22.5 # How fast when spawning
     HomingFov: 30 # Reduced due to overly aggressive tracking
@@ -364,7 +364,7 @@ Weapons:
     Name: mega missile
     Decal: scorchC
     DecalRadius: 8
-    Mass: 4
+    Mass: 2
     ExplosionColor: 15, 0.5, 0.5
     LightRadius: 40
     LightColor: 1, 0.08, 0.08, 2
@@ -379,7 +379,7 @@ Weapons:
     Name: robot mega missile
     Decal: scorchC
     DecalRadius: 8
-    Mass: 4
+    Mass: 2
     ExplosionColor: 15, 0.5, 0.5
     LightRadius: 40
     LightColor: 1, 0.01, 0.01, 2

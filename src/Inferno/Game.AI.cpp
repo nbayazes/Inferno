@@ -1667,6 +1667,8 @@ namespace Inferno {
     }
 
     void SupervisorBehavior(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float /*dt*/) {
+        if (Settings::Cheats.DisableAI) return;
+
         // Periodically alert allies while not idle
         if (ai.State != AIState::Idle && ai.AlertTimer <= 0 && ai.TargetPosition) {
             PlayAlertSound(robot, ai);
@@ -1704,6 +1706,8 @@ namespace Inferno {
     }
 
     void MineLayerBehavior(AIRuntime& ai, Object& robot, const RobotInfo& /*robotInfo*/, float /*dt*/) {
+        if (Settings::Cheats.DisableAI) return;
+
         ScanForTarget(robot, ai);
 
         // Periodically alert allies while not idle
@@ -1760,6 +1764,8 @@ namespace Inferno {
 
 
     void DefaultBehavior(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float dt) {
+        if (Settings::Cheats.DisableAI) return;
+
         switch (ai.State) {
             case AIState::Idle:
                 OnIdle(ai, robot, robotInfo);
@@ -1877,8 +1883,6 @@ namespace Inferno {
         //    ClearFlag(robot.Physics.Flags, PhysicsFlag::Gravity); // Unstunned
 
         AnimateRobot(robot, ai, dt);
-
-        if (Settings::Cheats.DisableAI) return;
 
         if (robot.NextThinkTime == NEVER_THINK || robot.NextThinkTime > Game::Time)
             return;
