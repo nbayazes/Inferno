@@ -7,6 +7,7 @@
 #include "Graphics/Render.h"
 #include "Graphics/CommandContext.h"
 #include "Convert.h"
+#include "Resources.h"
 
 using namespace std::chrono;
 using Inferno::Graphics::CommandContext;
@@ -221,8 +222,12 @@ namespace Inferno {
 
     void EnableProcedural(TexID id, bool enabled) {
         if (id == TexID::None) return;
-        if (auto proc = GetProcedural(id))
-            proc->Enabled = enabled;
+
+        if (auto proc = GetProcedural(id)) {
+            // Don't enable procedurals for custom textures
+            auto& ti = Resources::GetTextureInfo(id);
+            proc->Enabled = ti.Custom ? false : enabled;
+        }
     }
 
     ProceduralTextureBase::ProceduralTextureBase(const Outrage::TextureInfo& info, TexID baseTexture) {

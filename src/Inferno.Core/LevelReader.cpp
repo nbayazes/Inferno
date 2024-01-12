@@ -99,7 +99,7 @@ namespace Inferno {
                 i = _reader.ReadInt16();
         }
 
-        void ReadSegmentSpecial(StreamReader& reader, Segment& seg) {
+        void ReadSegmentSpecial(StreamReader& reader, Segment& seg) const {
             seg.Type = (SegmentType)reader.ReadByte();
             if (seg.Type >= SegmentType::Count)
                 throw Exception("Segment type is invalid");

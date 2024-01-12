@@ -40,7 +40,9 @@ namespace Inferno::Render {
 
     ProceduralTextureBase* GetLevelProcedural(LevelTexID id) {
         if (!Settings::Graphics.EnableProcedurals) return nullptr;
-        return GetProcedural(Resources::LookupTexID(id));
+        auto proc = GetProcedural(Resources::LookupTexID(id));
+        if (proc && proc->Enabled) return proc;
+        return nullptr;
     }
 
     void LevelDepthCutout(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd) {

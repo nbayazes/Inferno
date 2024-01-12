@@ -574,7 +574,7 @@ namespace Inferno {
                 AI::SetPath(*newObj, matcen.TriggerPath);
                 auto& ai = GetAI(*newObj);
                 ai.RemainingSlow = 2;
-                ai.State = AIState::Path;
+                ai.State = AIState::MatcenPath;
             }
         }
     }

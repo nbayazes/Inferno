@@ -405,15 +405,12 @@ namespace Inferno::Render {
         if (auto path = FileSystem::TryFindFile(baseName + "_s.dds"))
             material.Textures[Material2D::Specular].LoadDDS(batch, *path);
 
-        auto& info = Resources::GetTextureInfo(material.ID);
-
-        //if (!material.Textures[Material2D::Specular] && Resources::IsLevelTexture(upload.ID)) {
-        if (!material.Textures[Material2D::Specular] && info.Width == 64 && info.Height == 64 && Settings::Inferno.GenerateMaps) {
+        if (!material.Textures[Material2D::Specular] && Resources::IsLevelTexture(material.ID) && Settings::Inferno.GenerateMaps) {
             auto specular = CreateSpecularMap(*upload.Bitmap);
             material.Textures[Material2D::Specular].Load(batch, specular.data(), width, height, Convert::ToWideString(material.Name), true, DXGI_FORMAT_R8_UNORM);
         }
 
-        if (!material.Textures[Material2D::Normal] && info.Width == 64 && info.Height == 64 && Settings::Inferno.GenerateMaps) {
+        if (!material.Textures[Material2D::Normal] && Resources::IsLevelTexture(material.ID) && Settings::Inferno.GenerateMaps) {
             auto normal = CreateNormalMap(*upload.Bitmap);
             material.Textures[Material2D::Normal].Load(batch, normal.data(), width, height, Convert::ToWideString(material.Name), true, DXGI_FORMAT_R8G8B8A8_UNORM);
         }

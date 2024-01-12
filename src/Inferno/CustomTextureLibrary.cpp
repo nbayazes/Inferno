@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "CustomTextureLibrary.h"
 #include "Resources.h"
+#include "logging.h"
 
 namespace Inferno {
     constexpr std::array ROBOT_TEXTURES = {
@@ -17,7 +18,7 @@ namespace Inferno {
     };
 
     TextureType ClassifyTexture(const PigEntry& entry) {
-        if (Resources::GameData.LevelTexIdx[(int)entry.ID] != LevelTexID(255))
+        if (Resources::IsLevelTexture(entry.ID))
             return TextureType::Level;
 
         for (auto& filter : ROBOT_TEXTURES) {
@@ -86,7 +87,7 @@ namespace Inferno {
         if (paletteSize == 0)
             paletteSize = 1 << bmih.biBitCount;
 
-        if (bmfh.bfType != 'MB')
+        if (bmfh.bfType != 0x4D42) // BM
             throw Exception("Not a bitmap file");
 
         if ((bmih.biBitCount != 8 && bmih.biBitCount != 4) || paletteSize != 256)
@@ -196,7 +197,7 @@ namespace Inferno {
     size_t CustomTextureLibrary::WritePog(StreamWriter& writer, const Palette& palette) {
         if (_textures.empty()) return 0;
         auto startPos = writer.Position();
-        writer.Write<int32>('GOPD'); // Descent POG
+        writer.Write<int32>(MakeFourCC("DPOG")); // Descent POG
         writer.Write<int32>(1);
         writer.Write((int32)_textures.size());
 
@@ -254,7 +255,8 @@ namespace Inferno {
 
         auto fileId = reader.ReadInt32();
         auto version = reader.ReadInt32();
-        if (fileId != 'GOPD' || version != 1) {
+
+        if (fileId != MakeFourCC("DPOG")|| version != 1) {
             SPDLOG_WARN("POG file has incorrect header");
             return;
         }
