@@ -191,6 +191,7 @@ namespace Inferno::Game {
                 // todo: kill player, show "you have died in the mine" message
                 Render::ToneMapping->ToneMap.BloomStrength = .35f; // restore default
                 Render::ToneMapping->ToneMap.Exposure = 1;
+                Game::Player.ResetInventory();
                 SetState(GameState::Editor);
             }
         }

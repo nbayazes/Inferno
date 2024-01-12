@@ -156,7 +156,14 @@ namespace Inferno {
         void GiveExtraLife(uint8 lives = 1);
 
         void ApplyDamage(float damage, bool playSound);
+
+        // Fully resets the player inventory
+        void ResetInventory();
+
+        // Places the player at the spawn location and clears AI targeting.
+        // Optionally resets inventory and plays a materialize effect.
         void Respawn(bool died);
+
         void StartNewLevel(bool secret);
         float GetShipVisibility() const;
 

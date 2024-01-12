@@ -658,6 +658,23 @@ namespace Inferno {
         }
     }
 
+    void Player::ResetInventory() {
+        LaserLevel = 0;
+        PrimaryWeapons = 0;
+        SecondaryWeapons = 0;
+        Primary = PrimaryWeaponIndex::Laser;
+        Secondary = SecondaryWeaponIndex::Concussion;
+        PrimarySwapTime = PrimaryDelay = 0;
+        SecondarySwapTime = SecondaryDelay = 0;
+        Shields = 100;
+        Energy = 100;
+
+        for (int i = 0; i < 10; i++) {
+            SecondaryAmmo[i] = 0;
+            PrimaryAmmo[i] = 0;
+        }
+    }
+
     // Respawns the player at the current start location. Call with true to fully reset inventory.
     void Player::Respawn(bool died) {
         Input::ResetState(); // Clear input events so firing doesn't cause a shot on spawn
@@ -707,20 +724,7 @@ namespace Inferno {
         PyroGX.Weapons[(int)PrimaryWeaponIndex::Vulcan].MaxAmmo = Game::Level.IsDescent1() ? 10000 : 20000;
 
         if (died) {
-            LaserLevel = 0;
-            PrimaryWeapons = 0;
-            SecondaryWeapons = 0;
-            Primary = PrimaryWeaponIndex::Laser;
-            Secondary = SecondaryWeaponIndex::Concussion;
-            PrimarySwapTime = PrimaryDelay = 0;
-            SecondarySwapTime = SecondaryDelay = 0;
-            Shields = 100;
-            Energy = 100;
-
-            for (int i = 0; i < 10; i++) {
-                SecondaryAmmo[i] = 0;
-                PrimaryAmmo[i] = 0;
-            }
+            ResetInventory();
 
             // Play respawn effect
             Render::Particle p{};
