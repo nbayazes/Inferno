@@ -41,7 +41,16 @@ namespace Inferno {
         Chase, // Pursue target
         FindHelp, // Looking for help
         Path, // Path to a location, ignoring if a hostile is seen
+        MatcenPath // Path to a location
     };
+
+    //enum class PathFlags {
+    //    None,
+    //    HighPriority, // Don't stop pathing even if attacked
+    //    Attack // Attacks while pathing
+    //    FaceGoal // Always faces the final node in the path
+    //    FaceTarget // Always faces the target (enemy) if possible
+    //};
 
     // Sub-states used for the combat state
     enum class AICombatState {

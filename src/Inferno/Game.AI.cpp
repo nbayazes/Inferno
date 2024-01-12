@@ -744,6 +744,10 @@ namespace Inferno {
                 ai.TargetPosition = sourcePos;
                 ai.LastHitByPlayer = 0;
                 ai.Awareness = AI_AWARENESS_MAX;
+
+                // Break out of pathing if shot
+                if (ai.State == AIState::MatcenPath)
+                    ai.State = AIState::Combat;
             }
             else if (source->IsRobot()) {
                 Chat(robot, "Where are you aiming drone {}!?", source->Signature);
@@ -1779,17 +1783,22 @@ namespace Inferno {
             case AIState::Roam:
                 break;
             case AIState::Path:
+            case AIState::MatcenPath:
             {
                 bool fromMatcen = robot.SourceMatcen != MatcenID::None;
 
+                // Check if reached goal
                 if (!PathTowardsGoal(robot, ai, false, fromMatcen)) {
                     ai.ClearPath();
                     ai.State = AIState::Alert;
                 }
 
-                if (ScanForTarget(robot, ai)) {
-                    ai.ClearPath();
-                    ai.State = AIState::Combat;
+                if (ai.State == AIState::MatcenPath) {
+                    // Saw an enemy
+                    if (ScanForTarget(robot, ai)) {
+                        ai.ClearPath();
+                        ai.State = AIState::Combat;
+                    }
                 }
 
                 // todo: mode to follow path while fighting
