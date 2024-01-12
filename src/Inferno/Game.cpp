@@ -433,6 +433,11 @@ namespace Inferno::Game {
 
         // escape cancels sequence?
 
+        // restore default exposure in case the reactor started going critical.
+        // todo: this should blend back to normal instead of being instant
+        Render::ToneMapping->ToneMap.BloomStrength = .35f;
+        Render::ToneMapping->ToneMap.Exposure = 1;
+
         SetState(GameState::Editor); // just exit for now
     }
 
