@@ -478,7 +478,7 @@ namespace Inferno {
         if (FiringIndex >= sequence.size()) FiringIndex = 0;
 
         for (uint8 i = 0; i < 8; i++) {
-            bool quadFire = HasPowerup(PowerupFlag::QuadLasers) && Ship.Weapons[(int)Primary].QuadGunpoints[i];
+            bool quadFire = HasPowerup(PowerupFlag::QuadFire) && Ship.Weapons[(int)Primary].QuadGunpoints[i];
             if (sequence[FiringIndex].Gunpoints[i] || quadFire) {
                 auto& behavior = Game::GetWeaponBehavior(weapon.Extended.Behavior);
                 behavior(*this, i, id);
@@ -752,7 +752,7 @@ namespace Inferno {
             //GivePowerup(PowerupFlag::AmmoRack);
             //GivePowerup(PowerupFlag::Headlight);
             //GivePowerup(PowerupFlag::FullMap);
-            GivePowerup(PowerupFlag::QuadLasers);
+            GivePowerup(PowerupFlag::QuadFire);
             LaserLevel = Game::Level.IsDescent2() ? 5 : 3;
 
             PrimaryWeapons = 0xffff;
@@ -800,7 +800,7 @@ namespace Inferno {
 
     float Player::GetWeaponEnergyCost(const Weapon& weapon) const {
         bool quadFire = false;
-        if (HasPowerup(PowerupFlag::QuadLasers)) {
+        if (HasPowerup(PowerupFlag::QuadFire)) {
             for (auto& gp : Ship.Weapons[(int)Primary].QuadGunpoints) {
                 if (gp) {
                     quadFire = true;
@@ -1180,7 +1180,7 @@ namespace Inferno {
                 break;
 
             case PowerupID::QuadFire:
-                used = pickUpAccesory(PowerupFlag::QuadLasers, Resources::GetString(GameString::QuadLasers));
+                used = pickUpAccesory(PowerupFlag::QuadFire, Resources::GetString(GameString::QuadLasers));
                 break;
 
             case PowerupID::FullMap:
@@ -1487,7 +1487,7 @@ namespace Inferno {
             }
         };
 
-        dropPowerup(PowerupFlag::QuadLasers, PowerupID::QuadFire);
+        dropPowerup(PowerupFlag::QuadFire, PowerupID::QuadFire);
         dropPowerup(PowerupFlag::Cloak, PowerupID::Cloak);
         dropPowerup(PowerupFlag::FullMap, PowerupID::FullMap);
         dropPowerup(PowerupFlag::Afterburner, PowerupID::Afterburner);

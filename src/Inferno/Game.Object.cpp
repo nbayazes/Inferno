@@ -336,7 +336,8 @@ namespace Inferno {
                     (pid == PowerupID::Plasma && Game::Player.HasWeapon(PrimaryWeaponIndex::Plasma)) ||
                     (pid == PowerupID::Phoenix && Game::Player.HasWeapon(PrimaryWeaponIndex::Phoenix)) ||
                     (pid == PowerupID::Fusion && Game::Player.HasWeapon(PrimaryWeaponIndex::Fusion)) ||
-                    (pid == PowerupID::Omega && Game::Player.HasWeapon(PrimaryWeaponIndex::Omega)))
+                    (pid == PowerupID::Omega && Game::Player.HasWeapon(PrimaryWeaponIndex::Omega)) ||
+                    (pid == PowerupID::QuadFire && Game::Player.HasPowerup(PowerupFlag::QuadFire)))
                     pid = PowerupID::Energy;
 
                 for (int i = 0; i < contains.Count; i++)

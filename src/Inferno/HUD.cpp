@@ -237,7 +237,7 @@ namespace Inferno {
         // cross deactivates when no primary or secondary weapons are available
         int crossFrame = primaryReady || secondaryReady ? 1 : 0;
 
-        bool quadLasers = Game::Player.HasPowerup(PowerupFlag::QuadLasers) && Game::Player.Primary == PrimaryWeaponIndex::Laser;
+        bool quadLasers = Game::Player.HasPowerup(PowerupFlag::QuadFire) && Game::Player.Primary == PrimaryWeaponIndex::Laser;
         int primaryFrame = primaryReady ? (quadLasers ? 2 : 1) : 0;
         DrawReticleBitmap(crossOffset, Gauges::ReticleCross, crossFrame, scale); // gauss, vulkan
         DrawReticleBitmap(primaryOffset, Gauges::ReticlePrimary, primaryFrame, scale);
@@ -359,7 +359,7 @@ namespace Inferno {
         switch (weaponIndex) {
             case PrimaryWeaponIndex::Laser:
             {
-                if (player.HasPowerup(PowerupFlag::QuadLasers))
+                if (player.HasPowerup(PowerupFlag::QuadFire))
                     label = fmt::format("laser\nlvl: {}\nquad", state.LaserLevel + 1);
                 else
                     label = fmt::format("laser\nlvl: {}", state.LaserLevel + 1);

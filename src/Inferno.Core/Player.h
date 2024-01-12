@@ -14,7 +14,7 @@ namespace Inferno {
         AmmoRack = 1 << 7,
         Converter = 1 << 8, // Energy to shield converter
         FullMapCheat = 1 << 9, // Same as full map, except unexplored areas aren't blue
-        QuadLasers = 1 << 10,
+        QuadFire = 1 << 10,
         Cloak = 1 << 11,
         Afterburner = 1 << 12,
         Headlight = 1 << 13,
