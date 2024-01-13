@@ -1018,7 +1018,7 @@ namespace Inferno {
                     ammo -= amount;
                     if (!used && amount > 0) {
                         AddScreenFlash(FLASH_PRIMARY);
-                        PrintHudMessage(fmt::format("{}!", Resources::GetString(GameString::VulcanAmmo)));
+                        PrintHudMessage(fmt::format("{} vulcan rounds!", amount));
                         ammoPickedUp = true;
                         if (ammo == 0)
                             used = true; // remove object if all ammo was taken
