@@ -70,6 +70,8 @@ namespace Inferno::Render {
         constexpr Color GoalBlue = { 0.5, 0.5, 0.9354839f };
         constexpr Color GoalBlueFill = { 0.5, 0.5, 0.9354839f, FillAlpha * 3 };
 
+        constexpr Color Path = { 0.25, .5, 1 };
+
         constexpr Tuple<Color, Color> ForSegment(SegmentType type) {
             switch (type) {
                 case SegmentType::Energy: return { Colors::Fuelcen, Colors::FuelcenFill };

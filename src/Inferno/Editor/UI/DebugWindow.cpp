@@ -201,12 +201,16 @@ namespace Inferno::Editor {
             ImGui::SeparatorText("Path debugging");
 
             static bool stopAtKeyDoors = true;
+            static int pathLength = 10;
+            ImGui::SliderInt("Path length", &pathLength, 5, 30);
 
-            if (ImGui::Button("Set path target")) {
+            if (ImGui::Button("Generate path")) {
                 if (auto obj = Game::Level.TryGetObject(Editor::Selection.Object)) {
+                    auto flags = stopAtKeyDoors ? NavigationFlag::None : NavigationFlag::OpenKeyDoors;
                     //auto path = Game::Navigation.NavigateTo(obj->Segment, Editor::Selection.Segment, NavigationFlags::None, Game::Level);
-                    auto path = GenerateRandomPath(Editor::Selection.Segment, 20, NavigationFlag::OpenKeyDoors);
+                    auto path = GenerateRandomPath(Editor::Selection.Segment, pathLength, flags);
                     List<NavPoint> original = path;
+                    Debug::Path = path;
                     //OptimizePath(path);
 
                     if (obj->IsRobot()) {
@@ -234,11 +238,6 @@ namespace Inferno::Editor {
                         //ai.CurveProgress = 1;
                     }
 
-                    Debug::NavigationPath.clear();
-
-                    for (auto& node : path) {
-                        Debug::NavigationPath.push_back(node);
-                    }
 
                     //for (auto& node : original) {
                     //    Debug::NavigationPath.push_back(node);
@@ -248,6 +247,8 @@ namespace Inferno::Editor {
 
             ImGui::SameLine();
             ImGui::Checkbox("Stop at key doors", &stopAtKeyDoors);
+
+            ImGui::Text("Path nodes: %i", Debug::Path.size());
 
             if (ImGui::Button("Update rooms")) {
                 Game::Level.Rooms = Game::CreateRooms(Game::Level);

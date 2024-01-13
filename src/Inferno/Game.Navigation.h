@@ -13,7 +13,7 @@ namespace Inferno {
     };
 
     namespace Debug {
-        inline List<NavPoint> NavigationPath;
+        inline List<NavPoint> Path, OptimizedPath;
     }
 
     class NavigationNetwork {

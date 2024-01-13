@@ -528,9 +528,10 @@ namespace Inferno {
 
         struct Visited {
             SegID id = SegID::None, parent = SegID::None;
+            uint depth = 0;
         };
 
-        static List<SegID> queue;
+        static List<Visited> queue;
         static List<Visited> visited;
 
         visited.resize(level.Segments.size());
@@ -542,13 +543,14 @@ namespace Inferno {
 
         queue.clear();
         queue.reserve(depth);
-        queue.push_back(start);
+        queue.push_back({ start, SegID::None, 0 });
 
         uint index = 0;
+
         std::array sideLookup = SIDE_IDS;
         while (index < queue.size()) {
-            SegID segid = queue[index++];
-            if (index >= depth) break;
+            auto& [segid, parent, parentDepth] = queue[index++];
+            if (parentDepth >= depth) break;
 
             auto seg = level.TryGetSegment(segid);
             if (!seg) continue;
@@ -570,12 +572,14 @@ namespace Inferno {
                     continue; // Don't path through reactor segments
 
                 node.parent = segid;
-                queue.push_back(conn);
+                node.depth = parentDepth + 1;
+                queue.push_back({ conn, segid, parentDepth + 1 });
             }
         }
 
-        SegID current = queue.back();
+        SegID current = queue.back().id;
 
+        // Trace the visited segments
         while (current != SegID::None) {
             auto& seg = level.GetSegment(current);
             path.push_back({ current, seg.Center }); // Add seg center
@@ -643,9 +647,6 @@ namespace Inferno {
         for (auto& side : SIDE_IDS) {
             auto face = Face2::FromSide(level, *seg, side);
 
-            //if (ray.direction.Dot(face.AverageNormal()) >= 0)
-            //    continue; // Don't hit backfaces
-
             float dist{};
             auto tri = face.Intersects(ray, dist);
             if (tri == -1) continue; // no hit on this side
@@ -664,9 +665,10 @@ namespace Inferno {
 
     void OptimizePath(List<NavPoint>& path) {
         if (path.empty()) return;
-        float objRadius = 8;
 
-        List<NavPoint> buffer;
+        ASSERT_STA();
+        static List<NavPoint> buffer;
+        buffer.clear();
         buffer.reserve(path.size());
         buffer.push_back(path.front());
 
@@ -679,7 +681,10 @@ namespace Inferno {
                 Ray ray = { path[i].Position, dir };
                 RayQuery query{ .MaxDistance = dist + 5.0f, .Start = path[i].Segment };
                 LevelHit hit;
-                ASSERT(dir != Vector3::Zero);
+
+                if (dir == Vector3::Zero)
+                    continue; // identical nodes, skip it
+
                 // Checking for > 1 is in the case where the segments are too small for the radius even without splitting
                 if (offset > 1 && Game::Intersect.RayLevel(ray, query, hit)) {
                     /*if(offset > 1) {
@@ -696,8 +701,10 @@ namespace Inferno {
 
         path = buffer;
         buffer.clear();
-        //return;
 
+        // Smoothing code fails randomly, disable for now
+#ifdef SMOOTHING
+        float objRadius = 8;
         //SPDLOG_INFO("Optimizing path");
 
         // now check if the remaining nodes are too close to segment edges
@@ -712,9 +719,19 @@ namespace Inferno {
 
             //Vector3 prevHitPoint;
 
+            uint iter = 0;
+
             // Check each segment along the path for being too close
             while (curNode.Segment != path[i + 1].Segment) {
                 auto [dir, dist] = GetDirectionAndDistance(path[i + 1].Position, curNode.Position);
+
+                if (iter++ >= path.size() * 2) {
+                    __debugbreak();
+                    Debug::Path = path;
+                    Debug::OptimizedPath = buffer;
+                    SPDLOG_WARN("PATH FAILURE: GOT STUCK");
+                    return;
+                }
 
                 //SPDLOG_INFO("Raytest seg: {}", curNode.Segment);
 
@@ -722,7 +739,11 @@ namespace Inferno {
                 auto hit = IntersectSegmentPathing(Game::Level, ray, curNode.Segment);
                 if (!hit) {
                     //__debugbreak();
-                    SPDLOG_WARN("PATH FAILURE: NO SEG-RAY HIT");
+                    SPDLOG_WARN("PATH FAILURE: NO SEG-RAY HIT IN SEG {}", curNode.Segment);
+                    Debug::RayStart = ray.position;
+                    Debug::RayEnd = ray.position + ray.direction * 10;
+                    Debug::Path = path;
+                    Debug::OptimizedPath = buffer;
                     return; // return the original path
                 }
                 //auto edgeDistance = hit.EdgeDistance;
@@ -757,17 +778,19 @@ namespace Inferno {
                     curNode.Segment = TraceSegment(Game::Level, curNode.Segment, curNode.Position);
                     buffer.push_back(curNode/* { nodeSeg, position }*/);
 
-                    if (buffer.size() > 100) {
+                    if (buffer.size() > 50) {
                         // This is rarely caused by a logic error in the hit tag traversal
+                        __debugbreak();
+                        Debug::Path = path;
+                        Debug::OptimizedPath = buffer;
                         SPDLOG_WARN("PATH FAILURE: BUFFER SIZE EXCEEDED");
                         return; // return the original path
                     }
                 }
 
-                //prevHitPoint = hit.Point;
+                // This can get stuck if the point is exactly on the segment side
                 curNode.Segment = Game::Level.GetConnectedSide(hit.Tag).Segment;
                 //nodeSeg = Game::Level.GetConnectedSide(hit.Tag).Segment; // Get the next segment in the path
-                //nodePoint
             }
         }
 
@@ -789,5 +812,6 @@ namespace Inferno {
         //}
 
         //path = buffer;
+#endif
     }
 }

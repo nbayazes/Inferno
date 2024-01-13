@@ -539,9 +539,12 @@ namespace Inferno::Render {
         {
             Debug::DrawLine(Inferno::Debug::RayStart, Inferno::Debug::RayEnd, Color(1, 0, 0));
             Debug::DrawPoint(Inferno::Debug::RayStart, Color(1, 0, 0));
-            Debug::DrawPoint(Inferno::Debug::RayEnd, Color(1, 0, 0));
+            //Debug::DrawPoint(Inferno::Debug::RayEnd, Color(1, 0, 0));
+
+            DrawPath(Inferno::Debug::Path, Colors::Path);
+            DrawPath(Inferno::Debug::OptimizedPath, Color(1, 0, 0));
         }
-        DrawPath(Inferno::Debug::NavigationPath, Color(0.25, .5, 1));
+
         DrawRooms(level);
         OutlineBossTeleportSegments();
 
