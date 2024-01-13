@@ -5,7 +5,7 @@
 #include "Level.h"
 
 namespace Inferno {
-    enum class NavigationFlags {
+    enum class NavigationFlag {
         None,
         OpenKeyDoors = 1 << 0, // Can open key doors. Player must have the key.
         OpenSecretDoors = 1 << 1, // Can open secret doors. Door must be unlocked.
@@ -51,7 +51,7 @@ namespace Inferno {
             }
         }
 
-        List<NavPoint> NavigateTo(SegID start, const NavPoint& goal, NavigationFlags flags, struct Level& level, float maxDistance = FLT_MAX);
+        List<NavPoint> NavigateTo(SegID start, const NavPoint& goal, NavigationFlag flags, struct Level& level, float maxDistance = FLT_MAX);
 
     private:
         void UpdateNode(struct Level& level, SegID segId) {
@@ -72,29 +72,33 @@ namespace Inferno {
             return Vector3::DistanceSquared(a.Position, b.Position);
         }
 
-        List<RoomID> NavigateAcrossRooms(RoomID start, RoomID goal, NavigationFlags flags, struct Level& level);
+        List<RoomID> NavigateAcrossRooms(RoomID start, RoomID goal, NavigationFlag flags, struct Level& level);
 
         List<SegID> NavigateWithinRoom(SegID start, SegID goal, Room& room);
     };
 
-    enum class IterateFlags {
+    enum class TraversalFlag {
         None,
         StopWall = 1 << 1, // Stop at any wall (except fly-through triggers)
         StopOpaqueWall = 1 << 2, // Stop at walls that block sight. Includes doors.
-        StopDoor = 1 << 3, // Stop at any doors
+        StopDoor = 1 << 3, // Stop at doors
         StopLockedDoor = 1 << 4, // Stop at locked doors
         StopKeyDoor = 1 << 5, // Stop at keyed doors
+        StopSecretDoor = 1 << 6, // Stop at secret doors
+        PassOpenDoors = 1 << 7, // Always traverse open doors regardless of lock or key state
     };
 
-    void IterateNearbySegments(Level& level, NavPoint start, float distance, IterateFlags flags, const std::function<void(Segment&, bool&)>&);
+    bool StopAtWall(const Level& level, const Wall& wall, TraversalFlag flags);
+
+    void IterateNearbySegments(Level& level, NavPoint start, float distance, TraversalFlag flags, const std::function<void(Segment&, bool&)>&);
     
     // Returns false if a side is blocked for navigation purposes
-    bool CanNavigateSide(Level& level, Tag tag, NavigationFlags flags);
+    bool CanNavigateSide(Level& level, Tag tag, NavigationFlag flags);
 
     // Executes a function on each room based on portal distance from a point. Action returns true to stop traversal.
     void TraverseRoomsByDistance(Inferno::Level& level, RoomID startRoom, const Vector3& position, 
                                  float maxDistance, bool soundMode, const std::function<bool(Room&)>& action);
 
-    List<NavPoint> GenerateRandomPath(SegID start, uint depth, NavigationFlags flags = NavigationFlags::None, SegID avoid = SegID::None);
+    List<NavPoint> GenerateRandomPath(SegID start, uint depth, NavigationFlag flags = NavigationFlag::None, SegID avoid = SegID::None);
     void OptimizePath(List<NavPoint>& path);
 }

@@ -280,7 +280,7 @@ namespace Inferno {
     bool FindNearbyCloak(const NavPoint& start, float distance) {
         bool foundCloak = false;
 
-        IterateNearbySegments(Game::Level, start, distance, IterateFlags::None, [&foundCloak](const Segment& seg, bool& stop) {
+        IterateNearbySegments(Game::Level, start, distance, TraversalFlag::None, [&foundCloak](const Segment& seg, bool& stop) {
             for (auto& id : seg.Objects) {
                 if (auto obj = Game::Level.TryGetObject(id)) {
                     if (obj->IsPowerup() && obj->ID == (int)PowerupID::Cloak) {
@@ -526,7 +526,7 @@ namespace Inferno {
         ObjRef id;
         float bestDist = FLT_MAX;
 
-        IterateNearbySegments(Game::Level, point, maxDist, IterateFlags::StopOpaqueWall, [&](const Segment& seg, bool) {
+        IterateNearbySegments(Game::Level, point, maxDist, TraversalFlag::StopOpaqueWall, [&](const Segment& seg, bool) {
             for (auto& objid : seg.Objects) {
                 auto obj = Game::Level.TryGetObject(objid);
                 if (!obj->PassesMask(mask) || !obj->IsAlive() || obj->IsCloaked()) continue;
@@ -764,7 +764,7 @@ namespace Inferno {
         if (HasFlag(obj.Flags, ObjectFlag::Updated)) return;
         SetFlag(obj.Flags, ObjectFlag::Updated);
         ObjRef ref{ id, obj.Signature };
-        Game::Stats::LiveObjects++;
+        Game::Debug::LiveObjects++;
 
         UpdatePhysics(Game::Level, id, dt);
         obj.Ambient.Update(Game::Time);

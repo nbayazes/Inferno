@@ -616,10 +616,10 @@ namespace Inferno {
         if (auto tseg = level.TryGetSegment(triggerSeg)) {
             // Try to generate a path to the trigger, prefering to avoid key doors.
             NavPoint goal = { triggerSeg, tseg->Center };
-            matcen->TriggerPath = Game::Navigation.NavigateTo(segId, goal, NavigationFlags::None, level);
+            matcen->TriggerPath = Game::Navigation.NavigateTo(segId, goal, NavigationFlag::None, level);
 
             if (matcen->TriggerPath.empty())
-                matcen->TriggerPath = Game::Navigation.NavigateTo(segId, goal, NavigationFlags::OpenKeyDoors, level);
+                matcen->TriggerPath = Game::Navigation.NavigateTo(segId, goal, NavigationFlag::OpenKeyDoors, level);
 
             if (matcen->TriggerPath.empty())
                 matcen->TriggerPath = GenerateRandomPath(segId, 8); // No path, generate random nearby location

@@ -42,6 +42,7 @@ namespace Inferno::Game {
     constexpr float MATCEN_SOUND_RADIUS = 300;
     constexpr float FRIENDLY_FIRE_MULT = 0.5f; // Multiplier on damage robots do to each other or themselves
     constexpr float POWERUP_RADIUS_MULT = 2.00f; // Make powerups easier to pick up
+    constexpr float NEARBY_PORTAL_DEPTH = 150.0f; // How far to search when determining 'nearby' rooms
 
     inline int Difficulty = 2; // 0 to 4 for trainee to insane
     inline int LevelNumber = 0; // Index of loaded level starting at 1. Secret levels are negative. 0 means no level loaded.
@@ -209,8 +210,10 @@ namespace Inferno::Game {
     // Gets an object by reference. Returns null if not found.
     Object* GetObject(ObjRef);
 
-    namespace Stats {
-        inline int LiveObjects = 0;
+    namespace Debug {
+        inline uint LiveObjects = 0;
+        inline int ActiveRobots = 0;
+        inline List<RoomID> ActiveRooms;
     }
 
     inline float FrameTime = 0; // Time of this frame in seconds. 0 when paused.

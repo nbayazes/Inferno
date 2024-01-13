@@ -328,10 +328,6 @@ namespace Inferno {
     // Rotates towards source if asleep
     void DamageRobot(const NavPoint& sourcePos, Object& robot, float damage, float stunMult, Object* source);
 
-    namespace Debug {
-        inline int ActiveRobots = 0;
-    }
-
     void ResetAI(); // Call on level start / load to reset AI state
     // Resizes the internal AI buffer. Keep in sync with the Level.Objects size.
     void ResizeAI(size_t size);

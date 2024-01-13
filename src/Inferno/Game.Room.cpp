@@ -1308,12 +1308,12 @@ namespace Inferno::Game {
 
         //SPDLOG_INFO("Room visibility time {}", timer.GetElapsedSeconds());
 
-        constexpr float PORTAL_DEPTH = 200.0f;
+        //constexpr float PORTAL_DEPTH = 200.0f;
 
         // Use all nearby connected rooms up to a maximum distance as 'nearby'
-        for (int i = 0; i < rooms.size(); i++) {
-            Seq::append(rooms[i].NearbyRooms, GetRoomsByDepth(rooms, RoomID(i), PORTAL_DEPTH));
-        }
+        //for (int i = 0; i < rooms.size(); i++) {
+        //    Seq::append(rooms[i].NearbyRooms, GetRoomsByDepth(rooms, RoomID(i), PORTAL_DEPTH));
+        //}
 
         return rooms;
     }

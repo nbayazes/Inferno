@@ -85,7 +85,7 @@ namespace Inferno {
         uint allies = 0;
         auto range2 = range * range;
 
-        IterateNearbySegments(Game::Level, robot, range, IterateFlags::StopWall, [&](const Segment& seg, bool) {
+        IterateNearbySegments(Game::Level, robot, range, TraversalFlag::StopWall, [&](const Segment& seg, bool) {
             for (auto& objid : seg.Objects) {
                 if (auto obj = Game::Level.TryGetObject(objid)) {
                     if (obj->IsRobot() && obj->Signature != robot.Signature) {
@@ -192,7 +192,7 @@ namespace Inferno {
 
     // adds awareness to robots in nearby rooms
     void AlertRobotsOfNoise(const NavPoint& source, float soundRadius, float awareness) {
-        IterateNearbySegments(Game::Level, source, soundRadius, IterateFlags::StopDoor, [&](const Segment& seg, bool) {
+        IterateNearbySegments(Game::Level, source, soundRadius, TraversalFlag::StopDoor, [&](const Segment& seg, bool) {
             AlertEnemiesInSegment(Game::Level, seg, source, soundRadius, awareness);
         });
     }
@@ -581,7 +581,7 @@ namespace Inferno {
     void CheckProjectiles(Level& level, const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo) {
         if (ai.DodgeDelay > 0) return; // not ready to dodge again
 
-        IterateNearbySegments(level, robot, 100, IterateFlags::StopOpaqueWall, [&](const Segment& seg, bool) {
+        IterateNearbySegments(level, robot, 100, TraversalFlag::StopOpaqueWall, [&](const Segment& seg, bool) {
             for (auto& objId : seg.Objects) {
                 if (auto weapon = level.TryGetObject(objId)) {
                     if (weapon->Type != ObjectType::Weapon) continue;
@@ -713,6 +713,8 @@ namespace Inferno {
         if (obj.IsRobot() || obj.IsPlayer()) {
             ai.LastCollision = Game::Time;
         }
+
+        if (Settings::Cheats.DisableAI) return;
 
         if (obj.IsPlayer()) {
             if (ai.State != AIState::Path && ai.State != AIState::FindHelp) {
@@ -1298,7 +1300,7 @@ namespace Inferno {
             stop = nearestHelp != nullptr;
         };
 
-        IterateNearbySegments(Game::Level, robot, AI_HELP_SEARCH_RADIUS, IterateFlags::StopLockedDoor, action);
+        IterateNearbySegments(Game::Level, robot, AI_HELP_SEARCH_RADIUS, TraversalFlag::StopLockedDoor, action);
 
         if (nearestHelp) {
             NavPoint goal = { nearestHelp->Segment, nearestHelp->Position };
@@ -1697,7 +1699,7 @@ namespace Inferno {
                 auto target = Game::GetObject(ai.Target);
                 ai.State = AIState::Path;
                 ai.CombatState = AICombatState::Normal;
-                ai.Path = GenerateRandomPath(robot.Segment, 15, NavigationFlags::OpenKeyDoors, target ? target->Segment : SegID::None);
+                ai.Path = GenerateRandomPath(robot.Segment, 15, NavigationFlag::OpenKeyDoors, target ? target->Segment : SegID::None);
                 ai.PathIndex = 0;
                 ai.Awareness = 1;
                 Chat(robot, "Hostile sighted!");
@@ -1746,11 +1748,11 @@ namespace Inferno {
             auto target = Game::GetObject(ai.Target);
             ai.State = AIState::Path;
             ai.CombatState = AICombatState::Normal;
-            ai.Path = GenerateRandomPath(robot.Segment, 12, NavigationFlags::None, target ? target->Segment : SegID::None);
+            ai.Path = GenerateRandomPath(robot.Segment, 12, NavigationFlag::None, target ? target->Segment : SegID::None);
 
             // If path is short, it might be due to being cornered by the player. Try again ignoring the player.
             if (ai.Path.size() < 6)
-                ai.Path = GenerateRandomPath(robot.Segment, 12, NavigationFlags::None);
+                ai.Path = GenerateRandomPath(robot.Segment, 12, NavigationFlag::None);
 
             ai.PathIndex = 0;
             ai.AlertTimer = 1 + Random() * 2;
@@ -1926,7 +1928,7 @@ namespace Inferno {
 
     void UpdateAI(Object& obj, float dt) {
         if (obj.Type == ObjectType::Robot) {
-            Debug::ActiveRobots++;
+            Game::Debug::ActiveRobots++;
             //Render::Debug::DrawPoint(obj.Position, Color(1, 0, 0));
             UpdateRobotAI(obj, dt);
         }

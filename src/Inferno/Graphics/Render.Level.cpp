@@ -514,6 +514,13 @@ namespace Inferno::Render {
                     Debug::OutlineRoom(level, *room, Color(1, 1, 1, 0.5f));
             }
         }
+
+        // Debug active rooms
+        //for (auto& id : Game::Debug::ActiveRooms) {
+        //    if (auto room = level.GetRoom(id))
+        //        Debug::OutlineRoom(level, *room, Color(0.6f, 0.4f, 1, 0.5f));
+        //}
+
         LegitProfiler::ProfilerTask depth("Depth prepass", LegitProfiler::Colors::SUN_FLOWER);
         ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         DepthPrepass(ctx);

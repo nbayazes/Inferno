@@ -348,9 +348,9 @@ namespace Inferno {
         // Calculate a new path
         auto& robotInfo = Resources::GetRobotInfo(obj);
 
-        NavigationFlags flags{};
+        NavigationFlag flags{};
         if (robotInfo.IsThief)
-            SetFlag(flags, NavigationFlags::OpenKeyDoors);
+            SetFlag(flags, NavigationFlag::OpenKeyDoors);
 
         ai.Path = Game::Navigation.NavigateTo(obj.Segment, goal, flags, level, maxDistance);
         ai.PathDelay = AI_PATH_DELAY;

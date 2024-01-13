@@ -8,8 +8,35 @@
 #include "Resources.h"
 
 namespace Inferno {
+    bool StopAtWall(const Level& level, const Wall& wall, TraversalFlag flags) {
+        if (HasFlag(flags, TraversalFlag::StopWall))
+            return true;
+
+        if (HasFlag(flags, TraversalFlag::PassOpenDoors) && wall.Type == WallType::Door && HasFlag(wall.Flags, WallFlag::DoorOpened))
+            return false; // Don't stop at open doors
+
+        if (HasFlag(flags, TraversalFlag::StopDoor) && (wall.Type == WallType::Door || wall.Type == WallType::Destroyable))
+            return true;
+
+        // Should the player inventory be checked if key door can be unlocked?
+        if (HasFlag(flags, TraversalFlag::StopLockedDoor) && (wall.HasFlag(WallFlag::DoorLocked) || wall.IsKeyDoor()))
+            return true;
+
+        if (HasFlag(flags, TraversalFlag::StopKeyDoor) && wall.IsKeyDoor())
+            return true;
+
+        if (HasFlag(flags, TraversalFlag::StopOpaqueWall) && !WallIsTransparent(level, wall))
+            return true;
+
+        if (HasFlag(flags, TraversalFlag::StopSecretDoor) &&
+            HasFlag(Resources::GetDoorClip(wall.Clip).Flags, DoorClipFlag::Secret))
+            return true;
+
+        return false;
+    }
+
     // Executes a function on each segment within range. Return false from action to stop iterating.
-    void IterateNearbySegments(Level& level, NavPoint start, float distance, IterateFlags flags, const std::function<void(Segment&, bool&)>& action) {
+    void IterateNearbySegments(Level& level, NavPoint start, float distance, TraversalFlag flags, const std::function<void(Segment&, bool&)>& action) {
         ASSERT_STA();
 
         static List<SegID> queue;
@@ -36,24 +63,10 @@ namespace Inferno {
             if (stop) break;
 
             for (auto& sideid : SIDE_IDS) {
-                if (auto wall = level.TryGetWall(seg->GetSide(sideid).Wall)) {
-                    if (HasFlag(flags, IterateFlags::StopWall))
-                        continue;
-
-                    if (HasFlag(flags, IterateFlags::StopDoor) && (wall->Type == WallType::Door || wall->Type == WallType::Destroyable))
-                        continue;
-
-                    // Should the player inventory be checked if key door can be unlocked?
-                    if (HasFlag(flags, IterateFlags::StopLockedDoor) && (wall->HasFlag(WallFlag::DoorLocked) || wall->IsKeyDoor()))
-                        continue;
-
-                    if (HasFlag(flags, IterateFlags::StopKeyDoor) && wall->IsKeyDoor())
-                        continue;
-
-                    if (HasFlag(flags, IterateFlags::StopOpaqueWall) && /*wall->IsSolid() &&*/
-                        !WallIsTransparent(level, *wall))
-                        continue;
-                }
+                auto& side = seg->GetSide(sideid);
+                auto wall = level.TryGetWall(side.Wall);
+                if (wall && StopAtWall(level, *wall, flags))
+                    continue;
 
                 if (Vector3::DistanceSquared(start.Position, seg->GetSide(sideid).Center) > distSq)
                     continue;
@@ -98,7 +111,7 @@ namespace Inferno {
             auto seg = level.TryGetSegment(value.id);
             for (auto& sid : SIDE_IDS) {
                 auto conn = seg->GetConnection(sid);
-                if (!CanNavigateSide(level, { value.id, sid }, NavigationFlags::None))
+                if (!CanNavigateSide(level, { value.id, sid }, NavigationFlag::None))
                     continue;
 
                 auto& node = visited[(int)conn];
@@ -141,7 +154,7 @@ namespace Inferno {
         return path;
     }
 
-    List<NavPoint> NavigationNetwork::NavigateTo(SegID start, const NavPoint& goal, NavigationFlags flags, Level& level, float maxDistance) {
+    List<NavPoint> NavigationNetwork::NavigateTo(SegID start, const NavPoint& goal, NavigationFlag flags, Level& level, float maxDistance) {
         auto startRoom = level.GetRoom(start);
         auto endRoom = level.GetRoom(goal.Segment);
         if (!startRoom || !endRoom)
@@ -217,7 +230,7 @@ namespace Inferno {
         return path;
     }
 
-    bool CanNavigateWall(const Wall& wall, NavigationFlags flags) {
+    bool CanNavigateWall(const Wall& wall, NavigationFlag flags) {
         if (wall.Type == WallType::Destroyable)
             return false;
 
@@ -230,11 +243,11 @@ namespace Inferno {
 
             auto& clip = Resources::GetDoorClip(wall.Clip);
 
-            if (HasFlag(clip.Flags, DoorClipFlag::Secret) && !HasFlag(flags, NavigationFlags::OpenSecretDoors))
+            if (HasFlag(clip.Flags, DoorClipFlag::Secret) && !HasFlag(flags, NavigationFlag::OpenSecretDoors))
                 return false;
 
             if (wall.IsKeyDoor()) {
-                if (!HasFlag(flags, NavigationFlags::OpenKeyDoors)) return false;
+                if (!HasFlag(flags, NavigationFlag::OpenKeyDoors)) return false;
                 if (!Game::Player.CanOpenDoor(wall)) return false;
             }
         }
@@ -245,7 +258,7 @@ namespace Inferno {
         return true;
     }
 
-    bool CanNavigateSide(Level& level, Tag tag, NavigationFlags flags) {
+    bool CanNavigateSide(Level& level, Tag tag, NavigationFlag flags) {
         auto seg = level.TryGetSegment(tag);
         if (!seg) return false;
         if (!seg->SideHasConnection(tag.Side)) return false;
@@ -256,7 +269,7 @@ namespace Inferno {
         return true;
     }
 
-    List<RoomID> NavigationNetwork::NavigateAcrossRooms(RoomID start, RoomID goal, NavigationFlags flags, Level& level) {
+    List<RoomID> NavigationNetwork::NavigateAcrossRooms(RoomID start, RoomID goal, NavigationFlag flags, Level& level) {
         if (start == goal) return { start };
 
         // Reset traversal state
@@ -506,7 +519,7 @@ namespace Inferno {
         }
     }
 
-    List<NavPoint> GenerateRandomPath(SegID start, uint depth, NavigationFlags flags, SegID avoid) {
+    List<NavPoint> GenerateRandomPath(SegID start, uint depth, NavigationFlag flags, SegID avoid) {
         List<NavPoint> path;
         if (!Game::Level.SegmentExists(start)) return path;
 

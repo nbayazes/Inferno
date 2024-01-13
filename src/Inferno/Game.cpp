@@ -273,7 +273,7 @@ namespace Inferno::Game {
     void FixedUpdate(float dt) {
         FixedUpdateInput();
         Debug::ActiveRobots = 0;
-        Stats::LiveObjects = 0;
+        Debug::LiveObjects = 0;
         Player.Update(dt);
         BeginAIFrame();
 
@@ -282,8 +282,10 @@ namespace Inferno::Game {
 
         Sound::UpdateSoundEmitters(dt);
         UpdateExplodingWalls(Game::Level, dt);
+
         if (ControlCenterDestroyed)
             UpdateReactorCountdown(dt);
+
         Render::FixedUpdateEffects(dt);
 
         for (int i = 0; i < Level.Objects.size(); i++) {
@@ -302,23 +304,26 @@ namespace Inferno::Game {
 
 
         auto playerRoom = Level.GetRoomID(GetPlayerObject());
+        auto flags = TraversalFlag::StopSecretDoor | TraversalFlag::PassOpenDoors;
+        // Stop AI at doors on hotshot and below
+        if (Difficulty < 3) flags |= TraversalFlag::StopDoor;
 
-        if (auto currentRoom = Level.GetRoom(playerRoom)) {
-            // Merge the nearby rooms with the visible rooms
-            List<RoomID> visibleRooms = currentRoom->NearbyRooms;
-            for (auto& id : Render::GetVisibleRooms()) {
-                if (!Seq::contains(visibleRooms, id)) visibleRooms.push_back(id);
-            }
+        List<RoomID> activeRooms = GetRoomsByDepth(Level.Rooms, playerRoom, NEARBY_PORTAL_DEPTH, flags);
+        Debug::ActiveRooms = activeRooms;
 
-            for (auto& roomId : visibleRooms) {
-                if (auto room = Level.GetRoom(roomId)) {
-                    for (auto& segId : room->Segments) {
-                        if (auto seg = Level.TryGetSegment(segId)) {
-                            for (auto& objId : seg->Objects) {
-                                auto obj = Level.TryGetObject(objId);
-                                if (obj && !ShouldAlwaysUpdate(*obj)) {
-                                    FixedUpdateObject(dt, objId, *obj);
-                                }
+        // Merge the nearby rooms with the visible rooms
+        for (auto& id : Render::GetVisibleRooms()) {
+            if (!Seq::contains(activeRooms, id)) activeRooms.push_back(id);
+        }
+
+        for (auto& roomId : activeRooms) {
+            if (auto room = Level.GetRoom(roomId)) {
+                for (auto& segId : room->Segments) {
+                    if (auto seg = Level.TryGetSegment(segId)) {
+                        for (auto& objId : seg->Objects) {
+                            auto obj = Level.TryGetObject(objId);
+                            if (obj && !ShouldAlwaysUpdate(*obj)) {
+                                FixedUpdateObject(dt, objId, *obj);
                             }
                         }
                     }
