@@ -254,7 +254,17 @@ namespace Inferno::Resources {
     bool IsLevelTexture(TexID id) {
         auto tex255 = Game::Level.IsDescent1() ? TexID(971) : TexID(1485);
         auto tid = Resources::LookupLevelTexID(id);
+
         // Default tid is 255, so check if the real 255 texid is passed in
+        if (tid != LevelTexID(255) || id == tex255) return true;
+
+        // Check if any wall clips contain this ID
+        for (auto& effect : GameData.Effects) {
+            for (auto& frame : effect.VClip.GetFrames()) {
+                if (frame == id) return true;
+            }
+        }
+
         return tid != LevelTexID(255) || id == tex255;
     }
 
