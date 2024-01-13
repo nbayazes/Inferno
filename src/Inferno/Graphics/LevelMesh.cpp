@@ -135,8 +135,15 @@ namespace Inferno {
         // create vertices for this face
         for (int i = 0; i < 6; i++) {
             auto& pos = verts[indices[i]];
-            //auto& normal = side.NormalForEdge(indices[i]);
-            auto& normal = i < 3 ? side.Normals[0] : side.Normals[1];
+            //auto normal = &side.NormalForEdge(indices[i]);
+            //auto& normal = side.AverageNormal;
+
+            auto normal = i < 3 ? &side.Normals[0] : &side.Normals[1];
+
+            if (side.Type == SideSplitType::Tri02 && (indices[i] == 0 || indices[i] == 2))
+                normal = &side.AverageNormal;
+            else if (side.Type == SideSplitType::Tri13 && (indices[i] == 1 || indices[i] == 3))
+                normal = &side.AverageNormal;
 
             auto& uv = uvs[indices[i]];
             auto& lightDir = lightDirs[indices[i]];
@@ -147,7 +154,7 @@ namespace Inferno {
             auto& tangent = i < 3 ? tangent1 : tangent2;
             auto& bitangent = i < 3 ? bitangent1 : bitangent2;
             //LevelVertex vertex = { pos, uv, color, uv2, normal, tangent, bitangent, (int)tex1, (int)tex2 };
-            LevelVertex vertex = { pos, uv, color, uv2, normal, tangent, bitangent, lightDir };
+            LevelVertex vertex = { pos, uv, color, uv2, *normal, tangent, bitangent, lightDir };
             geo.Vertices.push_back(vertex);
         }
 
@@ -300,7 +307,7 @@ namespace Inferno {
                             chunk.Cloaked = true;
                         }
                     }
-                
+
                     // Overlays should slide in the same direction as the base texture regardless of their rotation
                     if (needsOverlaySlide)
                         chunk.OverlaySlide = ApplyOverlayRotation(side, ti.Slide);
