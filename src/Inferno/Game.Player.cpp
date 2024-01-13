@@ -1253,7 +1253,8 @@ namespace Inferno {
         AddScreenFlash(FLASH_PRIMARY);
 
         // Select the weapon we just picked up if it has a higher priority
-        if (GetWeaponPriority(index) < GetWeaponPriority(Primary))
+        // Also check if the weapon we just picked up has ammo before selecting it
+        if (GetWeaponPriority(index) < GetWeaponPriority(Primary) && CanFirePrimary(index))
             SelectPrimary(index);
 
         return true;
@@ -1507,10 +1508,8 @@ namespace Inferno {
             if (!HasWeapon(weapon)) return;
             auto powerup = PrimaryWeaponToPowerup(weapon);
             auto ref = Game::DropPowerup(powerup, player.Position, player.Segment);
-            if (ammo > 0) {
-                if (auto obj = Game::GetObject(ref))
-                    obj->Control.Powerup.Count = ammo;
-            }
+            if (auto obj = Game::GetObject(ref))
+                obj->Control.Powerup.Count = ammo;
 
             RemoveWeapon(weapon);
         };
