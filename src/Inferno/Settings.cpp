@@ -131,6 +131,107 @@ namespace Inferno {
         }
     }
 
+    Array<Color, PALETTE_SIZE> GetDefaultPalette() {
+        Array<Color, PALETTE_SIZE> palette{};
+        int i = 0;
+
+        auto addColor = [&i, &palette](const Color& color) {
+            if (i >= palette.size()) return;
+            palette[i++] = color;
+        };
+
+        addColor({ 0.625, 0.75, 1 });
+        addColor({ 0.758, 0.758, 1 });
+        addColor({ 0.848, 0.906, 1 });
+        addColor({ 1, 1, 1 });
+        addColor({ 0.75, 1, 1 });
+        addColor({ 0.75, 1, 1 });
+        addColor({ 1, 0.5, 0.5 });
+        addColor({ 1, 0.231, 0.231 });
+        addColor({ 1, 0.125, 0.125 });
+        addColor({ 0.6, 0.15, 0 });
+        addColor({ 1.25, 0.25, 0 });
+        addColor({ 1.25, 0.75, 0.25 });
+        addColor({ 1, 0.5, 0.125 });
+        addColor({ 1, 0.75, 0.5 });
+        addColor({ 1, 0.727, 0.364 });
+        addColor({ 1, 0.75, 0.5 });
+        addColor({ 1, 1, 0.75 });
+        addColor({ 1, 1, 0.25 });
+        addColor({ 0.5, 1, 0.75 });
+        addColor({ 0.0667, 1, 0.967 });
+        addColor({ 0.5, 1, 0.3 });
+        addColor({ 0.125, 1, 0.5 });
+        addColor({ 0.333, 1, 0.667 });
+        addColor({ 0.5, 1, 0.5 });
+        addColor({ 0.181, 0.435, 1 });
+        addColor({ 0.125, 0.375, 1 });
+        addColor({ 0.25, 0.5, 1 });
+        addColor({ 0.278, 0.278, 1 });
+        addColor({ 0, 0, 0 });
+        addColor({ 0, 0, 0 });
+        addColor({ 1, 0.3, 0.6 });
+        addColor({ 0.75, 0.125, 1 });
+        addColor({ 0.929, 0, 1 });
+        addColor({ 0.5, 0.5, 1 });
+        addColor({ 0.7, 0.6, 1 });
+        addColor({ 0.893, 0.781, 1 });
+
+        // Load defaults (D3 light colors)
+        //addColor({ .25f, .3f, .4f }); // bluish
+        //addColor({ .5f, .5f, .66f }); // blue lamp
+        //addColor({ .47f, .50f, .55f }); // white lamp
+        //addColor({ .3f, .3f, .3f }); // white
+        //addColor({ .3f, .4f, .4f }); // rusty teal
+        //addColor({ .12f, .16f, .16f }); // strip teal
+
+        //addColor({ .4f, .2f, .2f }); // reddish
+        //addColor({ 1.3f, .3f, .3f }); // super red
+        //addColor({ .4f, .05f, .05f }); // red
+        //addColor({ .24f, .06f, 0 }); // strip red
+        //addColor({ .5f, .1f, 0 }); // bright orange
+        //addColor({ .5f, .3f, .1f }); // bright orange
+
+        //addColor({ .4f, .2f, .05f }); // orange
+        //addColor({ .4f, .3f, .2f }); // orangish
+        //addColor({ .44f, .32f, .16f }); // bright orange
+        //addColor({ .2f, .15f, .1f }); // strip orange
+        //addColor({ .44f, .44f, .33f }); // bright yellow
+        //addColor({ .4f, .4f, .1f }); // yellow
+
+        ////addColor({ .4f, .4f, .3f }); // yellowish
+        ////addColor({ .2f, .2f, .15f }); // strip yellow
+
+        //addColor({ .2f, .4f, .3f }); // Greenish
+        //addColor({ .02f, .3f, .29f }); // teal (custom)
+        //addColor({ .25f, .5f, .15f }); // bright green
+        //addColor({ .05f, .4f, .2f }); // green
+        //addColor({ .16f, .48f, .32f }); // bright teal
+        //addColor({ .16f, .32f, .16f }); // strip green
+
+        //addColor({ .1f, .24f, .55f }); // bright blue
+        //addColor({ .05f, .15f, .40f }); // blue
+        //addColor({ .07f, .14f, .28f }); // strip blue
+        //addColor({ .12f, .12f, .43f }); // deep blue
+        //addColor({});
+        //addColor({});
+
+        //addColor({ 2.0f, .6f, 1.2f }); // super purple
+        //addColor({ .3f, .05f, .4f }); // purple
+        //addColor({ .4f, .35f, .45f }); // bright purple
+        //addColor({ .24f, .24f, .48f }); // purple
+        //addColor({ .14f, .12f, .20f }); // purple
+        //addColor({ .3f, .25f, .40f }); // purplish
+
+        // Boost brightness
+        //for (auto& c : palette) {
+        //    c *= 2.5f;
+        //    c.w = 1;
+        //}
+
+        return palette;
+    }
+
     Array<Color, PALETTE_SIZE> LoadPalette(ryml::NodeRef node) {
         Array<Color, PALETTE_SIZE> palette{};
 
@@ -141,58 +242,7 @@ namespace Inferno {
         };
 
         if (!node.valid() || node.is_seed()) {
-            // Load defaults (D3 light colors)
-            addColor({ .25f, .3f, .4f }); // bluish
-            addColor({ .5f, .5f, .66f }); // blue lamp
-            addColor({ .47f, .50f, .55f }); // white lamp
-            addColor({ .3f, .3f, .3f }); // white
-            addColor({ .3f, .4f, .4f }); // rusty teal
-            addColor({ .12f, .16f, .16f }); // strip teal
-
-            addColor({ .4f, .2f, .2f }); // reddish
-            addColor({ 1.3f, .3f, .3f }); // super red
-            addColor({ .4f, .05f, .05f }); // red
-            addColor({ .24f, .06f, 0 }); // strip red
-            addColor({ .5f, .1f, 0 }); // bright orange
-            addColor({ .5f, .3f, .1f }); // bright orange
-
-            addColor({ .4f, .2f, .05f }); // orange
-            addColor({ .4f, .3f, .2f }); // orangish
-            addColor({ .44f, .32f, .16f }); // bright orange
-            addColor({ .2f, .15f, .1f }); // strip orange
-            addColor({ .44f, .44f, .33f }); // bright yellow
-            addColor({ .4f, .4f, .1f }); // yellow
-
-            //addColor({ .4f, .4f, .3f }); // yellowish
-            //addColor({ .2f, .2f, .15f }); // strip yellow
-
-            addColor({ .2f, .4f, .3f }); // Greenish
-            addColor({ .02f, .3f, .29f }); // teal (custom)
-            addColor({ .25f, .5f, .15f }); // bright green
-            addColor({ .05f, .4f, .2f }); // green
-            addColor({ .16f, .48f, .32f }); // bright teal
-            addColor({ .16f, .32f, .16f }); // strip green
-
-            addColor({ .1f, .24f, .55f }); // bright blue
-            addColor({ .05f, .15f, .40f }); // blue
-            addColor({ .07f, .14f, .28f }); // strip blue
-            addColor({ .12f, .12f, .43f }); // deep blue
-            addColor({});
-            addColor({});
-
-            addColor({ 2.0f, .6f, 1.2f }); // super purple
-            addColor({ .3f, .05f, .4f }); // purple
-            addColor({ .4f, .35f, .45f }); // bright purple
-            addColor({ .24f, .24f, .48f }); // purple
-            addColor({ .14f, .12f, .20f }); // purple
-            addColor({ .3f, .25f, .40f }); // purplish
-
-            // Boost brightness
-            for (auto& c : palette) {
-                c *= 2.5f;
-                c.w = 1;
-            }
-            return palette;
+            return GetDefaultPalette();
         }
 
         for (const auto& child : node.children()) {

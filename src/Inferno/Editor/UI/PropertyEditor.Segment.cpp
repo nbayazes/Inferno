@@ -419,10 +419,21 @@ namespace Inferno::Editor {
         if (!ImGui::BeginPopup("ColorPicker"))
             return updateMarkedColor();
 
-        ImGui::ColorPicker3("##picker", &color.x, ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_DisplayHSV | ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview);
+        {
+            ImGui::BeginGroup();
+            ImGui::ColorPicker3("##picker", &color.x, ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_DisplayHSV | ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview);
 
-        if (ImGui::IsItemDeactivatedAfterEdit())
-            snapshot = true; // Snapshot after the user releases the mouse button
+            if (ImGui::IsItemDeactivatedAfterEdit())
+                snapshot = true; // Snapshot after the user releases the mouse button
+
+            if (ImGui::Button("Reset palette")) {
+                if (ShowYesNoMessage(L"Are you sure you want to reset the palette?", L"Reset palette")) {
+                    Settings::Editor.Palette = GetDefaultPalette();
+                }
+            }
+
+            ImGui::EndGroup();
+        }
 
         ImGui::SameLine();
         {
