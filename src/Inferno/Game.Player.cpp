@@ -1009,8 +1009,7 @@ namespace Inferno {
             case PowerupID::Vulcan:
             case PowerupID::Gauss:
             {
-                used = PickUpPrimary(obj.ID == (int)PowerupID::Vulcan ? PrimaryWeaponIndex::Vulcan : PrimaryWeaponIndex::Gauss);
-
+                // Give ammo first so autoselect works properly
                 auto& ammo = obj.Control.Powerup.Count; // remaining ammo on the weapon
 
                 if (ammo > 0) {
@@ -1025,6 +1024,7 @@ namespace Inferno {
                     }
                 }
 
+                used = PickUpPrimary(obj.ID == (int)PowerupID::Vulcan ? PrimaryWeaponIndex::Vulcan : PrimaryWeaponIndex::Gauss);
                 break;
             }
 
