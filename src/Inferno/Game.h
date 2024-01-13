@@ -209,11 +209,11 @@ namespace Inferno::Game {
 
     // Gets an object by reference. Returns null if not found.
     Object* GetObject(ObjRef);
+    inline List<RoomID> ActiveRooms; // Rooms that are visible or near the player
 
     namespace Debug {
         inline uint LiveObjects = 0;
         inline int ActiveRobots = 0;
-        inline List<RoomID> ActiveRooms;
     }
 
     inline float FrameTime = 0; // Time of this frame in seconds. 0 when paused.

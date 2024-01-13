@@ -278,6 +278,7 @@ namespace Inferno::Game {
         BeginAIFrame();
 
         UpdateAmbientSounds();
+        UpdateDoors(Level, dt);
         UpdateMatcens(Game::Level, dt);
 
         Sound::UpdateSoundEmitters(dt);
@@ -300,30 +301,31 @@ namespace Inferno::Game {
                 UpdateReactor(obj);
 
             UpdateEffects(obj, dt);
+            obj.Lifespan -= TICK_RATE;
         }
-
 
         auto playerRoom = Level.GetRoomID(GetPlayerObject());
         auto flags = TraversalFlag::StopSecretDoor | TraversalFlag::PassTransparent;
         // Stop AI at doors on hotshot and below
         if (Difficulty < 3) flags |= TraversalFlag::StopDoor;
 
-        Debug::ActiveRooms = GetRoomsByDepth(Level.Rooms, playerRoom, NEARBY_PORTAL_DEPTH, flags);
+        ActiveRooms = GetRoomsByDepth(Level.Rooms, playerRoom, NEARBY_PORTAL_DEPTH, flags);
 
         // Merge the nearby rooms with the visible rooms
         for (auto& id : Render::GetVisibleRooms()) {
-            if (!Seq::contains(Debug::ActiveRooms, id)) Debug::ActiveRooms.push_back(id);
+            if (!Seq::contains(ActiveRooms, id)) ActiveRooms.push_back(id);
         }
 
-        for (auto& roomId : Debug::ActiveRooms) {
+        for (auto& roomId : ActiveRooms) {
             if (auto room = Level.GetRoom(roomId)) {
                 for (auto& segId : room->Segments) {
-                    if (auto seg = Level.TryGetSegment(segId)) {
-                        for (auto& objId : seg->Objects) {
-                            auto obj = Level.TryGetObject(objId);
-                            if (obj && !ShouldAlwaysUpdate(*obj)) {
-                                FixedUpdateObject(dt, objId, *obj);
-                            }
+                    auto seg = Level.TryGetSegment(segId);
+                    if (!seg) continue;
+
+                    for (auto& objId : seg->Objects) {
+                        auto obj = Level.TryGetObject(objId);
+                        if (obj && !ShouldAlwaysUpdate(*obj)) {
+                            FixedUpdateObject(dt, objId, *obj);
                         }
                     }
                 }
@@ -379,7 +381,7 @@ namespace Inferno::Game {
                         side->TMap2 = clip.DestroyedTexture;
 
                     clip.OneShotTag = {};
-                    Editor::Events::LevelChanged();
+                    Render::LevelChanged = true; // Need to update textures on mesh. This is not ideal.
                 }
             }
         }
@@ -397,10 +399,6 @@ namespace Inferno::Game {
 
         //LegitProfiler::ProfilerTask task("Fixed update");
         while (accumulator >= TICK_RATE) {
-            for (auto& obj : Level.Objects)
-                obj.Lifespan -= TICK_RATE;
-
-            UpdateDoors(Level, TICK_RATE);
             FixedUpdate(TICK_RATE);
             accumulator -= TICK_RATE;
             Game::DeltaTime += TICK_RATE;

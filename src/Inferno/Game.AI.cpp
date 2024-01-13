@@ -85,7 +85,7 @@ namespace Inferno {
         uint allies = 0;
         auto range2 = range * range;
 
-        IterateNearbySegments(Game::Level, robot, range, TraversalFlag::StopWall, [&](const Segment& seg, bool) {
+        IterateNearbySegments(Game::Level, robot, range, TraversalFlag::StopDoor | TraversalFlag::PassOpenDoors, [&](const Segment& seg, bool) {
             for (auto& objid : seg.Objects) {
                 if (auto obj = Game::Level.TryGetObject(objid)) {
                     if (obj->IsRobot() && obj->Signature != robot.Signature) {
@@ -192,9 +192,19 @@ namespace Inferno {
 
     // adds awareness to robots in nearby rooms
     void AlertRobotsOfNoise(const NavPoint& source, float soundRadius, float awareness) {
-        IterateNearbySegments(Game::Level, source, soundRadius, TraversalFlag::StopDoor, [&](const Segment& seg, bool) {
-            AlertEnemiesInSegment(Game::Level, seg, source, soundRadius, awareness);
-        });
+        for (auto& roomId : Game::ActiveRooms) {
+            if (auto room = Game::Level.GetRoom(roomId)) {
+                for (auto& segId : room->Segments) {
+                    auto seg = Game::Level.TryGetSegment(segId);
+                    if (!seg) continue;
+                    AlertEnemiesInSegment(Game::Level, *seg, source, soundRadius, awareness);
+                }
+            }
+        }
+
+        //IterateNearbySegments(Game::Level, source, soundRadius, TraversalFlag::StopDoor | TraversalFlag::PassOpenDoors, [&](const Segment& seg, bool) {
+        //    AlertEnemiesInSegment(Game::Level, seg, source, soundRadius, awareness);
+        //});
     }
 
     void AlertAlliesOfDeath(const Object& dyingRobot) {
@@ -1300,7 +1310,8 @@ namespace Inferno {
             stop = nearestHelp != nullptr;
         };
 
-        IterateNearbySegments(Game::Level, robot, AI_HELP_SEARCH_RADIUS, TraversalFlag::StopLockedDoor, action);
+        auto flags = TraversalFlag::StopLockedDoor | TraversalFlag::StopSecretDoor;
+        IterateNearbySegments(Game::Level, robot, AI_HELP_SEARCH_RADIUS, flags, action);
 
         if (nearestHelp) {
             NavPoint goal = { nearestHelp->Segment, nearestHelp->Position };
