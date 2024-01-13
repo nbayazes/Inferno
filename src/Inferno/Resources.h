@@ -67,6 +67,8 @@ namespace Inferno::Resources {
     // Returns true if the id corresponds to a level texture
     bool IsLevelTexture(TexID id);
 
+    bool IsObjectTexture(TexID id);
+
     Weapon& GetWeapon(WeaponID);
     inline Weapon& GetWeapon(const Object& obj) {
         ASSERT(obj.IsWeapon());

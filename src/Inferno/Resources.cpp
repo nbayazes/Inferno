@@ -268,6 +268,10 @@ namespace Inferno::Resources {
         return tid != LevelTexID(255) || id == tex255;
     }
 
+    bool IsObjectTexture(TexID id) {
+        return Seq::contains(GameData.ObjectBitmaps, id);
+    }
+
     Weapon DefaultWeapon{ .AmmoUsage = 1 };
 
     Weapon& GetWeapon(WeaponID id) {
