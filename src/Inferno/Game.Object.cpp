@@ -572,8 +572,12 @@ namespace Inferno {
 
             case ObjectType::Hostage:
                 break;
+
             case ObjectType::Player:
+                light.Radius = 40;
+                light.LightColor = Color(1, 1, 1, 0.01f);
                 break;
+
             case ObjectType::Weapon:
             {
                 auto& weapon = Resources::GetWeapon((WeaponID)obj.ID);
