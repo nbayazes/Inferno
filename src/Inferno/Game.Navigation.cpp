@@ -46,17 +46,16 @@ namespace Inferno {
 
         queue.clear();
         queue.push_back(start.Segment);
+        visited[(int)start.Segment] = true;
 
         float distSq = distance * distance;
         if (distSq < 0) distSq = FLT_MAX;
-        int index = 0;
+        uint index = 0;
 
         while (index < queue.size()) {
             auto segid = queue[index++];
             auto seg = level.TryGetSegment(segid);
             if (!seg) continue;
-
-            visited[(int)segid] = true;
 
             bool stop = false;
             action(*seg, stop);
@@ -74,9 +73,13 @@ namespace Inferno {
                 auto connection = seg->GetConnection(sideid);
                 if (connection <= SegID::None) continue;
                 if (visited[(int)connection]) continue; // already visited
+                visited[(int)connection] = true;
+                ASSERT(!Seq::contains(queue, connection));
                 queue.push_back(connection);
             }
         }
+
+        //SPDLOG_INFO("Iterate depth: {}", queue.size());
     }
 
     List<NavPoint> NavigateWithinRoomBfs(Level& level, SegID start, SegID goal, Room& room) {

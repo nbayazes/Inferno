@@ -81,8 +81,8 @@ namespace Inferno {
         None,
         StopWall = 1 << 1, // Stop at any wall (except fly-through triggers) regardless of other flags
         PassTransparent = 1 << 2, // Always traverse transparent walls regardless of type or other flags
-        StopDoor = 1 << 3, // Stop at doors
-        StopLockedDoor = 1 << 4, // Stop at locked doors
+        StopDoor = 1 << 3, // Stop at doors regardless of open state
+        StopLockedDoor = 1 << 4, // Stop at locked or keyed doors
         StopKeyDoor = 1 << 5, // Stop at keyed doors
         StopSecretDoor = 1 << 6, // Stop at secret doors
         PassOpenDoors = 1 << 7, // Always traverse open doors regardless of lock or key state

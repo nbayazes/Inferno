@@ -782,6 +782,7 @@ namespace Inferno::Game {
         ObjRef target;
         float bestDotFov = -1;
         auto forward = src.Rotation.Forward();
+        // todo: this could be changed to only scan segments in front of the missile, but the check might be more expensive than just iterating
 
         IterateNearbySegments(Game::Level, src, maxDist, TraversalFlag::PassTransparent, [&](const Segment& seg, bool&) {
             for (auto& objId : seg.Objects) {
