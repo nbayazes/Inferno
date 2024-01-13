@@ -72,7 +72,7 @@ namespace Inferno {
                     continue;
 
                 auto connection = seg->GetConnection(sideid);
-                if (connection == SegID::None) continue;
+                if (connection <= SegID::None) continue;
                 if (visited[(int)connection]) continue; // already visited
                 queue.push_back(connection);
             }
