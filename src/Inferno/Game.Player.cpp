@@ -753,15 +753,19 @@ namespace Inferno {
 
         if (Settings::Cheats.FullyLoaded) {
             GivePowerup(PowerupFlag::Afterburner);
-            //GivePowerup(PowerupFlag::AmmoRack);
-            //GivePowerup(PowerupFlag::Headlight);
-            //GivePowerup(PowerupFlag::FullMap);
             GivePowerup(PowerupFlag::QuadFire);
             LaserLevel = Game::Level.IsDescent2() ? 5 : 3;
+
+            if (Game::Level.IsDescent2()) {
+                GivePowerup(PowerupFlag::AmmoRack);
+                GivePowerup(PowerupFlag::Headlight);
+                GivePowerup(PowerupFlag::FullMap);
+            }
 
             PrimaryWeapons = 0xffff;
             SecondaryWeapons = 0xffff;
             int weaponCount = Game::Level.IsDescent2() ? 10 : 5;
+
             for (int i = 0; i < weaponCount; i++) {
                 if (i == (int)SecondaryWeaponIndex::ProximityMine || i == (int)SecondaryWeaponIndex::SmartMine)
                     SecondaryAmmo[i] = 99;
