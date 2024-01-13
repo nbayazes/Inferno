@@ -304,19 +304,18 @@ namespace Inferno::Game {
 
 
         auto playerRoom = Level.GetRoomID(GetPlayerObject());
-        auto flags = TraversalFlag::StopSecretDoor | TraversalFlag::PassOpenDoors;
+        auto flags = TraversalFlag::StopSecretDoor | TraversalFlag::PassTransparent;
         // Stop AI at doors on hotshot and below
         if (Difficulty < 3) flags |= TraversalFlag::StopDoor;
 
-        List<RoomID> activeRooms = GetRoomsByDepth(Level.Rooms, playerRoom, NEARBY_PORTAL_DEPTH, flags);
-        Debug::ActiveRooms = activeRooms;
+        Debug::ActiveRooms = GetRoomsByDepth(Level.Rooms, playerRoom, NEARBY_PORTAL_DEPTH, flags);
 
         // Merge the nearby rooms with the visible rooms
         for (auto& id : Render::GetVisibleRooms()) {
-            if (!Seq::contains(activeRooms, id)) activeRooms.push_back(id);
+            if (!Seq::contains(Debug::ActiveRooms, id)) Debug::ActiveRooms.push_back(id);
         }
 
-        for (auto& roomId : activeRooms) {
+        for (auto& roomId : Debug::ActiveRooms) {
             if (auto room = Level.GetRoom(roomId)) {
                 for (auto& segId : room->Segments) {
                     if (auto seg = Level.TryGetSegment(segId)) {

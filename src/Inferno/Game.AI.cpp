@@ -581,7 +581,7 @@ namespace Inferno {
     void CheckProjectiles(Level& level, const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo) {
         if (ai.DodgeDelay > 0) return; // not ready to dodge again
 
-        IterateNearbySegments(level, robot, 100, TraversalFlag::StopOpaqueWall, [&](const Segment& seg, bool) {
+        IterateNearbySegments(level, robot, 100, TraversalFlag::PassTransparent, [&](const Segment& seg, bool) {
             for (auto& objId : seg.Objects) {
                 if (auto weapon = level.TryGetObject(objId)) {
                     if (weapon->Type != ObjectType::Weapon) continue;

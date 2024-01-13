@@ -12,6 +12,9 @@ namespace Inferno {
         if (HasFlag(flags, TraversalFlag::StopWall))
             return true;
 
+        if (HasFlag(flags, TraversalFlag::PassTransparent) && WallIsTransparent(level, wall))
+            return false; // Don't stop at transparent walls
+
         if (HasFlag(flags, TraversalFlag::PassOpenDoors) && wall.Type == WallType::Door && HasFlag(wall.Flags, WallFlag::DoorOpened))
             return false; // Don't stop at open doors
 
@@ -23,9 +26,6 @@ namespace Inferno {
             return true;
 
         if (HasFlag(flags, TraversalFlag::StopKeyDoor) && wall.IsKeyDoor())
-            return true;
-
-        if (HasFlag(flags, TraversalFlag::StopOpaqueWall) && !WallIsTransparent(level, wall))
             return true;
 
         if (HasFlag(flags, TraversalFlag::StopSecretDoor) &&

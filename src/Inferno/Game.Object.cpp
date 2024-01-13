@@ -526,7 +526,7 @@ namespace Inferno {
         ObjRef id;
         float bestDist = FLT_MAX;
 
-        IterateNearbySegments(Game::Level, point, maxDist, TraversalFlag::StopOpaqueWall, [&](const Segment& seg, bool) {
+        IterateNearbySegments(Game::Level, point, maxDist, TraversalFlag::PassTransparent, [&](const Segment& seg, bool) {
             for (auto& objid : seg.Objects) {
                 auto obj = Game::Level.TryGetObject(objid);
                 if (!obj->PassesMask(mask) || !obj->IsAlive() || obj->IsCloaked()) continue;

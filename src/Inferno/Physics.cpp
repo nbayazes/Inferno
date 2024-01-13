@@ -662,7 +662,7 @@ namespace Inferno {
             }
         };
 
-        IterateNearbySegments(level, { explosion.Segment, explosion.Position }, explosion.Radius * 2, TraversalFlag::StopOpaqueWall, action);
+        IterateNearbySegments(level, { explosion.Segment, explosion.Position }, explosion.Radius * 2, TraversalFlag::PassTransparent, action);
     }
 
     void IntersectBoundingBoxes(const Object& obj) {
