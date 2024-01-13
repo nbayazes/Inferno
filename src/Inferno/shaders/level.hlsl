@@ -263,6 +263,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     // align normals
     float3x3 tbn = float3x3(input.tangent, input.bitangent, input.normal);
     normal = normalize(mul(normal, tbn));
+    //return float4((input.normal + 1) * 0.5f, 1);
 
     //return ApplyLinearFog(base * lighting, input.pos, 10, 500, float4(0.25, 0.35, 0.75, 1));
     float3 lighting = float3(0, 0, 0);
@@ -290,8 +291,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
         lighting += directLight * material.LightReceived;
         lighting += emissive * diffuse.rgb; // emissive
         lighting += emissive * diffuse.rgb * ambient * material.LightReceived * .5; // also tint emissive by ambient
-        lighting += diffuse.rgb * ambient * .3 * material.LightReceived * (1 - material.Metalness * .9); // ambient
-        lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, ambient * .2, diffuse.rgb, specularMask, .25) * diffuse.a;
+        lighting += diffuse.rgb * ambient * .25 * material.LightReceived * (1 - material.Metalness * .95); // ambient
+        lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, ambient * .25, diffuse.rgb, specularMask, .4) * diffuse.a;
         return float4(lighting, diffuse.a);
     }
 }

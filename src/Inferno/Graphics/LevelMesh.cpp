@@ -135,7 +135,9 @@ namespace Inferno {
         // create vertices for this face
         for (int i = 0; i < 6; i++) {
             auto& pos = verts[indices[i]];
-            auto& normal = side.NormalForEdge(indices[i]);
+            //auto& normal = side.NormalForEdge(indices[i]);
+            auto& normal = i < 3 ? side.Normals[0] : side.Normals[1];
+
             auto& uv = uvs[indices[i]];
             auto& lightDir = lightDirs[indices[i]];
             auto& color = colors[indices[i]];
