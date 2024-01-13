@@ -474,10 +474,6 @@ namespace Inferno::Render {
             auto face = Face2::FromSide(level, portal.Tag);
             auto basePoints = GetNdc(face, Render::ViewProjection);
 
-            // Reset the visited rooms for each portal
-            //_roomQueue.clear();
-            //_roomQueue.push_back(startRoomId);
-
             // Search next room if portal is on screen
             if (basePoints) {
                 //if (!Seq::contains(_roomQueue, basePortal.RoomLink))
@@ -487,8 +483,8 @@ namespace Inferno::Render {
                     _visibleRooms.push_back(portal.RoomLink);
 
                 // Check if the frustum contains the portal (can cross the view plane)
-                if (!Render::CameraFrustum.Contains(face[0], face[1], face[2])) continue;
-                if (!Render::CameraFrustum.Contains(face[1], face[2], face[3])) continue;
+                //if (!Render::CameraFrustum.Contains(face[0], face[1], face[2])) continue;
+                //if (!Render::CameraFrustum.Contains(face[1], face[2], face[3])) continue;
 
                 auto bounds = Bounds2D::FromPoints(*basePoints);
                 bounds = bounds.Intersection(screenBounds);
