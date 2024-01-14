@@ -162,12 +162,7 @@ namespace Inferno {
                 float t = dist / soundRadius;
                 auto falloff = Saturate(2.0f - 2.0f * t) * 0.5f + 0.5f; // linear shoulder
 
-                if (HasLineOfSight(*obj, source.Position)) {
-                    ai.AddAwareness(awareness * falloff);
-                }
-                else {
-                    ai.AddAwareness(awareness * falloff * 0.5f);
-                }
+                ai.AddAwareness(awareness * falloff);
 
                 //auto prevAwareness = ai.Awareness;
                 ai.TargetPosition = source;

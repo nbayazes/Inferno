@@ -339,6 +339,8 @@ namespace Inferno {
 
     void PlayAlertSound(const Object& robot, AIRuntime& ai);
 
+    void AlertEnemiesInSegment(Level& level, const Segment& seg, const NavPoint& source, float soundRadius, float awareness);
+
     bool DeathRoll(Object& obj, float rollDuration, float elapsedTime, SoundID soundId, bool& dyingSoundPlaying, float volume, float dt);
 
     void MoveTowardsPoint(const Object& robot, AIRuntime& ai, const Vector3& point, float scale = 1);

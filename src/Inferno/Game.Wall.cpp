@@ -241,8 +241,14 @@ namespace Inferno {
         // Have robots look at opened doors on Hotshot and above that they didn't open
         if (Game::Difficulty > 1 && source == Faction::Player) {
             // Alert both sides of the door (sound stops at closed doors)
-            AlertRobotsOfNoise({ tag.Segment, side.Center + side.AverageNormal }, AI_DOOR_AWARENESS_RADIUS, 2);
-            AlertRobotsOfNoise({ conn.Segment, side.Center - side.AverageNormal }, AI_DOOR_AWARENESS_RADIUS, 2);
+            //AlertRobotsOfNoise({ tag.Segment, side.Center + side.AverageNormal }, AI_DOOR_AWARENESS_RADIUS, 2);
+            //AlertRobotsOfNoise({ conn.Segment, side.Center - side.AverageNormal }, AI_DOOR_AWARENESS_RADIUS, 2);
+
+            NavPoint soundSource = { tag.Segment, side.Center + side.AverageNormal };
+
+            IterateNearbySegments(Game::Level, soundSource, AI_DOOR_AWARENESS_RADIUS, TraversalFlag::None, [&soundSource](const Segment& nearbySeg, bool) {
+                AlertEnemiesInSegment(Game::Level, nearbySeg, soundSource, AI_DOOR_AWARENESS_RADIUS, 1);
+            });
         }
     }
 
