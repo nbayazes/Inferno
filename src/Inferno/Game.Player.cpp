@@ -825,14 +825,13 @@ namespace Inferno {
 
     bool Player::PickUpEnergy() {
         if (Energy < MAX_ENERGY) {
-            bool canFire = CanFirePrimary(Primary);
             AddEnergy(float(3 + 3 * (5 - Game::Difficulty)));
 
             AddScreenFlash(FLASH_GOLD);
             auto msg = fmt::format("{} {} {}", Resources::GetString(GameString::Energy), Resources::GetString(GameString::BoostedTo), int(Energy));
             PrintHudMessage(msg);
 
-            if (!canFire)
+            if (!CanFirePrimary(Primary))
                 AutoselectPrimary(); // maybe picking up energy lets us fire a weapon
 
             return true;
@@ -890,7 +889,7 @@ namespace Inferno {
     }
 
     void Player::TouchPowerup(Object& obj) {
-        if (obj.Lifespan == -1) return; // Already picked up
+        if (obj.Lifespan <= 0) return; // Already picked up
         if (IsDead) return; // Player is dead!
 
         assert(obj.Type == ObjectType::Powerup);
@@ -1220,7 +1219,7 @@ namespace Inferno {
     }
 
     void Player::TouchObject(Object& obj) {
-        if (obj.Lifespan == -1) return; // Already picked up
+        if (obj.Lifespan <= 0) return; // Already picked up
         if (IsDead) return; // Player is dead!
 
         if (obj.Type == ObjectType::Powerup) {

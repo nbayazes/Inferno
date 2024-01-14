@@ -301,7 +301,9 @@ namespace Inferno::Game {
                 UpdateReactor(obj);
 
             UpdateEffects(obj, dt);
-            obj.Lifespan -= TICK_RATE;
+
+            if (obj.Lifespan > 0)
+                obj.Lifespan -= TICK_RATE;
         }
 
         auto playerRoom = Level.GetRoomID(GetPlayerObject());
