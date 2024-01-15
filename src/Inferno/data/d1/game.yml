@@ -334,7 +334,7 @@ Weapons:
     FlashColor: 1, 1, 1, 4
     Glow: 1, 1, 1, 1.5
     Mass: 0.15
-    Thrust: 40 # Thrust to apply each second
+    Thrust: 10 # Thrust to apply each second
     InitialSpeed: 22.5 # How fast when spawning
     HomingFov: 30
     HomingDistance: 150
@@ -354,7 +354,7 @@ Weapons:
     FlashColor: 1, 1, 1, 4
     Glow: 1, 1, 1, 1.5
     Mass: 0.15
-    Thrust: 40 # Thrust to apply each second
+    Thrust: 10 # Thrust to apply each second
     InitialSpeed: 22.5 # How fast when spawning
     HomingFov: 30 # Reduced due to overly aggressive tracking
     HomingDistance: 150
@@ -781,6 +781,15 @@ Powerups:
     LightColor: 0.0125, 0.0125, 1, 1.75
     LightRadius: 18
     LightMode: 4 # Pulse
+
+  - id: 4 # Blue key
+    Glow: 1, 1, 1, 1
+
+  - id: 5 # Red key
+    Glow: 1, 1, 1, 1
+
+  - id: 6 # Gold key
+    Glow: 1, 1, 1, 1
 
   - id: 23 # Cloak
     LightColor: .5, 0, 1, 2
