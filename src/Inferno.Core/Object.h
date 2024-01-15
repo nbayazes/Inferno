@@ -41,7 +41,7 @@ namespace Inferno {
         None = 0,
         Exploding = 1, // Object is exploding with a delay. Prevents exploding immediately when hp reaches 0.
         Dead = 2, // Free to be reused
-        Destroyed = 4, // Object has been destroyed from damage. Can change model appearance.
+        Destroyed = 4, // Object has been destroyed from damage. Used by reactor to change model appearance.
         Silent = 8, // No sound when colliding
         Attached = 16, // Object is attached to another object or wall. Disables hit testing.
         Harmless = 32, // Does no damage

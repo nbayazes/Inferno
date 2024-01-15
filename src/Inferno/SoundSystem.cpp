@@ -115,7 +115,7 @@ namespace Inferno::Sound {
                     constexpr float MUFFLE_MAX = 0.95f;
                     constexpr float MUFFLE_MIN = 0.25f;
 
-                    if (dist > 10) {
+                    if (dist > 20) {
                         // don't hit test nearby sounds
                         Ray ray(emitterPos, dir);
                         LevelHit hit;

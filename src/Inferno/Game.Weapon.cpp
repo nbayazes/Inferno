@@ -787,7 +787,7 @@ namespace Inferno::Game {
         IterateNearbySegments(Game::Level, src, maxDist, TraversalFlag::PassTransparent, [&](const Segment& seg, bool&) {
             for (auto& objId : seg.Objects) {
                 if (auto obj = Game::Level.TryGetObject(objId)) {
-                    if (!obj->IsAlive() || !obj->PassesMask(mask) || !obj->IsInFaction(faction)) continue;
+                    if (!obj->IsAlive() || !obj->PassesMask(mask) || !obj->IsInFaction(faction) || HasFlag(obj->Flags, ObjectFlag::Destroyed)) continue;
 
                     auto [odir, odist] = GetDirectionAndDistance(obj->Position, src.Position);
                     auto dot = odir.Dot(forward);
@@ -1003,44 +1003,37 @@ namespace Inferno::Game {
         auto startRoom = Game::Level.GetRoom(object);
         if (!startRoom) return targets;
 
-        for (auto& segId : startRoom->VisibleSegments) {
-            if (auto seg = Game::Level.TryGetSegment(segId)) {
-                for (auto& objId : seg->Objects) {
-                    if (auto obj = Game::Level.TryGetObject(objId)) {
-                        if (!obj->PassesMask(mask)) continue;
-                        //if (Game::ObjectCanSeeObject(object, *obj, maxDist)) {
-                        //    targets[count] = { objId, obj->Signature };
-                        //    count++;
-                        //    if (count >= targets.size()) {
-                        //        SPDLOG_WARN("Max nearby targets reached");
-                        //        return targets;
-                        //    }
-                        //}
+        auto search = [&](const Segment& seg, bool& stop) {
+            for (auto& objId : seg.Objects) {
+                if (auto obj = Game::Level.TryGetObject(objId)) {
+                    if (!obj->PassesMask(mask)) continue;
 
-                        if (!obj->IsAlive()) continue;
-                        if (obj->IsCloaked() || obj->IsPhasing()) continue; // cloaked objects aren't visible
-                        auto [dir, dist] = GetDirectionAndDistance(obj->Position, object.Position);
+                    if (!obj->IsAlive() || HasFlag(obj->Flags, ObjectFlag::Destroyed)) continue;
+                    if (obj->IsCloaked() || obj->IsPhasing()) continue; // cloaked objects aren't visible
+                    auto [dir, dist] = GetDirectionAndDistance(obj->Position, object.Position);
 
-                        if (dist < maxDist) {
-                            Ray ray(object.Position, dir);
-                            RayQuery query;
-                            query.Start = object.Segment;
-                            query.MaxDistance = dist;
-                            query.Mode = RayQueryMode::Precise;
-                            LevelHit hit;
-                            if (!Intersect.RayLevel(ray, query, hit)) {
-                                targets[count] = { objId, obj->Signature };
-                                count++;
-                                if (count >= targets.size()) {
-                                    SPDLOG_WARN("Max nearby targets reached");
-                                    return targets;
-                                }
+                    if (dist < maxDist) {
+                        Ray ray(object.Position, dir);
+                        RayQuery query;
+                        query.Start = object.Segment;
+                        query.MaxDistance = dist;
+                        query.Mode = RayQueryMode::Precise;
+                        LevelHit hit;
+                        if (!Intersect.RayLevel(ray, query, hit)) {
+                            targets[count] = { objId, obj->Signature };
+                            count++;
+                            if (count >= targets.size()) {
+                                SPDLOG_WARN("Max nearby targets reached");
+                                stop = true;
+                                return;
                             }
                         }
                     }
                 }
             }
-        }
+        };
+
+        IterateNearbySegments(Game::Level, object, maxDist, TraversalFlag::PassTransparent, search);
 
         return targets;
     }

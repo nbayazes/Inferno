@@ -169,6 +169,9 @@ namespace Inferno {
         //return XMVector2NearEqual(a, b, { epsilon, epsilon, epsilon });
     }
 
+    // Returns the fractional portion of x
+    inline float Frac(float x) { return x - std::floor(x); }
+
     constexpr float InvLerp(float a, float b, float v) {
         return (v - a) / (b - a);
     }
