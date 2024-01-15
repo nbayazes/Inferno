@@ -335,7 +335,42 @@ namespace Inferno {
                     if (side.HasOverlay())
                         chunk.EffectClip2 = Resources::GetEffectClipID(side.TMap2);
 
-                    AddPolygon(verts, side.UVs, side.Light, side.LightDirs, _geometry, chunk, side);
+                    Array<Vector2, 4> uvs = side.UVs;
+
+#ifndef UV_FIX
+                    // unfinished UV fix for non-tiling textures. Emissive mipmaps still cause problems
+                    // and this UV shift causes a pixel loss around the border
+                    constexpr float UV_SHIFT = 1/256.0f;
+                    constexpr float EPS = 0.005f;
+
+                    for (uint i = 0; i < 3; i++) {
+                        const auto& uv0 = side.UVs[i];
+                        const auto& uv1 = side.UVs[i + 1];
+                        auto& uv0d = uvs[i];
+                        auto& uv1d = uvs[i + 1];
+
+                        // Check if the edge is aligned on u, and that it is close to a whole number
+                        if (std::abs(uv0.x - uv1.x) < EPS && std::abs(uv0.x - std::round(uv0.x)) < EPS) {
+                            // which direction to make bigger?
+                            auto sign = Sign(uvs[(i + 2) % 4].x - uv0.x);
+
+                            // edge matches
+                            uv0d.x = uv0.x + UV_SHIFT * sign;
+                            uv1d.x = uv1.x + UV_SHIFT * sign;
+                        }
+
+                        // Check if the edge is aligned on v, and that it is close to a whole number
+                        if (std::abs(uv0.y - uv1.y) < EPS && std::abs(uv0.y - std::round(uv0.y)) < EPS) {
+                            auto sign = Sign(uvs[(i + 2) % 4].y - uv0.y);
+
+                            // edge matches
+                            uv0d.y = uv0.y + UV_SHIFT * sign;
+                            uv1d.y = uv1.y + UV_SHIFT * sign;
+                        }
+                    }
+#endif
+
+                    AddPolygon(verts, uvs, side.Light, side.LightDirs, _geometry, chunk, side);
 
                     // Overlays should slide in the same direction as the base texture regardless of their rotation
                     if (needsOverlaySlide)
