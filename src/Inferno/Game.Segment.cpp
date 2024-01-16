@@ -92,11 +92,11 @@ namespace Inferno {
 
         for (auto& sideId : SIDE_IDS) {
             auto& dist = distances[(int)sideId];
-            auto face = Face2::FromSide(level, Tag{ id, sideId });
+            auto face = ConstFace::FromSide(level, Tag{ id, sideId });
 
-            if (face.Side->Type == SideSplitType::Tri02) {
-                Plane p0(face[1], face.Side->Normals[0]);
-                Plane p1(face[3], face.Side->Normals[1]);
+            if (face.Side.Type == SideSplitType::Tri02) {
+                Plane p0(face[1], face.Side.Normals[0]);
+                Plane p1(face[3], face.Side.Normals[1]);
                 bool concave = p0.DotCoordinate(face[3]) > 0; // other triangle point is in front of plane
                 auto d0 = p0.DotCoordinate(point);
                 auto d1 = p1.DotCoordinate(point);
@@ -110,9 +110,9 @@ namespace Inferno {
                     dist = std::min({ dist, d0, d1 });
                 }
             }
-            else if (face.Side->Type == SideSplitType::Tri13) {
-                Plane p0(face[0], face.Side->Normals[0]);
-                Plane p1(face[2], face.Side->Normals[1]);
+            else if (face.Side.Type == SideSplitType::Tri13) {
+                Plane p0(face[0], face.Side.Normals[0]);
+                Plane p1(face[2], face.Side.Normals[1]);
                 bool concave = p0.DotCoordinate(face[2]) > 0; // other triangle point (2) is in front of plane
                 auto d0 = p0.DotCoordinate(point);
                 auto d1 = p1.DotCoordinate(point);
@@ -125,7 +125,7 @@ namespace Inferno {
                 }
             }
             else {
-                Plane p(face.Side->Center, face.Side->AverageNormal);
+                Plane p(face.Side.Center, face.Side.AverageNormal);
                 dist = std::min(dist, p.DotCoordinate(point));
             }
         }

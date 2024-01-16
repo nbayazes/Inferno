@@ -60,7 +60,7 @@ namespace Inferno {
             }
         }
 
-        auto face = Face2::FromSide(level, *seg, tag.Side);
+        auto face = ConstFace::FromSide(level, *seg, tag.Side);
         auto uv = IntersectFaceUVs(point, face, tri);
 
         auto& bitmap = Resources::GetBitmap(Resources::LookupTexID(side.TMap2));
@@ -955,13 +955,13 @@ namespace Inferno {
             if (!seg.SideIsSolid(sideId, level)) continue;
             if (Settings::Cheats.DisableWallCollision && seg.GetSide(sideId).HasWall()) continue;
             auto& side = seg.GetSide(sideId);
-            auto face = Face2::FromSide(level, seg, sideId);
+            auto face = ConstFace::FromSide(level, seg, sideId);
             auto& indices = side.GetRenderIndices();
             float edgeDistance = 0; // 0 for edge tests
 
             // Check the position against each triangle
             for (int tri = 0; tri < 2; tri++) {
-                Vector3 tangent = face.Side->Tangents[tri];
+                Vector3 tangent = face.Side.Tangents[tri];
                 // Offset the triangle by the object radius and then do a point-triangle intersection.
                 // This leaves space at the edges to do capsule intersection checks.
                 const auto offset = side.Normals[tri] * radius;
@@ -1054,13 +1054,13 @@ namespace Inferno {
                 if (!seg.SideIsSolid(sideId, level)) continue;
                 auto& side = seg.GetSide(sideId);
                 if (Settings::Cheats.DisableWallCollision && side.HasWall()) continue;
-                auto face = Face2::FromSide(level, seg, sideId);
+                auto face = ConstFace::FromSide(level, seg, sideId);
                 auto& indices = side.GetRenderIndices();
                 float edgeDistance = 0; // 0 for edge tests
 
                 // Check the position against each triangle
                 for (int tri = 0; tri < 2; tri++) {
-                    Vector3 tangent = face.Side->Tangents[tri];
+                    Vector3 tangent = face.Side.Tangents[tri];
                     // Offset the triangle by the object radius and then do a point-triangle intersection.
                     // This leaves space at the edges to do capsule intersection checks.
                     const auto offset = side.Normals[tri] * obj.Radius;

@@ -12,7 +12,7 @@ namespace Inferno {
     };
 
     // Returns the nearest intersection point on a face
-    HitInfo IntersectFaceSphere(const Face& face, const DirectX::BoundingSphere& sphere);
+    HitInfo IntersectFaceSphere(const ConstFace& face, const DirectX::BoundingSphere& sphere);
     HitInfo IntersectSphereSphere(const DirectX::BoundingSphere& a, const DirectX::BoundingSphere& b);
     HitInfo IntersectPointSphere(const Vector3& point, const DirectX::BoundingSphere& sphere);
 
@@ -70,17 +70,17 @@ namespace Inferno {
     Tuple<Vector3, float> ClosestPointOnTriangle2(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& point, int* edgeIndex = nullptr);
 
     // Returns the nearest distance to the face edge and a point. Skips the internal split.
-    float FaceEdgeDistance(const Segment& seg, SideID side, const Face2& face, const Vector3& point);
+    float FaceEdgeDistance(const Segment& seg, SideID side, const ConstFace& face, const Vector3& point);
 
     // Wraps a UV value to 0-1
     void WrapUV(Vector2& uv);
 
     // Returns the UVs on a face closest to a point in world coordinates
-    Vector2 IntersectFaceUVs(const Vector3& point, const Face2& face, int tri);
+    Vector2 IntersectFaceUVs(const Vector3& point, const ConstFace& face, int tri);
     void FixOverlayRotation(uint& x, uint& y, int width, int height, OverlayRotation rotation);
 
     // Returns true if the point was transparent
-    bool WallPointIsTransparent(const Vector3& pnt, const Face2& face, int tri);
+    bool WallPointIsTransparent(const Vector3& pnt, const ConstFace& face, int tri);
 
     enum class RayQueryMode {
         Visibility, // Ignores walls that have transparent textures

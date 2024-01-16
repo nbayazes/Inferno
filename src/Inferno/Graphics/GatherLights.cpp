@@ -134,12 +134,12 @@ namespace Inferno::Graphics {
     //    return Vector3::Barycentric(v0, v1, v2, f, g);
     //}
 
-    Option<Vector3> TriangleContainsUV(const Face2& face, int tri, Vector2 uv) {
-        auto& indices = face.Side->GetRenderIndices();
+    Option<Vector3> TriangleContainsUV(const ConstFace& face, int tri, Vector2 uv) {
+        auto& indices = face.Side.GetRenderIndices();
 
         Vector2 uvs[3];
         for (int i = 0; i < 3; i++) {
-            uvs[i] = face.Side->UVs[indices[tri * 3 + i]];
+            uvs[i] = face.Side.UVs[indices[tri * 3 + i]];
         }
 
         // https://math.stackexchange.com/a/28552
@@ -164,7 +164,7 @@ namespace Inferno::Graphics {
         return Vector3::Barycentric(v0, v1, v2, f, g);
     }
 
-    Option<Vector3> FaceContainsUV(const Face2& face, Vector2 uv) {
+    Option<Vector3> FaceContainsUV(const ConstFace& face, Vector2 uv) {
         auto pos = TriangleContainsUV(face, 0, uv);
         if (!pos) pos = TriangleContainsUV(face, 1, uv);
         return pos;
@@ -292,8 +292,8 @@ namespace Inferno::Graphics {
                 if (wall->Type == WallType::Open) continue; // Skip open walls
             }
 
-            auto face = Face2::FromSide(level, seg, sideId);
-            auto& side = *face.Side;
+            auto face = ConstFace::FromSide(level, seg, sideId);
+            auto& side = face.Side;
 
             bool useOverlay = side.TMap2 > LevelTexID::Unset;
 

@@ -8,7 +8,7 @@ namespace Inferno::Editor {
     // Creates a backup of a file using the provided extension
     void BackupFile(const filesystem::path& path, string_view ext = ".bak");
 
-    void NewLevel(string name, string fileName, int16 version, bool addToHog);
+    void NewLevel(string_view name, const string& fileName, int16 version, bool addToHog);
     void CheckForAutosave();
     void ResetAutosaveTimer();
     void WritePlaytestLevel(const filesystem::path& missionFolder, Level& level, HogFile* mission);

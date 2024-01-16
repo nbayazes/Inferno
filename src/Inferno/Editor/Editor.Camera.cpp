@@ -61,9 +61,9 @@ namespace Inferno::Editor {
         camera.Position = pos - dir * 20;
     }
 
-    void AlignViewToFace(Level& level, Camera& camera, Tag tag, int point) {
+    void AlignViewToFace(const Level& level, Camera& camera, Tag tag, int point) {
         if (!level.SegmentExists(tag)) return;
-        auto face = Face::FromSide(level, tag);
+        auto face = ConstFace::FromSide(level, tag);
 
         camera.Target = face.Center();
         camera.Position = face.Center() + face.AverageNormal() * std::sqrt(face.Area()) * 1.25;

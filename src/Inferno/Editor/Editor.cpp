@@ -420,7 +420,7 @@ namespace Inferno::Editor {
         SetWindowTextW(Shell::Hwnd, Convert::ToWideString(title).c_str());
     }
 
-    void AlignViewToFace(Level& level, Camera& camera, Tag tag, int point);
+    void AlignViewToFace(const Level& level, Camera& camera, Tag tag, int point);
 
     void ZoomExtents(const Level& level, Camera& camera);
 

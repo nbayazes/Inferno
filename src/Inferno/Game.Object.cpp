@@ -1142,8 +1142,8 @@ namespace Inferno {
     }
 
     bool SphereIntersectsSide(const Level& level, const Segment& seg, SideID sideId, const DirectX::BoundingSphere& sphere, Vector3& normal, float& distance) {
-        auto face = Face2::FromSide(level, seg, sideId);
-        auto& indices = face.Side->GetRenderIndices();
+        auto face = ConstFace::FromSide(level, seg, sideId);
+        auto& indices = face.Side.GetRenderIndices();
 
         // Check the position against each triangle
         for (int tri = 0; tri < 2; tri++) {
@@ -1153,7 +1153,7 @@ namespace Inferno {
 
             if (sphere.Intersects(p0, p1, p2)) {
                 Plane plane(p0, p1, p2);
-                normal = face.Side->Normals[tri];
+                normal = face.Side.Normals[tri];
                 distance = sphere.Radius - plane.DotCoordinate(sphere.Center);
                 if (std::abs(distance) <= 0.01f) continue; // too close to bother
                 return true;

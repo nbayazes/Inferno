@@ -1037,7 +1037,7 @@ namespace Inferno::Game {
         for (auto& srcPortal : room.Portals) {
             room.NearbyRooms.push_back(srcPortal.RoomLink); // all adjacent rooms are visible
             auto& srcSeg = level.GetSegment(srcPortal.Tag);
-            auto srcFace = Face2::FromSide(level, srcSeg, srcPortal.Tag.Side);
+            auto srcFace = ConstFace::FromSide(level, srcSeg, srcPortal.Tag.Side);
             auto connectedSide = level.GetConnectedSide(srcPortal.Tag);
 
             // Check each triangle in the src portal face
@@ -1046,8 +1046,8 @@ namespace Inferno::Game {
                 if (!destRoom) continue;
 
                 auto srcPoly = srcFace.GetPoly(i);
-                auto srcBounds = GetFaceBounds(srcPoly, srcFace.Side->Normals[i]);
-                auto srcTransform = VectorToRotation(srcFace.Side->Normals[i]);
+                auto srcBounds = GetFaceBounds(srcPoly, srcFace.Side.Normals[i]);
+                auto srcTransform = VectorToRotation(srcFace.Side.Normals[i]);
                 auto xstep = (srcBounds.Width - PADDING * 2) / (steps - 1);
                 auto ystep = -(srcBounds.Height - PADDING * 2) / (steps - 1);
 
@@ -1086,7 +1086,7 @@ namespace Inferno::Game {
                     }
 
                     auto& destSeg = level.GetSegment(destPortal->Tag);
-                    auto destFace = Face2::FromSide(level, destSeg, destPortal->Tag.Side);
+                    auto destFace = ConstFace::FromSide(level, destSeg, destPortal->Tag.Side);
 
                     auto addLeafRoom = [&srcFace, &destFace, &room, &destPortal] {
                         // Add the final leaf room without recursion if it is nearby
@@ -1104,8 +1104,8 @@ namespace Inferno::Game {
 
                     auto destPoly0 = destFace.GetPoly(0);
                     auto destPoly1 = destFace.GetPoly(1);
-                    auto destBounds0 = GetFaceBounds(destPoly0, destFace.Side->Normals[0]);
-                    auto destBounds1 = GetFaceBounds(destPoly1, destFace.Side->Normals[1]);
+                    auto destBounds0 = GetFaceBounds(destPoly0, destFace.Side.Normals[0]);
+                    auto destBounds1 = GetFaceBounds(destPoly1, destFace.Side.Normals[1]);
                     bool foundPortal = false;
 
                     // Compare each point on the src portal grid to the dest portal
@@ -1123,8 +1123,8 @@ namespace Inferno::Game {
                                 continue; // Shifting the point rarely pushes it outside the expected segment. Discard it if this happens.
 
                             // Check the source triangle against both dest triangles
-                            if (PortalVisibleFromPoint(intersect, connectedSide.Segment, pt, srcFace.Side->Normals[i], destPoly0, destFace.Side->Normals[0], destBounds0, steps) ||
-                                PortalVisibleFromPoint(intersect, connectedSide.Segment, pt, srcFace.Side->Normals[i], destPoly1, destFace.Side->Normals[1], destBounds1, steps)) {
+                            if (PortalVisibleFromPoint(intersect, connectedSide.Segment, pt, srcFace.Side.Normals[i], destPoly0, destFace.Side.Normals[0], destBounds0, steps) ||
+                                PortalVisibleFromPoint(intersect, connectedSide.Segment, pt, srcFace.Side.Normals[i], destPoly1, destFace.Side.Normals[1], destBounds1, steps)) {
                                 // Add both pairs to simplify searching
                                 visiblePortalLinks.push_back({ destPortal->Id, srcPortal.Id });
                                 visiblePortalLinks.push_back({ srcPortal.Id, destPortal->Id });

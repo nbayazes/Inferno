@@ -367,7 +367,7 @@ namespace Inferno::Render {
     constexpr int MAX_PORTAL_DEPTH = 50;
 
     // Returns the points of a face in NDC. Returns empty if all points are behind the face.
-    Option<Array<Vector3, 4>> GetNdc(const Face2& face, const Matrix& viewProj) {
+    Option<Array<Vector3, 4>> GetNdc(const ConstFace& face, const Matrix& viewProj) {
         Array<Vector3, 4> points;
         int behind = 0;
         for (int i = 0; i < 4; i++) {
@@ -424,7 +424,7 @@ namespace Inferno::Render {
             if (!SideIsTransparent(level, portal.Tag))
                 continue; // stop at opaque walls
 
-            auto face = Face2::FromSide(level, portal.Tag);
+            auto face = ConstFace::FromSide(level, portal.Tag);
             if (!Render::CameraFrustum.Contains(face[0], face[1], face[2])) continue;
             if (!Render::CameraFrustum.Contains(face[1], face[2], face[3])) continue;
 
@@ -471,7 +471,7 @@ namespace Inferno::Render {
             if (!SideIsTransparent(level, portal.Tag))
                 continue; // stop at opaque walls like closed doors
 
-            auto face = Face2::FromSide(level, portal.Tag);
+            auto face = ConstFace::FromSide(level, portal.Tag);
             auto basePoints = GetNdc(face, Render::ViewProjection);
 
             // Search next room if portal is on screen

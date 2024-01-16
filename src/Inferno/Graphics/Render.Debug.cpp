@@ -398,7 +398,7 @@ namespace Inferno::Render::Debug {
         }
     }
 
-    void DrawWallMarker(const Face& face, const Color& color, float height) {
+    void DrawWallMarker(const ConstFace& face, const Color& color, float height) {
         auto center = face.Center() + face.AverageNormal() * height;
 
         DrawLine(face[0], center, color);

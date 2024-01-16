@@ -477,17 +477,17 @@ namespace Inferno {
             // size, mineFilename, level number, player offset, player size
             _reader.SeekForward(31);
 
-            auto ReadHeader = [this]() {
+            auto readHeader = [this] {
                 return GameDataHeader{ _reader.ReadInt32(), _reader.ReadInt32(), _reader.ReadInt32() };
             };
 
-            auto objects = ReadHeader();
-            auto walls = ReadHeader();
-            auto doors = ReadHeader();
-            auto triggers = ReadHeader();
-            auto links = ReadHeader();
-            auto reactorTriggers = ReadHeader();
-            auto matcens = ReadHeader();
+            auto objects = readHeader();
+            auto walls = readHeader();
+            auto doors = readHeader();
+            auto triggers = readHeader();
+            auto links = readHeader();
+            auto reactorTriggers = readHeader();
+            auto matcens = readHeader();
 
             level.Walls.resize(walls.Count);
             level.Triggers.resize(triggers.Count);
@@ -495,8 +495,8 @@ namespace Inferno {
             level.Matcens.resize(matcens.Count);
 
             if (_gameVersion >= 29) {
-                _deltaLightIndices = ReadHeader();
-                _deltaLights = ReadHeader();
+                _deltaLightIndices = readHeader();
+                _deltaLights = readHeader();
             }
 
             level.Name = _reader.ReadStringToNewline(Level::MAX_NAME_LENGTH + 1);

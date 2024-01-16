@@ -35,7 +35,7 @@ namespace Inferno::Render::Debug {
     void DrawArc(float radius, float radians, float offset, const Matrix& transform, const Color& color);
     void DrawSolidArc(float radius, float thickness, float length, float offset, const Matrix& transform, const Color& color);
 
-    void DrawWallMarker(const Face& face, const Color& color, float height = Debug::WallMarkerOffset);
+    void DrawWallMarker(const ConstFace& face, const Color& color, float height = Debug::WallMarkerOffset);
 
     void DrawArrow(const Vector3& start, const Vector3& end, const Color& color);
 

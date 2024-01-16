@@ -130,7 +130,7 @@ namespace Inferno::Editor {
     }
 
     // Returns a level version, 0 for a mission, or -1 for unknown
-    int32 FileVersionFromHeader(filesystem::path path) {
+    int32 FileVersionFromHeader(const filesystem::path& path) {
         StreamReader reader(path);
         auto id = reader.ReadString(3);
         if (id == "DHF") return 0; // Return 0 for hog files
@@ -144,7 +144,7 @@ namespace Inferno::Editor {
         return -1;
     }
 
-    void AppendVertigoData(HogWriter& writer, string hamName) {
+    void AppendVertigoData(HogWriter& writer, string_view hamName) {
         try {
             //if (mission.ContainsFileType(".ham")) return; // Already has ham data
             if (!Resources::FoundVertigo()) {
@@ -327,7 +327,7 @@ namespace Inferno::Editor {
 
     void OnSave();
 
-    void NewLevel(string name, string fileName, int16 version, bool addToHog) {
+    void NewLevel(string_view name, const string& fileName, int16 version, bool addToHog) {
         if (!addToHog)
             Game::UnloadMission();
 

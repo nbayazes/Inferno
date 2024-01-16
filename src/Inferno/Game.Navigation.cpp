@@ -610,7 +610,7 @@ namespace Inferno {
     //}
 
     // Similar to FaceEdgeDistance() but checks for adjacent closed sides instead of open ones
-    float FaceEdgeDistancePathing(const Segment& seg, SideID sideid, const Face2& face, const Vector3& point) {
+    float FaceEdgeDistancePathing(const Segment& seg, SideID sideid, const ConstFace& face, const Vector3& point) {
         // Check the four outside edges of the face
         float mag1 = FLT_MAX, mag2 = FLT_MAX, mag3 = FLT_MAX, mag4 = FLT_MAX;
         auto& side = seg.GetSide(sideid);
@@ -648,7 +648,7 @@ namespace Inferno {
         if (!seg) return hit;
 
         for (auto& side : SIDE_IDS) {
-            auto face = Face2::FromSide(level, *seg, side);
+            auto face = ConstFace::FromSide(level, *seg, side);
 
             float dist{};
             auto tri = face.Intersects(ray, dist);
@@ -656,8 +656,8 @@ namespace Inferno {
 
             hit.Tag = { segId, side };
             hit.Distance = dist;
-            hit.Normal = face.Side->Normals[tri];
-            hit.Tangent = face.Side->Tangents[tri];
+            hit.Normal = face.Side.Normals[tri];
+            hit.Tangent = face.Side.Tangents[tri];
             hit.Point = ray.position + ray.direction * dist;
             hit.EdgeDistance = FaceEdgeDistancePathing(*seg, side, face, hit.Point);
             break;

@@ -10,7 +10,7 @@
 namespace Inferno {
     using DirectX::BoundingSphere;
 
-    HitInfo IntersectFaceSphere(const Face& face, const DirectX::BoundingSphere& sphere) {
+    HitInfo IntersectFaceSphere(const ConstFace& face, const DirectX::BoundingSphere& sphere) {
         HitInfo hit;
         auto& i = face.Side.GetRenderIndices();
 
@@ -165,7 +165,7 @@ namespace Inferno {
     }
 
 
-    float FaceEdgeDistance(const Segment& seg, SideID side, const Face2& face, const Vector3& point) {
+    float FaceEdgeDistance(const Segment& seg, SideID side, const ConstFace& face, const Vector3& point) {
         // Check the four outside edges of the face
         float mag1 = FLT_MAX, mag2 = FLT_MAX, mag3 = FLT_MAX, mag4 = FLT_MAX;
 
@@ -207,15 +207,15 @@ namespace Inferno {
         uv.y = std::fmodf(uv.y, 1);
     }
 
-    Vector2 IntersectFaceUVs(const Vector3& point, const Face2& face, int tri) {
-        auto& indices = face.Side->GetRenderIndices();
+    Vector2 IntersectFaceUVs(const Vector3& point, const ConstFace& face, int tri) {
+        auto& indices = face.Side.GetRenderIndices();
         auto& v0 = face[indices[tri * 3 + 0]];
         auto& v1 = face[indices[tri * 3 + 1]];
         auto& v2 = face[indices[tri * 3 + 2]];
 
         Vector2 uvs[3]{};
         for (int i = 0; i < 3; i++)
-            uvs[i] = face.Side->UVs[indices[tri * 3 + i]];
+            uvs[i] = face.Side.UVs[indices[tri * 3 + i]];
 
         // Vectors of two edges
         auto xAxis = v1 - v0;
@@ -263,8 +263,8 @@ namespace Inferno {
         }
     }
 
-    bool WallPointIsTransparent(const Vector3& pnt, const Face2& face, int tri) {
-        auto& side = *face.Side;
+    bool WallPointIsTransparent(const Vector3& pnt, const ConstFace& face, int tri) {
+        auto& side = face.Side;
         auto tmap = side.TMap2 > LevelTexID::Unset ? side.TMap2 : side.TMap;
         auto& bitmap = Resources::GetBitmap(Resources::LookupTexID(tmap));
         if (!bitmap.Info.Transparent) return false; // Must be flagged transparent
@@ -381,7 +381,7 @@ namespace Inferno {
             bool anyIntersect = false;
 
             for (auto& side : SIDE_IDS) {
-                auto face = Face2::FromSide(*_level, seg, side);
+                auto face = ConstFace::FromSide(*_level, seg, side);
                 //if (recoveryTries > 1) {
                 //    // jitter the face position
                 //    for (int i = 0; i < 4; i++) {
@@ -412,7 +412,7 @@ namespace Inferno {
                     }
                     case RayQueryMode::Precise:
                     {
-                        if (auto wall = _level->TryGetWall(face.Side->Wall)) {
+                        if (auto wall = _level->TryGetWall(face.Side.Wall)) {
                             if (wall->Type == WallType::Illusion || wall->Type == WallType::Open || wall->Type == WallType::None) {
                                 intersects = false;
                             }
@@ -439,8 +439,8 @@ namespace Inferno {
                 if (intersects) {
                     hit.Tag = tag;
                     hit.Distance = dist;
-                    hit.Normal = face.Side->Normals[tri];
-                    hit.Tangent = face.Side->Tangents[tri];
+                    hit.Normal = face.Side.Normals[tri];
+                    hit.Tangent = face.Side.Tangents[tri];
                     hit.Point = intersectPoint;
                     hit.EdgeDistance = FaceEdgeDistance(seg, side, face, hit.Point);
                     return true;
@@ -468,7 +468,7 @@ namespace Inferno {
         auto seg = level.TryGetSegment(tag);
         if (!seg) return SideID::None;
 
-        auto face = Face2::FromSide(level, *seg, tag.Side);
+        auto face = ConstFace::FromSide(level, *seg, tag.Side);
         float dist{};
         auto tri = face.Intersects(ray, dist);
         if (tri == -1 || dist > maxDist) return SideID::None;
@@ -481,7 +481,7 @@ namespace Inferno {
 
         for (auto& side : SIDE_IDS) {
             if (!seg->SideIsSolid(side, level)) continue;
-            auto face = Face2::FromSide(level, *seg, side);
+            auto face = ConstFace::FromSide(level, *seg, side);
 
             float dist{};
             auto tri = face.Intersects(ray, dist);
@@ -489,7 +489,7 @@ namespace Inferno {
 
             bool isSolid = !seg->SideHasConnection(side);
 
-            if (auto wall = level.TryGetWall(face.Side->Wall))
+            if (auto wall = level.TryGetWall(face.Side.Wall))
                 isSolid = wall->IsSolid();
 
             if (isSolid)
