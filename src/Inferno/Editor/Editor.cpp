@@ -750,6 +750,8 @@ namespace Inferno::Editor {
                 else {
                     Settings::Editor.ShowWireframe = false;
                 }
+
+                Settings::Graphics.NewLightMode = i != (int)RenderMode::Textured;
                 Settings::Editor.RenderMode = (RenderMode)i;
             },
             .Name = "Cycle Render Mode"

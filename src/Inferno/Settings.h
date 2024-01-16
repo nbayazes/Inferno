@@ -22,7 +22,10 @@ namespace Inferno {
     }
 
     enum class RenderMode {
-        None, Flat, Textured, Shaded
+        None,
+        Flat, // Untextured
+        Textured, // Unlit texturing
+        Shaded // Shaded textures
     };
 
     enum class TextureFilterMode {
