@@ -35,12 +35,12 @@ namespace Inferno::Editor {
         auto face = Face::FromSide(level, *seg, tag.Side);
         auto edge = face.VectorForEdge(tag.Point);
         auto normal = face.AverageNormal();
-        //auto& normal = face.Side.NormalForEdge(tag.Point);
 
         Matrix transform;
-        transform.Up(normal);
         transform.Forward(edge.Cross(normal));
         transform.Right(edge);
+        normal = transform.Forward().Cross(edge); // Recalculate normal in case side isn't flat
+        transform.Up(normal);
 
         float distance = obj->Radius;
 
