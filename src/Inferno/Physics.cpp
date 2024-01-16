@@ -643,7 +643,7 @@ namespace Inferno {
                         ApplyForce(target, forceVec);
                         if (!source || source->LastHitObject != target.Signature)
                             ApplyRotationForcePlayer(target, forceVec);
-                            //ApplyRandomRotationalForce(target, hit.Point, forceVec * 0.25f);
+                        //ApplyRandomRotationalForce(target, hit.Point, forceVec * 0.25f);
 
                         if (source && source->IsWeapon()) {
                             auto& weapon = Resources::GetWeapon(WeaponID(source->ID));
@@ -1035,9 +1035,10 @@ namespace Inferno {
         return (bool)hit.Tag;
     }
 
+    // todo: the level and object intersections should track the total distance travelled by the object.
+    // If the total distance is met (due to sliding or repositioning), stop iteration. Also limit the total number of iterations.
     bool IntersectLevelMesh(Level& level, Object& obj, span<SegID> pvs, LevelHit& hit, float dt) {
-        Vector3 averagePosition;
-        int hits = 0;
+        uint hits = 0;
         auto speed = obj.Physics.Velocity.Length();
         float travelDistance = speed * dt;
 
@@ -1167,15 +1168,14 @@ namespace Inferno {
                             // bounce velocity is handled after all hits are resolved so that overlapping
                             // triangle edges don't double the effect
                         }
-                        else if (/*!HasFlag(obj.Physics.Flags, PhysicsFlag::Piercing) &&*/ 
-                                 !HasFlag(obj.Physics.Flags, PhysicsFlag::Stick) && !hitEdge) {
+                        else if (!HasFlag(obj.Physics.Flags, PhysicsFlag::Stick)) {
                             // Note that wall sliding is disabled when the object is touching the edge of a triangle.
                             // Edge sliding would cause objects to randomly bounce off at high speeds.
+                            //SPDLOG_INFO("Sliding along wall, speed: {} vel: {}", hitSpeed, obj.Physics.Velocity.Length());
                             obj.Physics.Velocity += hitNormal * hitSpeed; // slide along wall
-                            //SPDLOG_INFO("Sliding along wall, speed: {}", hitSpeed);
+                            obj.Position = hitPoint + hitNormal * obj.Radius;
                         }
 
-                        averagePosition += hitPoint + hitNormal * obj.Radius;
                         hits++;
 
                         // apply friction so robots pinned against the wall don't spin in place
@@ -1210,8 +1210,11 @@ namespace Inferno {
             sticky = weapon.Extended.Sticky;
         }
 
-        if (hits > 0 && !sticky)
-            obj.Position = averagePosition / (float)hits;
+        //if (hits > 0 && !sticky) {
+            //obj.Physics.Velocity += faceVel != Vector3::Zero ? faceVel / (float)hits : edgeVel / (float)hits;
+            //obj.Physics.Velocity += slidingVel / (float)hits;
+            //obj.Position = averagePosition / (float)hits;
+        //}
 
         return hit && hit.Tag;
     }
