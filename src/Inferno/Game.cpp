@@ -102,6 +102,24 @@ namespace Inferno::Game {
         return 1;
     }
 
+    void FixMatcenLinks(Inferno::Level& level) {
+        for (int id = 0; id < level.Segments.size(); id++) {
+            auto& seg = level.Segments[id];
+
+            if (seg.Type == SegmentType::Matcen) {
+                if (auto matcen = level.TryGetMatcen(seg.Matcen)) {
+                    if (matcen->Segment != SegID(id)) {
+                        SPDLOG_WARN("Fixing matcen {} with invalid seg id {}", (int)seg.Matcen, matcen->Segment);
+                        matcen->Segment = SegID(id);
+                    }
+                }
+                else {
+                    SPDLOG_WARN("Segment {} had invalid matcen ID {}", id, (int)seg.Matcen);
+                }
+            }
+        }
+    }
+
     void LoadLevel(Inferno::Level&& level) {
         Inferno::Level backup = Level;
 
@@ -120,6 +138,7 @@ namespace Inferno::Game {
             //Rooms.clear();
             IsLoading = true;
             bool wasSecret = LevelNumber < 0;
+            FixMatcenLinks(level);
 
             Level = std::move(level); // Move to global so resource loading works properly
             FreeProceduralTextures();
