@@ -514,11 +514,11 @@ namespace Inferno::Editor {
         Editor::History.Reset(); // Undo / redo could cause models to get loaded without the proper data
     }
 
-    double _nextAutosave = FLT_MAX;
+    double _nextAutosave = DBL_MAX;
 
     void ResetAutosaveTimer() {
-        if (Settings::Editor.AutosaveMinutes == 0) _nextAutosave = FLT_MAX;
-        _nextAutosave = Game::Time + Settings::Editor.AutosaveMinutes * 60;
+        if (Settings::Editor.AutosaveMinutes == 0) _nextAutosave = DBL_MAX;
+        _nextAutosave = Clock.GetTotalTimeSeconds() + Settings::Editor.AutosaveMinutes * 60;
     }
 
     void WritePlaytestLevel(const filesystem::path& missionFolder, Level& level, HogFile* mission = nullptr) {
@@ -586,7 +586,7 @@ namespace Inferno::Editor {
     }
 
     void CheckForAutosave() {
-        if (Game::Time > _nextAutosave && Game::GetState() == GameState::Editor) {
+        if (Clock.GetTotalTimeSeconds() > _nextAutosave && Game::GetState() == GameState::Editor) {
             try {
                 auto& path = Game::Mission ? Game::Mission->Path : Game::Level.Path;
                 if (path.empty()) path = Game::Level.FileName;
