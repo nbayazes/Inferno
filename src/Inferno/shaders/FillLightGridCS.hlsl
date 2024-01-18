@@ -256,7 +256,7 @@ void main(uint2 group : SV_GroupID,
         }
 
         // cull the light if is behind the camera (negative z is behind) or too far
-        if (lightPos.z + lightRadius < zNear || lightPos.z - lightRadius > zFar) {
+        if (lightPos.z + lightRadius < zNear - 1 || lightPos.z - lightRadius > zFar) {
             inside = false;
         }
 
