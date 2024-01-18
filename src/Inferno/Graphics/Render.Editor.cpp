@@ -1,19 +1,19 @@
 #include "pch.h"
 #include "Render.Editor.h"
 
+#include "Debug.h"
+#include "Editor/Bindings.h"
+#include "Editor/Editor.h"
+#include "Editor/TunnelBuilder.h"
+#include "Editor/UI/EditorUI.h"
 #include "Game.Boss.h"
 #include "Game.Object.h"
+#include "Game.Text.h"
 #include "Object.h"
-#include "Render.h"
-#include "Editor/Editor.h"
 #include "Render.Debug.h"
 #include "Render.Gizmo.h"
-#include "Editor/TunnelBuilder.h"
+#include "Render.h"
 #include "Settings.h"
-#include "Editor/UI/EditorUI.h"
-#include "Game.Text.h"
-#include "Editor/Bindings.h"
-#include "Intersect.h"
 
 namespace Inferno::Render {
     void DrawFacingCircle(const Vector3& position, float radius, const Color& color) {

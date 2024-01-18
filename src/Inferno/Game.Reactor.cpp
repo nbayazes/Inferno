@@ -1,13 +1,14 @@
 #include "pch.h"
 #include "Game.Reactor.h"
 
+#include "Debug.h"
 #include "Game.AI.h"
 #include "Game.h"
 #include "Game.Wall.h"
-#include "Resources.h"
-#include "SoundSystem.h"
 #include "Graphics/Render.h"
 #include "Graphics/Render.Particles.h"
+#include "Resources.h"
+#include "SoundSystem.h"
 
 namespace Inferno::Game {
     void PlaySelfDestructSounds(float delay) {
@@ -205,25 +206,29 @@ namespace Inferno::Game {
         auto& info = Resources::GameData.Reactors[reactor.ID];
         float bestDot = -2;
         int bestGun = -1;
-        Vector3 gunPoint;
+        Vector3 bestGunPoint;
 
         for (int gun = 0; gun < info.Guns; gun++) {
-            gunPoint = Vector3::Transform(info.GunPoints[gun], reactor.GetTransform());
+            auto gunSubmodel = GetGunpointSubmodelOffset(reactor, gun);
+            auto objOffset = GetSubmodelOffset(reactor, gunSubmodel);
+            auto gunPoint = Vector3::Transform(objOffset, reactor.GetTransform());
+
+            //gunPoint = Vector3::Transform(info.GunPoints[gun], reactor.GetTransform());
             auto targetDir = target - gunPoint;
             targetDir.Normalize();
 
-            auto& dir = info.GunDirs[gun];
-            auto gunDir = Vector3::Transform(dir, reactor.Rotation);
+            auto gunDir = Vector3::Transform(info.GunDirs[gun], reactor.Rotation);
             auto dot = targetDir.Dot(gunDir);
 
             if (dot > bestDot) {
                 bestDot = dot;
                 bestGun = gun;
+                bestGunPoint = gunPoint;
             }
         }
 
         ASSERT(bestGun != -1);
-        return bestDot < 0 ? Tuple<int, Vector3>{ -1, {} } : Tuple{ bestGun, gunPoint };
+        return bestDot < 0 ? Tuple{ -1, Vector3::Zero } : Tuple{ bestGun, bestGunPoint };
     }
 
     constexpr float REACTOR_SIGHT_DISTANCE = 200;
@@ -286,6 +291,7 @@ namespace Inferno::Game {
 
         if (Reactor.FireDelay < 0) {
             auto [gun, gunPoint] = GetBestGun(reactor, Reactor.KnownPlayerPosition);
+
             // Lead the player if they are visible on hotshot and higher
             //auto& weapon = Resources::GetWeapon(WeaponID::ReactorBlob);
             //auto targetPosition =
@@ -296,6 +302,9 @@ namespace Inferno::Game {
             if (gun >= 0) {
                 auto dir = Reactor.KnownPlayerPosition - gunPoint;
                 dir.Normalize();
+
+                Inferno::Debug::RayStart = gunPoint;
+                Inferno::Debug::RayEnd = dir * 100;
 
                 FireWeapon(reactor, WeaponID::ReactorBlob, (uint8)gun, &dir);
 

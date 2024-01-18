@@ -1,11 +1,11 @@
 #pragma once
 #include "Camera.h"
 #include "Game.Navigation.h"
-#include "Level.h"
-#include "HogFile.h"
-#include "Mission.h"
 #include "Game.Player.h"
+#include "HogFile.h"
 #include "Intersect.h"
+#include "Level.h"
+#include "Mission.h"
 #include "SystemClock.h"
 
 namespace Inferno {

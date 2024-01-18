@@ -248,6 +248,7 @@
     <ClInclude Include="Audio\WAVFileReader.h" />
     <ClInclude Include="BitmapCache.h" />
     <ClInclude Include="CustomTextureLibrary.h" />
+    <ClInclude Include="Debug.h" />
     <ClInclude Include="DirectX.h" />
     <ClInclude Include="Editor\Command.h" />
     <ClInclude Include="Concurrent.h" />

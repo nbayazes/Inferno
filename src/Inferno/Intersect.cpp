@@ -6,6 +6,7 @@
 #include "Resources.h"
 #include "Utility.h"
 #include "Segment.h"
+#include "Debug.h"
 
 namespace Inferno {
     using DirectX::BoundingSphere;

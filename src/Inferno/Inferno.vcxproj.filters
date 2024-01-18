@@ -225,6 +225,7 @@
     <ClInclude Include="Game.Bindings.h" />
     <ClInclude Include="Render.Beam.h" />
     <ClInclude Include="Render.Effect.h" />
+    <ClInclude Include="Debug.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />
