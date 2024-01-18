@@ -836,7 +836,7 @@ namespace Inferno {
     void DrawHUD(float dt, const Color& ambient) {
         constexpr Color minLight(0.5f, 0.5f, 0.5f);
         Ambient = ambient;
-        Ambient *= Game::GetSelfDestructDimming();
+        Ambient *= Game::GlobalDimming;
         Ambient += minLight;
         Ambient.A(1);
         Direct = Game::Player.DirectLight * 0.5f;

@@ -26,7 +26,7 @@ namespace Inferno::Render {
                     bool additive,
                     const Vector3* up = nullptr,
                     bool lit = false) {
-        Color color = lit ? object.Ambient.GetColor() : Color(1, 1, 1);
+        Color color = lit ? object.Ambient.GetColor() * Game::GlobalDimming : Color(1, 1, 1);
         if (object.IsPowerup()) color += MIN_POWERUP_AMBIENT;
 
         if (object.Render.Emissive != Color())

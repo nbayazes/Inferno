@@ -488,7 +488,7 @@ namespace Inferno::Render {
         frameConstants.EyeDir = Camera.GetForward();
         frameConstants.Size = size;
         frameConstants.RenderScale = Render::RenderScale;
-        frameConstants.GlobalDimming = Game::GetSelfDestructDimming();
+        frameConstants.GlobalDimming = Game::GlobalDimming;
         frameConstants.NewLightMode = Settings::Graphics.NewLightMode;
         frameConstants.FilterMode = Settings::Graphics.FilterMode;
 

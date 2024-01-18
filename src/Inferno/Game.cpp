@@ -393,6 +393,9 @@ namespace Inferno::Game {
         Game::Player.DirectLight = Color();
         DecayScreenFlash(dt);
 
+        // Update global dimming
+        GlobalDimming = ControlCenterDestroyed ? float(sin(CountdownTimer * 4) * 0.5 + 0.5) : 1;
+
         DestroyedClips.Update(Level, dt);
         for (auto& clip : Resources::GameData.Effects) {
             if (clip.TimeLeft > 0) {
@@ -446,6 +449,13 @@ namespace Inferno::Game {
         camera.Up = transform.Up();
     }
 
+    void ResetGlobalLighting() {
+        // todo: this should blend back to normal instead of being instant
+        Render::ToneMapping->ToneMap.BloomStrength = .35f;
+        Render::ToneMapping->ToneMap.Exposure = 1;
+        Game::GlobalDimming = 1; // Clear dimming
+    }
+
     void UpdateExitSequence() {
         // todo: escape sequence
         // for first 5? seconds move camera to player
@@ -457,10 +467,7 @@ namespace Inferno::Game {
         // escape cancels sequence?
 
         // restore default exposure in case the reactor started going critical.
-        // todo: this should blend back to normal instead of being instant
-        Render::ToneMapping->ToneMap.BloomStrength = .35f;
-        Render::ToneMapping->ToneMap.Exposure = 1;
-
+        ResetGlobalLighting();
         SetState(GameState::Editor); // just exit for now
     }
 
@@ -479,6 +486,7 @@ namespace Inferno::Game {
                 Sound::Reset();
                 Render::ResetEffects();
                 LerpAmount = 1;
+                ResetGlobalLighting();
                 break;
 
             case GameState::Game:
@@ -516,6 +524,9 @@ namespace Inferno::Game {
         if (Player.TimeDead > 2 && Player.Lives == 0) {
             Render::Canvas->DrawGameText("game over", 0, 0, FontSize::Big, Color(1, 1, 1), 1, AlignH::Center, AlignV::Center);
         }
+    }
+
+    void UpdateGlobalDimming() {
     }
 
     void Update(float dt) {

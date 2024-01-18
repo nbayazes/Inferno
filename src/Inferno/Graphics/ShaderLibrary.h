@@ -305,6 +305,8 @@ namespace Inferno {
             HlslBool HasOverlay; // Discard pixels under overlay
             int Tex1, Tex2;
             float EnvStrength;
+            float Pad;
+            Color LightColor;
         };
 
         LevelShader(const ShaderInfo& info) : IShader(info) {

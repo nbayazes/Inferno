@@ -14,6 +14,7 @@ namespace Inferno {
         EClipID EffectClip2 = EClipID::None;
         Vector2 OverlaySlide; // UV sliding corrected for overlay rotation
         bool SkipDecalCull = false; // Set to true when overlay is a transparent procedural
+        Color LightColor; // Light color for decals
 
         // Geometric center used for wall depth sorting
         Vector3 Center;
@@ -39,10 +40,14 @@ namespace Inferno {
         List<LevelChunk> Chunks;
 
         // Static mesh decals (overlay textures)
-        List<LevelChunk> Decals;
+        //List<LevelChunk> Decals;
 
         // 'Wall' meshes that require depth sorting
         List<LevelChunk> Walls;
+
+        // Sides with lights on them are unique so that they can be colored individually
+        List<LevelChunk> Lights;
+
         // Technically vertices are no longer needed after being uploaded
         List<LevelVertex> Vertices;
         HeatVolume HeatVolumes;

@@ -165,11 +165,7 @@ namespace Inferno::Game {
     inline float CountdownTimer = -1.0f; // time before reactor goes critical
     inline int CountdownSeconds = -1; // seconds before the reactor goes critical. Used for HUD value and audio.
     inline int TotalCountdown = -1; // the starting countdown time
-
-    // Gets the global dimming related to the self destruct sequence
-    inline float GetSelfDestructDimming() {
-        return ControlCenterDestroyed ? float(sin(CountdownTimer * 4) * 0.5 + 0.5) : 1;
-    }
+    inline float GlobalDimming = 1; // Amount of global fade to apply to 'mine' light sources
 
     void SetState(GameState);
     GameState GetState();

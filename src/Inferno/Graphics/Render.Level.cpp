@@ -26,8 +26,8 @@ namespace Inferno::Render {
     namespace {
         RenderQueue _renderQueue;
         LevelMeshBuilder _levelMeshBuilder;
-        // List of lights in each room
-        List<List<LightData>> RoomLights;
+
+        List<SegmentLight> SegmentLights;
     }
 
     bool SideIsDoor(const SegmentSide* side) {
@@ -43,6 +43,44 @@ namespace Inferno::Render {
         auto proc = GetProcedural(Resources::LookupTexID(id));
         if (proc && proc->Enabled) return proc;
         return nullptr;
+    }
+
+    void AnimateLight(SegmentLight::SideLighting& side, DynamicLightMode mode) {
+        const auto hash = ((float)side.Tag.Segment + (float)side.Tag.Side) * 0.1747f;
+
+        side.AnimatedColor = side.Color;
+        side.AnimatedRadius = side.Radius;
+
+        if (mode == DynamicLightMode::Flicker || mode == DynamicLightMode::StrongFlicker || mode == DynamicLightMode::WeakFlicker) {
+            int index = mode == DynamicLightMode::WeakFlicker ? 0 : mode == DynamicLightMode::Flicker ? 1 : 2;
+            float flickerSpeeds[] = { 1.2f, 1.9f, 2.25f };
+            float mults[] = { .25f, .4f, .55f };
+
+            auto noise = OpenSimplex2::Noise2((uint)side.Tag.Segment, Render::ElapsedTime * flickerSpeeds[index], hash);
+            //const float flickerRadius = lt.mode == DynamicLightMode::Flicker ? 0.05f : (lt.mode == DynamicLightMode::StrongFlicker ? 0.08f : 0.0125f);
+            //lt.radius += lt.radius * noise * flickerRadius;
+            auto t = 1.0f - abs(noise * noise * noise - .05f) * mults[index] * (Game::ControlCenterDestroyed ? 2 : 1);
+            side.AnimatedColor *= t;
+        }
+        else if (mode == DynamicLightMode::Pulse) {
+            float t = 1 + sinf((float)Render::ElapsedTime * 3.14f * 1.25f + hash) * 0.125f;
+            side.AnimatedRadius *= t;
+            side.AnimatedColor *= t;
+        }
+        else if (mode == DynamicLightMode::BigPulse) {
+            float t = 1 + sinf((float)Render::ElapsedTime * 3.14f * 1.25f + hash) * 0.25f;
+            side.AnimatedRadius *= t;
+            side.AnimatedColor *= t;
+        }
+
+        if (Game::GlobalDimming != 1)
+            side.AnimatedColor *= Game::GlobalDimming;
+
+        // Copy to each light on this side
+        for (auto& light : side.Lights) {
+            light.radius = side.AnimatedRadius;
+            light.color = side.AnimatedColor;
+        }
     }
 
     void LevelDepthCutout(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd) {
@@ -301,6 +339,12 @@ namespace Inferno::Render {
         constants.Scroll2 = chunk.OverlaySlide;
         constants.Distort = ti.Slide != Vector2::Zero;
         constants.Tex1 = (int)ti.TexID;
+        constants.LightColor = chunk.LightColor;
+
+        if (auto segment = Seq::tryItem(SegmentLights, (uint)chunk.Tag.Segment)) {
+            auto& side = segment->Sides[(uint)chunk.Tag.Side];
+            constants.LightColor = side.AnimatedColor;
+        }
 
         // Tell the shader to skip discards because procedurals do not handle transparency
         if (chunk.SkipDecalCull) constants.HasOverlay = false;
@@ -431,7 +475,8 @@ namespace Inferno::Render {
                 room->WallMeshes.push_back(i);
             }
         }
-        RoomLights = Graphics::GatherLightSources(level);
+
+        SegmentLights = Graphics::GatherSegmentLights(level);
         LevelChanged = false;
     }
 
@@ -445,74 +490,62 @@ namespace Inferno::Render {
 
         _renderQueue.Update(level, _levelMeshBuilder, drawObjects);
 
-        float dimming = Game::GetSelfDestructDimming();
-
         for (auto& id : _renderQueue.GetVisibleRooms()) {
-            if (Seq::inRange(RoomLights, (int)id)) {
-                auto& lights = RoomLights[(int)id];
-                for (int lid = 0; lid < lights.size(); lid++) {
-                    auto& light = lights[lid];
-                    if (light.color.w <= 0 || light.radius <= 0 || light.mode == DynamicLightMode::Off)
-                        continue;
+            auto room = level.GetRoom(id);
+            if (!room) continue;
 
-                    LightData lt = light;
+            for (auto& segid : room->Segments) {
+                auto lights = Seq::tryItem(SegmentLights, (int)segid);
+                if (!lights) continue;
 
-                    auto& mode = lt.mode;
-                    if (Game::ControlCenterDestroyed) {
-                        if (lid % 3 == 0) mode = DynamicLightMode::StrongFlicker;
-                        else if (lid % 2 == 0) mode = DynamicLightMode::StrongFlicker;
-                    }
+                // Add lights on each side
+                for (auto& sideLights : lights->Sides) {
+                    for (int lid = 0; lid < sideLights.Lights.size(); lid++) {
+                        auto& light = sideLights.Lights[lid];
+                        DynamicLightMode mode = light.mode;
 
-                    lt.color *= dimming;
+                        if (sideLights.Color.w <= 0 || sideLights.Radius <= 0 || light.mode == DynamicLightMode::Off)
+                            continue;
 
-                    if (mode == DynamicLightMode::Flicker || mode == DynamicLightMode::StrongFlicker || mode == DynamicLightMode::WeakFlicker) {
-                        int index = mode == DynamicLightMode::WeakFlicker ? 0 : mode == DynamicLightMode::Flicker ? 1 : 2;
-                        float flickerSpeeds[] = { 1.2f, 1.9f, 2.25f };
-                        float mults[] = { .25f, .4f, .55f };
-
-                        auto noise = OpenSimplex2::Noise2(lid, Render::ElapsedTime * flickerSpeeds[index], (float)id * 1.37f);
-                        //const float flickerRadius = lt.mode == DynamicLightMode::Flicker ? 0.05f : (lt.mode == DynamicLightMode::StrongFlicker ? 0.08f : 0.0125f);
-                        //lt.radius += lt.radius * noise * flickerRadius;
-                        lt.color *= 1.0f - abs(noise * noise * noise - .05f) * mults[index] * (Game::ControlCenterDestroyed ? 2 : 1);
-                    }
-                    else if (mode == DynamicLightMode::Pulse) {
-                        float t = 1 + sinf((float)Render::ElapsedTime * 3.14f * 1.25f + (float)id * 0.1747f) * 0.125f;
-                        lt.radius *= t;
-                        lt.color *= t;
-                    }
-                    else if (mode == DynamicLightMode::BigPulse) {
-                        float t = 1 + sinf((float)Render::ElapsedTime * 3.14f * 1.25f + (float)id * 0.1747f) * 0.25f;
-                        lt.radius *= t;
-                        lt.color *= t;
-                    }
-
-                    Graphics::Lights.AddLight(lt);
-
-                    if (Settings::Editor.ShowLights) {
-                        Color color(1, .6f, .2f);
-                        if (light.type == LightType::Rectangle) {
-                            Debug::DrawLine(light.pos + light.right + light.up, light.pos + light.right - light.up, color); // right
-                            Debug::DrawLine(light.pos + light.right - light.up, light.pos - light.right - light.up, color); // bottom
-                            Debug::DrawLine(light.pos - light.right + light.up, light.pos - light.right - light.up, color); // left
-                            Debug::DrawLine(light.pos - light.right + light.up, light.pos + light.right + light.up, color); // top
+                        if (Game::ControlCenterDestroyed) {
+                            if (lid % 3 == 0) mode = DynamicLightMode::StrongFlicker;
+                            else if (lid % 2 == 0) mode = DynamicLightMode::StrongFlicker;
                         }
-                        else {
-                            Debug::DrawPoint(light.pos, color);
-                            //Debug::DrawLine(light.pos, light.pos + light.normal * light.radius/2, color);
-                            if (light.normal != Vector3::Zero) {
-                                auto transform = Matrix(VectorToRotation(light.normal));
-                                transform.Translation(light.pos);
-                                Debug::DrawCircle(5 /*light.radius*/, transform, color);
+
+                        AnimateLight(sideLights, mode);
+                        Graphics::Lights.AddLight(light);
+
+                        if (Settings::Editor.ShowLights) {
+                            Color lineColor(1, .6f, .2f);
+                            if (light.type == LightType::Rectangle) {
+                                Debug::DrawLine(light.pos + light.right + light.up, light.pos + light.right - light.up, lineColor); // right
+                                Debug::DrawLine(light.pos + light.right - light.up, light.pos - light.right - light.up, lineColor); // bottom
+                                Debug::DrawLine(light.pos - light.right + light.up, light.pos - light.right - light.up, lineColor); // left
+                                Debug::DrawLine(light.pos - light.right + light.up, light.pos + light.right + light.up, lineColor); // top
+                            }
+                            else {
+                                Debug::DrawPoint(light.pos, lineColor);
+                                //Debug::DrawLine(light.pos, light.pos + light.normal * light.radius/2, color);
+                                if (light.normal != Vector3::Zero) {
+                                    auto transform = Matrix(VectorToRotation(light.normal));
+                                    transform.Translation(light.pos);
+                                    Debug::DrawCircle(5 /*light.radius*/, transform, lineColor);
+                                }
                             }
                         }
                     }
                 }
+
+                // Add lights inside the segment
+                for (auto& light : lights->Lights) {
+                    LightData l = light;
+                    l.color *= Game::GlobalDimming;
+                    Graphics::Lights.AddLight(l);
+                }
             }
 
-            if (Settings::Graphics.OutlineVisibleRooms && Game::GetState() != GameState::Editor) {
-                if (auto room = level.GetRoom(id))
-                    Debug::OutlineRoom(level, *room, Color(1, 1, 1, 0.5f));
-            }
+            if (Settings::Graphics.OutlineVisibleRooms && Game::GetState() != GameState::Editor)
+                Debug::OutlineRoom(level, *room, Color(1, 1, 1, 0.5f));
         }
 
         // Debug active rooms

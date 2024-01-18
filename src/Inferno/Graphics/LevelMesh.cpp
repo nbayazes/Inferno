@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "LevelMesh.h"
+#include "Game.Segment.h"
 
 #include "MaterialLibrary.h"
 #include "Procedural.h"
@@ -122,10 +123,10 @@ namespace Inferno {
                     const Array<Vector2, 4>& uvs,
                     const Array<Color, 4>& colors,
                     const Array<Vector3, 4>& lightDirs,
-                    LevelGeometry& geo,
+                    List<LevelVertex>& vertices,
                     LevelChunk& chunk,
                     const SegmentSide& side) {
-        auto startIndex = geo.Vertices.size();
+        auto startIndex = vertices.size();
         chunk.AddQuad((uint16)startIndex);
 
         auto& indices = side.GetRenderIndices();
@@ -155,7 +156,7 @@ namespace Inferno {
             auto& bitangent = i < 3 ? bitangent1 : bitangent2;
             //LevelVertex vertex = { pos, uv, color, uv2, normal, tangent, bitangent, (int)tex1, (int)tex2 };
             LevelVertex vertex = { pos, uv, color, uv2, *normal, tangent, bitangent, lightDir };
-            geo.Vertices.push_back(vertex);
+            vertices.push_back(vertex);
         }
 
         chunk.Center /= 4;
@@ -163,7 +164,7 @@ namespace Inferno {
 
     void Tessellate(Array<Vector3, 4>& verts,
                     Array<Vector3, 4>& lightDirs,
-                    LevelGeometry& geo,
+                    List<LevelVertex>& vertices,
                     LevelChunk& chunk,
                     SegmentSide& side,
                     int steps) {
@@ -222,7 +223,7 @@ namespace Inferno {
                 lt[2] = ltEdge0b + ltRight * (fy + 1); // bottom right
                 lt[3] = ltEdge0a + ltLeft * (fy + 1); // bottom left
 
-                AddPolygon(p, uv, lt, lightDirs, geo, chunk, side);
+                AddPolygon(p, uv, lt, lightDirs, vertices, chunk, side);
             }
         }
     }
@@ -250,8 +251,9 @@ namespace Inferno {
         _decals.clear();
         _geometry.Chunks.clear();
         _geometry.Vertices.clear();
-        _geometry.Decals.clear();
+        //_geometry.Decals.clear();
         _geometry.Walls.clear();
+        _geometry.Lights.clear();
 
         for (int id = 0; id < level.Segments.size(); id++) {
             auto& seg = level.Segments[id];
@@ -280,8 +282,15 @@ namespace Inferno {
                 // For sliding textures that have an overlay, we must store the overlay rotation sliding as well
                 auto& ti = Resources::GetLevelTextureInfo(side.TMap);
                 bool needsOverlaySlide = side.HasOverlay() && ti.Slide != Vector2::Zero;
+                auto& tmapi = Resources::Materials.GetMaterialInfo(side.TMap);
+                bool isLight = tmapi.EmissiveStrength > 0 && tmapi.LightReceived != 0;
 
-                if (isWall) {
+                if (!isLight && side.TMap2 > LevelTexID::None) {
+                    auto& tmapi2 = Resources::Materials.GetMaterialInfo(side.TMap2);
+                    isLight |= tmapi2.EmissiveStrength > 0 && tmapi2.LightReceived != 0;
+                }
+
+                if (isWall || isLight) {
                     LevelChunk chunk; // always use a new chunk for walls
                     chunk.TMap1 = side.TMap;
                     chunk.TMap2 = side.TMap2;
@@ -292,8 +301,8 @@ namespace Inferno {
                     //auto tex1 = Resources::LookupTexID(side.TMap);
                     //auto tex2 = side.HasOverlay() ? Resources::LookupTexID(side.TMap2) : TexID::None;
 
-                    AddPolygon(verts, side.UVs, side.Light, side.LightDirs, _geometry, chunk, side);
-                    AddPolygon(verts, side.UVs, side.Light, side.LightDirs, _geometry, chunk, side);
+                    AddPolygon(verts, side.UVs, side.Light, side.LightDirs, _geometry.Vertices, chunk, side);
+                    AddPolygon(verts, side.UVs, side.Light, side.LightDirs, _geometry.Vertices, chunk, side);
 
                     if (side.HasOverlay())
                         chunk.EffectClip2 = Resources::GetEffectClipID(side.TMap2);
@@ -313,7 +322,15 @@ namespace Inferno {
                         chunk.OverlaySlide = ApplyOverlayRotation(side, ti.Slide);
 
                     chunk.Tag = { (SegID)id, sideId };
-                    _geometry.Walls.push_back(chunk);
+
+                    if (isLight) {
+                        chunk.LightColor = GetLightColor(side, true);
+                        chunk.LightColor.Premultiply();
+                        _geometry.Lights.push_back(chunk);
+                    }
+                    else {
+                        _geometry.Walls.push_back(chunk);
+                    }
                 }
                 else {
                     // pack the map ids together into a single integer (15 bits, 15 bits, 2 bits);
@@ -340,7 +357,7 @@ namespace Inferno {
 #ifndef UV_FIX
                     // unfinished UV fix for non-tiling textures. Emissive mipmaps still cause problems
                     // and this UV shift causes a pixel loss around the border
-                    constexpr float UV_SHIFT = 1/256.0f;
+                    constexpr float UV_SHIFT = 1 / 200.0f;
                     constexpr float EPS = 0.005f;
 
                     for (uint i = 0; i < 3; i++) {
@@ -370,7 +387,7 @@ namespace Inferno {
                     }
 #endif
 
-                    AddPolygon(verts, uvs, side.Light, side.LightDirs, _geometry, chunk, side);
+                    AddPolygon(verts, uvs, side.Light, side.LightDirs, _geometry.Vertices, chunk, side);
 
                     // Overlays should slide in the same direction as the base texture regardless of their rotation
                     if (needsOverlaySlide)
@@ -389,23 +406,23 @@ namespace Inferno {
                     //    AddPolygon(verts, side.UVs, side.Light, _geometry, chunk, side, tex1, TexID::None);
                     //}
 
-                    //if (side.HasOverlay()) {
-                    //    uint16 overlayBit = needsOverlaySlide ? (uint16)side.OverlayRotation : 0;
-                    //    uint32 chunkId = 0 | (uint16)side.TMap2 << 15 | overlayBit << 30;
+                    if (side.HasOverlay()) {
+                        //uint16 overlayBit = needsOverlaySlide ? (uint16)side.OverlayRotation : 0;
+                        //uint32 chunkId = 0 | (uint16)side.TMap2 << 15 | overlayBit << 30;
 
-                    //    LevelChunk& decalChunk = _decals[chunkId];
-                    //    decalChunk.TMap2 = side.TMap2;
-                    //    decalChunk.EffectClip2 = Resources::GetEffectClipID(side.TMap2);
-                    //    decalChunk.ID = id;
+                        LevelChunk& decalChunk = _decals[chunkId];
+                        decalChunk.TMap2 = side.TMap2;
+                        decalChunk.EffectClip2 = Resources::GetEffectClipID(side.TMap2);
+                        decalChunk.ID = id;
 
-                    //    // Overlays should slide in the same direction as the base texture regardless of their rotation
-                    //    if (needsOverlaySlide)
-                    //        decalChunk.OverlaySlide = ApplyOverlayRotation(side, ti.Slide);
+                        // Overlays should slide in the same direction as the base texture regardless of their rotation
+                        if (needsOverlaySlide)
+                            decalChunk.OverlaySlide = ApplyOverlayRotation(side, ti.Slide);
 
-                    //    auto verts = Face::FromSide(level, seg, sideId).CopyPoints();
-                    //    auto tex2 = Resources::LookupTexID(side.TMap2);
-                    //    AddPolygon(verts, side.UVs, side.Light, _geometry, decalChunk, side, TexID::None, tex2);
-                    //}
+                        //auto verts = Face::FromSide(level, seg, sideId).CopyPoints();
+                        //auto tex2 = Resources::LookupTexID(side.TMap2);
+                        AddPolygon(verts, uvs, side.Light, side.LightDirs, _geometry.Vertices, decalChunk, side);
+                    }
                 }
             }
         }
@@ -413,8 +430,8 @@ namespace Inferno {
         for (auto& chunk : _chunks | views::values)
             _geometry.Chunks.push_back(chunk);
 
-        for (auto& decal : _decals | views::values)
-            _geometry.Decals.push_back(decal);
+        //for (auto& decal : _decals | views::values)
+        //    _geometry.Decals.push_back(decal);
     }
 
     void LevelMesh::Draw(ID3D12GraphicsCommandList* cmdList) const {
@@ -456,10 +473,10 @@ namespace Inferno {
             _meshes.emplace_back(LevelMesh{ vbv, ibv, (uint)c.Indices.size(), &c });
         }
 
-        for (auto& c : _geometry.Decals) {
+        for (auto& c : _geometry.Lights) {
             UpdateBounds(c, _geometry.Vertices);
             auto ibv = buffer.PackIndices(c.Indices);
-            _decalMeshes.emplace_back(LevelMesh{ vbv, ibv, (uint)c.Indices.size(), &c });
+            _meshes.emplace_back(LevelMesh{ vbv, ibv, (uint)c.Indices.size(), &c });
         }
 
         for (auto& c : _geometry.Walls) {

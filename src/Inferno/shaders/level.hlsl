@@ -4,7 +4,7 @@
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0),"\
     "DescriptorTable(SRV(t0, space = 1, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE), visibility=SHADER_VISIBILITY_PIXEL), " \
-    "RootConstants(b1, num32BitConstants = 11), "\
+    "RootConstants(b1, num32BitConstants = 16), "\
     "DescriptorTable(SRV(t0), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t1, numDescriptors = 4), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t5), visibility=SHADER_VISIBILITY_PIXEL), " \
@@ -43,13 +43,15 @@ static const float PIDIV2 = PI / 2;
 static const float GAME_UNIT = 20; // value of 1 UV tiling in game units
 
 struct InstanceConstants {
-    float2 Scroll, Scroll2; // scrolling needs to be separate? or part of texture info
+    float2 Scroll, Scroll2; // base and decal scrolling
     float LightingScale; // for unlit mode
     bool Distort;
     bool IsOverlay;
     bool HasOverlay;
     int Tex1, Tex2;
     float EnvStrength;
+    float _pad;
+    float4 LightColor; // Light color, if present
 };
 
 ConstantBuffer<FrameConstants> Frame : register(b0);
@@ -241,12 +243,14 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float specularMask = Sample2D(Specular1, uvs, Sampler, Frame.FilterMode).r;
     specularMask *= mat1.SpecularStrength;
 
-    float emissive = Sample2D(Emissive, uvs, Sampler, Frame.FilterMode).r * mat1.EmissiveStrength;
+    float3 emissive = Sample2D(Emissive, uvs, Sampler, Frame.FilterMode).rrr * mat1.EmissiveStrength;
     //float emissive = Sample2D(GetTexture(input.Tex1, MAT_EMIS), input.uv, Sampler, Frame.FilterMode).r * mat1.EmissiveStrength;
     MaterialInfo material = mat1;
 
-    if (emissive > 0 && mat1.LightReceived == 0)
+    if (any(emissive) && mat1.LightReceived == 0)
         emissive = emissive + 1; // make lava and forcefields full bright
+    else if (any(Args.LightColor.rgb))
+        emissive *= Args.LightColor.rgb;
 
     if (Args.HasOverlay) {
         float overlay = Sample2D(Diffuse2, input.uv2, Sampler, Frame.FilterMode).a;
@@ -290,7 +294,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         ShadeLights(directLight, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
         lighting += directLight * material.LightReceived;
         lighting += emissive * diffuse.rgb; // emissive
-        lighting += emissive * diffuse.rgb * ambient * material.LightReceived * .5; // also tint emissive by ambient
+        //lighting += emissive * diffuse.rgb * ambient * material.LightReceived * .5; // also tint emissive by ambient
         lighting += diffuse.rgb * ambient * .25 * material.LightReceived * (1 - material.Metalness * .95); // ambient
         lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, ambient * .25, diffuse.rgb, specularMask, .4) * diffuse.a;
         return float4(lighting, diffuse.a);
