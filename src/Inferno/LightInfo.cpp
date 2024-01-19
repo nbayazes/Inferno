@@ -71,9 +71,6 @@ namespace Inferno {
                 for (const auto& child : node.children()) {
                     if (!child.valid() || child.is_seed()) continue;
                     auto info = ReadLightInfo(child);
-                    if (lightInfo.contains(info.Id))
-                        SPDLOG_WARN("Redefined texture {} due to duplicate entry", (int)info.Id);
-
                     lightInfo[info.Id] = info;
                 }
             }

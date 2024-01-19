@@ -577,7 +577,7 @@ namespace Inferno::Editor {
             {
                 // Light color override
                 bool hasOverride = side.LightOverride.has_value();
-                auto light = side.LightOverride.value_or(GetLightColor(side, Settings::Editor.Lighting.EnableColor));
+                auto light = side.LightOverride.value_or(GetLightColor(side, EditorLightSettings.EnableColor));
 
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
