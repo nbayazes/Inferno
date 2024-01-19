@@ -499,8 +499,8 @@ namespace Inferno::Graphics {
 
                 auto& sideLighting = segLights.Sides[(int)sideId];
                 sideLighting.Color = color;
-                sideLighting.Color.Premultiply();
-                sideLighting.Color.w = 1;
+                //sideLighting.Color.Premultiply();
+                //sideLighting.Color.w = 1;
                 sideLighting.Radius = info->Radius;
                 sideLighting.Tag = { SegID(i), sideId };
 

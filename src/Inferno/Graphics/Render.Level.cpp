@@ -1,23 +1,23 @@
 #include "pch.h"
 #include "Render.Level.h"
+#include "DirectX.h"
 #include "Game.h"
 #include "Game.Segment.h"
+#include "Game.Wall.h"
+#include "LegitProfiler.h"
+#include "MaterialLibrary.h"
+#include "Object.h"
+#include "Physics.h"
+#include "Procedural.h"
 #include "Render.Debug.h"
 #include "Render.Editor.h"
 #include "Render.h"
+#include "Render.Object.h"
 #include "Render.Queue.h"
 #include "Resources.h"
 #include "ScopedTimer.h"
 #include "ShaderLibrary.h"
-#include "Object.h"
-#include "DirectX.h"
-#include "Game.Wall.h"
-#include "LegitProfiler.h"
-#include "MaterialLibrary.h"
-#include "Physics.h"
-#include "Render.Object.h"
 #include "Shell.h"
-#include "Procedural.h"
 #include "SoundSystem.h"
 
 namespace Inferno::Render {
@@ -60,21 +60,21 @@ namespace Inferno::Render {
             //const float flickerRadius = lt.mode == DynamicLightMode::Flicker ? 0.05f : (lt.mode == DynamicLightMode::StrongFlicker ? 0.08f : 0.0125f);
             //lt.radius += lt.radius * noise * flickerRadius;
             auto t = 1.0f - abs(noise * noise * noise - .05f) * mults[index] * (Game::ControlCenterDestroyed ? 2 : 1);
-            side.AnimatedColor *= t;
+            side.AnimatedColor.w *= t;
         }
         else if (mode == DynamicLightMode::Pulse) {
             float t = 1 + sinf((float)Render::ElapsedTime * 3.14f * 1.25f + hash) * 0.125f;
             side.AnimatedRadius *= t;
-            side.AnimatedColor *= t;
+            side.AnimatedColor.w *= t;
         }
         else if (mode == DynamicLightMode::BigPulse) {
             float t = 1 + sinf((float)Render::ElapsedTime * 3.14f * 1.25f + hash) * 0.25f;
             side.AnimatedRadius *= t;
-            side.AnimatedColor *= t;
+            side.AnimatedColor.w *= t;
         }
 
         if (Game::GlobalDimming != 1)
-            side.AnimatedColor *= Game::GlobalDimming;
+            side.AnimatedColor.w *= Game::GlobalDimming;
 
         // Copy to each light on this side
         for (auto& light : side.Lights) {
@@ -339,8 +339,8 @@ namespace Inferno::Render {
         constants.Scroll2 = chunk.OverlaySlide;
         constants.Distort = ti.Slide != Vector2::Zero;
         constants.Tex1 = (int)ti.TexID;
-        constants.LightColor = chunk.LightColor;
-
+        constants.LightColor = Color(0, 0, 0);
+        
         if (auto segment = Seq::tryItem(SegmentLights, (uint)chunk.Tag.Segment)) {
             auto& side = segment->Sides[(uint)chunk.Tag.Side];
             constants.LightColor = side.AnimatedColor;

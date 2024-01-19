@@ -239,6 +239,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //float fxy = fw.x + fw.y / 4;
     //float gx = clamp(fwd * 100, 0.01, 4);
     //return float4(0, gx * 1, 0, 1);
+    //return Args.LightColor;
 
     float specularMask = Sample2D(Specular1, uvs, Sampler, Frame.FilterMode).r;
     specularMask *= mat1.SpecularStrength;
@@ -247,10 +248,14 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //float emissive = Sample2D(GetTexture(input.Tex1, MAT_EMIS), input.uv, Sampler, Frame.FilterMode).r * mat1.EmissiveStrength;
     MaterialInfo material = mat1;
 
-    if (any(emissive) && mat1.LightReceived == 0)
+    if (any(emissive) && mat1.LightReceived == 0) {
         emissive = emissive + 1; // make lava and forcefields full bright
-    else if (any(Args.LightColor.rgb))
-        emissive *= Args.LightColor.rgb;
+    }
+    else if (any(Args.LightColor.rgb)) {
+        // Boost the brightness of color lights to match white lights
+        float colorMult = 1 + (1 - dot(Args.LightColor.rgb, float3(1, 1, 1)) * .333) * 4;
+        emissive *= Args.LightColor.rgb * Args.LightColor.a * colorMult;
+    }
 
     if (Args.HasOverlay) {
         float overlay = Sample2D(Diffuse2, input.uv2, Sampler, Frame.FilterMode).a;

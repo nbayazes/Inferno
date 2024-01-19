@@ -246,6 +246,42 @@ namespace Inferno {
         chunk.Bounds.Extents = (max - min) / 2;
     }
 
+    // unfinished UV fix for non-tiling textures. Emissive mipmaps still cause problems
+    // and this UV shift causes a pixel loss around the border
+    Array<Vector2, 4> FixEdgeUVs(const SegmentSide& side) {
+        constexpr float UV_SHIFT = 1 / 200.0f;
+        constexpr float EPS = 0.005f;
+        Array<Vector2, 4> uvs = side.UVs;
+
+        for (uint i = 0; i < 3; i++) {
+            const auto& uv0 = side.UVs[i];
+            const auto& uv1 = side.UVs[i + 1];
+            auto& uv0d = uvs[i];
+            auto& uv1d = uvs[i + 1];
+
+            // Check if the edge is aligned on u, and that it is close to a whole number
+            if (std::abs(uv0.x - uv1.x) < EPS && std::abs(uv0.x - std::round(uv0.x)) < EPS) {
+                // which direction to make bigger?
+                auto sign = Sign(uvs[(i + 2) % 4].x - uv0.x);
+
+                // edge matches
+                uv0d.x = uv0.x + UV_SHIFT * sign;
+                uv1d.x = uv1.x + UV_SHIFT * sign;
+            }
+
+            // Check if the edge is aligned on v, and that it is close to a whole number
+            if (std::abs(uv0.y - uv1.y) < EPS && std::abs(uv0.y - std::round(uv0.y)) < EPS) {
+                auto sign = Sign(uvs[(i + 2) % 4].y - uv0.y);
+
+                // edge matches
+                uv0d.y = uv0.y + UV_SHIFT * sign;
+                uv1d.y = uv1.y + UV_SHIFT * sign;
+            }
+        }
+
+        return uvs;
+    }
+
     void LevelMeshBuilder::CreateLevelGeometry(Level& level) {
         _chunks.clear();
         _decals.clear();
@@ -290,6 +326,9 @@ namespace Inferno {
                     isLight |= tmapi2.EmissiveStrength > 0 && tmapi2.LightReceived != 0;
                 }
 
+                Array<Vector2, 4> uvs = side.UVs;
+                uvs = FixEdgeUVs(side);
+
                 if (isWall || isLight) {
                     LevelChunk chunk; // always use a new chunk for walls
                     chunk.TMap1 = side.TMap;
@@ -301,8 +340,8 @@ namespace Inferno {
                     //auto tex1 = Resources::LookupTexID(side.TMap);
                     //auto tex2 = side.HasOverlay() ? Resources::LookupTexID(side.TMap2) : TexID::None;
 
-                    AddPolygon(verts, side.UVs, side.Light, side.LightDirs, _geometry.Vertices, chunk, side);
-                    AddPolygon(verts, side.UVs, side.Light, side.LightDirs, _geometry.Vertices, chunk, side);
+                    AddPolygon(verts, uvs, side.Light, side.LightDirs, _geometry.Vertices, chunk, side);
+                    AddPolygon(verts, uvs, side.Light, side.LightDirs, _geometry.Vertices, chunk, side);
 
                     if (side.HasOverlay())
                         chunk.EffectClip2 = Resources::GetEffectClipID(side.TMap2);
@@ -323,14 +362,11 @@ namespace Inferno {
 
                     chunk.Tag = { (SegID)id, sideId };
 
-                    if (isLight) {
-                        chunk.LightColor = GetLightColor(side, true);
-                        chunk.LightColor.Premultiply();
-                        _geometry.Lights.push_back(chunk);
-                    }
-                    else {
+                    // Prioritize walls instead of lights, otherwise they won't be drawn correctly
+                    if (isWall)
                         _geometry.Walls.push_back(chunk);
-                    }
+                    else
+                        _geometry.Lights.push_back(chunk);
                 }
                 else {
                     // pack the map ids together into a single integer (15 bits, 15 bits, 2 bits);
@@ -351,41 +387,6 @@ namespace Inferno {
 
                     if (side.HasOverlay())
                         chunk.EffectClip2 = Resources::GetEffectClipID(side.TMap2);
-
-                    Array<Vector2, 4> uvs = side.UVs;
-
-#ifndef UV_FIX
-                    // unfinished UV fix for non-tiling textures. Emissive mipmaps still cause problems
-                    // and this UV shift causes a pixel loss around the border
-                    constexpr float UV_SHIFT = 1 / 200.0f;
-                    constexpr float EPS = 0.005f;
-
-                    for (uint i = 0; i < 3; i++) {
-                        const auto& uv0 = side.UVs[i];
-                        const auto& uv1 = side.UVs[i + 1];
-                        auto& uv0d = uvs[i];
-                        auto& uv1d = uvs[i + 1];
-
-                        // Check if the edge is aligned on u, and that it is close to a whole number
-                        if (std::abs(uv0.x - uv1.x) < EPS && std::abs(uv0.x - std::round(uv0.x)) < EPS) {
-                            // which direction to make bigger?
-                            auto sign = Sign(uvs[(i + 2) % 4].x - uv0.x);
-
-                            // edge matches
-                            uv0d.x = uv0.x + UV_SHIFT * sign;
-                            uv1d.x = uv1.x + UV_SHIFT * sign;
-                        }
-
-                        // Check if the edge is aligned on v, and that it is close to a whole number
-                        if (std::abs(uv0.y - uv1.y) < EPS && std::abs(uv0.y - std::round(uv0.y)) < EPS) {
-                            auto sign = Sign(uvs[(i + 2) % 4].y - uv0.y);
-
-                            // edge matches
-                            uv0d.y = uv0.y + UV_SHIFT * sign;
-                            uv1d.y = uv1.y + UV_SHIFT * sign;
-                        }
-                    }
-#endif
 
                     AddPolygon(verts, uvs, side.Light, side.LightDirs, _geometry.Vertices, chunk, side);
 

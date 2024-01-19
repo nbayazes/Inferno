@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Game.Reactor.h"
 
-#include "Debug.h"
 #include "Game.AI.h"
 #include "Game.h"
 #include "Game.Wall.h"
@@ -302,9 +301,6 @@ namespace Inferno::Game {
             if (gun >= 0) {
                 auto dir = Reactor.KnownPlayerPosition - gunPoint;
                 dir.Normalize();
-
-                Inferno::Debug::RayStart = gunPoint;
-                Inferno::Debug::RayEnd = dir * 100;
 
                 FireWeapon(reactor, WeaponID::ReactorBlob, (uint8)gun, &dir);
 

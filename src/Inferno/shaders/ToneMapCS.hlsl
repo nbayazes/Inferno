@@ -179,7 +179,8 @@ void main(uint3 DTid : SV_DispatchThreadID) {
         //float lum = Luminance(hdrColor);
 
         // Using a lower lum comparison results in more saturated colors but causes clipping
-        const float3 whitepoint = float3(0.75, 0.75, 0.75);
+        // Use higher green whitepoint to make it less overpowering
+        const float3 whitepoint = float3(0.75, 1.5, 0.75);
         float lum = dot(sqrt(hdrColor), whitepoint);
 
         // lum = (hdrColor.r + hdrColor.b + hdrColor.g) / 3; // this renders lava correctly but clips very bright light
