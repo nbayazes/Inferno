@@ -58,7 +58,10 @@ namespace Inferno {
             _desc.Flags = shaderVisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
             _desc.NodeMask = 1;
 
-            Create();
+            ThrowIfFailed(Render::Device->CreateDescriptorHeap(&_desc, IID_PPV_ARGS(_heap.ReleaseAndGetAddressOf())));
+            _descriptorSize = Render::Device->GetDescriptorHandleIncrementSize(_desc.Type);
+            D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = shaderVisible ? _heap->GetGPUDescriptorHandleForHeapStart() : D3D12_GPU_DESCRIPTOR_HANDLE{};
+            _start = { _heap->GetCPUDescriptorHandleForHeapStart(), gpuHandle };
         }
 
         auto Size() const { return _desc.NumDescriptors; }
@@ -83,13 +86,6 @@ namespace Inferno {
             auto index = _index;
             _index += count;
             return GetHandle(index);
-        }
-    private:
-        void Create() {
-            ThrowIfFailed(Render::Device->CreateDescriptorHeap(&_desc, IID_PPV_ARGS(_heap.ReleaseAndGetAddressOf())));
-            _descriptorSize = Render::Device->GetDescriptorHandleIncrementSize(_desc.Type);
-            //m_NumFreeDescriptors = _desc.NumDescriptors;
-            _start = { _heap->GetCPUDescriptorHandleForHeapStart(), _heap->GetGPUDescriptorHandleForHeapStart() };
         }
     };
 
