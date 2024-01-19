@@ -183,9 +183,10 @@ float3 ApplyPointLight(
 ) {
     float planeFactor = 1;
 
-    // clip specular behind the light plane
+    // clip specular and diffuse behind the light plane for wall lights
     if (any(planeNormal)) {
-        planeFactor = -dot(planeNormal, lightPos - worldPos);
+        // Adjust multipliers to change plane position
+        planeFactor = -dot(planeNormal, (lightPos + normal * 1) - worldPos) * 1 ;
         lightPos += planeNormal * 2.5;
     }
 
@@ -203,8 +204,8 @@ float3 ApplyPointLight(
     float specularFactor = pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
     specularFactor *= 1 + FresnelSimple(dot(lightDir, halfVec)) * FRESNEL_MULT;
     specularFactor *= saturate(dot(normal, lightDir) * 4); // fade specular behind the surface plane
-    specularFactor *= saturate(planeFactor);
-    falloff *= saturate(planeFactor * 4 + 1);
+    specularFactor *= saturate(planeFactor * .2); // Lower multiplier is smoother edges of specular near plane.
+    falloff *= saturate(planeFactor + 1.5);
     float3 specular = max(0, specularFactor * specularColor * specularMask);
 
     // Use half lambert for non-level point lights so flares don't have overly harsh shadows
