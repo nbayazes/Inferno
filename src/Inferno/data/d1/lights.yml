@@ -54,7 +54,7 @@ Lights:
       Points: 0.135, 0
       Wrap: 2
       Width: 0.06
-      Color: 1, .01, .01, .5
+      Color: 1, .01, .01, .8
       Radius: 35
   
     - ID: 252 # blue
@@ -62,7 +62,7 @@ Lights:
       Points: 0.135, 0
       Wrap: 2
       Width: 0.06
-      Color: .125, .125, 1, .6
+      Color: .05, .05, 1, 1.2 # Blue is quite dim compared to the others
       Radius: 35
   
     - ID: 253 # yellow
@@ -71,7 +71,7 @@ Lights:
       Wrap: 2
       Width: 0.06
       Radius: 35
-      Color: 1, 0.75, 0, .6
+      Color: 1, 0.75, 0, .8
 
     # Yellow ceiling lights
     - ID: 264
