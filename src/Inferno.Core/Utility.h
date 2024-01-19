@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include <sstream>
+#include <algorithm>
 #include <concepts>
 #include <future>
 #include "Types.h"

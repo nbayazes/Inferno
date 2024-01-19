@@ -9,6 +9,11 @@
 #include "WindowsDialogs.h"
 
 namespace Inferno::Editor {
+    namespace {
+        std::thread LightWorkerThread;
+        inline Option<Level> LightLevelResults; // New level lighting
+    }
+
     constexpr float PLANE_TOLERANCE = -0.01f;
 
     // Scales a color down to a max brightness while retaining color
@@ -550,6 +555,7 @@ namespace Inferno::Editor {
         cast.Pass = {};
 
         for (const auto& [src, lightColors] : prevPass) {
+            if (RequestCancelLighting) break;
             auto [srcSeg, srcSide] = level.GetSegmentAndSide(src);
 
             // don't emit from open connections (from accurate volumes setting)
@@ -662,6 +668,7 @@ namespace Inferno::Editor {
 
     void LightContext::EmitDirectLight(Level& level) {
         for (auto& source : Lights) {
+            if (RequestCancelLighting) return;
             auto& cast = CastDirectLight(level, source, Settings, *this);
             cast.AccumulatePass();
         }
@@ -689,29 +696,6 @@ namespace Inferno::Editor {
         }
     }
 
-    // Scales the brightness of values over 1 while retaining color
-    constexpr void ClampColorBrightness(Level& level, float maxValue) {
-        for (auto& seg : level.Segments) {
-            for (auto& side : seg.Sides) {
-                for (auto& color : side.Light) {
-                    ScaleColor(color, maxValue);
-                    //color.A(1);
-
-                    //constexpr auto whiteMagnitude = 1.73205078f; // (1,1,1).Length()
-                    //auto overbright = color.ToVector3().Length() - whiteMagnitude;
-                    //if (overbright <= 0) continue;
-                    //// if overbright = 2
-                    //color *= 1 + overbright / (settings.MaxValue);
-                    //    
-                    //auto mult = pow(overbright, 3); // smooth scaling from 1 to 2
-                    //color *= 1 / (mult + 1);
-                    // auto contrast = 1.0f / (overbright * settings.ClampStrength + 1);
-                    //color.AdjustContrast(contrast);
-                }
-            }
-        }
-    };
-
     // Approximate area of side based on UVs.
     float AreaOfSide(const SegmentSide& side) {
         auto width = (side.UVs[1] - side.UVs[0]).Length();
@@ -720,8 +704,8 @@ namespace Inferno::Editor {
     }
 
     // Sets the initial brightness for all geometry in the level
-    void SetAmbientLight(Color ambient) {
-        for (auto& seg : Game::Level.Segments) {
+    void SetAmbientLight(Level& level, Color ambient) {
+        for (auto& seg : level.Segments) {
             for (auto& side : seg.Sides) {
                 for (int i = 0; i < 4; i++) {
                     if (side.LockLight[i]) continue;
@@ -875,10 +859,9 @@ namespace Inferno::Editor {
         return tree;
     }
 
-    // Lights the level geometry and volumes. Not thread safe (needs refactoring to not use globals).
-    void Commands::LightLevel(Level& level, const LightSettings& settings) {
+    void LightWorker(Level level, const LightSettings& settings) {
         try {
-            ScopedCursor cursor(IDC_WAIT);
+            RequestCancelLighting = false;
             Metrics::Reset();
             level.LightDeltaIndices.clear();
             level.LightDeltas.clear();
@@ -889,7 +872,7 @@ namespace Inferno::Editor {
             SPDLOG_INFO("Lighting level. {} available threads.", hardwareThreads);
             auto availThreads = settings.Multithread && hardwareThreads > 1 ? hardwareThreads - 1 : 1; // leave 1 thread unused
 
-            SetAmbientLight(settings.Ambient);
+            SetAmbientLight(level, settings.Ambient);
 
             auto lights = GatherLightSources(level, settings);
             auto bucketSize = (int)std::max(lights.size() / availThreads, size_t(1));
@@ -899,6 +882,10 @@ namespace Inferno::Editor {
 
             List<LightContext> threads(availThreads);
             int bucketIndex = 0;
+
+            constexpr uint BOUNCE_PROGRESS_WEIGHT = 4; // Bounces are generally three to four times slower than direct light
+            TotalLightWork = availThreads * (settings.Bounces * BOUNCE_PROGRESS_WEIGHT + 1);
+            DoneLightWork = 0;
 
             // assign lights to threads based on their spatial locality
             std::function<void(OctreeLeaf&)> addNodeLights = [&](const OctreeLeaf& leaf) {
@@ -965,14 +952,19 @@ namespace Inferno::Editor {
                 ctx.Thread = std::thread([&ctx, &level] {
                     SPDLOG_INFO("Dispatching thread {} with {} lights", ctx.Id, ctx.Lights.size());
                     ctx.EmitDirectLight(level);
+                    DoneLightWork++;
+
+                    if (RequestCancelLighting) return;
 
                     auto bounces = std::clamp(ctx.Settings.Bounces, 0, 10);
 
                     for (int i = 0; i < bounces; i++) {
                         for (auto& light : ctx.RayCasts | views::values) {
+                            if (RequestCancelLighting) return;
                             auto& info = CastBounces(level, light, ctx);
                             info.AccumulatePass(!(ctx.Settings.SkipFirstPass && i == 0));
                         }
+                        DoneLightWork += BOUNCE_PROGRESS_WEIGHT;
                     }
 
                     if (!ctx.Settings.EnableColor)
@@ -987,16 +979,19 @@ namespace Inferno::Editor {
                     ctx.Thread.join();
             }
 
-            auto maxValue = std::clamp(settings.MaxValue, 0.0f, 10.0f);
+            // User cancelled lighting
+            if (RequestCancelLighting) {
+                LightWorkerRunning = false;
+                return;
+            }
+
+            auto maxValue = std::clamp(settings.MaxValue, 0.0f, 1.0f);
             const Color max = { maxValue, maxValue, maxValue, 1 };
 
             // Merge the results from each light
             for (auto& ctx : threads) {
                 // updating the level must be done in serial
                 SetSideLighting(level, ctx.RayCasts, max, settings.EnableColor);
-                if (settings.EnableColor)
-                    ClampColorBrightness(level, settings.MaxValue);
-
                 SetDynamicLights(level, ctx.RayCasts);
                 Metrics::CacheHits += ctx.CacheHits;
                 Metrics::RayHits += ctx.HitStats;
@@ -1004,12 +999,48 @@ namespace Inferno::Editor {
             }
 
             SetVolumeLight(level, settings.AccurateVolumes);
-
-            SPDLOG_INFO("Delta lights: {} of {}\nIndices: {} of {}", level.LightDeltaIndices.size(), MaxDynamicLights, level.LightDeltas.size(), MaxLightDeltas);
-            Editor::History.SnapshotLevel("Light Level");
+            LightWorkerRunning = false;
+            LightLevelResults = level;
         }
         catch (const std::exception& e) {
             ShowErrorMessage(e);
         }
+    }
+
+    // Lights the level geometry and volumes
+    void Commands::LightLevel(Level& level, const LightSettings& settings) {
+        if (LightWorkerRunning) return; // Already running
+        if (LightWorkerThread.joinable()) LightWorkerThread.join(); // shouldn't happen but do it to be safe
+
+        LightWorkerRunning = true;
+        DoneLightWork = 0;
+        LightWorkerThread = std::thread(LightWorker, level, std::ref(settings));
+    }
+
+    void CopyLightResults(Level& level) {
+        if (LightWorkerRunning) return; // Not ready to copy
+        if (LightWorkerThread.joinable()) LightWorkerThread.join(); // Join the worker thread
+        if (!LightLevelResults) return; // No results to copy
+
+        if (LightLevelResults->Segments.size() != level.Segments.size()) {
+            ShowErrorMessage(L"Level segment count doesn't match lighting segment count.\nAvoid adding or removing segments during lighting.");
+            LightLevelResults = {}; // Clear for next run
+            return;
+        }
+
+        // Copy results from the light worker
+        for (uint i = 0; i < LightLevelResults->Segments.size() && i < level.Segments.size(); i++) {
+            auto& src = LightLevelResults->Segments[i];
+            auto& dest = level.Segments[i];
+            dest.VolumeLight = src.VolumeLight;
+
+            for (uint side = 0; side < 6; side++) {
+                dest.Sides[side].Light = src.Sides[side].Light;
+            }
+        }
+
+        LightLevelResults = {}; // Clear for next run
+        Editor::History.SnapshotLevel("Light Level");
+        Events::LevelChanged();
     }
 }

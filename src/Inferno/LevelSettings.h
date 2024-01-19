@@ -1,10 +1,9 @@
 #pragma once
 
-#include "Types.h"
-#include "Settings.h"
 #include "Level.h"
+#include "Settings.h"
 
 namespace Inferno {
-    void LoadLevelMetadata(Level& level, const string& data);
-    void SaveLevelMetadata(const Level&, std::ostream&);  
+    void LoadLevelMetadata(Level& level, const string& data, LightSettings& lightSettings);
+    void SaveLevelMetadata(const Level& level, std::ostream& stream, LightSettings& lightSettings);
 }

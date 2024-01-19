@@ -153,6 +153,7 @@
     <ClCompile Include="CustomTextureLibrary.cpp" />
     <ClCompile Include="Editor\Editor.Diagnostics.cpp" />
     <ClCompile Include="BitmapCache.cpp" />
+    <ClCompile Include="Editor\UI\LightingWindow.cpp" />
     <ClCompile Include="Editor\UI\TextureEditor.cpp" />
     <ClCompile Include="Game.Text.cpp" />
     <ClCompile Include="Game.Segment.cpp" />

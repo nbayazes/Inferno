@@ -31,6 +31,7 @@ namespace Inferno::Editor {
     // The behavior of the cursor when dragged
     enum class CursorDragMode { Select, Extrude, Transform };
     inline CursorDragMode DragMode = CursorDragMode::Select;
+    inline LightSettings EditorLightSettings;
 
     // User defined coordinate system
     inline Matrix UserCSys;

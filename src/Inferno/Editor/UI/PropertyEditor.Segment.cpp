@@ -361,11 +361,11 @@ namespace Inferno::Editor {
                 // Emission override
                 bool overrideChanged = false;
                 bool hasOverride = side.LightOverride.has_value();
-                auto light = side.LightOverride.value_or(GetLightColor(side, Settings::Editor.Lighting.EnableColor));
+                auto light = side.LightOverride.value_or(GetLightColor(side, EditorLightSettings.EnableColor));
 
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
-                if (ImGui::Checkbox("Emission", &hasOverride)) {
+                if (ImGui::Checkbox("Color", &hasOverride)) {
                     side.LightOverride = hasOverride ? Option(light) : std::nullopt;
                     snapshot = overrideChanged = true;
                 }

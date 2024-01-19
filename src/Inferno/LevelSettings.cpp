@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "LevelSettings.h"
-#include "Yaml.h"
 #include "Resources.h"
+#include "Yaml.h"
 
 using namespace Yaml;
 
@@ -185,13 +185,13 @@ namespace Inferno {
         }
     }
 
-    void SaveLevelMetadata(const Level& level, std::ostream& stream) {
+    void SaveLevelMetadata(const Level& level, std::ostream& stream, LightSettings& lightSettings) {
         try {
             ryml::Tree doc(30, 128);
             doc.rootref() |= ryml::MAP;
 
             doc["Version"] << 1;
-            SaveLightSettings(doc["Lighting"], Settings::Editor.Lighting);
+            SaveLightSettings(doc["Lighting"], lightSettings);
             SaveSegmentInfo(doc["Segments"], level);
             SaveSideInfo(doc["Sides"], level);
             SaveWallInfo(doc["Walls"], level);
@@ -206,6 +206,28 @@ namespace Inferno {
         }
         catch (const std::exception& e) {
             SPDLOG_ERROR("Error saving level metadata:\n{}", e.what());
+        }
+    }
+
+    void LoadLevelMetadata(Level& level, const string& data, LightSettings& lightSettings) {
+        try {
+            SPDLOG_INFO("Loading level metadata");
+            ryml::Tree doc = ryml::parse_in_arena(ryml::to_csubstr(data));
+            ryml::NodeRef root = doc.rootref();
+
+            if (root.is_map()) {
+                lightSettings = LoadLightSettings(root["Lighting"]);
+                ReadSegmentInfo(root["Segments"], level);
+                ReadSideInfo(root["Sides"], level);
+                ReadWallInfo(root["Walls"], level);
+                ReadValue(root["CameraPosition"], level.CameraPosition);
+                ReadValue(root["CameraTarget"], level.CameraTarget);
+                ReadValue(root["CameraUp"], level.CameraUp);
+            }
+            SPDLOG_INFO("Finished loading level metadata");
+        }
+        catch (const std::exception& e) {
+            SPDLOG_ERROR("Error loading level metadata:\n{}", e.what());
         }
     }
 }
