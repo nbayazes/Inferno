@@ -17,6 +17,11 @@
 #include "WindowsDialogs.h"
 
 namespace Inferno::Editor {
+    namespace {
+        std::thread LightWorkerThread;
+        inline Option<Level> LightLevelResults; // New level lighting
+    }
+
     constexpr float PLANE_TOLERANCE = -0.01f;
 
     // Scales a color down to a max brightness while retaining color
@@ -564,6 +569,7 @@ namespace Inferno::Editor {
         cast.Pass = {};
 
         for (const auto& [src, light] : prevPass) {
+            if (RequestCancelLighting) break;
             auto [srcSeg, srcSide] = level.GetSegmentAndSide(src);
 
             // don't emit from open connections (from accurate volumes setting)
@@ -687,6 +693,7 @@ namespace Inferno::Editor {
 
     void LightContext::EmitDirectLight(Level& level) {
         for (auto& source : Lights) {
+            if (RequestCancelLighting) return;
             auto& cast = CastDirectLight(level, source, Settings, *this);
             cast.AccumulatePass();
         }
@@ -727,8 +734,8 @@ namespace Inferno::Editor {
     }
 
     // Sets the initial brightness for all geometry in the level
-    void SetAmbientLight(Color ambient) {
-        for (auto& seg : Game::Level.Segments) {
+    void SetAmbientLight(Level& level, Color ambient) {
+        for (auto& seg : level.Segments) {
             for (auto& side : seg.Sides) {
                 for (int i = 0; i < 4; i++) {
                     side.LightDirs[i] = Vector3(0, 0, 0);
@@ -887,10 +894,9 @@ namespace Inferno::Editor {
         return tree;
     }
 
-    // Lights the level geometry and volumes
-    void Commands::LightLevel(Level& level, const LightSettings& settings) {
+    void LightWorker(Level level, const LightSettings& settings) {
         try {
-            ScopedCursor cursor(IDC_WAIT);
+            RequestCancelLighting = false;
             Metrics::Reset();
             level.LightDeltaIndices.clear();
             level.LightDeltas.clear();
@@ -901,7 +907,7 @@ namespace Inferno::Editor {
             SPDLOG_INFO("Lighting level. {} available threads.", hardwareThreads);
             auto availThreads = settings.Multithread && hardwareThreads > 1 ? hardwareThreads - 1 : 1; // leave 1 thread unused
 
-            SetAmbientLight(settings.Ambient);
+            SetAmbientLight(level, settings.Ambient);
 
             auto lights = GatherLightSources(level, settings);
             auto bucketSize = (int)std::max(lights.size() / availThreads, size_t(1));
@@ -911,6 +917,10 @@ namespace Inferno::Editor {
 
             List<LightContext> threads(availThreads);
             int bucketIndex = 0;
+
+            constexpr uint BOUNCE_PROGRESS_WEIGHT = 4; // Bounces are generally three to four times slower than direct light
+            TotalLightWork = availThreads * (settings.Bounces * BOUNCE_PROGRESS_WEIGHT + 1);
+            DoneLightWork = 0;
 
             // assign lights to threads based on their spatial locality
             std::function<void(OctreeLeaf&)> addNodeLights = [&](const OctreeLeaf& leaf) {
@@ -983,14 +993,19 @@ namespace Inferno::Editor {
                 ctx.Thread = std::thread([&ctx, &level] {
                     SPDLOG_INFO("Dispatching thread {} with {} lights", ctx.Id, ctx.Lights.size());
                     ctx.EmitDirectLight(level);
+                    DoneLightWork++;
+
+                    if (RequestCancelLighting) return;
 
                     auto bounces = std::clamp(ctx.Settings.Bounces, 0, 10);
 
                     for (int i = 0; i < bounces; i++) {
                         for (auto& light : ctx.RayCasts | views::values) {
+                            if (RequestCancelLighting) return;
                             auto& info = CastBounces(level, light, ctx);
                             info.AccumulatePass(!(ctx.Settings.SkipFirstPass && i == 0));
                         }
+                        DoneLightWork += BOUNCE_PROGRESS_WEIGHT;
                     }
 
                     if (!ctx.Settings.EnableColor)
@@ -1003,6 +1018,12 @@ namespace Inferno::Editor {
             for (auto& ctx : threads) {
                 if (ctx.Thread.joinable())
                     ctx.Thread.join();
+            }
+
+            // User cancelled lighting
+            if (RequestCancelLighting) {
+                LightWorkerRunning = false;
+                return;
             }
 
             auto maxValue = std::clamp(settings.MaxValue, 0.0f, 10.0f);
@@ -1040,12 +1061,50 @@ namespace Inferno::Editor {
             SPDLOG_INFO("Delta lights: {} of {}; Indices: {} of {}", level.LightDeltaIndices.size(), MAX_DYNAMIC_LIGHTS, level.LightDeltas.size(), MAX_LIGHT_DELTAS);
 
             SetVolumeLight(level, settings.AccurateVolumes);
-            Editor::History.SnapshotLevel("Light Level");
-            level.Rooms = Game::CreateRooms(level); // Update rooms because dynamic lighting depends on it
-            Events::LevelChanged();
+            LightWorkerRunning = false;
+            LightLevelResults = level;
         }
         catch (const std::exception& e) {
             ShowErrorMessage(e);
         }
+    }
+
+    // Lights the level geometry and volumes
+    void Commands::LightLevel(Level& level, const LightSettings& settings) {
+        if (LightWorkerRunning) return; // Already running
+        if (LightWorkerThread.joinable()) LightWorkerThread.join(); // shouldn't happen but do it to be safe
+
+        LightWorkerRunning = true;
+        DoneLightWork = 0;
+        LightWorkerThread = std::thread(LightWorker, level, std::ref(settings));
+    }
+
+    void CopyLightResults(Level& level) {
+        if (LightWorkerRunning) return; // Not ready to copy
+        if (LightWorkerThread.joinable()) LightWorkerThread.join(); // Join the worker thread
+        if (!LightLevelResults) return; // No results to copy
+
+        if (LightLevelResults->Segments.size() != level.Segments.size()) {
+            ShowErrorMessage(L"Level segment count doesn't match lighting segment count.\nAvoid adding or removing segments during lighting.");
+            LightLevelResults = {}; // Clear for next run
+            return;
+        }
+
+        // Copy results from the light worker
+        for (uint i = 0; i < LightLevelResults->Segments.size() && i < level.Segments.size(); i++) {
+            auto& src = LightLevelResults->Segments[i];
+            auto& dest = level.Segments[i];
+            dest.VolumeLight = src.VolumeLight;
+
+            for (uint side = 0; side < 6; side++) {
+                dest.Sides[side].Light = src.Sides[side].Light;
+                dest.Sides[side].LightDirs = src.Sides[side].LightDirs;
+            }
+        }
+
+        LightLevelResults = {}; // Clear for next run
+        level.Rooms = Game::CreateRooms(level); // Update rooms because dynamic lighting depends on it
+        Editor::History.SnapshotLevel("Light Level");
+        Events::LevelChanged();
     }
 }

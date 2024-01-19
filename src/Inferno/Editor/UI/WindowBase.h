@@ -2,6 +2,7 @@
 
 #include "imgui_local.h"
 #include "Shell.h"
+#include "Types.h"
 
 namespace ImGui {
     inline void HelpMarker(const char* desc) {

@@ -1,10 +1,7 @@
 #pragma once
 
+#include "Level.h"
 #include "Settings.h"
-
-namespace Inferno {
-    struct Level;
-}
 
 namespace Inferno::Editor {
     namespace Metrics {
@@ -18,7 +15,15 @@ namespace Inferno::Editor {
             RaysCast = RayHits = CacheHits = 0;
             LightCalculationTime = 0;
         }
-    };
+    }
+
+    inline float LightingProgress = 0;
+    inline std::atomic<uint> DoneLightWork, TotalLightWork;
+    inline std::atomic RequestCancelLighting = false; // User requested lighting cancellation
+    inline std::atomic LightWorkerRunning = false; // Worker is running
+
+    // Copies the lighting results to a level
+    void CopyLightResults(Level& level);
 
     namespace Commands {
         void LightLevel(Level&, const LightSettings&);

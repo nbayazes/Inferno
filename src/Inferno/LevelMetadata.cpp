@@ -353,13 +353,13 @@ namespace Inferno {
         }
     }
 
-    void SaveLevelMetadata(const Level& level, std::ostream& stream) {
+    void SaveLevelMetadata(const Level& level, std::ostream& stream, const LightSettings& lightSettings) {
         try {
             ryml::Tree doc(30, 128);
             doc.rootref() |= ryml::MAP;
 
             doc["Version"] << 1;
-            SaveLightSettings(doc["Lighting"], Settings::Editor.Lighting);
+            SaveLightSettings(doc["Lighting"], lightSettings);
             SaveSegmentInfo(doc["Segments"], level);
             SaveSideInfo(doc["Sides"], level);
             SaveWallInfo(doc["Walls"], level);
@@ -379,14 +379,14 @@ namespace Inferno {
         }
     }
 
-    void LoadLevelMetadata(Level& level, const string& data) {
+    void LoadLevelMetadata(Level& level, const string& data, LightSettings& lightSettings) {
         try {
             SPDLOG_INFO("Loading level metadata");
             ryml::Tree doc = ryml::parse_in_arena(ryml::to_csubstr(data));
             ryml::NodeRef root = doc.rootref();
 
             if (root.is_map()) {
-                Settings::Editor.Lighting = LoadLightSettings(root["Lighting"]);
+                lightSettings = LoadLightSettings(root["Lighting"]);
                 ReadSegmentInfo(root["Segments"], level);
                 ReadSideInfo(root["Sides"], level);
                 ReadWallInfo(root["Walls"], level);

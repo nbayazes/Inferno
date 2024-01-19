@@ -64,7 +64,7 @@ namespace Inferno::Editor {
         level.CameraPosition = Render::Camera.Position;
         level.CameraTarget = Render::Camera.Target;
         level.CameraUp = Render::Camera.Up;
-        SaveLevelMetadata(level, metadata);
+        SaveLevelMetadata(level, metadata, EditorLightSettings);
         SetStatusMessage(L"Saved level to {}", path.wstring());
 
         // Save custom textures
@@ -121,7 +121,7 @@ namespace Inferno::Editor {
         if (metadataStream) {
             std::stringstream metadata;
             metadata << metadataStream.rdbuf();
-            LoadLevelMetadata(level, metadata.str());
+            LoadLevelMetadata(level, metadata.str(), EditorLightSettings);
         }
 
         Game::UnloadMission();
@@ -178,7 +178,7 @@ namespace Inferno::Editor {
     std::vector<ubyte> SerializeLevelMetadata(const Level& level) {
         std::stringstream stream;
         stream.unsetf(std::ios::skipws);
-        SaveLevelMetadata(level, stream);
+        SaveLevelMetadata(level, stream, EditorLightSettings);
         std::vector<ubyte> data(stream.tellp());
         stream.read((char*)data.data(), data.size());
         return data;
@@ -316,7 +316,7 @@ namespace Inferno::Editor {
             }
 
             if (!metadata.empty())
-                LoadLevelMetadata(level, metadata);
+                LoadLevelMetadata(level, metadata, EditorLightSettings);
 
             Game::LoadLevel(std::move(level));
         }

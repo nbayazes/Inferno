@@ -1,11 +1,12 @@
 #include "pch.h"
 #include "LightingWindow.h"
-#include "Game.h"
+#include "../Editor.Lighting.h"
+#include "Editor/Editor.h"
 #include "Editor/Editor.Selection.h"
 #include "Editor/Events.h"
+#include "Game.h"
 #include "Game.Segment.h"
 #include "Resources.h"
-#include "../Editor.Lighting.h"
 
 namespace Inferno::Editor {
     void BreakLight() {
@@ -45,7 +46,7 @@ namespace Inferno::Editor {
     LightingWindow::LightingWindow(): WindowBase("Lighting", &Settings::Editor.Windows.Lighting) {}
 
     void LightingWindow::OnUpdate() {
-        auto& settings = Settings::Editor.Lighting;
+        auto& settings = EditorLightSettings;
         ImGui::ColorEdit3("Ambient", &settings.Ambient.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
         ImGui::SliderFloat("Multiplier", &settings.Multiplier, 0, 4);
         //ImGui::SliderFloat("Distance Threshold", &_settings.DistanceThreshold, 60, 300);
@@ -107,14 +108,42 @@ namespace Inferno::Editor {
         }
 
 
-        if (ImGui::Button("Light Level"))
-            Commands::LightLevel(Game::Level, settings);
+        {
+            ImVec2 size(100, 0);
+
+            if (LightWorkerRunning) {
+                if (ImGui::Button("Cancel", size))
+                    RequestCancelLighting = true;
+            }
+            else {
+                if (ImGui::Button("Light Level", size))
+                    Commands::LightLevel(Game::Level, settings);
+            }
+        }
+
+        if (LightWorkerRunning) {
+            ImGui::SameLine();
+            auto progress = (float)DoneLightWork / std::max(1.0f, (float)TotalLightWork);
+            ImGui::ProgressBar(progress);
+        }
 
         ImGui::Text("Time: %.3f s", (float)Metrics::LightCalculationTime / 1000000.0f);
         ImGui::Text("Rays cast: %s", std::to_string(Metrics::RaysCast).c_str());
-        auto pct = Metrics::RaysCast ? (float)Metrics::RayHits / (float)Metrics::RaysCast : 0;
-        ImGui::Text("Rays discarded: %s (%.2f%%)", std::to_string(Metrics::RayHits).c_str(), pct);
-        ImGui::Text("Cache hits: %s", std::to_string(Metrics::CacheHits).c_str());
+        //auto pct = Metrics::RaysCast ? (float)Metrics::RayHits / (float)Metrics::RaysCast : 0;
+        //ImGui::Text("Rays discarded: %s (%.2f%%)", std::to_string(Metrics::RayHits).c_str(), pct);
+        //ImGui::Text("Cache hits: %s", std::to_string(Metrics::CacheHits).c_str());
+
+        if (ImGui::Button("Save settings")) {
+            Settings::Editor.Lighting = EditorLightSettings;
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Load settings"))
+            EditorLightSettings = Settings::Editor.Lighting;
+
+        // This should done in the main editor loop and not here so if the window is closed it will still copy lighting.
+        // However it's more convenient to be here.
+        CopyLightResults(Game::Level);
 
         ToggleLight();
 #ifdef _DEBUG

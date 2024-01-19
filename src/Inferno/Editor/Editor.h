@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Types.h"
-#include "Level.h"
 #include "Command.h"
 #include "Editor.Selection.h"
 #include "Editor.Undo.h"
+#include "Level.h"
+#include "Types.h"
 
 namespace Inferno::Editor {
     void UpdateCamera(Camera&);
@@ -15,6 +15,7 @@ namespace Inferno::Editor {
     // The behavior of the cursor when dragged
     enum class CursorDragMode { Select, Extrude, Transform };
     inline CursorDragMode DragMode = CursorDragMode::Select;
+    inline LightSettings EditorLightSettings;
 
     // User defined coordinate system
     inline Matrix UserCSys;

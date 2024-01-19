@@ -1,10 +1,10 @@
 ﻿#pragma once
 
-#include <sstream>
+#include <algorithm>
 #include <concepts>
 #include <future>
 #include <random>
-#include <algorithm>
+#include <sstream>
 
 #include "Types.h"
 
