@@ -854,6 +854,10 @@ namespace Inferno::Editor {
 
         for (int id = 0; id < level.Segments.size(); id++) {
             for (auto& sid : SideIDs) {
+                // Ignore connected sides unless there is a wall; otherwise the texture isn't really used
+                if (level.Segments[id].SideHasConnection(sid) && !level.Segments[id].SideIsWall(sid))
+                    continue;
+
                 auto& side = level.Segments[id].GetSide(sid);
                 bool match = true;
 
