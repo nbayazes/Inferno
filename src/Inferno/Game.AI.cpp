@@ -1754,17 +1754,18 @@ namespace Inferno {
             auto target = Game::GetObject(ai.Target);
             ai.State = AIState::Path;
             ai.CombatState = AICombatState::Normal;
-            ai.Path = GenerateRandomPath(robot.Segment, 12, NavigationFlag::None, target ? target->Segment : SegID::None);
+            ai.Path = GenerateRandomPath(robot.Segment, 6, NavigationFlag::None, target ? target->Segment : SegID::None);
 
             // If path is short, it might be due to being cornered by the player. Try again ignoring the player.
-            if (ai.Path.size() < 6)
-                ai.Path = GenerateRandomPath(robot.Segment, 12, NavigationFlag::None);
+            if (ai.Path.size() < 3)
+                ai.Path = GenerateRandomPath(robot.Segment, 6, NavigationFlag::None);
 
             ai.PathIndex = 0;
             ai.AlertTimer = 1 + Random() * 2;
+            ai.FireDelay = AI_MINE_LAYER_DELAY * Random();
         }
 
-        if (ai.Awareness <= 0) {
+        if (ai.Awareness <= 0 && ai.State != AIState::Idle) {
             // Go to sleep
             ai.ClearPath();
             PlayRobotAnimation(robot, AnimState::Rest);

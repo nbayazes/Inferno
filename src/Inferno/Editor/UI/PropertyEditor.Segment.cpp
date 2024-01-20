@@ -579,11 +579,7 @@ namespace Inferno::Editor {
                 bool hasOverride = side.LightOverride.has_value();
                 auto light = side.LightOverride.value_or(GetLightColor(side, EditorLightSettings.EnableColor));
 
-                ImGui::TableNextRow();
-                ImGui::TableNextColumn();
-                ImGui::Text("Light Color");
-
-                ImGui::TableNextColumn();
+                ImGui::TableRowLabel("Light Color");
                 if (ImGui::Button("Copy")) {
                     SideLightBuffer = light;
                 }
@@ -655,10 +651,7 @@ namespace Inferno::Editor {
                 bool hasOverride = side.LightPlaneOverride.has_value();
                 auto plane = side.LightPlaneOverride.value_or(Settings::Editor.Lighting.LightPlaneTolerance);
 
-                ImGui::TableNextRow();
-                ImGui::TableNextColumn();
-                ImGui::Text("Mode");
-                ImGui::TableNextColumn();
+                ImGui::TableRowLabel("Mode");
                 ImGui::SetNextItemWidth(-1);
 
                 // Adjust the 'off' entry so it works in the UI nicely

@@ -213,7 +213,7 @@ namespace Inferno {
 
             for (auto& sid : SIDE_IDS) {
                 if (auto conn = level.TryGetSegment(seg->GetConnection(sid))) {
-                    if (conn->IsZeroVolume()) 
+                    if (conn->IsZeroVolume())
                         continue; // Zero volume segs can't contain points
 
                     if (distances[(int)sid] < biggestVal) {
@@ -575,6 +575,15 @@ namespace Inferno {
                 auto& ai = GetAI(*newObj);
                 ai.RemainingSlow = 2;
                 ai.State = AIState::MatcenPath;
+                ai.LastUpdate = Game::Time;
+
+                // Special case gophers to start in mine laying mode
+                if (obj.ID == 10) {
+                    newObj->Control.AI.Behavior = AIBehavior::RunFrom;
+                    ai.State = AIState::Alert;
+                    ai.Awareness = 1;
+                    ai.Path = {};
+                }
             }
         }
     }
