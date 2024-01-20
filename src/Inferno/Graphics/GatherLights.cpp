@@ -253,7 +253,7 @@ namespace Inferno::Graphics {
         Vector2 prevIntersects[2];
 
         float offset = info.Offset;
-        bool isPlanar = side.Normals[0].Dot(side.Normals[1]) > 0.9f;
+        bool isPlanar = side.Normals[0].Dot(side.Normals[1]) > 0.99f;
         auto lightMode = side.LightMode;
         //if (side.Normals[0].Dot(side.Normals[1]) < 0.9f)
         //    offset += 2.0f; // Move lights of non-planar surfaces outward to prevent intersection with the wall
