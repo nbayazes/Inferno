@@ -380,9 +380,14 @@ namespace Inferno::Editor {
             }
 
             if (ImGui::BeginMenu("Play")) {
+                if (ImGui::MenuItem("Play in editor"))
+                    Game::SetState(GameState::Game);
+
+                ImGui::Separator();
+
                 if (ImGui::MenuItem("Create test mission"))
                     Commands::PlaytestLevel();
-                if (ImGui::MenuItem("Start game"))
+                if (ImGui::MenuItem("Launch game"))
                     Commands::StartGame();
 
                 ImGui::EndMenu();
