@@ -19,6 +19,7 @@ namespace Inferno {
         ScoreScreen,
         Briefing,
         MainMenu,
+        GameMenu,
         Editor
     };
 

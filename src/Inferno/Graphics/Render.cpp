@@ -626,7 +626,7 @@ namespace Inferno::Render {
         DrawLevel(ctx, Game::Level);
         Debug::EndFrame(cmdList);
 
-        if (Game::GetState() == GameState::Game && !Game::Player.IsDead)
+        if ((Game::GetState() == GameState::Game || Game::GetState() == GameState::GameMenu) && !Game::Player.IsDead)
             DrawHud(ctx);
 
         //LegitProfiler::ProfilerTask resolve("Resolve multisample", LegitProfiler::Colors::CLOUDS);

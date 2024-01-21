@@ -1,12 +1,9 @@
 #pragma once
-#include "DirectX.h"
-#include "Types.h"
-#include "Input.h"
-#include "Object.h"
 
 namespace Inferno {
     void CheckGlobalHotkeys();
     void HandleEditorDebugInput(float dt);
-    void FixedUpdateInput();
-    void HandleInputImmediate(float dt);
+    bool ConfirmedInput();
+    void HandleInput();
+    void HandleShipInput(float dt);
 }

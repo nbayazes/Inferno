@@ -50,7 +50,7 @@ namespace Inferno {
         };
 
     private:
-        const int _width, _height;
+        int _width, _height;
         int _x = 0, _y = 0;
         Array<List<Character>, 5> _lookup{}; // texture character position lookup
         Array<Font, 5> _fonts{};

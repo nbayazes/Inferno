@@ -1,11 +1,11 @@
 #include "pch.h"
 #include "Input.h"
-#include "imgui_local.h"
-#include "Game.h"
-#include "Shell.h"
-#include "PlatformHelpers.h"
 #include <bitset>
 #include <vector>
+#include "Game.h"
+#include "imgui_local.h"
+#include "PlatformHelpers.h"
+#include "Shell.h"
 
 using namespace DirectX::SimpleMath;
 

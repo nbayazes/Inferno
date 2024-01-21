@@ -46,6 +46,8 @@ namespace Inferno {
     }
 
     void HandleEditorDebugInput(float /*dt*/) {
+        if (Game::Level.Objects.empty()) return;
+
         auto& obj = Game::Level.Objects[0];
         auto& physics = obj.Physics;
 
@@ -89,45 +91,35 @@ namespace Inferno {
         if (!Input::HasFocus || Game::Player.IsDead)
             return; // No player input without focus or while dead
 
-        if (Input::IsKeyPressed(Keys::D1)) {
+        if (Input::IsKeyPressed(Keys::D1))
             Game::Player.SelectPrimary(PrimaryWeaponIndex::Laser);
-        }
 
-        if (Input::IsKeyPressed(Keys::D2)) {
+        if (Input::IsKeyPressed(Keys::D2))
             Game::Player.SelectPrimary(PrimaryWeaponIndex::Vulcan);
-        }
 
-        if (Input::IsKeyPressed(Keys::D3)) {
+        if (Input::IsKeyPressed(Keys::D3))
             Game::Player.SelectPrimary(PrimaryWeaponIndex::Spreadfire);
-        }
 
-        if (Input::IsKeyPressed(Keys::D4)) {
+        if (Input::IsKeyPressed(Keys::D4))
             Game::Player.SelectPrimary(PrimaryWeaponIndex::Plasma);
-        }
 
-        if (Input::IsKeyPressed(Keys::D5)) {
+        if (Input::IsKeyPressed(Keys::D5))
             Game::Player.SelectPrimary(PrimaryWeaponIndex::Fusion);
-        }
 
-        if (Input::IsKeyPressed(Keys::D6)) {
+        if (Input::IsKeyPressed(Keys::D6))
             Game::Player.SelectSecondary(SecondaryWeaponIndex::Concussion);
-        }
 
-        if (Input::IsKeyPressed(Keys::D7)) {
+        if (Input::IsKeyPressed(Keys::D7))
             Game::Player.SelectSecondary(SecondaryWeaponIndex::Homing);
-        }
 
-        if (Input::IsKeyPressed(Keys::D8)) {
+        if (Input::IsKeyPressed(Keys::D8))
             Game::Player.SelectSecondary(SecondaryWeaponIndex::ProximityMine);
-        }
 
-        if (Input::IsKeyPressed(Keys::D9)) {
+        if (Input::IsKeyPressed(Keys::D9))
             Game::Player.SelectSecondary(SecondaryWeaponIndex::Smart);
-        }
 
-        if (Input::IsKeyPressed(Keys::D0)) {
+        if (Input::IsKeyPressed(Keys::D0))
             Game::Player.SelectSecondary(SecondaryWeaponIndex::Mega);
-        }
 
         if (Game::Bindings.Pressed(GameAction::FireFlare))
             Game::Player.FireFlare();
@@ -149,10 +141,7 @@ namespace Inferno {
         return Input::IsKeyPressed(Input::Keys::Space) || Game::Bindings.Pressed(GameAction::FirePrimary) || Game::Bindings.Pressed(GameAction::FireSecondary);
     }
 
-    void FixedUpdateInput() {
-        // Call any player game input that requires using IsKeyPressed here
-        CheckGlobalHotkeys();
-
+    void HandleInput() {
         if (Input::IsKeyPressed(Keys::Back) && Input::IsKeyDown(Keys::LeftAlt))
             Game::SelfDestructMine();
 
@@ -160,20 +149,11 @@ namespace Inferno {
             Game::SetState(Game::GetState() == GameState::Paused ? GameState::Game : GameState::Paused);
 
         HandleWeaponKeys();
-
-        // Moved here from Game.cpp due to input not working correctly there...
-        if (Game::Player.TimeDead > 2 && ConfirmedInput()) {
-            if (Game::Player.Lives == 0)
-                Game::SetState(GameState::Editor); // todo: score screen
-            else
-                Game::Player.Respawn(true); // todo: EndCutscene() with fades
-        }
     }
 
-    void HandleInputImmediate(float dt) {
+    void HandleShipInput(float dt) {
         if (dt <= 0) return;
 
-        // Do not do any IsKeyPressed checks here
         auto& player = Game::Level.Objects[0];
         auto& physics = player.Physics;
         // Reset previous inputs

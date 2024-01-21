@@ -3,28 +3,28 @@
 #include <numeric>
 
 #include "Game.h"
-#include "FileSystem.h"
-#include "Graphics/Render.h"
-#include "Resources.h"
-#include "SoundSystem.h"
-#include "Input.h"
-#include "Graphics/Render.Particles.h"
-#include "Graphics/Render.Debug.h"
-#include "imgui_local.h"
-#include "Editor/Editor.h"
-#include "Editor/UI/EditorUI.h"
-#include "Editor/Editor.Object.h"
-#include "Game.Input.h"
 #include "DebugOverlay.h"
-#include "Game.Object.h"
-#include "HUD.h"
-#include "Game.Wall.h"
+#include "Editor/Editor.h"
+#include "Editor/Editor.Object.h"
+#include "Editor/UI/EditorUI.h"
+#include "FileSystem.h"
 #include "Game.AI.h"
 #include "Game.Bindings.h"
+#include "Game.Input.h"
+#include "Game.Object.h"
 #include "Game.Reactor.h"
 #include "Game.Room.h"
 #include "Game.Segment.h"
+#include "Game.Wall.h"
+#include "Graphics/Render.Debug.h"
+#include "Graphics/Render.h"
+#include "Graphics/Render.Particles.h"
+#include "HUD.h"
+#include "imgui_local.h"
+#include "Input.h"
 #include "LegitProfiler.h"
+#include "Resources.h"
+#include "SoundSystem.h"
 
 using namespace DirectX;
 
@@ -34,6 +34,7 @@ namespace Inferno::Game {
         GameState RequestedState = GameState::Editor;
         Camera EditorCameraSnapshot;
         constexpr size_t OBJECT_BUFFER_SIZE = 100; // How many new objects to keep in reserve
+        int MenuIndex = 0;
     }
 
     bool StartLevel();
@@ -290,7 +291,6 @@ namespace Inferno::Game {
 
     // Updates on each game tick
     void FixedUpdate(float dt) {
-        FixedUpdateInput();
         Debug::ActiveRobots = 0;
         Debug::LiveObjects = 0;
         Player.Update(dt);
@@ -352,8 +352,6 @@ namespace Inferno::Game {
                 }
             }
         }
-
-        Input::NextFrame();
     }
 
     void DecayScreenFlash(float dt) {
@@ -370,16 +368,6 @@ namespace Inferno::Game {
 
     // Returns the lerp amount for the current tick. Executes every frame.
     float GameUpdate(float dt) {
-        if (!Level.Objects.empty()) {
-            if (Game::State == GameState::Editor) {
-                if (Settings::Editor.EnablePhysics)
-                    HandleEditorDebugInput(dt);
-            }
-            else {
-                HandleInputImmediate(dt);
-            }
-        }
-
         if (Game::State == GameState::Paused)
             return LerpAmount; // Don't update anything except camera while paused
 
@@ -471,9 +459,9 @@ namespace Inferno::Game {
         SetState(GameState::Editor); // just exit for now
     }
 
-    void UpdateState() {
+    void UpdateGameState() {
         if (State == RequestedState) return;
-        Input::ResetState();
+        Input::ResetState(); // Clear input when switching game states
 
         switch (RequestedState) {
             case GameState::Editor:
@@ -490,7 +478,10 @@ namespace Inferno::Game {
                 break;
 
             case GameState::Game:
-                if (State == GameState::Paused) {
+                if (State == GameState::GameMenu) {
+                    Input::SetMouseMode(Input::MouseMode::Mouselook);
+                }
+                else if (State == GameState::Paused) {
                     GetPlayerObject().Render.Type = RenderType::None; // Make player invisible
                     Input::SetMouseMode(Input::MouseMode::Mouselook);
                 }
@@ -513,6 +504,13 @@ namespace Inferno::Game {
                 GetPlayerObject().Render.Type = RenderType::Model; // Make player visible
                 Input::SetMouseMode(Input::MouseMode::Mouselook);
                 break;
+
+            case GameState::GameMenu:
+                if (State == GameState::GameMenu) return;
+                MenuIndex = 0; // select the top
+                Input::SetMouseMode(Input::MouseMode::Normal);
+                State = GameState::GameMenu;
+                break;
         }
 
         State = RequestedState;
@@ -524,25 +522,87 @@ namespace Inferno::Game {
         if (Player.TimeDead > 2 && Player.Lives == 0) {
             Render::Canvas->DrawGameText("game over", 0, 0, FontSize::Big, Color(1, 1, 1), 1, AlignH::Center, AlignV::Center);
         }
+
+        if (Game::Player.TimeDead > 2 && ConfirmedInput()) {
+            if (Game::Player.Lives == 0)
+                Game::SetState(GameState::Editor); // todo: score screen
+            else
+                Game::Player.Respawn(true); // todo: EndCutscene() with fades
+        }
     }
 
-    void UpdateGlobalDimming() {
+
+    void UpdateMenu(float /*dt*/) {
+
+        if (Input::IsKeyPressed(Input::Keys::Down))
+            MenuIndex++;
+
+        if (Input::IsKeyPressed(Input::Keys::Up))
+            MenuIndex--;
+
+        MenuIndex = MenuIndex % 2;
+
+        if (Input::IsKeyPressed(Input::Keys::Escape))
+            Game::SetState(GameState::Game);
+
+        if (Input::IsKeyPressed(Input::Keys::Enter)) {
+            switch (MenuIndex) {
+                default:
+                case 0:
+                    Game::SetState(GameState::Game);
+                    break;
+
+                case 1:
+                    Game::SetState(GameState::Editor);
+                    break;
+            }
+        }
+
+        auto fontHeight = Inferno::Atlas.GetFont(FontSize::MediumBlue)->Height;
+        auto lineHeight = fontHeight * FONT_LINE_SPACING;
+
+        auto scale = Render::Canvas->GetScale();
+
+        //Render::Canvas->DrawRectangle({ 0, 0 }, Render::Canvas->GetSize(), Color(0, 0, 0, 0.25f));
+
+        Vector2 bgSize = Vector2(200, fontHeight * 3.5f) * scale;
+        Vector2 alignment = Render::GetAlignment(bgSize, AlignH::Center, AlignV::Center, Render::Canvas->GetSize());
+        Render::Canvas->DrawRectangle(alignment, bgSize, Color(0, 0, 0, 0.65f));
+
+        float y = -lineHeight * 0.85f;
+
+        {
+            auto font = MenuIndex == 0 ? FontSize::MediumGold : FontSize::Medium;
+            Render::Canvas->DrawGameText("continue", 0, y * scale, font, Color(1, 1, 1), 1, AlignH::Center, AlignV::CenterTop);
+        }
+
+        y += lineHeight;
+
+        {
+            auto font = MenuIndex == 1 ? FontSize::MediumGold : FontSize::Medium;
+            Render::Canvas->DrawGameText("quit", 0, y * scale, font, Color(1, 1, 1), 1, AlignH::Center, AlignV::CenterTop);
+        }
     }
 
     void Update(float dt) {
         LegitProfiler::ProfilerTask update("Update game", LegitProfiler::Colors::CARROT);
 
-        if ((State == GameState::Editor && !Settings::Editor.EnablePhysics) || Game::State == GameState::Paused)
-            Input::NextFrame();
-
         Inferno::Input::Update();
-        if (Game::State == GameState::Editor)
-            CheckGlobalHotkeys(); // Doesn't behave properly to call this in game mode
-
         Bindings.Update();
+        CheckGlobalHotkeys();
+
+        if (Game::State == GameState::Editor) {
+            if (Settings::Editor.EnablePhysics)
+                HandleEditorDebugInput(dt);
+        }
+        else {
+            HandleInput();
+            HandleShipInput(dt);
+        }
+
         Render::Debug::BeginFrame(); // enable debug calls during updates
         Game::DeltaTime = 0;
-        UpdateState();
+        UpdateGameState();
 
         g_ImGuiBatch->BeginFrame();
         switch (State) {
@@ -555,6 +615,9 @@ namespace Inferno::Game {
                     else
                         MoveCameraToObject(Render::Camera, Level.Objects[0], LerpAmount);
                 }
+
+                if (Input::IsKeyPressed(Input::Keys::Escape))
+                    Game::SetState(GameState::GameMenu);
 
                 break;
 
@@ -578,6 +641,11 @@ namespace Inferno::Game {
                 Editor::Update();
                 if (!Settings::Inferno.ScreenshotMode) EditorUI.OnRender();
                 break;
+
+            case GameState::GameMenu:
+                UpdateMenu(dt);
+                break;
+
             case GameState::Paused:
                 if (Input::IsKeyPressed(Input::Keys::OemTilde) && Input::IsKeyDown(Input::Keys::LeftAlt))
                     Game::SetState(Game::GetState() == GameState::Paused ? GameState::Game : GameState::Paused);
@@ -590,6 +658,9 @@ namespace Inferno::Game {
         LegitProfiler::AddCpuTask(std::move(update));
         //LegitProfiler::Profiler.Render();
 
+        // Reset direct light as rendering effects sets it
+        Game::Player.DirectLight = Color{};
+
         g_ImGuiBatch->EndFrame();
         Render::Present();
 
@@ -597,6 +668,8 @@ namespace Inferno::Game {
         LegitProfiler::Profiler.gpuGraph.LoadFrameData(LegitProfiler::GpuTasks);
         LegitProfiler::CpuTasks.clear();
         LegitProfiler::GpuTasks.clear();
+
+        Input::NextFrame();
     }
 
     SoundID GetSoundForSide(const SegmentSide& side) {
@@ -800,7 +873,8 @@ namespace Inferno::Game {
             if (obj.IsPowerup(PowerupID::FlagBlue) || obj.IsPowerup(PowerupID::FlagRed))
                 obj.Lifespan = -1; // Remove CTF flags (no multiplayer)
 
-            UpdateObjectSegment(Level, obj);
+            if (obj.IsAlive())
+                UpdateObjectSegment(Level, obj);
 
             //if (auto seg = Level.TryGetSegment(obj.Segment)) {
             //    seg->AddObject((ObjID)id);
