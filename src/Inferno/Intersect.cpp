@@ -301,11 +301,11 @@ namespace Inferno {
         }
     }
 
-    bool IntersectContext::RayLevel(Ray ray, const RayQuery& query, LevelHit& hit, ObjectMask mask, ObjID source) {
+    IntersectResult IntersectContext::RayLevelEx(Ray ray, const RayQuery& query, LevelHit& hit, ObjectMask mask, ObjID source) {
         //SPDLOG_INFO("RayLevel() start: {}", query.Start);
         ASSERT(query.Start != SegID::None); // Very bad for perf to not supply seg
         //ASSERT(query.MaxDistance > 0);
-        if (query.MaxDistance <= 0.01f) return false;
+        if (query.MaxDistance <= 0.01f) return IntersectResult::None;
 
         auto next = TraceSegment(*_level, query.Start, ray.position); // Check that the ray is inside the segment
         _visitedSegs.clear();
@@ -316,6 +316,7 @@ namespace Inferno {
         Vector3 lastGoodHit;
         auto lastGoodSeg = SegID::None;
         int recoveryTries = 0;
+        bool throughWall = false;
 
         while (next > SegID::None || recoveryMode) {
             if (recoveryMode) {
@@ -348,7 +349,7 @@ namespace Inferno {
                     Debug::RayEnd = ray.position + ray.direction * query.MaxDistance;
                     //__debugbreak();
                     SPDLOG_WARN("Unable to recover from orphaned ray from segment {}", lastGoodSeg);
-                    return false;
+                    return IntersectResult::Error;
                 }
 
                 //SPDLOG_WARN("Trying to recover from orphan ray. Start: {} Last good: {} Next: {}", query.Start, lastGoodSeg, next);
@@ -374,7 +375,7 @@ namespace Inferno {
                         BoundingSphere sphere(obj->Position, obj->Radius);
                         float dist;
                         if (ray.Intersects(sphere, dist) && dist < query.MaxDistance)
-                            return true; // Intersected an object
+                            return IntersectResult::HitObject; // Intersected an object
                     }
                 }
             }
@@ -409,6 +410,8 @@ namespace Inferno {
                     case RayQueryMode::Visibility:
                     {
                         intersects = !SideIsTransparent(*_level, tag); // also checks if side is open
+                        if (seg.SideIsSolid(tag.Side, *_level))
+                            throughWall = true;
                         break;
                     }
                     case RayQueryMode::Precise:
@@ -419,7 +422,10 @@ namespace Inferno {
                             }
                             else if (WallIsTransparent(*_level, *wall)) {
                                 auto intersect = ray.position + ray.direction * dist;
-                                intersects = !WallPointIsTransparent(intersect, face, tri);
+                                auto transparent = WallPointIsTransparent(intersect, face, tri);
+                                intersects = !transparent;
+                                if (transparent)
+                                    throughWall = true;
                             }
                             else {
                                 intersects = true; // Other walls are solid
@@ -444,7 +450,7 @@ namespace Inferno {
                     hit.Tangent = face.Side.Tangents[tri];
                     hit.Point = intersectPoint;
                     hit.EdgeDistance = FaceEdgeDistance(seg, side, face, hit.Point);
-                    return true;
+                    return IntersectResult::HitWall;
                 }
                 else {
                     auto conn = seg.GetConnection(side);
@@ -462,7 +468,7 @@ namespace Inferno {
             }
         }
 
-        return false;
+        return throughWall ? IntersectResult::ThroughWall : IntersectResult::None;
     }
 
     SideID IntersectRaySegmentSide(Level& level, const Ray& ray, Tag tag, float maxDist) {

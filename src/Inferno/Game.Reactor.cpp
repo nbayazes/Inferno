@@ -207,7 +207,7 @@ namespace Inferno::Game {
         int bestGun = -1;
         Vector3 bestGunPoint;
 
-        for (int gun = 0; gun < info.Guns; gun++) {
+        for (uint8 gun = 0; gun < info.Guns; gun++) {
             auto gunSubmodel = GetGunpointSubmodelOffset(reactor, gun);
             auto objOffset = GetSubmodelOffset(reactor, gunSubmodel);
             auto gunPoint = Vector3::Transform(objOffset, reactor.GetTransform());

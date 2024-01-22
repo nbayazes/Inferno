@@ -196,6 +196,9 @@ namespace Inferno {
                     if (portal.RoomLink != roomPath[i + 1])
                         continue; // Portal doesn't connect to next room in the path
 
+                    if (!CanNavigateSide(level, portal.Tag, flags)) 
+                        continue;
+
                     auto& portalSide = level.GetSide(portal.Tag);
                     auto distance = Vector3::DistanceSquared(seg.Center, portalSide.Center);
                     if (distance < closestPortal) {

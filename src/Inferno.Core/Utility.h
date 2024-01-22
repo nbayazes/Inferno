@@ -241,16 +241,16 @@ namespace Inferno {
     }
 
     template <class T>
-    void SetFlag(T& flags, T flag) { flags |= flag; }
+    constexpr void SetFlag(T& flags, T flag) { flags |= flag; }
 
     template <class T>
-    bool HasFlag(const T& flags, T flag) { return bool(flags & flag); }
+    constexpr bool HasFlag(const T& flags, T flag) { return bool(flags & flag); }
 
     template <class T>
-    void ClearFlag(T& flags, T flag) { flags &= ~flag; }
+    constexpr void ClearFlag(T& flags, T flag) { flags &= ~flag; }
 
     template <class T>
-    void SetFlag(T& flags, T flag, bool value) {
+    constexpr void SetFlag(T& flags, T flag, bool value) {
         if (value) flags |= flag;
         else flags &= ~flag;
     }

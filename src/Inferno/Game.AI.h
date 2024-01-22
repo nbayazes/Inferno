@@ -2,6 +2,7 @@
 
 #include "Game.Navigation.h"
 #include "GameTimer.h"
+#include "Intersect.h"
 #include "Level.h"
 #include "Object.h"
 #include "SoundTypes.h"
@@ -72,8 +73,8 @@ namespace Inferno {
     //};
 
     enum class ChaseMode {
-        Sound, // Stops once the sound is visible
-        Sight // Moves to the position of target
+        StopVisible, // Stops once the sound is visible
+        StopAtPosition // Moves to the position of target
     };
 
     // Runtime AI data
@@ -116,7 +117,7 @@ namespace Inferno {
         //SegID GoalSegment = SegID::None; // segment the robot wants to move to. Disables pathfinding when set to none.
         //RoomID GoalRoom = RoomID::None;
         //Vector3 GoalPosition; // position the robot wants to move to
-        ChaseMode Chase = ChaseMode::Sound;
+        ChaseMode Chase = ChaseMode::StopVisible;
 
         GameTimer DodgeDelay = 0; // Delay before trying to dodge
         GameTimer DodgeTime = 0; // Remaining time to dodge for
@@ -347,9 +348,11 @@ namespace Inferno {
 
     struct RobotInfo;
     void MoveTowardsDir(Object& robot, const Vector3& dir, float dt, float scale = 1);
-    bool ScanForTarget(const Object& robot, AIRuntime& ai);
+
+    // Returns true if a target is in line of sight. Has an optional parameter to return if the target is through a solid wall.
+    bool ScanForTarget(const Object& robot, AIRuntime& ai, bool* isThroughWall = nullptr);
     bool HasLineOfSight(const Object& obj, const Vector3& point, bool precise = false);
-    bool HasFiringLineOfSight(const Object& obj, uint8 gun, const Vector3& target, ObjectMask mask);
+    IntersectResult HasFiringLineOfSight(const Object& obj, uint8 gun, const Vector3& target, ObjectMask mask);
     void UpdateCombatAI(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float dt);
     void BeginAIFrame();
 }

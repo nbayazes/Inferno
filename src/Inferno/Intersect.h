@@ -1,5 +1,6 @@
 #pragma once
 #include "Face.h"
+#include "Game.Wall.h"
 
 namespace Inferno {
     struct HitInfo {
@@ -99,6 +100,18 @@ namespace Inferno {
     // Returns the segment side hit by a ray. Returns SideID::None if the ray is outside the segment or too far.
     SideID IntersectRaySegmentSide(Level& level, const Ray& ray, Tag tag, float maxDist);
 
+    enum class IntersectResult {
+        None, // No intersect
+        HitWall, // Hit level geometry
+        HitObject, // Hit object
+        ThroughWall, // Passed through a solid wall
+        Error // Something went wrong
+    };
+
+    constexpr bool Intersects(IntersectResult result) {
+        return result == IntersectResult::HitWall || result == IntersectResult::HitObject;
+    }
+
     class IntersectContext {
         List<SegID> _visitedSegs;
         const Level* _level;
@@ -106,6 +119,11 @@ namespace Inferno {
         IntersectContext(const Level& level) : _level(&level) {}
 
         // intersects a ray with the level, returning hit information. Also tests against object spheres if mask is set.
-        bool RayLevel(Ray ray, const RayQuery& query, LevelHit& hit, ObjectMask mask = ObjectMask::None, ObjID source = ObjID::None);
+        IntersectResult RayLevelEx(Ray ray, const RayQuery& query, LevelHit& hit, ObjectMask mask = ObjectMask::None, ObjID source = ObjID::None);
+
+        // intersects a ray with the level, returning true if an object or wall is hit. Only tests objects if a mask is set.
+        bool RayLevel(const Ray& ray, const RayQuery& query, LevelHit& hit, ObjectMask mask = ObjectMask::None, ObjID source = ObjID::None) {
+            return Intersects(RayLevelEx(ray, query, hit, mask, source));
+        }
     };
 }

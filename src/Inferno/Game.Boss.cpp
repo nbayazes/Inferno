@@ -302,7 +302,7 @@ namespace Inferno::Game {
                 bool hasLos = false;
                 auto& info = Resources::GetRobotInfo(boss);
                 for (uint8 gun = 0; gun < info.Guns; gun++) {
-                    if (HasFiringLineOfSight(boss, gun, source->Position, ObjectMask::None)) {
+                    if (!Intersects(HasFiringLineOfSight(boss, gun, source->Position, ObjectMask::None))) {
                         hasLos = true;
                         break;
                     }
