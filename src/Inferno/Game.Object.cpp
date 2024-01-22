@@ -10,6 +10,7 @@
 #include "SoundSystem.h"
 #include "Graphics/Render.h"
 #include "Graphics/Render.Particles.h"
+#include "Resources.h"
 
 namespace Inferno {
     namespace {

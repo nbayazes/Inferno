@@ -11,6 +11,7 @@
 #include "Graphics/Render.Debug.h"
 #include "Graphics/Render.h"
 #include "Graphics/Render.Particles.h"
+#include "Resources.h"
 
 namespace Inferno::Game {
     void DrawWeaponExplosion(const Object& obj, const Weapon& weapon, float scale = 1) {

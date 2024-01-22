@@ -1,13 +1,13 @@
 #include "pch.h"
 #include "MaterialLibrary.h"
-#include "Resources.h"
-#include "Render.h"
-#include "Game.h"
 #include "Convert.h"
 #include "FileSystem.h"
-#include "ScopedTimer.h"
+#include "Game.h"
 #include "NormalMap.h"
 #include "Procedural.h"
+#include "Render.h"
+#include "Resources.h"
+#include "ScopedTimer.h"
 
 using namespace DirectX;
 
@@ -610,6 +610,25 @@ namespace Inferno::Render {
             PruneInternal();
             Render::LevelChanged = true; // To trigger refresh of material cache
         }
+    }
+
+    const Material2D& MaterialLibrary::Get(EClipID id, double time, bool critical) const {
+        auto& eclip = Resources::GetEffectClip(id);
+        if (eclip.TimeLeft > 0)
+            time = eclip.VClip.PlayTime - eclip.TimeLeft;
+
+        TexID tex = eclip.VClip.GetFrame(time);
+        if (critical && eclip.CritClip != EClipID::None) {
+            auto& crit = Resources::GetEffectClip(eclip.CritClip);
+            tex = crit.VClip.GetFrame(time);
+        }
+
+        return Get(tex);
+    }
+
+    const Material2D& MaterialLibrary::Get(LevelTexID tid) const {
+        auto id = Resources::LookupTexID(tid);
+        return Get(id);
     }
 
     void MaterialLibrary::LoadLevelTextures(const Inferno::Level& level, bool force) {

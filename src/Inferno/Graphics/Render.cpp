@@ -20,6 +20,7 @@
 #include "MaterialLibrary.h"
 #include "Procedural.h"
 #include "Render.Level.h"
+#include "Resources.h"
 
 using namespace DirectX;
 using namespace Inferno::Graphics;

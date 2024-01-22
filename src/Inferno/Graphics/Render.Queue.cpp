@@ -8,6 +8,7 @@
 #include "Render.Editor.h"
 #include "Render.Particles.h"
 #include "Render.h"
+#include "Resources.h"
 
 namespace Inferno::Render {
     bool ShouldDrawObject(const Object& obj) {

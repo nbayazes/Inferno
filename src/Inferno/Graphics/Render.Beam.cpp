@@ -1,12 +1,11 @@
 #include "pch.h"
 
+#include "Render.Beam.h"
 #include "Game.h"
 #include "Intersect.h"
+#include "MaterialLibrary.h"
 #include "Render.h"
 #include "Render.Particles.h"
-#include "Render.Beam.h"
-#include "Game.Segment.h"
-#include "MaterialLibrary.h"
 
 // Beam fractal code based on xash3d-fwgs gl_beams.c
 

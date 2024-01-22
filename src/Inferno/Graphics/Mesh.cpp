@@ -2,6 +2,7 @@
 #include "Mesh.h"
 
 #include "MaterialLibrary.h"
+#include "Resources.h"
 
 namespace Inferno::Render {
     void GetTangentBitangent(span<ObjectVertex> verts) {

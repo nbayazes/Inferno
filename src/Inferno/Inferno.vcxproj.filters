@@ -66,8 +66,6 @@
     <ClCompile Include="Physics.cpp" />
     <ClCompile Include="Graphics\Render.Queue.cpp" />
     <ClCompile Include="Graphics\PostProcess.cpp" />
-    <ClCompile Include="Physics.Hit.cpp" />
-    <ClCompile Include="Physics.Math.cpp" />
     <ClCompile Include="Procedural.cpp" />
     <ClCompile Include="Procedural.Fire.cpp" />
     <ClCompile Include="Procedural.Water.cpp" />
@@ -92,6 +90,7 @@
     <ClCompile Include="GameTimer.cpp" />
     <ClCompile Include="Game.Bindings.cpp" />
     <ClCompile Include="Graphics\Render.Beam.cpp" />
+    <ClCompile Include="Editor\UI\SettingsDialog.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\Audio.h" />
@@ -169,8 +168,6 @@
     <ClInclude Include="OpenSimplex2.h" />
     <ClInclude Include="Physics.Capsule.h" />
     <ClInclude Include="Physics.h" />
-    <ClInclude Include="Physics.Hit.h" />
-    <ClInclude Include="Physics.Math.h" />
     <ClInclude Include="Procedural.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="SoundTypes.h" />

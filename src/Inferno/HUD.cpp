@@ -4,6 +4,7 @@
 #include "SoundSystem.h"
 #include "Graphics/MaterialLibrary.h"
 #include "Graphics/Render.h"
+#include "Resources.h"
 
 namespace Inferno {
     namespace {

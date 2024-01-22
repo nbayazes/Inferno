@@ -1,9 +1,7 @@
 #include "pch.h"
 #include "Physics.Capsule.h"
-#include "Utility.h"
-#include "Physics.Hit.h"
-#include "Physics.Math.h"
 #include "Physics.h"
+#include "Utility.h"
 
 namespace Inferno {
     Tuple<Vector3, float> IntersectTriangleSphere(const Vector3& p0, const Vector3& p1, const Vector3& p2, const DirectX::BoundingSphere& sphere) {

@@ -1,6 +1,7 @@
 #pragma once
-#include "WindowBase.h"
 #include "../Editor.h"
+#include "Resources.h"
+#include "WindowBase.h"
 
 namespace Inferno::Editor {
     class NewLevelDialog : public ModalWindowBase {
@@ -10,7 +11,7 @@ namespace Inferno::Editor {
         char _title[35]{};
         char _fileName[9]{};
         int16 Version = 7;
-        bool _foundD1, _foundD2, _foundVertigo;
+        bool _foundD1 = false, _foundD2 = false, _foundVertigo = false;
         bool _addToHog = false;
     protected:
         bool OnOpen() override {

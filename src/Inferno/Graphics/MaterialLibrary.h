@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Level.h"
-#include "Resources.h"
 #include "Concurrent.h"
+#include "Level.h"
 #include "Material2D.h"
+#include "OutrageBitmap.h"
 
 namespace Inferno::Render {
 
@@ -60,25 +60,10 @@ namespace Inferno::Render {
             return _materials[(int)id];
         }
 
-        const Material2D& Get(EClipID id, double time, bool critical) const {
-            auto& eclip = Resources::GetEffectClip(id);
-            if (eclip.TimeLeft > 0)
-                time = eclip.VClip.PlayTime - eclip.TimeLeft;
-
-            TexID tex = eclip.VClip.GetFrame(time);
-            if (critical && eclip.CritClip != EClipID::None) {
-                auto& crit = Resources::GetEffectClip(eclip.CritClip);
-                tex = crit.VClip.GetFrame(time);
-            }
-
-            return Get(tex);
-        }
+        const Material2D& Get(EClipID id, double time, bool critical) const;
 
         // Gets a material based on a D1/D2 level texture ID
-        const Material2D& Get(LevelTexID tid) const {
-            auto id = Resources::LookupTexID(tid);
-            return Get(id);
-        }
+        const Material2D& Get(LevelTexID tid) const;
 
         // Gets a material loaded from the filesystem based on name
         const Material2D& Get(const string& name) {

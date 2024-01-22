@@ -2,6 +2,7 @@
 #include <pix3.h>
 #include "Render.Particles.h"
 #include "DataPool.h"
+#include "Editor/UI/TextureEditor.h"
 #include "Render.h"
 #include "Game.h"
 #include "Game.Object.h"

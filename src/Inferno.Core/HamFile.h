@@ -1,11 +1,11 @@
 #pragma once
 #include "EffectClip.h"
-#include "Weapon.h"
-#include "Robot.h"
-#include "Utility.h"
-#include "Streams.h"
-#include "Sound.h"
 #include "Pig.h"
+#include "Robot.h"
+#include "Sound.h"
+#include "Streams.h"
+#include "Utility.h"
+#include "Weapon.h"
 
 namespace Inferno {
     enum class TextureFlag : ubyte {

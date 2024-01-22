@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Level.h"
-#include "Resources.h"
 #include "Types.h"
 #include "Editor/Events.h"
 
