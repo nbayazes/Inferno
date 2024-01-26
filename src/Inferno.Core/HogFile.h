@@ -58,6 +58,7 @@ namespace Inferno {
         List<ubyte> TryReadEntry(int index) const;
         List<ubyte> TryReadEntry(string_view entry) const;
 
+        // Returns an empty string if entry is not found
         string TryReadEntryAsString(string_view entry) const {
             auto data = TryReadEntry(entry);
             if (data.empty()) return {};
@@ -104,7 +105,7 @@ namespace Inferno {
         static HogFile Read(const std::filesystem::path& file);
         static constexpr int MAX_ENTRIES = 250;
 
-        List<string> GetContents() {
+        List<string> GetContents() const {
             return Seq::map(Entries, [](const auto& e) { return e.Name; });
         }
 
@@ -122,7 +123,7 @@ namespace Inferno {
         std::ofstream _stream;
         StreamWriter _writer;
         int _entries = 0;
-        static constexpr int MAX_ENTRIES = 250;
+        //static constexpr int MAX_ENTRIES = 250;
     public:
         HogWriter(const filesystem::path& path) : _stream(path, std::ios::binary), _writer(_stream) {
             _writer.WriteString("DHF", 3);
@@ -130,7 +131,7 @@ namespace Inferno {
 
         void WriteEntry(string_view name, span<ubyte> data) {
             if (data.empty()) return;
-            if (_entries >= MAX_ENTRIES) throw Exception("Cannot have more than 250 entries!");
+            //if (_entries >= MAX_ENTRIES) throw Exception("Cannot have more than 250 entries!");
             _writer.WriteString(string(name), 13);
             _writer.Write((int32)data.size());
             _writer.WriteBytes(data);
