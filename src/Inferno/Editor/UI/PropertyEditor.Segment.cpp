@@ -613,14 +613,14 @@ namespace Inferno::Editor {
                 }
 
                 if (relightLevel)
-                    Commands::LightLevel(Game::Level, Settings::Editor.Lighting);
+                    Commands::LightLevel(Game::Level, EditorLightSettings);
             }
 
             {
                 // Radius override
                 bool overrideChanged = false;
                 bool hasOverride = side.LightRadiusOverride.has_value();
-                auto radius = side.LightRadiusOverride.value_or(Settings::Editor.Lighting.Radius);
+                auto radius = side.LightRadiusOverride.value_or(EditorLightSettings.Radius);
 
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
@@ -649,7 +649,7 @@ namespace Inferno::Editor {
                 // Light plane override
                 bool overrideChanged = false;
                 bool hasOverride = side.LightPlaneOverride.has_value();
-                auto plane = side.LightPlaneOverride.value_or(Settings::Editor.Lighting.LightPlaneTolerance);
+                auto plane = side.LightPlaneOverride.value_or(EditorLightSettings.LightPlaneTolerance);
 
                 ImGui::TableRowLabel("Mode");
                 ImGui::SetNextItemWidth(-1);

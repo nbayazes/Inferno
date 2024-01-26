@@ -1,14 +1,13 @@
 #include "pch.h"
 #include "Game.Segment.h"
-
+#include "Editor/Editor.h"
 #include "Game.AI.Pathing.h"
 #include "Game.h"
-#include "Resources.h"
 #include "Graphics/Render.h"
+#include "Graphics/Render.Particles.h"
+#include "Resources.h"
 #include "Settings.h"
 #include "SoundSystem.h"
-#include "Editor/Editor.Object.h"
-#include "Graphics/Render.Particles.h"
 
 namespace Inferno {
     void ChangeLight(Level& level, const LightDeltaIndex& index, float multiplier = 1.0f) {
@@ -19,7 +18,7 @@ namespace Inferno {
 
             for (int k = 0; k < 4; k++) {
                 side.Light[k] += dlp.Color[k] * multiplier;
-                ClampColor(side.Light[k], 0.0f, Settings::Editor.Lighting.MaxValue);
+                ClampColor(side.Light[k], 0.0f, Editor::EditorLightSettings.MaxValue);
             }
         }
 
