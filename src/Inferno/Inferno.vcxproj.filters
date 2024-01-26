@@ -91,6 +91,9 @@
     <ClCompile Include="Game.Bindings.cpp" />
     <ClCompile Include="Graphics\Render.Beam.cpp" />
     <ClCompile Include="Editor\UI\SettingsDialog.cpp" />
+    <ClCompile Include="Audio\pcm\impl.cpp" />
+    <ClCompile Include="Audio\pcm\stb_vorbis.c" />
+    <ClCompile Include="Audio\Music.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\Audio.h" />
@@ -223,6 +226,10 @@
     <ClInclude Include="Render.Beam.h" />
     <ClInclude Include="Render.Effect.h" />
     <ClInclude Include="Debug.h" />
+    <ClInclude Include="Audio\Music.h" />
+    <ClInclude Include="Audio\pcm\dr_mp3.h" />
+    <ClInclude Include="Audio\pcm\dr_flac.h" />
+    <ClInclude Include="Audio\pcm\stb_vorbis.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />

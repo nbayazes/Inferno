@@ -638,6 +638,78 @@ namespace Inferno::Resources {
         }
     }
 
+    string ReadTextFile(const string& name) {
+        // current HOG file
+        if (Game::Mission) {
+            auto data = Game::Mission->TryReadEntryAsString(name);
+            if (!data.empty()) {
+                SPDLOG_INFO("Reading {} from mission");
+                return data;
+            }
+        }
+
+        // game specific data folder
+        auto path = GetGameDataFolder(Game::Level) + name;
+        if (FileSystem::TryFindFile(path)) {
+            SPDLOG_INFO("Reading {}", path);
+            return File::ReadAllText(path);
+        }
+
+        // Common data folder
+        path = "data/" + name;
+        if (FileSystem::TryFindFile(path)) {
+            SPDLOG_INFO("Reading {}", path);
+            return File::ReadAllText(path);
+        }
+
+        {
+            // Base HOG file
+            auto data = Hog.TryReadEntryAsString(name);
+            if (!data.empty()) {
+                SPDLOG_INFO("Reading {} from game HOG", path);
+                return data;
+            }
+        }
+
+        return {}; // Wasn't found
+    }
+
+    List<byte> ReadBinaryFile(const string& name) {
+        // current HOG file
+        if (Game::Mission) {
+            auto data = Game::Mission->TryReadEntry(name);
+            if (!data.empty()) {
+                SPDLOG_INFO("Reading {} from mission", name);
+                return data;
+            }
+        }
+
+        // game specific data folder
+        auto path = GetGameDataFolder(Game::Level) + name;
+        if (FileSystem::TryFindFile(path)) {
+            SPDLOG_INFO("Reading {}", path);
+            return File::ReadAllBytes(path);
+        }
+
+        // Common data folder
+        path = "data/" + name;
+        if (FileSystem::TryFindFile(path)) {
+            SPDLOG_INFO("Reading {}", path);
+            return File::ReadAllBytes(path);
+        }
+
+        {
+            // Base HOG file
+            auto data = Hog.TryReadEntry(name);
+            if (!data.empty()) {
+                SPDLOG_INFO("Reading {} from game HOG", path);
+                return data;
+            }
+        }
+
+        return {}; // Wasn't found
+    }
+
     void LoadMaterialTables(const Level& level) {
         auto commonPath = "data/material.yml";
         if (FileSystem::TryFindFile(commonPath)) {

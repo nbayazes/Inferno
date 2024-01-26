@@ -29,15 +29,14 @@ namespace Inferno {
                 throw Exception("Not a HOG2 file");
 
             uint nfiles = r.ReadUInt32();
-            long file_data_offset = r.ReadUInt32();
-
             hog.Entries.reserve(nfiles);
 
+            const auto dataOffset = r.ReadUInt32();
             constexpr int PSFILENAME_LEN = 35;
             constexpr int HOG_HDR_SIZE = 64;
 
             r.Seek(4 + HOG_HDR_SIZE);
-            long offset = file_data_offset;
+            auto offset = dataOffset;
             for (uint i = 0; i < nfiles; i++) {
                 auto& entry = hog.Entries.emplace_back();
                 entry.name = String::ToLower(r.ReadString(PSFILENAME_LEN + 1));

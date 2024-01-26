@@ -1,9 +1,9 @@
 #pragma once
 #include <chrono>
-
+#include "Audio/Audio.h"
 #include "Object.h"
-#include "Utility.h"
 #include "SoundTypes.h"
+#include "Utility.h"
 
 namespace Inferno {
     struct AmbientSoundEmitter {
@@ -41,6 +41,14 @@ namespace Inferno::Sound {
     // Plays a 3D sound at the player's position. Necessary because 2D sounds don't support looping.
     SoundUID AtPlayer(const Sound3D& sound);
 
+    // Plays a music file. Returns true if playback started.
+    bool PlayMusic(const string& file, bool loop = true);
+
+    // Stops the currently playing music
+    void StopMusic();
+
+    void SetMusicVolume(float volume);
+
     // Resets any cached sounds after loading a level
     void Reset();
 
@@ -71,6 +79,7 @@ namespace Inferno::Sound {
         Plate = 30
     };
 
+    AudioEngine* GetEngine();
     void SetReverb(Reverb);
 
     void Pause();

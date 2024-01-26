@@ -1,21 +1,22 @@
 #include "pch.h"
-#include "DirectX.h"
 #include "SoundSystem.h"
-#include "FileSystem.h"
-#include "Resources.h"
-#include "Game.h"
-#include "logging.h"
-#include "Graphics/Render.h"
-#include "Physics.h"
-#include "Audio/WAVFileReader.h"
 #include "Audio/Audio.h"
+#include "Audio/Music.h"
+#include "Audio/WAVFileReader.h"
+#include "DirectX.h"
+#include "FileSystem.h"
+#include "Game.h"
+#include "Graphics/Render.h"
+#include "logging.h"
+#include "Physics.h"
+#include "Resources.h"
 
-//using namespace DirectX;
 using namespace DirectX::SimpleMath;
 using namespace std::chrono;
 
 namespace Inferno::Sound {
     namespace {
+        IXAudio2SourceVoice* MusicVoice = nullptr;
         std::atomic RequestStopSounds = false;
         std::atomic Alive = false;
         std::jthread WorkerThread;
@@ -175,6 +176,8 @@ namespace Inferno::Sound {
         };
     }
 
+    AudioEngine* GetEngine() { return Engine.get(); }
+
     bool ShouldDispose(const Sound3DInstance& sound) {
         if (RequestStopSounds) return true;
 
@@ -196,11 +199,12 @@ namespace Inferno::Sound {
         return false;
     }
 
+    Ptr<MusicStream> CurrentMusicStream;
+
     void SoundWorker(milliseconds pollRate) {
         SPDLOG_INFO("Starting audio mixer thread");
 
-        auto result = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-        if (FAILED(result))
+        if (FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED)))
             SPDLOG_WARN("CoInitializeEx did not succeed");
 
         try {
@@ -210,13 +214,12 @@ namespace Inferno::Sound {
                 info += fmt::format(L"{}\n", device.description/*, device.deviceId*/);
 
             SPDLOG_INFO(L"{}", info);
-
             auto flags = AudioEngine_EnvironmentalReverb | AudioEngine_ReverbUseFilters | AudioEngine_UseMasteringLimiter;
 #ifdef _DEBUG
             flags |= AudioEngine_Debug;
 #endif
             Engine = MakePtr<AudioEngine>(flags, nullptr/*, devices[0].deviceId.c_str()*/);
-            Engine->SetDefaultSampleRate(22050); // Change based on D1/D2
+            //Engine->SetDefaultSampleRate(FREQUENCY_22KHZ);
             SoundsD1.resize(255);
             SoundsD2.resize(255);
             Alive = true;
@@ -309,6 +312,14 @@ namespace Inferno::Sound {
                 std::this_thread::sleep_for(1000ms);
             }
         }
+
+        CurrentMusicStream.reset();
+
+        if (MusicVoice) {
+            std::ignore = MusicVoice->Stop();
+            MusicVoice->DestroyVoice();
+        }
+
         SPDLOG_INFO("Stopping audio mixer thread");
         CoUninitialize();
     }
@@ -357,20 +368,6 @@ namespace Inferno::Sound {
 
         // Pass the ownership of the buffer to the sound effect
         return SoundEffect(&engine, wavData, (WAVEFORMATEX*)wavData.get(), startAudio, result.audioBytes);
-    }
-
-    void Shutdown() {
-        if (!Alive) return;
-        Alive = false;
-        Engine->Suspend();
-        WorkerThread.join();
-    }
-
-    // HWND is not used directly, but indicates the sound system requires a window
-    void Init(HWND, milliseconds pollRate) {
-        WorkerThread = std::jthread(SoundWorker, pollRate);
-        Listener.pCone = (X3DAUDIO_CONE*)&c_listenerCone;
-        Intersect = IntersectContext(Game::Level);
     }
 
     void SetReverb(Reverb reverb) {
@@ -509,7 +506,7 @@ namespace Inferno::Sound {
         if (sound.Looped && sound.LoopStart > sound.LoopEnd)
             throw Exception("Sound3D loop start must be <= loop end");
 
-        auto position = sound.Position * AUDIO_SCALE;
+        auto position = sound.Position;
 
         std::scoped_lock lock(SoundInstancesMutex);
         auto currentTime = Inferno::Clock.GetTotalTimeSeconds();
@@ -534,7 +531,8 @@ namespace Inferno::Sound {
             }
         }
 
-        sound.ID = GetSoundUID();
+        auto id = GetSoundUID();
+        sound.ID = id;
         sound.Instance = sfx->CreateInstance(SoundEffectInstance_Use3D | SoundEffectInstance_ReverbUseFilters);
         sound.Instance->SetVolume(std::clamp(sound.Volume, 0.0f, 10.0f));
         sound.Instance->SetPitch(std::clamp(sound.Pitch, -1.0f, 1.0f));
@@ -554,7 +552,7 @@ namespace Inferno::Sound {
         ASSERT(sound.Segment != SegID::None || sound.FromPlayer);
 
         SoundInstances.AddBack(std::move(sound));
-        return sound.ID;
+        return id;
     }
 
     SoundUID Play(const Sound3D& sound, const Vector3& position, SegID seg, SideID side) {
@@ -593,6 +591,7 @@ namespace Inferno::Sound {
         SPDLOG_INFO("Clearing audio cache");
         //SoundsD1.clear(); // unknown if effects must be stopped before releasing
         Stop3DSounds();
+        StopMusic();
 
         // Sleep caller while the worker thread finishes cleaning up
         while (RequestStopSounds)
@@ -664,7 +663,7 @@ namespace Inferno::Sound {
             return;
         }
 
-        Emitters.Add(e);
+        Emitters.Add(std::move(e));
     }
 
     void UpdateSoundEmitters(float dt) {
@@ -689,5 +688,86 @@ namespace Inferno::Sound {
                 }
             }
         }
+    }
+
+
+    inline Ptr<MusicStream> CreateMusicStream(List<byte>&& data) {
+        try {
+            uint32 fourcc;
+            memcpy(&fourcc, data.data(), sizeof(uint32));
+            Ptr<MusicStream> stream;
+
+            switch (fourcc) {
+                case MakeFourCC("OggS"):
+                    stream = std::make_unique<OggStream>(std::move(data));
+                    break;
+
+                case MakeFourCC("RIFF"):
+                    //music = LoadWav(bytes);
+                    return {};
+
+                case MakeFourCC("fLaC"):
+                    return std::make_unique<FlacStream>(std::move(data));
+                    break;
+
+                // MP3 lacks a fourcc
+                default:
+                    stream = std::make_unique<Mp3Stream>(std::move(data));
+                    break;
+            }
+
+            return stream;
+        }
+        catch (const Exception& e) {
+            SPDLOG_ERROR("Error streaming music: {}", e.what());
+            return {};
+        }
+    }
+
+    bool PlayMusic(const string& file, bool loop) {
+        StopMusic();
+
+        auto data = Resources::ReadBinaryFile(file);
+        if (data.empty()) {
+            SPDLOG_WARN("Music file {} not found", file);
+            return false;
+        }
+
+        CurrentMusicStream = CreateMusicStream(std::move(data));
+        if (!CurrentMusicStream) {
+            SPDLOG_WARN("Unable to create music stream from {}", file);
+            return false;
+        }
+
+        SPDLOG_INFO("Playing music {}", file);
+        CurrentMusicStream->Loop = loop;
+        CurrentMusicStream->Effect->Play();
+        return true;
+    }
+
+    void StopMusic() {
+        if (!CurrentMusicStream) return;
+        SPDLOG_INFO("Stopping music");
+        CurrentMusicStream->Effect->Stop();
+        CurrentMusicStream = {};
+    }
+
+    void SetMusicVolume(float volume) {
+        if (CurrentMusicStream) 
+            CurrentMusicStream->Effect->SetVolume(volume);
+    }
+
+    void Shutdown() {
+        if (!Alive) return;
+        Alive = false;
+        Engine->Suspend();
+        WorkerThread.join();
+    }
+
+    // HWND is not used directly, but indicates the sound system requires a window
+    void Init(HWND, milliseconds pollRate) {
+        WorkerThread = std::jthread(SoundWorker, pollRate);
+        Listener.pCone = (X3DAUDIO_CONE*)&c_listenerCone;
+        Intersect = IntersectContext(Game::Level);
     }
 }

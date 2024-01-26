@@ -150,6 +150,11 @@
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="Audio\AudioEngine.cpp" />
     <ClCompile Include="Audio\DynamicSoundEffectInstance.cpp" />
+    <ClCompile Include="Audio\pcm\impl.cpp" />
+    <ClCompile Include="Audio\pcm\stb_vorbis.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="Audio\SoundCommon.cpp" />
     <ClCompile Include="Audio\SoundEffect.cpp" />
     <ClCompile Include="Audio\SoundEffectInstance.cpp" />
@@ -210,6 +215,7 @@
     <ClCompile Include="LightInfo.cpp" />
     <ClCompile Include="Editor\UI\LightingWindow.cpp" />
     <ClCompile Include="MaterialInfo.cpp" />
+    <ClCompile Include="Audio\Music.cpp" />
     <ClCompile Include="OpenSimplex2.cpp" />
     <ClCompile Include="Physics.Capsule.cpp" />
     <ClCompile Include="Physics.cpp" />
@@ -243,6 +249,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\Audio.h" />
+    <ClInclude Include="Audio\pcm\dr_flac.h" />
+    <ClInclude Include="Audio\pcm\dr_mp3.h" />
+    <ClInclude Include="Audio\pcm\stb_vorbis.h" />
     <ClInclude Include="Audio\SoundCommon.h" />
     <ClInclude Include="Audio\WAVFileReader.h" />
     <ClInclude Include="BitmapCache.h" />
@@ -324,6 +333,7 @@
     <ClInclude Include="Render.Beam.h" />
     <ClInclude Include="Render.Effect.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="Audio\Music.h" />
     <ClInclude Include="SoundTypes.h" />
     <ClInclude Include="unordered_dense.h" />
     <ClInclude Include="Version.h" />
@@ -561,9 +571,6 @@
     </ProjectReference>
     <ProjectReference Include="..\Inferno.Core\Inferno.Core.vcxproj">
       <Project>{3d2bbf26-57a1-4cc7-8297-44d6c5d5945f}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\SoLoud\SoLoud.vcxproj">
-      <Project>{eb002fdc-a287-4775-b60f-f7057c82c5a4}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

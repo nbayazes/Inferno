@@ -64,6 +64,10 @@ namespace Inferno::Resources {
         return level.IsDescent1() ? "data/d1/material.yml" : "data/d2/material.yml";
     }
 
+    inline const char* GetGameDataFolder(const Level& level) {
+        return level.IsDescent1() ? "data/d1/" : "data/d2/";
+    }
+
     // Returns true if the id corresponds to a level texture
     bool IsLevelTexture(TexID id);
 
@@ -78,6 +82,12 @@ namespace Inferno::Resources {
     string GetRobotName(uint id);
     // Can return none if the powerup is unused
     Option<string> GetPowerupName(uint id);
+
+    // Tries to read a text file by checking the mission, the game specific directory, the shared directory, and finally the game HOG
+    string ReadTextFile(const string& name);
+
+    // Tries to read a binary file by checking the mission, the game specific directory, the shared directory, and finally the game HOG
+    List<byte> ReadBinaryFile(const string& name);
 
     void LoadDataTables(const Level& level);
 
