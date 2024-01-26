@@ -356,3 +356,6 @@ imgui.ini
 dxil.dll
 dxcompiler.dll
 dxc.exe
+*.mp3
+*.ogg
+*.flac
