@@ -558,13 +558,13 @@ namespace Inferno::Game {
         }
 
         auto fontHeight = Inferno::Atlas.GetFont(FontSize::MediumBlue)->Height;
-        auto lineHeight = fontHeight * FONT_LINE_SPACING;
+        auto lineHeight = fontHeight * FONT_LINE_SPACING * Inferno::Atlas.Scale;
 
         auto scale = Render::Canvas->GetScale();
 
         //Render::Canvas->DrawRectangle({ 0, 0 }, Render::Canvas->GetSize(), Color(0, 0, 0, 0.25f));
 
-        Vector2 bgSize = Vector2(200, fontHeight * 3.5f) * scale;
+        Vector2 bgSize = Vector2(200, lineHeight * 3.5f) * scale;
         Vector2 alignment = Render::GetAlignment(bgSize, AlignH::Center, AlignV::Center, Render::Canvas->GetSize());
         Render::Canvas->DrawRectangle(alignment, bgSize, Color(0, 0, 0, 0.65f));
 
