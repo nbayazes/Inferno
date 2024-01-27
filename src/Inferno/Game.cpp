@@ -533,7 +533,6 @@ namespace Inferno::Game {
 
 
     void UpdateMenu(float /*dt*/) {
-
         if (Input::IsKeyPressed(Input::Keys::Down))
             MenuIndex++;
 
@@ -796,6 +795,74 @@ namespace Inferno::Game {
         Render::Materials->LoadTextures(customHudTextures);
     }
 
+    List<string> ParseSng(const string& sng) {
+        const auto lines = String::Split(sng);
+        std::vector<std::string> result;
+
+        // sng files are in two formats, the original tab separated format including drum banks
+        // or a simplified format containing only the song name. We only care about the file name.
+        for (auto& line : lines) {
+            if (line == "\x1a") continue; // weird EOL character at end of d1 sng from CPM filesystem
+            auto tokens = String::Split(line, '\t');
+
+            if (!tokens.empty()) {
+                tokens[0] = String::TrimEnd(tokens[0], "\r");
+                result.push_back(tokens[0]);
+            }
+        }
+
+        return result;
+    }
+
+    void PlayMusic() {
+        // Determine the correct song to play based on the level number
+        auto sng = Resources::ReadTextFile("descent.sng");
+        if (sng.empty()) {
+            SPDLOG_WARN("No SNG file found!");
+            return;
+        }
+
+        auto songs = ParseSng(sng);
+
+        constexpr uint FirstLevelSong = 5;
+        if (songs.size() < FirstLevelSong) {
+            SPDLOG_WARN("Not enough songs in SNG file. Expected 5, was {}", songs.size());
+            return;
+        }
+
+        auto availableLevelSongs = songs.size() - FirstLevelSong;
+        auto songIndex = FirstLevelSong + std::abs(LevelNumber - 1) % availableLevelSongs;
+        string song = songs[songIndex];
+
+        // todo: if use addon music...
+        if (String::ToLower(song).ends_with(".hmp")) {
+            // Try finding replacement music for the game's midi tracks
+            std::filesystem::path path(song);
+
+            path.replace_extension(".ogg");
+            if (Resources::FileExists(path.string()))
+                Sound::PlayMusic(path.string());
+
+            path.replace_extension(".mp3");
+            if (Resources::FileExists(path.string()))
+                Sound::PlayMusic(path.string());
+
+            path.replace_extension(".flac");
+            if (Resources::FileExists(path.string()))
+                Sound::PlayMusic(path.string());
+
+            // todo: play the original midi
+        }
+        else {
+            Sound::PlayMusic(song);
+        }
+
+        //auto bytes = File::ReadAllBytes("data/Resignation.mp3");
+        //auto bytes = File::ReadAllBytes("data/d1/Title.ogg");
+        //auto bytes = File::ReadAllBytes("data/Hostility.flac");
+        //Sound::PlayMusic("Resignation.mp3");
+    }
+
     bool StartLevel() {
         auto player = Level.TryGetObject(ObjID(0));
 
@@ -840,6 +907,7 @@ namespace Inferno::Game {
         InitializeMatcens(Level);
         Render::LoadHUDTextures();
         PreloadTextures();
+        PlayMusic();
 
         Editor::SetPlayerStartIDs(Level);
         // Default the gravity direction to the player start

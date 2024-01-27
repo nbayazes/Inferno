@@ -1534,7 +1534,7 @@ Materials:
     Metalness: 0.96
     Roughness: 0.4
   - TexID: 1031
-    NormalStrength: 0.5
+    NormalStrength: 0.25
     Metalness: 0.4
     Roughness: 0.7
   - TexID: 1032
@@ -1679,7 +1679,7 @@ Materials:
     EmissiveStrength: 0.6
     LightReceived: 0.5
   - TexID: 1116
-    NormalStrength: 0.257
+    NormalStrength: 0.25
     Metalness: 0.4
     Roughness: 0.7
     Procedural:
@@ -1693,7 +1693,7 @@ Materials:
       Elements:
         - '{"Type": 2,"X1": 64,"Y1": 64,"Frequency": 60,"Size": 64,"Speed": -116}'
   - TexID: 1124
-    NormalStrength: 0.539
+    NormalStrength: 0.25
     Metalness: 0.4
     Roughness: 0.7
     Procedural:
@@ -2077,6 +2077,9 @@ Materials:
     Roughness: 0.5
   - TexID: 1509
     Roughness: 0.548
+  - TexID: 1515
+    Metalness: 0.3
+    Roughness: 0.839
   - TexID: 1520
     NormalStrength: 0.583
     Metalness: 0.818

@@ -112,6 +112,9 @@ namespace Inferno::Editor {
             auto masterVol = Sound::GetVolume();
             if (ImGui::SliderFloat("Volume", &masterVol, 0, 1))
                 Sound::SetVolume(masterVol);
+
+            if (ImGui::SliderFloat("Music", &Settings::Inferno.MusicVolume, 0, 1))
+                Sound::SetMusicVolume(Settings::Inferno.MusicVolume);
         }
 
         {

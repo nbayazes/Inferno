@@ -83,6 +83,8 @@ namespace Inferno::Resources {
     // Can return none if the powerup is unused
     Option<string> GetPowerupName(uint id);
 
+    bool FileExists(const string& name);
+
     // Tries to read a text file by checking the mission, the game specific directory, the shared directory, and finally the game HOG
     string ReadTextFile(const string& name);
 

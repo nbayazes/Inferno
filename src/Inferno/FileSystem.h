@@ -7,6 +7,7 @@ namespace Inferno::File {
     List<ubyte> ReadAllBytes(const std::filesystem::path& path);
     void WriteAllBytes(const std::filesystem::path& path, span<ubyte> data);
     string ReadAllText(const filesystem::path& path);
+    std::vector<std::string> ReadLines(const filesystem::path& path);
 }
 
 /*

@@ -638,12 +638,34 @@ namespace Inferno::Resources {
         }
     }
 
+    bool FileExists(const string& name) {
+        // current HOG file
+        if (Game::Mission && Game::Mission->Exists(name))
+            return true;
+
+        // game specific data folder
+        auto path = GetGameDataFolder(Game::Level) + name;
+        if (FileSystem::TryFindFile(path))
+            return true;
+
+        // Common data folder
+        path = "data/" + name;
+        if (FileSystem::TryFindFile(path))
+            return true;
+
+        // Base HOG file
+        if (Hog.Exists(name))
+            return true;
+
+        return false; // Wasn't found
+    }
+
     string ReadTextFile(const string& name) {
         // current HOG file
         if (Game::Mission) {
             auto data = Game::Mission->TryReadEntryAsString(name);
             if (!data.empty()) {
-                SPDLOG_INFO("Reading {} from mission");
+                SPDLOG_INFO("Reading {} from mission", name);
                 return data;
             }
         }

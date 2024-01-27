@@ -627,6 +627,13 @@ namespace Inferno::Sound {
         if (Alive) Engine->SetMasterVolume(volume);
     }
 
+    void SetMusicVolume(float volume) {
+        Settings::Inferno.MusicVolume = volume;
+
+        if (CurrentMusicStream)
+            CurrentMusicStream->Effect->SetVolume(volume);
+    }
+
     void Stop3DSounds() {
         if (!Alive) return;
 
@@ -733,6 +740,11 @@ namespace Inferno::Sound {
             return false;
         }
 
+        if (file.ends_with(".hmp")) {
+            SPDLOG_WARN("HMP / MIDI music not implemented!");
+            return false;
+        }
+
         CurrentMusicStream = CreateMusicStream(std::move(data));
         if (!CurrentMusicStream) {
             SPDLOG_WARN("Unable to create music stream from {}", file);
@@ -741,6 +753,7 @@ namespace Inferno::Sound {
 
         SPDLOG_INFO("Playing music {}", file);
         CurrentMusicStream->Loop = loop;
+        CurrentMusicStream->Effect->SetVolume(Settings::Inferno.MusicVolume);
         CurrentMusicStream->Effect->Play();
         return true;
     }
@@ -750,11 +763,6 @@ namespace Inferno::Sound {
         SPDLOG_INFO("Stopping music");
         CurrentMusicStream->Effect->Stop();
         CurrentMusicStream = {};
-    }
-
-    void SetMusicVolume(float volume) {
-        if (CurrentMusicStream) 
-            CurrentMusicStream->Effect->SetVolume(volume);
     }
 
     void Shutdown() {

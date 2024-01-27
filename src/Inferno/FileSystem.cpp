@@ -41,6 +41,22 @@ std::string Inferno::File::ReadAllText(const filesystem::path& path) {
     return { std::istreambuf_iterator(stream), std::istreambuf_iterator<char>() };
 }
 
+std::vector<std::string> Inferno::File::ReadLines(const filesystem::path& path) {
+    std::ifstream stream(path);
+    if (!stream) {
+        SPDLOG_WARN("Unable to open file `{}`", path.string());
+        return {};
+    }
+
+    std::vector<std::string> lines;
+    std::string line;
+
+    while (std::getline(stream, line))
+        lines.push_back(line);
+
+    return lines;
+}
+
 namespace Inferno::FileSystem {
     List<filesystem::path> Directories;
 
