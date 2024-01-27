@@ -58,6 +58,8 @@ namespace Inferno {
     public:
         FontAtlas(int width, int height) : _width(width), _height(height) {}
 
+        float Scale = 1; // Scale when drawing, used to increase size of D1 fonts
+
         const Character& GetCharacter(uchar c, FontSize font) const {
             c -= 32;
             if (c > _lookup[(int)font].size()) c = 0; // default to space if character is out of range

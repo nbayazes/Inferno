@@ -132,7 +132,7 @@ namespace Inferno::Render {
 
         Color background = color * 0.1f;
 
-        scale *= _scale;
+        scale *= _scale * Atlas.Scale;
         auto strSize = MeasureString(str, size) * scale;
         Vector2 alignment = GetAlignment(strSize, alignH, alignV, _size);
         bool inToken = false;
@@ -248,7 +248,7 @@ namespace Inferno::Render {
         auto color = info.Color;
         Color background = color * 0.1f;
 
-        auto scale = info.Scale * _scale;
+        auto scale = info.Scale * _scale * Atlas.Scale;
         auto strSize = MeasureString(str, info.Font) * scale;
         Vector2 alignment = GetAlignment(strSize, info.HorizontalAlign, info.VerticalAlign, _size);
         bool inToken = false;

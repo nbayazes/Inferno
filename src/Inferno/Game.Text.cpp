@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "Game.Text.h"
 #include "FileSystem.h"
-#include "HogFile.h"
-#include "Graphics/Render.h"
 #include "Graphics/MaterialLibrary.h"
+#include "Graphics/Render.h"
+#include "HogFile.h"
 
 namespace Inferno {
     FontAtlas Atlas(1024, 512);
@@ -32,10 +32,9 @@ namespace Inferno {
         return { std::max(maxWidth, width), height };
     }
 
-    // Loads fonts from the d2 hog file as they are higher resolution
-    void LoadFonts() {
+    bool LoadDescent2Fonts(span<Palette::Color> buffer) {
         auto hogPath = FileSystem::TryFindFile("descent2.hog");
-        if (!hogPath) return;
+        if (!hogPath) return false;
 
         auto hog = HogFile::Read(*hogPath);
 
@@ -48,8 +47,30 @@ namespace Inferno {
             { "font1-1h.fnt", FontSize::Big }
         };
 
-        List<Palette::Color> buffer(Atlas.Width() * Atlas.Height());
-        ranges::fill(buffer, Palette::Color{ 0, 0, 0, 0 });
+        for (auto& [f, size] : fonts) {
+            if (!hog.Exists(f)) continue;
+            auto data = hog.ReadEntry(f);
+            auto font = Font::Read(data);
+            Atlas.AddFont(buffer, font, size, 2);
+        }
+
+        return true;
+    }
+
+    bool LoadDescent1Fonts(span<Palette::Color> buffer) {
+        auto hogPath = FileSystem::TryFindFile("descent.hog");
+        if (!hogPath) return false;
+
+        auto hog = HogFile::Read(*hogPath);
+
+        // Only load high res fonts. Ordered from small to large to simplify atlas code.
+        const Tuple<string, FontSize> fonts[] = {
+            { "font3-1.fnt", FontSize::Small },
+            { "font2-1.fnt", FontSize::Medium },
+            { "font2-2.fnt", FontSize::MediumGold },
+            { "font2-3.fnt", FontSize::MediumBlue },
+            { "font1-1.fnt", FontSize::Big }
+        };
 
         for (auto& [f, size] : fonts) {
             if (!hog.Exists(f)) continue;
@@ -57,6 +78,18 @@ namespace Inferno {
             auto font = Font::Read(data);
             Atlas.AddFont(buffer, font, size, 2);
         }
+
+        Atlas.Scale = 2;
+        return true;
+    }
+
+    void LoadFonts() {
+        List<Palette::Color> buffer(Atlas.Width() * Atlas.Height());
+        ranges::fill(buffer, Palette::Color{ 0, 0, 0, 0 });
+
+        // Prefer fonts from the d2 hog file as they are higher resolution
+        if (!LoadDescent2Fonts(buffer) && !LoadDescent1Fonts(buffer))
+            return;
 
         auto batch = Render::BeginTextureUpload();
         Render::StaticTextures->Font.Load(batch, buffer.data(), Atlas.Width(), Atlas.Height(), L"Font");
