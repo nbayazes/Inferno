@@ -346,7 +346,7 @@ namespace Inferno {
                     if (side.HasOverlay())
                         chunk.EffectClip2 = Resources::GetEffectClipID(side.TMap2);
 
-                    if (wall) {
+                    if (isWall && wall) {
                         chunk.Blend = GetWallBlendMode(side.TMap);
                         if (wall->Type == WallType::Cloaked) {
                             chunk.Blend = BlendMode::Alpha;
