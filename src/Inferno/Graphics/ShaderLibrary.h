@@ -346,7 +346,7 @@ namespace Inferno {
         }
 
         static void SetInstanceConstants(ID3D12GraphicsCommandList* commandList, const InstanceConstants& consts) {
-            commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof(consts) / 4, &consts, 0);
+            Render::BindTempConstants(commandList, consts, RootConstants);
         }
 
         static void SetLightGrid(ID3D12GraphicsCommandList* commandList, Graphics::FillLightGridCS& lightGrid) {

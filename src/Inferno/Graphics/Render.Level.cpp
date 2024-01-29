@@ -278,11 +278,14 @@ namespace Inferno::Render {
 
         if (decalSubpass && chunk.TMap2 == LevelTexID::Unset) return;
 
+        auto* mat1 = &Materials->Black();
+        auto mat1Handle = Materials->Black().Handle();
+
+        auto* mat2 = &Materials->Black();
+        auto mat2Handle = Materials->Black().Handle();
+
         if (chunk.Cloaked) {
             // todo: cloaked walls will have to be rendered with a different shader -> prefer glass / distortion
-            Shaders->Level.SetDiffuse1(cmdList, Materials->Black().Handle());
-            Shaders->Level.SetMaterial1(cmdList, Materials->Black());
-            Shaders->Level.SetMaterial2(cmdList, Materials->Black());
             constants.LightingScale = 1;
         }
         else {
@@ -296,40 +299,36 @@ namespace Inferno::Render {
                 // Use the current texture for this side, as walls are drawn individually
 
                 if (!decalSubpass) {
-                    auto& map1 = Materials->Get(side->TMap);
-                    Shaders->Level.SetDiffuse1(cmdList, map1.Handles[0]);
-                    Shaders->Level.SetMaterial1(cmdList, map1);
+                    mat1 = &Materials->Get(side->TMap);
+                    mat1Handle = mat1->Handle();
                 }
                 else {
-                    auto& map2 = Materials->Get(side->TMap2);
-                    Shaders->Level.SetDiffuse1(cmdList, map2.Handles[0]);
-                    Shaders->Level.SetMaterial1(cmdList, map2);
+                    mat1 = &Materials->Get(side->TMap2);
+                    mat1Handle = mat1->Handle();
                 }
             }
             else {
                 if (!decalSubpass) {
                     if (auto proc = GetLevelProcedural(chunk.TMap1)) {
                         // For procedural textures the animation is baked into it
-                        auto& map1 = Materials->Get(chunk.TMap1);
-                        Shaders->Level.SetDiffuse1(cmdList, proc->GetHandle());
-                        Shaders->Level.SetMaterial1(cmdList, map1);
+                        mat1 = &Materials->Get(chunk.TMap1);
+                        mat1Handle = proc->GetHandle();
                     }
                     else {
                         auto& map1 = chunk.EffectClip1 == EClipID::None ? Materials->Get(chunk.TMap1) : Materials->Get(chunk.EffectClip1, ElapsedTime, false);
-                        Shaders->Level.SetDiffuse1(cmdList, map1.Handles[0]);
-                        Shaders->Level.SetMaterial1(cmdList, map1);
+                        mat1 = &map1;
+                        mat1Handle = map1.Handle();
                     }
                 }
                 else {
                     if (auto proc = GetLevelProcedural(chunk.TMap2)) {
-                        auto& map2 = Materials->Get(chunk.TMap2);
-                        Shaders->Level.SetDiffuse1(cmdList, proc->GetHandle());
-                        Shaders->Level.SetMaterial1(cmdList, map2);
+                        mat1 = &Materials->Get(chunk.TMap2);
+                        mat1Handle = proc->GetHandle();
                     }
                     else {
                         auto& map2 = chunk.EffectClip2 == EClipID::None ? Materials->Get(chunk.TMap2) : Materials->Get(chunk.EffectClip2, ElapsedTime, Game::ControlCenterDestroyed);
-                        Shaders->Level.SetDiffuse1(cmdList, map2.Handles[0]);
-                        Shaders->Level.SetMaterial1(cmdList, map2);
+                        mat1 = &map2;
+                        mat1Handle = map2.Handle();
                     }
                 }
             }
@@ -351,19 +350,19 @@ namespace Inferno::Render {
 
         if (decalSubpass) {
             constants.Tex1 = (int)Resources::LookupTexID(chunk.TMap2);
-            Shaders->Level.SetDiffuse2(cmdList, Materials->Black().Handle()); // Default overlay textures to prevent crashes on some AMD hardware
         }
         else if (constants.HasOverlay) {
             // Pass tex2 when drawing base texture to discard pixels behind the decal
             auto decal = chunk.EffectClip2 == EClipID::None ? Resources::LookupTexID(chunk.TMap2) : Resources::GetEffectClip(chunk.TMap2).VClip.GetFrame(ElapsedTime);\
             constants.Tex2 = (int)decal;
-            Shaders->Level.SetDiffuse2(cmdList, Materials->Get(decal).Handle());
-            Shaders->Level.SetMaterial2(cmdList, Materials->Get(decal));
-        }
-        else {
-            Shaders->Level.SetDiffuse2(cmdList, Materials->Black().Handle()); // Default overlay textures to prevent crashes on some AMD hardware
+            mat2 = &Materials->Get(decal);
+            mat2Handle = mat2->Handle();
         }
 
+        Shaders->Level.SetDiffuse1(cmdList, mat1Handle);
+        Shaders->Level.SetMaterial1(cmdList, *mat1);
+        Shaders->Level.SetDiffuse2(cmdList, mat2Handle);
+        Shaders->Level.SetMaterial2(cmdList, *mat2);
         Shaders->Level.SetInstanceConstants(cmdList, constants);
         Shaders->Level.SetLightGrid(cmdList, *Render::LightGrid);
         mesh.Draw(cmdList);

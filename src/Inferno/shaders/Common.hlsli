@@ -42,6 +42,15 @@ static const int FILTER_POINT = 0;
 static const int FILTER_ENHANCED_POINT = 1;
 static const int FILTER_SMOOTH = 2;
 
+//float Fix16ToFloat(min16int fix) {
+//    return (float)fix / (float)(1 << 10);
+//}
+
+//float2 UnpackFloats(uint packed) {
+    
+//    return float2(Fix16ToFloat(min16int(packed >> 16)), Fix16ToFloat(min16int(packed & 0xFFFF)));
+//}
+
 // Samples a 2D texture. Also supports anti-aliasing pixel boundaries.
 float4 Sample2D(Texture2D tex, float2 uv, SamplerState texSampler, int filterMode) {
     if (filterMode == FILTER_POINT)

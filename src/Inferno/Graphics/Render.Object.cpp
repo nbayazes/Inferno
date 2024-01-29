@@ -116,6 +116,7 @@ namespace Inferno::Render {
         auto transform = Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetPrevTransform(), object.GetTransform(), Game::LerpAmount);
 
         auto& shader = Shaders->DepthObject;
+        shader.SetDissolveTexture(cmdList, Render::Materials->Black().Handle());
 
 #ifdef DEBUG_DISSOLVE
         shader.SetDissolveTexture(cmdList, Render::Materials->Get("noise").Handle());
