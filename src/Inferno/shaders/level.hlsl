@@ -228,7 +228,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float2 uvs = Args.IsOverlay ? input.uv2 : input.uv;
     float4 diffuse = Sample2D(Diffuse, uvs, Sampler, Frame.FilterMode);
     float3 normal = SampleNormal(Normal1, uvs, Sampler, Frame.FilterMode);
-    
+
     MaterialInfo mat1 = Materials[Args.Tex1];
     normal.xy *= mat1.NormalStrength;
     normal = normalize(normal);
@@ -247,8 +247,9 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float3 emissive = Sample2D(Emissive, uvs, Sampler, Frame.FilterMode).rrr * mat1.EmissiveStrength;
     //float emissive = Sample2D(GetTexture(input.Tex1, MAT_EMIS), input.uv, Sampler, Frame.FilterMode).r * mat1.EmissiveStrength;
     MaterialInfo material = mat1;
+    bool fullbright = any(emissive) && mat1.LightReceived == 0;
 
-    if (any(emissive) && mat1.LightReceived == 0) {
+    if (fullbright) {
         emissive = emissive + 1; // make lava and forcefields full bright
     }
     else if (any(Args.LightColor.rgb)) {
@@ -289,12 +290,17 @@ float4 psmain(PS_INPUT input) : SV_Target {
     else {
         float3 directLight = float3(0, 0, 0);
         uint2 pixelPos = uint2(input.pos.xy);
-        ambient *= Frame.GlobalDimming; // Dim ambient during self destruct
+
+        if (!fullbright) {
+            // Dim lighting during self destruct
+            emissive *= Frame.GlobalDimming;
+            ambient *= Frame.GlobalDimming; 
+        }
+
         //ambient *= HalfLambert(normal, normalize(float3(1, 0, 0)));
         if (any(input.lightDir))
             ambient *= pow(Lambert(normal, input.lightDir), 2); // Apply ambient light directions
         //return float4(ambient, 1);
-        emissive *= Frame.GlobalDimming;
 
         ShadeLights(directLight, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
         lighting += directLight * material.LightReceived;
