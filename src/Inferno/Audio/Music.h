@@ -37,40 +37,7 @@ namespace Inferno::Sound {
         size_t _frames = 0;
 
     public:
-        Mp3Stream(std::vector<byte>&& source) : _source(std::move(source)) {
-            if (!drmp3_init_memory(&_decoder, _source.data(), _source.size(), nullptr)) {
-                throw Exception("Unable to init drmp3");
-            }
-
-            _frames = drmp3_get_pcm_frame_count(&_decoder);
-
-            if (!_frames) {
-                drmp3_uninit(&_decoder);
-                throw Exception("Empty or invalid MP3");
-            }
-
-            //drmp3_seek_to_pcm_frame(&_decoder, _frames - 500000);
-
-            auto fillBuffer = [this](DynamicSoundEffectInstance* effect) {
-                auto count = effect->GetPendingBufferCount();
-                while (count < BUFFER_COUNT) {
-                    auto& buffer = _buffer[_bufferIndex++];
-                    _bufferIndex %= BUFFER_COUNT;
-
-                    auto len = ReadNextFrame(buffer);
-                    if (len == 0) {
-                        if (Loop) drmp3_seek_to_pcm_frame(&_decoder, 0);
-                        return; // out of data
-                    }
-
-                    effect->SubmitBuffer((uint8*)buffer.data(), len);
-                    count++;
-                }
-            };
-
-            Effect = std::make_unique<DynamicSoundEffectInstance>(
-                GetEngine(), fillBuffer, _decoder.sampleRate, _decoder.channels, 32);
-        }
+        Mp3Stream(std::vector<byte>&& source);
 
         Mp3Stream(const Mp3Stream&) = delete;
         Mp3Stream(Mp3Stream&&) = default;
@@ -97,44 +64,7 @@ namespace Inferno::Sound {
         stb_vorbis_info _info{};
 
     public:
-        OggStream(std::vector<byte>&& ogg) : _source(std::move(ogg)) {
-            int e = 0;
-            _vorbis = stb_vorbis_open_memory(_source.data(), (int)_source.size(), &e, nullptr);
-
-            if (!_vorbis) {
-                throw Exception("Unable to init stb vorbis");
-            }
-
-            _info = stb_vorbis_get_info(_vorbis);
-            _frames = stb_vorbis_stream_length_in_samples(_vorbis);
-
-            if (!_frames) {
-                stb_vorbis_close(_vorbis);
-                throw Exception("Empty or invalid OGG");
-            }
-
-            //stb_vorbis_seek(_vorbis, _frames - 200000);
-
-            auto fillBuffer = [this](DynamicSoundEffectInstance* effect) {
-                auto count = effect->GetPendingBufferCount();
-                while (count < BUFFER_COUNT) {
-                    auto& buffer = _buffer[_bufferIndex++];
-                    _bufferIndex %= BUFFER_COUNT;
-
-                    auto len = ReadNextFrame(buffer);
-                    if (len == 0) {
-                        if (Loop) stb_vorbis_seek(_vorbis, 0); // loop
-                        return; // out of data
-                    }
-
-                    effect->SubmitBuffer((uint8*)buffer.data(), len);
-                    count++;
-                }
-            };
-
-            Effect = std::make_unique<DynamicSoundEffectInstance>(
-                GetEngine(), fillBuffer, _info.sample_rate, _info.channels, 32);
-        }
+        OggStream(std::vector<byte>&& ogg);
 
         OggStream(const OggStream&) = delete;
         OggStream(OggStream&&) = default;
@@ -160,40 +90,7 @@ namespace Inferno::Sound {
         size_t _frames = 0;
 
     public:
-        FlacStream(std::vector<byte>&& ogg) : _source(std::move(ogg)) {
-            _flac = drflac_open_memory(_source.data(), _source.size(), nullptr);
-
-            if (!_flac) {
-                throw Exception("Unable to init drflac");
-            }
-
-            if (!_flac->totalPCMFrameCount) {
-                drflac_close(_flac);
-                throw Exception("Empty or invalid FLAC");
-            }
-
-            //drflac_seek_to_pcm_frame(_flac, _flac->totalPCMFrameCount - 48'000 * 5);
-
-            auto fillBuffer = [this](DynamicSoundEffectInstance* effect) {
-                auto count = effect->GetPendingBufferCount();
-                while (count < BUFFER_COUNT) {
-                    auto& buffer = _buffer[_bufferIndex++];
-                    _bufferIndex %= BUFFER_COUNT;
-
-                    auto len = ReadNextFrame(buffer);
-                    if (len == 0) {
-                        if (Loop) drflac_seek_to_pcm_frame(_flac, 0); // loop
-                        return; // out of data
-                    }
-
-                    effect->SubmitBuffer((uint8*)buffer.data(), len);
-                    count++;
-                }
-            };
-
-            Effect = std::make_unique<DynamicSoundEffectInstance>(
-                GetEngine(), fillBuffer, _flac->sampleRate, _flac->channels, 32);
-        }
+        FlacStream(std::vector<byte>&& ogg);
 
         FlacStream(const FlacStream&) = delete;
         FlacStream(FlacStream&&) = default;

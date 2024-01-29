@@ -815,6 +815,10 @@ namespace Inferno::Game {
     }
 
     void PlayMusic() {
+        //Sound::PlayMusic("Resignation.mp3");
+        //Sound::PlayMusic("Title.ogg");
+        //Sound::PlayMusic("Hostility.flac");
+
         // Determine the correct song to play based on the level number
         auto sng = Resources::ReadTextFile("descent.sng");
         if (sng.empty()) {
@@ -856,11 +860,6 @@ namespace Inferno::Game {
         else {
             Sound::PlayMusic(song);
         }
-
-        //auto bytes = File::ReadAllBytes("data/Resignation.mp3");
-        //auto bytes = File::ReadAllBytes("data/d1/Title.ogg");
-        //auto bytes = File::ReadAllBytes("data/Hostility.flac");
-        //Sound::PlayMusic("Resignation.mp3");
     }
 
     bool StartLevel() {
