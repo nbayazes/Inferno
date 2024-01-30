@@ -41,6 +41,9 @@ namespace Inferno::Sound {
     // Plays a 3D sound at the player's position. Necessary because 2D sounds don't support looping.
     SoundUID AtPlayer(const Sound3D& sound);
 
+    // Plays a raw music stream
+    bool PlayMusic(List<byte>&& data, bool loop);
+
     // Plays a music file. Returns true if playback started.
     bool PlayMusic(const string& file, bool loop = true);
 

@@ -838,9 +838,33 @@ namespace Inferno::Game {
         auto songIndex = FirstLevelSong + std::abs(LevelNumber - 1) % availableLevelSongs;
         string song = songs[songIndex];
 
-        // todo: if use addon music...
         if (String::ToLower(song).ends_with(".hmp")) {
+            if (Game::Mission) {
+                // Check the unpacked data folder for any music matching the default song names
+                auto base = std::filesystem::path(song).stem();
+                std::vector extensions = { ".ogg", ".mp3", ".flac" };
+
+                for (auto& ext : extensions) {
+                    auto unpacked = Game::Mission->Path.parent_path() / Game::Mission->Path.stem() / base;
+                    unpacked.replace_extension(ext);
+                    if (filesystem::exists(unpacked)) {
+                        Sound::PlayMusic(File::ReadAllBytes(unpacked), true);
+                        return;
+                    }
+                }
+
+                for (auto& ext : extensions) {
+                    base.replace_extension(ext);
+                    auto entry = Game::Mission->TryReadEntry(base.string());
+                    if (!entry.empty()) {
+                        Sound::PlayMusic(std::move(entry), true);
+                        return;
+                    }
+                }
+            }
+
             // Try finding replacement music for the game's midi tracks
+            // Assumes the user only provided one type of file in the data directories
             std::filesystem::path path(song);
 
             path.replace_extension(".ogg");
@@ -855,7 +879,7 @@ namespace Inferno::Game {
             if (Resources::FileExists(path.string()))
                 Sound::PlayMusic(path.string());
 
-            // todo: play the original midi
+            // todo: play the original midi if no replacement music
         }
         else {
             Sound::PlayMusic(song);

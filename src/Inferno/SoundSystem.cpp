@@ -731,6 +731,18 @@ namespace Inferno::Sound {
         }
     }
 
+    bool PlayMusic(List<byte>&& data, bool loop) {
+        CurrentMusicStream = CreateMusicStream(std::move(data));
+        if (!CurrentMusicStream) {
+            return false;
+        }
+
+        CurrentMusicStream->Loop = loop;
+        CurrentMusicStream->Effect->SetVolume(Settings::Inferno.MusicVolume);
+        CurrentMusicStream->Effect->Play();
+        return true;
+    }
+
     bool PlayMusic(const string& file, bool loop) {
         StopMusic();
 
