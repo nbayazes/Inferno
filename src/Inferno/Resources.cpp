@@ -640,17 +640,25 @@ namespace Inferno::Resources {
 
     bool FileExists(const string& name) {
         // current HOG file
-        if (Game::Mission && Game::Mission->Exists(name))
-            return true;
+        if (Game::Mission) {
+            // Check unpacked data folder for mission
+            auto path = Game::Mission->Path.parent_path();
+            auto unpacked = path / Game::Mission->Path.stem() / name;
+            if (filesystem::exists(unpacked))
+                return true;
+
+            if (Game::Mission->Exists(name))
+                return true;
+        }
 
         // game specific data folder
         auto path = GetGameDataFolder(Game::Level) + name;
-        if (FileSystem::TryFindFile(path))
+        if (filesystem::exists(path))
             return true;
 
         // Common data folder
         path = "data/" + name;
-        if (FileSystem::TryFindFile(path))
+        if (filesystem::exists(path))
             return true;
 
         // Base HOG file
@@ -660,45 +668,17 @@ namespace Inferno::Resources {
         return false; // Wasn't found
     }
 
-    string ReadTextFile(const string& name) {
-        // current HOG file
-        if (Game::Mission) {
-            auto data = Game::Mission->TryReadEntryAsString(name);
-            if (!data.empty()) {
-                SPDLOG_INFO("Reading {} from mission", name);
-                return data;
-            }
-        }
-
-        // game specific data folder
-        auto path = GetGameDataFolder(Game::Level) + name;
-        if (FileSystem::TryFindFile(path)) {
-            SPDLOG_INFO("Reading {}", path);
-            return File::ReadAllText(path);
-        }
-
-        // Common data folder
-        path = "data/" + name;
-        if (FileSystem::TryFindFile(path)) {
-            SPDLOG_INFO("Reading {}", path);
-            return File::ReadAllText(path);
-        }
-
-        {
-            // Base HOG file
-            auto data = Hog.TryReadEntryAsString(name);
-            if (!data.empty()) {
-                SPDLOG_INFO("Reading {} from game HOG", path);
-                return data;
-            }
-        }
-
-        return {}; // Wasn't found
-    }
-
     List<byte> ReadBinaryFile(const string& name) {
-        // current HOG file
+        // current mission
         if (Game::Mission) {
+            // 'unpacked' folder for the mission
+            auto path = Game::Mission->Path.parent_path();
+            auto unpacked = path / Game::Mission->Path.stem() / name;
+            if (filesystem::exists(unpacked)) {
+                SPDLOG_INFO("Reading {}", unpacked.string());
+                return File::ReadAllBytes(unpacked);
+            }
+
             auto data = Game::Mission->TryReadEntry(name);
             if (!data.empty()) {
                 SPDLOG_INFO("Reading {} from mission", name);
@@ -708,28 +688,32 @@ namespace Inferno::Resources {
 
         // game specific data folder
         auto path = GetGameDataFolder(Game::Level) + name;
-        if (FileSystem::TryFindFile(path)) {
+        if (filesystem::exists(path)) {
             SPDLOG_INFO("Reading {}", path);
             return File::ReadAllBytes(path);
         }
 
         // Common data folder
         path = "data/" + name;
-        if (FileSystem::TryFindFile(path)) {
+        if (filesystem::exists(path)) {
             SPDLOG_INFO("Reading {}", path);
             return File::ReadAllBytes(path);
         }
 
-        {
-            // Base HOG file
-            auto data = Hog.TryReadEntry(name);
-            if (!data.empty()) {
-                SPDLOG_INFO("Reading {} from game HOG", path);
-                return data;
-            }
+        // Base HOG file
+        auto data = Hog.TryReadEntry(name);
+        if (!data.empty()) {
+            SPDLOG_INFO("Reading {} from game HOG", path);
+            return data;
         }
 
         return {}; // Wasn't found
+    }
+
+    string ReadTextFile(const string& name) {
+        auto bytes = ReadBinaryFile(name);
+        string str((char*)bytes.data(), bytes.size());
+        return str;
     }
 
     void LoadMaterialTables(const Level& level) {
