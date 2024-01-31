@@ -312,27 +312,17 @@ namespace Inferno {
         _visitedSegs.reserve(10);
 
         bool recoveryMode = false;
-        //auto recoverySeg = SegID::None;
         Vector3 lastGoodHit;
         auto lastGoodSeg = SegID::None;
         int recoveryTries = 0;
         bool throughWall = false;
+        float tolerance = 0;
 
         while (next > SegID::None || recoveryMode) {
             if (recoveryMode) {
-                /*if (lastGoodSeg == SegID::None) {
-                    __debugbreak();
-                    SPDLOG_WARN("No good segments hit from {}. Aborting ray intersect.", query.Start);
-                    return false;
-                }*/
-
+                tolerance = 0.1f;
                 // No intersections can occur when a ray passes exactly through the corner of a segment.
-                // Try to recover by offsetting by the last good intersection and hoping it puts us in the right segment.
-                // Also jitter the ray position.
-                if (recoveryTries == 1) ray.position += VectorToRotation(ray.direction).Up() * 0.01f + VectorToRotation(ray.direction).Right() * 0.01f;
-                if (recoveryTries == 2) ray.position -= VectorToRotation(ray.direction).Right() * 0.02f;
-                if (recoveryTries == 3) ray.position -= VectorToRotation(ray.direction).Up() * 0.02f;
-                if (recoveryTries == 4) ray.position += VectorToRotation(ray.direction).Right() * 0.02f;
+                // Try to recover by growing the face
 
                 if (lastGoodSeg == SegID::None) {
                     if (recoveryTries == 0) ray.position += ray.direction * 0.01f;
@@ -343,7 +333,7 @@ namespace Inferno {
                     next = TraceSegment(*_level, lastGoodSeg, ray.position);
                 }
 
-                if (next == SegID::None || recoveryTries > 4) {
+                if (next == SegID::None || recoveryTries > 1) {
                     //Debug::RayStart = lastGoodHit;
                     Debug::RayStart = ray.position;
                     Debug::RayEnd = ray.position + ray.direction * query.MaxDistance;
@@ -384,15 +374,8 @@ namespace Inferno {
 
             for (auto& side : SIDE_IDS) {
                 auto face = ConstFace::FromSide(*_level, seg, side);
-                //if (recoveryTries > 1) {
-                //    // jitter the face position
-                //    for (int i = 0; i < 4; i++) {
-                //        face.Points[i] += Vector3(0.001f, 0.001f, 0.001f);
-                //    }
-                //}
-
                 float dist{};
-                auto tri = face.Intersects(ray, dist, false);
+                auto tri = face.Intersects(ray, dist, false, tolerance);
 
                 if (tri != -1)
                     anyIntersect = true;

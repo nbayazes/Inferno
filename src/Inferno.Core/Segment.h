@@ -49,20 +49,22 @@ namespace Inferno {
         bool HasOverlay() const { return TMap2 > LevelTexID::Unset; }
         bool HasWall() const { return Wall > WallID::None; }
 
-        int GetNumFaces() const {
-            switch (Type) {
-                default:
-                case SideSplitType::Quad:
-                    return 1;
-                case SideSplitType::Tri02:
-                case SideSplitType::Tri13:
-                    return 2;
-            }
-        }
+        //int GetNumFaces() const {
+        //    switch (Type) {
+        //        default:
+        //        case SideSplitType::Quad:
+        //            return 1;
+        //        case SideSplitType::Tri02:
+        //        case SideSplitType::Tri13:
+        //            return 2;
+        //    }
+        //}
 
         const std::array<uint16, 6>& GetRenderIndices() const {
             static constexpr std::array<uint16, 6> TRI02 = { 0u, 1u, 2u, 0u, 2u, 3u };
             static constexpr std::array<uint16, 6> TRI13 = { 0u, 1u, 3u, 3u, 1u, 2u };
+            //static constexpr std::array<uint16, 6> TRI02 = { 0u, 1u, 2u, 2u, 3u, 0u };
+            //static constexpr std::array<uint16, 6> TRI13 = { 3u, 0u, 1u, 1u, 2u, 3u };
             return Type == SideSplitType::Tri13 ? TRI13 : TRI02;
         }
 

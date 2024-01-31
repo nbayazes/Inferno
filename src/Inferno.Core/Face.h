@@ -46,16 +46,47 @@ namespace Inferno {
         }
 
         // Returns -1 if no hit, 0 if hit tri 0, 1 if hit tri 1
-        int Intersects(const Ray& ray, float& dist, bool hitBackface = false) const {
+        // Tolerance grows the triangle
+        int Intersects(const Ray& ray, float& dist, bool hitBackface = false, float tolerance = 0.0f) const {
             // bug: if the ray is directly on top of the triangle this returns false
             auto& i = Side.GetRenderIndices();
             bool hitTri0 = hitBackface || Side.Normals[0].Dot(ray.direction) < 0;
             bool hitTri1 = hitBackface || Side.Normals[1].Dot(ray.direction) < 0;
-            if (hitTri0 && ray.Intersects(GetPoint(i[0]), GetPoint(i[1]), GetPoint(i[2]), dist))
-                return 0;
 
-            if (hitTri1 && ray.Intersects(GetPoint(i[3]), GetPoint(i[4]), GetPoint(i[5]), dist))
-                return 1;
+            auto growTriangle = [tolerance](Vector3& p0, Vector3& p1, Vector3& p2, const Vector3& center) {
+                auto v0 = GetDirection(p0, center);
+                auto v1 = GetDirection(p1, center);
+                auto v2 = GetDirection(p2, center);
+                p0 += v0 * tolerance;
+                p1 += v1 * tolerance;
+                p2 += v2 * tolerance;
+            };
+
+            {
+                auto p0 = GetPoint(i[0]);
+                auto p1 = GetPoint(i[1]);
+                auto p2 = GetPoint(i[2]);
+
+                if (tolerance != 0) {
+                    growTriangle(p0, p1, p2, Side.Centers[0]);
+                }
+
+                if (hitTri0 && ray.Intersects(p0, p1, p2, dist))
+                    return 0;
+            }
+
+            {
+                auto p0 = GetPoint(i[3]);
+                auto p1 = GetPoint(i[4]);
+                auto p2 = GetPoint(i[5]);
+
+                if (tolerance != 0) {
+                    growTriangle(p0, p1, p2, Side.Centers[1]);
+                }
+
+                if (hitTri1 && ray.Intersects(p0, p1, p2, dist))
+                    return 1;
+            }
 
             return -1;
         }
