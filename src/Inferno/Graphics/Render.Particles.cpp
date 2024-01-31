@@ -637,7 +637,9 @@ namespace Inferno::Render {
             spark.PrevPosition = spark.Position;
             spark.PrevVelocity = spark.Velocity;
 
-            if (UseWorldGravity) spark.Velocity += Game::Gravity * dt;
+            if (UseWorldGravity) 
+                spark.Velocity += Game::Gravity * dt;
+
             if (UsePointGravity) {
                 auto center = Position;
                 if (parent && (PointGravityVelocity != Vector3::Zero || PointGravityOffset != Vector3::Zero)) {
@@ -654,7 +656,6 @@ namespace Inferno::Render {
             if (parent && Relative)
                 spark.Position += parentDelta; // Move particle with parent
 
-            spark.Velocity *= 1 - Drag;
             spark.Position += spark.Velocity * dt;
         }
     }
@@ -663,6 +664,9 @@ namespace Inferno::Render {
         for (auto& spark : _sparks) {
             spark.Life -= dt;
             if (!spark.IsAlive()) continue;
+
+            if (dt > 0)
+                spark.Velocity *= 1 - Drag;
 
             if (Physics) {
                 auto dir = spark.Velocity;
