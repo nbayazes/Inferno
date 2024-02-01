@@ -98,11 +98,12 @@ namespace Inferno {
         }
 
         if (!usedEClip) {
+            // Skip to the destroyed fully texture
             side.TMap2 = hasEClip ? eclip.DestroyedTexture : tmi.DestroyedTexture;
             Render::LoadTextureDynamic(side.TMap2);
         }
 
-        Editor::Events::LevelChanged();
+        //Editor::Events::LevelChanged();
 
         //Render::ExplosionInfo ei;
         //ei.Clip = hasEClip ? eclip.DestroyedVClip : VClipID::LightExplosion;

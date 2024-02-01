@@ -292,7 +292,7 @@ namespace Inferno::Render {
             constants.HasOverlay = !decalSubpass && chunk.TMap2 > LevelTexID::Unset;
             constants.IsOverlay = decalSubpass;
 
-            // Only walls have tags
+            // Only walls and decals have tags
             auto side = Game::Level.TryGetSide(chunk.Tag);
 
             if (SideIsDoor(side)) {
@@ -326,7 +326,14 @@ namespace Inferno::Render {
                         mat1Handle = proc->GetHandle();
                     }
                     else {
-                        auto& map2 = chunk.EffectClip2 == EClipID::None ? Materials->Get(chunk.TMap2) : Materials->Get(chunk.EffectClip2, ElapsedTime, Game::ControlCenterDestroyed);
+                        auto decal = chunk.TMap2;
+                        auto effect = chunk.EffectClip2;
+                        if (side) {
+                            decal = side->TMap2;
+                            effect = Resources::GetEffectClipID(side->TMap2);
+                        }
+
+                        auto& map2 = effect == EClipID::None ? Materials->Get(decal) : Materials->Get(effect, ElapsedTime, Game::ControlCenterDestroyed);
                         mat1 = &map2;
                         mat1Handle = map2.Handle();
                     }
@@ -339,7 +346,7 @@ namespace Inferno::Render {
         constants.Distort = ti.Slide != Vector2::Zero;
         constants.Tex1 = (int)ti.TexID;
         constants.LightColor = Color(0, 0, 0);
-        
+
         if (auto segment = Seq::tryItem(SegmentLights, (uint)chunk.Tag.Segment)) {
             auto& side = segment->Sides[(uint)chunk.Tag.Side];
             constants.LightColor = side.AnimatedColor;

@@ -320,6 +320,8 @@ namespace Inferno {
                 bool needsOverlaySlide = side.HasOverlay() && ti.Slide != Vector2::Zero;
                 auto& tmapi = Resources::Materials.GetMaterialInfo(side.TMap);
                 bool isLight = tmapi.EmissiveStrength > 0 && tmapi.LightReceived != 0;
+                auto& eclip = Resources::GetEffectClip(side.TMap2);
+                bool breakable = eclip.DestroyedEClip != EClipID::None;
 
                 if (!isLight && side.TMap2 > LevelTexID::None) {
                     auto& tmapi2 = Resources::Materials.GetMaterialInfo(side.TMap2);
@@ -329,7 +331,7 @@ namespace Inferno {
                 Array<Vector2, 4> uvs = side.UVs;
                 uvs = FixEdgeUVs(side);
 
-                if (isWall || isLight) {
+                if (isWall || isLight || breakable) {
                     LevelChunk chunk; // always use a new chunk for walls
                     chunk.TMap1 = side.TMap;
                     chunk.TMap2 = side.TMap2;
