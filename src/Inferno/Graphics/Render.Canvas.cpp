@@ -132,7 +132,7 @@ namespace Inferno::Render {
 
         Color background = color * 0.1f;
 
-        scale *= _scale * Atlas.Scale;
+        scale *= _scale * font->Scale;
         auto strSize = MeasureString(str, size) * scale;
         Vector2 alignment = GetAlignment(strSize, alignH, alignV, _size);
         bool inToken = false;
@@ -248,7 +248,7 @@ namespace Inferno::Render {
         auto color = info.Color;
         Color background = color * 0.1f;
 
-        auto scale = info.Scale * _scale * Atlas.Scale;
+        auto scale = info.Scale * _scale * font->Scale;
         auto strSize = MeasureString(str, info.Font) * scale;
         Vector2 alignment = GetAlignment(strSize, info.HorizontalAlign, info.VerticalAlign, _size);
         bool inToken = false;
@@ -294,7 +294,7 @@ namespace Inferno::Render {
             auto y0 = alignment.y + yOffset + info.Position.y;
 
             //auto fontTex = Render::StaticTextures->Font.GetSRV();
-            Vector2 charSize = Vector2(font->GetWidth(c), font->Height) * scale;
+            Vector2 charSize = Vector2((float)font->GetWidth(c), (float)font->Height) * scale;
             //Vector2 uvMin = { ci.X0, ci.Y0 }, uvMax = { ci.X1, ci.Y1 };
             CanvasBitmapInfo cbi;
             cbi.Position = Vector2{ x0, y0 };

@@ -25,6 +25,7 @@ namespace Inferno {
         List<int> DataOffsets;  // offsets to bitmap data for each character
         List<ubyte> Data;       // bitmap data
         Palette Palette;
+        float Scale = 1; // Screen scale
 
         int16 GetWidth(ubyte character) const {
             if (Flags & FT_PROPORTIONAL) {
@@ -54,11 +55,10 @@ namespace Inferno {
         int _x = 0, _y = 0;
         Array<List<Character>, 5> _lookup{}; // texture character position lookup
         Array<Font, 5> _fonts{};
+        Array<float, 5> _scale{};
 
     public:
         FontAtlas(int width, int height) : _width(width), _height(height) {}
-
-        float Scale = 1; // Scale when drawing, used to increase size of D1 fonts
 
         const Character& GetCharacter(uchar c, FontSize font) const {
             c -= 32;

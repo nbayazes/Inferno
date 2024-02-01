@@ -96,7 +96,7 @@ namespace Inferno {
         ubyte nchars = font.MaxChar - font.MinChar + 1;
         // todo: store font height so if next font is shorter is doesn't wrap around and overwrite it
 
-        auto AddCharacter = [this, fontSize](uint x, uint y, uint width, uint height) {
+        auto addCharacter = [this, fontSize](uint x, uint y, uint width, uint height) {
             // UV 0,0 is top left
             float x0 = (float)x / _width;
             float x1 = ((float)x + width) / _width;
@@ -152,7 +152,7 @@ namespace Inferno {
                 }
             }
 
-            AddCharacter(_x, _y, width, font.Height);
+            addCharacter(_x, _y, width, font.Height);
             _x += width + padding;
         }
 

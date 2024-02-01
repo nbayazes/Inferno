@@ -144,6 +144,7 @@ namespace Inferno::Game {
             Level = std::move(level); // Move to global so resource loading works properly
             FreeProceduralTextures();
             Resources::LoadLevel(Level);
+            LoadFonts();
             Level.Rooms = CreateRooms(Level);
             Navigation = NavigationNetwork(Level);
             LevelNumber = GetLevelNumber(Level);
@@ -557,8 +558,9 @@ namespace Inferno::Game {
             }
         }
 
-        auto fontHeight = Inferno::Atlas.GetFont(FontSize::MediumBlue)->Height;
-        auto lineHeight = fontHeight * FONT_LINE_SPACING * Inferno::Atlas.Scale;
+        auto font = Inferno::Atlas.GetFont(FontSize::MediumBlue);
+        if (!font) return;
+        auto lineHeight = font->Height * FONT_LINE_SPACING * font->Scale;
 
         auto scale = Render::Canvas->GetScale();
 
@@ -571,15 +573,15 @@ namespace Inferno::Game {
         float y = -lineHeight * 0.85f;
 
         {
-            auto font = MenuIndex == 0 ? FontSize::MediumGold : FontSize::Medium;
-            Render::Canvas->DrawGameText("continue", 0, y * scale, font, Color(1, 1, 1), 1, AlignH::Center, AlignV::CenterTop);
+            auto size = MenuIndex == 0 ? FontSize::MediumGold : FontSize::Medium;
+            Render::Canvas->DrawGameText("continue", 0, y * scale, size, Color(1, 1, 1), 1, AlignH::Center, AlignV::CenterTop);
         }
 
         y += lineHeight;
 
         {
-            auto font = MenuIndex == 1 ? FontSize::MediumGold : FontSize::Medium;
-            Render::Canvas->DrawGameText("quit", 0, y * scale, font, Color(1, 1, 1), 1, AlignH::Center, AlignV::CenterTop);
+            auto size = MenuIndex == 1 ? FontSize::MediumGold : FontSize::Medium;
+            Render::Canvas->DrawGameText("quit", 0, y * scale, size, Color(1, 1, 1), 1, AlignH::Center, AlignV::CenterTop);
         }
     }
 

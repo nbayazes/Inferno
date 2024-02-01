@@ -652,6 +652,28 @@ namespace Inferno::Resources {
                 return true;
         }
 
+        {
+            // Check for addon (dxa) data
+            for (auto& file : filesystem::directory_iterator(GetGameDataFolder(Game::Level))) {
+                if (!file.is_regular_file()) continue;
+                bool found = false;
+
+                auto& filePath = file.path();
+                if (String::ToLower(filePath.extension().string()) == ".dxa") {
+                    if (auto zip = zip_open(filePath.string().c_str(), 0, 'r')) {
+                        if (zip_entry_open(zip, name.c_str()) == 0) {
+                            found = true;
+                            zip_entry_close(zip);
+                        }
+
+                        zip_close(zip);
+                    }
+                }
+
+                if (found) return true;
+            }
+        }
+
         // game specific data folder
         auto path = GetGameDataFolder(Game::Level) + name;
         if (filesystem::exists(path))
@@ -701,7 +723,7 @@ namespace Inferno::Resources {
                             size_t bufferSize;
                             auto readBytes = zip_entry_read(zip, &buffer, &bufferSize);
                             if (readBytes > 0) {
-                                SPDLOG_INFO("Addon package: {}:{}", filePath.string(), name);
+                                SPDLOG_INFO("Read addon data: {}:{}", filePath.string(), name);
                                 data.assign((byte*)buffer, (byte*)buffer + bufferSize);
                             }
 
@@ -725,7 +747,6 @@ namespace Inferno::Resources {
                 }
             }
         }
-
 
         // game specific data folder
         auto path = GetGameDataFolder(Game::Level) + name;
