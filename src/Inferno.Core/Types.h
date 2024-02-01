@@ -1,14 +1,15 @@
 #pragma once
 
 #define NOMINMAX
+#include <array>
 #include <DirectXTK12/SimpleMath.h>
+#include <filesystem>
+#include <fmt/format.h>
 #include <memory>
+#include <numbers>
+#include <ranges>
 #include <span>
 #include <stack>
-#include <numbers>
-#include <filesystem>
-#include <ranges>
-#include <fmt/format.h>
 
 namespace DirectX::SimpleMath {
     struct Matrix3x3 : XMFLOAT3X3 {

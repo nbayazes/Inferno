@@ -188,7 +188,7 @@ void main(uint3 DTid : SV_DispatchThreadID) {
         // but also causes bright areas like reactor highlights to be smoother
         // it also causes bright white areas to blend more smoothly
         //float t0 = max(0, smoothstep(0.2, 0.4, lum));
-        float t0 = max(0, smoothstep(0, 2, lum));
+        float t0 = max(0, smoothstep(0, 3, lum));
         sdrColor = sdrColor * t0 + hdrColor * (1 - t0); // slightly darker and more contrast in high ranges
     }
 

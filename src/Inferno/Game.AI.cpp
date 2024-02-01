@@ -2030,7 +2030,7 @@ namespace Inferno {
         else
             DefaultBehavior(ai, robot, robotInfo, dt);
 
-        if (ai.DodgeTime > 0 && ai.DodgeVelocity != Vector3::Zero)
+        if (ai.DodgeTime > 0 && ai.DodgeVelocity != Vector3::Zero && !Settings::Cheats.DisableAI)
             ai.Velocity += ai.DodgeVelocity;
 
         ai.Awareness = std::clamp(ai.Awareness, 0.0f, 1.0f);

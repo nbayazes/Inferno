@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <algorithm>
+#include <cmath>
 #include <concepts>
 #include <future>
 #include <random>
@@ -32,14 +33,14 @@ namespace Inferno {
     //}
 
     constexpr float SmoothStep(float a, float b, float x) {
-        x = std::clamp((x - a) / (b - a), 0.0f, 1.0f);
+        x = ::std::clamp((x - a) / (b - a), 0.0f, 1.0f);
         return x * x * (3.0f - 2.0f * x);
     }
 
     // Polynomial smooth min between two values.
     // https://iquilezles.org/articles/smin/
     constexpr float SmoothMin(float a, float b, float k) {
-        float h = std::clamp(0.5f + 0.5f * (a - b) / k, 0.0f, 1.0f);
+        float h = ::std::clamp(0.5f + 0.5f * (a - b) / k, 0.0f, 1.0f);
         return SmoothStep(a, b, h) - k * h * (1.0f - h);
     }
 
@@ -54,7 +55,7 @@ namespace Inferno {
         color.w = value;
     }
 
-    template <std::integral T>
+    template <::std::integral T>
     constexpr bool IsPowerOfTwo(T v) {
         return v != 0 && (v & (v - 1)) == 0;
     }
@@ -87,7 +88,7 @@ namespace Inferno {
         return (offset + (alignment - 1)) & ~(alignment - 1);
     }
 
-    std::mt19937& InternalMt19937();
+    ::std::mt19937& InternalMt19937();
 
     void InitRandom();
 
@@ -158,7 +159,7 @@ namespace Inferno {
 
     inline Vector3 RandomPointOnHemisphere() {
         auto a = Random() * DirectX::XM_2PI;
-        auto z = std::asin(std::sqrt(Random()));
+        auto z = ::std::asin(::std::sqrt(Random()));
         return { sin(z) * cos(a), sin(z) * sin(a), cos(z) };
     }
 
@@ -557,12 +558,40 @@ namespace Inferno {
         return (fix)(f * (1 << 16));
     }
 
+    //constexpr short FloatToFix16(float f) {
+    //    constexpr int MIN_FIX16 = -(1 << 6);
+    //    constexpr int MAX_FIX16 = (1 << 6) - 1;
+    //    assert(f < MAX_FIX16 && f > MIN_FIX16); // out of range
+    //    return (short)(f * (1 << 10));
+    //}
+
+    //constexpr float Fix16ToFloat(short fix) {
+    //    return (float)fix / (float)(1 << 10);
+    //}
+
+    //constexpr uint PackShorts(short s0, short s1) {
+    //    return ushort(s0) << 16 | ushort(s1);
+    //}
+
+    //constexpr Tuple<short, short> UnpackShorts(uint packed) {
+    //    return { packed >> 16, packed & 0xFFFF };
+    //}
+
+    // Packs two floats into a uint. Only supports values between 255 and -256
+    //constexpr uint PackFloats(float f0, float f1) {
+    //    return (ushort)FloatToFix16(f0) << 16 | (ushort)FloatToFix16(f1);
+    //}
+
+    //constexpr Tuple<float, float> UnpackFloats(uint packed) {
+    //    return { Fix16ToFloat(packed >> 16), Fix16ToFloat(packed & 0xFFFF) };
+    //}
+
     namespace String {
-        constexpr bool Contains(const std::string_view str, const std::string_view value) {
+        constexpr bool Contains(const string_view str, const string_view value) {
             return str.find(value) != string::npos;
         }
 
-        constexpr Option<size_t> IndexOf(const std::string_view str, const std::string_view value) {
+        constexpr Option<size_t> IndexOf(const string_view str, const string_view value) {
             auto p = str.find(value);
             if (p == string::npos) return {};
             return p;
@@ -575,17 +604,17 @@ namespace Inferno {
         //}
 
         // Returns true if two strings are equal ignoring capitalization
-        inline bool InvariantEquals(const std::string_view s1, const std::string_view s2) {
+        inline bool InvariantEquals(const string_view s1, const string_view s2) {
             return _stricmp(s1.data(), s2.data()) == 0;
         }
 
         // Returns true if two strings are equal ignoring capitalization, up to a number of characters
-        inline bool InvariantEquals(const std::string_view s1, const std::string_view s2, size_t maxCount) {
+        inline bool InvariantEquals(const string_view s1, const string_view s2, size_t maxCount) {
             return _strnicmp(s1.data(), s2.data(), maxCount) == 0;
         }
 
         // Returns true if two strings are equal ignoring capitalization
-        inline bool InvariantEquals(const std::wstring_view s1, const std::wstring_view s2) {
+        inline bool InvariantEquals(const wstring_view s1, const wstring_view s2) {
             return _wcsicmp(s1.data(), s2.data()) == 0;
         }
 
@@ -610,22 +639,22 @@ namespace Inferno {
             return str.substr(i + 1);
         }
 
-        const std::string Whitespace = " \n\r\t\f\v";
+        const string Whitespace = " \n\r\t\f\v";
 
         // Remove whitespace from the beginning
-        inline string TrimStart(const string& s, const std::string& token = Whitespace) {
+        inline string TrimStart(const string& s, const string& token = Whitespace) {
             auto start = s.find_first_not_of(token);
-            return start == std::string::npos ? "" : s.substr(start);
+            return start == string::npos ? "" : s.substr(start);
         }
 
         // Remove whitespace from the end
-        inline string TrimEnd(const string& s, std::string token = Whitespace) {
+        inline string TrimEnd(const string& s, const string& token = Whitespace) {
             auto end = s.find_last_not_of(token);
-            return end == std::string::npos ? "" : s.substr(0, end + 1);
+            return end == string::npos ? "" : s.substr(0, end + 1);
         }
 
         // Remove whitespace from both ends
-        inline string Trim(const string& s, std::string token = Whitespace) {
+        inline string Trim(const string& s, const string& token = Whitespace) {
             return TrimStart(TrimEnd(s, token), token);
         }
 
@@ -655,7 +684,7 @@ namespace Inferno {
 
         // djb2 hash algorithm by Dan Bernstein.
         // Prefer using std::hash when compile time values aren't necessary.
-        constexpr auto Hash(std::string_view s) noexcept {
+        constexpr auto Hash(string_view s) noexcept {
             uint32 hash = 5381;
 
             for (auto& c : s)
@@ -681,7 +710,7 @@ namespace Inferno {
 
         // Converts a span to a std::vector
         template <class T>
-        constexpr auto toList(const std::span<T> xs) {
+        constexpr auto toList(const span<T> xs) {
             return std::vector<T>(xs.begin(), xs.end());
         }
 

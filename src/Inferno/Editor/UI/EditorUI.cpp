@@ -380,7 +380,7 @@ namespace Inferno::Editor {
             }
 
             if (ImGui::BeginMenu("Play")) {
-                if (ImGui::MenuItem("Play in editor"))
+                if (ImGui::MenuItem("Play in Inferno"))
                     Game::SetState(GameState::Game);
 
                 ImGui::Separator();
