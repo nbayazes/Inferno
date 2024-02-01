@@ -1,16 +1,17 @@
 #include "pch.h"
-#include "Resources.h"
 #include "FileSystem.h"
-#include "Sound.h"
-#include "Pig.h"
-#include <fstream>
-#include <mutex>
 #include "Game.h"
-#include "logging.h"
-#include "Graphics/Render.h"
-#include <Briefing.h>
 #include "GameTable.h"
 #include "Graphics/MaterialLibrary.h"
+#include "Graphics/Render.h"
+#include "logging.h"
+#include "Pig.h"
+#include "Resources.h"
+#include "Sound.h"
+#include <Briefing.h>
+#include <fstream>
+#include <mutex>
+#include <zip/zip.h>
 
 namespace Inferno::Resources {
     SoundFile SoundsD1, SoundsD2;
@@ -685,6 +686,46 @@ namespace Inferno::Resources {
                 return data;
             }
         }
+
+        {
+            // Check for addon (dxa) data
+            for (auto& file : filesystem::directory_iterator(GetGameDataFolder(Game::Level))) {
+                if (!file.is_regular_file()) continue;
+
+                auto& filePath = file.path();
+                if (String::ToLower(filePath.extension().string()) == ".dxa") {
+                    List<byte> data;
+                    if (auto zip = zip_open(filePath.string().c_str(), 0, 'r')) {
+                        if (zip_entry_open(zip, name.c_str()) == 0) {
+                            void* buffer;
+                            size_t bufferSize;
+                            auto readBytes = zip_entry_read(zip, &buffer, &bufferSize);
+                            if (readBytes > 0) {
+                                SPDLOG_INFO("Addon package: {}:{}", filePath.string(), name);
+                                data.assign((byte*)buffer, (byte*)buffer + bufferSize);
+                            }
+
+                            zip_entry_close(zip);
+                        }
+
+                        zip_close(zip);
+                    }
+
+                    if (!data.empty())
+                        return data;
+
+                    /*auto totalEntries = zip_entries_total(zip);
+
+                    for (size_t i = 0; i < totalEntries; i++) {
+                        zip_entry_openbyindex(zip, i);
+                        auto entry = zip_entry_name(zip);
+                        SPDLOG_INFO("{}", entry);
+                        zip_entry_close(zip);
+                    }*/
+                }
+            }
+        }
+
 
         // game specific data folder
         auto path = GetGameDataFolder(Game::Level) + name;

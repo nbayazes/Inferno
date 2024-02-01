@@ -246,6 +246,10 @@
     <ClCompile Include="Editor\UI\TextureBrowserUI.cpp" />
     <ClCompile Include="Shell.cpp" />
     <ClCompile Include="SoundTypes.cpp" />
+    <ClCompile Include="zip\zip.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\Audio.h" />
@@ -382,6 +386,8 @@
     <ClInclude Include="Shell.h" />
     <ClInclude Include="Editor\UI\TextureBrowserUI.h" />
     <ClInclude Include="Yaml.h" />
+    <ClInclude Include="zip\zip.h" />
+    <ClInclude Include="zip\zip_file.hpp" />
     <None Include="data\d2\game.yml">
       <FileType>Text</FileType>
       <DeploymentContent>true</DeploymentContent>
