@@ -467,7 +467,6 @@ namespace Inferno::Render {
 
         _roomStack.Push(startRoomId);
 
-        // this fails when circular rooms join each other
         for (auto& portal : startRoom->Portals) {
             if (!SideIsTransparent(level, portal.Tag))
                 continue; // stop at opaque walls like closed doors

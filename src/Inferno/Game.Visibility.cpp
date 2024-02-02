@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Game.Visibility.h"
 #include "Game.h"
-#include "Game.Wall.h"
+#include "logging.h"
 
 namespace Inferno {
     List<RoomID> GetRoomsByDepth(span<Room> rooms, RoomID startRoom, float maxDistance, TraversalFlag flags) {
@@ -24,14 +24,15 @@ namespace Inferno {
             results.push_back(startRoom);
 
             for (auto& portal : room->Portals) {
-                stack.push_back({ portal, 0 });
+                if (!Seq::exists(stack, [&portal](const TravelInfo& ti) { return ti.Portal.RoomLink != portal.RoomLink; }))
+                    stack.push_back({ portal, 0 });
             }
         }
 
         uint index = 0;
 
         while (index != stack.size()) {
-            TravelInfo& info = stack[index++];
+            TravelInfo info = stack[index++];
             auto room = Seq::tryItem(rooms, (int)info.Portal.RoomLink);
             if (!room) continue;
 
@@ -40,7 +41,15 @@ namespace Inferno {
             if (wall && StopAtWall(Game::Level, *wall, flags))
                 continue;
 
-            results.push_back(info.Portal.RoomLink);
+            if (!Seq::contains(results, info.Portal.RoomLink))
+                results.push_back(info.Portal.RoomLink);
+
+            if (!Seq::inRange(room->PortalDistances, info.Portal.PortalLink)) {
+                SPDLOG_ERROR("Problem in GetRoomsByDepth()");
+                __debugbreak();
+                return results;
+            }
+
             auto& portalDistances = room->PortalDistances[info.Portal.PortalLink];
 
             // check room portal distances
@@ -50,7 +59,11 @@ namespace Inferno {
                 auto distance = info.Distance + portalDistances[i];
                 auto& endPortal = room->Portals[i];
 
-                if (distance < maxDistance && !Seq::contains(results, endPortal.RoomLink)) {
+                
+                if (distance < maxDistance && 
+                    !Seq::contains(results, endPortal.RoomLink) &&
+                    !Seq::exists(stack, [&endPortal](const TravelInfo& ti) { return ti.Portal.RoomLink != endPortal.RoomLink; })
+                    ) {
                     stack.push_back({ endPortal, distance });
                     //SPDLOG_INFO("Checking portal {}:{} dist: {}", endPortal.Tag.Segment, endPortal.Tag.Side, distance);
                 }
