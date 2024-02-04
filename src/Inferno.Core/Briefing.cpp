@@ -22,7 +22,7 @@ namespace Inferno {
     }
 
     string GetMessageName(span<ubyte>::iterator& p) {
-        while (*p++ == ' ');
+        while (*p++ == ' ') {}
         string result;
         while (*p != ' ' && *p != 10) {
             if (*p != 13)
@@ -31,7 +31,7 @@ namespace Inferno {
         }
 
         if (*p != 10)
-            while (*p++ != 10);
+            while (*p++ != 10) {}
 
         return result;
 
@@ -242,7 +242,8 @@ namespace Inferno {
                     // if text y > screen y, load screen
                 }
                 else {
-                    if (c == '\r') throw Exception("\\r\\n encoding is invalid. Must be \\n.");
+                    if (c == '\r') 
+                        throw Exception(R"(\r\n encoding is invalid. Must be \n.)");
                     prevChar = c;
                 }
                 *page += c;
@@ -270,7 +271,7 @@ namespace Inferno {
 
         Briefing briefing;
         briefing.Raw.resize(data.size() + 1);
-        std::copy(data.begin(), data.end(), briefing.Raw.begin());
+        ranges::copy(data, briefing.Raw.begin());
         briefing.Screens = ParseScreens(data);
         return briefing;
     }

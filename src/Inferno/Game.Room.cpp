@@ -52,7 +52,8 @@ namespace Inferno::Game {
         Stack<SegID> search;
         search.push(start);
 
-        Room room;
+        Room room{};
+        if (level.Segments.empty()) return room;
         auto& startSeg = level.GetSegment(start);
 
         while (!search.empty()) {

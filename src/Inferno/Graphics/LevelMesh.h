@@ -7,7 +7,7 @@
 namespace Inferno {
     // A chunk of level geometry grouped by texture maps
     struct LevelChunk {
-        List<uint16> Indices; // Indices into the LevelGeometry buffer (NOT level vertices)
+        List<uint32> Indices; // Indices into the LevelGeometry buffer (NOT level vertices)
         LevelTexID TMap1, TMap2;
         uint ID = 0;
         EClipID EffectClip1 = EClipID::None;
@@ -23,8 +23,8 @@ namespace Inferno {
         bool Cloaked = false;
         DirectX::BoundingOrientedBox Bounds; // Only for walls
 
-        void AddQuad(uint16 index) {
-            for (uint16 i = 0; i < 6; i++) {
+        void AddQuad(uint32 index) {
+            for (uint32 i = 0; i < 6; i++) {
                 Indices.push_back(index + i);
             }
         }

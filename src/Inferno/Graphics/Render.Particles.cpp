@@ -72,15 +72,18 @@ namespace Inferno::Render {
 
     EffectID AddEffect(Ptr<EffectBase> e) {
         if (VisualEffects.size() >= VisualEffects.capacity()) {
-            __debugbreak(); // Cannot resize effects array mid frame!
+            //__debugbreak(); // Cannot resize effects array mid frame!
             return EffectID::None;
         }
-        ASSERT(e->Segment > SegID::None);
-        if (e->Segment <= SegID::None) return EffectID::None;
+
+        ASSERT(e->Segment > SegID::None); // Caller forgot to set segment
+        if (!Seq::inRange(Game::Level.Segments, (int)e->Segment)) 
+            return EffectID::None;
 
         e->CreationTime = Game::Time;
         e->UpdatePositionFromParent();
         e->OnInit();
+
         auto& seg = Game::Level.GetSegment(e->Segment);
         auto newId = EffectID::None;
 

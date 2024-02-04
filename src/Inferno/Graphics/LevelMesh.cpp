@@ -2,7 +2,6 @@
 #include "LevelMesh.h"
 #include "Game.Segment.h"
 
-#include "MaterialLibrary.h"
 #include "Procedural.h"
 #include "Render.h"
 #include "Resources.h"
@@ -127,7 +126,7 @@ namespace Inferno {
                     LevelChunk& chunk,
                     const SegmentSide& side) {
         auto startIndex = vertices.size();
-        chunk.AddQuad((uint16)startIndex);
+        chunk.AddQuad((uint32)startIndex);
 
         auto& indices = side.GetRenderIndices();
         auto [tangent1, bitangent1] = GetTangentBitangent(verts, uvs, indices, 0);
