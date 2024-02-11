@@ -108,6 +108,8 @@ namespace Inferno {
         HamFile& operator=(HamFile&&) = default;
     };
 
+    void UpdateTexInfo(HamFile& ham);
+
     HamFile ReadHam(StreamReader&);
     // Read a vertigo ham data and append it
     void AppendVHam(StreamReader&, HamFile&);
@@ -116,5 +118,6 @@ namespace Inferno {
     EffectClip ReadEffect(StreamReader&);
     JointPos ReadRobotJoint(StreamReader&);
 
-    std::tuple<HamFile, PigFile, SoundFile> ReadDescent1GameData(StreamReader&, const Palette& palette);
+    void ReadDescent1GameData(span<byte> data, const Palette& palette, 
+                              HamFile& ham, PigFile& pig, SoundFile& sounds);
 }

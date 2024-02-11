@@ -118,6 +118,8 @@ namespace Inferno::Game {
 
     inline bool SecretLevelDestroyed = false;
 
+    inline bool Shareware = false;
+
     /*inline bool ObjShouldThink(const Object& obj) {
         return obj.NextThinkTime <= Time && obj.NextThinkTime != -1;
     }*/

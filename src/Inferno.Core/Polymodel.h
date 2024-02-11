@@ -62,6 +62,16 @@ namespace Inferno {
         List<Vector3> Vertices;
         List<Vector3> Normals, FlatNormals; // 1 normal per three Vertices
 
+        struct Bank {
+            int Parent = 0;
+            Vector3 Point, Normal;
+        };
+
+        List<Bank> Guns;
+        List<List<Vector3>> Animation; // Animation angles
+        List<string> Textures;
+        string FileName; // pof file name if loaded from one
+
         // Gets the joint offset of a submodel
         Vector3 GetSubmodelOffset(int index) const {
             if (!Seq::inRange(Submodels, index)) return Vector3::Zero;
@@ -83,6 +93,10 @@ namespace Inferno {
         }
     };
 
-    // Read parallax object format
-    void ReadPolymodel(Model& model, span<ubyte> data, const Palette* palette = nullptr);
+    // Decodes interpreter data into a polymodel.
+    // If decoding a D1 model a palette is required to map solid colors properly.
+    void DecodeInterpreterData(Model& model, span<ubyte> data, const Palette* palette = nullptr);
+
+    // Reads a .pof file
+    Model ReadPof(span<byte> pof, const Palette* palette = nullptr);
 }

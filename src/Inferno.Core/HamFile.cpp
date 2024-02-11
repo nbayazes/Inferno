@@ -345,7 +345,7 @@ namespace Inferno {
         List<ubyte> data;
         data.resize(m.DataSize);
         r.ReadBytes(data.data(), data.size());
-        ReadPolymodel(m, data, palette);
+        DecodeInterpreterData(m, data, palette);
     }
 
     PlayerShip ReadPlayerShip(StreamReader& r) {
@@ -382,16 +382,18 @@ namespace Inferno {
     }
 
     void UpdateTexInfo(HamFile& ham) {
-        auto& levelTexIdx = ham.LevelTexIdx;
         auto maxIndex = *ranges::max_element(ham.AllTexIdx);
         if ((int)maxIndex > 10000) throw Exception("Index out of range in texture indices");
-        levelTexIdx.resize((size_t)maxIndex + 1);
-        ranges::fill(levelTexIdx, LevelTexID(255));
+        ham.LevelTexIdx.resize((size_t)maxIndex + 1);
+        ranges::fill(ham.LevelTexIdx, LevelTexID(255));
+        ASSERT(ham.AllTexIdx.size() >= ham.LevelTextures.size());
 
         for (auto i = 0; i < ham.LevelTextures.size(); i++) {
             ham.LevelTextures[i].ID = LevelTexID(i);
-            ham.LevelTextures[i].TexID = ham.AllTexIdx[i];
-            levelTexIdx.at((int)ham.AllTexIdx[i]) = (LevelTexID)i;
+            if (ham.AllTexIdx[i] > TexID::Invalid) {
+                ham.LevelTextures[i].TexID = ham.AllTexIdx[i];
+                ham.LevelTexIdx.at((int)ham.AllTexIdx[i]) = (LevelTexID)i;
+            }
         }
     }
 
@@ -655,13 +657,13 @@ namespace Inferno {
         return w;
     }
 
-    std::tuple<HamFile, PigFile, SoundFile> ReadDescent1GameData(StreamReader& reader, const Palette& palette) {
-        HamFile ham;
+    void ReadDescent1GameData(span<byte> data, const Palette& palette, HamFile& ham, PigFile& pig, SoundFile& sounds) {
+        StreamReader reader(data);
         auto dataOffset = reader.ReadInt32();
 
         // D1 pigs have no signature so guess based on the data offset.
         if (dataOffset <= 1800)
-            throw Exception("Cannot read this PIG file");
+            throw Exception("Cannot read PIG file");
 
         ham.AllTexIdx.resize(800);
         ham.LevelTextures.resize(800);
@@ -783,30 +785,7 @@ namespace Inferno {
         for (int i = 0; i < 1800; i++)
             reader.ReadInt16();
 
-        reader.Seek(dataOffset);
-
-        auto numBitmaps = reader.ReadElementCount();
-        auto numSounds = reader.ReadElementCount();
-
-        PigFile pig;
-        pig.Entries.resize(numBitmaps + 1);
-
-        // Skip entry 1 as it is meant to be an invalid / error texture
-        for (int i = 1; i < pig.Entries.size(); i++)
-            pig.Entries[i] = ReadD1BitmapHeader(reader, (TexID)i);
-
-        SoundFile sounds;
-        sounds.Sounds.resize(numSounds);
-        sounds.Frequency = 11025;
-
-        for (auto& sound : sounds.Sounds) {
-            sound.Name = reader.ReadString(8);
-            sound.Length = reader.ReadInt32();
-            sound.DataLength = reader.ReadInt32();
-            sound.Offset = reader.ReadInt32();
-        }
-
-        sounds.DataStart = pig.DataStart = reader.Position();
-        return std::make_tuple(std::move(ham), std::move(pig), std::move(sounds));
+        auto headerLen = ReadD1Pig(data.subspan(dataOffset), pig, sounds);
+        sounds.DataStart = pig.DataStart = dataOffset + headerLen;
     }
 }

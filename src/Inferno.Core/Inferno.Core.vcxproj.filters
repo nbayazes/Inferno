@@ -104,6 +104,9 @@
     <ClInclude Include="Dynamics.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="BitmapTable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -155,6 +158,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Room.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BitmapTable.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="POF.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

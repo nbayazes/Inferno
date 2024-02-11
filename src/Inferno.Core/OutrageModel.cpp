@@ -164,8 +164,7 @@ namespace Inferno::Outrage {
 
     Model Model::Read(StreamReader& r) {
         // can also load data from oof, but let's assume POFs
-        auto fileId = r.ReadInt32();
-        if (fileId != 'OPSP')
+        if (r.ReadInt32() != MakeFourCC("PSPO"))
             throw Exception("Not a model file");
 
         Model pm{};
@@ -308,7 +307,7 @@ namespace Inferno::Outrage {
 
                     for (auto& gun : pm.Guns) {
                         // In Version 19.08 and beyond, gunpoints are associated to their parent object.
-                        if (pm.Version >= 19 * 100 + 8)
+                        if (pm.Version >= 19'08)
                             gun.Parent = r.ReadInt32();
 
                         gun.Point = r.ReadVector3();
@@ -409,7 +408,7 @@ namespace Inferno::Outrage {
                         if (timed) {
                             //int numTicks = sm.RotTrackMax - sm.RotTrackMin;
 
-                            // Some kind of lookup...
+                            // todo: Some kind of lookup...
                             //if (numTicks > 0) {
                             //    sm.TickAngleRemap.resize(numTicks * 2);
                             //}
@@ -423,7 +422,7 @@ namespace Inferno::Outrage {
                             keyframe.Axis.Normalize();
                             keyframe.Angle = r.ReadInt32();
 
-                            // some stuff here about keyframe angle wrapping?
+                            // todo: some stuff here about keyframe angle wrapping?
                         }
                     }
 

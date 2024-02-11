@@ -105,6 +105,7 @@
   <ItemGroup>
     <ClInclude Include="AI.h" />
     <ClInclude Include="Bezier.h" />
+    <ClInclude Include="BitmapTable.h" />
     <ClInclude Include="Briefing.h" />
     <ClInclude Include="DataPool.h" />
     <ClInclude Include="Dynamics.h" />
@@ -136,6 +137,7 @@
     <ClInclude Include="Weapon.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BitmapTable.cpp" />
     <ClCompile Include="Briefing.cpp" />
     <ClCompile Include="Fonts.cpp" />
     <ClCompile Include="HamFile.cpp" />
@@ -151,6 +153,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Pig.cpp" />
+    <ClCompile Include="POF.cpp" />
     <ClCompile Include="Polymodel.cpp" />
     <ClCompile Include="Room.cpp" />
     <ClCompile Include="Segment.cpp" />

@@ -62,7 +62,7 @@ namespace Inferno {
         for (auto& e : Entries)
             if (String::InvariantEquals(e.Name, entry)) return e;
 
-        throw Exception("File not found in hog file");
+        throw Exception(fmt::format("{} not found in hog file", entry));
     }
 
     HogFile HogFile::Read(const filesystem::path& file) {

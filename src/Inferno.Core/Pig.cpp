@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "Pig.h"
+#include <ranges>
+#include "Sound.h"
 #include "Streams.h"
 #include "Utility.h"
-#include "Sound.h"
-#include <ranges>
 
 namespace Inferno {
     constexpr auto PIGFILE_VERSION = 2;
@@ -133,6 +133,62 @@ namespace Inferno {
         // There's sound data here but we don't care
 
         return bitmaps;
+    }
+
+    constexpr auto D1_SHARE_BIG_PIGSIZE = 5092871; // v1.0 - 1.4 before RLE compression
+    constexpr auto D1_SHARE_10_PIGSIZE = 2529454; // v1.0 - 1.2
+    constexpr auto D1_SHARE_PIGSIZE = 2509799; // v1.4
+    constexpr auto D1_10_BIG_PIGSIZE = 7640220; // v1.0 before RLE compression
+    constexpr auto D1_10_PIGSIZE = 4520145; // v1.0
+    constexpr auto D1_PIGSIZE = 4920305; // v1.4 - 1.5 (Incl. OEM v1.4a)
+    constexpr auto D1_OEM_PIGSIZE = 5039735; // v1.0
+    constexpr auto D1_MAC_PIGSIZE = 3975533;
+    constexpr auto D1_MAC_SHARE_PIGSIZE = 2714487;
+
+    size_t ReadD1Pig(span<byte> data, PigFile& pig, SoundFile& sounds) {
+        StreamReader r(data);
+        auto numBitmaps = r.ReadInt32();
+        auto numSounds = r.ReadInt32();
+        pig.Entries.resize(numBitmaps + 1);
+
+        // Skip entry 1 as it is meant to be an invalid / error texture
+        for (int i = 1; i < pig.Entries.size(); i++)
+            pig.Entries[i] = ReadD1BitmapHeader(r, (TexID)i);
+
+        sounds.Sounds.resize(numSounds);
+        sounds.Frequency = 11025;
+
+        for (auto& sound : sounds.Sounds) {
+            sound.Name = r.ReadString(8);
+            sound.Length = r.ReadInt32();
+            sound.DataLength = r.ReadInt32();
+            sound.Offset = r.ReadInt32();
+        }
+
+        sounds.DataStart = pig.DataStart = r.Position();
+        return r.Position();
+
+        //switch (filesystem::file_size(file)) {
+        //    case D1_SHARE_BIG_PIGSIZE:
+        //    case D1_SHARE_10_PIGSIZE:
+        //    case D1_SHARE_PIGSIZE:
+        //        return ReadD1SharewarePig();
+
+        //    case D1_10_BIG_PIGSIZE:
+        //    case D1_10_PIGSIZE:
+        //        dataStart = 0;
+        //        break;
+
+        //    case D1_MAC_PIGSIZE:
+        //    case D1_MAC_SHARE_PIGSIZE:
+        //        throw Exception("Mac data is not supported");
+
+        //    case D1_PIGSIZE:
+        //    case D1_OEM_PIGSIZE:
+        //    default:
+        //        dataStart = reader.ReadInt32();
+        //        break;
+        //}
     }
 
     PigFile ReadPigFile(const filesystem::path& file) {
@@ -279,15 +335,40 @@ namespace Inferno {
                               size_t dataStart,
                               const PigEntry& entry,
                               const Palette& palette) {
-        auto bmp = entry.UsesRle ?
-            ReadRLE(reader, dataStart, palette, entry) :
-            ReadBMP(reader, dataStart, palette, entry);
+        auto bmp = entry.UsesRle ? ReadRLE(reader, dataStart, palette, entry) : ReadBMP(reader, dataStart, palette, entry);
 
         FlipBitmapY(bmp);
         if (entry.SuperTransparent)
             bmp.ExtractMask();
 
         return bmp;
+    }
+
+    TexID PigFile::Find(string_view name) const {
+        if (auto index = name.find('.'); index != -1)
+            name = name.substr(0, index);
+
+        auto index = Seq::findIndex(Entries, [name](const PigEntry& entry) { return entry.Name == name; });
+        return index ? TexID(*index) : TexID::None;
+    }
+
+    List<TexID> PigFile::FindAnimation(string_view name, uint maxFrames) const {
+        if (auto index = name.find('.'); index != -1)
+            name = name.substr(0, index);
+
+        List<TexID> ids;
+
+        for (uint i = 0; i < maxFrames; i++) {
+            auto frame = fmt::format("{}#{}", name, i);
+            auto index = Seq::findIndex(Entries, [frame](const PigEntry& entry) {
+                return entry.Name == frame/* && entry.Animated*/;
+            });
+
+            if(index)
+                ids.push_back(TexID(*index));
+        }
+
+        return ids;
     }
 
     PigBitmap ReadBitmap(const PigFile& pig, const Palette& palette, TexID id) {

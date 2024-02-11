@@ -1,6 +1,6 @@
 #pragma once
-#include "Types.h"
 #include "Streams.h"
+#include "Types.h"
 
 namespace Inferno {
     // All multi - byte numbers are stored in little endian format.
@@ -19,16 +19,20 @@ namespace Inferno {
             int Offset;
         };
 
-        wstring Path;
+        filesystem::path Path;
         List<Header> Sounds; // entries
         int Frequency = 22050; // 22050 Hz for S22, 11025 Hz for S11
         size_t DataStart = 0u;
 
         List<ubyte> Read(int index) const;
+        List<ubyte> ReadCompressed(int index) const;
+
+        // Finds the index of a sound by name
+        Option<size_t> Find(string_view name) const;
     };
 
     SoundFile::Header ReadSoundHeader(StreamReader& reader);
 
     // Reads a S11 or S22 file. This can be modified to read from a PIG file for Descent 1.
-    SoundFile ReadSoundFile(wstring path);
+    SoundFile ReadSoundFile(const filesystem::path&);
 }

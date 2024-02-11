@@ -69,7 +69,7 @@ namespace Inferno {
             }
         }
 
-        ASSERT(v[0] < v[1] && v[1] < v[2] && v[2] < v[3]);
+        //ASSERT(v[0] < v[1] && v[1] < v[2] && v[2] < v[3]);
         return (w[0] + 3) % 4 == w[1] || (w[1] + 3) % 4 == w[2];
     }
 

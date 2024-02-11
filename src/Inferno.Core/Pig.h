@@ -1,7 +1,8 @@
 #pragma once
 
-#include "Types.h"
+#include "Sound.h"
 #include "Streams.h"
+#include "Types.h"
 
 namespace Inferno {
     constexpr auto DBM_FLAG_LARGE = 128; // d1 bitmaps wider than 256
@@ -32,6 +33,7 @@ namespace Inferno {
             DirectX::SimpleMath::Color ToColor() const {
                 return { (float)r / 255.0f, (float)g / 255.0f, (float)b / 255.0f, (float)a / 255.0f };
             }
+
             constexpr uint Delta(const Color& rhs) const {
                 constexpr auto sqr = [](auto x) { return x * x; };
                 return sqr((int)r - (int)rhs.r) + sqr((int)g - (int)rhs.g) + sqr((int)b - (int)rhs.b);
@@ -212,7 +214,7 @@ namespace Inferno {
 
     // A texture file
     struct PigFile {
-        wstring Path;
+        filesystem::path Path;
         size_t DataStart = 0;
         List<PigEntry> Entries;
 
@@ -221,6 +223,11 @@ namespace Inferno {
             if (!Seq::inRange(Entries, (int)id)) return _defaultEntry;
             return Entries[(int)id];
         }
+
+        TexID Find(string_view name) const;
+
+        // Returns the frames to an animation
+        List<TexID> FindAnimation(string_view name, uint maxFrames) const;
 
         PigFile() = default;
         ~PigFile() = default;
@@ -233,13 +240,14 @@ namespace Inferno {
         inline static PigEntry _defaultEntry = {};
     };
 
-
     PigBitmap ReadBitmap(const PigFile& pig, const Palette& palette, TexID id);
     PigBitmap ReadBitmapEntry(StreamReader&, size_t dataStart, const PigEntry&, const Palette&);
     List<PigBitmap> ReadAllBitmaps(const PigFile& pig, const Palette& palette);
 
-
     Palette ReadPalette(span<ubyte> data);
+
+    // Reads sound and texture data from a d1 pig. Returns the data start offset.
+    size_t ReadD1Pig(span<byte> data, PigFile& pig, SoundFile& sounds);
     PigFile ReadPigFile(const filesystem::path& file);
     PigEntry ReadD2BitmapHeader(StreamReader&, TexID);
     PigEntry ReadD1BitmapHeader(StreamReader&, TexID);

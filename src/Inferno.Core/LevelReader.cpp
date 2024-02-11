@@ -44,7 +44,73 @@ namespace Inferno {
     public:
         LevelReader(span<ubyte> data) : _reader(data) {}
 
+        Level ReadD1Demo() {
+            ReadHeader();
+
+            if (_levelVersion != 1)
+                throw Exception("D1 demo levels must be version 1");
+
+            Level level;
+            level.Version = _levelVersion;
+            level.Limits = LevelLimits(_levelVersion);
+
+            {
+                // Read segments
+                _reader.Seek(_mineDataOffset);
+
+                // Header
+                _reader.ReadByte(); // compiled mine version, unused
+                const auto vertexCount = _reader.ReadInt32();
+                const auto segmentCount = _reader.ReadInt32();
+
+                level.Vertices.resize(vertexCount);
+                level.Segments.resize(segmentCount);
+
+                for (auto& v : level.Vertices)
+                    v = _reader.ReadVector();
+
+                for (auto& seg : level.Segments) {
+                    ReadSegmentConnections(seg, 0x7f); // read all six sides
+                    ReadSegmentVertices(seg);
+                    ReadSegmentSpecial(_reader, seg);
+
+                    auto light = FixToFloat(fix(_reader.ReadUInt16() << 4)) / 2;
+                    seg.VolumeLight = Color(light, light, light);
+
+                    ReadSegmentWalls(seg, 0x3f); // read all walls
+                    ReadSegmentTextures(seg, true);
+                }
+            }
+
+            ReadGameData(level);
+
+            for (auto& seg : level.Segments) {
+                seg.UpdateGeometricProps(level);
+            }
+
+            return level;
+        }
+
         Level Read() {
+            ReadHeader();
+
+            Level level;
+            level.Version = _levelVersion;
+            level.Limits = LevelLimits(_levelVersion);
+            ReadLevelInfo(_reader, level);
+            ReadSegments(level);
+            ReadGameData(level);
+            ReadDynamicLights(level);
+
+            for (auto& seg : level.Segments) {
+                seg.UpdateGeometricProps(level);
+            }
+
+            return level;
+        }
+
+    private:
+        void ReadHeader() {
             auto sig = (uint)_reader.ReadInt32();
             if (sig != MakeFourCC("LVLP"))
                 throw Exception("File is not a level (bad header)");
@@ -70,23 +136,8 @@ namespace Inferno {
                 // Hostage text offset - not used
                 _reader.ReadInt32();
             }
-
-            Level level;
-            level.Version = _levelVersion;
-            level.Limits = LevelLimits(_levelVersion);
-            ReadLevelInfo(_reader, level);
-            ReadSegments(level);
-            ReadGameData(level);
-            ReadDynamicLights(level);
-
-            for (auto& seg : level.Segments) {
-                seg.UpdateGeometricProps(level);
-            }
-
-            return level;
         }
 
-    private:
         void ReadSegmentData(Segment& seg) {
             auto bitMask = _reader.ReadByte();
 
@@ -115,17 +166,17 @@ namespace Inferno {
             }
         }
 
-        void ReadSegmentTextures(Segment& seg) {
+        void ReadSegmentTextures(Segment& seg, bool d1Demo) {
             for (auto& sid : SIDE_IDS) {
                 auto& side = seg.GetSide(sid);
 
                 // Solid face or a wall
                 if (seg.GetConnection(sid) == SegID::None ||
                     side.Wall != WallID::None) {
-
                     auto tmap = _reader.ReadUInt16();
                     side.TMap = LevelTexID(tmap & 0x7fff);
-                    if (tmap & 0x8000) {
+
+                    if (d1Demo || tmap & 0x8000) {
                         auto tmap2 = _reader.ReadUInt16();
                         side.TMap2 = LevelTexID(tmap2 & 0x3fff);
                         side.OverlayRotation = OverlayRotation(((tmap2 & 0xC000) >> 14) & 3);
@@ -134,7 +185,7 @@ namespace Inferno {
                     for (int i = 0; i < 4; i++) {
                         auto u = fix(_reader.ReadInt16()) << 5;
                         auto v = fix(_reader.ReadInt16()) << 5;
-                        auto l = fix(_reader.ReadUInt16()) << 1;
+                        auto l = fix(_reader.ReadInt16()) << 1;
                         side.UVs[i].x = FixToFloat(u);
                         side.UVs[i].y = FixToFloat(v);
                         auto light = FixToFloat(l);
@@ -145,18 +196,21 @@ namespace Inferno {
         }
 
         void ReadSegmentConnections(Segment& seg, ubyte bitMask) {
-            for (uint bit = 0; bit < MAX_SIDES; bit++)
+            for (uint bit = 0; bit < MAX_SIDES; bit++) {
                 seg.Connections[bit] = bitMask & (1 << bit) ? (SegID)_reader.ReadInt16() : SegID::None;
+                ASSERT(seg.Connections[bit] >= SegID::Exit);
+            }
         }
 
-        void ReadSegmentWalls(Segment& seg) {
-            auto mask = _reader.ReadByte();
-
+        void ReadSegmentWalls(Segment& seg, ubyte mask) {
             for (int i = 0; i < MAX_SIDES; i++) {
                 auto& side = seg.Sides[i];
 
-                if (mask & (1 << i))
+                if (mask & (1 << i)) {
                     side.Wall = WallID(_reader.ReadByte());
+                    if (side.Wall == WallID::Max)
+                        side.Wall = WallID::None; // D1 demo levels used 255 as none
+                }
             }
         }
 
@@ -199,8 +253,9 @@ namespace Inferno {
                     seg.VolumeLight = Color(light, light, light);
                 }
 
-                ReadSegmentWalls(seg);
-                ReadSegmentTextures(seg);
+                auto wallMask = _reader.ReadByte();
+                ReadSegmentWalls(seg, wallMask);
+                ReadSegmentTextures(seg, false);
             }
 
             // D2 retail location for segment special data
@@ -399,7 +454,8 @@ namespace Inferno {
                 trigger.Type = (TriggerType)_reader.ReadByte();
                 trigger.Flags = (TriggerFlag)_reader.ReadByte();
                 trigger.Targets.Count(_reader.ReadByte());
-                /*trigger.linkNum = */_reader.ReadByte();
+                /*trigger.linkNum = */
+                _reader.ReadByte();
                 trigger.Value = _reader.ReadInt32();
                 trigger.Time = _reader.ReadInt32();
             }
@@ -409,7 +465,8 @@ namespace Inferno {
                 trigger.FlagsD1 = (TriggerFlagD1)_reader.ReadInt16();
                 trigger.Value = _reader.ReadInt32();
                 trigger.Time = _reader.ReadInt32();
-                /*trigger.linkNum = */_reader.ReadByte();
+                /*trigger.linkNum = */
+                _reader.ReadByte();
                 trigger.Targets.Count(_reader.ReadInt16());
             }
 
@@ -542,5 +599,10 @@ namespace Inferno {
     Level Level::Deserialize(span<ubyte> data) {
         LevelReader reader(data);
         return reader.Read();
+    }
+
+    Level Level::DeserializeD1Demo(span<ubyte> data) {
+        LevelReader reader(data);
+        return reader.ReadD1Demo();
     }
 }

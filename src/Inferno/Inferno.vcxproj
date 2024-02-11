@@ -386,8 +386,8 @@
     <ClInclude Include="Shell.h" />
     <ClInclude Include="Editor\UI\TextureBrowserUI.h" />
     <ClInclude Include="Yaml.h" />
+    <ClInclude Include="zip\miniz.h" />
     <ClInclude Include="zip\zip.h" />
-    <ClInclude Include="zip\zip_file.hpp" />
     <None Include="data\d2\game.yml">
       <FileType>Text</FileType>
       <DeploymentContent>true</DeploymentContent>

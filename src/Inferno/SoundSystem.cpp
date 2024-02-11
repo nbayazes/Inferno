@@ -405,7 +405,7 @@ namespace Inferno::Sound {
         if (id == 42)
             trimEnd = 0.05f; // Trim the end of the fan loop due to a pop
 
-        auto data = Resources::SoundsD1.Read(id);
+        auto data = Game::Shareware ? Resources::SoundsD1.ReadCompressed(id) : Resources::SoundsD1.Read(id);
         if (data.empty()) return nullptr;
         return (SoundsD1[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*Engine, data, FREQUENCY_11KHZ, trimStart, trimEnd))).get();
     }
@@ -706,8 +706,7 @@ namespace Inferno::Sound {
 
             switch (fourcc) {
                 case MakeFourCC("OggS"):
-                    stream = std::make_unique<OggStream>(std::move(data));
-                    break;
+                    return std::make_unique<OggStream>(std::move(data));
 
                 case MakeFourCC("RIFF"):
                     //music = LoadWav(bytes);
@@ -715,15 +714,11 @@ namespace Inferno::Sound {
 
                 case MakeFourCC("fLaC"):
                     return std::make_unique<FlacStream>(std::move(data));
-                    break;
 
                 // MP3 lacks a fourcc
                 default:
-                    stream = std::make_unique<Mp3Stream>(std::move(data));
-                    break;
+                    return std::make_unique<Mp3Stream>(std::move(data));
             }
-
-            return stream;
         }
         catch (const Exception& e) {
             SPDLOG_ERROR("Error streaming music: {}", e.what());

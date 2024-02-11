@@ -1,6 +1,6 @@
 #include "pch.h"
-#include <numeric>
 #include "Polymodel.h"
+#include <numeric>
 #include "Streams.h"
 #include "Utility.h"
 
@@ -133,13 +133,12 @@ namespace Inferno {
         }
     }
 
-    void ReadPolymodel(Model& model, span<ubyte> data, const Palette* palette) {
+    void DecodeInterpreterData(Model& model, span<ubyte> data, const Palette* palette) {
         // 'global' state for the interpreter
         int16 highestTex = -1;
         StreamReader reader(data);
         int16 glow = -1;
         int16 glowIndex = 0, flatGlowIndex = 0;
-        auto& angles = model.angles;
         model.Vertices.reserve(1000);
 
         // must use std::function instead of auto here to allow recursive calls
@@ -293,7 +292,7 @@ namespace Inferno {
 
                     case OpCode::CallSubobject:
                     {
-                        angles.push_back(reader.ReadAngleVec());
+                        model.angles.push_back(reader.ReadAngleVec());
                         reader.Seek(chunkStart + 16);
                         auto offset = reader.ReadInt16();
                         readChunk(chunkStart + offset, submodel);
@@ -356,7 +355,8 @@ namespace Inferno {
         Expand(model);
         UpdateGeometricProperties(model);
 
-        if (highestTex >= model.TextureCount) throw Exception("Model contains too many textures");
+        // this check causes problems when loading POF files directly
+        //if (highestTex >= model.TextureCount) throw Exception("Model contains too many textures");
         if (model.Submodels.size() > MAX_SUBMODELS) throw Exception("Model contains more than 10 submodels");
     }
 }

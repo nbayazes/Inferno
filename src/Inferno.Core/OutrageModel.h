@@ -68,7 +68,6 @@ namespace Inferno::Outrage {
             int Angle; // The destination angles for each key frame
             Vector3 Position;
             int RotStartTime, PosStartTime;
-            // todo: convert to Matrix3 
             // the combined rotation matrices up to frame n
             Matrix3x3 Transform;
         };

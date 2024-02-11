@@ -232,7 +232,7 @@
     <ClInclude Include="Audio\pcm\dr_flac.h" />
     <ClInclude Include="Audio\pcm\stb_vorbis.h" />
     <ClInclude Include="zip\zip.h" />
-    <ClInclude Include="zip\zip_file.hpp" />
+    <ClInclude Include="zip\miniz.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />

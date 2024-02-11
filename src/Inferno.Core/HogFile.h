@@ -28,7 +28,7 @@ namespace Inferno {
 
         bool IsLevel() const {
             auto ext = Extension();
-            return String::InvariantEquals(ext, ".rl2") || String::InvariantEquals(ext, ".rdl");
+            return String::InvariantEquals(ext, ".rl2") || String::InvariantEquals(ext, ".rdl") || String::InvariantEquals(ext, ".sdl");
         }
 
         bool IsBriefing() const {

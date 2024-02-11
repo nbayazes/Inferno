@@ -1,4 +1,10 @@
 #include "pch.h"
+#include "Resources.h"
+#include <fstream>
+#include <mutex>
+#include <zip/zip.h>
+#include "BitmapTable.h"
+#include "Briefing.h"
 #include "FileSystem.h"
 #include "Game.h"
 #include "GameTable.h"
@@ -6,12 +12,7 @@
 #include "Graphics/Render.h"
 #include "logging.h"
 #include "Pig.h"
-#include "Resources.h"
 #include "Sound.h"
-#include <Briefing.h>
-#include <fstream>
-#include <mutex>
-#include <zip/zip.h>
 
 namespace Inferno::Resources {
     SoundFile SoundsD1, SoundsD2;
@@ -425,8 +426,12 @@ namespace Inferno::Resources {
                 auto palette = ReadPalette(paletteData);
 
                 auto path = FileSystem::FindFile(L"descent.pig");
-                StreamReader reader(path);
-                auto [ham, pig, sounds] = ReadDescent1GameData(reader, palette);
+                auto bytes = File::ReadAllBytes(path);
+
+                HamFile ham;
+                PigFile pig;
+                SoundFile sounds;
+                ReadDescent1GameData(bytes, palette, ham, pig, sounds);
                 sounds.Path = path;
                 SoundsD1 = std::move(sounds);
             }
@@ -528,10 +533,15 @@ namespace Inferno::Resources {
         auto palette = ReadPalette(paletteData);
 
         auto path = FileSystem::FindFile(L"descent.pig");
-        StreamReader reader(path);
-        auto [ham, pig, sounds] = ReadDescent1GameData(reader, palette);
+        auto pigData = File::ReadAllBytes(path);
+
+        HamFile ham;
+        PigFile pig;
+        SoundFile sounds;
+        ReadDescent1GameData(pigData, palette, ham, pig, sounds);
         pig.Path = path;
         sounds.Path = path;
+
         //ReadBitmap(pig, palette, TexID(61)); // cockpit
         auto textures = ReadAllBitmaps(pig, palette);
 
@@ -552,6 +562,48 @@ namespace Inferno::Resources {
         Pig = std::move(pig);
         Hog = std::move(hog);
         GameData = std::move(ham);
+    }
+
+    void LoadDescent1Shareware(Level& /*level*/) {
+        PigFile pig;
+        auto pigData = File::ReadAllBytes("data/d1/demo/descent.pig");
+        auto hog = HogFile::Read(FileSystem::FindFile("data/d1/demo/descent.hog"));
+        SoundFile sounds;
+        ReadD1Pig(pigData, pig, sounds);
+        sounds.Path = "data/d1/demo/descent.pig";
+        //sounds.DataStart = 0;
+        pig.Path = "data/d1/demo/descent.pig";
+
+        auto table = Game::Mission->ReadEntry("bitmaps.bin");
+        HamFile ham;
+        auto paletteData = Game::Mission->ReadEntry("palette.256");
+        auto palette = ReadPalette(paletteData);
+
+        for (auto& entry : Game::Mission->Entries) {
+            if (entry.Name.ends_with(".pof")) {
+                auto modelData = Game::Mission->ReadEntry(entry);
+                auto model = ReadPof(modelData, &palette);
+                model.FileName = entry.Name;
+                ham.Models.push_back(model);
+            }
+        }
+
+        ham.DeadModels.resize(ham.Models.size());
+
+        ReadBitmapTable(table, pig, ham, sounds);
+        SPDLOG_INFO("Loaded D1 shareware pig and bitmaps.bin");
+        //auto pof = Game::Mission->ReadEntry("robot01.pof");
+        //auto model = ReadPof(pof, &LevelPalette);
+        //model;
+        auto textures = ReadAllBitmaps(pig, palette);
+
+        // Everything loaded okay, set the internal data
+        Textures = std::move(textures);
+        LevelPalette = std::move(palette);
+        Pig = std::move(pig);
+        Hog = std::move(hog);
+        GameData = std::move(ham);
+        SoundsD1 = std::move(sounds);
     }
 
     void LoadStringTable() {
@@ -632,10 +684,11 @@ namespace Inferno::Resources {
 
         if (Game::Mission) {
             auto data = Game::Mission->TryReadEntryAsString("lights.yml");
-            SPDLOG_INFO("Reading light table from mission");
 
-            if (!data.empty())
+            if (!data.empty()) {
                 LoadLightTable(data, LightInfoTable);
+                SPDLOG_INFO("Reading light table from mission");
+            }
         }
     }
 
@@ -834,7 +887,10 @@ namespace Inferno::Resources {
                 AvailablePalettes = FindAvailablePalettes();
             }
             else if (level.IsDescent1()) {
-                LoadDescent1Resources(level);
+                if (String::ToLower(level.FileName).ends_with(".sdl"))
+                    LoadDescent1Shareware(level);
+                else
+                    LoadDescent1Resources(level);
             }
             else {
                 throw Exception("Unsupported level version");
@@ -884,7 +940,8 @@ namespace Inferno::Resources {
             throw Exception("File not found");
         }
 
-        auto level = Level::Deserialize(data);
+        Game::Shareware = String::ToLower(name).ends_with(".sdl");
+        auto level = Game::Shareware ? Level::DeserializeD1Demo(data) : Level::Deserialize(data);
         level.FileName = name;
         return level;
     }

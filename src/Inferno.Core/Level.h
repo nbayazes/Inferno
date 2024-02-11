@@ -590,5 +590,6 @@ namespace Inferno {
 
         size_t Serialize(StreamWriter& writer);
         static Level Deserialize(span<ubyte>);
+        static Level DeserializeD1Demo(span<ubyte>);
     };
 }
