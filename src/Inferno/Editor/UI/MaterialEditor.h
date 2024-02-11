@@ -74,6 +74,7 @@ namespace Inferno::Editor {
             {
                 ImGui::BeginChild("list", { listWidth, contentMax.y - topRowHeight });
                 constexpr auto flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY;
+                uint counter = 0;
 
                 if (ImGui::BeginTable("materials", 3, flags)) {
                     ImGui::TableSetupScrollFreeze(0, 1); // Make top row always visible
@@ -81,6 +82,8 @@ namespace Inferno::Editor {
                     ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed);
                     ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch);
                     ImGui::TableHeadersRow();
+
+                    auto tableRect = ImGui::GetCurrentWindow()->ClipRect;
 
                     for (int i = 1; i < Resources::GetTextureCount(); i++) {
                         auto id = TexID(i);
@@ -107,6 +110,9 @@ namespace Inferno::Editor {
 
                         ImGui::TableNextRow();
 
+                        auto cursor = ImGui::GetCursorScreenPos();
+                        ImRect rowRect = { cursor, { cursor.x + tileSize.x, cursor.y + tileSize.y} };
+
                         ImGui::TableNextColumn();
                         ImGui::PushID((int)id);
                         constexpr auto selectable_flags = ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap;
@@ -119,10 +125,12 @@ namespace Inferno::Editor {
 
                         ImGui::GetIO().MouseDown;
                         ImGui::PopID();
+                        //bool itemInView = ImGui::GetCurrentWindow()->ClipRect.Contains(ImGui::GetCursorScreenPos());
 
-                        if (material) {
+                        if (material && tableRect.Overlaps(rowRect)) {
                             ImGui::SameLine();
                             ImGui::Image((ImTextureID)material.Pointer(), tileSize, { 0, 0 }, { 1, 1 });
+                            counter++;
                         }
 
                         ImGui::TableNextColumn();
@@ -138,7 +146,6 @@ namespace Inferno::Editor {
                             Render::Materials->LoadMaterialsAsync(ids);
                         }
                     }
-
                     ImGui::EndTable();
                 }
 

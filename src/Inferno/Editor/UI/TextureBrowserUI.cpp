@@ -128,7 +128,7 @@ namespace Inferno::Editor {
             if (!bool(entry.Group & filter)) continue;
 
             for (int16 i = entry.Min; i <= entry.Max; i++) {
-                LevelTexID id{ i };
+                LevelTexID id{ i }; 
                 auto& info = Resources::GetTextureInfo(id);
                 if (info.Frame == 0) // omit frames of doors
                     ids.insert(id);
@@ -344,7 +344,15 @@ namespace Inferno::Editor {
 
             ImGui::PushStyleColor(ImGuiCol_Button, borderColor);
 
-            ImGui::ImageButton((ImTextureID)material.Pointer(), tileSize, { 0, 0 }, { 1, 1 }, borderThickess, bg);
+            auto cursor = ImGui::GetCursorScreenPos();
+            ImRect tileRect = { cursor, { cursor.x + tileSize.x, cursor.y + tileSize.y} };
+
+            // Only draw the tile texture if it is on screen
+            if (ImGui::GetCurrentWindow()->ClipRect.Overlaps(tileRect))
+                ImGui::ImageButton((ImTextureID)material.Pointer(), tileSize, { 0, 0 }, { 1, 1 }, borderThickess, bg);
+            else
+                ImGui::Dummy({ tileSize.x + borderThickess * 2, tileSize.y + borderThickess * 2 });
+                //ImGui::Button(tileSize, { 0, 0 }, { 1, 1 }, borderThickess, bg);
 
             if (ImGui::IsItemHovered()) {
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {

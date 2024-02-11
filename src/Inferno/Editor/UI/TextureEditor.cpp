@@ -105,6 +105,8 @@ namespace Inferno::Editor {
                 ImGui::TableSetupColumn("Modified", ImGuiTableColumnFlags_WidthStretch);
                 ImGui::TableHeadersRow();
 
+                auto tableRect = ImGui::GetCurrentWindow()->ClipRect;
+
                 for (auto& id : _visibleTextures) {
                     auto& ti = Resources::GetTextureInfo(id);
 
@@ -125,6 +127,10 @@ namespace Inferno::Editor {
                     if (ratio < 1) tileSize.x *= ratio;
 
                     ImGui::TableNextRow();
+
+                    auto cursor = ImGui::GetCursorScreenPos();
+                    ImRect rowRect = { cursor, { cursor.x + tileSize.x, cursor.y + tileSize.y} };
+
                     ImGui::TableNextColumn();
 
                     ImGui::PushID((int)id);
@@ -133,7 +139,8 @@ namespace Inferno::Editor {
                         _selection = id;
                     }
                     ImGui::PopID();
-                    if (material) {
+
+                    if (material && tableRect.Overlaps(rowRect)) {
                         ImGui::SameLine();
                         ImGui::Image((ImTextureID)material.Pointer(), tileSize, { 0, 0 }, { 1, 1 });
                     }
