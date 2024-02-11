@@ -73,7 +73,8 @@ namespace Inferno::Editor {
 
         for (int id = 0; id < level.Objects.size(); id++) {
             auto& obj = level.Objects[id];
-            auto sphere = DirectX::BoundingSphere(obj.Position, obj.Radius);
+            float radius = obj.Radius <= 0 ? 2.5f : obj.Radius;
+            auto sphere = DirectX::BoundingSphere(obj.Position, radius);
             if (float dist; ray.Intersects(sphere, dist))
                 hits.push_back({ .Distance = dist, .Object = ObjID(id) });
         }

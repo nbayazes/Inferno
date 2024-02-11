@@ -65,7 +65,7 @@ namespace Inferno::Render {
     }
 
     void DrawObjectOutline(const Object& object) {
-        if (object.Radius == 0) return;
+        float radius = object.Radius <= 0 ? 2.5f : object.Radius;
 
         Color color = [&object] {
             switch (object.Type) {
@@ -82,7 +82,7 @@ namespace Inferno::Render {
         }();
 
         color.A(0.5f);
-        DrawFacingCircle(object.Position, object.Radius, color);
+        DrawFacingCircle(object.Position, radius, color);
     }
 
     void OutlineBossTeleportSegments() {
