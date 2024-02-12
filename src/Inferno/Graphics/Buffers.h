@@ -48,7 +48,7 @@ namespace Inferno {
         DirectX::GraphicsResource _resource;
 
     public:
-        PackedBuffer(uint size = 1024 * 1024 * 10)
+        PackedBuffer(uint size = 1024 * 1024 * 20)
             : _size(size) {
             _resource = DirectX::GraphicsMemory::Get().Allocate(size);
         }
@@ -59,7 +59,8 @@ namespace Inferno {
         D3D12_VERTEX_BUFFER_VIEW PackVertices(List<TVertex> data) {
             constexpr auto stride = sizeof(TVertex);
             auto size = uint(data.size() * stride);
-            if (_index + size > _size) throw Exception("Ran out of space in GPU buffer");
+            if (_index + size > _size) 
+                throw Exception("Ran out of space in GPU buffer");
             memcpy((byte*)_resource.Memory() + _index, data.data(), size);
 
             D3D12_VERTEX_BUFFER_VIEW vbv{};
@@ -79,7 +80,9 @@ namespace Inferno {
             constexpr auto format = stride == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
 
             auto size = uint(data.size() * stride);
-            if (_index + size > _size) throw Exception("Ran out of space in GPU buffer");
+            if (_index + size > _size) 
+                throw Exception("Ran out of space in GPU buffer");
+
             memcpy((byte*)_resource.Memory() + _index, data.data(), size);
 
             D3D12_INDEX_BUFFER_VIEW ibv{};

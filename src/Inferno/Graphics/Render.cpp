@@ -247,7 +247,7 @@ namespace Inferno::Render {
 
         CreateWindowSizeDependentResources(width, height);
         Camera.SetViewport((float)width, (float)height);
-        _levelMeshBuffer = MakePtr<PackedBuffer>(1024 * 1024 * 10);
+        _levelMeshBuffer = make_unique<PackedBuffer>(1024 * 1024 * 20);
 
         Editor::Events::LevelChanged += [] { LevelChanged = true; };
         Editor::Events::TexturesChanged += [] {

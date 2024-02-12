@@ -3,7 +3,6 @@
 #include "DirectX.h"
 #include "Game.h"
 #include "Game.Segment.h"
-#include "Game.Wall.h"
 #include "LegitProfiler.h"
 #include "MaterialLibrary.h"
 #include "Object.h"
