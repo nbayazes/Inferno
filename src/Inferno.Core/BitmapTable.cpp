@@ -125,6 +125,17 @@ namespace Inferno {
         uint totalTextures = 0;
         List<string> allocatedTextures;
 
+        //auto allocateLevelTexture = [&ham, &allocatedTextures](const string& name) {
+        //    if (auto index = Seq::indexOf(allocatedTextures, name)) {
+        //        return Tuple{ &ham.LevelTextures[*index], LevelTexID(*index) };
+        //    }
+
+        //    auto id = LevelTexID(ham.LevelTextures.size());
+        //    auto levelTexture = &ham.LevelTextures.emplace_back();
+        //    allocatedTextures.push_back(name);
+        //    return Tuple{ levelTexture, id };
+        //};
+
         while (!reader.EndOfStream()) {
             auto line = ReadLine(reader);
             bool skip = line.starts_with('@');
@@ -369,7 +380,6 @@ namespace Inferno {
                         levelTexture.ID = ltid;
                     }
 
-
                     break;
                 }
 
@@ -401,8 +411,6 @@ namespace Inferno {
 
                     break;
                 }
-                case TableChunk::Effects:
-                    break;
 
                 case TableChunk::EClip:
                 {
@@ -424,6 +432,7 @@ namespace Inferno {
                     if (!objClip) {
                         id = LevelTexID(ham.LevelTextures.size());
                         levelTexture = &ham.LevelTextures.emplace_back();
+                        levelTexture->D1FileName = bmLine;
                     }
 
                     SPDLOG_INFO("{} {}", String::Split(bmLine, ' ')[0], (int)id);
@@ -436,13 +445,16 @@ namespace Inferno {
                         readTokenValue("dest_size", clip.ExplosionSize);
                         readTokenValue("dest_eclip", clip.DestroyedEClip);
 
+                        if (levelTexture)
+                            levelTexture->EffectClip = EClipID(clipNum);
+
                         auto frames = pig.FindAnimation(bmLine, (uint)clip.VClip.Frames.size());
                         clip.VClip.NumFrames = (int)frames.size();
 
                         for (int i = 0; i < frames.size(); i++) {
                             clip.VClip.Frames[i] = frames[i];
                             pig.Entries[(int)frames[i]].Frame;
-                            if (i == 0 && !objClip) {
+                            if (i == 0 && levelTexture) {
                                 levelTexture->ID = id;
                                 levelTexture->TexID = frames[i];
                                 ham.AllTexIdx[(int)id] = frames[i];
@@ -456,10 +468,16 @@ namespace Inferno {
                     string destroyedBitmap;
                     if (readTokenValue("dest_bm", destroyedBitmap)) {
                         if (!Seq::contains(allocatedTextures, destroyedBitmap)) {
-                            if (!skip)
-                                clip.DestroyedTexture = LevelTexID(ham.LevelTextures.size());
+                            //if (!skip)
+                            auto ltid = LevelTexID(ham.LevelTextures.size());
+                            clip.DestroyedTexture = ltid;
+                            levelTexture->DestroyedTexture = ltid;
 
-                            ham.LevelTextures.emplace_back();
+                            SPDLOG_INFO("tid: {} destroyed tid: {}", id, (int)clip.DestroyedTexture);
+                            auto& texture = ham.LevelTextures.emplace_back();
+                            texture.ID = ltid;
+                            texture.TexID = pig.Find(destroyedBitmap);
+                            ham.AllTexIdx[(int)ltid] = texture.TexID;
                             allocatedTextures.push_back(destroyedBitmap);
                         }
                     }
@@ -485,7 +503,7 @@ namespace Inferno {
                     if (skip) {
                         // add placeholder
                         ham.LevelTextures.emplace_back();
-                        SPDLOG_INFO("SKIP: {}", line);
+                        //SPDLOG_INFO("SKIP: {}", line);
                         continue;
                     }
 

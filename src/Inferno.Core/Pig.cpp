@@ -348,7 +348,11 @@ namespace Inferno {
         if (auto index = name.find('.'); index != -1)
             name = name.substr(0, index);
 
-        auto index = Seq::findIndex(Entries, [name](const PigEntry& entry) { return entry.Name == name; });
+        auto lc = String::ToLower(name);
+
+        auto index = Seq::findIndex(Entries, [lc](const PigEntry& entry) {
+            return entry.Name == lc;
+        });
         return index ? TexID(*index) : TexID::None;
     }
 
