@@ -875,6 +875,8 @@ namespace Inferno {
 
     bool Player::CanFirePrimary(PrimaryWeaponIndex index) const {
         if (!HasWeapon(index)) return false;
+        if (Game::Shareware && (index == PrimaryWeaponIndex::Fusion || index == PrimaryWeaponIndex::Plasma))
+            return false;
 
         auto& weapon = Resources::GetWeapon(GetPrimaryWeaponID(index));
         bool canFire = true;
@@ -892,6 +894,8 @@ namespace Inferno {
 
     bool Player::CanFireSecondary(SecondaryWeaponIndex index) const {
         auto& weapon = Resources::GetWeapon(GetSecondaryWeaponID(index));
+        if (Game::Shareware && index == SecondaryWeaponIndex::Mega)
+            return false;
 
         return
             weapon.AmmoUsage <= SecondaryAmmo[(int)index] &&
