@@ -133,7 +133,12 @@ namespace Inferno {
             return;
         }
 
-        Sound::Play2D({ SoundID::SelectPrimary });
+        // Shareware doesn't have the selection sounds, use the selection beep
+        if (Game::Shareware)
+            Sound::Play2D(SoundID::AlreadySelected, 0.75f, 0, 0.15f);
+        else
+            Sound::Play2D(SoundID::SelectPrimary);
+
         PrimaryDelay = RearmTime;
         Primary = (PrimaryWeaponIndex)weapon;
         PrimaryWasSuper[weapon % SUPER_WEAPON] = weapon >= SUPER_WEAPON;
@@ -174,7 +179,12 @@ namespace Inferno {
             return;
         }
 
-        Sound::Play2D({ SoundID::SelectSecondary });
+        // Shareware doesn't have the selection sounds, use the selection beep
+        if (Game::Shareware)
+            Sound::Play2D(SoundID::AlreadySelected, 0.75f, 0, 0.15f);
+        else
+            Sound::Play2D(SoundID::SelectSecondary);
+
         SecondaryDelay = RearmTime;
         Secondary = (SecondaryWeaponIndex)weapon;
         SecondaryWasSuper[weapon % SUPER_WEAPON] = weapon >= SUPER_WEAPON;
