@@ -57,12 +57,18 @@ namespace Inferno {
         return line;
     }
 
-    ModelID FindModel(const HamFile& ham, string_view name) {
+    ModelID FindModelID(const HamFile& ham, string_view name) {
         auto index = Seq::findIndex(ham.Models, [&name](const Model& model) {
             return model.FileName == name;
         });
 
         return index ? ModelID(*index) : ModelID::None;
+    }
+
+    const Model* FindModel(const HamFile& ham, string_view name) {
+        return Seq::find(ham.Models, [&name](const Model& model) {
+            return model.FileName == name;
+        });
     }
 
     void RobotSetAngles(RobotInfo& robot, const Model& model, HamFile& ham) {
@@ -75,7 +81,7 @@ namespace Inferno {
         guns[0] = -1; //body never animates, at least for now
 
         for (int g = 0; g < model.Guns.size(); g++) {
-            int m = model.Guns[g].Parent;
+            int m = model.Guns[g].Submodel;
 
             // Recursively search submodels
             while (m != 0) {
@@ -272,7 +278,7 @@ namespace Inferno {
                     readTokenValue("attack_sound", robot.AttackSound);
                     readTokenValue("boss", (int&)robot.IsBoss);
 
-                    robot.Model = FindModel(ham, tokens[1]);
+                    robot.Model = FindModelID(ham, tokens[1]);
                     auto& modelInfo = models.emplace_back();
                     modelInfo.name = tokens[1];
 
@@ -283,6 +289,14 @@ namespace Inferno {
 
                         if (token.ends_with(".bbm") || token.starts_with('%'))
                             modelInfo.textures.push_back(token);
+                    }
+
+                    if (auto model = FindModel(ham, tokens[1])) {
+                        robot.Guns = (uint8)model->Guns.size();
+                        for (size_t i = 0; i < model->Guns.size(); i++) {
+                            robot.GunPoints[i] = model->Guns[i].Point;
+                            robot.GunSubmodels[i] = model->Guns[i].Submodel;
+                        }
                     }
 
                     break;
@@ -490,25 +504,21 @@ namespace Inferno {
                         SetFlag(clip.Flags, DoorClipFlag::Explodes);
 
                     readTokenValue("open_sound", clip.OpenSound);
-                    readTokenValue("close_sound", clip.OpenSound);
+                    readTokenValue("close_sound", clip.CloseSound);
 
                     auto frames = pig.FindAnimation(bmLine, (uint)clip.Frames.size());
                     clip.NumFrames = (int16)frames.size();
 
                     for (int i = 0; i < frames.size(); i++) {
-                        clip.Frames[i] = LevelTexID(frames[i]);
-
-                        //if (i == 0) {
-
                         auto id = LevelTexID(ham.LevelTextures.size());
+                        clip.Frames[i] = id;
+
                         auto& levelTexture = ham.LevelTextures.emplace_back();
-                        SPDLOG_INFO("{}#{} {}", String::Split(bmLine, ' ')[0], i, (int)id);
+                        //SPDLOG_INFO("{}#{} {}", String::Split(bmLine, ' ')[0], i, (int)id);
                         levelTexture.ID = id;
                         levelTexture.TexID = frames[i];
                         ham.AllTexIdx[(int)id] = frames[i];
-                        //}
                     }
-                    //}
 
                     break;
                 }
@@ -530,16 +540,39 @@ namespace Inferno {
                             weapon.Icon = pig.Find(picture);
 
                         string pof;
-                        if (readTokenValue("weapon_pof", pof))
-                            weapon.Model = FindModel(ham, pof);
+                        if (readTokenValue("weapon_pof", pof)) {
+                            weapon.Model = FindModelID(ham, pof);
+                            weapon.RenderType = WeaponRenderType::Model;
+
+                            if (!Seq::exists(models, [&pof](const auto& model) { return model.name == pof; })) {
+                                auto& modelInfo = models.emplace_back();
+                                modelInfo.name = pof;
+                                for (size_t i = 1; i < tokens.size(); i++) {
+                                    auto& token = tokens[i];
+                                    if (token.ends_with(".bbm") || token.starts_with('%'))
+                                        modelInfo.textures.push_back(token);
+                                }
+                            }
+                        }
 
                         string pofInner;
                         if (readTokenValue("weapon_pof_inner", pofInner))
-                            weapon.ModelInner = FindModel(ham, pofInner);
+                            weapon.ModelInner = FindModelID(ham, pofInner);
+
+                        if (readTokenValue("weapon_vclip", weapon.WeaponVClip)) {
+                            weapon.RenderType = WeaponRenderType::VClip;
+                        }
 
                         readTokenValue("mass", weapon.Mass);
                         readTokenValue("drag", weapon.Drag);
                         readTokenValue("blob_size", weapon.BlobSize);
+
+                        string blobBmp;
+                        if (readTokenValue("blob_bmp", blobBmp)) {
+                            weapon.RenderType = weapon.RenderType = WeaponRenderType::Blob;
+                            weapon.BlobBitmap = pig.Find(blobBmp);
+                        }
+
                         readTokenValue("flash_vclip", weapon.FlashVClip);
                         readTokenValue("flash_size", weapon.FlashSize);
                         readTokenValue("flash_sound", weapon.FlashSound);
@@ -583,7 +616,7 @@ namespace Inferno {
                         // %50 %51 %32 rmap03.bbm %52
                         // dead_pof=reactor2.pof strength=200.1 rmap03.bbm rbot056.bbm rbot057.bbm
                         auto& reactor = ham.Reactors.emplace_back();
-                        reactor.Model = FindModel(ham, tokens[1]);
+                        reactor.Model = FindModelID(ham, tokens[1]);
 
                         auto& reactorModel = models.emplace_back();
                         auto& destroyedReactorModel = models.emplace_back();
@@ -596,18 +629,18 @@ namespace Inferno {
                         }
 
                         if (string deadModel; readTokenValue("dead_pof", deadModel))
-                            ham.DeadModels[(int)reactor.Model] = FindModel(ham, deadModel);
+                            ham.DeadModels[(int)reactor.Model] = FindModelID(ham, deadModel);
                     }
                     else if (type == "exit") {
                         // $OBJECT exit01.pof type=exit steel1.bbm rbot061.bbm rbot062.bbm
                         // dead_pof=exit01d.pof steel1.bbm rbot061.bbm rbot063.bbm
-                        ham.ExitModel = FindModel(ham, tokens[1]);
+                        ham.ExitModel = FindModelID(ham, tokens[1]);
                         auto& exit = models.emplace_back();
                         exit.name = tokens[1];
                         readTextures(2, exit);
 
                         if (string deadModel; readTokenValue("dead_pof", deadModel)) {
-                            ham.DestroyedExitModel = FindModel(ham, deadModel);
+                            ham.DestroyedExitModel = FindModelID(ham, deadModel);
 
                             auto destIndex = findTokenIndex("dead_pof");
                             auto& destroyedExit = models.emplace_back();
@@ -636,16 +669,22 @@ namespace Inferno {
                     auto& shipModel = models.emplace_back();
 
                     if (string model; readTokenValue("model", model)) {
-                        ship.Model = FindModel(ham, model);
+                        ship.Model = FindModelID(ham, model);
                         shipModel.name = model;
                         readTextures(2, shipModel);
+
+                        // Copy gunpoints
+                        if (auto pof = FindModel(ham, model)) {
+                            for (size_t i = 0; i < pof->Guns.size(); i++)
+                                ship.GunPoints[i] = pof->Guns[i].Point;
+                        }
                     }
 
                     if (string model; readTokenValue("dying_pof", model)) {
                         auto& deadModel = models.emplace_back();
                         deadModel.name = model;
                         deadModel.textures = shipModel.textures;
-                        ham.DyingModels[(int)ship.Model] = FindModel(ham, model);
+                        ham.DyingModels[(int)ship.Model] = FindModelID(ham, model);
                     }
 
                     break;
@@ -701,7 +740,7 @@ namespace Inferno {
                 }
             }
 
-            auto id = FindModel(ham, modelInfo.name);
+            auto id = FindModelID(ham, modelInfo.name);
             if (id == ModelID::None) continue;
             auto& model = ham.Models[(int)id];
             model.TextureCount = (ubyte)modelInfo.textures.size();
@@ -724,10 +763,6 @@ namespace Inferno {
             auto& robot = ham.Robots[i];
             if (auto model = Seq::tryItem(ham.Models, (int)robot.Model)) {
                 RobotSetAngles(robot, *model, ham);
-                //for (size_t anim = 0; anim < 5; anim++) {
-                //    auto& joints = ham.RobotJoints.emplace_back();
-                //    for (auto& angle : model->Animation[anim]) {}
-                //}
             }
         }
     }
