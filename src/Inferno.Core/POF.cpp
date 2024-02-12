@@ -66,9 +66,9 @@ namespace Inferno {
                     for (int i = 0; i < model.Guns.size(); i++) {
                         auto gunid = r.ReadInt16();
                         auto& gun = model.Guns[gunid];
-                        gun.Parent = r.ReadInt16();
-                        if (gun.Parent == 0xff) 
-                            throw Exception("Invalid gun parent");
+                        gun.Submodel = (uint8)r.ReadInt16();
+                        if (gun.Submodel == 0xff) 
+                            throw Exception("Invalid gun submodel");
 
                         gun.Point = r.ReadVector();
                         if (version >= 7)
@@ -90,6 +90,8 @@ namespace Inferno {
                     for (size_t m = 0; m < model.Submodels.size(); m++) {
                         for (size_t f = 0; f < frames; f++) {
                             model.Animation[f][m] = r.ReadAngleVec();
+                            model.Animation[f][m].z *= -1;
+                            std::swap(model.Animation[f][m].y, model.Animation[f][m].z);
                         }
                     }
 
@@ -123,6 +125,7 @@ namespace Inferno {
         }
 
         model.DataSize = (uint)pof.size();
+        model.TextureCount = (uint8)model.Textures.size();
         return model;
     }
 }

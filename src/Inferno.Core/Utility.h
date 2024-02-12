@@ -659,16 +659,18 @@ namespace Inferno {
         }
 
         // Returns an uppercase copy of the string
-        auto ToUpper(auto str) {
-            std::transform(str.begin(), str.end(), str.begin(), [](auto c) { return (char)std::toupper(c); });
-            return str;
+        [[nodiscard]] auto ToUpper(const auto str) {
+            auto buffer = string{ str };
+            std::transform(buffer.begin(), buffer.end(), buffer.begin(), [](auto c) { return (char)std::toupper(c); });
+            return buffer;
         };
 
         // Returns a lowercase copy of the string.
         // Not safe for non-ascii
-        auto ToLower(auto str) {
-            std::transform(str.begin(), str.end(), str.begin(), [](auto c) { return (char)std::tolower(c); });
-            return str;
+        [[nodiscard]] auto ToLower(const auto str) {
+            auto buffer = string{ str };
+            std::transform(buffer.begin(), buffer.end(), buffer.begin(), [](auto c) { return (char)std::tolower(c); });
+            return buffer;
         }
 
         // Splits a string into a vector. Returns the original string if no separator is found.

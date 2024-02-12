@@ -55,15 +55,15 @@ namespace Inferno {
         List<Submodel> Submodels;
         Vector3 MinBounds, MaxBounds;
         float Radius = 5;
-        ubyte TextureCount;
+        uint8 TextureCount;
         ushort FirstTexture;
-        ubyte SimplerModel; //alternate model with less detail (0 if none, model_num+1 else), probably a bool?
+        ubyte SimplerModel; //alternate model with less detail (0 if none, model_num+1 else)
         List<Vector3> angles; // was in POF data, maybe not used at runtime?
         List<Vector3> Vertices;
         List<Vector3> Normals, FlatNormals; // 1 normal per three Vertices
 
         struct Bank {
-            int Parent = 0;
+            uint8 Submodel = 0;
             Vector3 Point, Normal;
         };
 
