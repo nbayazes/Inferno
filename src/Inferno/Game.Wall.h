@@ -1,10 +1,12 @@
 #pragma once
 
+#include "Editor/Events.h"
 #include "Level.h"
 #include "Types.h"
-#include "Editor/Events.h"
 
 namespace Inferno {
+    struct LevelHit;
+
     // Tries to open a door
     void OpenDoor(Level& level, Tag tag, Faction source);
     void DestroyWall(Level& level, Tag tag);
@@ -20,6 +22,7 @@ namespace Inferno {
     bool SideIsTransparent(const Level& level, Tag tag);
     void UpdateExplodingWalls(Level& level, float dt);
     void HitWall(Level& level, const Vector3& point, const Object& src, const Wall& wall);
+    void WeaponHitWall(const LevelHit& hit, Object& obj, Inferno::Level& level, ObjID objId);
 
     //// Tracks one-shot animations on a wall
     //class DestroyedClipSystem {

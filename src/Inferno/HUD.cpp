@@ -1,10 +1,10 @@
 #include "pch.h"
 #include "HUD.h"
 #include "Game.h"
-#include "SoundSystem.h"
 #include "Graphics/MaterialLibrary.h"
 #include "Graphics/Render.h"
 #include "Resources.h"
+#include "SoundSystem.h"
 
 namespace Inferno {
     namespace {

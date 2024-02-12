@@ -12,6 +12,7 @@
 #include "Game.AI.h"
 #include "Resources.h"
 #include "Editor/Events.h"
+#include "Graphics/Render.h"
 
 namespace Inferno {
     //template<class TData, class TKey = int>
@@ -626,6 +627,292 @@ namespace Inferno {
                 }
             }
         }
+    }
+
+    void AddPlanarExplosion(const Weapon& weapon, const LevelHit& hit) {
+        auto rotation = Matrix::CreateFromAxisAngle(hit.Normal, Random() * DirectX::XM_2PI);
+
+        // Add the planar explosion effect
+        Render::DecalInfo planar{};
+        planar.Normal = hit.Normal;
+        planar.Tangent = Vector3::Transform(hit.Tangent, rotation);
+        planar.Bitangent = planar.Tangent.Cross(hit.Normal);
+        planar.Texture = weapon.Extended.ExplosionTexture;
+        planar.Radius = weapon.Extended.ExplosionSize;
+        planar.Duration = planar.FadeTime = weapon.Extended.ExplosionTime;
+        planar.Segment = hit.Tag.Segment;
+        planar.Side = hit.Tag.Side;
+        planar.Position = hit.Point;
+        planar.FadeRadius = weapon.GetDecalSize() * 2.4f;
+        planar.Additive = true;
+        planar.Color = Color{ 1.5f, 1.5f, 1.5f };
+        Render::AddDecal(planar);
+
+        //Render::DynamicLight light{};
+        //light.LightColor = weapon.Extended.ExplosionColor;
+        //light.Radius = weapon.Extended.LightRadius;
+        //light.Position = hit.Point + hit.Normal * weapon.Extended.ExplosionSize;
+        //light.Duration = light.FadeTime = weapon.Extended.ExplosionTime;
+        //light.Segment = hit.Tag.Segment;
+        //Render::AddDynamicLight(light);
+    }
+
+
+    // returns true if overlay was destroyed
+    bool CheckDestroyableOverlay(Level& level, const Vector3& point, Tag tag, int tri, bool isPlayer) {
+        tri = std::clamp(tri, 0, 1);
+
+        auto seg = level.TryGetSegment(tag);
+        if (!seg) return false;
+
+        auto& side = seg->GetSide(tag.Side);
+        if (side.TMap2 <= LevelTexID::Unset) return false;
+
+        auto& tmi = Resources::GetLevelTextureInfo(side.TMap2);
+        if (tmi.EffectClip == EClipID::None && tmi.DestroyedTexture == LevelTexID::None)
+            return false;
+
+        auto& eclip = Resources::GetEffectClip(tmi.EffectClip);
+        if (eclip.OneShotTag) return false; // don't trigger from one-shot effects
+
+        bool hasEClip = eclip.DestroyedTexture != LevelTexID::None || eclip.DestroyedEClip != EClipID::None;
+        if (!hasEClip && tmi.DestroyedTexture == LevelTexID::None)
+            return false;
+
+        // Don't allow non-players to destroy triggers
+        if (!isPlayer) {
+            if (auto wall = level.TryGetWall(tag)) {
+                if (wall->Trigger != TriggerID::None)
+                    return false;
+            }
+        }
+
+        auto face = ConstFace::FromSide(level, *seg, tag.Side);
+        auto uv = IntersectFaceUVs(point, face, tri);
+
+        auto& bitmap = Resources::GetBitmap(Resources::LookupTexID(side.TMap2));
+        auto& info = bitmap.Info;
+        auto x = uint(uv.x * info.Width) % info.Width;
+        auto y = uint(uv.y * info.Height) % info.Height;
+        FixOverlayRotation(x, y, info.Width, info.Height, side.OverlayRotation);
+
+        if (!bitmap.Mask.empty() && bitmap.Mask[y * info.Width + x] == Palette::SUPER_MASK)
+            return false; // portion hit was supertransparent
+
+        if (bitmap.Data[y * info.Width + x].a == 0)
+            return false; // portion hit was transparent
+
+        // Hit opaque overlay!
+        //Inferno::SubtractLight(level, tag, *seg);
+
+        bool usedEClip = false;
+
+        if (eclip.DestroyedEClip != EClipID::None) {
+            // Hack storing exploding side state into the global effect.
+            // The original game did this, but should be replaced with a more robust system.
+            // If more than one monitor breaks with different times the animation wouldn't play properly.
+            if (Seq::inRange(Resources::GameData.Effects, (int)eclip.DestroyedEClip)) {
+                auto& destroyed = Resources::GameData.Effects[(int)eclip.DestroyedEClip];
+                if (!destroyed.OneShotTag) {
+                    side.TMap2 = Resources::LookupLevelTexID(destroyed.VClip.Frames[0]);
+                    destroyed.TimeLeft = destroyed.VClip.PlayTime;
+                    destroyed.OneShotTag = tag;
+                    destroyed.DestroyedTexture = eclip.DestroyedTexture;
+                    usedEClip = true;
+                    Render::LoadTextureDynamic(eclip.DestroyedTexture);
+                    Render::LoadTextureDynamic(side.TMap2);
+                }
+            }
+        }
+
+        if (!usedEClip) {
+            // Skip to the destroyed fully texture
+            side.TMap2 = hasEClip ? eclip.DestroyedTexture : tmi.DestroyedTexture;
+            Render::LoadTextureDynamic(side.TMap2);
+        }
+
+        //Editor::Events::LevelChanged();
+
+        //Render::ExplosionInfo ei;
+        //ei.Clip = hasEClip ? eclip.DestroyedVClip : VClipID::LightExplosion;
+        //ei.MinRadius = ei.MaxRadius = hasEClip ? eclip.ExplosionSize : 20.0f;
+        //ei.FadeTime = 0.25f;
+        //ei.Position = point;
+        //ei.Segment = tag.Segment;
+        //Render::CreateExplosion(ei);
+        if (auto e = Render::EffectLibrary.GetSparks("overlay_destroyed")) {
+            e->Direction = side.AverageNormal;
+            e->Up = side.Tangents[0];
+            auto position = point + side.AverageNormal * 0.1f;
+            Render::AddSparkEmitter(*e, tag.Segment, position);
+        }
+
+        auto& vclip = Resources::GetVideoClip(eclip.DestroyedVClip);
+        auto soundId = vclip.Sound != SoundID::None ? vclip.Sound : SoundID::LightDestroyed;
+        Sound3D sound(soundId);
+        Sound::Play(sound, point, tag.Segment);
+
+        if (auto trigger = level.TryGetTrigger(side.Wall)) {
+            SPDLOG_INFO("Activating switch {}:{}\n", tag.Segment, tag.Side);
+            //fmt::print("Activating switch {}:{}\n", tag.Segment, tag.Side);
+            ActivateTrigger(level, *trigger, tag);
+        }
+
+        return true; // was destroyed!
+    }
+
+    // There are four possible outcomes when hitting a wall:
+    // 1. Hit a normal wall
+    // 2. Hit water. Reduces damage of explosion and changes sound effect
+    // 3. Hit lava. Creates explosion for all weapons and changes sound effect
+    // 4. Hit forcefield. Bounces non-matter weapons.
+    void WeaponHitWall(const LevelHit& hit, Object& obj, Inferno::Level& level, ObjID objId) {
+        if (!hit.Tag) return;
+        if (obj.Lifespan <= 0) return; // Already dead
+        bool isPlayer = obj.Control.Weapon.ParentType == ObjectType::Player;
+        CheckDestroyableOverlay(level, hit.Point, hit.Tag, hit.Tri, isPlayer);
+
+        auto& weapon = Resources::GetWeapon((WeaponID)obj.ID);
+        float damage = weapon.Damage[Game::Difficulty]; // Damage used when hitting lava
+        float splashRadius = weapon.SplashRadius;
+        float force = damage;
+        float impactSize = weapon.ImpactSize;
+
+        // don't use volatile hits on large explosions like megas
+        constexpr float VOLATILE_DAMAGE_RADIUS = 30;
+        bool isLargeExplosion = splashRadius >= VOLATILE_DAMAGE_RADIUS / 2;
+
+        // weapons with splash damage (explosions) always use robot hit effects
+        SoundID soundId = weapon.SplashRadius > 0 ? weapon.RobotHitSound : weapon.WallHitSound;
+        VClipID vclip = weapon.SplashRadius > 0 ? weapon.RobotHitVClip : weapon.WallHitVClip;
+
+        auto& side = level.GetSide(hit.Tag);
+        auto& ti = Resources::GetLevelTextureInfo(side.TMap);
+        bool hitForcefield = ti.HasFlag(TextureFlag::ForceField);
+        bool hitLava = ti.HasFlag(TextureFlag::Volatile);
+        bool hitWater = ti.HasFlag(TextureFlag::Water);
+
+        // Special case for flares
+        if (HasFlag(obj.Physics.Flags, PhysicsFlag::Stick) && !hitLava && !hitWater && !hitForcefield) {
+            // sticky flare behavior
+            Vector3 vec;
+            obj.Physics.Velocity.Normalize(vec);
+            obj.Position -= vec * obj.Radius; // move out of wall
+            obj.Physics.Velocity = Vector3::Zero;
+            StuckObjects.Add(hit.Tag, objId);
+            obj.Flags |= ObjectFlag::Attached;
+            return;
+        }
+
+        auto bounce = hit.Bounced;
+        if (hitLava && weapon.SplashRadius > 0)
+            bounce = false; // Explode bouncing explosive weapons (mines) when touching lava
+
+        if (!bounce) {
+            // Move object to the desired explosion location
+            auto dir = obj.Physics.PrevVelocity;
+            dir.Normalize();
+
+            if (impactSize < 5)
+                obj.Position = hit.Point - dir * impactSize * 0.25f;
+            else
+                obj.Position = hit.Point - dir * 2.5;
+        }
+
+        if (hitForcefield) {
+            if (!weapon.IsMatter) {
+                // Bounce energy weapons
+                obj.Physics.Bounces++;
+                obj.Parent = {}; // Make hostile to owner!
+                Sound::Play({ SoundID::WeaponHitForcefield }, hit.Point, hit.Tag.Segment);
+            }
+        }
+        else if (hitLava) {
+            if (!isLargeExplosion) {
+                // add volatile size and damage bonuses to smaller explosions
+                vclip = VClipID::HitLava;
+                constexpr float VOLATILE_DAMAGE = 10;
+                constexpr float VOLATILE_FORCE = 5;
+
+                damage = damage / 4 + VOLATILE_DAMAGE;
+                splashRadius += VOLATILE_DAMAGE_RADIUS;
+                force = force / 2 + VOLATILE_FORCE;
+                impactSize += 1;
+            }
+
+            // Create a damaging and visual explosion
+            GameExplosion ge{};
+            ge.Segment = hit.Tag.Segment;
+            ge.Position = obj.Position;
+            ge.Damage = damage;
+            ge.Force = force;
+            ge.Radius = splashRadius;
+            ge.Room = level.GetRoomID(obj);
+            CreateExplosion(level, &obj, ge);
+
+            Render::ExplosionInfo e;
+            e.Radius = { weapon.ImpactSize * 0.9f, weapon.ImpactSize * 1.1f };
+            e.Clip = vclip;
+            e.FadeTime = weapon.Extended.ExplosionTime;
+            e.Color = Color{ 1, .7f, .7f, 2 };
+            e.LightColor = Color{ 1.0f, 0.05f, 0.05f, 4 };
+            e.LightRadius = splashRadius;
+            Render::CreateExplosion(e, obj.Segment, obj.Position);
+
+            Sound::Play({ SoundID::HitLava }, hit.Point, hit.Tag.Segment);
+        }
+        else if (hitWater) {
+            if (isLargeExplosion) {
+                // reduce strength of megas and shakers in water, but don't cancel them
+                splashRadius *= 0.5f;
+                damage *= 0.25f;
+                force *= 0.5f;
+                impactSize *= 0.5f;
+            }
+            else {
+                vclip = VClipID::HitWater;
+                splashRadius = 0; // Cancel explosions when hitting water
+            }
+
+            if (splashRadius > 0) {
+                // Create damage for large explosions
+                GameExplosion ge{};
+                ge.Segment = hit.Tag.Segment;
+                ge.Position = obj.Position;
+                ge.Damage = damage;
+                ge.Force = force;
+                ge.Radius = splashRadius;
+                CreateExplosion(level, &obj, ge);
+            }
+
+            Render::Particle e;
+            e.Radius = NumericRange(weapon.ImpactSize * 0.9f, weapon.ImpactSize * 1.1f).GetRandom();
+            e.Clip = vclip;
+            e.FadeTime = weapon.Extended.ExplosionTime;
+            e.Color = Color(1, 1, 1);
+            Render::AddParticle(e, obj.Segment, obj.Position);
+
+            auto splashId = weapon.IsMatter ? SoundID::MissileHitWater : SoundID::HitWater;
+            Sound::Play({ splashId }, hit.Point, hit.Tag.Segment);
+        }
+        else {
+            // Hit normal wall
+            Game::AddWeaponDecal(hit, weapon);
+
+            // Explosive weapons play their effects on death instead of here
+            if (!bounce && splashRadius <= 0) {
+                if (vclip != VClipID::None)
+                    Game::DrawWeaponExplosion(obj, weapon);
+
+                SoundResource resource = { soundId };
+                resource.D3 = weapon.Extended.ExplosionSound; // Will take priority if D3 is loaded
+                Sound3D sound(resource);
+                Sound::Play(sound, hit.Point, hit.Tag.Segment);
+            }
+        }
+
+        if (!bounce)
+            obj.Lifespan = 0; // remove weapon after hitting a wall
     }
 
     // Opens doors targeted by a trigger (or destroys them)

@@ -95,13 +95,15 @@ namespace Inferno::Game {
     inline float LerpAmount = 1; // How much to lerp between the previous and next object states
 
     void WeaponHitObject(const LevelHit& hit, Object& src);
-    void WeaponHitWall(const LevelHit& hit, Object& obj, Inferno::Level& level, ObjID objId);
+    void AddWeaponDecal(const LevelHit& hit, const Weapon& weapon);
 
     // Fires a weapon from a model gunpoint
     ObjRef FireWeapon(Object& obj, WeaponID, uint8 gun, Vector3* customDir = nullptr, float damageMultiplier = 1, bool showFlash = true, float volume = DEFAULT_WEAPON_VOLUME);
 
     // Spread is x/y units relative to the object's forward direction
     Vector3 GetSpreadDirection(const Object& obj, const Vector2& spread);
+
+    void DrawWeaponExplosion(const Object& obj, const Weapon& weapon, float scale = 1);
 
     // Detonates a weapon with a splash radius
     void ExplodeWeapon(struct Level& level, const Object&);
