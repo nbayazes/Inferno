@@ -2259,6 +2259,7 @@ Materials:
     EmissiveStrength: 1
   - TexID: 1522
     NormalStrength: 0.417
+    Metalness: 0.5
     Roughness: 0.61
     EmissiveStrength: 2
   - TexID: 1524
@@ -2481,7 +2482,7 @@ Materials:
     Roughness: 0.323
   - TexID: 1913
     Roughness: 0.8
-    EmissiveStrength: 0.25
+    EmissiveStrength: 0.5
     LightReceived: 0
     Procedural:
       EvalTime: 0.0625
@@ -2703,6 +2704,10 @@ Materials:
   - TexID: 2434
     NormalStrength: 0.153
     Roughness: 0.512
+  - TexID: 2460
+    NormalStrength: 0.602
+    Metalness: 0.729
+    Roughness: 0.597
   - TexID: 2470
     NormalStrength: 0.417
     Metalness: 0.818
