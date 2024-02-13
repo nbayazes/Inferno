@@ -722,11 +722,12 @@ Robots:
   - id: 21 # Advanced lifter
     CircleDistance: 12
     Mass: 9
-    MeleeDamage: [ 5, 6, 7, 8, 9 ]
+    MeleeDamage: [ 5, 5, 6, 7, 8 ]
     ChaseChance: 1
     SeeSound: 179
     Score: 750 # Was 800
     GetBehind: 1
+    Evasion: 1 # Lower evasion so they don't bounce off the walls at higher difficulty
   - id: 22 # PTMC Defense Prototype
     CircleDistance: 40
     Aim: 190 # 255 is perfect aim
@@ -976,7 +977,7 @@ Effects:
       Count: [ 8, 12 ]
       SparkDuration: [ 0.55, 1.15 ]
       Restitution: 0.6
-      Drag: 0.04
+      Drag: 0.06
       Velocity: [ 25, 30 ]
       FadeTime: 1
       Texture: tracer

@@ -39,6 +39,8 @@ namespace Inferno::Resources {
 
     const LevelTexture& GetLevelTextureInfo(LevelTexID);
     const LevelTexture& GetLevelTextureInfo(TexID);
+
+    TexID FindTexture(string_view name);
     const PigEntry& GetTextureInfo(TexID);
     const PigEntry& GetTextureInfo(LevelTexID);
     LevelTexID GetDestroyedTexture(LevelTexID);
@@ -50,6 +52,7 @@ namespace Inferno::Resources {
     ModelID GetDyingModelID(ModelID);
 
     const RobotInfo& GetRobotInfo(uint);
+
     inline const RobotInfo& GetRobotInfo(const Object& obj) {
         ASSERT(obj.IsRobot());
         return GetRobotInfo(obj.ID);
@@ -58,7 +61,11 @@ namespace Inferno::Resources {
     List<TexID> CopyLevelTextureLookup();
     TexID LookupTexID(LevelTexID);
     TexID LookupModelTexID(const Model&, int16);
-    inline LevelTexID LookupLevelTexID(TexID id) { return GameData.LevelTexIdx[(int)id]; }
+
+    inline LevelTexID LookupLevelTexID(TexID id) {
+        if (!Seq::inRange(GameData.LevelTexIdx, (int)id)) return LevelTexID::None;
+        return GameData.LevelTexIdx[(int)id];
+    }
 
     inline const char* GetMaterialTablePath(const Level& level) {
         return level.IsDescent1() ? "data/d1/material.yml" : "data/d2/material.yml";
@@ -74,6 +81,7 @@ namespace Inferno::Resources {
     bool IsObjectTexture(TexID id);
 
     Weapon& GetWeapon(WeaponID);
+
     inline Weapon& GetWeapon(const Object& obj) {
         ASSERT(obj.IsWeapon());
         return GetWeapon(WeaponID(obj.ID));

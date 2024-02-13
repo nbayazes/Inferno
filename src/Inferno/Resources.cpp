@@ -99,6 +99,8 @@ namespace Inferno::Resources {
     }
 
     DClipID GetDoorClipID(LevelTexID id) {
+        if (id == LevelTexID::None) return DClipID::None;
+
         for (int i = 0; i < GameData.DoorClips.size(); i++) {
             if (GameData.DoorClips[i].Frames[0] == id)
                 return DClipID(i);
@@ -221,6 +223,11 @@ namespace Inferno::Resources {
     }
 
     PigEntry DefaultPigEntry = { .Name = "Unknown", .Width = 64, .Height = 64 };
+
+    TexID FindTexture(string_view name) {
+        auto index = Seq::findIndex(Pig.Entries, [name](const PigEntry& entry) { return entry.Name == name; });
+        return index ? TexID(*index) : TexID::None;
+    }
 
     const PigEntry& GetTextureInfo(TexID id) {
         if (auto bmp = CustomTextures.Get(id)) return bmp->Info;

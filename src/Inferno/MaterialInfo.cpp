@@ -121,7 +121,10 @@ namespace Inferno {
 
     void SaveMaterialInfo(ryml::NodeRef node, TexID id, const MaterialInfo& info) {
         node |= ryml::MAP;
-        node["TexID"] << (int)id;
+
+        auto& ti = Resources::GetTextureInfo(id);
+        ASSERT(!ti.Name.empty());
+        node["Name"] << ti.Name;
 
         if (info.NormalStrength != 1)
             node["NormalStrength"] << info.NormalStrength;
@@ -163,13 +166,21 @@ namespace Inferno {
     void ReadMaterialInfo(ryml::NodeRef node, span<MaterialInfo> materials) {
         if (!node.valid() || node.is_seed()) return;
 
-        MaterialInfo info{};
-        int texId;
-        ReadValue(node["TexID"], texId);
-        if (texId >= Resources::GameData.LevelTexIdx.size())
-            return; // out of range
+        auto texId = TexID::None;
 
-        info.ID = texId;
+        MaterialInfo info{};
+        string name;
+        if (ReadValue(node["Name"], name))
+            texId = Resources::FindTexture(name);
+
+        // Check for old texid property
+        if (texId == TexID::None)
+            ReadValue(node["TexID"], texId);
+
+        if (texId == TexID::None)
+            return; // couldn't find texture from name or id
+
+        info.ID = (int)texId;
 
         ReadValue(node["NormalStrength"], info.NormalStrength);
         ReadValue(node["SpecularStrength"], info.SpecularStrength);
@@ -267,8 +278,9 @@ namespace Inferno {
             doc.rootref() |= ryml::MAP;
 
             doc["Materials"] |= ryml::SEQ;
-            for (int i = 0; i < materials.size(); i++) {
-                if (materials[i].ID == -1) continue;
+            // skip material 0 as it is a placeholder
+            for (int i = 1; i < materials.size(); i++) {
+                if (materials[i].ID == (int)TexID::None || materials[i].ID == (int)Render::SHINY_FLAT_MATERIAL) continue;
                 auto node = doc["Materials"].append_child();
                 SaveMaterialInfo(node, (TexID)i, materials[i]);
             }
