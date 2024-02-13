@@ -307,8 +307,9 @@ namespace Inferno::Editor {
             Editor::Gizmo.State == GizmoState::Dragging && io.MouseDown[1])
             Editor::Gizmo.CancelDrag();
 
-        // only update mouse functionality if mouse not over imgui and not in mouselook
-        if (ImGui::GetCurrentContext()->HoveredWindow && Input::GetMouseMode() != Input::MouseMode::Normal) return;
+        // only update mouse functionality if mouse not over imgui
+        if (ImGui::GetCurrentContext()->HoveredWindow && Input::GetMouseMode() == Input::MouseMode::Normal)
+            return;
 
         DragMode = UpdateGizmoDragState();
 
