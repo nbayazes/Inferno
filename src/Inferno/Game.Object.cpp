@@ -1076,6 +1076,10 @@ namespace Inferno {
                 obj.Control.Type = ControlType::Reactor;
                 obj.Render.Type = RenderType::Model;
 
+                // Shareware reactor models aren't set
+                if (Game::Shareware)
+                    obj.Render.Model.ID = Resources::GameData.Reactors.at(0).Model;
+
                 if (Seq::inRange(Resources::GameData.Reactors, id)) {
                     auto& info = Resources::GameData.Reactors[id];
                     obj.Render.Model = { .ID = info.Model };

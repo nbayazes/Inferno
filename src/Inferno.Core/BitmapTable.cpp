@@ -432,7 +432,10 @@ namespace Inferno {
                     if (!objClip) {
                         id = LevelTexID(ham.LevelTextures.size());
                         levelTexture = &ham.LevelTextures.emplace_back();
-                        levelTexture->D1FileName = bmLine;
+                        levelTexture->D1FileName = String::Split(bmLine, ' ')[0];
+
+                        if (String::Contains(bmLine, "volatile"))
+                            SetFlag(levelTexture->Flags, TextureFlag::Volatile);
                     }
 
                     SPDLOG_INFO("{} {}", String::Split(bmLine, ' ')[0], (int)id);
@@ -604,6 +607,9 @@ namespace Inferno {
                         readTokenValue("fire_wait", weapon.FireDelay);
                         readTokenValue("fire_count", weapon.FireCount);
                         readTokenValue("lifetime", weapon.Lifetime);
+                        readTokenValue("homing", (int&)weapon.IsHoming);
+                        readTokenValue("damage_radius", weapon.SplashRadius);
+
                         readTokenArray("strength", weapon.Damage);
                         readTokenArray("speed", weapon.Speed);
                     }
@@ -764,7 +770,6 @@ namespace Inferno {
             model.TextureCount = (ubyte)modelInfo.textures.size();
             model.FirstTexture = (ubyte)offset;
         }
-
 
         ham.LevelTexIdx.resize(pig.Entries.size());
         ranges::fill(ham.LevelTexIdx, LevelTexID(255));

@@ -158,7 +158,7 @@ namespace Inferno {
 
     struct Weapon {
         WeaponRenderType RenderType;
-        bool Piercing; // Passes through enemies (fusion)
+        bool Piercing = false; // Passes through enemies (fusion)
         ModelID Model = ModelID::None;
         ModelID ModelInner = ModelID::None;
 
@@ -194,25 +194,25 @@ namespace Inferno {
         WeaponID Spawn = WeaponID::None;  // Weapon to spawn when destroyed
         uint SpawnCount = 0; // NEW: number of children to spawn
 
-        float EnergyUsage;
-        float FireDelay;
+        float EnergyUsage = 0.5f;
+        float FireDelay = 0.25f;
 
         float PlayerDamageScale = 1; // Scale damage by this amount when hitting a player
 
-        TexID BlobBitmap;
-        float BlobSize;  // Size of blob if blob type, used for collision
+        TexID BlobBitmap = TexID::None;
+        float BlobSize = 0;  // Size of blob if blob type, used for collision
 
         float FlashSize; // Muzzle flash radius
         float ImpactSize; // Radius of effect when hitting something
         Array<float, 5> Damage;
         Array<float, 5> Speed;
-        float Mass;
-        float Drag;
-        float Thrust;
-        float ModelSizeRatio;  // Ratio of length / width for models
-        float Light;
-        float Lifetime;
-        float SplashRadius; // Applies damage in an area. Effectively doubles damage on direct hits.
+        float Mass = 1;
+        float Drag = 0.01f;
+        float Thrust = 0;
+        float ModelSizeRatio = 1;  // Ratio of length / width for models
+        float Light = 0;
+        float Lifetime = 20.0f;
+        float SplashRadius = 0; // Applies damage in an area. Effectively doubles damage on direct hits.
         TexID Icon = TexID::None, HiresIcon = TexID::None;  // Texture to use in the cockpit or UI
 
         WeaponExtended Extended{};

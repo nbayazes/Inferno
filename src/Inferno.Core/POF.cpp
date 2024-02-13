@@ -71,6 +71,8 @@ namespace Inferno {
                             throw Exception("Invalid gun submodel");
 
                         gun.Point = r.ReadVector();
+                        gun.Point.z *= -1;
+
                         if (version >= 7)
                             gun.Normal = r.ReadVector();
                     }
@@ -126,6 +128,7 @@ namespace Inferno {
 
         model.DataSize = (uint)pof.size();
         model.TextureCount = (uint8)model.Textures.size();
+        model.Radius = model.Submodels[0].Radius;
         return model;
     }
 }
