@@ -128,10 +128,16 @@ namespace Inferno::Game {
             assert(level.FileName != "");
             bool reload = level.FileName == Level.FileName;
 
+            // reload game data when switching between shareware and non-shareware
+            bool sharewareReload =
+                (level.FileName.ends_with(".sdl") && !Level.FileName.ends_with(".sdl")) ||
+                (!level.FileName.ends_with(".sdl") && Level.FileName.ends_with(".sdl"));
+
             Editor::LoadTextureFilter(level);
             bool forceReload =
                 level.IsDescent2() != Level.IsDescent2() ||
                 NeedsResourceReload ||
+                sharewareReload ||
                 Resources::CustomTextures.Any() ||
                 !String::InvariantEquals(level.Palette, Level.Palette);
 

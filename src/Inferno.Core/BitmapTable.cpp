@@ -332,7 +332,7 @@ namespace Inferno {
                     offset += readArray(offset, evade);
 
                     for (int i = 0; i < 5; i++) {
-                        robot.Difficulty[i].FieldOfView = fov[i] * DegToRad;
+                        robot.Difficulty[i].FieldOfView = std::cos(fov[i] * DegToRad);
                         robot.Difficulty[i].FireDelay = fireDelay[i];
                         robot.Difficulty[i].ShotCount = shots[i];
                         robot.Difficulty[i].TurnTime = turnTime[i];
@@ -654,6 +654,16 @@ namespace Inferno {
 
                         if (string deadModel; readTokenValue("dead_pof", deadModel))
                             ham.DeadModels[(int)reactor.Model] = FindModelID(ham, deadModel);
+
+                        // Copy gunpoints
+                        if (auto pof = FindModel(ham, tokens[1])) {
+                            for (size_t i = 0; i < pof->Guns.size(); i++) {
+                                reactor.GunPoints[i] = pof->Guns[i].Point;
+                                reactor.GunDirs[i] = pof->Guns[i].Normal;
+                                reactor.GunPoints[i].z *= -1;
+                                reactor.Guns++;
+                            }
+                        }
                     }
                     else if (type == "exit") {
                         // $OBJECT exit01.pof type=exit steel1.bbm rbot061.bbm rbot062.bbm

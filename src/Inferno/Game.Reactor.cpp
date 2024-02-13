@@ -202,27 +202,26 @@ namespace Inferno::Game {
         if (reactor.Type != ObjectType::Reactor)
             return { -1, {} };
 
-        auto& info = Resources::GameData.Reactors[reactor.ID];
         float bestDot = -2;
         int bestGun = -1;
         Vector3 bestGunPoint;
 
-        for (uint8 gun = 0; gun < info.Guns; gun++) {
-            auto gunSubmodel = GetGunpointSubmodelOffset(reactor, gun);
-            auto objOffset = GetSubmodelOffset(reactor, gunSubmodel);
-            auto gunPoint = Vector3::Transform(objOffset, reactor.GetTransform());
+        if (auto info = Seq::tryItem(Resources::GameData.Reactors, reactor.ID)) {
+            for (uint8 gun = 0; gun < info->Guns; gun++) {
+                auto gunSubmodel = GetGunpointSubmodelOffset(reactor, gun);
+                auto objOffset = GetSubmodelOffset(reactor, gunSubmodel);
+                auto gunPoint = Vector3::Transform(objOffset, reactor.GetTransform());
+                auto targetDir = target - gunPoint;
+                targetDir.Normalize();
 
-            //gunPoint = Vector3::Transform(info.GunPoints[gun], reactor.GetTransform());
-            auto targetDir = target - gunPoint;
-            targetDir.Normalize();
+                auto gunDir = Vector3::Transform(info->GunDirs[gun], reactor.Rotation);
+                auto dot = targetDir.Dot(gunDir);
 
-            auto gunDir = Vector3::Transform(info.GunDirs[gun], reactor.Rotation);
-            auto dot = targetDir.Dot(gunDir);
-
-            if (dot > bestDot) {
-                bestDot = dot;
-                bestGun = gun;
-                bestGunPoint = gunPoint;
+                if (dot > bestDot) {
+                    bestDot = dot;
+                    bestGun = gun;
+                    bestGunPoint = gunPoint;
+                }
             }
         }
 
