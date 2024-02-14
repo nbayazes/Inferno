@@ -17,10 +17,11 @@ using namespace std::chrono;
 namespace Inferno::Sound {
     namespace {
         IXAudio2SourceVoice* MusicVoice = nullptr;
-        std::atomic RequestStopSounds = false;
+        std::atomic RequestStopSounds = false, RequestStopMusic = false;
         std::atomic Alive = false;
         std::jthread WorkerThread;
         std::mutex ResetMutex, SoundInstancesMutex, InitMutex;
+        Ptr<MusicStream> CurrentMusicStream;
 
         constexpr int FREQUENCY_11KHZ = 11025;
         constexpr int FREQUENCY_22KHZ = 22050;
@@ -199,8 +200,6 @@ namespace Inferno::Sound {
         return false;
     }
 
-    Ptr<MusicStream> CurrentMusicStream;
-
     void SoundWorker(milliseconds pollRate) {
         SPDLOG_INFO("Starting audio mixer thread");
 
@@ -289,6 +288,11 @@ namespace Inferno::Sound {
                             sound.Instance->Apply3D(Listener, sound.Emitter, false);
                     }
 
+                    if (RequestStopMusic) {
+                        CurrentMusicStream->Effect->Stop();
+                        CurrentMusicStream = {};
+                    }
+
                     StopSoundUIDs.clear();
                     StopSoundSources.clear();
                 }
@@ -296,10 +300,12 @@ namespace Inferno::Sound {
                     SPDLOG_ERROR("Error in audio worker: {}", e.what());
                 }
                 RequestStopSounds = false;
+                RequestStopMusic = false;
                 std::this_thread::sleep_for(pollRate);
             }
             else {
                 RequestStopSounds = false;
+                RequestStopMusic = false;
 
                 // https://github.com/microsoft/DirectXTK/wiki/AudioEngine
                 if (!Engine->IsAudioDevicePresent()) {}
@@ -589,7 +595,6 @@ namespace Inferno::Sound {
         if (!Engine || !Alive) return;
         std::scoped_lock lock(ResetMutex);
         SPDLOG_INFO("Clearing audio cache");
-        //SoundsD1.clear(); // unknown if effects must be stopped before releasing
         Stop3DSounds();
         StopMusic();
 
@@ -768,8 +773,7 @@ namespace Inferno::Sound {
     void StopMusic() {
         if (!CurrentMusicStream) return;
         SPDLOG_INFO("Stopping music");
-        CurrentMusicStream->Effect->Stop();
-        CurrentMusicStream = {};
+        RequestStopMusic = true;
     }
 
     void Shutdown() {
