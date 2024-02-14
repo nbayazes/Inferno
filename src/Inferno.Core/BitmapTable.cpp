@@ -332,7 +332,7 @@ namespace Inferno {
                     offset += readArray(offset, evade);
 
                     for (int i = 0; i < 5; i++) {
-                        robot.Difficulty[i].FieldOfView = std::cos(fov[i] * DegToRad);
+                        robot.Difficulty[i].FieldOfView = ConvertFov(fov[i]);
                         robot.Difficulty[i].FireDelay = fireDelay[i];
                         robot.Difficulty[i].ShotCount = shots[i];
                         robot.Difficulty[i].TurnTime = turnTime[i];

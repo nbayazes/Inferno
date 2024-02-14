@@ -558,6 +558,11 @@ namespace Inferno {
         return (fix)(f * (1 << 16));
     }
 
+    // Converts an FOV in 0 to 360 degrees to cosine
+    inline float ConvertFov(float fovDeg) {
+        return cos(fovDeg * DegToRad);
+    }
+
     //constexpr short FloatToFix16(float f) {
     //    constexpr int MIN_FIX16 = -(1 << 6);
     //    constexpr int MAX_FIX16 = (1 << 6) - 1;
@@ -595,6 +600,11 @@ namespace Inferno {
             auto p = str.find(value);
             if (p == string::npos) return {};
             return p;
+        }
+
+        template <class T>
+        constexpr bool TryParse(string_view str, T& result) {
+            return std::from_chars(str.data(), str.data() + str.size(), result).ec == std::errc{};
         }
 
         //inline bool InvariantContains(const std::wstring_view str, const std::wstring_view value) {

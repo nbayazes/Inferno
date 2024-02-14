@@ -162,7 +162,7 @@ namespace Inferno {
         READ_PROP_EXT(UseThrust);
 
         if (weapon.Extended.HomingFov > 0)
-            weapon.Extended.HomingFov = sin(weapon.Extended.HomingFov * DegToRad);
+            weapon.Extended.HomingFov = ConvertFov(weapon.Extended.HomingFov);
 
 #undef READ_PROP_EXT
     }
@@ -351,12 +351,6 @@ namespace Inferno {
         Array<int16, 5> shots{}, evasion{};
 
         bool hasFov = ReadArray<float>(node["FOV"], fov);
-        for (auto& f : fov) {
-            f *= DegToRad; // Convert FOV to radians (0 to 2PI)
-            f = (f - DirectX::XM_PI) / DirectX::XM_PI; // [-PI, PI] to [-1, 1]
-            f = std::clamp(f, -1.0f, 1.0f);
-        }
-
         bool hasFireDelay = ReadArray<float>(node["FireDelay"], fireDelay);
         bool hasFireDelay2 = ReadArray<float>(node["FireDelay2"], fireDelay2);
         bool hasTurnTime = ReadArray<float>(node["TurnTime"], turnTime);
@@ -375,7 +369,7 @@ namespace Inferno {
             if (hasShots) diff.ShotCount = (uint8)shots[i];
             if (hasSpeed) diff.Speed = speed[i];
             if (hasTurnTime) diff.TurnTime = turnTime[i];
-            if (hasFov) diff.FieldOfView = fov[i];
+            if (hasFov) diff.FieldOfView = ConvertFov(fov[i]);
             if (hasMeleeDamage) diff.MeleeDamage = meleeDamage[i];
         }
 
