@@ -591,6 +591,20 @@ namespace Inferno::Resources {
                 auto modelData = Game::Mission->ReadEntry(entry);
                 auto model = ReadPof(modelData, &palette);
                 model.FileName = entry.Name;
+
+                // Rest and fire animations are swapped on the green lifter in demo
+                if (entry.Name == "robot17.pof")
+                    std::swap(model.Animation[(int)AnimState::Rest], model.Animation[(int)AnimState::Fire]);
+
+                // Shift the flare so it is centered better. Retail does not have this problem.
+                if (entry.Name == "flare.pof") {
+                    for (auto& sm : model.Submodels) {
+                        for (auto& v : sm.ExpandedPoints) {
+                            v.Point.z -= 1.5f;
+                        }
+                    }
+                }
+
                 ham.Models.push_back(model);
             }
         }

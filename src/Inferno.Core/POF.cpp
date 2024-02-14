@@ -128,7 +128,6 @@ namespace Inferno {
 
         model.DataSize = (uint)pof.size();
         model.TextureCount = (uint8)model.Textures.size();
-        model.Radius = model.Submodels[0].Radius;
         return model;
     }
 }
