@@ -153,7 +153,7 @@ namespace Inferno {
                 return -1;
             };
 
-            auto readTokenValue = [&tokens]<typename T>(string_view name, T& dest) {
+            auto readLineValue = []<typename T>(span<string> tokens, string_view name, T& dest) {
                 // Skip first token because it is the identifier or name
                 for (int i = 1; i < tokens.size(); i++) {
                     if (!tokens[i].starts_with(name)) continue;
@@ -175,6 +175,10 @@ namespace Inferno {
                 }
 
                 return false;
+            };
+
+            auto readTokenValue = [&tokens, &readLineValue]<typename T>(string_view name, T& dest) {
+                return readLineValue(tokens, name, dest);
             };
 
             // Reads a token in the format `value=1 2 3 4 5`
@@ -288,6 +292,8 @@ namespace Inferno {
                     readTokenValue("see_sound", robot.SeeSound);
                     readTokenValue("attack_sound", robot.AttackSound);
                     readTokenValue("boss", (int&)robot.IsBoss);
+                    readTokenValue("attack_type", robot.Attack);
+                    readTokenValue("cloak_type", robot.Cloaking);
 
                     robot.Model = FindModelID(ham, tokens[1]);
                     auto& modelInfo = models.emplace_back();
@@ -430,12 +436,15 @@ namespace Inferno {
                     LevelTexture* levelTexture = nullptr;
 
                     if (!objClip) {
+                        auto lineTokens = String::Split(bmLine, ' ');
                         id = LevelTexID(ham.LevelTextures.size());
                         levelTexture = &ham.LevelTextures.emplace_back();
-                        levelTexture->D1FileName = String::Split(bmLine, ' ')[0];
+                        levelTexture->D1FileName = lineTokens[0];
 
                         if (String::Contains(bmLine, "volatile"))
                             SetFlag(levelTexture->Flags, TextureFlag::Volatile);
+
+                        readLineValue(lineTokens, "damage", levelTexture->Damage);
                     }
 
                     SPDLOG_INFO("{} {}", String::Split(bmLine, ' ')[0], (int)id);
