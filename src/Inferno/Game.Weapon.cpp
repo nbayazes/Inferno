@@ -355,6 +355,10 @@ namespace Inferno::Game {
             }
             else {
                 bullet.Physics.Velocity += parent->Physics.Velocity;
+
+                // Move mines backwards to avoid colliding with weapons while flying forward
+                if (WeaponIsMine(id) && parent->IsPlayer())
+                    bullet.Position += parent->Rotation.Backward() * 2.0f; 
             }
         }
 

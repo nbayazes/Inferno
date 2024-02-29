@@ -301,11 +301,13 @@ Weapons:
     LightColor: 1, 0.05, 0.05
     Glow: 0.75, 0.75, 0.75
     DirectDamage: 0
+    BlobSize: 2
     Damage: 120 # Mines detonate before touching enemies
     StunMult: 0.4 # Reduce stun and knockback force
     PlayerDamageScale: 0.25 # Reduce player damage to original 30
     Mass: 1 # Original 1
     Thrust: 1 # Thrust when accelerating towards target
+    Bounce: 1 # Demo is missing bounce flag
 
   - id: 17
     Name: smart missile
@@ -542,7 +544,6 @@ Weapons:
 Robots:
   - id: 0 # Medium hulk
     CircleDistance: 80 # Prefer staying away and lobbing missiles
-    FOV: [ 90, 110, 130, 150, 180 ]
     Mass: 6.5
     Multishot: 1
     ChaseChance: 0
@@ -553,16 +554,16 @@ Robots:
     CircleDistance: 12
     Mass: 8
     MeleeDamage: [ 6, 7, 8, 9, 10 ]
+    Speed: [ 35, 40, 45, 50, 65 ] # Duplicate of retail values. Demo has very slow melee robots.
     ChaseChance: 1
     Curiosity: 0.4 # Don't always give away position
     GetBehind: 1
   - id: 2 # Spider
-    CircleDistance: 80 # Hide in back and spawn spiderlings
+    CircleDistance: 80
     Mass: 5.5
     Radius: 4.5 # Default radius is too large and causes problems in level 10 tunnels
   - id: 3 # Class 1 drone
     CircleDistance: 60
-    FOV: [ 110, 130, 150, 170, 200 ]
     # Speed: [ 40, 40, 45, 50, 60 ] # Speed boosted at lower difficulty 30, 30, 35, 40, 60
     Mass: 2.5
     Drag: 0.025
@@ -696,6 +697,7 @@ Robots:
   - id: 18 # Cloaked lifter
     CircleDistance: 12
     Mass: 9.5
+    Speed: [ 20, 30, 40, 50, 60 ] # Increased ace speed
     MeleeDamage: [ 5, 6, 7, 8, 9 ]
     ChaseChance: 1
     Score: 800 # Was 1000

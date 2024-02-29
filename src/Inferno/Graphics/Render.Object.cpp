@@ -44,7 +44,8 @@ namespace Inferno::Render {
                 return;
             }
 
-            auto tid = vclip.GetFrame((float)ElapsedTime);
+            // Randomize sprite animation
+            auto tid = vclip.GetFrame((float)ElapsedTime + GetTimeOffset(object));
             DrawBillboard(ctx, tid, pos, object.Radius, color, additive, object.Render.Rotation, up);
         }
         else if (object.Render.Type == RenderType::Laser) {

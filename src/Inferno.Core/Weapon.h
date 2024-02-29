@@ -207,7 +207,7 @@ namespace Inferno {
         Array<float, 5> Damage;
         Array<float, 5> Speed;
         float Mass = 1;
-        float Drag = 0.01f;
+        float Drag = 0;
         float Thrust = 0;
         float ModelSizeRatio = 1;  // Ratio of length / width for models
         float Light = 0;

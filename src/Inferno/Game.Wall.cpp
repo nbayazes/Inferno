@@ -797,7 +797,7 @@ namespace Inferno {
             // sticky flare behavior
             Vector3 vec;
             obj.Physics.Velocity.Normalize(vec);
-            obj.Position -= vec * obj.Radius; // move out of wall
+            //obj.Position -= vec * obj.Radius; // move out of wall
             obj.Physics.Velocity = Vector3::Zero;
             StuckObjects.Add(hit.Tag, objId);
             obj.Flags |= ObjectFlag::Attached;

@@ -299,6 +299,9 @@ Materials:
       OscillateValue: 5
       Elements:
         - '{"Type": 1,"X1": 64,"Y1": 64,"Frequency": 40,"Size": 128,"Speed": -50}'
+  - Name: rock098
+    NormalStrength: 0.395
+    Roughness: 0.551
   - Name: rock101
     NormalStrength: 0.296
     SpecularStrength: 1.597
@@ -375,7 +378,6 @@ Materials:
     NormalStrength: 0.803
     Roughness: 0.671
   - Name: rock180
-    SpecularStrength: 2
     Roughness: 0.92
   - Name: rock181
     NormalStrength: -1

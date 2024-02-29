@@ -97,7 +97,7 @@ namespace Inferno {
         READ_PROP(FireCount);
         READ_PROP(SpeedVariance);
         READ_PROP(PlayerDamageScale);
-
+        READ_PROP(Bounce);
         READ_PROP(BlobSize);
         Yaml::ReadValue(node["BlobBitmap"], (int&)weapon.BlobBitmap);
 
@@ -140,7 +140,6 @@ namespace Inferno {
         READ_PROP_EXT(RotationalVelocity);
         READ_PROP_EXT(Bounces);
         READ_PROP_EXT(Sticky);
-
         READ_PROP_EXT(LightRadius);
         READ_PROP_EXT(LightColor);
         READ_PROP_EXT(SoundRadius);
