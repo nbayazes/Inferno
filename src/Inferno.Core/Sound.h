@@ -23,6 +23,7 @@ namespace Inferno {
         List<Header> Sounds; // entries
         int Frequency = 22050; // 22050 Hz for S22, 11025 Hz for S11
         size_t DataStart = 0u;
+        bool Compressed = false; // D1 demo data is compressed
 
         List<ubyte> Read(int index) const;
         List<ubyte> ReadCompressed(int index) const;

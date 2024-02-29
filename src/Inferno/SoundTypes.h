@@ -20,7 +20,8 @@ namespace Inferno {
         bool operator== (const SoundResource& rhs) const {
             if (!D3.empty() && !rhs.D3.empty()) return D3 == rhs.D3;
             if (D1 != -1 && rhs.D1 != -1) return D1 == rhs.D1;
-            return D2 == rhs.D2;
+            if (D2 != -1 && rhs.D2 != -1) return D2 == rhs.D2;
+            return false;
         }
 
         float GetDuration() const;
@@ -33,6 +34,7 @@ namespace Inferno {
     };
 
     struct Sound3D {
+        Sound3D() = default;
         Sound3D(SoundResource resource) : Resource(std::move(resource)) {}
         //Sound3D(SoundResource resource, ObjRef source) : Resource(std::move(resource)), Source(source) {}
         //Sound3D(SoundResource resource, const Vector3& pos, SegID seg) : Resource(std::move(resource)), Position(pos), Segment(seg) {}

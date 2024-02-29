@@ -60,15 +60,12 @@ Application::~Application() {
 void Application::Initialize(int width, int height) {
     Inferno::Input::Initialize(Shell::Hwnd);
     Render::Initialize(Shell::Hwnd, width, height);
-
-    Resources::LoadSounds();
+    Sound::Init(Shell::Hwnd);
 
     if (Settings::Inferno.Descent3Enhanced)
         Resources::MountDescent3();
 
     Editor::Initialize();
-
-    Sound::Init(Shell::Hwnd);
 
     OnActivated();
 

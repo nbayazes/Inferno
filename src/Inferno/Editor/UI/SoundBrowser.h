@@ -87,7 +87,7 @@ namespace Inferno::Editor {
             ImGui::Text("Search");
             ImGui::SameLine();
             ImGui::SetNextItemWidth(-1);
-            ImGui::InputText("Search", search.data(), search.capacity());
+            ImGui::InputText("##Search", search.data(), search.capacity());
 
             auto searchstr = String::ToLower(string(search.data()));
 

@@ -456,6 +456,7 @@ namespace Inferno {
                         readTokenValue("dest_vclip", clip.DestroyedVClip);
                         readTokenValue("dest_size", clip.ExplosionSize);
                         readTokenValue("dest_eclip", clip.DestroyedEClip);
+                        readTokenValue("sound_num", clip.Sound);
 
                         if (levelTexture)
                             levelTexture->EffectClip = EClipID(clipNum);

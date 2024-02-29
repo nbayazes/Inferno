@@ -13,6 +13,7 @@
 #include "logging.h"
 #include "Pig.h"
 #include "Sound.h"
+#include "SoundSystem.h"
 
 namespace Inferno::Resources {
     SoundFile SoundsD1, SoundsD2;
@@ -423,6 +424,7 @@ namespace Inferno::Resources {
         }
     }
 
+    // Loads info for all available sounds
     void LoadSounds() {
         if (FoundDescent1()) {
             try {
@@ -572,14 +574,14 @@ namespace Inferno::Resources {
     }
 
     void LoadDescent1Shareware(Level& /*level*/) {
+        filesystem::path sharewarePath = "data/d1/demo";
         PigFile pig;
-        auto pigData = File::ReadAllBytes("data/d1/demo/descent.pig");
-        auto hog = HogFile::Read(FileSystem::FindFile("data/d1/demo/descent.hog"));
+        auto pigData = File::ReadAllBytes(sharewarePath / "descent.pig");
+        auto hog = HogFile::Read(FileSystem::FindFile(sharewarePath / "descent.hog"));
         SoundFile sounds;
         ReadD1Pig(pigData, pig, sounds);
-        sounds.Path = "data/d1/demo/descent.pig";
-        //sounds.DataStart = 0;
-        pig.Path = "data/d1/demo/descent.pig";
+        sounds.Path = pig.Path = sharewarePath / "descent.pig";
+        sounds.Compressed = true;
 
         auto table = Game::Mission->ReadEntry("bitmaps.bin");
         HamFile ham;
@@ -613,9 +615,6 @@ namespace Inferno::Resources {
 
         ReadBitmapTable(table, pig, ham, sounds);
         SPDLOG_INFO("Loaded D1 shareware pig and bitmaps.bin");
-        //auto pof = Game::Mission->ReadEntry("robot01.pof");
-        //auto model = ReadPof(pof, &LevelPalette);
-        //model;
         auto textures = ReadAllBitmaps(pig, palette);
 
         // Everything loaded okay, set the internal data
@@ -902,6 +901,7 @@ namespace Inferno::Resources {
     void LoadLevel(Level& level) {
         try {
             ResetResources();
+            Resources::LoadSounds();
 
             if (level.IsDescent2()) {
                 LoadDescent2Resources(level);
@@ -923,6 +923,7 @@ namespace Inferno::Resources {
             LoadStringTable();
             UpdateAverageTextureColor();
 
+            Inferno::Sound::CopySoundIds();
             //FixObjectModelIds(level);
             //ResetObjectSizes(level);
         }
@@ -962,6 +963,7 @@ namespace Inferno::Resources {
         }
 
         Game::Shareware = String::ToLower(name).ends_with(".sdl");
+        SPDLOG_INFO("Shareware level loaded! Certain functionality will be unavailable.");
         auto level = Game::Shareware ? Level::DeserializeD1Demo(data) : Level::Deserialize(data);
         level.FileName = name;
         return level;

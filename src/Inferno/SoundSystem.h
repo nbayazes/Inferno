@@ -20,7 +20,9 @@ namespace Inferno {
 }
 
 namespace Inferno::Sound {
-    void Init(HWND, std::chrono::milliseconds pollRate = std::chrono::milliseconds(5));
+    void Init(HWND, std::chrono::milliseconds pollRate = std::chrono::milliseconds(4));
+
+    void CopySoundIds();
 
     // Blocks until the sound system is initialized
     void WaitInitialized();
@@ -53,7 +55,9 @@ namespace Inferno::Sound {
     void SetMusicVolume(float volume);
 
     // Resets any cached sounds after loading a level
-    void Reset();
+    void StopAllSounds();
+
+    void UnloadD1Sounds();
 
     enum class Reverb {
         Off,

@@ -141,6 +141,9 @@ namespace Inferno::Game {
                 Resources::CustomTextures.Any() ||
                 !String::InvariantEquals(level.Palette, Level.Palette);
 
+            if (sharewareReload)
+                Sound::UnloadD1Sounds();
+
             NeedsResourceReload = false;
             //Rooms.clear();
             IsLoading = true;
@@ -478,7 +481,8 @@ namespace Inferno::Game {
                 ResetCountdown();
                 Render::Camera = EditorCameraSnapshot;
                 Input::SetMouseMode(Input::MouseMode::Normal);
-                Sound::Reset();
+                Sound::StopAllSounds();
+                Sound::StopMusic();
                 Render::ResetEffects();
                 LerpAmount = 1;
                 ResetGlobalLighting();
@@ -929,7 +933,7 @@ namespace Inferno::Game {
         ResetCountdown();
         StuckObjects = {};
         Sound::WaitInitialized();
-        Sound::Reset();
+        Sound::StopAllSounds();
         Resources::LoadGameTables(Level);
         Render::ResetEffects();
         Render::Materials->UnloadNamedTextures();

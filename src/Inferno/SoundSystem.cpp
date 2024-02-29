@@ -16,78 +16,108 @@ using namespace std::chrono;
 
 namespace Inferno::Sound {
     namespace {
-        IXAudio2SourceVoice* MusicVoice = nullptr;
-        std::atomic RequestStopSounds = false, RequestStopMusic = false;
-        std::atomic Alive = false;
-        std::jthread WorkerThread;
-        std::mutex ResetMutex, SoundInstancesMutex, InitMutex;
-        Ptr<MusicStream> CurrentMusicStream;
-
-        constexpr int FREQUENCY_11KHZ = 11025;
-        constexpr int FREQUENCY_22KHZ = 22050;
-
         // Scales game coordinates to audio coordinates.
         // The engine claims to be unitless but doppler, falloff, and reverb are noticeably different using smaller values.
         constexpr float AUDIO_SCALE = 1;
-        //constexpr float MAX_SFX_VOLUME = 0.75; // should come from settings
+        IntersectContext Intersect({});
+
+        constexpr int SAMPLE_RATE_11KHZ = 11025;
+        constexpr int SAMPLE_RATE_22KHZ = 22050;
+
         constexpr float MERGE_WINDOW = 1 / 14.0f; // Merge the same sound being played by a source within a window
 
-        std::condition_variable InitializeCondition;
-        IntersectContext Intersect({});
+        DataPool<AmbientSoundEmitter> Emitters = { AmbientSoundEmitter::IsAlive, 10 };
+
+
+        constexpr X3DAUDIO_CONE LISTENER_CONE = {
+            X3DAUDIO_PI * 5.0f / 6.0f, X3DAUDIO_PI * 11.0f / 6.0f, 1.0f, 0.75f, 0.0f, 0.25f, 0.708f, 1.0f
+        };
+
+        constexpr X3DAUDIO_CONE EMITTER_CONE = {
+            0.f, 0.f, 0.f, 1.f, 0.f, 1.f, 0.f, 1.f
+        };
+
+        // Specify LFE level distance curve such that it rolls off much sooner than
+        // all non-LFE channels, making use of the subwoofer more dramatic.
+        constexpr X3DAUDIO_DISTANCE_CURVE_POINT Emitter_LFE_CurvePoints[3] = { 0.0f, 1.0f, 0.25f, 0.0f, 1.0f, 0.0f };
+        constexpr X3DAUDIO_DISTANCE_CURVE Emitter_LFE_Curve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_LFE_CurvePoints[0], 3 };
+
+        constexpr X3DAUDIO_DISTANCE_CURVE_POINT Emitter_Reverb_CurvePoints[3] = { 0.0f, 0.5f, 0.75f, 1.0f, 1.0f, 0.0f };
+        constexpr X3DAUDIO_DISTANCE_CURVE Emitter_Reverb_Curve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_Reverb_CurvePoints[0], 3 };
+
+        //constexpr X3DAUDIO_DISTANCE_CURVE_POINT Emitter_SquaredCurvePoints[] = { { 0.0f, 1.0f }, { 0.2f, 0.65f }, { 0.5f, 0.25f }, { 0.75f, 0.06f }, { 1.0f, 0.0f } };
+        //constexpr X3DAUDIO_DISTANCE_CURVE Emitter_SquaredCurve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_SquaredCurvePoints[0], _countof(Emitter_SquaredCurvePoints) };
+
+        //constexpr X3DAUDIO_DISTANCE_CURVE_POINT Emitter_InvSquaredCurvePoints[] = { { 0.0f, 1.0f }, { 0.05f, 0.95f }, { 0.2f, 0.337f }, { 0.4f, 0.145f }, { 0.6f, 0.065f }, { 0.8f, 0.024f }, { 1.0f, 0.0f } };
+        //constexpr X3DAUDIO_DISTANCE_CURVE Emitter_InvSquaredCurve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_InvSquaredCurvePoints[0], _countof(Emitter_InvSquaredCurvePoints) };
+
+        constexpr X3DAUDIO_DISTANCE_CURVE_POINT Emitter_CubicPoints[] = { { 0.0f, 1.0f }, { 0.1f, 0.73f }, { 0.2f, 0.5f }, { 0.4f, 0.21f }, { 0.6f, 0.060f }, { 0.7f, 0.026f }, { 0.8f, 0.01f }, { 1.0f, 0.0f } };
+        constexpr X3DAUDIO_DISTANCE_CURVE Emitter_CubicCurve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_CubicPoints[0], _countof(Emitter_CubicPoints) };
     }
 
-    void WaitInitialized() {
-        if (Alive) return;
-        std::unique_lock lock(InitMutex);
-        auto result = InitializeCondition.wait_until(lock, system_clock::now() + 2s);
-        if (result == std::cv_status::timeout)
-            SPDLOG_ERROR("Timed out waiting for sound system to initialize");
-    }
+    Ptr<MusicStream> CreateMusicStream(List<byte>&& data);
 
-    struct Sound3DInstance : Sound3D {
+    struct PlayMusicInfo {
+        string file;
+        List<byte> data;
+        bool loop = true;
+    };
+
+    struct PlaySound2DInfo {
+        SoundResource resource;
+        float volume = 1;
+        float pan = 0;
+        float pitch = 0;
+    };
+
+    struct PlaySound3DInfo {
+        Sound3D Sound;
         Vector3 Position; // Position the sound comes from
         SegID Segment = SegID::None; // Segment the sound starts in, needed for occlusion
         SideID Side = SideID::None; // Side, used for turning off forcefields
         ObjRef Source = GLOBAL_SOUND_SOURCE; // Source to attach the sound to
         bool FromPlayer = false; // For the player's firing sounds, afterburner, etc. Simulates 2D playback by positioning sound on the listener.
         SoundUID ID = SoundUID::None;
+    };
+
+    struct Sound3DInstance {
+        PlaySound3DInfo Info;
+        float Delay = 0; // Delay before playing
 
         float Muffle = 1, TargetMuffle = 1;
         bool Started = false;
-        Ptr<SoundEffectInstance> Instance;
+        Ptr<SoundEffectInstance> Effect;
         AudioEmitter Emitter; // Stores position
         double StartTime = 0;
         bool Alive = false;
+        int PlayCount = 0;
 
         bool IsAlive() const { return Alive; }
 
         void UpdateEmitter(const Vector3& listener, float dt) {
-            if (!Alive) {
-                Instance->Stop();
-                return;
-            }
+            auto& sound = Info.Sound;
 
-            if (Source != GLOBAL_SOUND_SOURCE) {
-                auto obj = Game::Level.TryGetObject(Source);
+            if (Info.Source != GLOBAL_SOUND_SOURCE) {
+                auto obj = Game::Level.TryGetObject(Info.Source);
                 if (obj && obj->IsAlive() /*&& AttachToSource*/) {
                     // Move the emitter to the object location if attached
                     auto pos = obj->GetPosition(Game::LerpAmount);
-                    if (AttachOffset != Vector3::Zero) {
+                    if (sound.AttachOffset != Vector3::Zero) {
                         auto rot = obj->GetRotation(Game::LerpAmount);
-                        pos += Vector3::Transform(AttachOffset, rot);
+                        pos += Vector3::Transform(sound.AttachOffset, rot);
                     }
 
                     Emitter.SetPosition(pos * AUDIO_SCALE);
-                    Segment = obj->Segment;
+                    Info.Segment = obj->Segment;
                 }
                 else {
                     // Source object is dead, stop the sound
-                    Instance->Stop();
+                    Effect->Stop();
                     return;
                 }
             }
 
-            assert(Radius > 0);
+            assert(sound.Radius > 0);
             auto emitterPos = Emitter.Position / AUDIO_SCALE;
             auto delta = listener - emitterPos;
             Vector3 dir;
@@ -100,20 +130,20 @@ namespace Inferno::Sound {
 
             TargetMuffle = 1; // don't hit test very close sounds
 
-            if (dist < Radius && !RequestStopSounds) {
+            if (dist < sound.Radius) {
                 // only hit test if sound is actually within range
-                if (Looped && !Instance->GetState() == SoundState::PLAYING) {
+                if (sound.Looped && !Effect->GetState() == SoundState::PLAYING) {
                     //fmt::print("Starting looped sound\n");
                     SoundLoopInfo info{
-                        .LoopBegin = LoopStart,
-                        .LoopLength = LoopEnd - LoopStart,
-                        .LoopCount = LoopCount <= 0 ? XAUDIO2_LOOP_INFINITE : std::clamp(LoopCount, 1u, (uint)XAUDIO2_MAX_LOOP_COUNT)
+                        .LoopBegin = sound.LoopStart,
+                        .LoopLength = sound.LoopEnd - sound.LoopStart,
+                        .LoopCount = sound.LoopCount <= 0 ? XAUDIO2_LOOP_INFINITE : std::clamp(sound.LoopCount, 1u, (uint)XAUDIO2_MAX_LOOP_COUNT)
                     };
 
-                    Instance->Play(&info);
+                    Effect->Play(&info);
                 }
 
-                if (Occlusion) {
+                if (sound.Occlusion) {
                     constexpr float MUFFLE_MAX = 0.95f;
                     constexpr float MUFFLE_MIN = 0.25f;
 
@@ -121,7 +151,7 @@ namespace Inferno::Sound {
                         // don't hit test nearby sounds
                         Ray ray(emitterPos, dir);
                         LevelHit hit;
-                        RayQuery query{ .MaxDistance = dist, .Start = Segment };
+                        RayQuery query{ .MaxDistance = dist, .Start = Info.Segment };
 
                         if (Intersect.RayLevel(ray, query, hit)) {
                             auto hitDist = (listener - hit.Point).Length();
@@ -134,9 +164,9 @@ namespace Inferno::Sound {
             }
             else {
                 // stop looped sounds when going out of range
-                if ((Looped && Instance->GetState() == SoundState::PLAYING) || RequestStopSounds) {
+                if (sound.Looped && Effect->GetState() == SoundState::PLAYING) {
                     //fmt::print("Stopping out of range looped sound\n");
-                    Instance->Stop();
+                    Effect->Pause();
                 }
             }
 
@@ -147,194 +177,17 @@ namespace Inferno::Sound {
             //auto falloff = std::powf(1 - ratio, 3); // cubic falloff
             //auto falloff = 1 - ratio; // linear falloff
             //auto falloff = 1 - (ratio * ratio); // square falloff
-            Instance->SetVolume(Volume /** falloff*/ * Muffle);
+            Effect->SetVolume(sound.Volume /** falloff*/ * Muffle);
 
             Debug::Emitters.push_back(Emitter.Position / AUDIO_SCALE);
         }
     };
 
-    namespace {
-        List<Tag> StopSoundTags;
-        List<SoundUID> StopSoundUIDs;
-        List<ObjRef> StopSoundSources;
-
-        DataPool<AmbientSoundEmitter> Emitters = { AmbientSoundEmitter::IsAlive, 10 };
-
-        // https://github.com/microsoft/DirectXTK/wiki/AudioEngine
-        Ptr<AudioEngine> Engine;
-        List<Ptr<SoundEffect>> SoundsD1, SoundsD2;
-        Dictionary<string, Ptr<SoundEffect>> SoundsD3;
-        DataPool<Sound3DInstance> SoundInstances(&Sound3DInstance::IsAlive, 50);
-
-        AudioListener Listener;
-
-        constexpr X3DAUDIO_CONE c_listenerCone = {
-            X3DAUDIO_PI * 5.0f / 6.0f, X3DAUDIO_PI * 11.0f / 6.0f, 1.0f, 0.75f, 0.0f, 0.25f, 0.708f, 1.0f
-        };
-
-        constexpr X3DAUDIO_CONE c_emitterCone = {
-            0.f, 0.f, 0.f, 1.f, 0.f, 1.f, 0.f, 1.f
-        };
-    }
-
-    AudioEngine* GetEngine() { return Engine.get(); }
-
-    bool ShouldDispose(const Sound3DInstance& sound) {
-        if (RequestStopSounds) return true;
-
-        for (auto& tag : StopSoundTags) {
-            if (sound.Segment == tag.Segment && sound.Side == tag.Side)
-                return true;
-        }
-
-        for (auto& id : StopSoundUIDs) {
-            if (sound.ID == id)
-                return true;
-        }
-
-        for (auto& id : StopSoundSources) {
-            if (sound.Source == id)
-                return true;
-        }
-
-        return false;
-    }
-
-    void SoundWorker(milliseconds pollRate) {
-        SPDLOG_INFO("Starting audio mixer thread");
-
-        if (FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED)))
-            SPDLOG_WARN("CoInitializeEx did not succeed");
-
-        try {
-            auto devices = AudioEngine::GetRendererDetails();
-            wstring info = L"Available sound devices:\n";
-            for (auto& device : devices)
-                info += fmt::format(L"{}\n", device.description/*, device.deviceId*/);
-
-            SPDLOG_INFO(L"{}", info);
-            auto flags = AudioEngine_EnvironmentalReverb | AudioEngine_ReverbUseFilters | AudioEngine_UseMasteringLimiter;
-#ifdef _DEBUG
-            flags |= AudioEngine_Debug;
-#endif
-            Engine = MakePtr<AudioEngine>(flags, nullptr/*, devices[0].deviceId.c_str()*/);
-            //Engine->SetDefaultSampleRate(FREQUENCY_22KHZ);
-            SoundsD1.resize(255);
-            SoundsD2.resize(255);
-            Alive = true;
-            InitializeCondition.notify_all();
-            SPDLOG_INFO("Sound system initialized");
-        }
-        catch (const std::exception& e) {
-            SPDLOG_ERROR("Unable to start sound system: {}", e.what());
-            return;
-        }
-
-        Engine->SetMasterVolume(Settings::Inferno.MasterVolume);
-
-        while (Alive) {
-            Debug::Emitters.clear();
-
-            if (Engine->Update()) {
-                try {
-                    auto dt = (float)pollRate.count() / 1000.0f;
-                    //Listener.Update(Render::Camera.Position * AUDIO_SCALE, Render::Camera.Up, dt);
-                    Listener.SetOrientation(Render::Camera.GetForward(), Render::Camera.Up);
-                    Listener.Position = Render::Camera.Position * AUDIO_SCALE;
-                    //Listener.Position = {};
-                    //Listener.OrientTop = {};
-                    //Listener.OrientTop.y = sin(Game::ElapsedTime * 3.14f);
-                    //Listener.OrientTop.x = -cos(Game::ElapsedTime * 3.14f);
-                    //Listener.Velocity = {};
-
-                    std::scoped_lock lock(SoundInstancesMutex);
-                    for (auto& sound : SoundInstances) {
-                        if (sound.Delay > 0) {
-                            sound.Delay -= dt;
-                            continue;
-                        }
-
-                        if (!sound.Alive) continue;
-                        auto state = sound.Instance->GetState();
-
-                        sound.Alive = !ShouldDispose(sound);
-                        if (!sound.Looped && state == SoundState::STOPPED) {
-                            if (sound.Started) {
-                                sound.Alive = false; // a one-shot sound finished playing
-                            }
-                            else {
-                                // Check if the source is dead before playing
-                                if (sound.Source != GLOBAL_SOUND_SOURCE) {
-                                    auto obj = Game::Level.TryGetObject(sound.Source);
-                                    if (!obj || !obj->IsAlive()) {
-                                        sound.Alive = false;
-                                        continue;
-                                    }
-                                }
-
-                                // New sound
-                                sound.Instance->Play();
-                                sound.Started = true;
-                            }
-                        }
-
-                        sound.UpdateEmitter(Render::Camera.Position, dt);
-                        // Hack to force sounds caused by the player to be exactly on top of the listener.
-                        // Objects and the camera are slightly out of sync due to update timing and threading
-                        if (Game::GetState() == GameState::Game && sound.FromPlayer)
-                            sound.Emitter.Position = Listener.Position;
-
-                        if (sound.Instance)
-                            sound.Instance->Apply3D(Listener, sound.Emitter, false);
-                    }
-
-                    if (RequestStopMusic) {
-                        CurrentMusicStream->Effect->Stop();
-                        CurrentMusicStream = {};
-                    }
-
-                    StopSoundUIDs.clear();
-                    StopSoundSources.clear();
-                }
-                catch (const std::exception& e) {
-                    SPDLOG_ERROR("Error in audio worker: {}", e.what());
-                }
-                RequestStopSounds = false;
-                RequestStopMusic = false;
-                std::this_thread::sleep_for(pollRate);
-            }
-            else {
-                RequestStopSounds = false;
-                RequestStopMusic = false;
-
-                // https://github.com/microsoft/DirectXTK/wiki/AudioEngine
-                if (!Engine->IsAudioDevicePresent()) {}
-
-                if (Engine->IsCriticalError()) {
-                    SPDLOG_WARN("Attempting to reset audio engine");
-                    Engine->Reset();
-                }
-
-                std::this_thread::sleep_for(1000ms);
-            }
-        }
-
-        CurrentMusicStream.reset();
-
-        if (MusicVoice) {
-            std::ignore = MusicVoice->Stop();
-            MusicVoice->DestroyVoice();
-        }
-
-        SPDLOG_INFO("Stopping audio mixer thread");
-        CoUninitialize();
-    }
-
     // Creates a mono PCM sound effect
-    SoundEffect CreateSoundEffect(AudioEngine& engine, span<ubyte> raw, uint32 frequency = 22050, float trimStart = 0, float trimEnd = 0) {
+    SoundEffect CreateSoundEffect(AudioEngine& engine, span<ubyte> raw, uint32 sampleRate = SAMPLE_RATE_22KHZ, float trimStart = 0, float trimEnd = 0) {
         // create a buffer and store wfx at the beginning.
-        int trimStartBytes = int((float)frequency * trimStart);
-        int trimEndBytes = int((float)frequency * trimEnd);
+        int trimStartBytes = int((float)sampleRate * trimStart);
+        int trimEndBytes = int((float)sampleRate * trimEnd);
 
         // Leave data for the trimmed end in case the sound is looped
         const size_t wavDataSize = raw.size() + sizeof(WAVEFORMATEX) - trimStartBytes;
@@ -351,8 +204,8 @@ namespace Inferno::Sound {
         auto wfx = (WAVEFORMATEX*)wavData.get();
         wfx->wFormatTag = WAVE_FORMAT_PCM;
         wfx->nChannels = 1;
-        wfx->nSamplesPerSec = frequency;
-        wfx->nAvgBytesPerSec = frequency;
+        wfx->nSamplesPerSec = sampleRate;
+        wfx->nAvgBytesPerSec = sampleRate;
         wfx->nBlockAlign = 1;
         wfx->wBitsPerSample = 8;
         wfx->cbSize = 0;
@@ -376,297 +229,673 @@ namespace Inferno::Sound {
         return SoundEffect(&engine, wavData, (WAVEFORMATEX*)wavData.get(), startAudio, result.audioBytes);
     }
 
+    class SoundWorker {
+        // https://github.com/microsoft/DirectXTK/wiki/AudioEngine
+        Ptr<AudioEngine> _engine;
+
+        SoundFile _soundsD1, _soundsD2;
+        List<Ptr<SoundEffect>> _effectsD1, _effectsD2;
+
+        Dictionary<string, Ptr<SoundEffect>> _soundsD3;
+        std::condition_variable _initializedCondition;
+        std::condition_variable _idleCondition;
+        //std::mutex ResetMutex, SoundInstancesMutex, InitMutex;
+        std::mutex _threadMutex; // mutex for whenever data is copied between threads
+        std::jthread _worker;
+        std::stop_token _stopToken;
+        milliseconds _pollRate;
+        Ptr<MusicStream> _musicStream;
+        std::atomic<bool> _requestStopSounds = false, _requestStopMusic = false;
+
+        List<Tag> _stopSoundTags;
+        List<SoundUID> _stopSoundUIDs;
+        List<ObjRef> _stopSoundSources;
+
+        AudioListener _listener;
+
+        PlayMusicInfo _musicInfo;
+        DataPool<Sound3DInstance> _soundInstances{ &Sound3DInstance::IsAlive, 50 };
+
+        List<PlaySound3DInfo> _pending3dSounds;
+        List<PlaySound2DInfo> _pending2dSounds;
+        std::atomic<bool> _stopAllSounds = false;
+
+    public:
+        SoundWorker(milliseconds pollRate) : _pollRate(pollRate) {
+            _effectsD1.resize(255);
+            _effectsD2.resize(255);
+            _listener.pCone = (X3DAUDIO_CONE*)&LISTENER_CONE;
+
+            auto flags = AudioEngine_EnvironmentalReverb | AudioEngine_ReverbUseFilters | AudioEngine_UseMasteringLimiter;
+#ifdef _DEBUG
+            flags |= AudioEngine_Debug;
+#endif
+            _engine = make_unique<AudioEngine>(flags, nullptr/*, devices[0].deviceId.c_str()*/);
+
+            _worker = std::jthread(&SoundWorker::Task, this);
+            _stopToken = _worker.get_stop_token();
+        }
+
+        ~SoundWorker() {
+            // Join so thread exits before resources are freed from the class
+            _worker.request_stop();
+            _worker.join();
+        }
+
+        SoundWorker(const SoundWorker&) = delete;
+        SoundWorker(SoundWorker&&) = delete;
+        SoundWorker& operator=(const SoundWorker&) = delete;
+        SoundWorker& operator=(SoundWorker&&) = delete;
+
+        AudioEngine* GetEngine() const { return _engine ? _engine.get() : nullptr; }
+
+        std::atomic<bool> RequestUnloadD1 = false;
+        std::atomic<bool> ReloadSoundFiles = false;
+
+        void StopAllSounds() {
+            _stopAllSounds = true;
+            //StopMusic();
+            //Stop3DSounds();
+        }
+
+        //void WaitInitialize() {
+        //    if (Alive) return;
+        //    std::unique_lock lock(_threadMutex);
+        //    auto result = _initializedCondition.wait_until(lock, system_clock::now() + 2s);
+        //    if (result == std::cv_status::timeout)
+        //        SPDLOG_ERROR("Timed out waiting for sound worker to initialize");
+        //}
+
+        // Waits until the worker thread is idle
+        void WaitIdle() {
+            std::unique_lock lock(_threadMutex);
+            auto result = _idleCondition.wait_until(lock, system_clock::now() + 2s);
+            if (result == std::cv_status::timeout)
+                SPDLOG_ERROR("Timed out waiting for sound worker to become idle");
+        }
+
+        void PlaySound2D(const PlaySound2DInfo& sound) {
+            std::unique_lock lock(_threadMutex);
+            _pending2dSounds.push_back(sound);
+        }
+
+        SoundUID PlaySound3D(PlaySound3DInfo& sound) {
+            std::unique_lock lock(_threadMutex);
+
+            sound.ID = GetSoundUID();
+            //SPDLOG_INFO("Submit sound {}", (int)sound.ID);
+            _pending3dSounds.push_back(sound);
+            return sound.ID;
+        }
+
+        void StopSound(Tag tag) {
+            if (!tag) return;
+            std::scoped_lock lock(_threadMutex);
+            _stopSoundTags.push_back(tag);
+        }
+
+        void StopSound(SoundUID id) {
+            if (id == SoundUID::None) return;
+            std::scoped_lock lock(_threadMutex);
+            _stopSoundUIDs.push_back(id);
+        }
+
+        void StopSound(ObjRef source) {
+            std::scoped_lock lock(_threadMutex);
+            _stopSoundSources.push_back(source);
+        }
+
+        void Stop3DSounds() {}
+        void Stop2DSounds() {}
+
+        void StopMusic() {
+            SPDLOG_INFO("Stopping music");
+            _requestStopMusic = true;
+        }
+
+        void PlayMusic(const PlayMusicInfo& info) {
+            std::scoped_lock lock(_threadMutex);
+            _musicInfo = info;
+        }
+
+        void SetMusicVolume(float volume) {
+            std::scoped_lock lock(_threadMutex);
+            if (_musicStream)
+                _musicStream->Effect->SetVolume(volume);
+        }
+
+        void PrintStatistics() const {
+            auto stats = _engine->GetStatistics();
+
+            SPDLOG_INFO("Audio stats:\nPlaying: {} / {}\nInstances: {}\nVoices {} / {} / {} / {}\n{} audio bytes",
+                        stats.playingOneShots, stats.playingInstances,
+                        stats.allocatedInstances,
+                        stats.allocatedVoices, stats.allocatedVoices3d,
+                        stats.allocatedVoicesOneShot, stats.allocatedVoicesIdle,
+                        stats.audioBytes);
+        }
+
+        //void LoadSoundFiles() {
+        //    // it is important to snapshot these to prevent threading issues
+        //    _soundFileD1 = Resources::SoundsD1;
+        //    _soundFileD2 = Resources::SoundsD2;
+
+        //    ReloadSoundFiles = false;
+        //}
+
+        void CopySoundIds() {
+            SPDLOG_INFO("Copied sound ids");
+            std::scoped_lock lock(_threadMutex);
+            _soundsD1 = Resources::SoundsD1;
+            _soundsD2 = Resources::SoundsD2;
+            ReloadSoundFiles = false;
+        }
+
+    private:
+        SoundUID _soundUid = SoundUID::None;
+
+        SoundUID GetSoundUID() {
+            return _soundUid = SoundUID(int(_soundUid) + 1);
+        }
+
+        void Initialize() {
+            SPDLOG_INFO("Starting audio mixer thread");
+
+            if (FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED)))
+                SPDLOG_WARN("CoInitializeEx did not succeed");
+
+            try {
+                auto devices = AudioEngine::GetRendererDetails();
+                wstring info = L"Available sound devices:\n";
+                for (auto& device : devices)
+                    info += fmt::format(L"{}\n", device.description/*, device.deviceId*/);
+
+                SPDLOG_INFO(info);
+
+                _engine->SetMasterVolume(Settings::Inferno.MasterVolume);
+                _initializedCondition.notify_all();
+                SPDLOG_INFO("Sound system initialized");
+            }
+            catch (const std::exception& e) {
+                SPDLOG_ERROR("Unable to start sound system: {}", e.what());
+            }
+        }
+
+        bool PlayMusic(string file, bool loop) {
+            //StopMusic();
+
+            auto data = Resources::ReadBinaryFile(file);
+            if (data.empty()) {
+                SPDLOG_WARN("Music file {} not found", file);
+                return false;
+            }
+
+            if (file.ends_with(".hmp")) {
+                SPDLOG_WARN("HMP / MIDI music not implemented!");
+                return false;
+            }
+
+
+            _musicStream = CreateMusicStream(std::move(data));
+            if (!_musicStream) {
+                SPDLOG_WARN("Unable to create music stream from {}", file);
+                return false;
+            }
+
+            SPDLOG_INFO("Playing music {}", file);
+            _musicStream->Loop = loop;
+            _musicStream->Effect->SetVolume(Settings::Inferno.MusicVolume);
+            _musicStream->Effect->Play();
+            return true;
+        }
+
+        void PlaySound3DInternal(const PlaySound3DInfo& playInfo) {
+            ASSERT(playInfo.Segment != SegID::None || playInfo.FromPlayer);
+            auto& sound = playInfo.Sound;
+
+            auto sfx = LoadSound(sound.Resource);
+            if (!sfx) return;
+
+            if (sound.Looped && sound.LoopStart > sound.LoopEnd) {
+                SPDLOG_ERROR("Sound3D loop start must be <= loop end");
+                return;
+            }
+
+            if (sound.Merge && !playInfo.Source.IsNull()) {
+                //for (auto& pending : _pending3dSounds) {
+                //    if (pending.Source == info.Source &&
+                //        pending.Sound.Resource == sound.Resource &&
+                //        !sound.Looped) {
+                //        pending.Sound.Volume += sound.Volume * 0.5f;
+                //        SPDLOG_INFO("Discarded pending sound");
+                //        return pending.ID; // don't duplicate pending sounds
+                //    }
+                //}
+
+                uint liveSounds = 0;
+                auto currentTime = Inferno::Clock.GetTotalTimeSeconds();
+
+                // Check if any emitters are already playing this sound from this source
+                for (auto& inst : _soundInstances) {
+                    if (!inst.IsAlive()) continue;
+                    auto& info = inst.Info;
+                    liveSounds++;
+                    if (info.Source == playInfo.Source &&
+                        info.Sound.Resource == sound.Resource &&
+                        inst.StartTime + MERGE_WINDOW > currentTime + sound.Delay &&
+                        !info.Sound.Looped) {
+                        if (info.Source != GLOBAL_SOUND_SOURCE)
+                            info.Sound.AttachOffset = (sound.AttachOffset + inst.Info.Sound.AttachOffset) / 2;
+
+                        inst.Emitter.Position = (playInfo.Position + inst.Emitter.Position) / 2;
+                        info.Sound.Volume += sound.Volume * 0.5f;
+                        SPDLOG_INFO("Discarded sound");
+                        //fmt::print("Merged sound effect {}\n", sound.Resource.GetID());
+                        return; // Don't play sounds within the merge window
+                    }
+                }
+                SPDLOG_INFO("Live sounds {}", _soundInstances.Count());
+            }
+
+            auto& instance = _soundInstances.Alloc();
+            instance.Effect = sfx->CreateInstance(SoundEffectInstance_Use3D | SoundEffectInstance_ReverbUseFilters);
+            instance.Effect->SetVolume(std::clamp(sound.Volume, 0.0f, 10.0f));
+            instance.Effect->SetPitch(std::clamp(sound.Pitch, -1.0f, 1.0f));
+
+            //s.Emitter.pVolumeCurve = (X3DAUDIO_DISTANCE_CURVE*)&X3DAudioDefault_LinearCurve;
+            instance.Emitter.pVolumeCurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_CubicCurve;
+            instance.Emitter.pLFECurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_LFE_Curve;
+            instance.Emitter.pReverbCurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_Reverb_Curve;
+            instance.Emitter.CurveDistanceScaler = sound.Radius;
+            instance.Emitter.DopplerScaler = 1.0f;
+            instance.Emitter.InnerRadius = sound.Radius / 6;
+            instance.Emitter.InnerRadiusAngle = X3DAUDIO_PI / 4.0f;
+            instance.Emitter.pCone = (X3DAUDIO_CONE*)&EMITTER_CONE;
+            instance.StartTime = Inferno::Clock.GetTotalTimeSeconds() + sound.Delay;
+            instance.Info = playInfo;
+            instance.Emitter.Position = playInfo.Position;
+            instance.Alive = true;
+            instance.Delay = sound.Delay;
+        }
+
+        void OnStopAllSounds() {
+            _stopSoundTags.clear();
+            _stopSoundUIDs.clear();
+            _stopSoundSources.clear();
+
+            _stopAllSounds = false;
+        }
+
+        void OnStopMusic() {
+            if (!_musicStream) return;
+            _musicStream->Effect->Stop();
+            _musicStream = {};
+            _requestStopMusic = false;
+        }
+
+        void ProcessPending() {
+            for (auto& pending : _pending2dSounds) {
+                if (auto sound = LoadSound(pending.resource))
+                    sound->Play(pending.volume, pending.pitch, pending.pan);
+            }
+
+            _pending2dSounds.clear();
+
+            for (auto& pending : _pending3dSounds) {
+                SPDLOG_INFO("Play sound {} : ID {}", pending.Sound.Resource.D1, (int)pending.ID);
+                PlaySound3DInternal(pending);
+            }
+
+            _pending3dSounds.clear();
+        }
+
+        void Update() {
+            auto dt = (float)_pollRate.count() / 1000.0f;
+            _listener.SetOrientation(Render::Camera.GetForward(), Render::Camera.Up);
+            _listener.Position = Render::Camera.Position * AUDIO_SCALE;
+            //std::scoped_lock lock(SoundInstancesMutex);
+            std::scoped_lock lock(_threadMutex);
+
+            if (_stopAllSounds) OnStopAllSounds();
+
+            ProcessPending();
+
+            if (!_musicInfo.data.empty()) {
+                StopMusic();
+                _musicStream = CreateMusicStream(std::move(_musicInfo.data));
+                if (_musicStream) {
+                    _musicStream->Loop = _musicInfo.loop;
+                    _musicStream->Effect->SetVolume(Settings::Inferno.MusicVolume);
+                    _musicStream->Effect->Play();
+                }
+                _musicInfo = {};
+            }
+            else if (!_musicInfo.file.empty()) {
+                PlayMusic(_musicInfo.file, _musicInfo.loop);
+                _musicInfo = {};
+            }
+
+            for (auto& instance : _soundInstances) {
+                if (instance.Delay > 0) {
+                    instance.Delay -= dt;
+                    continue;
+                }
+
+                if (!instance.Alive || !instance.Effect) continue;
+
+                instance.UpdateEmitter(Render::Camera.Position, dt);
+
+                if (instance.PlayCount == 0) {
+                    // Check if the source is dead before playing
+                    if (instance.Info.Source != GLOBAL_SOUND_SOURCE) {
+                        auto obj = Game::Level.TryGetObject(instance.Info.Source);
+                        if (!obj || !obj->IsAlive()) {
+                            instance.Alive = false;
+                            continue;
+                        }
+                    }
+
+                    instance.Effect->Play();
+                    instance.PlayCount++;
+                }
+
+                if (!instance.Info.Sound.Looped && instance.Effect->GetState() == SoundState::STOPPED && instance.PlayCount > 0) {
+                    instance.Alive = false; // a one-shot sound finished playing
+                }
+
+                if (ShouldStop(instance)) {
+                    instance.Effect->Stop();
+                    instance.Alive = false;
+                }
+
+                // Hack to force sounds caused by the player to be exactly on top of the listener.
+                // Objects and the camera are slightly out of sync due to update timing and threading
+                if (Game::GetState() == GameState::Game && instance.Info.FromPlayer)
+                    instance.Emitter.Position = _listener.Position;
+
+                instance.Effect->Apply3D(_listener, instance.Emitter, false);
+            }
+
+            if (RequestUnloadD1) {
+                SPDLOG_INFO("Unloading D1 sounds");
+                for (auto& sound : _soundInstances) {
+                    sound.Effect->Stop();
+                    sound.Effect = {};
+                }
+
+                _engine->TrimVoicePool();
+
+                for (auto& sound : _effectsD1) {
+                    if (sound) sound.reset();
+                }
+
+                RequestUnloadD1 = false;
+            }
+
+            if (_requestStopMusic) OnStopMusic();
+
+            _stopSoundUIDs.clear();
+            _stopSoundSources.clear();
+        }
+
+        void Task() {
+            Initialize();
+
+            while (!_stopToken.stop_requested()) {
+                Debug::Emitters.clear();
+
+                if (_engine->Update()) {
+                    try {
+                        Update();
+                    }
+                    catch (const std::exception& e) {
+                        SPDLOG_ERROR("Error in audio worker: {}", e.what());
+                    }
+
+                    if (_requestStopSounds) {
+                        _engine->TrimVoicePool();
+                    }
+
+                    _requestStopSounds = false;
+                    _requestStopMusic = false;
+
+                    if (!_stopAllSounds) {
+                        _idleCondition.notify_all();
+                        std::this_thread::sleep_for(_pollRate);
+                    }
+                }
+                else {
+                    _requestStopSounds = false;
+                    _requestStopMusic = false;
+
+                    // https://github.com/microsoft/DirectXTK/wiki/AudioEngine
+                    if (!_engine->IsAudioDevicePresent()) {}
+
+                    if (_engine->IsCriticalError()) {
+                        SPDLOG_WARN("Attempting to reset audio engine");
+                        _engine->Reset();
+                    }
+
+                    _idleCondition.notify_all();
+                    std::this_thread::sleep_for(1000ms);
+                }
+            }
+
+            _musicStream.reset();
+
+            SPDLOG_INFO("Stopping audio mixer thread");
+            CoUninitialize();
+        }
+
+        bool ShouldStop(const Sound3DInstance& sound) const {
+            if (_requestStopSounds) return true;
+
+            for (auto& tag : _stopSoundTags) {
+                if (sound.Info.Segment == tag.Segment && sound.Info.Side == tag.Side)
+                    return true;
+            }
+
+            for (auto& id : _stopSoundUIDs) {
+                if (sound.Info.ID == id)
+                    return true;
+            }
+
+            for (auto& id : _stopSoundSources) {
+                if (sound.Info.Source == id)
+                    return true;
+            }
+
+            return false;
+        }
+
+        SoundEffect* LoadSoundD1(int id) {
+            if (!Seq::inRange(_effectsD1, id)) return nullptr;
+            if (_effectsD1[id]) return _effectsD1[int(id)].get();
+
+            // Prioritize reading wavs from filesystem
+            if (auto info = Seq::tryItem(_soundsD1.Sounds, id)) {
+                const auto paths = {
+                    fmt::format("data/d1/{}.wav", info->Name),
+                    fmt::format("data/{}.wav", info->Name)
+                };
+
+                for (auto& path : paths) {
+                    if (filesystem::exists(path)) {
+                        auto data = Inferno::File::ReadAllBytes(path);
+                        SPDLOG_INFO("Reading D1 sound {} from `{}`", id, path);
+                        return (_effectsD1[int(id)] = MakePtr<SoundEffect>(CreateSoundEffectWav(*_engine, data))).get();
+                    }
+                }
+            }
+
+            // Read sound from game data
+            float trimStart = 0;
+            if (id == 47)
+                trimStart = 0.05f; // Trim the first 50ms from the door close sound due to a popping noise
+
+            float trimEnd = 0;
+            if (id == 42)
+                trimEnd = 0.05f; // Trim the end of the fan loop due to a pop
+
+            auto data = _soundsD1.Compressed ? _soundsD1.ReadCompressed(id) : _soundsD1.Read(id);
+            if (data.empty()) return nullptr;
+            return (_effectsD1[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*_engine, data, SAMPLE_RATE_11KHZ, trimStart, trimEnd))).get();
+        }
+
+
+        SoundEffect* LoadSoundD2(int id) {
+            if (!Seq::inRange(_effectsD2, id)) return nullptr;
+            if (_effectsD2[id]) return _effectsD2[int(id)].get();
+
+            int sampleRate = SAMPLE_RATE_22KHZ;
+
+            // Prioritize reading wavs from filesystem
+            if (auto info = Seq::tryItem(_soundsD2.Sounds, id)) {
+                const auto paths = {
+                    fmt::format("data/d2/{}.wav", info->Name),
+                    fmt::format("data/{}.wav", info->Name)
+                };
+
+                for (auto& path : paths) {
+                    if (filesystem::exists(path)) {
+                        auto data = Inferno::File::ReadAllBytes(path);
+                        SPDLOG_INFO("Reading D2 sound {} from `{}`", id, path);
+                        return (_effectsD2[int(id)] = MakePtr<SoundEffect>(CreateSoundEffectWav(*_engine, data))).get();
+                    }
+                }
+            }
+
+            // Read sound from game data
+
+            // The Class 1 driller sound was not resampled for D2 and should have a slower sample rate
+            if (id == 127)
+                sampleRate = SAMPLE_RATE_11KHZ;
+
+            auto data = _soundsD2.Read(id);
+            if (data.empty()) return nullptr;
+            return (_effectsD2[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*_engine, data, sampleRate))).get();
+        }
+
+        SoundEffect* LoadSoundD3(const string& fileName) {
+            if (fileName.empty()) return nullptr;
+            if (_soundsD3[fileName]) return _soundsD3[fileName].get();
+
+            auto info = Resources::ReadOutrageSoundInfo(fileName);
+            if (!info) return nullptr;
+
+            if (auto data = Resources::Descent3Hog.ReadEntry(info->FileName)) {
+                return (_soundsD3[fileName] = MakePtr<SoundEffect>(CreateSoundEffectWav(*_engine, *data))).get();
+            }
+            else {
+                return nullptr;
+            }
+        }
+
+        SoundEffect* LoadSound(const SoundResource& resource) {
+            SoundEffect* sound = LoadSoundD3(resource.D3);
+            if (!sound) sound = LoadSoundD1(resource.D1);
+            if (!sound) sound = LoadSoundD2(resource.D2);
+            return sound;
+        }
+    };
+
+    Ptr<SoundWorker> SoundThread;
+
+
     void SetReverb(Reverb reverb) {
-        Engine->SetReverb((AUDIO_ENGINE_REVERB)reverb);
-    }
-
-    SoundEffect* LoadSoundD1(int id) {
-        if (!Seq::inRange(SoundsD1, id)) return nullptr;
-        if (SoundsD1[id]) return SoundsD1[int(id)].get();
-
-        std::scoped_lock lock(ResetMutex);
-
-        // Prioritize reading wavs from filesystem
-        if (auto info = Seq::tryItem(Resources::SoundsD1.Sounds, id)) {
-            const auto paths = {
-                fmt::format("data/d1/{}.wav", info->Name),
-                fmt::format("data/{}.wav", info->Name)
-            };
-
-            for (auto& path : paths) {
-                if (filesystem::exists(path)) {
-                    auto data = Inferno::File::ReadAllBytes(path);
-                    SPDLOG_INFO("Reading D1 sound {} from `{}`", id, path);
-                    return (SoundsD1[int(id)] = MakePtr<SoundEffect>(CreateSoundEffectWav(*Engine, data))).get();
-                }
-            }
-        }
-
-        // Read sound from game data
-        float trimStart = 0;
-        if (id == 47)
-            trimStart = 0.05f; // Trim the first 50ms from the door close sound due to a popping noise
-
-        float trimEnd = 0;
-        if (id == 42)
-            trimEnd = 0.05f; // Trim the end of the fan loop due to a pop
-
-        auto data = Game::Shareware ? Resources::SoundsD1.ReadCompressed(id) : Resources::SoundsD1.Read(id);
-        if (data.empty()) return nullptr;
-        return (SoundsD1[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*Engine, data, FREQUENCY_11KHZ, trimStart, trimEnd))).get();
-    }
-
-    SoundEffect* LoadSoundD2(int id) {
-        if (!Seq::inRange(SoundsD2, id)) return nullptr;
-        if (SoundsD2[id]) return SoundsD2[int(id)].get();
-
-        std::scoped_lock lock(ResetMutex);
-        int frequency = FREQUENCY_22KHZ;
-
-        // Prioritize reading wavs from filesystem
-        if (auto info = Seq::tryItem(Resources::SoundsD2.Sounds, id)) {
-            const auto paths = {
-                fmt::format("data/d2/{}.wav", info->Name),
-                fmt::format("data/{}.wav", info->Name)
-            };
-
-            for (auto& path : paths) {
-                if (filesystem::exists(path)) {
-                    auto data = Inferno::File::ReadAllBytes(path);
-                    SPDLOG_INFO("Reading D2 sound {} from `{}`", id, path);
-                    return (SoundsD2[int(id)] = MakePtr<SoundEffect>(CreateSoundEffectWav(*Engine, data))).get();
-                }
-            }
-        }
-
-        // Read sound from game data
-
-        // The Class 1 driller sound was not resampled for D2 and should be a lower frequency
-        if (id == 127)
-            frequency = FREQUENCY_11KHZ;
-
-        auto data = Resources::SoundsD2.Read(id);
-        if (data.empty()) return nullptr;
-        return (SoundsD2[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*Engine, data, frequency))).get();
-    }
-
-    SoundEffect* LoadSoundD3(const string& fileName) {
-        if (fileName.empty()) return nullptr;
-        if (SoundsD3[fileName]) return SoundsD3[fileName].get();
-
-        std::scoped_lock lock(ResetMutex);
-        auto info = Resources::ReadOutrageSoundInfo(fileName);
-        if (!info) return nullptr;
-
-        if (auto data = Resources::Descent3Hog.ReadEntry(info->FileName)) {
-            return (SoundsD3[fileName] = MakePtr<SoundEffect>(CreateSoundEffectWav(*Engine, *data))).get();
-        }
-        else {
-            return nullptr;
-        }
-    }
-
-    SoundEffect* LoadSound(const SoundResource& resource) {
-        if (!Alive) return nullptr;
-
-        SoundEffect* sound = LoadSoundD3(resource.D3);
-        if (!sound) sound = LoadSoundD1(resource.D1);
-        if (!sound) sound = LoadSoundD2(resource.D2);
-        return sound;
-    }
-
-    SoundUID SoundUIDIndex = SoundUID::None;
-
-    SoundUID GetSoundUID() {
-        return SoundUIDIndex = SoundUID(int(SoundUIDIndex) + 1);
+        if (GetEngine()) GetEngine()->SetReverb((AUDIO_ENGINE_REVERB)reverb);
+        //Engine->SetReverb((AUDIO_ENGINE_REVERB)reverb);
     }
 
     void Play2D(const SoundResource& resource, float volume, float pan, float pitch) {
-        auto sound = LoadSound(resource);
-        if (!sound) return;
-        sound->Play(volume, pitch, pan);
-    }
-
-    // Specify LFE level distance curve such that it rolls off much sooner than
-    // all non-LFE channels, making use of the subwoofer more dramatic.
-    static const X3DAUDIO_DISTANCE_CURVE_POINT Emitter_LFE_CurvePoints[3] = { 0.0f, 1.0f, 0.25f, 0.0f, 1.0f, 0.0f };
-    static const X3DAUDIO_DISTANCE_CURVE Emitter_LFE_Curve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_LFE_CurvePoints[0], 3 };
-
-    static const X3DAUDIO_DISTANCE_CURVE_POINT Emitter_Reverb_CurvePoints[3] = { 0.0f, 0.5f, 0.75f, 1.0f, 1.0f, 0.0f };
-    static const X3DAUDIO_DISTANCE_CURVE Emitter_Reverb_Curve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_Reverb_CurvePoints[0], 3 };
-
-    static constexpr X3DAUDIO_DISTANCE_CURVE_POINT Emitter_SquaredCurvePoints[] = { { 0.0f, 1.0f }, { 0.2f, 0.65f }, { 0.5f, 0.25f }, { 0.75f, 0.06f }, { 1.0f, 0.0f } };
-    static constexpr X3DAUDIO_DISTANCE_CURVE Emitter_SquaredCurve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_SquaredCurvePoints[0], _countof(Emitter_SquaredCurvePoints) };
-
-    static constexpr X3DAUDIO_DISTANCE_CURVE_POINT Emitter_InvSquaredCurvePoints[] = { { 0.0f, 1.0f }, { 0.05f, 0.95f }, { 0.2f, 0.337f }, { 0.4f, 0.145f }, { 0.6f, 0.065f }, { 0.8f, 0.024f }, { 1.0f, 0.0f } };
-    static constexpr X3DAUDIO_DISTANCE_CURVE Emitter_InvSquaredCurve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_InvSquaredCurvePoints[0], _countof(Emitter_InvSquaredCurvePoints) };
-
-    static constexpr X3DAUDIO_DISTANCE_CURVE_POINT Emitter_CubicPoints[] = { { 0.0f, 1.0f }, { 0.1f, 0.73f }, { 0.2f, 0.5f }, { 0.4f, 0.21f }, { 0.6f, 0.060f }, { 0.7f, 0.026f }, { 0.8f, 0.01f }, { 1.0f, 0.0f } };
-    static constexpr X3DAUDIO_DISTANCE_CURVE Emitter_CubicCurve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_CubicPoints[0], _countof(Emitter_CubicPoints) };
-
-
-    SoundUID Play(Sound3DInstance&& sound) {
-        auto sfx = LoadSound(sound.Resource);
-        if (!sfx) return SoundUID::None;
-
-        if (sound.Looped && sound.LoopStart > sound.LoopEnd)
-            throw Exception("Sound3D loop start must be <= loop end");
-
-        auto position = sound.Position;
-
-        std::scoped_lock lock(SoundInstancesMutex);
-        auto currentTime = Inferno::Clock.GetTotalTimeSeconds();
-
-        if (sound.Merge && !sound.Source.IsNull()) {
-            // Check if any emitters are already playing this sound from this source
-            for (auto& instance : SoundInstances) {
-                if (!instance.IsAlive()) continue;
-                if (instance.Source == sound.Source &&
-                    instance.Resource == sound.Resource &&
-                    instance.StartTime + MERGE_WINDOW > currentTime + sound.Delay &&
-                    !instance.Looped) {
-                    if (instance.Source != GLOBAL_SOUND_SOURCE)
-                        //if (instance.AttachToSource && sound.AttachToSource)
-                        instance.AttachOffset = (instance.AttachOffset + sound.AttachOffset) / 2;
-
-                    instance.Emitter.Position = (position + instance.Emitter.Position) / 2;
-                    instance.Volume += sound.Volume * 0.5f;
-                    //fmt::print("Merged sound effect {}\n", sound.Resource.GetID());
-                    return instance.ID; // Don't play sounds within the merge window
-                }
-            }
-        }
-
-        auto id = GetSoundUID();
-        sound.ID = id;
-        sound.Instance = sfx->CreateInstance(SoundEffectInstance_Use3D | SoundEffectInstance_ReverbUseFilters);
-        sound.Instance->SetVolume(std::clamp(sound.Volume, 0.0f, 10.0f));
-        sound.Instance->SetPitch(std::clamp(sound.Pitch, -1.0f, 1.0f));
-
-        //s.Emitter.pVolumeCurve = (X3DAUDIO_DISTANCE_CURVE*)&X3DAudioDefault_LinearCurve;
-        sound.Emitter.pVolumeCurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_CubicCurve;
-        sound.Emitter.pLFECurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_LFE_Curve;
-        sound.Emitter.pReverbCurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_Reverb_Curve;
-        sound.Emitter.CurveDistanceScaler = sound.Radius;
-        sound.Emitter.Position = position;
-        sound.Emitter.DopplerScaler = 1.0f;
-        sound.Emitter.InnerRadius = sound.Radius / 6;
-        sound.Emitter.InnerRadiusAngle = X3DAUDIO_PI / 4.0f;
-        sound.Emitter.pCone = (X3DAUDIO_CONE*)&c_emitterCone;
-        sound.StartTime = currentTime + sound.Delay;
-        sound.Alive = true;
-        ASSERT(sound.Segment != SegID::None || sound.FromPlayer);
-
-        SoundInstances.AddBack(std::move(sound));
-        return id;
+        //auto sound = LoadSound(resource);
+        //if (!sound) return;
+        //sound->Play(volume, pitch, pan);
+        if (!SoundThread) return;
+        SoundThread->PlaySound2D({ resource, volume, pan, pitch });
     }
 
     SoundUID Play(const Sound3D& sound, const Vector3& position, SegID seg, SideID side) {
-        Sound3DInstance instance(sound);
-        instance.Segment = seg;
-        instance.Position = position;
-        instance.Side = side;
-        return Play(std::move(instance));
+        PlaySound3DInfo info{ sound, position, seg, side };
+        return SoundThread->PlaySound3D(info);
     }
 
     SoundUID Play(const Sound3D& sound, const Object& source) {
-        Sound3DInstance instance(sound);
-        instance.Segment = source.Segment;
-        instance.Position = source.Position;
-        return Play(std::move(instance));
+        PlaySound3DInfo info{ sound, source.Position, source.Segment };
+        return SoundThread->PlaySound3D(info);
     }
 
     SoundUID PlayFrom(const Sound3D& sound, const Object& source) {
-        Sound3DInstance instance(sound);
-        instance.Segment = source.Segment;
-        instance.Position = source.Position;
-        instance.Source = Game::GetObjectRef(source);
-        return Play(std::move(instance));
+        PlaySound3DInfo info{ sound, source.Position, source.Segment, {}, Game::GetObjectRef(source) };
+        return SoundThread->PlaySound3D(info);
     }
 
     SoundUID AtPlayer(const Sound3D& sound) {
-        Sound3DInstance instance(sound);
-        instance.Source = Game::Player.Reference;
-        instance.FromPlayer = true;
-        return Play(std::move(instance));
+        PlaySound3DInfo info{ .Sound = sound, .Source = Game::Player.Reference, .FromPlayer = true };
+        return SoundThread->PlaySound3D(info);
     }
 
-    void Reset() {
-        if (!Engine || !Alive) return;
-        std::scoped_lock lock(ResetMutex);
-        SPDLOG_INFO("Clearing audio cache");
-        Stop3DSounds();
-        StopMusic();
+    void StopAllSounds() {
+        if (SoundThread) SoundThread->StopAllSounds();
+        SoundThread->WaitIdle(); // Block caller until worker thread clears state
+    }
 
-        // Sleep caller while the worker thread finishes cleaning up
-        while (RequestStopSounds)
-            std::this_thread::sleep_for(std::chrono::milliseconds(5));
-
-        std::scoped_lock soundLock(SoundInstancesMutex);
-        StopSoundTags.clear();
-        StopSoundUIDs.clear();
-        StopSoundSources.clear();
-        Engine->TrimVoicePool();
-        Emitters.Clear();
+    void UnloadD1Sounds() {
+        //RequestStopSounds = true;
+        //RequestUnloadD1 = true;
+        if (SoundThread) SoundThread->RequestUnloadD1 = true;
     }
 
     void PrintStatistics() {
-        if (!Engine || !Alive) return;
-        auto stats = Engine->GetStatistics();
-
-        SPDLOG_INFO("Audio stats:\nPlaying: {} / {}\nInstances: {}\nVoices {} / {} / {} / {}\n{} audio bytes",
-                    stats.playingOneShots, stats.playingInstances,
-                    stats.allocatedInstances,
-                    stats.allocatedVoices, stats.allocatedVoices3d,
-                    stats.allocatedVoicesOneShot, stats.allocatedVoicesIdle,
-                    stats.audioBytes);
+        if (SoundThread) SoundThread->PrintStatistics();
     }
 
-    void Pause() { Engine->Suspend(); }
-    void Resume() { Engine->Resume(); }
+    void Pause() {
+        /*Engine->Suspend();*/
+    }
 
-    float GetVolume() { return Alive ? Engine->GetMasterVolume() : 0; }
+    void Resume() {
+        /*Engine->Resume();*/
+    }
+
+    float GetVolume() { return SoundThread && SoundThread->GetEngine() ? SoundThread->GetEngine()->GetMasterVolume() : 0; }
 
     void SetVolume(float volume) {
         Settings::Inferno.MasterVolume = volume;
-        if (Alive) Engine->SetMasterVolume(volume);
+
+        if (SoundThread)
+            SoundThread->GetEngine()->SetMasterVolume(volume);
     }
 
     void SetMusicVolume(float volume) {
         Settings::Inferno.MusicVolume = volume;
-
-        if (CurrentMusicStream)
-            CurrentMusicStream->Effect->SetVolume(volume);
+        if (SoundThread)
+            SoundThread->SetMusicVolume(volume);
     }
 
     void Stop3DSounds() {
-        if (!Alive) return;
-
-        RequestStopSounds = true;
+        if (SoundThread)
+            SoundThread->Stop3DSounds();
     }
 
     void Stop2DSounds() {
-        //for (auto& effect : SoundEffects) {
-
-        //}
+        if (SoundThread)
+            SoundThread->Stop2DSounds();
     }
 
     void Stop(Tag tag) {
-        if (!Alive || !tag) return;
-        std::scoped_lock lock(SoundInstancesMutex);
-        StopSoundTags.push_back(tag);
+        if (SoundThread)
+            SoundThread->StopSound(tag);
     }
 
     void Stop(SoundUID id) {
-        if (!Alive || id == SoundUID::None) return;
-        std::scoped_lock lock(SoundInstancesMutex);
-        StopSoundUIDs.push_back(id);
+        if (SoundThread)
+            SoundThread->StopSound(id);
     }
 
     void Stop(ObjRef id) {
-        if (!Alive) return;
-        std::scoped_lock lock(SoundInstancesMutex);
-        StopSoundSources.push_back(id);
+        if (SoundThread)
+            SoundThread->StopSound(id);
     }
 
     void AddEmitter(AmbientSoundEmitter&& e) {
@@ -693,7 +922,8 @@ namespace Inferno::Sound {
                     sound.Occlusion = false;
                     sound.Volume = emitter.Volume.GetRandom();
                     sound.Radius = emitter.Distance * 3; // Random?
-                    Play(sound, Listener.Position + RandomVector(emitter.Distance), SegID::None);
+                    // todo: ambient emitters
+                    //Play(sound, Listener.Position + RandomVector(emitter.Distance), SegID::None);
                 }
                 else {
                     Play2D(resource, emitter.Volume.GetRandom());
@@ -707,7 +937,6 @@ namespace Inferno::Sound {
         try {
             uint32 fourcc;
             memcpy(&fourcc, data.data(), sizeof(uint32));
-            Ptr<MusicStream> stream;
 
             switch (fourcc) {
                 case MakeFourCC("OggS"):
@@ -732,61 +961,47 @@ namespace Inferno::Sound {
     }
 
     bool PlayMusic(List<byte>&& data, bool loop) {
-        CurrentMusicStream = CreateMusicStream(std::move(data));
-        if (!CurrentMusicStream) {
-            return false;
-        }
+        SoundThread->PlayMusic({ {}, data, loop });
 
-        CurrentMusicStream->Loop = loop;
-        CurrentMusicStream->Effect->SetVolume(Settings::Inferno.MusicVolume);
-        CurrentMusicStream->Effect->Play();
+        //CurrentMusicStream = CreateMusicStream(std::move(data));
+        //if (!CurrentMusicStream) {
+        //    return false;
+        //}
+
+        //CurrentMusicStream->Loop = loop;
+        //CurrentMusicStream->Effect->SetVolume(Settings::Inferno.MusicVolume);
+        //CurrentMusicStream->Effect->Play();
         return true;
     }
 
+
     bool PlayMusic(const string& file, bool loop) {
-        StopMusic();
-
-        auto data = Resources::ReadBinaryFile(file);
-        if (data.empty()) {
-            SPDLOG_WARN("Music file {} not found", file);
-            return false;
-        }
-
-        if (file.ends_with(".hmp")) {
-            SPDLOG_WARN("HMP / MIDI music not implemented!");
-            return false;
-        }
-
-        CurrentMusicStream = CreateMusicStream(std::move(data));
-        if (!CurrentMusicStream) {
-            SPDLOG_WARN("Unable to create music stream from {}", file);
-            return false;
-        }
-
-        SPDLOG_INFO("Playing music {}", file);
-        CurrentMusicStream->Loop = loop;
-        CurrentMusicStream->Effect->SetVolume(Settings::Inferno.MusicVolume);
-        CurrentMusicStream->Effect->Play();
+        SoundThread->PlayMusic({ file, {}, loop });
         return true;
     }
 
     void StopMusic() {
-        if (!CurrentMusicStream) return;
-        SPDLOG_INFO("Stopping music");
-        RequestStopMusic = true;
+        if (!SoundThread) return;
+        SoundThread->StopMusic();
     }
 
     void Shutdown() {
-        if (!Alive) return;
-        Alive = false;
-        Engine->Suspend();
-        WorkerThread.join();
+        SoundThread.reset();
     }
+
+    void WaitInitialized() {
+        if (SoundThread) SoundThread->WaitIdle();
+    }
+
+    AudioEngine* GetEngine() { return SoundThread ? SoundThread->GetEngine() : nullptr; }
 
     // HWND is not used directly, but indicates the sound system requires a window
     void Init(HWND, milliseconds pollRate) {
-        WorkerThread = std::jthread(SoundWorker, pollRate);
-        Listener.pCone = (X3DAUDIO_CONE*)&c_listenerCone;
+        SoundThread = make_unique<SoundWorker>(pollRate);
         Intersect = IntersectContext(Game::Level);
+    }
+
+    void CopySoundIds() {
+        if (SoundThread) SoundThread->CopySoundIds();
     }
 }

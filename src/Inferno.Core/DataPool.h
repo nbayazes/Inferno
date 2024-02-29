@@ -55,7 +55,15 @@ namespace Inferno {
 
         // Allocates an element
         [[nodiscard]] TData& Alloc() {
-            return Get(Add({}));
+            for (size_t i = 0; i < _data.size(); i++) {
+                if (!_aliveFn(_data[i])) {
+                    _data[i] = {};
+                    return _data[i];
+                }
+            }
+
+            _liveItems++;
+            return _data.emplace_back();
         }
 
         void Clear() {
