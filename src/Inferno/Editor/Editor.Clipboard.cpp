@@ -4,6 +4,7 @@
 #include "Editor.Object.h"
 #include "Editor.Segment.h"
 #include "Editor.Wall.h"
+#include "Graphics/Render.h"
 
 namespace Inferno::Editor {
     struct SideClipboardData {
@@ -142,6 +143,9 @@ namespace Inferno::Editor {
                 else {
                     side.Wall = WallID::None;
                 }
+
+                Render::LoadTextureDynamic(side.TMap);
+                Render::LoadTextureDynamic(side.TMap2);
             }
 
             if (Settings::Editor.PasteSegmentSpecial) {
