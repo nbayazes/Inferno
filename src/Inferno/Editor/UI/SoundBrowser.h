@@ -103,8 +103,9 @@ namespace Inferno::Editor {
                                 continue;
                         }
 
+                        // todo: update soundIdLookup when level changes
                         string label;
-                        if (_soundIdLookup.empty())
+                        if (_soundIdLookup.size() <= i)
                             label = fmt::format("{}: {}", i, sound.Name);
                         else
                             label = fmt::format("{} [{}]: {}", i, (int)_soundIdLookup[i], sound.Name);
@@ -137,8 +138,9 @@ namespace Inferno::Editor {
                                 continue;
                         }
 
+                        // todo: update soundIdLookup when level changes
                         string label;
-                        if (_soundIdLookup.empty())
+                        if (_soundIdLookup.size() <= i)
                             label = fmt::format("{}: {}", i, sound.Name);
                         else
                             label = fmt::format("{} [{}]: {}", i, (int)_soundIdLookup[i], sound.Name);

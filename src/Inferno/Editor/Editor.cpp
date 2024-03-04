@@ -142,9 +142,12 @@ namespace Inferno::Editor {
                 }
                 else {
                     switch (Settings::Editor.InsertMode) {
-                        case InsertMode::Normal: Commands::InsertSegment(); break;
-                        case InsertMode::Extrude: Commands::ExtrudeSegment(); break;
-                        case InsertMode::Mirror: Commands::InsertMirrored(); break;
+                        case InsertMode::Normal: Commands::InsertSegment();
+                            break;
+                        case InsertMode::Extrude: Commands::ExtrudeSegment();
+                            break;
+                        case InsertMode::Mirror: Commands::InsertMirrored();
+                            break;
                     }
                 }
                 break;
@@ -599,12 +602,13 @@ namespace Inferno::Editor {
         if (Settings::Editor.ReopenLastLevel &&
             !Settings::Editor.RecentFiles.empty() &&
             filesystem::exists(Settings::Editor.RecentFiles.front())) {
-            LoadFile(Settings::Editor.RecentFiles.front());
+            Game::LoadLevel(Settings::Editor.RecentFiles.front(), "", true);
         }
         else {
             int16 version = 7; // Default to D2 levels
             if (Resources::FoundDescent1() && !Resources::FoundDescent2()) version = 1; // User only has D1 and not D2
-            NewLevel("new level", "new", version, false);
+            NewLevelInfo info = { .Title = "new level", .FileName = "new", .Version = version, .AddToHog = false };
+            NewLevel(info);
         }
     }
 
@@ -659,7 +663,7 @@ namespace Inferno::Editor {
         }
 
         void GoToExit() {
-            if (auto tid = Seq::findIndex(Game::Level.Triggers, [] (const Trigger& trigger) { return IsExit(Game::Level, trigger); })) {
+            if (auto tid = Seq::findIndex(Game::Level.Triggers, [](const Trigger& trigger) { return IsExit(Game::Level, trigger); })) {
                 if (auto wall = Game::Level.TryGetWall((TriggerID)*tid)) {
                     Selection.SetSelection(wall->Tag);
                     FocusSegment();
@@ -699,13 +703,13 @@ namespace Inferno::Editor {
             PROCESS_INFORMATION pi{};
 
             if (!CreateProcess(GetGameExecutablePath().c_str(),
-                               nullptr,     // Command line
-                               nullptr,     // Process handle not inheritable
-                               nullptr,     // Thread handle not inheritable
-                               false,       // Set handle inheritance to FALSE
-                               0,           // No creation flags
-                               nullptr,     // Use parent's environment block
-                               GetGameExecutablePath().parent_path().c_str(),  // Starting directory 
+                               nullptr, // Command line
+                               nullptr, // Process handle not inheritable
+                               nullptr, // Thread handle not inheritable
+                               false, // Set handle inheritance to FALSE
+                               0, // No creation flags
+                               nullptr, // Use parent's environment block
+                               GetGameExecutablePath().parent_path().c_str(), // Starting directory 
                                &si,
                                &pi)) {
                 auto msg = fmt::format("Unable to start game:\n{}", GetLastError());

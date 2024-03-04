@@ -67,10 +67,6 @@ namespace Inferno::Editor {
 
     void OnLevelLoad(bool reload);
 
-    void LoadFile(const filesystem::path& path);
-
-    //void LoadLevel(std::filesystem::path) noexcept;
-    void LoadLevelFromHOG(const string& name);
     void LoadMission(std::filesystem::path);
 
     void OnSelectTexture(LevelTexID tmap1, LevelTexID tmap2);

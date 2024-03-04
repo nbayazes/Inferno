@@ -164,7 +164,7 @@ namespace Inferno::Editor {
                     for (auto& file : Settings::Editor.RecentFiles) {
                         if (file.empty()) continue;
                         if (ImGui::MenuItem(file.filename().string().c_str()))
-                            if (CanCloseCurrentFile()) Editor::LoadFile(file);
+                            if (CanCloseCurrentFile()) Game::LoadLevel(file, "", true);
                     }
                 }
 

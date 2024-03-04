@@ -88,6 +88,7 @@ namespace Inferno {
                 seg.UpdateGeometricProps(level);
             }
 
+            level.IsShareware = true;
             return level;
         }
 

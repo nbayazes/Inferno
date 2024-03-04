@@ -527,7 +527,7 @@ namespace Inferno::Render {
     };
 
     MaterialLibrary::MaterialLibrary(size_t size)
-        : _materials(size) {
+        : _materials(size), _keepLoaded(size) {
         assert(size >= 3000); // Reserved textures at id 2900
         LoadDefaults();
         _worker = MakePtr<MaterialUploadWorker>(this);
@@ -538,7 +538,7 @@ namespace Inferno::Render {
         _worker.reset();
     }
 
-    void MaterialLibrary::LoadMaterials(span<const TexID> tids, bool forceLoad) {
+    void MaterialLibrary::LoadMaterials(span<const TexID> tids, bool forceLoad, bool keepLoaded) {
         // Pre-scan materials, as starting an upload batch causes a stall
         if (!forceLoad && !HasUnloadedTextures(tids)) return;
 
@@ -551,6 +551,8 @@ namespace Inferno::Render {
                 if (auto material = UploadMaterial(batch, *upload))
                     uploads.emplace_back(std::move(material.value()));
             }
+
+            if (id > TexID::None) _keepLoaded[(int)id] = keepLoaded;
         }
 
         SPDLOG_INFO("Loading {} textures", uploads.size());
@@ -562,15 +564,14 @@ namespace Inferno::Render {
         Render::Uploads->GetFreeDescriptors();
     }
 
-    void MaterialLibrary::LoadMaterialsAsync(span<const TexID> ids, bool forceLoad) {
-        //LoadMaterials(ids, forceLoad);
-        //return;
-
+    void MaterialLibrary::LoadMaterialsAsync(span<const TexID> ids, bool forceLoad, bool keepLoaded) {
         if (!forceLoad && !HasUnloadedTextures(ids)) return;
 
         for (auto& id : ids) {
             if (auto upload = PrepareUpload(id, forceLoad))
                 _requestedUploads.Add(*upload);
+
+            if (id > TexID::None) _keepLoaded[(int)id] = keepLoaded;
         }
 
         _worker->Notify();
@@ -604,12 +605,6 @@ namespace Inferno::Render {
             _pendingCopies.clear();
             Render::Uploads->GetFreeDescriptors();
         }
-
-        if (_requestPrune) {
-            Render::Adapter->WaitForGpu();
-            PruneInternal();
-            Render::LevelChanged = true; // To trigger refresh of material cache
-        }
     }
 
     const Material2D& MaterialLibrary::Get(EClipID id, double time, bool critical) const {
@@ -634,7 +629,7 @@ namespace Inferno::Render {
     void MaterialLibrary::LoadLevelTextures(const Inferno::Level& level, bool force) {
         SPDLOG_INFO("Load level textures. Force {}", force);
         Render::Adapter->WaitForGpu();
-        KeepLoaded.clear();
+        ranges::fill(_keepLoaded, false);
         auto ids = GetLevelTextures(level, PreloadDoors);
 
         for (auto& id : ids)
@@ -664,15 +659,13 @@ namespace Inferno::Render {
 
             if (FileSystem::TryFindFile(name + ".dds")) {
                 auto material = UploadBitmap(batch, name, Render::StaticTextures->Black);
-                material.ID = GetUnusedTexID();
-                _namedMaterials[name] = material.ID;
+                _namedMaterials[name] = material.ID = GetUnusedTexID();
                 uploads.emplace_back(std::move(material));
             }
             else if (auto bitmap = Resources::ReadOutrageBitmap(name)) {
                 // Try loading file from D3 data
                 auto material = UploadOutrageMaterial(batch, *bitmap, Render::StaticTextures->Black);
-                material.ID = GetUnusedTexID();
-                _namedMaterials[name] = material.ID;
+                _namedMaterials[name] = material.ID = GetUnusedTexID();
                 uploads.emplace_back(std::move(material));
             }
             else {
@@ -712,21 +705,6 @@ namespace Inferno::Render {
         Prune();
     }
 
-    void MaterialLibrary::PruneInternal() {
-        SPDLOG_INFO("Prune Internal");
-        auto ids = GetLevelTextures(Game::Level, PreloadDoors);
-        Seq::insert(ids, KeepLoaded);
-
-        for (auto& material : _materials) {
-            //if (material.ID <= TexID::Invalid || ids.contains(material.ID) || material.State != TextureState::Resident) continue;
-            if (ids.contains(material.ID)) continue;
-            ResetMaterial(material);
-        }
-
-        _requestPrune = false;
-        Render::Adapter->PrintMemoryUsage();
-    }
-
     void MaterialLibrary::ResetMaterial(Material2D& material) {
         if (material.ID >= TexID(2900) && material.ID < TexID(3000)) return; // reserved range
 
@@ -745,6 +723,23 @@ namespace Inferno::Render {
         StaticTextures->Normal.CreateShaderResourceView(Render::Heaps->Materials.GetCpuHandle((int)material.ID * 5 + 4));
 
         //SPDLOG_INFO("Resetting material {} {}", (int)material.ID, material.Name);
+    }
+
+    void MaterialLibrary::Prune() {
+        Render::Adapter->WaitForGpu();
+
+        SPDLOG_INFO("Pruning textures");
+        auto ids = GetLevelTextures(Game::Level, PreloadDoors);
+
+        for (auto& material : _materials) {
+            //if (material.ID <= TexID::Invalid || ids.contains(material.ID) || material.State != TextureState::Resident) continue;
+            if (ids.contains(material.ID)) continue;
+            if (_keepLoaded[(int)material.ID]) continue;
+            ResetMaterial(material);
+        }
+
+        Render::Adapter->PrintMemoryUsage();
+        Render::LevelChanged = true; // To trigger refresh of material cache
     }
 
     void MaterialLibrary::Unload() {

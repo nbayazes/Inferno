@@ -7,7 +7,6 @@
 #include "Editor/Editor.h"
 #include "Editor/Editor.Object.h"
 #include "Editor/UI/EditorUI.h"
-#include "FileSystem.h"
 #include "Game.AI.h"
 #include "Game.Bindings.h"
 #include "Game.Input.h"
@@ -46,166 +45,6 @@ namespace Inferno::Game {
         ScreenFlash = Color();
     }
 
-    // Tries to read the mission file (msn / mn2) for the loaded mission
-    Option<MissionInfo> TryReadMissionInfo() {
-        try {
-            if (!Mission) return {};
-            MissionInfo mission{};
-
-            // Read mission from filesystem
-            std::ifstream file(Mission->GetMissionPath());
-            if (mission.Read(file))
-                return mission;
-
-            // Descent2 stores its mn2 in the hog file
-            auto ext = Level.IsDescent1() ? "msn" : "mn2";
-
-            if (auto entry = Mission->FindEntryOfType(ext)) {
-                auto bytes = Mission->ReadEntry(*entry);
-                string str((char*)bytes.data(), bytes.size());
-                std::stringstream stream(str);
-                mission.Read(stream);
-                return mission;
-            }
-
-            return {};
-        }
-        catch (const std::exception& e) {
-            SPDLOG_ERROR(e.what());
-            return {};
-        }
-    }
-
-    int GetLevelNumber(Inferno::Level& level) {
-        if (Game::Mission) {
-            auto filename = Game::Mission->Path.filename().string();
-            //auto levels = Game::Mission->GetLevels();
-            if (auto info = Game::TryReadMissionInfo()) {
-                if (auto index = Seq::indexOf(info->Levels, level.FileName))
-                    return 1 + (int)index.value();
-
-                if (auto index = Seq::indexOf(info->SecretLevels, level.FileName))
-                    return -1 - (int)index.value(); // Secret levels have a negative index
-            }
-            else if (String::ToUpper(filename) == "DESCENT.HOG") {
-                // Descent 1 doesn't have a msn file and relies on hard coded values
-                if (level.FileName.starts_with("levelS")) {
-                    auto index = level.FileName.substr(6, 1);
-                    return -std::stoi(index);
-                }
-                else if (level.FileName.starts_with("level")) {
-                    auto index = level.FileName.substr(5, 2);
-                    return std::stoi(index);
-                }
-            }
-        }
-
-        return 1;
-    }
-
-    void FixMatcenLinks(Inferno::Level& level) {
-        for (int id = 0; id < level.Segments.size(); id++) {
-            auto& seg = level.Segments[id];
-
-            if (seg.Type == SegmentType::Matcen) {
-                if (auto matcen = level.TryGetMatcen(seg.Matcen)) {
-                    if (matcen->Segment != SegID(id)) {
-                        SPDLOG_WARN("Fixing matcen {} with invalid seg id {}", (int)seg.Matcen, matcen->Segment);
-                        matcen->Segment = SegID(id);
-                    }
-                }
-                else {
-                    SPDLOG_WARN("Segment {} had invalid matcen ID {}", id, (int)seg.Matcen);
-                }
-            }
-        }
-    }
-
-    void LoadLevel(Inferno::Level&& level) {
-        Inferno::Level backup = Level;
-
-        try {
-            assert(level.FileName != "");
-            bool reload = level.FileName == Level.FileName;
-
-            // reload game data when switching between shareware and non-shareware
-            bool sharewareReload =
-                (level.FileName.ends_with(".sdl") && !Level.FileName.ends_with(".sdl")) ||
-                (!level.FileName.ends_with(".sdl") && Level.FileName.ends_with(".sdl"));
-
-            Editor::LoadTextureFilter(level);
-            bool forceReload =
-                level.IsDescent2() != Level.IsDescent2() ||
-                NeedsResourceReload ||
-                sharewareReload ||
-                Resources::CustomTextures.Any() ||
-                !String::InvariantEquals(level.Palette, Level.Palette);
-
-            if (sharewareReload)
-                Sound::UnloadD1Sounds();
-
-            NeedsResourceReload = false;
-            //Rooms.clear();
-            IsLoading = true;
-            bool wasSecret = LevelNumber < 0;
-            FixMatcenLinks(level);
-
-            Level = std::move(level); // Move to global so resource loading works properly
-            FreeProceduralTextures();
-            Resources::LoadLevel(Level);
-            LoadFonts();
-            Level.Rooms = CreateRooms(Level);
-            Navigation = NavigationNetwork(Level);
-            LevelNumber = GetLevelNumber(Level);
-
-            if (forceReload || Resources::CustomTextures.Any()) // Check for custom textures before or after load
-                Render::Materials->Unload();
-
-            Render::Materials->LoadLevelTextures(Level, forceReload);
-            string extraTextures[] = { "noise" };
-            Render::Materials->LoadTextures(extraTextures);
-
-            if (auto path = FileSystem::TryFindFile("env.dds")) {
-                ResourceUploadBatch batch(Render::Device);
-                batch.Begin();
-                Render::Materials->EnvironmentCube.LoadDDS(batch, *path);
-                Render::Materials->EnvironmentCube.CreateCubeSRV();
-                batch.End(Render::Adapter->BatchUploadQueue->Get());
-            }
-
-            for (auto& seg : Level.Segments) {
-                // Clamp volume light if overly bright segments are saved
-                if (seg.VolumeLight.x == seg.VolumeLight.y && seg.VolumeLight.x == seg.VolumeLight.z && seg.VolumeLight.x > 2.0f)
-                    seg.VolumeLight = Color(1, 1, 1);
-            }
-
-            Render::LoadLevel(Level);
-            Render::ResetEffects();
-            InitObjects(Game::Level);
-
-            Editor::OnLevelLoad(reload);
-            Render::Materials->Prune();
-            Render::Adapter->PrintMemoryUsage();
-
-            // Check if we travelled to or from a secret level in D2
-            bool secretFlag = false;
-            if (Level.IsDescent2()) {
-                secretFlag = LevelNumber < 0 || wasSecret;
-            }
-
-            Player.StartNewLevel(secretFlag);
-            IsLoading = false;
-        }
-        catch (const std::exception& e) {
-            SPDLOG_ERROR(e.what());
-            Level = backup; // restore the old level if something went wrong
-            throw;
-        }
-    }
-
-    void LoadMission(const filesystem::path& file) {
-        Mission = HogFile::Read(FileSystem::FindFile(file));
-    }
 
     void UpdateAmbientSounds() {
         auto& player = Level.Objects[0];
@@ -466,7 +305,18 @@ namespace Inferno::Game {
 
         // restore default exposure in case the reactor started going critical.
         ResetGlobalLighting();
-        SetState(GameState::Editor); // just exit for now
+
+        auto nextLevel = LevelNameByIndex(LevelNumber + 1);
+        if(nextLevel.empty()) {
+            SetState(GameState::Editor);
+        }
+        else {
+            LoadLevel(Level.Path, nextLevel);
+            SetState(GameState::Game);
+        }
+        // reset level game state. countdown etc
+        // respawn
+
     }
 
     void UpdateGameState() {
@@ -597,6 +447,8 @@ namespace Inferno::Game {
 
     void Update(float dt) {
         LegitProfiler::ProfilerTask update("Update game", LegitProfiler::Colors::CARROT);
+
+        CheckLoadLevel();
 
         Inferno::Input::Update();
         Bindings.Update();
@@ -768,135 +620,12 @@ namespace Inferno::Game {
         }
     }
 
-    // Preloads textures for a level
-    void PreloadTextures() {
-        string customHudTextures[] = {
-            "cockpit-ctr",
-            "cockpit-left",
-            "cockpit-right",
-            "gauge01b#0",
-            "gauge01b#1",
-            "gauge01b#2",
-            "gauge01b#3",
-            "gauge01b#4",
-            "gauge01b#5",
-            "gauge01b#6",
-            "gauge01b#7",
-            "gauge01b#8",
-            "gauge01b#10",
-            "gauge01b#11",
-            "gauge01b#12",
-            "gauge01b#13",
-            "gauge01b#14",
-            "gauge01b#15",
-            "gauge01b#16",
-            "gauge01b#17",
-            "gauge01b#18",
-            "gauge01b#19",
-            "gauge02b",
-            "gauge03b",
-            //"gauge16b", // lock
-            "Hilite",
-            "SmHilite",
-            "tracer",
-            "Lightning",
-            "Lightning3",
-            "noise"
-        };
-
-        Render::Materials->LoadTextures(customHudTextures);
+    void LoadHUDTextures() {
+        Render::Materials->LoadMaterials(Resources::GameData.HiResGauges, false, true);
+        Render::Materials->LoadMaterials(Resources::GameData.Gauges, false, true);
     }
 
-    List<string> ParseSng(const string& sng) {
-        const auto lines = String::Split(sng);
-        std::vector<std::string> result;
-
-        // sng files are in two formats, the original tab separated format including drum banks
-        // or a simplified format containing only the song name. We only care about the file name.
-        for (auto& line : lines) {
-            if (line == "\x1a") continue; // weird EOL character at end of d1 sng from CPM filesystem
-            auto tokens = String::Split(line, '\t');
-
-            if (!tokens.empty()) {
-                tokens[0] = String::TrimEnd(tokens[0], "\r");
-                result.push_back(tokens[0]);
-            }
-        }
-
-        return result;
-    }
-
-    void PlayMusic() {
-        //Sound::PlayMusic("Resignation.mp3");
-        //Sound::PlayMusic("Title.ogg");
-        //Sound::PlayMusic("Hostility.flac");
-
-        // Determine the correct song to play based on the level number
-        auto sng = Resources::ReadTextFile("descent.sng");
-        if (sng.empty()) {
-            SPDLOG_WARN("No SNG file found!");
-            return;
-        }
-
-        auto songs = ParseSng(sng);
-
-        constexpr uint FirstLevelSong = 5;
-        if (songs.size() < FirstLevelSong) {
-            SPDLOG_WARN("Not enough songs in SNG file. Expected 5, was {}", songs.size());
-            return;
-        }
-
-        auto availableLevelSongs = songs.size() - FirstLevelSong;
-        auto songIndex = FirstLevelSong + std::abs(LevelNumber - 1) % availableLevelSongs;
-        string song = songs[songIndex];
-
-        if (String::ToLower(song).ends_with(".hmp")) {
-            if (Game::Mission) {
-                // Check the unpacked data folder for any music matching the default song names
-                auto base = std::filesystem::path(song).stem();
-                std::vector extensions = { ".ogg", ".mp3", ".flac" };
-
-                for (auto& ext : extensions) {
-                    auto unpacked = Game::Mission->Path.parent_path() / Game::Mission->Path.stem() / base;
-                    unpacked.replace_extension(ext);
-                    if (filesystem::exists(unpacked)) {
-                        Sound::PlayMusic(File::ReadAllBytes(unpacked), true);
-                        return;
-                    }
-                }
-
-                for (auto& ext : extensions) {
-                    base.replace_extension(ext);
-                    auto entry = Game::Mission->TryReadEntry(base.string());
-                    if (!entry.empty()) {
-                        Sound::PlayMusic(std::move(entry), true);
-                        return;
-                    }
-                }
-            }
-
-            // Try finding replacement music for the game's midi tracks
-            // Assumes the user only provided one type of file in the data directories
-            std::filesystem::path path(song);
-
-            path.replace_extension(".ogg");
-            if (Resources::FileExists(path.string()))
-                Sound::PlayMusic(path.string());
-
-            path.replace_extension(".mp3");
-            if (Resources::FileExists(path.string()))
-                Sound::PlayMusic(path.string());
-
-            path.replace_extension(".flac");
-            if (Resources::FileExists(path.string()))
-                Sound::PlayMusic(path.string());
-
-            // todo: play the original midi if no replacement music
-        }
-        else {
-            Sound::PlayMusic(song);
-        }
-    }
+    void PreloadTextures();
 
     bool StartLevel() {
         auto player = Level.TryGetObject(ObjID(0));
@@ -940,7 +669,7 @@ namespace Inferno::Game {
         Render::Materials->LoadGameTextures();
         InitObjects(Level);
         InitializeMatcens(Level);
-        Render::LoadHUDTextures();
+        LoadHUDTextures();
         PreloadTextures();
         PlayMusic();
 

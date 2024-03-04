@@ -72,7 +72,6 @@ namespace Inferno::Render {
     void LoadModelDynamic(ModelID);
     void LoadTextureDynamic(TexID);
     void LoadTextureDynamic(LevelTexID);
-    void LoadHUDTextures();
     void LoadTextureDynamic(VClipID);
     void LoadLevel(const Inferno::Level&);
 

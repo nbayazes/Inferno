@@ -148,12 +148,11 @@ namespace Inferno::Editor {
         auto ids = FilterLevelTextures(filter, _showInUse, _showEverything);
         auto tids = Seq::map(ids, Resources::LookupTexID);
         if (loadMaterials)
-            Render::Materials->LoadMaterialsAsync(tids);
+            Render::Materials->LoadMaterialsAsync(tids, false, true);
 
         // Update ids immediately. They will display as loading completes.
         _textureIds.clear();
         Seq::append(_textureIds, ids);
-        Seq::insert(Render::Materials->KeepLoaded, tids); // so browser textures don't get discarded after a prune
     }
 
     TextureBrowserUI::TextureBrowserUI() : WindowBase("Textures", &Settings::Editor.Windows.Textures) {

@@ -306,28 +306,15 @@ namespace Inferno::Resources {
         }
     }
 
-    // Reads a file from the current mission or the file system
+    // Try to reads a file from the current mission or the file system
     // Returns empty list if not found
-    List<ubyte> TryReadFile(const filesystem::path& path) {
-        auto fileName = path.filename().string();
-        if (Game::Mission && Game::Mission->Exists(fileName)) {
-            return Game::Mission->ReadEntry(fileName);
-        }
-
-        if (filesystem::exists(path)) {
-            return File::ReadAllBytes(path);
-        }
-
-        return {};
-    }
-
-    // Reads a file from the current mission or the file system
-    // Returns empty if not found
     List<ubyte> TryReadMissionFile(const filesystem::path& path) {
+        // Search mounted mission first
         auto fileName = path.filename().string();
         if (Game::Mission && Game::Mission->Exists(fileName))
             return Game::Mission->ReadEntry(fileName);
 
+        // Then the filesystem
         if (filesystem::exists(path))
             return File::ReadAllBytes(path);
 
@@ -945,28 +932,6 @@ namespace Inferno::Resources {
 
     const PigBitmap& GetBitmap(LevelTexID tid) {
         return GetBitmap(LookupTexID(tid));
-    }
-
-    Level ReadLevel(string name) {
-        SPDLOG_INFO("Reading level {}", name);
-        List<ubyte> data;
-
-        // Search mounted mission first, then the main hog files
-        if (Game::Mission && Game::Mission->Exists(name))
-            data = Game::Mission->ReadEntry(name);
-        else if (Hog.Exists(name))
-            data = Hog.ReadEntry(name);
-
-        if (data.empty()) {
-            SPDLOG_ERROR("File not found: {}", name);
-            throw Exception("File not found");
-        }
-
-        Game::Shareware = String::ToLower(name).ends_with(".sdl");
-        SPDLOG_INFO("Shareware level loaded! Certain functionality will be unavailable.");
-        auto level = Game::Shareware ? Level::DeserializeD1Demo(data) : Level::Deserialize(data);
-        level.FileName = name;
-        return level;
     }
 
     bool FoundDescent1() { return FileSystem::TryFindFile("descent.hog").has_value(); }

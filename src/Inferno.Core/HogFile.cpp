@@ -65,6 +65,13 @@ namespace Inferno {
         throw Exception(fmt::format("{} not found in hog file", entry));
     }
 
+    const HogEntry* HogFile::TryFindEntry(string_view entry) const {
+        for (auto& e : Entries)
+            if (String::InvariantEquals(e.Name, entry)) return &e;
+
+        return nullptr;
+    }
+
     HogFile HogFile::Read(const filesystem::path& file) {
         HogFile hog{};
         hog.Path = file;

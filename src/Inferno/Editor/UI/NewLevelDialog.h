@@ -65,7 +65,8 @@ namespace Inferno::Editor {
         }
 
         void OnAccept() override {
-            Editor::NewLevel(_title, _fileName, Version, _addToHog);
+            NewLevelInfo info = { .Title = _title, .FileName = _fileName, .Version = Version, .AddToHog = _addToHog };
+            Editor::NewLevel(info);
         }
     };
 }

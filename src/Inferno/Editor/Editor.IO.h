@@ -1,14 +1,22 @@
 #pragma once
-#include "Types.h"
-#include "Level.h"
 #include "Command.h"
 #include "HogFile.h"
+#include "Level.h"
+#include "Types.h"
 
 namespace Inferno::Editor {
+    struct NewLevelInfo {
+        string Title;
+        string FileName;
+        int16 Version = 0;
+        bool AddToHog = false;
+    };
+
+    Level NewLevel(const NewLevelInfo& info);
+
     // Creates a backup of a file using the provided extension
     void BackupFile(const filesystem::path& path, string_view ext = ".bak");
 
-    void NewLevel(string_view name, const string& fileName, int16 version, bool addToHog);
     void CheckForAutosave();
     void ResetAutosaveTimer();
     void WritePlaytestLevel(const filesystem::path& missionFolder, Level& level, HogFile* mission);

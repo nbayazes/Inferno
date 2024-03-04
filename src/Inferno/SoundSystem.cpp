@@ -489,12 +489,12 @@ namespace Inferno::Sound {
 
                         inst.Emitter.Position = (playInfo.Position + inst.Emitter.Position) / 2;
                         info.Sound.Volume += sound.Volume * 0.5f;
-                        SPDLOG_INFO("Discarded sound");
+                        //SPDLOG_INFO("Discarded sound");
                         //fmt::print("Merged sound effect {}\n", sound.Resource.GetID());
                         return; // Don't play sounds within the merge window
                     }
                 }
-                SPDLOG_INFO("Live sounds {}", _soundInstances.Count());
+                //SPDLOG_INFO("Live sounds {}", _soundInstances.Count());
             }
 
             auto& instance = _soundInstances.Alloc();
@@ -542,7 +542,7 @@ namespace Inferno::Sound {
             _pending2dSounds.clear();
 
             for (auto& pending : _pending3dSounds) {
-                SPDLOG_INFO("Play sound {} : ID {}", pending.Sound.Resource.D1, (int)pending.ID);
+                //SPDLOG_INFO("Play sound {} : ID {}", pending.Sound.Resource.D1, (int)pending.ID);
                 PlaySound3DInternal(pending);
             }
 

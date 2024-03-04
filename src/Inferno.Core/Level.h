@@ -161,15 +161,17 @@ namespace Inferno {
 
 
 #pragma region EditorProperties
-        string FileName; // Name in hog
+        string FileName; // Name in hog or on filesystem
 
-        // Name of the level on the filesystem. Empty means it is in a hog or unsaved.
+        // Name of the level on the filesystem or containing HOG. Empty means unsaved.
         filesystem::path Path;
 
         Vector3 CameraPosition;
         Vector3 CameraTarget;
         Vector3 CameraUp;
+
 #pragma endregion
+        bool IsShareware = false;
 
         bool IsDescent1() const { return Version == 1; }
         // Includes vertigo and non-vertigo

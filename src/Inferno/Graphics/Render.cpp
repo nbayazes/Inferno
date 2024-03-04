@@ -334,11 +334,6 @@ namespace Inferno::Render {
         Materials->LoadMaterials(list, false);
     }
 
-    void LoadHUDTextures() {
-        Materials->LoadMaterials(Resources::GameData.HiResGauges, false);
-        Materials->LoadMaterials(Resources::GameData.Gauges, false);
-    }
-
     void LoadTextureDynamic(VClipID id) {
         auto& vclip = Resources::GetVideoClip(id);
         Materials->LoadMaterials(vclip.GetFrames(), false);

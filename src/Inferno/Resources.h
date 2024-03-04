@@ -1,17 +1,16 @@
 #pragma once
 #include "CustomTextureLibrary.h"
-#include "Level.h"
-#include "Pig.h"
 #include "HamFile.h"
-#include "Mission.h"
 #include "Hog2.h"
+#include "Level.h"
+#include "LightInfo.h"
+#include "MaterialInfo.h"
+#include "Mission.h"
 #include "OutrageBitmap.h"
 #include "OutrageModel.h"
 #include "OutrageTable.h"
+#include "Pig.h"
 #include "StringTable.h"
-#include "LightInfo.h"
-#include "MaterialInfo.h"
-#include "SoundTypes.h"
 
 // Abstraction for game resources
 namespace Inferno::Resources {
@@ -112,9 +111,6 @@ namespace Inferno::Resources {
 
     // Returns a modifiable bitmap
     PigBitmap& AccessBitmap(TexID);
-
-    // Reads a level from the mounted mission
-    Level ReadLevel(string name);
 
     inline bool HasGameData() { return !GameData.Robots.empty() && !GameData.LevelTexIdx.empty(); }
 

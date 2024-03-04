@@ -24,13 +24,14 @@ namespace Inferno::Render {
 
     // Supports loading and unloading materials
     class MaterialLibrary {
-        bool _requestPrune = false;
         List<Material2D> _materials;
+        List<int8> _keepLoaded;
         List<Material2D> _pendingCopies;
         ConcurrentList<MaterialUpload> _requestedUploads;
         Dictionary<string, TexID> _namedMaterials;
 
         Ptr<WorkerThread> _worker;
+        std::condition_variable _pruneCondition;
 
         friend class MaterialUploadWorker;
 
@@ -39,8 +40,8 @@ namespace Inferno::Render {
 
         void Shutdown();
 
-        void LoadMaterials(span<const TexID> tids, bool forceLoad = false);
-        void LoadMaterialsAsync(span<const TexID> ids, bool forceLoad = false);
+        void LoadMaterials(span<const TexID> tids, bool forceLoad = false, bool keepLoaded = false);
+        void LoadMaterialsAsync(span<const TexID> ids, bool forceLoad = false, bool keepLoaded = false);
         void Dispatch();
 
         const Material2D& White() const { return _materials[(int)WHITE_MATERIAL]; }
@@ -93,16 +94,12 @@ namespace Inferno::Render {
         bool PreloadDoors = true; // For editor previews
 
         // Unloads unused materials
-        void Prune() { _requestPrune = true; }
+        void Prune();
         void Unload();
         void UnloadNamedTextures();
 
-        // Materials to keep loaded after a prune
-        Set<TexID> KeepLoaded;
-
     private:
         Option<MaterialUpload> PrepareUpload(TexID id, bool forceLoad);
-        void PruneInternal();
         static void ResetMaterial(Material2D& material);
 
         // Returns true if any tids are unloaded

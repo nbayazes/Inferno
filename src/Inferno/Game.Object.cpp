@@ -1077,7 +1077,7 @@ namespace Inferno {
                 obj.Render.Type = RenderType::Model;
 
                 // Reset shareware reactor id
-                if (Game::Shareware) obj.ID = 0;
+                if (Game::Level.IsShareware) obj.ID = 0;
 
                 if (auto reactor = Seq::tryItem(Resources::GameData.Reactors, obj.ID))
                     obj.Render.Model = { .ID = reactor->Model };

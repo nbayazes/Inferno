@@ -67,6 +67,7 @@ namespace Inferno {
 
         bool Exists(string_view entry) const;
         const HogEntry& FindEntry(string_view entry) const;
+        const HogEntry* TryFindEntry(string_view entry) const;
 
         bool ContainsFileType(string_view extension) const {
             for (auto& entry : Entries) {

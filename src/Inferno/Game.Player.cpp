@@ -134,7 +134,7 @@ namespace Inferno {
         }
 
         // Shareware doesn't have the selection sounds, use the selection beep
-        if (Game::Shareware)
+        if (Game::Level.IsShareware)
             Sound::Play2D(SoundID::AlreadySelected, 0.75f, 0, 0.15f);
         else
             Sound::Play2D(SoundID::SelectPrimary);
@@ -180,7 +180,7 @@ namespace Inferno {
         }
 
         // Shareware doesn't have the selection sounds, use the selection beep
-        if (Game::Shareware)
+        if (Game::Level.IsShareware)
             Sound::Play2D(SoundID::AlreadySelected, 0.75f, 0, 0.15f);
         else
             Sound::Play2D(SoundID::SelectSecondary);
@@ -875,7 +875,7 @@ namespace Inferno {
 
     bool Player::CanFirePrimary(PrimaryWeaponIndex index) const {
         if (!HasWeapon(index)) return false;
-        if (Game::Shareware && (index == PrimaryWeaponIndex::Fusion || index == PrimaryWeaponIndex::Plasma))
+        if (Game::Level.IsShareware && (index == PrimaryWeaponIndex::Fusion || index == PrimaryWeaponIndex::Plasma))
             return false;
 
         auto& weapon = Resources::GetWeapon(GetPrimaryWeaponID(index));
@@ -894,7 +894,7 @@ namespace Inferno {
 
     bool Player::CanFireSecondary(SecondaryWeaponIndex index) const {
         auto& weapon = Resources::GetWeapon(GetSecondaryWeaponID(index));
-        if (Game::Shareware && index == SecondaryWeaponIndex::Mega)
+        if (Game::Level.IsShareware && index == SecondaryWeaponIndex::Mega)
             return false;
 
         return

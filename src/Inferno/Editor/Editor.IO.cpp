@@ -1,22 +1,20 @@
 #include "pch.h"
-#include "logging.h"
 #include "Editor.IO.h"
-#include "Editor.Segment.h"
-#include "LevelMetadata.h"
-#include "Events.h"
-#include "Game.h"
-#include "Settings.h"
-#include "Editor.Object.h"
-#include "Editor.h"
-#include "Graphics/Render.h"
 #include "Editor.Diagnostics.h"
+#include "Editor.h"
+#include "Editor.Object.h"
+#include "Editor.Segment.h"
+#include "Events.h"
 #include "FileSystem.h"
+#include "Game.h"
 #include "Graphics/MaterialLibrary.h"
+#include "Graphics/Render.h"
+#include "LevelMetadata.h"
+#include "logging.h"
 #include "Resources.h"
+#include "Settings.h"
 
 namespace Inferno::Editor {
-    constexpr auto METADATA_EXTENSION = ".ied"; // inferno engine data
-
     size_t SaveLevel(Level& level, StreamWriter& writer) {
         if (level.Walls.size() >= (int)WallID::Max)
             throw Exception("Cannot save a level with more than 255 walls");
@@ -93,58 +91,6 @@ namespace Inferno::Editor {
         }
     }
 
-    // Loads a D1 to D2 Vertigo level (no XL)
-    void LoadLevel(std::filesystem::path path) {
-        std::ifstream file(path, std::ios::binary);
-        if (!file) throw Exception("File does not exist");
-
-        auto size = filesystem::file_size(path);
-        List<ubyte> buffer(size);
-        if (!file.read((char*)buffer.data(), size))
-            throw Exception("Error reading file");
-
-        auto level = Level::Deserialize(buffer);
-        level.FileName = path.filename().string();
-        level.Path = path;
-
-        filesystem::path metadataPath = path;
-        metadataPath.replace_extension(METADATA_EXTENSION);
-
-        for (auto& seg : level.Segments) {
-            // Clamp volume light because some D1 levels use unscaled values
-            auto volumeLight = seg.VolumeLight.ToVector4();
-            volumeLight.Clamp({ 0, 0, 0, 1 }, { 1, 1, 1, 1 });
-            seg.VolumeLight = volumeLight;
-        }
-
-        // Load metadata
-        std::ifstream metadataStream(metadataPath);
-        if (metadataStream) {
-            std::stringstream metadata;
-            metadata << metadataStream.rdbuf();
-            LoadLevelMetadata(level, metadata.str(), EditorLightSettings);
-        }
-
-        Game::UnloadMission();
-        Game::LoadLevel(std::move(level));
-        SetStatusMessage("Loaded level {}", path.filename().string());
-    }
-
-    // Returns a level version, 0 for a mission, or -1 for unknown
-    int32 FileVersionFromHeader(const filesystem::path& path) {
-        StreamReader reader(path);
-        auto id = reader.ReadString(3);
-        if (id == "DHF") return 0; // Return 0 for hog files
-
-        reader.Seek(0);
-        auto sig = (uint)reader.ReadInt32();
-        if (sig == MakeFourCC("LVLP")) {
-            return reader.ReadInt32(); // Level version
-        }
-
-        return -1;
-    }
-
     void AppendVertigoData(HogWriter& writer, string_view hamName) {
         try {
             //if (mission.ContainsFileType(".ham")) return; // Already has ham data
@@ -154,8 +100,8 @@ namespace Inferno::Editor {
             }
 
             // Insert vertigo data
-            auto d2xhog = HogFile::Read(FileSystem::FindFile(L"d2x.hog"));
-            auto vertigoData = d2xhog.ReadEntry("d2x.ham");
+            auto xhog = HogFile::Read(FileSystem::FindFile(L"d2x.hog"));
+            auto vertigoData = xhog.ReadEntry("d2x.ham");
             writer.WriteEntry(hamName, vertigoData);
             SPDLOG_INFO("Copied Vertigo d2x.ham into HOG");
         }
@@ -258,103 +204,34 @@ namespace Inferno::Editor {
         fmt::print("\n");
     }
 
-    void LoadFile(const filesystem::path& path) {
-        try {
-            auto version = FileVersionFromHeader(path);
-            if (version > 0 && version <= 8) {
-                LoadLevel(path);
-            }
-            else if (version == 0) {
-                // Hog file
-                Game::LoadMission(path);
-
-                // Load first sorted level in the mission
-                auto levelEntries = Game::Mission->GetLevels();
-                Seq::sortBy(levelEntries, [](const HogEntry& a, const HogEntry& b) { return a.Name < b.Name; });
-                if (!levelEntries.empty()) {
-                    LoadLevelFromHOG(levelEntries[0].Name);
-
-                    // Show hog editor if there's more than one level and game data is present.
-                    // If there's no game data, the config dialog will conflict causing the UI to get stuck.
-                    if (levelEntries.size() > 1 && Resources::HasGameData())
-                        Events::ShowDialog(DialogType::HogEditor);
-                }
-            }
-            else {
-                throw Exception("Unknown file type");
-            }
-
-            Settings::Editor.AddRecentFile(path);
-        }
-        catch (const std::exception& e) {
-            ShowErrorMessage(e);
-        }
-    }
-
-    void LoadLevelFromHOG(const string& name) {
-        try {
-            auto level = Resources::ReadLevel(name);
-            level.FileName = name;
-            // Load metadata
-            auto metadataFile = String::NameWithoutExtension(level.FileName) + METADATA_EXTENSION;
-            auto metadata = Game::Mission->TryReadEntryAsString(metadataFile);
-
-            if (metadata.empty()) {
-                auto mission = String::ToLower(Game::Mission->Path.filename().string());
-                string path;
-
-                if (mission == "descent.hog")
-                    path = "data/d1/" + metadataFile;
-                else if (mission == "descent2.hog")
-                    path = "data/d2/" + metadataFile;
-                else if (mission == "d2x.hog")
-                    path = "data/d2/vertigo" + metadataFile; // Vertigo
-
-                if (filesystem::exists(path)) {
-                    SPDLOG_INFO("Reading level metadata from `{}`", path);
-                    metadata = File::ReadAllText(path);
-                }
-            }
-
-            if (!metadata.empty())
-                LoadLevelMetadata(level, metadata, EditorLightSettings);
-
-            Game::LoadLevel(std::move(level));
-        }
-        catch (const std::exception& e) {
-            ShowErrorMessage(e);
-        }
-    }
-
-    void OnSave();
-
-    void NewLevel(string_view name, const string& fileName, int16 version, bool addToHog) {
-        if (!addToHog)
+    Level NewLevel(const NewLevelInfo& info) {
+        if (!info.AddToHog)
             Game::UnloadMission();
 
         Level level;
-        level.Name = name;
-        level.Version = version;
-        level.GameVersion = version == 1 ? 25 : 32;
+        level.Name = info.Title;
+        level.Version = info.Version;
+        level.GameVersion = info.Version == 1 ? 25 : 32;
         auto ext = level.IsDescent1() ? ".rdl" : ".rl2";
-        level.FileName = fileName.substr(0, 8) + ext;
+        level.FileName = info.FileName.substr(0, 8) + ext;
 
         if (Game::Mission) {
             // Find a unique file name in the hog
             int i = 1;
             while (Game::Mission->Exists(level.FileName))
-                level.FileName = fmt::format("{}{}{}", fileName.substr(0, 7), i++, ext);
+                level.FileName = fmt::format("{}{}{}", info.FileName.substr(0, 7), i++, ext);
         }
 
-        auto tag = AddDefaultSegment(level);
-        AddObject(level, { tag, SideID::Bottom }, ObjectType::Player);
+        auto tag = Editor::AddDefaultSegment(level);
+        Editor::AddObject(level, { tag, SideID::Bottom }, ObjectType::Player);
 
+        // Add the new level to the mission and reload it
         if (Game::Mission) {
             WriteHog(level, *Game::Mission, Game::Mission->Path);
             Game::LoadMission(Game::Mission->Path); // reload
         }
 
-        Game::LoadLevel(std::move(level));
+        return level;
     }
 
     void BackupFile(const filesystem::path& path, string_view ext) {
@@ -391,7 +268,14 @@ namespace Inferno::Editor {
         SaveLevelToPath(level, path);
     }
 
+    constexpr auto SHAREWARE_SAVE_ERROR = L"Shareware levels cannot be saved.";
+
     void OnSaveAs() {
+        if (Game::Level.IsShareware) {
+            ShowErrorMessage(SHAREWARE_SAVE_ERROR);
+            return;
+        }
+
         if (!Resources::HasGameData()) return;
 
         auto& level = Game::Level;
@@ -454,6 +338,11 @@ namespace Inferno::Editor {
 
     void OnSave() {
         if (!Resources::HasGameData()) return;
+        if (Game::Level.IsShareware) {
+            ShowErrorMessage(SHAREWARE_SAVE_ERROR);
+            return;
+        }
+
         auto& level = Game::Level;
 
         if (Game::Mission) {
@@ -587,6 +476,8 @@ namespace Inferno::Editor {
     }
 
     void CheckForAutosave() {
+        if (Game::Level.IsShareware) return; // Don't autosave shareware levels
+
         if (Clock.GetTotalTimeSeconds() > _nextAutosave && Game::GetState() == GameState::Editor) {
             try {
                 auto& path = Game::Mission ? Game::Mission->Path : Game::Level.Path;
@@ -636,7 +527,7 @@ namespace Inferno::Editor {
                 };
 
                 if (auto file = OpenFileDialog(filter, L"Open Mission"))
-                    LoadFile(*file);
+                    Game::LoadLevel(*file, "", true);
             },
             .Name = "Open..."
         };
