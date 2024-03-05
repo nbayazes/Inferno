@@ -258,7 +258,6 @@ namespace Inferno::Sound {
 
         List<PlaySound3DInfo> _pending3dSounds;
         List<PlaySound2DInfo> _pending2dSounds;
-        std::atomic<bool> _stopAllSounds = false;
 
     public:
         SoundWorker(milliseconds pollRate) : _pollRate(pollRate) {
@@ -293,7 +292,7 @@ namespace Inferno::Sound {
         std::atomic<bool> ReloadSoundFiles = false;
 
         void StopAllSounds() {
-            _stopAllSounds = true;
+            _requestStopSounds = true;
             //StopMusic();
             //Stop3DSounds();
         }
@@ -522,8 +521,7 @@ namespace Inferno::Sound {
             _stopSoundTags.clear();
             _stopSoundUIDs.clear();
             _stopSoundSources.clear();
-
-            _stopAllSounds = false;
+            _requestStopSounds = false;
         }
 
         void OnStopMusic() {
@@ -555,8 +553,6 @@ namespace Inferno::Sound {
             _listener.Position = Render::Camera.Position * AUDIO_SCALE;
             //std::scoped_lock lock(SoundInstancesMutex);
             std::scoped_lock lock(_threadMutex);
-
-            if (_stopAllSounds) OnStopAllSounds();
 
             ProcessPending();
 
@@ -633,9 +629,11 @@ namespace Inferno::Sound {
             }
 
             if (_requestStopMusic) OnStopMusic();
+            if (_requestStopSounds) OnStopAllSounds();
 
             _stopSoundUIDs.clear();
             _stopSoundSources.clear();
+            _stopSoundTags.clear();
         }
 
         void Task() {
@@ -659,7 +657,7 @@ namespace Inferno::Sound {
                     _requestStopSounds = false;
                     _requestStopMusic = false;
 
-                    if (!_stopAllSounds) {
+                    if (!_requestStopSounds) {
                         _idleCondition.notify_all();
                         std::this_thread::sleep_for(_pollRate);
                     }
