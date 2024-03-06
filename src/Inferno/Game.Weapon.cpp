@@ -603,14 +603,6 @@ namespace Inferno::Game {
         }
     }
 
-    // FOV in 0 to PI
-    bool ObjectIsInFOV(const Ray& ray, const Object& obj, float fov) {
-        auto vec = obj.Position - ray.position;
-        vec.Normalize();
-        auto angle = AngleBetweenVectors(ray.direction, vec);
-        return angle <= fov;
-    }
-
     bool CanTrackTarget(const Object& obj, const Object& target, float fov, float maxDistance) {
         if (!target.IsAlive()) return false;
         if (target.IsCloaked() || target.IsPhasing()) return false;
@@ -623,7 +615,7 @@ namespace Inferno::Game {
         LevelHit hit;
         RayQuery query{ .MaxDistance = dist, .Start = obj.Segment, .Mode = RayQueryMode::Precise };
 
-        bool inFov = ObjectIsInFOV(Ray(obj.Position, obj.Rotation.Forward()), target, fov);
+        bool inFov = PointIsInFOV(obj.Rotation.Forward(), dir, fov);
         return inFov && !Intersect.RayLevel(targetRay, query, hit);
     }
 

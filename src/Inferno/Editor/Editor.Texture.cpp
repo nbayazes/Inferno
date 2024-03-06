@@ -307,18 +307,6 @@ namespace Inferno::Editor {
         Editor::History.SnapshotLevel("Set texture");
     }
 
-    // Checks if the current file is dirty. Returns true if the file can be closed.
-    bool CanCloseCurrentFile() {
-        if (!Editor::History.Dirty()) return true;
-
-        auto file = Game::Mission ? Game::Mission->Path.filename().wstring() : Convert::ToWideString(Game::Level.FileName);
-        auto msg = fmt::format(L"Do you want to save changes to {}?", file);
-        auto result = ShowYesNoCancelMessage(msg.c_str(), L"File has changed");
-        if (!result) return false; // Cancelled
-        if (*result) Editor::Commands::Save(); // Yes
-        return true;
-    }
-
     Vector2 GetTranslationUV(float delta, const Vector2& uvTangent, const Vector2& uvBitangent, GizmoAxis axis) {
         Vector2 translation;
         if (axis == GizmoAxis::X)

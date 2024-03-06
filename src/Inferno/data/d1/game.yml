@@ -338,13 +338,15 @@ Weapons:
     Mass: 0.15
     Thrust: 10 # Thrust to apply each second
     InitialSpeed: 22.5 # How fast when spawning
-    HomingFov: 30
+    HomingFov: 25
     HomingDistance: 150
     UseThrust: 1
 
   - id: 29
     Name: robot smart missile blob
     Decal: scorchB
+    Damage: [ 11, 12, 13, 14, 15 ] # Damage and speed copied for demo data. note that D2 is different
+    Speed: 90
     Size: 1.5
     ImpactSize: 4
     ExplosionSound: PlasmaHit1
@@ -358,7 +360,7 @@ Weapons:
     Mass: 0.15
     Thrust: 10 # Thrust to apply each second
     InitialSpeed: 22.5 # How fast when spawning
-    HomingFov: 30 # Reduced due to overly aggressive tracking
+    HomingFov: 25 # Reduced due to overly aggressive tracking
     HomingDistance: 150
     UseThrust: 1
 

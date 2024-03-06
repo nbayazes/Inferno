@@ -275,6 +275,18 @@ namespace Inferno::Editor {
         }
     }
 
+    // Checks if the current file is dirty. Returns true if the file can be closed.
+    bool CanCloseCurrentFile() {
+        if (!Editor::History.Dirty() || Game::Level.IsShareware) return true;
+
+        auto file = Game::Mission ? Game::Mission->Path.filename().wstring() : Convert::ToWideString(Game::Level.FileName);
+        auto msg = fmt::format(L"Do you want to save changes to {}?", file);
+        auto result = ShowYesNoCancelMessage(msg.c_str(), L"File has changed");
+        if (!result) return false; // Cancelled
+        if (*result) Editor::Commands::Save(); // Yes
+        return true;
+    }
+
     bool ImGuiHadMouseFocus = false;
 
     void Update() {

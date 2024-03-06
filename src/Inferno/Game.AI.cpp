@@ -285,12 +285,6 @@ namespace Inferno {
         Sound::PlayFrom(sound, robot);
     }
 
-    bool PointIsInFOV(const Object& robot, const Vector3& pointDir, const RobotInfo& robotInfo) {
-        auto dot = robot.Rotation.Forward().Dot(pointDir);
-        auto& diff = robotInfo.Difficulty[Game::Difficulty];
-        return dot >= diff.FieldOfView;
-    }
-
     // Returns hit information about if object can see a point
     IntersectResult HasLineOfSightEx(const Object& obj, const Vector3& point, bool precise) {
         auto [dir, dist] = GetDirectionAndDistance(point, obj.Position);
@@ -573,7 +567,7 @@ namespace Inferno {
         // Looks weird to dodge distant projectiles. also they might hit another target
         // Consider increasing this for massive robots?
         if (projDist > AI_MAX_DODGE_DISTANCE) return;
-        if (!PointIsInFOV(robot, projDir, robotInfo)) return;
+        if (!PointIsInFOV(robot.Rotation.Forward(), projDir, Difficulty(robotInfo).FieldOfView)) return;
 
         Vector3 projTravelDir;
         projectile.Physics.Velocity.Normalize(projTravelDir);
@@ -1255,7 +1249,7 @@ namespace Inferno {
         if (target.IsCloakEffective() || hasLos == IntersectResult::HitWall)
             return false;
 
-        if (!PointIsInFOV(robot, targetDir, robotInfo))
+        if (!PointIsInFOV(robot.Rotation.Forward(), targetDir, Difficulty(robotInfo).FieldOfView))
             return false;
 
         float falloff = 1.0f;

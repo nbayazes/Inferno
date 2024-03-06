@@ -563,6 +563,10 @@ namespace Inferno {
         return cos(fovDeg * DegToRad);
     }
 
+    inline bool PointIsInFOV(const Vector3& forward, const Vector3& pointDir, float fov) {
+        return forward.Dot(pointDir) >= fov;
+    }
+
     //constexpr short FloatToFix16(float f) {
     //    constexpr int MIN_FIX16 = -(1 << 6);
     //    constexpr int MAX_FIX16 = (1 << 6) - 1;

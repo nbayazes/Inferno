@@ -759,9 +759,6 @@ namespace Inferno {
             }
         }
 
-        //auto offset = ham.AllTexIdx.size();
-        //std::fill(ham.AllTexIdx.begin() + offset, ham.AllTexIdx.end(), TexID(255));
-
         for (auto& door : ham.DoorClips) {
             // translate the texids to level texids
             for (size_t i = 0; i < door.NumFrames; i++) {
@@ -816,5 +813,8 @@ namespace Inferno {
                 RobotSetAngles(robot, *model, ham);
             }
         }
+
+        ham.Weapons.resize(30);
+        ham.Weapons[29] = ham.Weapons[19]; // Copy the player smart missile blob to the regular robot smart missile blob location
     }
 }
