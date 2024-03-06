@@ -595,6 +595,13 @@ namespace Inferno::Resources {
                 }
 
                 ham.Models.push_back(model);
+
+                // Workaround for red and brown hulk sharing the same model with different texture indices.
+                // Due to the way object meshes are generated we need separate models.
+                if (entry.Name == HULK_MODEL_NAME) {
+                    model.FileName = RED_HULK_MODEL_NAME;
+                    ham.Models.push_back(model);
+                }
             }
         }
 

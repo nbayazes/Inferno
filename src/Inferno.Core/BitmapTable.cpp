@@ -124,6 +124,7 @@ namespace Inferno {
         ham.AllTexIdx.resize(pig.Entries.size());
         uint totalTextures = 0;
         List<string> allocatedTextures;
+        bool redhulk = false;
 
         //auto allocateLevelTexture = [&ham, &allocatedTextures](const string& name) {
         //    if (auto index = Seq::indexOf(allocatedTextures, name)) {
@@ -295,9 +296,16 @@ namespace Inferno {
                     readTokenValue("attack_type", robot.Attack);
                     readTokenValue("cloak_type", robot.Cloaking);
 
-                    robot.Model = FindModelID(ham, tokens[1]);
                     auto& modelInfo = models.emplace_back();
                     modelInfo.name = tokens[1];
+
+                    // Workaround for red and brown hulks sharing the same model
+                    if (modelInfo.name == HULK_MODEL_NAME) {
+                        if (redhulk) modelInfo.name = RED_HULK_MODEL_NAME;
+                        redhulk = true;
+                    }
+
+                    robot.Model = FindModelID(ham, modelInfo.name);
 
                     for (size_t i = 3; i < tokens.size(); i++) {
                         auto& token = tokens[i];
@@ -308,7 +316,7 @@ namespace Inferno {
                             modelInfo.textures.push_back(token);
                     }
 
-                    if (auto model = FindModel(ham, tokens[1])) {
+                    if (auto model = FindModel(ham, modelInfo.name)) {
                         robot.Guns = (uint8)model->Guns.size();
                         for (size_t i = 0; i < model->Guns.size(); i++) {
                             robot.GunPoints[i] = model->Guns[i].Point;
