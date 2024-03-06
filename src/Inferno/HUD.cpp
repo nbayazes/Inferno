@@ -719,7 +719,8 @@ namespace Inferno {
                 info.HorizontalAlign = AlignH::Center;
                 info.VerticalAlign = AlignV::CenterTop;
                 info.Scanline = 0.8f;
-                DrawMonitorText("!LOCK!", info);
+                //DrawMonitorText("!LOCK!", info); // Enabling this causes points and lives to flicker for some reason?
+                Render::HudCanvas->DrawGameText("!LOCK!", info);
             }
 
             if (Game::ControlCenterDestroyed && Game::CountdownSeconds >= 0) {

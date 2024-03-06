@@ -174,7 +174,7 @@ Weapons:
     ExplosionTime: 0.4
     Damage: 7 # Was 4
     PlayerDamageScale: 0.57 # Adjust so damage equals 4 due to drillers
-    Spread: 1.2 # spread in units. Was 1.8. Reduced due to smaller robots being difficult to hit with polygon hit testing.
+    Spread: 1.0 # spread in units. Was 1.8. Reduced due to smaller robots being difficult to hit with polygon hit testing.
     AmmoUsage: 10
     ExplosionSound: #WpnVauseHitRicB
     LightRadius: 3.75
@@ -591,6 +591,7 @@ Robots:
     Score: 1000 # Was 600, less than the regular driller
     Curiosity: 0.3 # Don't want these moving around too much
     AimAngle: 20 # Don't let drillers lead very much for balance reasons
+    Aim: 200 # Make slightly inaccurate
     GetBehind: 1
   - id: 6 # Cloaked hulk
     CircleDistance: 60
@@ -712,6 +713,7 @@ Robots:
     ChaseChance: .2
     Score: 900 # Was 1000, but are quite flimsy. Moved down to make cloak drillers 1000.
     AimAngle: 20 # Don't let drillers lead very much for balance reasons
+    Aim: 200 # Make slightly inaccurate
     GetBehind: 1
   - id: 20 # Green hulk / Small hulk
     CircleDistance: 40

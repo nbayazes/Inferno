@@ -315,6 +315,11 @@ namespace Inferno {
         powerup.Physics.Mass = 1;
         powerup.Physics.Drag = 0.01f;
         powerup.Physics.Flags = PhysicsFlag::Bounce;
+
+        // So powerups dropped by a dying player continue moving after respawning
+        // Also fixes the problem of powerups not colliding with a stationary object
+        SetFlag(powerup.Flags, ObjectFlag::AlwaysUpdate);
+
         if (auto seg = Level.TryGetSegment(segId))
             powerup.Ambient.SetTarget(seg->VolumeLight, Game::Time, 0);
 
