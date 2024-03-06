@@ -1257,8 +1257,8 @@ namespace Inferno {
         if (targetDist > AI_VISION_FALLOFF_NEAR)
             falloff = 1 - Saturate((targetDist - AI_VISION_FALLOFF_NEAR) / (AI_VISION_FALLOFF_FAR - AI_VISION_FALLOFF_NEAR)) * AI_VISION_MAX_PENALTY;
 
-        // Account for visibility, but only when not very close
-        if (targetDist > AI_VISION_FALLOFF_NEAR * .5f)
+        // Account for visibility, but only when not very close and not a boss
+        if (targetDist > AI_VISION_FALLOFF_NEAR * .5f && !IsBossRobot(robot))
             falloff *= Game::Player.GetShipVisibility();
 
         auto reactionTime = AI_REACTION_TIME * (5 - Game::Difficulty);
