@@ -174,6 +174,7 @@ namespace Inferno {
         float MusicVolume = 0.5f;
         bool GenerateMaps = true; // Generate specular and normal maps if missing
         bool Descent3Enhanced = false;
+        bool ShowWeaponFlash = false; // Are weapon flashes visible in first person?
         WiggleMode ShipWiggle = WiggleMode::Reduced;
     };
 

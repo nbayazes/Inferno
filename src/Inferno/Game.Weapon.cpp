@@ -358,7 +358,7 @@ namespace Inferno::Game {
 
                 // Move mines backwards to avoid colliding with weapons while flying forward
                 if (WeaponIsMine(id) && parent->IsPlayer())
-                    bullet.Position += parent->Rotation.Backward() * 2.0f; 
+                    bullet.Position += parent->Rotation.Backward() * 2.0f;
             }
         }
 
@@ -495,6 +495,9 @@ namespace Inferno::Game {
 
         if (obj.IsPlayer() && gun == 6 && Game::GetState() == GameState::Game)
             showFlash = false; // Hide center gun flash in first person (gun is under the ship, player can't see it!)
+
+        if (obj.IsPlayer() && !Settings::Inferno.ShowWeaponFlash)
+            showFlash = false; // Hide weapon flash if setting is disabled
 
         if (showFlash) {
             Render::Particle p{};
