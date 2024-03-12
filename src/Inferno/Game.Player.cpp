@@ -1419,9 +1419,17 @@ namespace Inferno {
 
             auto height = Render::CANVAS_HEIGHT / 8.0f * Render::Canvas->GetScale();
 
-            Color color(0, 1, 0);
-            Render::Canvas->DrawGameText(message, 0, 10 + height, FontSize::Small, color, 1, AlignH::Center, AlignV::Top);
-            Render::Canvas->DrawGameText("press fire to continue...", 0, -10 - height, FontSize::Small, color, 1, AlignH::Center, AlignV::Bottom);
+            Render::DrawTextInfo info;
+            info.Position = Vector2(0, 10 + height);
+            info.HorizontalAlign = AlignH::Center;
+            info.VerticalAlign = AlignV::Top;
+            info.Font = FontSize::Small;
+            info.Color = Color(0, 1, 0);
+            Render::Canvas->DrawGameText(message, info);
+
+            info.VerticalAlign = AlignV::Bottom;
+            info.Position = Vector2(0, -10 - height);
+            Render::Canvas->DrawGameText("press fire to continue...", info);
         }
         else {
             player.Render.Type = RenderType::Model; // Camera is in third person, show the player

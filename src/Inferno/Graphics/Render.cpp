@@ -449,7 +449,12 @@ namespace Inferno::Render {
         auto& briefing = Editor::BriefingEditor::DebugBriefing;
         BriefingCanvas->SetSize((uint)target.GetWidth(), (uint)target.GetHeight());
         if (!briefing.Screens.empty() && !briefing.Screens[0].Pages.empty()) {
-            BriefingCanvas->DrawGameText(briefing.Screens[1].Pages[1], 20, 20, FontSize::Small, { 0, 1, 0 });
+            Render::DrawTextInfo info;
+            info.Position = Vector2(20, 20);
+            info.Font = FontSize::Small;
+            info.Scale = 0.5f;
+            info.Color = Color(0, 1, 0);
+            BriefingCanvas->DrawGameText(briefing.Screens[1].Pages[1], info);
         }
         BriefingCanvas->Render(ctx);
 

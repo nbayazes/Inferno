@@ -109,32 +109,27 @@ namespace Inferno::Render {
         _effect->Shader->SetWorldViewProjection(cmdList, orthoProj);
         _effect->Shader->SetSampler(cmdList, Heaps->States.PointClamp());
 
-        for (auto& group : _commands | views::values) {
-            _effect->Shader->SetDiffuse(cmdList, group.front().Texture);
+        for (auto& command : _commands) {
+            _effect->Shader->SetDiffuse(cmdList, command.Texture);
             _batch.Begin(cmdList);
-            for (auto& c : group)
-                _batch.DrawQuad(c.V0, c.V1, c.V2, c.V3);
-
+            _batch.DrawQuad(command.V0, command.V1, command.V2, command.V3);
             _batch.End();
-            group.clear();
         }
 
         _commands.clear();
     }
 
-    void Canvas2D::DrawGameText(string_view str,
-                                float x, float y,
-                                FontSize size, Color color,
-                                float scale, AlignH alignH, AlignV alignV) {
+    void Canvas2D::DrawGameText(string_view str, const DrawTextInfo& info) {
         float xOffset = 0, yOffset = 0;
-        auto font = Atlas.GetFont(size);
+        auto font = Atlas.GetFont(info.Font);
         if (!font) return;
 
+        auto color = info.Color;
         Color background = color * 0.1f;
 
-        scale *= _scale * font->Scale;
-        auto strSize = MeasureString(str, size) * scale;
-        Vector2 alignment = GetAlignment(strSize, alignH, alignV, _size);
+        auto scale = info.Scale * _scale * font->Scale;
+        auto strSize = MeasureString(str, info.Font) * scale;
+        Vector2 alignment = GetAlignment(strSize, info.HorizontalAlign, info.VerticalAlign, _size);
         bool inToken = false;
 
         for (int i = 0; i < str.size(); i++) {
@@ -173,25 +168,25 @@ namespace Inferno::Render {
                 continue;
             }
 
-            auto& ci = Atlas.GetCharacter(c, size);
-            auto x0 = alignment.x + xOffset + x;
-            auto y0 = alignment.y + yOffset + y;
+            auto& ci = Atlas.GetCharacter(c, info.Font);
+            auto x0 = alignment.x + xOffset + info.Position.x;
+            auto y0 = alignment.y + yOffset + info.Position.y;
 
             Vector2 charSize = Vector2(font->GetWidth(c), font->Height) * scale;
-            CanvasBitmapInfo info;
-            info.Position = Vector2{ x0, y0 };
-            info.Size = charSize;
-            info.UV0 = Vector2{ ci.X0, ci.Y0 };
-            info.UV1 = Vector2{ ci.X1, ci.Y1 };
-            info.Color = background;
-            info.Texture = Render::StaticTextures->Font.GetSRV();
-            DrawBitmap(info); // Shadow
+            CanvasBitmapInfo cbi;
+            cbi.Position = Vector2{ x0, y0 };
+            cbi.Size = charSize;
+            cbi.UV0 = Vector2{ ci.X0, ci.Y0 };
+            cbi.UV1 = Vector2{ ci.X1, ci.Y1 };
+            cbi.Color = background;
+            cbi.Texture = Render::StaticTextures->Font.GetSRV();
+            DrawBitmap(cbi); // Shadow
 
-            info.Color = color;
-            info.Position.x += 1;
-            DrawBitmap(info); // Foreground
+            cbi.Color = color;
+            cbi.Position.x += 1;
+            DrawBitmap(cbi); // Foreground
 
-            auto kerning = Atlas.GetKerning(c, next, size) * scale;
+            auto kerning = Atlas.GetKerning(c, next, info.Font) * scale;
             xOffset += charSize.x + kerning;
         }
     }

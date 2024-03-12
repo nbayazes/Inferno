@@ -19,7 +19,7 @@ namespace Inferno::Render {
     inline Ptr<StaticTextureDef> StaticTextures;
 
     struct DrawTextInfo {
-        Vector2 Position;
+        Vector2 Position; // Positive Y is down
         FontSize Font = FontSize::Small;
         float Scale = 1;
         Color Color = { 1, 1, 1 };
@@ -50,7 +50,7 @@ namespace Inferno::Render {
     // Draws a quad to the 2D canvas (UI Layer)
     class Canvas2D {
         DirectX::PrimitiveBatch<CanvasVertex> _batch;
-        Dictionary<uint64, List<CanvasPayload>> _commands;
+        List<CanvasPayload> _commands;
         Effect<UIShader>* _effect;
         Vector2 _size = { 1024, 1024 };
         float _scale = 1;
@@ -69,7 +69,7 @@ namespace Inferno::Render {
 
         void Draw(const CanvasPayload& payload) {
             if (!payload.Texture.ptr) return;
-            _commands[payload.Texture.ptr].push_back(payload);
+            _commands.push_back(payload);
         }
 
         void DrawRectangle(const Vector2& pos, const Vector2& size, const Color& color);
@@ -85,22 +85,13 @@ namespace Inferno::Render {
         void Render(Graphics::GraphicsContext& ctx);
 
         // Draws text using Descent fonts at 1:1 scaling of the original pixels.
-        void DrawGameTextUnscaled(string_view str,
-                                  float x, float y,
-                                  FontSize size,
-                                  Color color = Color(1, 1, 1),
-                                  float scale = 1,
-                                  AlignH alignH = AlignH::Left, AlignV alignV = AlignV::Top) {
-            DrawGameText(str, x, y, size, color, scale / _scale, alignH, alignV);
+        void DrawGameTextUnscaled(string_view str, DrawTextInfo info) {
+            info.Scale /= _scale;
+            DrawGameText(str, info);
         }
 
         // Draws text using Descent fonts, scaled to be a constant size based on the output height.
-        void DrawGameText(string_view str,
-                          float x, float y,
-                          FontSize size,
-                          Color color = Color(1, 1, 1),
-                          float scale = 1,
-                          AlignH alignH = AlignH::Left, AlignV alignV = AlignV::Top);
+        void DrawGameText(string_view str, const DrawTextInfo& info);
     };
 
     struct HudCanvasPayload {

@@ -519,7 +519,13 @@ namespace Inferno::Render {
         if (Settings::Editor.ShowLevelTitle) {
             auto strSize = MeasureString(level.Name, FontSize::Big) * Shell::DpiScale;
             auto x = Editor::MainViewportXOffset + Editor::MainViewportWidth / 2 - strSize.x / 2;
-            Render::Canvas->DrawGameText(level.Name, x, Editor::TopToolbarOffset, FontSize::Big, Color(1, 1, 1), 1 / Render::Canvas->GetScale());
+            Render::DrawTextInfo info;
+            info.Position = Vector2(x, Editor::TopToolbarOffset);
+            info.HorizontalAlign = AlignH::Center;
+            info.VerticalAlign = AlignV::CenterTop;
+            info.Font = FontSize::Big;
+            info.Scale = 1 / Render::Canvas->GetScale();
+            Render::Canvas->DrawGameText(level.Name, info);
         }
         //{
         //    auto tag = Editor::Selection.PointTag();

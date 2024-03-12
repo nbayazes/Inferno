@@ -646,7 +646,13 @@ namespace Inferno::Render {
         }
         else {
             //Canvas->DrawGameText(level.Name, 0, 20 * Shell::DpiScale, FontSize::Big, { 1, 1, 1 }, 0.5f, AlignH::Center, AlignV::Top);
-            Canvas->DrawGameText("Inferno\nEngine", -10 * Shell::DpiScale, -10 * Shell::DpiScale, FontSize::MediumGold, { 1, 1, 1 }, 0.5f, AlignH::Right, AlignV::Bottom);
+            Render::DrawTextInfo info;
+            info.Position = Vector2(-10 * Shell::DpiScale, -10 * Shell::DpiScale);
+            info.HorizontalAlign = AlignH::Right;
+            info.VerticalAlign = AlignV::Bottom;
+            info.Font = FontSize::MediumGold;
+            info.Scale = 0.5f;
+            Canvas->DrawGameText("Inferno\nEngine", info);
         }
 
         EndUpdateEffects();

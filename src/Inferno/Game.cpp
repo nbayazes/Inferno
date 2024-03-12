@@ -307,7 +307,7 @@ namespace Inferno::Game {
         ResetGlobalLighting();
 
         auto nextLevel = LevelNameByIndex(LevelNumber + 1);
-        if(nextLevel.empty()) {
+        if (nextLevel.empty()) {
             SetState(GameState::Editor);
         }
         else {
@@ -316,7 +316,6 @@ namespace Inferno::Game {
         }
         // reset level game state. countdown etc
         // respawn
-
     }
 
     void UpdateGameState() {
@@ -381,7 +380,11 @@ namespace Inferno::Game {
         Player.DoDeathSequence(dt);
 
         if (Player.TimeDead > 2 && Player.Lives == 0) {
-            Render::Canvas->DrawGameText("game over", 0, 0, FontSize::Big, Color(1, 1, 1), 1, AlignH::Center, AlignV::Center);
+            Render::DrawTextInfo info;
+            info.Font = FontSize::Big;
+            info.HorizontalAlign = AlignH::Center;
+            info.VerticalAlign = AlignV::Center;
+            Render::Canvas->DrawGameText("game over", info);
         }
 
         if (Game::Player.TimeDead > 2 && ConfirmedInput()) {
@@ -432,16 +435,82 @@ namespace Inferno::Game {
 
         float y = -lineHeight * 0.85f;
 
+        Render::DrawTextInfo info;
+        info.HorizontalAlign = AlignH::Center;
+        info.VerticalAlign = AlignV::CenterTop;
+
         {
-            auto size = MenuIndex == 0 ? FontSize::MediumGold : FontSize::Medium;
-            Render::Canvas->DrawGameText("continue", 0, y * scale, size, Color(1, 1, 1), 1, AlignH::Center, AlignV::CenterTop);
+            info.Font = MenuIndex == 0 ? FontSize::MediumGold : FontSize::Medium;
+            info.Position = Vector2(0, y * scale);
+            Render::Canvas->DrawGameText("continue", info);
         }
 
         y += lineHeight;
 
         {
-            auto size = MenuIndex == 1 ? FontSize::MediumGold : FontSize::Medium;
-            Render::Canvas->DrawGameText("quit", 0, y * scale, size, Color(1, 1, 1), 1, AlignH::Center, AlignV::CenterTop);
+            info.Font = MenuIndex == 1 ? FontSize::MediumGold : FontSize::Medium;
+            info.Position = Vector2(0, y * scale);
+            Render::Canvas->DrawGameText("quit", info);
+        }
+    }
+
+    void UpdateCommsMessage() {
+        auto scale = Render::Canvas->GetScale();
+        constexpr float PORTRAIT_SIZE = 48;
+        constexpr float PADDING = 8;
+
+        constexpr float width = 192.0f; // todo: measure longest string
+        constexpr float height = 48.0f; // todo: measure string
+        constexpr float xOffset = 8.0f;
+
+        {
+            Vector2 bgSize = Vector2(width - PADDING, height + PADDING * 2) * scale;
+            Vector2 alignment = Render::GetAlignment(bgSize, AlignH::Left, AlignV::CenterTop, Render::Canvas->GetSize());
+            alignment.y -= PORTRAIT_SIZE / 2 * scale;
+            alignment.x += xOffset * scale;
+            Render::Canvas->DrawRectangle(alignment, bgSize, Color(0, 0, 0, 0.65f));
+
+            //auto scale = Render::HudCanvas->GetScale();
+            auto& material = Render::Materials->Get("endguy.bbm");
+            Inferno::Render::CanvasBitmapInfo info;
+            info.Size = Vector2{ PORTRAIT_SIZE, PORTRAIT_SIZE } * scale;
+            info.Position = Vector2{ xOffset + PADDING, -PORTRAIT_SIZE / 2 } * scale;
+            info.Texture = material.Handle();
+            info.HorizontalAlign = AlignH::Left;
+            info.VerticalAlign = AlignV::Center;
+            info.Color = Color(1, 1, 1);
+            Render::Canvas->DrawBitmap(info);
+        }
+
+        {
+            Render::DrawTextInfo info;
+            info.Font = FontSize::MediumBlue;
+            //info.Color = Color(0, 0.7f, 0);
+            //info.Color = GREEN_TEXT;
+            info.HorizontalAlign = AlignH::Left;
+            info.VerticalAlign = AlignV::Center;
+            info.Scanline = 0.5f;
+            info.Scale = 0.5f;
+            info.Position = Vector2{ xOffset + PORTRAIT_SIZE + PADDING * 2, -PORTRAIT_SIZE / 4 + 3 } * scale;
+            Render::Canvas->DrawGameText("dravis", info);
+        }
+
+        {
+            Render::DrawTextInfo info;
+            info.Font = FontSize::Small;
+            info.Color = Color(0, 0.7f, 0);
+            //info.Color = GREEN_TEXT;
+            info.HorizontalAlign = AlignH::Left;
+            info.VerticalAlign = AlignV::CenterTop;
+            info.Scanline = 0.5f;
+            info.Scale = 0.5f;
+            info.Position = Vector2{ xOffset + PADDING, PADDING } * scale;
+            constexpr float SPACING = 10;
+            Render::Canvas->DrawGameText("material defender, the reactor is", info);
+            info.Position.y += SPACING * scale;
+            Render::Canvas->DrawGameText("behind the door to your left.", info);
+            info.Position.y += SPACING * scale;
+            Render::Canvas->DrawGameText("locate the red key to gain access.", info);
         }
     }
 
@@ -471,6 +540,7 @@ namespace Inferno::Game {
         switch (State) {
             case GameState::Game:
                 LerpAmount = GameUpdate(dt);
+                //UpdateCommsMessage();
 
                 if (!Level.Objects.empty()) {
                     if (Player.IsDead)
