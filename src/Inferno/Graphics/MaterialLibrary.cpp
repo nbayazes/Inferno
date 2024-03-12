@@ -693,7 +693,7 @@ namespace Inferno::Render {
             }
             else if (auto data = Resources::ReadBinaryFile(name); !data.empty()) {
                 if (name.ends_with(".bbm")) {
-                    auto bbm = ReadIff(data);
+                    auto bbm = ReadBbm(data);
                     material = UploadBBM(batch, name, bbm, Render::StaticTextures->Black);
                 }
             }

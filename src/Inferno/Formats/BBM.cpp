@@ -6,61 +6,52 @@
 #include "Types.h"
 
 // BBM reader for IFF files
-
 namespace Inferno {
-    //Palette entry structure
-    struct pal_entry {
-        uint8 r, g, b;
-    };
+    enum class BbmColor { Linear, ModeX, SVGA, RGB15, Palette };
 
-    enum class BbmColor {
-        Linear, ModeX, SVGA, RGB15, Palette
-    };
+    enum class BbmType : int16 { PBM, ILBM };
 
-    enum class BbmType : short { PBM, ILBM };
-    enum class PbmMode { Texture, Heightmap };
     enum class MaskType : int8 { None, Mask, TransparentColor };
+
     enum class CompressionType : int8 { None, RLE };
 
-    //structure of the header in the file
-    struct iff_bitmap_header {
-        uint Width, Height; //width and height of this bitmap
-        BbmType type;
+    struct IffHeader {
+        uint Width, Height;
+        BbmType Type;
         int TransparentColor; //which color is transparent (if any)
         int8 Planes; //number of planes (8 for 256 color image)
         MaskType Mask;
         CompressionType Compression;
-        //short row_size; //offset to next row
     };
 
-
     // Reads a big endian int16
-    int ReadWord(StreamReader& stream) {
-        auto b1 = stream.ReadByte();
+    int ReadInt16(StreamReader& stream) {
         auto b0 = stream.ReadByte();
-        if (b0 == 0xff) return -1;
-        return ((int)b1 << 8) + b0;
+        auto b1 = stream.ReadByte();
+        return ((int)b0 << 8) + b1;
     }
 
-    List<byte> ConvertToPbm(span<byte> data) {
-        ASSERT(false); // not implemented
-        return List<byte>(data.begin(), data.end());
+    // Reads a big endian int32
+    int32 ReadInt32(StreamReader& stream) {
+        auto b0 = (int)stream.ReadByte();
+        auto b1 = (int)stream.ReadByte();
+        auto b2 = (int)stream.ReadByte();
+        auto b3 = (int)stream.ReadByte();
+        return (b0 << 24) + (b1 << 16) + (b2 << 8) + b3;
     }
 
-    List<byte> ParseBody(StreamReader& stream, int32 chunkLen, const iff_bitmap_header& header) {
-        //auto endPos = stream.Position() + len;
-        //if(len & 1) endPos++;
 
+    List<byte> ParseBody(StreamReader& stream, int32 chunkLen, const IffHeader& header) {
         int width = 0;
         int8 depth = 0;
         int rowCount = 0;
         int offset = 0;
 
-        if (header.type == BbmType::PBM) {
+        if (header.Type == BbmType::PBM) {
             width = header.Width;
             depth = 1;
         }
-        else if (header.type == BbmType::ILBM) {
+        else if (header.Type == BbmType::ILBM) {
             width = (header.Width + 7) / 89;
             depth = header.Planes;
         }
@@ -85,6 +76,7 @@ namespace Inferno {
             }
         }
         else if (header.Compression == CompressionType::RLE) {
+            // NOTE: this code is not tested. No descent BBMs appear to be compressed.
             for (int count = width, plane = 0; count < offset + chunkLen && offset < data.size();) {
                 ASSERT(stream.Position() < endPosition);
                 auto n = stream.ReadByte();
@@ -131,8 +123,9 @@ namespace Inferno {
 
                 ASSERT(offset - (width * rowCount) < width);
 
-                if (header.type == BbmType::ILBM) {
-                    ConvertToPbm(data);
+                if (header.Type == BbmType::ILBM) {
+                    throw NotImplementedException();
+                    //ConvertToPbm(data);
                 }
             }
         }
@@ -140,25 +133,16 @@ namespace Inferno {
         return data;
     }
 
-    //void ParseDelta(StreamReader& stream, span<byte> data, int len) {
-    //    int bytesRead = 0;
-
-    //    stream.ReadInt32();
-    //}
-
-    // Reads a big-endian int32
-    int32 ReadInt32(StreamReader& stream) {
-        auto b0 = (int)stream.ReadByte();
-        auto b1 = (int)stream.ReadByte();
-        auto b2 = (int)stream.ReadByte();
-        auto b3 = (int)stream.ReadByte();
-        return (b0 << 24) + (b1 << 16) + (b2 << 8) + b3;
-    }
-
-    Bitmap2D Parse(StreamReader& stream, iff_bitmap_header& header, int formType, int formLength) {
+    Bitmap2D Parse(StreamReader& stream,int type) {
         List<byte> data;
-        header.type = formType == MakeFourCC("PBM ") ? BbmType::PBM : BbmType::ILBM;
-        Array<pal_entry, 256> palette{}; //the palette for this bitmap
+        IffHeader header{};
+        header.Type = type == MakeFourCC("PBM ") ? BbmType::PBM : BbmType::ILBM;
+
+        struct PaletteColor {
+            uint8 r, g, b;
+        };
+
+        Array<PaletteColor, 256> palette{};
 
         while (!stream.EndOfStream()) {
             auto sig = stream.ReadInt32(); // FourCC flips little-endian to big-endian, using a little-endian read accounts for this
@@ -172,13 +156,12 @@ namespace Inferno {
             switch (sig) {
                 case MakeFourCC("BMHD"):
                 {
-                    //auto startPos = stream.Position();
                     // header
-                    header.Width = ReadWord(stream);
-                    header.Height = ReadWord(stream);
+                    header.Width = ReadInt16(stream);
+                    header.Height = ReadInt16(stream);
                     // skip origin x and y
-                    ReadWord(stream);
-                    ReadWord(stream);
+                    ReadInt16(stream);
+                    ReadInt16(stream);
 
                     header.Planes = stream.ReadByte();
                     if (header.Planes != 8)
@@ -191,29 +174,21 @@ namespace Inferno {
 
                     stream.ReadByte(); // padding
 
-                    header.TransparentColor = ReadWord(stream);
+                    header.TransparentColor = ReadInt16(stream);
 
                     // skip aspect ratio x/y
                     stream.ReadByte();
                     stream.ReadByte();
 
                     // skip page size
-                    ReadWord(stream);
-                    ReadWord(stream);
+                    ReadInt16(stream);
+                    ReadInt16(stream);
 
                     if (header.Mask != MaskType::None && header.Mask != MaskType::TransparentColor)
                         throw Exception("Unsupported mask type");
 
-                    //auto endPos = stream.Position() - startPos;
-                    //len = int(stream.Position() - startPos);
                     break;
                 }
-
-                //case MakeFourCC("ANHD"):
-                //{
-                //	SkipChunk(stream, len);
-                //    break;
-                //}
 
                 case MakeFourCC("CMAP"):
                 {
@@ -228,23 +203,13 @@ namespace Inferno {
                     break;
                 }
 
-
                 case MakeFourCC("BODY"):
                 {
-                    //List<byte> chunkData(len);
-                    //stream.ReadBytes(chunkData);
                     data = ParseBody(stream, len, header);
                     break;
                 }
 
-                //case MakeFourCC("DLTA"):
-                //{
-                //    //SkipChunk(stream, len);
-                //    break;
-                //}
-
                 default:
-                    //SkipChunk(stream, len);
                     break;
             }
 
@@ -252,7 +217,6 @@ namespace Inferno {
         }
 
 
-        //List<Palette::Color> color;
         Bitmap2D bitmap;
         bitmap.Data.resize(data.size());
         bitmap.Width = header.Width;
@@ -273,7 +237,7 @@ namespace Inferno {
         return bitmap;
     }
 
-    Bitmap2D ReadIff(span<byte> data) {
+    Bitmap2D ReadBbm(span<byte> data) {
         try {
             StreamReader stream(data);
 
@@ -281,15 +245,13 @@ namespace Inferno {
             if (id != MakeFourCC("FORM"))
                 throw Exception("Unknown file format");
 
-            auto formLen = ReadInt32(stream);
+            ReadInt32(stream); // form length
             auto type = stream.ReadInt32();
-
-            iff_bitmap_header header{};
 
             if (type == MakeFourCC("ANIM"))
                 throw Exception("Animations are not supported");
             else if (type == MakeFourCC("PBM ") || type == MakeFourCC("ILBM"))
-                return Parse(stream, header, type, formLen);
+                return Parse(stream, type);
             else
                 throw Exception("Unknown file type");
         }

@@ -7,6 +7,6 @@ namespace Inferno {
         List<Palette::Color> Data;
     };
 
-    // Reads an EA IFF interchange file
-    Bitmap2D ReadIff(span<byte> data);
+    // Reads a BBM packed in an EA IFF interchange file
+    Bitmap2D ReadBbm(span<byte> data);
 }
