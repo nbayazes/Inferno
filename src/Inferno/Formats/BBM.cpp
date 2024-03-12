@@ -40,7 +40,6 @@ namespace Inferno {
         return (b0 << 24) + (b1 << 16) + (b2 << 8) + b3;
     }
 
-
     List<byte> ParseBody(StreamReader& stream, int32 chunkLen, const IffHeader& header) {
         int width = 0;
         int8 depth = 0;
@@ -61,18 +60,16 @@ namespace Inferno {
 
         List<byte> data;
         data.resize(header.Width * header.Height);
-        //auto endCount = (width & 1) ? -1 : 0;
         auto endPosition = stream.Position() + chunkLen;
 
         if (header.Compression == CompressionType::None) {
             for (int y = header.Height; y; y--) {
-                for (int x = 0; x < width * depth; x++) {
+                for (int x = 0; x < width * depth; x++)
                     data[offset++] = stream.ReadByte();
-                }
 
                 // skip mask
                 //if (header.Mask != MaskType::None) stream.SeekForward(width);
-                if (header.Width & 1) stream.SeekForward(1);
+                if (header.Width & 1) stream.SeekForward(1); // alignment
             }
         }
         else if (header.Compression == CompressionType::RLE) {
@@ -133,7 +130,7 @@ namespace Inferno {
         return data;
     }
 
-    Bitmap2D Parse(StreamReader& stream,int type) {
+    Bitmap2D Parse(StreamReader& stream, int type) {
         List<byte> data;
         IffHeader header{};
         header.Type = type == MakeFourCC("PBM ") ? BbmType::PBM : BbmType::ILBM;
