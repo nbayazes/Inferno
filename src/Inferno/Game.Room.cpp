@@ -500,7 +500,7 @@ namespace Inferno::Game {
         auto face = Face::FromSide(level, tag);
 
         Vector3 ref, normal;
-        float dist;
+        float dist{};
 
         for (int i = 0; i < 2; i++) {
             auto poly = face.GetPoly(i);

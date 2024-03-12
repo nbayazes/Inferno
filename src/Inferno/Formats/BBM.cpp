@@ -25,10 +25,10 @@ namespace Inferno {
     };
 
     // Reads a big endian int16
-    int ReadInt16(StreamReader& stream) {
+    int16 ReadInt16(StreamReader& stream) {
         auto b0 = stream.ReadByte();
         auto b1 = stream.ReadByte();
-        return ((int)b0 << 8) + b1;
+        return ((int16)b0 << 8) + b1;
     }
 
     // Reads a big endian int32

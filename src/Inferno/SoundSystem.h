@@ -44,7 +44,7 @@ namespace Inferno::Sound {
     SoundUID AtPlayer(const Sound3D& sound);
 
     // Plays a raw music stream
-    bool PlayMusic(List<byte>&& data, bool loop);
+    bool PlayMusic(const List<byte>&& data, bool loop);
 
     // Plays a music file. Returns true if playback started.
     bool PlayMusic(const string& file, bool loop = true);

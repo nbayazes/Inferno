@@ -958,7 +958,7 @@ namespace Inferno::Sound {
         }
     }
 
-    bool PlayMusic(List<byte>&& data, bool loop) {
+    bool PlayMusic(const List<byte>&& data, bool loop) {
         SoundThread->PlayMusic({ {}, data, loop });
 
         //CurrentMusicStream = CreateMusicStream(std::move(data));

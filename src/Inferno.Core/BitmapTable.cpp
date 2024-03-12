@@ -107,7 +107,7 @@ namespace Inferno {
         }
     }
 
-    void ReadBitmapTable(span<byte> data, const PigFile& pig, HamFile& ham, SoundFile& sounds) {
+    void ReadBitmapTable(span<byte> data, const PigFile& pig, HamFile& ham, const SoundFile& sounds) {
         StreamReader reader(data);
 
         ham.DyingModels.resize(ham.Models.size());
@@ -332,8 +332,8 @@ namespace Inferno {
                     auto index = std::stoi(tokens[1]);
                     if (!Seq::inRange(ham.Robots, index) || skip) continue;
                     auto& robot = ham.Robots[index];
-                    Array<float, 5> fov, fireDelay, turnTime, speed, circleDist{};
-                    Array<uint8, 5> shots, evade{};
+                    Array<float, 5> fov{}, fireDelay{}, turnTime{}, speed{}, circleDist{};
+                    Array<uint8, 5> shots{}, evade{};
 
                     uint offset = 2;
                     offset += readArray(offset, fov);

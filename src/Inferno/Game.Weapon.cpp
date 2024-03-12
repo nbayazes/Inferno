@@ -906,7 +906,7 @@ namespace Inferno::Game {
 
     void CreateMissileSpawn(const Object& missile, uint blobs) {
         auto mask = missile.Control.Weapon.ParentType == ObjectType::Player ? ObjectMask::Robot : ObjectMask::Player;
-        int targetCount;
+        int targetCount = 0;
 
         const Weapon& weapon = Resources::GetWeapon(missile);
 

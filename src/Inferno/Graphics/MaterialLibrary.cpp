@@ -421,7 +421,8 @@ namespace Inferno::Render {
 
         for (uint i = 0; i < std::size(material.Textures); i++) {
             auto handle = Render::Uploads->GetCpuHandle(material.UploadIndex + i);
-            Texture2D* texture;
+            Texture2D* texture = nullptr;
+
             if (material.Textures[i]) {
                 texture = &material.Textures[i];
             }

@@ -466,7 +466,7 @@ namespace Inferno
 
         void XM_CALLCONV SetPosition(FXMVECTOR v) noexcept
         {
-            XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&Position), v);
+            XMStoreFloat3(&Position, v);
         }
         void __cdecl SetPosition(const XMFLOAT3& pos) noexcept
         {
@@ -477,7 +477,7 @@ namespace Inferno
 
         void XM_CALLCONV SetVelocity(FXMVECTOR v) noexcept
         {
-            XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&Velocity), v);
+            XMStoreFloat3(&Velocity, v);
         }
         void __cdecl SetVelocity(const XMFLOAT3& vel) noexcept
         {
@@ -488,8 +488,8 @@ namespace Inferno
 
         void XM_CALLCONV SetOrientation(FXMVECTOR forward, FXMVECTOR up) noexcept
         {
-            XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&OrientFront), forward);
-            XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&OrientTop), up);
+            XMStoreFloat3(&OrientFront, forward);
+            XMStoreFloat3(&OrientTop, up);
         }
         void __cdecl SetOrientation(const XMFLOAT3& forward, const XMFLOAT3& up) noexcept
         {
@@ -501,10 +501,10 @@ namespace Inferno
         void XM_CALLCONV SetOrientationFromQuaternion(FXMVECTOR quat) noexcept
         {
             const XMVECTOR forward = XMVector3Rotate(DirectX::g_XMIdentityR2, quat);
-            XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&OrientFront), forward);
+            XMStoreFloat3(&OrientFront, forward);
 
             const XMVECTOR up = XMVector3Rotate(DirectX::g_XMIdentityR1, quat);
-            XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&OrientTop), up);
+            XMStoreFloat3(&OrientTop, up);
         }
 
 
@@ -513,24 +513,24 @@ namespace Inferno
         {
             if (dt > 0.f)
             {
-                const XMVECTOR lastPos = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&Position));
+                const XMVECTOR lastPos = XMLoadFloat3(&Position);
 
                 XMVECTOR vDelta = XMVectorSubtract(newPos, lastPos);
                 const XMVECTOR vt = XMVectorReplicate(dt);
                 XMVECTOR v = XMVectorDivide(vDelta, vt);
-                XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&Velocity), v);
+                XMStoreFloat3(&Velocity, v);
 
                 vDelta = XMVector3Normalize(vDelta);
-                XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&OrientFront), vDelta);
+                XMStoreFloat3(&OrientFront, vDelta);
 
                 v = XMVector3Cross(upDir, vDelta);
                 v = XMVector3Normalize(v);
 
                 v = XMVector3Cross(vDelta, v);
                 v = XMVector3Normalize(v);
-                XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&OrientTop), v);
+                XMStoreFloat3(&OrientTop, v);
 
-                XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&Position), newPos);
+                XMStoreFloat3(&Position, newPos);
             }
         }
 
@@ -569,7 +569,7 @@ namespace Inferno
 
         void XM_CALLCONV SetPosition(FXMVECTOR v) noexcept
         {
-            XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&Position), v);
+            XMStoreFloat3(&Position, v);
         }
         void __cdecl SetPosition(const XMFLOAT3& pos) noexcept
         {
@@ -580,7 +580,7 @@ namespace Inferno
 
         void XM_CALLCONV SetVelocity(FXMVECTOR v) noexcept
         {
-            XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&Velocity), v);
+            XMStoreFloat3(&Velocity, v);
         }
         void __cdecl SetVelocity(const XMFLOAT3& vel) noexcept
         {
@@ -591,8 +591,8 @@ namespace Inferno
 
         void XM_CALLCONV SetOrientation(FXMVECTOR forward, FXMVECTOR up) noexcept
         {
-            XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&OrientFront), forward);
-            XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&OrientTop), up);
+            XMStoreFloat3(&OrientFront, forward);
+            XMStoreFloat3(&OrientTop, up);
         }
         void __cdecl SetOrientation(const XMFLOAT3& forward, const XMFLOAT3& up) noexcept
         {
@@ -604,10 +604,10 @@ namespace Inferno
         void XM_CALLCONV SetOrientationFromQuaternion(FXMVECTOR quat) noexcept
         {
             const XMVECTOR forward = XMVector3Rotate(DirectX::g_XMIdentityR2, quat);
-            XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&OrientFront), forward);
+            XMStoreFloat3(&OrientFront, forward);
 
             const XMVECTOR up = XMVector3Rotate(DirectX::g_XMIdentityR1, quat);
-            XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&OrientTop), up);
+            XMStoreFloat3(&OrientTop, up);
         }
 
         // Updates velocity and orientation by tracking changes in position over time.
@@ -615,24 +615,24 @@ namespace Inferno
         {
             if (dt > 0.f)
             {
-                const XMVECTOR lastPos = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&Position));
+                const XMVECTOR lastPos = XMLoadFloat3(&Position);
 
                 XMVECTOR vDelta = XMVectorSubtract(newPos, lastPos);
                 const XMVECTOR vt = XMVectorReplicate(dt);
                 XMVECTOR v = XMVectorDivide(vDelta, vt);
-                XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&Velocity), v);
+                XMStoreFloat3(&Velocity, v);
 
                 vDelta = XMVector3Normalize(vDelta);
-                XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&OrientFront), vDelta);
+                XMStoreFloat3(&OrientFront, vDelta);
 
                 v = XMVector3Cross(upDir, vDelta);
                 v = XMVector3Normalize(v);
 
                 v = XMVector3Cross(vDelta, v);
                 v = XMVector3Normalize(v);
-                XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&OrientTop), v);
+                XMStoreFloat3(&OrientTop, v);
 
-                XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&Position), newPos);
+                XMStoreFloat3(&Position, newPos);
             }
         }
 

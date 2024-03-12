@@ -443,7 +443,7 @@ namespace Inferno {
 
             // Handle dampening on the edges of the heightmaps
             for (int y = 0; y < _resolution; y++) {
-                int belowoffset, aboveoffset;
+                int belowoffset{}, aboveoffset{};
 
                 if (y == 0) {
                     aboveoffset = -(_resolution - 1) * _resolution;
@@ -460,7 +460,8 @@ namespace Inferno {
                 for (int x = 0; x < _resolution; x++) {
                     //only dampen if actually on an edge
                     if (y == 0 || y == _resolution - 1 || x == 0 || x == _resolution - 1) {
-                        int leftoffset, rightoffset;
+                        int leftoffset{}, rightoffset{};
+
                         if (x == 0) {
                             leftoffset = -(_resolution - 1);
                             rightoffset = 1;
@@ -493,7 +494,8 @@ namespace Inferno {
             auto srcResmaskY = texture.Info.Height - 1;
 
             for (int y = 0; y < _resolution; y++) {
-                int topOffset, botOffset;
+                int topOffset{}, botOffset{};
+
                 if (y == (_resolution - 1)) {
                     // wrap top edge
                     botOffset = _resMask * _resolution;
@@ -511,8 +513,8 @@ namespace Inferno {
 
                 for (int x = 0; x < _resolution; x++) {
                     int index = y * _resolution + x; // pixel index
+                    int horizHeight{};
 
-                    int horizHeight;
                     if (x == _resolution - 1) {
                         // Wrap right edge
                         horizHeight = heights[index - 1] - heights[index - _resolution + 1];
@@ -570,15 +572,14 @@ namespace Inferno {
                 for (int x = 0; x < _resolution; x++) {
                     int offset = y * _resolution + x;
                     int height = heights[offset];
+                    int xHeight{}, yHeight{};
 
-                    int xHeight;
                     if (x == _resolution - 1)
                         xHeight = heights[offset - _resolution + 1];
                     else
                         xHeight = heights[offset + 1];
 
 
-                    int yHeight;
                     if (y == _resolution - 1)
                         yHeight = heights[offset - ((_resolution - 1) * _resolution)];
                     else

@@ -252,7 +252,7 @@ namespace Inferno::Editor {
         return curve;
     }
 
-    TunnelPath CreatePath(const TunnelNode& start, const TunnelNode& end, TunnelArgs& args) {
+    TunnelPath CreatePath(const TunnelNode& start, const TunnelNode& end, const TunnelArgs& args) {
         auto steps = args.Steps;
         auto curve = CreateCurve(start, end, args);
         auto bezierPoints = DivideCurveIntoSteps(curve.Points, steps);

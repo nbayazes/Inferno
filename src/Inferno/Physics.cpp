@@ -980,7 +980,8 @@ namespace Inferno {
                     // a size 4 object would need a velocity > 250 to clip through walls
                     if (obj.Type == ObjectType::Weapon && HasFlag(obj.Physics.Flags, PhysicsFlag::PointCollideWalls)) {
                         // Use raycasting for weapons because they are typically small and have high velocities
-                        float dist;
+                        float dist{};
+
                         if (triFacesObj &&
                             pathRay.Intersects(p0, p1, p2, dist) &&
                             dist < travelDistance) {
