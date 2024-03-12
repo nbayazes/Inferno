@@ -29,7 +29,6 @@ namespace Inferno {
                 return r | g << 8 | b << 16 | a << 24;
             }
 
-
             DirectX::SimpleMath::Color ToColor() const {
                 return { (float)r / 255.0f, (float)g / 255.0f, (float)b / 255.0f, (float)a / 255.0f };
             }
@@ -59,10 +58,10 @@ namespace Inferno {
 
     // Helper that finds the nearest palette index for a color. Uses caching.
     class PaletteLookup {
-        const Palette& _palette;
+        const Palette* _palette;
         Dictionary<uint32, ubyte> _cache; // maps color to index
     public:
-        PaletteLookup(const Palette& palette) : _palette(palette) {}
+        PaletteLookup(const Palette& palette) : _palette(&palette) {}
 
         ubyte GetClosestIndex(const Palette::Color& color, bool transparent) {
             uint hash = (int)color.r + ((int)color.g << 8) + ((int)color.b << 16);
@@ -73,7 +72,7 @@ namespace Inferno {
             ubyte closestIndex = 0;
 
             for (int i = 0; i < (transparent ? 256 : 254); i++) {
-                uint delta = color.Delta(_palette.Data[i]);
+                uint delta = color.Delta(_palette->Data[i]);
                 if (delta < closestDelta) {
                     closestIndex = (ubyte)i;
                     if (delta == 0)

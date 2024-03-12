@@ -125,6 +125,18 @@ namespace Inferno::Game {
         };
 
         Render::Materials->LoadTextures(customHudTextures);
+
+        List<string> bbms;
+
+        if (Game::Mission) {
+            for (auto& entry : Game::Mission->Entries) {
+                if (entry.Extension() == ".bbm") {
+                    bbms.push_back(entry.Name);
+                }
+            }
+
+            Render::Materials->LoadTextures(bbms);
+        }
     }
 
     // Loads all level assets and prepares the game state

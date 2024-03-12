@@ -154,7 +154,6 @@ namespace Inferno {
         // Reads a int32 fixed value into a float
         float ReadFix() { return FixToFloat(Read<int32>()); }
 
-
         // Reads an int32 and limits between positive values and maximum. Used to prevent allocating huge vectors due to a programming error.
         int32 ReadInt32Checked(int maximum, const char* message) {
             auto len = ReadInt32();

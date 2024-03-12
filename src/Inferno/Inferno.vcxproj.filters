@@ -96,6 +96,8 @@
     <ClCompile Include="Audio\Music.cpp" />
     <ClCompile Include="zip\zip.c" />
     <ClCompile Include="Game.IO.cpp" />
+    <ClCompile Include="Formats\PCX.cpp" />
+    <ClCompile Include="Formats\BBM.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\Audio.h" />
@@ -234,6 +236,8 @@
     <ClInclude Include="Audio\pcm\stb_vorbis.h" />
     <ClInclude Include="zip\zip.h" />
     <ClInclude Include="zip\miniz.h" />
+    <ClInclude Include="Formats\PCX.h" />
+    <ClInclude Include="Formats\BBM.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />

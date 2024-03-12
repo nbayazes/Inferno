@@ -2,6 +2,7 @@
 #include "MaterialLibrary.h"
 #include "Convert.h"
 #include "FileSystem.h"
+#include "Formats/BBM.h"
 #include "Game.h"
 #include "NormalMap.h"
 #include "Procedural.h"
@@ -379,14 +380,15 @@ namespace Inferno::Render {
         }
 
         if (!material.Textures[Material2D::Diffuse]) {
-            if (upload.Bitmap->Info.Transparent) {
-                List<Palette::Color> data = upload.Bitmap->Data; // copy mask, as modifying the original would affect collision
-                //ExpandDiffuse(upload.Bitmap->Info, data);
-                material.Textures[Material2D::Diffuse].Load(batch, data.data(), width, height, Convert::ToWideString(material.Name));
-            }
-            else {
-                material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap->Data.data(), width, height, Convert::ToWideString(material.Name));
-            }
+            material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap->Data.data(), width, height, Convert::ToWideString(material.Name));
+            //if (upload.Bitmap->Info.Transparent) {
+            //    List<Palette::Color> data = upload.Bitmap->Data; // copy mask, as modifying the original would affect collision
+            //    //ExpandDiffuse(upload.Bitmap->Info, data);
+            //    material.Textures[Material2D::Diffuse].Load(batch, data.data(), width, height, Convert::ToWideString(material.Name));
+            //}
+            //else {
+            //    material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap->Data.data(), width, height, Convert::ToWideString(material.Name));
+            //}
         }
 
         if (!material.Textures[Material2D::SuperTransparency] && upload.SuperTransparent) {
@@ -473,6 +475,30 @@ namespace Inferno::Render {
 
         material.Name = bitmap.Name;
         material.Textures[Material2D::Diffuse].Load(batch, bitmap.Mips[0].data(), bitmap.Width, bitmap.Height, Convert::ToWideString(bitmap.Name));
+
+        // Set default secondary textures
+        for (uint i = 0; i < std::size(material.Textures); i++) {
+            auto handle = Render::Uploads->GetCpuHandle(material.UploadIndex + i);
+            auto texture = material.Textures[i] ? &material.Textures[i] : &defaultTex;
+            texture->CreateShaderResourceView(handle);
+        }
+
+        return material;
+    }
+
+    Material2D UploadBBM(ResourceUploadBatch& batch,
+                         string_view name,
+                         const Bitmap2D& bitmap,
+                         const Texture2D& defaultTex) {
+        Material2D material;
+        material.UploadIndex = Render::Uploads->AllocateIndex();
+        material.Name = name;
+
+        // allocate a new heap range for the material
+        for (int i = 0; i < Material2D::Count; i++)
+            material.Handles[i] = Render::Uploads->GetGpuHandle(material.UploadIndex + i);
+
+        material.Textures[Material2D::Diffuse].Load(batch, bitmap.Data.data(), bitmap.Width, bitmap.Height, Convert::ToWideString(name));
 
         // Set default secondary textures
         for (uint i = 0; i < std::size(material.Textures); i++) {
@@ -656,21 +682,29 @@ namespace Inferno::Render {
 
         for (auto& name : names) {
             if (_namedMaterials.contains(name)) continue; // skip loaded
+            Material2D material;
 
             if (FileSystem::TryFindFile(name + ".dds")) {
-                auto material = UploadBitmap(batch, name, Render::StaticTextures->Black);
-                _namedMaterials[name] = material.ID = GetUnusedTexID();
-                uploads.emplace_back(std::move(material));
+                material = UploadBitmap(batch, name, Render::StaticTextures->Black);
             }
             else if (auto bitmap = Resources::ReadOutrageBitmap(name)) {
                 // Try loading file from D3 data
-                auto material = UploadOutrageMaterial(batch, *bitmap, Render::StaticTextures->Black);
-                _namedMaterials[name] = material.ID = GetUnusedTexID();
-                uploads.emplace_back(std::move(material));
+                material = UploadOutrageMaterial(batch, *bitmap, Render::StaticTextures->Black);
             }
-            else {
+            else if (auto data = Resources::ReadBinaryFile(name); !data.empty()) {
+                if (name.ends_with(".bbm")) {
+                    auto bbm = ReadIff(data);
+                    material = UploadBBM(batch, name, bbm, Render::StaticTextures->Black);
+                }
+            }
+
+            if (material.Name.empty()) {
                 // Add entries that aren't found so they are skipped in future loads
                 _namedMaterials[name] = {};
+            }
+            else {
+                _namedMaterials[name] = material.ID = GetUnusedTexID();
+                uploads.emplace_back(std::move(material));
             }
         }
 

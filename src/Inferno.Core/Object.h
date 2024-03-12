@@ -39,15 +39,15 @@ namespace Inferno {
     // misc object flags
     enum class ObjectFlag : uint16 {
         None = 0,
-        Exploding = 1, // Object is exploding with a delay. Prevents exploding immediately when hp reaches 0.
-        Dead = 2, // Free to be reused
-        Destroyed = 4, // Object has been destroyed from damage. Used by reactor to change model appearance.
-        Silent = 8, // No sound when colliding
-        Attached = 16, // Object is attached to another object or wall. Disables hit testing.
-        Harmless = 32, // Does no damage
-        PlayerDropped = 64, // Dropped by player (death?)
-        AlwaysUpdate = 128, // Always update this object regardless of visibility. Thief, Weapons
-        Updated = 256, // Was updated this frame
+        Exploding = 1 << 0, // Object is exploding with a delay. Prevents exploding immediately when hp reaches 0.
+        Dead = 1 << 1, // Free to be reused
+        Destroyed = 1 << 2, // Object has been destroyed from damage. Used by reactor to change model appearance.
+        Silent = 1 << 3, // No sound when colliding
+        Attached = 1 << 4, // Object is attached to another object or wall. Disables hit testing.
+        Harmless = 1 << 5, // Does no damage
+        PlayerDropped = 1 << 6, // Dropped by player (death?)
+        AlwaysUpdate = 1 << 7, // Always update this object regardless of visibility. Thief, Weapons
+        Updated = 1 << 8, // Was updated this frame
     };
 
     enum class PhysicsFlag : uint16 {

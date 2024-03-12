@@ -191,7 +191,7 @@ namespace Inferno::Sound {
 
         // Leave data for the trimmed end in case the sound is looped
         const size_t wavDataSize = raw.size() + sizeof(WAVEFORMATEX) - trimStartBytes;
-        auto wavData = MakePtr<uint8[]>(wavDataSize);
+        auto wavData = make_unique<uint8[]>(wavDataSize);
 
         if (trimEnd) {
             for (int i = 0; i < wavDataSize; i++)

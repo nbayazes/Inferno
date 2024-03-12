@@ -159,6 +159,7 @@
     <ClCompile Include="Audio\SoundEffect.cpp" />
     <ClCompile Include="Audio\SoundEffectInstance.cpp" />
     <ClCompile Include="Audio\WAVFileReader.cpp" />
+    <ClCompile Include="Formats\BBM.cpp" />
     <ClCompile Include="CustomTextureLibrary.cpp" />
     <ClCompile Include="Editor\UI\DebugWindow.cpp" />
     <ClCompile Include="Editor\Editor.Diagnostics.cpp" />
@@ -218,6 +219,7 @@
     <ClCompile Include="MaterialInfo.cpp" />
     <ClCompile Include="Audio\Music.cpp" />
     <ClCompile Include="OpenSimplex2.cpp" />
+    <ClCompile Include="Formats\PCX.cpp" />
     <ClCompile Include="Physics.Capsule.cpp" />
     <ClCompile Include="Physics.cpp" />
     <ClCompile Include="Graphics\Render.Queue.cpp" />
@@ -270,6 +272,7 @@
     <ClInclude Include="Editor\UI\BriefingEditor.h" />
     <ClInclude Include="Editor\UI\DiagnosticWindow.h" />
     <ClInclude Include="Effect.h" />
+    <ClInclude Include="Formats\BBM.h" />
     <ClInclude Include="Game.AI.h" />
     <ClInclude Include="Game.AI.Pathing.h" />
     <ClInclude Include="Game.Bindings.h" />
@@ -332,6 +335,7 @@
     <ClInclude Include="MaterialInfo.h" />
     <ClInclude Include="NormalMap.h" />
     <ClInclude Include="OpenSimplex2.h" />
+    <ClInclude Include="Formats\PCX.h" />
     <ClInclude Include="Physics.Capsule.h" />
     <ClInclude Include="Physics.h" />
     <ClInclude Include="Procedural.h" />
