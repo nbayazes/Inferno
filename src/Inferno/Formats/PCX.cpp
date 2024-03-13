@@ -22,7 +22,7 @@ namespace Inferno {
     };
 
 
-    List<Color> ReadPCX(span<byte> data) {
+    Bitmap2D ReadPCX(span<byte> data) {
         PCXHeader header{};
         StreamReader stream(data);
         stream.ReadBytes(&header, sizeof(header));
@@ -59,23 +59,33 @@ namespace Inferno {
             }
         }
 
-        Array<byte, 256 * 3> palette{};
+        struct Rgb { byte r, g, b; };
+        Array<Rgb, 256> palette{};
 
         // Read extended palette at the end of the PCX file
         if (!stream.EndOfStream()) {
             auto b = stream.ReadByte();
             if (b == 12)
-                stream.ReadBytes(palette);
+                stream.ReadBytes(palette.data(), palette.size() * sizeof(Rgb));
+
+            //for (auto& p : palette)
+            //    p >>= 2;
         }
 
-        List<Color> bitmap;
-        bitmap.resize(width * height);
+        Bitmap2D bitmap;
+        bitmap.Width = width;
+        bitmap.Height = height;
+        bitmap.Data.resize(width * height);
 
         for (int i = 0; i < bitmapData.size(); i++) {
-            auto r = palette[bitmapData[i] * 3 + 0];
-            auto g = palette[bitmapData[i] * 3 + 1];
-            auto b = palette[bitmapData[i] * 3 + 2];
-            bitmap[i] = Color(r / 255.0f, b / 255.0f, g / 255.0f);
+            auto& pixel = bitmap.Data[i];
+            auto& value = palette[bitmapData[i]];
+            pixel.r = value.r;
+            pixel.g = value.g;
+            pixel.b = value.b;
+            //pixel.r = palette[bitmapData[i] * 3 + 0];
+            //pixel.g = palette[bitmapData[i] * 3 + 1];
+            //pixel.b = palette[bitmapData[i] * 3 + 2];
         }
 
         return bitmap;

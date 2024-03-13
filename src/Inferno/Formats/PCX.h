@@ -1,5 +1,6 @@
 #pragma once
+#include "BBM.h"
 
 namespace Inferno {
-    List<Color> ReadPCX(span<byte> data);
+    Bitmap2D ReadPCX(span<byte> data);
 }

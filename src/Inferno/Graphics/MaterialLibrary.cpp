@@ -3,6 +3,7 @@
 #include "Convert.h"
 #include "FileSystem.h"
 #include "Formats/BBM.h"
+#include "Formats/PCX.h"
 #include "Game.h"
 #include "NormalMap.h"
 #include "Procedural.h"
@@ -487,10 +488,10 @@ namespace Inferno::Render {
         return material;
     }
 
-    Material2D UploadBBM(ResourceUploadBatch& batch,
-                         string_view name,
-                         const Bitmap2D& bitmap,
-                         const Texture2D& defaultTex) {
+    Material2D UploadBitmap(ResourceUploadBatch& batch,
+                            string_view name,
+                            const Bitmap2D& bitmap,
+                            const Texture2D& defaultTex) {
         Material2D material;
         material.UploadIndex = Render::Uploads->AllocateIndex();
         material.Name = name;
@@ -499,7 +500,7 @@ namespace Inferno::Render {
         for (int i = 0; i < Material2D::Count; i++)
             material.Handles[i] = Render::Uploads->GetGpuHandle(material.UploadIndex + i);
 
-        material.Textures[Material2D::Diffuse].Load(batch, bitmap.Data.data(), bitmap.Width, bitmap.Height, Convert::ToWideString(name));
+        material.Textures[Material2D::Diffuse].Load(batch, bitmap.Data.data(), bitmap.Width, bitmap.Height, Convert::ToWideString(name), false, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
 
         // Set default secondary textures
         for (uint i = 0; i < std::size(material.Textures); i++) {
@@ -695,7 +696,11 @@ namespace Inferno::Render {
             else if (auto data = Resources::ReadBinaryFile(name); !data.empty()) {
                 if (name.ends_with(".bbm")) {
                     auto bbm = ReadBbm(data);
-                    material = UploadBBM(batch, name, bbm, Render::StaticTextures->Black);
+                    material = UploadBitmap(batch, name, bbm, Render::StaticTextures->Black);
+                }
+                else if (name.ends_with(".pcx")) {
+                    auto pcx = ReadPCX(data);
+                    material = UploadBitmap(batch, name, pcx, Render::StaticTextures->Black);
                 }
             }
 
