@@ -16,7 +16,7 @@ class CommandListManager;
 class ContextManager;
 
 namespace Inferno::Render {
-    constexpr DXGI_FORMAT BackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+    constexpr DXGI_FORMAT BackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 
     // Smart pointers in a namespace makes no sense as they will never trigger
     inline Ptr<DeviceResources> Adapter;
@@ -25,7 +25,9 @@ namespace Inferno::Render {
     inline Ptr<Inferno::PostFx::ToneMapping> ToneMapping;
     inline Ptr<Inferno::PostFx::ScanlineCS> Scanline;
     inline Ptr<DirectX::PrimitiveBatch<ObjectVertex>> g_SpriteBatch;
-    inline Ptr<Canvas2D> Canvas, BriefingCanvas, DebugCanvas;
+    inline Ptr<Canvas2D<UIShader>> Canvas, DebugCanvas;
+    inline Ptr<Canvas2D<BriefingShader>> BriefingCanvas;
+
     inline Ptr<HudCanvas2D> HudCanvas, HudGlowCanvas;
     inline Ptr<Graphics::FillLightGridCS> LightGrid;
 

@@ -519,7 +519,7 @@ namespace Inferno {
     public:
         UIShader(const ShaderInfo& info) : IShader(info) {
             InputLayout = CanvasVertex::Layout;
-            Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+            Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB; // Draws directly to SRGB back buffer
         }
 
         static void SetDiffuse(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
@@ -532,6 +532,14 @@ namespace Inferno {
 
         static void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
             commandList->SetGraphicsRootDescriptorTable(Sampler, sampler);
+        }
+    };
+
+    class BriefingShader : public UIShader {
+    public:
+        BriefingShader(const ShaderInfo& info) : UIShader(info) {
+            InputLayout = CanvasVertex::Layout;
+            Format = DXGI_FORMAT_R8G8B8A8_UNORM; // Draws to intermediate linear buffer
         }
     };
 
@@ -578,6 +586,7 @@ namespace Inferno {
         ObjectDepthShader DepthObject = ShaderInfo{ L"shaders/DepthObject.hlsl" };
         DepthCutoutShader DepthCutout = ShaderInfo{ L"shaders/DepthCutout.hlsl" };
         UIShader UserInterface = ShaderInfo{ L"shaders/imgui.hlsl" };
+        BriefingShader Briefing = ShaderInfo{ L"shaders/imgui.hlsl" };
         HudShader Hud = ShaderInfo{ L"shaders/HUD.hlsl" };
         SpriteShader Sprite = ShaderInfo{ L"shaders/sprite.hlsl" };
         ObjectShader Object = ShaderInfo{ L"shaders/object.hlsl" };
@@ -606,6 +615,7 @@ namespace Inferno {
         Effect<ObjectDistortionShader> ObjectDistortion{ &_shaders->ObjectDistortion, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read } };
 
         Effect<UIShader> UserInterface = { &_shaders->UserInterface, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, false } };
+        Effect<BriefingShader> Briefing = { &_shaders->Briefing, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, false } };
         Effect<HudShader> Hud = { &_shaders->Hud, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None } };
         Effect<HudShader> HudAdditive = { &_shaders->Hud, { BlendMode::Additive, CullMode::None, DepthMode::None } };
         Effect<FlatShader> Flat = { &_shaders->Flat, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None } };
@@ -624,6 +634,7 @@ namespace Inferno {
             CompileShader(&_shaders->Level);
             CompileShader(&_shaders->LevelFlat);
             CompileShader(&_shaders->UserInterface);
+            CompileShader(&_shaders->Briefing);
             CompileShader(&_shaders->Sprite);
             CompileShader(&_shaders->Object);
             CompileShader(&_shaders->ObjectDistortion);
@@ -669,6 +680,7 @@ namespace Inferno {
             compile(Line);
 
             compile(UserInterface);
+            compile(Briefing);
             compile(Hud);
             compile(HudAdditive);
         }

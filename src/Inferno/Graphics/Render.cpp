@@ -191,9 +191,9 @@ namespace Inferno::Render {
 
         //Materials2 = MakePtr<MaterialLibrary2>(Device, 64 * 64 * 4 * 1000);
         g_SpriteBatch = MakePtr<PrimitiveBatch<ObjectVertex>>(Device);
-        Canvas = MakePtr<Canvas2D>(Device, Effects->UserInterface);
-        DebugCanvas = MakePtr<Canvas2D>(Device, Effects->UserInterface);
-        BriefingCanvas = MakePtr<Canvas2D>(Device, Effects->UserInterface);
+        Canvas = MakePtr<Canvas2D<UIShader>>(Device, Effects->UserInterface);
+        DebugCanvas = MakePtr<Canvas2D<UIShader>>(Device, Effects->UserInterface);
+        BriefingCanvas = make_unique<Canvas2D<BriefingShader>>(Device, Effects->Briefing);
         HudCanvas = MakePtr<HudCanvas2D>(Device, Effects->Hud);
         HudGlowCanvas = MakePtr<HudCanvas2D>(Device, Effects->HudAdditive);
         _graphicsMemory = MakePtr<GraphicsMemory>(Device);
@@ -236,7 +236,7 @@ namespace Inferno::Render {
     void Initialize(HWND hwnd, int width, int height) {
         assert(hwnd);
         _hwnd = hwnd;
-        Adapter = MakePtr<DeviceResources>(BackBufferFormat);
+        Adapter = make_unique<DeviceResources>(BackBufferFormat);
         StaticTextures = MakePtr<StaticTextureDef>();
         Adapter->SetWindow(hwnd, width, height);
         Adapter->CreateDeviceResources();
@@ -438,8 +438,6 @@ namespace Inferno::Render {
     }
 
     void DrawBriefing(GraphicsContext& ctx, RenderTarget& target) {
-        if (!Settings::Editor.Windows.BriefingEditor) return;
-
         PIXScopedEvent(ctx.GetCommandList(), PIX_COLOR_INDEX(10), "Briefing");
         ctx.ClearColor(target);
         ctx.SetRenderTarget(target.GetRTV());
@@ -448,18 +446,35 @@ namespace Inferno::Render {
         ctx.SetScissor(UINT(target.GetWidth() * scale), UINT(target.GetHeight() * scale));
         auto& briefing = Editor::BriefingEditor::DebugBriefing;
         BriefingCanvas->SetSize((uint)target.GetWidth(), (uint)target.GetHeight());
-        if (!briefing.Screens.empty() && !briefing.Screens[0].Pages.empty()) {
-            Render::DrawTextInfo info;
-            info.Position = Vector2(20, 20);
-            info.Font = FontSize::Small;
-            info.Scale = 0.5f;
-            info.Color = Color(0, 1, 0);
-            BriefingCanvas->DrawGameText(briefing.Screens[1].Pages[1], info);
+
+        if (!briefing.Screens.empty()) {
+            auto screenIndex = std::clamp(Game::BriefingScreen, 0, (int)briefing.Screens.size() - 1);
+            auto& screen = briefing.Screens[screenIndex];
+
+            if (!screen.Pages.empty()) {
+                if (screen.Background.empty()) {
+                    BriefingCanvas->DrawRectangle({ 0, 0 }, { 640, 480 }, Color(0, 0, 0));
+                }
+                else {
+                    auto& bg = Materials->Get(screen.Background);
+                    BriefingCanvas->DrawBitmap(bg.Handle(), { 0, 0 }, { 640, 480 });
+                }
+
+                auto pageIndex = std::clamp(Game::BriefingPage, 0, (int)screen.Pages.size() - 1);
+
+                Render::DrawTextInfo info;
+                info.Position = Vector2(20, 20);
+                info.Font = FontSize::Small;
+                //info.Scale = 0.5f;
+                info.Color = Color(0, 1, 0);
+                BriefingCanvas->DrawGameText(screen.Pages[pageIndex], info);
+            }
         }
+
         BriefingCanvas->Render(ctx);
 
-        Adapter->Scanline.Execute(ctx.GetCommandList(), target, Adapter->BriefingScanlineBuffer);
-        Adapter->BriefingScanlineBuffer.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        //Adapter->Scanline.Execute(ctx.GetCommandList(), target, Adapter->BriefingScanlineBuffer);
+        //Adapter->BriefingScanlineBuffer.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         target.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     }
 
@@ -621,7 +636,9 @@ namespace Inferno::Render {
             LoadVClips(cmdList); // todo: only load on initial level load
         }
 
-        //DrawBriefing(ctx, Adapter->BriefingColorBuffer);
+        if (Game::BriefingVisible)
+            DrawBriefing(ctx, Adapter->BriefingColorBuffer);
+
         UpdateFrameConstants(outputSize * Render::RenderScale, Settings::Editor.FieldOfView);
 
         DrawLevel(ctx, Game::Level);
