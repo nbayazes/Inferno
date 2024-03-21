@@ -12,19 +12,6 @@
  * It is used by the D1 demo and original editor.
  */
 namespace Inferno {
-    void EncodeRotateLeft(ubyte& c);
-
-    //decode an encoded line of text of bitmaps.tbl
-    void DecodeTextLine(span<ubyte> str) {
-        constexpr uint BITMAP_TBL_XOR = 0xD3;
-
-        for (auto& c : str) {
-            EncodeRotateLeft(c);
-            c = c ^ BITMAP_TBL_XOR;
-            EncodeRotateLeft(c);
-        }
-    }
-
     enum class TableChunk {
         None = -1,
         Cockpit = 0,
@@ -49,8 +36,8 @@ namespace Inferno {
     string ReadLine(StreamReader& reader) {
         constexpr int MAX_LINE_LEN = 600;
         auto line = reader.ReadStringToNewline(MAX_LINE_LEN);
-        DecodeTextLine(span((ubyte*)line.data(), line.length()));
-
+        DecodeText(span((ubyte*)line.data(), line.length()));
+        
         if (auto index = line.find(';'); index > -1)
             line = line.substr(0, index);
 

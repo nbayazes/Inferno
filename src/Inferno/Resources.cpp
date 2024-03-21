@@ -583,7 +583,7 @@ namespace Inferno::Resources {
 
                 // Rest and fire animations are swapped on the green lifter in demo
                 if (entry.Name == "robot17.pof")
-                    std::swap(model.Animation[(int)AnimState::Rest], model.Animation[(int)AnimState::Fire]);
+                    std::swap(model.Animation[(int)Animation::Rest], model.Animation[(int)Animation::Fire]);
 
                 // Shift the flare so it is centered better. Retail does not have this problem.
                 if (entry.Name == "flare.pof") {
@@ -876,7 +876,7 @@ namespace Inferno::Resources {
         LoadGameTables(level);
     }
 
-    span<JointPos> GetRobotJoints(int robotId, int gun, AnimState state) {
+    span<JointPos> GetRobotJoints(int robotId, int gun, Animation state) {
         ASSERT((int)state <= 4 && (int)state >= 0);
         auto& robotInfo = GetRobotInfo(robotId);
         ASSERT(gun <= robotInfo.Guns && gun >= 0);

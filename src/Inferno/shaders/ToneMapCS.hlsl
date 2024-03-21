@@ -192,8 +192,6 @@ void main(uint3 DTid : SV_DispatchThreadID) {
         sdrColor = sdrColor * t0 + hdrColor * (1 - t0); // slightly darker and more contrast in high ranges
     }
 
-    sdrColor = pow(sdrColor, 1.0 / 2.2); // linear to sRGB
-
 #if SUPPORT_TYPED_UAV_LOADS
     ColorRW[DTid.xy] = sdrColor;
 #else

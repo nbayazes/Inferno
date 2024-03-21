@@ -49,6 +49,7 @@ namespace Inferno::Game {
     constexpr float FRIENDLY_FIRE_MULT = 0.5f; // Multiplier on damage robots do to each other or themselves
     constexpr float POWERUP_RADIUS_MULT = 2.00f; // Make powerups easier to pick up
     constexpr float NEARBY_PORTAL_DEPTH = 150.0f; // How far to search when determining 'nearby' rooms
+    constexpr float BRIEFING_TEXT_SPEED = 1 / 28.0f; // 28 characters per second
 
     inline int Difficulty = 2; // 0 to 4 for trainee to insane
     inline int LevelNumber = 0; // Index of loaded level starting at 1. Secret levels are negative. 0 means no level loaded.
@@ -105,6 +106,10 @@ namespace Inferno::Game {
     inline double Time = 0; // Elapsed game time since level start in seconds. Stops when paused.
     inline float DeltaTime = 0; // Elapsed fixed-step game time in seconds since last update. 0 when paused.
     inline float LerpAmount = 1; // How much to lerp between the previous and next object states
+
+    inline bool BriefingVisible = false;
+    inline int BriefingScreen = 0;
+    inline int BriefingPage = 0;
 
     void WeaponHitObject(const LevelHit& hit, Object& src);
     void AddWeaponDecal(const LevelHit& hit, const Weapon& weapon);

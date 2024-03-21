@@ -1,10 +1,10 @@
 #pragma once
 
-#include "WindowBase.h"
-#include "Mission.h"
-#include "WindowsDialogs.h"
-#include "Game.h"
 #include "Briefing.h"
+#include "Game.h"
+#include "Settings.h"
+#include "WindowBase.h"
+#include "Resources.h"
 
 namespace Inferno::Editor {
     class BriefingEditor : public WindowBase {
@@ -12,14 +12,62 @@ namespace Inferno::Editor {
         string _buffer;
         Briefing _briefing;
         static constexpr int BUFFER_SIZE = 2048 * 10;
+
     public:
         BriefingEditor() : WindowBase("Briefing Editor", &Settings::Editor.Windows.BriefingEditor) {
             _buffer.resize(BUFFER_SIZE);
         }
 
         inline static Briefing DebugBriefing;
+        inline static float Elapsed = 0;
 
     protected:
+        static void NextPage() {
+            if (auto screen = Seq::tryItem(DebugBriefing.Screens, Game::BriefingScreen)) {
+                auto visibleChars = uint(Elapsed / Game::BRIEFING_TEXT_SPEED);
+
+                if (auto page = Seq::tryItem(screen->Pages, Game::BriefingPage)) {
+                    if (visibleChars < page->VisibleCharacters && !Input::ControlDown) {
+                        Elapsed = 1000.0f;
+                        return; // Show all text if not finished
+                    }
+                }
+
+                Elapsed = 0;
+                Game::BriefingPage++;
+
+                if (Game::BriefingPage >= screen->Pages.size()) {
+                    // Go forward one screen
+                    if (Game::BriefingScreen < DebugBriefing.Screens.size()) {
+                        Game::BriefingScreen++;
+                        Game::BriefingPage = 0;
+                    }
+                }
+            }
+            else {
+                // Something went wrong
+                Game::BriefingScreen = Game::BriefingPage = 0;
+                Elapsed = 0;
+            }
+        }
+
+        static void PreviousPage() {
+            Game::BriefingPage--;
+            Elapsed = 0;
+
+            if (Game::BriefingPage < 0) {
+                // Go back one screen
+                if (Game::BriefingScreen > 0) {
+                    Game::BriefingScreen--;
+                    if (auto screen = Seq::tryItem(DebugBriefing.Screens, Game::BriefingScreen)) {
+                        Game::BriefingPage = (int)screen->Pages.size() - 1;
+                    }
+                }
+            }
+
+            if (Game::BriefingPage < 0) Game::BriefingPage = 0;
+        }
+
         void OnUpdate() override {
             if (!Game::Mission) {
                 ImGui::Text("Current file is not a mission (HOG)");
@@ -40,20 +88,48 @@ namespace Inferno::Editor {
 
             ImGui::SameLine();
 
+            Elapsed += Render::FrameTime;
+
             {
                 ImGui::BeginGroup();
 
                 ImGui::BeginChild("editor", { 0, 0 }, true);
-                ImGui::InputTextMultiline("##editor", _buffer.data(), _buffer.size(), { -1, -1 }, ImGuiInputTextFlags_AllowTabInput);
+
+                if (ImGui::Button("Prev"))
+                    PreviousPage();
+
+                ImGui::SameLine();
+
+                if (ImGui::Button("Next"))
+                    NextPage();
+
+                ImGui::SameLine();
+
+                ImGui::Text("Screen: %i Page: %i", Game::BriefingScreen, Game::BriefingPage);
+
+                if (auto screen = Seq::tryItem(DebugBriefing.Screens, Game::BriefingScreen); screen && !screen->Background.empty()) {
+                    ImGui::SameLine();
+                    ImGui::Text("Background: %s", screen->Background.c_str());
+                }
+
+                ImGui::InputTextMultiline("##editor", _buffer.data(), _buffer.size(), { 600, -1 }, ImGuiInputTextFlags_AllowTabInput);
                 //ImGui::EndChild();
 
-                //ImGui::SameLine();
+                ImGui::SameLine();
 
                 //ImGui::BeginChild("preview", { 0, 0 }, true);
-                //{
-                //    auto srv = Render::Adapter->BriefingColorBuffer.GetSRV();
-                //    ImGui::Image((ImTextureID)srv.ptr, { 640, 480 });
-                //}
+                {
+                    Game::BriefingVisible = true;
+                    auto srv = Render::Adapter->BriefingColorBuffer.GetSRV();
+                    ImGui::Image((ImTextureID)srv.ptr, { 640, 480 });
+
+                    if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+                        NextPage();
+
+                    if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+                        PreviousPage();
+                }
+
                 //ImGui::SameLine();
                 //{
                 //    auto srv = Render::Adapter->BriefingScanlineBuffer.GetSRV();
@@ -82,11 +158,78 @@ namespace Inferno::Editor {
             }*/
         }
 
+        static void AddPyroAndReactorPages(Briefing& briefing) {
+            {
+                Briefing::Page pyroPage;
+                pyroPage.Model = Resources::GameData.PlayerShip.Model;
+                pyroPage.Text = R"($C1Pyro-GX
+multi-purpose fighter
+Size:			12 meters
+Est. Armament:	2 Argon Lasers
+				Concussion Missiles
+
+fighter based on third generation anti-gravity tech.
+excels in close quarters combat.
+
+Effectiveness depends entirely 
+on the pilot due to the lack
+of electronic assistance.
+
+veterans report that the 
+pyro-gx's direct controls 
+outperform newer models.)";
+
+                // and modified for in situ upgrades
+
+                pyroPage.VisibleCharacters = (int)pyroPage.Text.size() - 2;
+                briefing.Screens[2].Pages.insert(briefing.Screens[2].Pages.begin(), pyroPage);
+            }
+
+            {
+                Briefing::Page reactorPage;
+                reactorPage.Model = Resources::GameData.Reactors.empty() ? ModelID::None : Resources::GameData.Reactors[0].Model;
+                reactorPage.Text = R"($C1Reactor Core
+PTMC fusion power source
+Size:			20 meters
+Est. Armament:	Pulse defense system
+Threat:			Moderate
+
+advances in fusion technology lead to the
+breakthrough of miniaturized reactors.
+these reactors are crucial to PTMC's
+financial success and rapid expansion.
+
+upon taking significant damage 
+the fusion containment field 
+will fail, resulting in 
+self-destruction and complete 
+vaporization of the facility.
+)";
+
+                reactorPage.VisibleCharacters = (int)reactorPage.Text.size() - 2;
+                briefing.Screens[2].Pages.insert(briefing.Screens[2].Pages.begin() + 1, reactorPage);
+            }
+        }
+
         void OpenBriefing(const HogEntry& entry) {
             auto data = Game::Mission->ReadEntry(entry);
             _briefing = Briefing::Read(data);
+
+            if (Game::Level.IsDescent1()) {
+                if (entry.Name == "briefing.txb") {
+                    SetD1BriefingBackgrounds(_briefing, Game::Level.IsShareware);
+                    AddPyroAndReactorPages(_briefing);
+                }
+                else if (entry.Name == "ending.txb") {
+                    SetD1EndBriefingBackground(_briefing, Game::Level.IsShareware);
+                }
+            }
+
             _buffer = _briefing.Raw;
             DebugBriefing = _briefing;
+            Elapsed = 0;
+            Game::BriefingPage = 0;
+            Game::BriefingScreen = 0;
         }
     };
 }

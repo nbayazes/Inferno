@@ -27,12 +27,12 @@ struct PS_INPUT {
 PS_INPUT vsmain(VS_INPUT input) {
     PS_INPUT output;
     output.pos = mul(Args.ProjectionMatrix, float4(input.pos.xy, 0.f, 1.f));
-    output.col = input.col;
+    output.col = pow(input.col, 2.2); // convert imgui colors from SRGB to linear
     output.uv = input.uv;
     return output;
 }
             
 float4 psmain(PS_INPUT input) : SV_Target {
     float4 tex = texture0.Sample(sampler0, input.uv);
-    return input.col * pow(tex, 1 / 2.2); // Textures are SRGB but UI is not
+    return input.col * tex;
 }

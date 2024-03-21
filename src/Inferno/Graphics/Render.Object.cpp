@@ -104,7 +104,17 @@ namespace Inferno::Render {
         g_SpriteBatch->End();
     }
 
-    void ModelDepthPrepass(ID3D12GraphicsCommandList* cmdList, const Object& object, ModelID modelId) {
+    void ModelDepthPrepass(GraphicsContext& ctx, const Object& object, ModelID modelId) {
+        auto cmdList = ctx.GetCommandList();
+        auto& effect = Effects->DepthObject;
+
+        if (ctx.ApplyEffect(effect)) {
+            ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+            effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
+            effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
+            effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
+        }
+
         auto& model = Resources::GetModel(modelId);
         auto& meshHandle = GetMeshHandle(modelId);
 
@@ -367,13 +377,16 @@ namespace Inferno::Render {
     void DrawModel(GraphicsContext& ctx,
                    const Object& object,
                    ModelID modelId,
-                   RenderPass pass) {
+                   RenderPass pass,
+                   const UploadBuffer<FrameConstants>& frameConstants) {
         if (object.IsCloaked() && Game::GetState() != GameState::Editor) {
             DrawCloakedModel(ctx, object, modelId, pass);
             return;
         }
 
-        auto& effect = Effects->Object;
+        auto& effect = pass == RenderPass::Briefing ? Effects->BriefingObject : Effects->Object;
+        if (pass == RenderPass::Briefing) pass = RenderPass::Opaque;
+
         auto cmdList = ctx.GetCommandList();
 
         auto& model = Resources::GetModel(modelId);
@@ -383,7 +396,7 @@ namespace Inferno::Render {
         }
 
         if (ctx.ApplyEffect(effect)) {
-            ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+            ctx.SetConstantBuffer(0, frameConstants.GetGPUVirtualAddress());
             effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
             effect.Shader->SetNormalSampler(cmdList, GetNormalSampler());
             effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
@@ -393,6 +406,7 @@ namespace Inferno::Render {
             auto cubeSrv = Render::Materials->EnvironmentCube.GetCubeSRV().GetGpuHandle();
             if (!cubeSrv.ptr)cubeSrv = Render::Adapter->NullCube.GetGpuHandle();
             effect.Shader->SetEnvironmentCube(cmdList, cubeSrv);
+            effect.Shader->SetDissolveTexture(cmdList, Render::Materials->White().Handle());
         }
 
         ObjectShader::Constants constants = {};
@@ -466,7 +480,7 @@ namespace Inferno::Render {
                         ctx.ApplyEffect(Effects->Object); // Alpha blend
                 }
                 else {
-                    ctx.ApplyEffect(Effects->Object);
+                    ctx.ApplyEffect(effect);
                 }
 
                 effect.Shader->SetConstants(cmdList, constants);
@@ -480,12 +494,14 @@ namespace Inferno::Render {
     }
 
     void DrawObject(GraphicsContext& ctx, const Object& object, RenderPass pass) {
+        auto& frameConstants = Adapter->GetFrameConstants();
+
         switch (object.Type) {
             case ObjectType::Robot:
             {
                 // could be transparent or opaque pass
                 auto& info = Resources::GetRobotInfo(object.ID);
-                DrawModel(ctx, object, info.Model, pass);
+                DrawModel(ctx, object, info.Model, pass, frameConstants);
                 break;
             }
 
@@ -510,7 +526,7 @@ namespace Inferno::Render {
             case ObjectType::SecretExitReturn:
             case ObjectType::Marker:
             {
-                DrawModel(ctx, object, object.Render.Model.ID, pass);
+                DrawModel(ctx, object, object.Render.Model.ID, pass, frameConstants);
                 break;
             }
 
@@ -523,10 +539,10 @@ namespace Inferno::Render {
                         DrawOutrageModel(ctx, object, pass);
                     }
                     else {
-                        DrawModel(ctx, object, object.Render.Model.ID, pass);
+                        DrawModel(ctx, object, object.Render.Model.ID, pass, frameConstants);
                         auto inner = Resources::GameData.Weapons[object.ID].ModelInner;
                         if (object.Type == ObjectType::Weapon && inner > ModelID::None && inner != ModelID(255)) {
-                            DrawModel(ctx, object, Resources::GameData.Weapons[object.ID].ModelInner, pass);
+                            DrawModel(ctx, object, Resources::GameData.Weapons[object.ID].ModelInner, pass, frameConstants);
                         }
                     }
                 }

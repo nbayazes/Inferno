@@ -7,7 +7,7 @@ namespace Inferno {
 
     extern FontAtlas Atlas;
 
-    constexpr float FONT_LINE_SPACING = 1.2f;
+    constexpr float FONT_LINE_SPACING = 6.0f;
 
     enum class AlignH { Left, Center, CenterLeft, CenterRight, Right };
     enum class AlignV { Top, Center, CenterTop, CenterBottom, Bottom };

@@ -3,7 +3,6 @@
 #include "FileSystem.h"
 #include "Graphics/MaterialLibrary.h"
 #include "Graphics/Render.h"
-#include "HogFile.h"
 #include "Resources.h"
 
 namespace Inferno {
@@ -21,7 +20,7 @@ namespace Inferno {
             if (str[i] == '\n') {
                 maxWidth = std::max(maxWidth, width);
                 width = 0;
-                height += font->Height * FONT_LINE_SPACING;
+                height += font->Height + FONT_LINE_SPACING;
             }
             else {
                 char next = i + 1 >= str.size() ? 0 : str[i + 1];

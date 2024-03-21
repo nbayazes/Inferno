@@ -67,7 +67,7 @@ namespace Inferno {
     //    Error
     //};
 
-    enum class AnimState : int8 {
+    enum class Animation : int8 {
         Rest = 0,
         Alert = 1,
         Fire = 2,

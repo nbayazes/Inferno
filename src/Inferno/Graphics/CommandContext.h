@@ -58,6 +58,7 @@ namespace Inferno::Graphics {
             WaitForFence(IncrementFence());
         }
 
+        // Signal the next fence value (with the GPU)
         int64 IncrementFence() {
             std::lock_guard lock(_eventMutex);
             ThrowIfFailed(_queue->Signal(_fence.Get(), _nextFenceValue));
@@ -65,15 +66,10 @@ namespace Inferno::Graphics {
         }
 
         int64 Execute(ID3D12GraphicsCommandList* cmdList) {
-            std::lock_guard lock(_eventMutex);
-
             ThrowIfFailed(cmdList->Close());
             ID3D12CommandList* ppCommandLists[] = { cmdList };
             _queue->ExecuteCommandLists(1, ppCommandLists);
-
-            // Signal the next fence value (with the GPU)
-            ThrowIfFailed(_queue->Signal(_fence.Get(), _nextFenceValue));
-            return _nextFenceValue++;
+            return IncrementFence();
         }
 
         D3D12_COMMAND_LIST_TYPE GetType() const { return _type; }

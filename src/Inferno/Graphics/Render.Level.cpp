@@ -200,15 +200,7 @@ namespace Inferno::Render {
                             //        effect = Effects->DepthObjectFlipped;
                             //}
 
-                            auto& effect = Effects->DepthObject;
-                            if (ctx.ApplyEffect(effect)) {
-                                ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-                                effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
-                                effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
-                                effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
-                            }
-
-                            ModelDepthPrepass(cmdList, object, model);
+                            ModelDepthPrepass(ctx, object, model);
                         }
                     }
                     //else if (object.Render.Type == RenderType::Powerup ||

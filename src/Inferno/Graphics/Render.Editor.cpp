@@ -517,12 +517,10 @@ namespace Inferno::Render {
             Debug::DrawCrosshair(Settings::Editor.CrosshairSize);
 
         if (Settings::Editor.ShowLevelTitle) {
-            auto strSize = MeasureString(level.Name, FontSize::Big) * Shell::DpiScale;
-            auto x = Editor::MainViewportXOffset + Editor::MainViewportWidth / 2 - strSize.x / 2;
             Render::DrawTextInfo info;
-            info.Position = Vector2(x, Editor::TopToolbarOffset);
+            info.Position = Vector2(0, Editor::TopToolbarOffset);
             info.HorizontalAlign = AlignH::Center;
-            info.VerticalAlign = AlignV::CenterTop;
+            info.VerticalAlign = AlignV::Top;
             info.Font = FontSize::Big;
             info.Scale = 1 / Render::Canvas->GetScale();
             Render::Canvas->DrawGameText(level.Name, info);

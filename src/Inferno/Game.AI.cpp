@@ -673,9 +673,8 @@ namespace Inferno {
             MoveAwayFromTarget(ai.TargetPosition->Position, robot, ai);
     }
 
-    void PlayRobotAnimation(const Object& robot, AnimState state, float time, float moveMult, float delay) {
+    void PlayRobotAnimation(const Object& robot, Animation state, float time, float moveMult, float delay) {
         auto& robotInfo = Resources::GetRobotInfo(robot);
-        auto& angles = robot.Render.Model.Angles;
 
         //float remaining = 1;
         // if a new animation is requested before the previous one finishes, speed up the new one as it has less distance
@@ -691,27 +690,16 @@ namespace Inferno {
             const auto robotJoints = Resources::GetRobotJoints(robot.ID, gun, state);
 
             for (auto& joint : robotJoints) {
-                //auto& goalAngle = robotJoints[j].Angle;
-                auto& angle = angles[joint.ID];
-                Vector3 jointAngle = joint.Angle;
+                const auto& angle = robot.Render.Model.Angles[joint.ID];
 
-                if (angle == jointAngle * moveMult) {
+                if (angle == joint.Angle * moveMult) {
                     ai.DeltaAngles[joint.ID] = Vector3::Zero;
                     continue;
                 }
 
-                ai.GoalAngles[joint.ID] = jointAngle;
-                ai.DeltaAngles[joint.ID] = jointAngle * moveMult - angle;
+                //ai.GoalAngles[joint.ID] = jointAngle;
+                ai.DeltaAngles[joint.ID] = joint.Angle * moveMult - angle;
             }
-
-            //if (atGoal) {
-            //    ail.AchievedState[gun] = ail.GoalState[gun];
-            //    if (ail.AchievedState[gun] == AIState::Recoil)
-            //        ail.GoalState[gun] = AIState::Fire;
-
-            //    if (ail.AchievedState[gun] == AIState::Flinch)
-            //        ail.GoalState[gun] = AIState::Lock;
-            //}
         }
     }
 
@@ -723,8 +711,8 @@ namespace Inferno {
         if (ai.AnimationTimer > ai.AnimationDuration || ai.AnimationTimer < 0) return;
 
         for (int joint = 1; joint < model.Submodels.size(); joint++) {
-            auto& curAngle = robot.Render.Model.Angles[joint];
-            curAngle += ai.DeltaAngles[joint] / ai.AnimationDuration * dt;
+            auto& angles = robot.Render.Model.Angles[joint];
+            angles += ai.DeltaAngles[joint] / ai.AnimationDuration * dt;
         }
     }
 
@@ -811,7 +799,7 @@ namespace Inferno {
                 if (ai.RemainingStun > 0) stunTime += ai.RemainingStun;
                 stunTime = std::clamp(stunTime, MIN_STUN_TIME, MAX_STUN_TIME);
                 ai.RemainingStun = stunTime;
-                PlayRobotAnimation(robot, AnimState::Flinch, 0.2f);
+                PlayRobotAnimation(robot, Animation::Flinch, 0.2f);
 
                 if (auto beam = Render::EffectLibrary.GetBeamInfo("stunned object arcs")) {
                     auto startObj = Game::GetObjectRef(robot);
@@ -887,7 +875,7 @@ namespace Inferno {
             }
         }
 
-        PlayRobotAnimation(robot, AnimState::Recoil, 0.25f);
+        PlayRobotAnimation(robot, Animation::Recoil, 0.25f);
     }
 
     // start charging when player is in FOV and can fire
@@ -1030,13 +1018,13 @@ namespace Inferno {
         else {
             if (robotInfo.Guns == 0) return; // Can't shoot, I have no guns!
 
-            if (ai.AnimationState != AnimState::Fire && !ai.PlayingAnimation()) {
-                PlayRobotAnimation(robot, AnimState::Alert, 1.0f);
+            if (ai.AnimationState != Animation::Fire && !ai.PlayingAnimation()) {
+                PlayRobotAnimation(robot, Animation::Alert, 1.0f);
             }
 
             auto& weapon = Resources::GetWeapon(robotInfo.WeaponType);
 
-            if (ai.AnimationState != AnimState::Fire && ai.FireDelay < 0.25f) {
+            if (ai.AnimationState != Animation::Fire && ai.FireDelay < 0.25f) {
                 // Check if an ally robot is in the way
                 auto sight = HasFiringLineOfSight(robot, ai.GunIndex, ai.TargetPosition->Position, ObjectMask::Robot);
                 if (Intersects(sight)) {
@@ -1051,10 +1039,10 @@ namespace Inferno {
 
                 if (AngleBetweenVectors(aimDir, robot.Rotation.Forward()) <= robotInfo.AimAngle * DegToRad * 0.5f) {
                     // Target is within the cone of the weapon, start firing
-                    PlayRobotAnimation(robot, AnimState::Fire, ai.FireDelay.Remaining() * 0.8f);
+                    PlayRobotAnimation(robot, Animation::Fire, ai.FireDelay.Remaining() * 0.8f);
                 }
             }
-            else if (ai.AnimationState == AnimState::Fire && weapon.Extended.Chargable) {
+            else if (ai.AnimationState == Animation::Fire && weapon.Extended.Chargable) {
                 WeaponChargeBehavior(robot, ai, robotInfo, dt); // Charge up during fire animation
             }
             else if (ai.FireDelay <= 0 && !ai.PlayingAnimation()) {
@@ -1089,29 +1077,29 @@ namespace Inferno {
 
         if (!ai.PlayingAnimation()) {
             if (ai.ChargingWeapon) {
-                if (ai.AnimationState == AnimState::Flinch) {
+                if (ai.AnimationState == Animation::Flinch) {
                     // got stunned while charging weapon, reset swing
-                    PlayRobotAnimation(robot, AnimState::Alert, BACKSWING_TIME);
+                    PlayRobotAnimation(robot, Animation::Alert, BACKSWING_TIME);
                     ai.ChargingWeapon = false;
                     ai.FireDelay = Difficulty(robotInfo).FireDelay;
                 }
                 else if (ai.BurstShots > 0) {
                     // Alternate between fire and recoil when attacking multiple times
-                    auto nextAnim = ai.AnimationState == AnimState::Fire ? AnimState::Recoil : AnimState::Fire;
+                    auto nextAnim = ai.AnimationState == Animation::Fire ? Animation::Recoil : Animation::Fire;
                     auto animTime = BACKSWING_TIME * (0.4f + Random() * 0.25f);
                     PlayRobotAnimation(robot, nextAnim, animTime);
                     ai.FireDelay = ai.MeleeHitDelay = animTime * 0.5f;
                 }
-                else if (ai.AnimationState == AnimState::Fire) {
+                else if (ai.AnimationState == Animation::Fire) {
                     // Arms are raised
                     if (dist < robot.Radius + MELEE_RANGE) {
                         // Player moved close enough, swing
-                        PlayRobotAnimation(robot, AnimState::Recoil, MELEE_SWING_TIME);
+                        PlayRobotAnimation(robot, Animation::Recoil, MELEE_SWING_TIME);
                         ai.MeleeHitDelay = MELEE_SWING_TIME / 2;
                     }
                     else if (dist > robot.Radius + BACKSWING_RANGE && ai.WeaponCharge > MELEE_GIVE_UP) {
                         // Player moved out of range for too long, give up
-                        PlayRobotAnimation(robot, AnimState::Alert, BACKSWING_TIME);
+                        PlayRobotAnimation(robot, Animation::Alert, BACKSWING_TIME);
                         ai.ChargingWeapon = false;
                         ai.FireDelay = Difficulty(robotInfo).FireDelay;
                     }
@@ -1119,11 +1107,11 @@ namespace Inferno {
             }
             else {
                 // Reset to default
-                PlayRobotAnimation(robot, AnimState::Alert, 0.3f);
+                PlayRobotAnimation(robot, Animation::Alert, 0.3f);
             }
         }
 
-        if (ai.AnimationState == AnimState::Recoil || ai.BurstShots > 0) {
+        if (ai.AnimationState == Animation::Recoil || ai.BurstShots > 0) {
             if (ai.ChargingWeapon && ai.MeleeHitDelay <= 0) {
                 if (ai.BurstShots + 1 < Difficulty(robotInfo).ShotCount) {
                     ai.MeleeHitDelay = 10; // Will recalculate above when picking animations
@@ -1160,7 +1148,7 @@ namespace Inferno {
             }
         }
         else if (ai.FireDelay <= 0 && dist < robot.Radius + BACKSWING_RANGE && !ai.ChargingWeapon) {
-            PlayRobotAnimation(robot, AnimState::Fire, BACKSWING_TIME); // raise arms to attack
+            PlayRobotAnimation(robot, Animation::Fire, BACKSWING_TIME); // raise arms to attack
             ai.ChargingWeapon = true;
             ai.WeaponCharge = 0;
             ai.BurstShots = 0;
@@ -1289,8 +1277,8 @@ namespace Inferno {
             ai.State = AIState::Alert;
         }
         else {
-            if (!ai.PlayingAnimation() && ai.AnimationState != AnimState::Rest)
-                PlayRobotAnimation(robot, AnimState::Rest);
+            if (!ai.PlayingAnimation() && ai.AnimationState != Animation::Rest)
+                PlayRobotAnimation(robot, Animation::Rest);
 
             robot.NextThinkTime = Game::Time + 0.125f;
         }
@@ -1734,8 +1722,8 @@ namespace Inferno {
     void UpdateAlertAI(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float /*dt*/) {
         DodgeProjectiles(Game::Level, robot, ai, robotInfo);
 
-        if (!ai.PlayingAnimation() && ai.AnimationState != AnimState::Alert)
-            PlayRobotAnimation(robot, AnimState::Alert, 1);
+        if (!ai.PlayingAnimation() && ai.AnimationState != Animation::Alert)
+            PlayRobotAnimation(robot, Animation::Alert, 1);
 
         if (ScanForTarget(robot, ai) && ai.Target) {
             ai.State = AIState::Combat;
@@ -1842,8 +1830,8 @@ namespace Inferno {
 
         // Mine layers are either in path mode or idle. They cannot peform any other action.
         if (ai.State == AIState::Path) {
-            if (!ai.PlayingAnimation() && ai.AnimationState != AnimState::Alert)
-                PlayRobotAnimation(robot, AnimState::Alert);
+            if (!ai.PlayingAnimation() && ai.AnimationState != Animation::Alert)
+                PlayRobotAnimation(robot, Animation::Alert);
 
             if (!PathTowardsGoal(robot, ai, false, false)) {
                 ai.ClearPath();
@@ -1877,7 +1865,7 @@ namespace Inferno {
         if (ai.Awareness <= 0 && ai.State != AIState::Idle) {
             // Go to sleep
             ai.ClearPath();
-            PlayRobotAnimation(robot, AnimState::Rest);
+            PlayRobotAnimation(robot, Animation::Rest);
             MakeIdle(ai);
         }
 

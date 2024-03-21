@@ -283,5 +283,6 @@
     <None Include="shaders\BloomExtractDownsampleCS.hlsl" />
     <None Include="data\d2\game.yml" />
     <None Include="shaders\UnpackBufferCS.hlsl" />
+    <None Include="shaders\BriefingObject.hlsl" />
   </ItemGroup>
 </Project>

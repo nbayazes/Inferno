@@ -58,9 +58,9 @@ namespace Inferno {
 
     Vector3 ClosestPointOnLine(const Vector3& a, const Vector3& b, const Vector3& p);
     // Returns true if a point lies within a triangle
-    bool TriangleContainsPoint(const Vector3& p0, const Vector3& p1, const Vector3& p2, Vector3 point);
+    bool TriangleContainsPoint(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& point);
 
-    bool TriangleContainsPoint(const Array<Vector3, 3>& tri, Vector3 point);
+    bool TriangleContainsPoint(const Array<Vector3, 3>& tri, const Vector3& point);
 
     bool FaceContainsPoint(const Face& face, const Vector3& point);
 

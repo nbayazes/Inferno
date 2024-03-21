@@ -103,7 +103,7 @@ namespace Inferno {
         float AnimationTimer = 0; // How much of the animation has passed
         float AnimationDuration = 0; // Time in seconds to reach the goal angles
         float MeleeHitDelay = 0; // How long before a melee swing deals damage
-        AnimState AnimationState = {};
+        Animation AnimationState = {};
 
         Option<NavPoint> TargetPosition; // Last known target position or point of interest. Can have a target position without a target object.
         ObjRef Target; // Current thing we're fighting
@@ -323,7 +323,7 @@ namespace Inferno {
     void UpdateAI(Object& obj, float dt);
     void RobotTouchObject(const Object& robot, const Object& obj);
     void AlertRobotsOfNoise(const NavPoint& source, float soundRadius, float awareness);
-    void PlayRobotAnimation(const Object& robot, AnimState state, float time = 0.4f, float moveMult = 5, float delay = 0);
+    void PlayRobotAnimation(const Object& robot, Animation state, float time = 0.4f, float moveMult = 5, float delay = 0);
 
     // Applies damage to a robot, applying stuns, slows, and waking it up if necessary.
     // Rotates towards source if asleep

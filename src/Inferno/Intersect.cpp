@@ -87,7 +87,7 @@ namespace Inferno {
         return a + t * ab;
     }
 
-    bool TriangleContainsPoint(const Vector3& p0, const Vector3& p1, const Vector3& p2, Vector3 point) {
+    bool TriangleContainsPoint(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& point) {
         // Move the triangle so that the point becomes the triangle's origin
         auto a = p0 - point;
         auto b = p1 - point;
@@ -100,7 +100,7 @@ namespace Inferno {
         return u.Dot(v) >= 0.0f && u.Dot(w) >= 0.0f && v.Dot(w) >= 0.0f;
     }
 
-    bool TriangleContainsPoint(const Array<Vector3, 3>& tri, Vector3 point) {
+    bool TriangleContainsPoint(const Array<Vector3, 3>& tri, const Vector3& point) {
         // Move the triangle so that the point becomes the triangle's origin
         auto a = tri[0] - point;
         auto b = tri[1] - point;

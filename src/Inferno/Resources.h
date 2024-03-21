@@ -145,7 +145,7 @@ namespace Inferno::Resources {
     const string_view GetSecondaryNameShort(SecondaryWeaponIndex id);
 
     void LoadGameTables(const Level& level);
-    span<JointPos> GetRobotJoints(int robotId, int gun, AnimState state);
+    span<JointPos> GetRobotJoints(int robotId, int gun, Animation state);
 
     inline MaterialInfoLibrary Materials;
 

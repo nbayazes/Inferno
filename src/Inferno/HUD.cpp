@@ -10,7 +10,7 @@ namespace Inferno {
     namespace {
         constexpr float WEAPON_TEXT_X_OFFSET = -90;
         constexpr float WEAPON_TEXT_Y_OFFSET = 140;
-        constexpr float WEAPON_TEXT_AMMO_Y_OFFSET = WEAPON_TEXT_Y_OFFSET + 25;
+        constexpr float WEAPON_TEXT_AMMO_Y_OFFSET = WEAPON_TEXT_Y_OFFSET + +FONT_LINE_SPACING * 2 + 20;
         constexpr float WEAPON_BMP_Y_OFFSET = -20;
         constexpr float WEAPON_BMP_X_OFFSET = -135;
         constexpr Color GREEN_TEXT = { 0, 0.7f, 0 };

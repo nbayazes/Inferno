@@ -126,11 +126,18 @@ namespace Inferno::Game {
 
         Render::Materials->LoadTextures(customHudTextures);
 
-        List<string> bbms;
 
         if (Game::Mission) {
+            List<string> bbms;
+
             for (auto& entry : Game::Mission->Entries) {
                 if (entry.Extension() == ".bbm") {
+                    bbms.push_back(entry.Name);
+                }
+            }
+
+            for (auto& entry : Game::Mission->Entries) {
+                if (entry.Extension() == ".pcx") {
                     bbms.push_back(entry.Name);
                 }
             }

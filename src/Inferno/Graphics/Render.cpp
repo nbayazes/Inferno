@@ -20,6 +20,7 @@
 #include "MaterialLibrary.h"
 #include "Procedural.h"
 #include "Render.Level.h"
+#include "Render.Object.h"
 #include "Resources.h"
 
 using namespace DirectX;
@@ -194,6 +195,7 @@ namespace Inferno::Render {
         Canvas = MakePtr<Canvas2D<UIShader>>(Device, Effects->UserInterface);
         DebugCanvas = MakePtr<Canvas2D<UIShader>>(Device, Effects->UserInterface);
         BriefingCanvas = make_unique<Canvas2D<BriefingShader>>(Device, Effects->Briefing);
+
         HudCanvas = MakePtr<HudCanvas2D>(Device, Effects->Hud);
         HudGlowCanvas = MakePtr<HudCanvas2D>(Device, Effects->HudAdditive);
         _graphicsMemory = MakePtr<GraphicsMemory>(Device);
@@ -437,44 +439,318 @@ namespace Inferno::Render {
         g_ImGuiBatch->Render(ctx.GetCommandList());
     }
 
-    void DrawBriefing(GraphicsContext& ctx, RenderTarget& target) {
-        PIXScopedEvent(ctx.GetCommandList(), PIX_COLOR_INDEX(10), "Briefing");
-        ctx.ClearColor(target);
-        ctx.SetRenderTarget(target.GetRTV());
-        float scale = 1;
-        ctx.SetViewport(UINT(target.GetWidth() * scale), UINT(target.GetHeight() * scale));
-        ctx.SetScissor(UINT(target.GetWidth() * scale), UINT(target.GetHeight() * scale));
-        auto& briefing = Editor::BriefingEditor::DebugBriefing;
-        BriefingCanvas->SetSize((uint)target.GetWidth(), (uint)target.GetHeight());
+    void UpdateFrameConstants(const Vector2& size, float fovDeg, Inferno::Camera& camera,
+                              UploadBuffer<FrameConstants>& dest,
+                              Matrix* viewProj = nullptr,
+                              BoundingFrustum* frustum = nullptr) {
+        camera.Update(FrameTime);
+        camera.SetViewport(size.x, size.y);
+        camera.LookAtPerspective(fovDeg, Game::Time);
+        auto cameraViewProj = camera.ViewProj();
+        if (viewProj) *viewProj = cameraViewProj;
+        if (frustum) *frustum = camera.GetFrustum();
 
-        if (!briefing.Screens.empty()) {
-            auto screenIndex = std::clamp(Game::BriefingScreen, 0, (int)briefing.Screens.size() - 1);
-            auto& screen = briefing.Screens[screenIndex];
+        FrameConstants frameConstants{};
+        frameConstants.ElapsedTime = (float)ElapsedTime;
+        frameConstants.ViewProjection = cameraViewProj;
+        frameConstants.NearClip = camera.NearClip;
+        frameConstants.FarClip = camera.FarClip;
+        frameConstants.Eye = camera.Position;
+        frameConstants.EyeDir = camera.GetForward();
+        frameConstants.Size = size;
+        frameConstants.RenderScale = Render::RenderScale;
+        frameConstants.GlobalDimming = Game::GlobalDimming;
+        frameConstants.NewLightMode = Settings::Graphics.NewLightMode;
+        frameConstants.FilterMode = Settings::Graphics.FilterMode;
 
-            if (!screen.Pages.empty()) {
-                if (screen.Background.empty()) {
-                    BriefingCanvas->DrawRectangle({ 0, 0 }, { 640, 480 }, Color(0, 0, 0));
+        dest.Begin();
+        dest.Copy({ &frameConstants, 1 });
+        dest.End();
+
+        DebugCanvas->SetSize((uint)size.x, (uint)size.y, (uint)size.y);
+    }
+
+    Inferno::Camera BriefingCamera;
+
+    void DrawBriefingModel(GraphicsContext& ctx,
+                           const Object& object,
+                           const UploadBuffer<FrameConstants>& frameConstants) {
+        //if (object.IsCloaked() && Game::GetState() != GameState::Editor) {
+        //    DrawCloakedModel(ctx, object, modelId, pass);
+        //    return;
+        //}
+
+        auto& effect = Effects->BriefingObject;
+        auto cmdList = ctx.GetCommandList();
+
+        auto& model = Resources::GetModel(object.Render.Model.ID);
+
+        if (ctx.ApplyEffect(effect)) {
+            ctx.SetConstantBuffer(0, frameConstants.GetGPUVirtualAddress());
+            effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
+            effect.Shader->SetNormalSampler(cmdList, GetNormalSampler());
+            effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
+            effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
+            effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());
+            effect.Shader->SetLightGrid(cmdList, *Render::LightGrid);
+            auto cubeSrv = Render::Materials->EnvironmentCube.GetCubeSRV().GetGpuHandle();
+            if (!cubeSrv.ptr)cubeSrv = Render::Adapter->NullCube.GetGpuHandle();
+            effect.Shader->SetEnvironmentCube(cmdList, cubeSrv);
+            effect.Shader->SetDissolveTexture(cmdList, Render::Materials->White().Handle());
+        }
+
+        ObjectShader::Constants constants = {};
+#ifdef DEBUG_DISSOLVE
+        constants.PhaseColor = object.Effects.PhaseColor;
+        effect.Shader->SetDissolveTexture(cmdList, Render::Materials->Get("noise").Handle());
+        effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
+        double x;
+        constants.PhaseAmount = (float)std::modf(Clock.GetTotalTimeSeconds() * 0.5, &x);
+#else
+        if (object.IsPhasing()) {
+            effect.Shader->SetDissolveTexture(cmdList, Render::Materials->Get("noise").Handle());
+            constants.PhaseAmount = std::max(1 - object.Effects.GetPhasePercent(), 0.001f); // Shader checks for 0 to skip effect
+            constants.PhaseColor = object.Effects.PhaseColor;
+        }
+#endif
+
+        if (object.Render.Emissive != Color(0, 0, 0)) {
+            // Ignore ambient if object is emissive
+            constants.Ambient = Color(0, 0, 0);
+            constants.EmissiveLight = object.Render.Emissive;
+        }
+        else {
+            constants.Ambient = object.Ambient.GetColor().ToVector4();
+            constants.EmissiveLight = Color(0, 0, 0);
+        }
+
+        //constants.TimeOffset = GetTimeOffset(object);
+        constants.TimeOffset = 0;
+
+        Matrix transform = Matrix::CreateScale(object.Scale) * object.GetTransform(Game::LerpAmount);
+        bool transparentOverride = false;
+        auto texOverride = TexID::None;
+
+        if (object.Render.Model.TextureOverride != LevelTexID::None) {
+            texOverride = Resources::LookupTexID(object.Render.Model.TextureOverride);
+            if (texOverride != TexID::None)
+                transparentOverride = Resources::GetTextureInfo(texOverride).Transparent;
+        }
+
+        constants.TexIdOverride = -1;
+
+        if (texOverride != TexID::None) {
+            if (auto effectId = Resources::GetEffectClipID(texOverride); effectId > EClipID::None)
+                constants.TexIdOverride = (int)effectId + VCLIP_RANGE;
+            else
+                constants.TexIdOverride = (int)texOverride;
+        }
+
+        auto& meshHandle = GetMeshHandle(object.Render.Model.ID);
+
+        for (int submodel = 0; submodel < model.Submodels.size(); submodel++) {
+            auto world = GetSubmodelTransform(object, model, submodel) * transform;
+            constants.World = world;
+
+            // get the mesh associated with the submodel
+            auto& subMesh = meshHandle.Meshes[submodel];
+
+            for (int i = 0; i < subMesh.size(); i++) {
+                auto mesh = subMesh[i];
+                if (!mesh) continue;
+
+                bool isTransparent = mesh->IsTransparent || transparentOverride;
+                //if (isTransparent && pass != RenderPass::Transparent) continue;
+                //if (!isTransparent && pass != RenderPass::Opaque) continue;
+
+                if (isTransparent) {
+                    auto& material = Resources::GetMaterial(mesh->Texture);
+                    if (material.Additive)
+                        ctx.ApplyEffect(Effects->ObjectGlow); // Additive blend
+                    else
+                        ctx.ApplyEffect(Effects->Object); // Alpha blend
                 }
                 else {
-                    auto& bg = Materials->Get(screen.Background);
-                    BriefingCanvas->DrawBitmap(bg.Handle(), { 0, 0 }, { 640, 480 });
+                    ctx.ApplyEffect(effect);
                 }
 
-                auto pageIndex = std::clamp(Game::BriefingPage, 0, (int)screen.Pages.size() - 1);
+                effect.Shader->SetConstants(cmdList, constants);
 
-                Render::DrawTextInfo info;
-                info.Position = Vector2(20, 20);
-                info.Font = FontSize::Small;
-                //info.Scale = 0.5f;
-                info.Color = Color(0, 1, 0);
-                BriefingCanvas->DrawGameText(screen.Pages[pageIndex], info);
+                cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
+                cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
+                cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
+                Stats::DrawCalls++;
+            }
+        }
+    }
+
+    using AnimationAngles = Array<Vector3, MAX_SUBMODELS>;
+
+    struct AnimationState {
+        float Timer = 0;
+        float Duration = 0;
+        Animation Animation = Animation::Rest;
+        AnimationAngles DeltaAngles{};
+
+        bool IsPlayingAnimation() const { return Timer < Duration; }
+    };
+
+    AnimationState PlayAnimation(const Object& object, const AnimationAngles& currentAngles, Animation anim, float time, float moveMult, float delay) {
+        AnimationState state;
+        state.Duration = time;
+        state.Timer = -delay;
+        state.Animation = anim;
+
+        if (!object.IsRobot()) return state;
+
+        auto& robotInfo = Resources::GetRobotInfo(object);
+
+        for (int gun = 0; gun <= robotInfo.Guns; gun++) {
+            const auto robotJoints = Resources::GetRobotJoints(object.ID, gun, anim);
+
+            for (auto& joint : robotJoints) {
+                const auto& angle = currentAngles[joint.ID];
+
+                if (angle == joint.Angle * moveMult) {
+                    state.DeltaAngles[joint.ID] = Vector3::Zero;
+                    continue;
+                }
+
+                //ai.GoalAngles[joint.ID] = jointAngle;
+                state.DeltaAngles[joint.ID] = joint.Angle * moveMult - angle;
             }
         }
 
-        BriefingCanvas->Render(ctx);
+        return state;
+    }
 
-        //Adapter->Scanline.Execute(ctx.GetCommandList(), target, Adapter->BriefingScanlineBuffer);
-        //Adapter->BriefingScanlineBuffer.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+    void UpdateAnimation(AnimationAngles& angles, const Object& robot, AnimationState& state, float dt) {
+        auto& model = Resources::GetModel(robot);
+
+        state.Timer += dt;
+        if (state.Timer > state.Duration || state.Timer < 0) return;
+
+        for (int joint = 1; joint < model.Submodels.size(); joint++) {
+            angles[joint] += state.DeltaAngles[joint] / state.Duration * dt;
+        }
+    }
+
+    void DrawBriefingObject(GraphicsContext& ctx, Object& object) {
+        auto& target = Adapter->GetBriefingRobotBuffer();
+        target.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+        auto& depthTarget = Adapter->GetBriefingRobotDepthBuffer();
+        ctx.ClearColor(target);
+        ctx.ClearDepth(depthTarget);
+        ctx.SetRenderTarget(target.GetRTV(), depthTarget.GetDSV());
+
+        Vector2 size((float)target.GetWidth(), (float)target.GetHeight());
+
+        ctx.SetViewport(UINT(size.x), UINT(size.y));
+        ctx.SetScissor(UINT(target.GetWidth()), UINT(target.GetHeight()));
+
+        //auto& robotInfo = Resources::GetRobotInfo(robotId);
+        auto& model = Resources::GetModel(object.Render.Model.ID);
+        if (model.DataSize == 0) return;
+
+        auto& frameConstants = Adapter->GetBriefingFrameConstants();
+        BriefingCamera.Position = Vector3(0, model.Radius * .5f, -model.Radius * 3.0f);
+        static float orbit = 0;
+        orbit -= 1.0f * Render::FrameTime;
+        BriefingCamera.Orbit(orbit, 0);
+        constexpr float fov = 45;
+        UpdateFrameConstants(size, fov, BriefingCamera, frameConstants);
+
+        ctx.GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        {
+            // ping-pong between alert and rest states
+            static AnimationState animState{};
+            static Array<Vector3, 10> angles{};
+
+            if (!animState.IsPlayingAnimation()) {
+                auto animation = animState.Animation == Animation::Rest ? Animation::Alert : Animation::Rest;
+                animState = PlayAnimation(object, angles, animation, 1.5f, 5, 1.0f);
+            }
+
+            UpdateAnimation(angles, object, animState, Render::FrameTime);
+            object.Render.Model.Angles = angles;
+        }
+
+        //Render::ModelDepthPrepass(ctx, obj, modelId);
+        Render::DrawBriefingModel(ctx, object, frameConstants);
+
+        if (Settings::Graphics.MsaaSamples > 1) {
+            Adapter->BriefingRobot.ResolveFromMultisample(ctx.GetCommandList(), Adapter->BriefingRobotMsaa);
+        }
+
+        //target.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        Adapter->BriefingRobot.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        // spin and animate
+    }
+
+    void DrawBriefing(GraphicsContext& ctx, RenderTarget& target) {
+        PIXScopedEvent(ctx.GetCommandList(), PIX_COLOR_INDEX(10), "Briefing");
+
+        auto& briefing = Editor::BriefingEditor::DebugBriefing;
+
+        if (auto screen = Seq::tryItem(briefing.Screens, Game::BriefingScreen)) {
+            if (auto page = Seq::tryItem(screen->Pages, Game::BriefingPage)) {
+                Vector2 scale(1, 1);
+                if (Game::Level.IsDescent1()) {
+                    scale.x = 640.0f / 320;
+                    scale.y = 480.0f / 200;
+                }
+
+                if (page->Robot != -1) {
+                    Object object{};
+                    InitObject(Game::Level, object, ObjectType::Robot, (int8)page->Robot, true);
+                    //object.Render.Model.ID = Resources::GetRobotInfo(page->Robot).Model;
+                    DrawBriefingObject(ctx, object);
+                }
+
+                if (page->Model != ModelID::None) {
+                    Object object{};
+                    InitObject(Game::Level, object, ObjectType::Player, 0, true);
+                    object.Render.Model.ID = page->Model;
+                    DrawBriefingObject(ctx, object);
+                }
+
+                ctx.ClearColor(target);
+                ctx.SetRenderTarget(target.GetRTV());
+                ctx.SetViewport(UINT(target.GetWidth()), UINT(target.GetHeight()));
+                ctx.SetScissor(UINT(target.GetWidth()), UINT(target.GetHeight()));
+                BriefingCanvas->SetSize((uint)target.GetWidth(), (uint)target.GetHeight());
+
+                if (screen->Background.empty()) {
+                    BriefingCanvas->DrawRectangle({ 0, 0 }, { 640, 480 }, Color(0, 0, 0));
+                }
+                else {
+                    auto& bg = Materials->Get(screen->Background);
+                    BriefingCanvas->DrawBitmap(bg.Handle(), { 0, 0 }, { 640, 480 });
+                }
+
+                if (page->Robot != -1 || page->Model != ModelID::None) {
+                    BriefingCanvas->DrawBitmap(Adapter->BriefingRobot.GetSRV(), Vector2(138, 55) * scale, Vector2(166, 138) * scale);
+                }
+
+                Render::DrawTextInfo info;
+                info.Position = Vector2((float)screen->x, (float)screen->y) * scale;
+                info.Font = FontSize::Small;
+                //info.Scale = 0.5f;
+                info.Color = Color(0, 1, 0);
+                info.TabStop = screen->TabStop * scale.x;
+                BriefingCanvas->DrawFadingText(page->Text, info,
+                                               Editor::BriefingEditor::Elapsed,
+                                               Game::BRIEFING_TEXT_SPEED, screen->Cursor);
+
+                BriefingCanvas->Render(ctx);
+
+                //Adapter->Scanline.Execute(ctx.GetCommandList(), target, Adapter->BriefingScanlineBuffer);
+                //Adapter->BriefingScanlineBuffer.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            }
+        }
+
         target.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     }
 
@@ -486,34 +762,6 @@ namespace Inferno::Render {
         MaterialInfoBuffer->Transition(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
         cmdList->CopyResource(MaterialInfoBuffer->Get(), MaterialInfoUploadBuffer->Get());
         MaterialInfoBuffer->Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-    }
-
-    void UpdateFrameConstants(const Vector2& size, float fovDeg) {
-        Camera.Update(FrameTime);
-        Camera.SetViewport(size.x, size.y);
-        Camera.LookAtPerspective(fovDeg, Game::Time);
-        ViewProjection = Camera.ViewProj();
-        CameraFrustum = Camera.GetFrustum();
-
-        FrameConstants frameConstants{};
-        frameConstants.ElapsedTime = (float)ElapsedTime;
-        frameConstants.ViewProjection = ViewProjection;
-        frameConstants.NearClip = Camera.NearClip;
-        frameConstants.FarClip = Camera.FarClip;
-        frameConstants.Eye = Camera.Position;
-        frameConstants.EyeDir = Camera.GetForward();
-        frameConstants.Size = size;
-        frameConstants.RenderScale = Render::RenderScale;
-        frameConstants.GlobalDimming = Game::GlobalDimming;
-        frameConstants.NewLightMode = Settings::Graphics.NewLightMode;
-        frameConstants.FilterMode = Settings::Graphics.FilterMode;
-
-        auto& buffer = Adapter->GetFrameConstants();
-        buffer.Begin();
-        buffer.Copy({ &frameConstants, 1 });
-        buffer.End();
-
-        DebugCanvas->SetSize((uint)size.x, (uint)size.y, (uint)size.y);
     }
 
     void DrawHud(GraphicsContext& ctx) {
@@ -639,7 +887,8 @@ namespace Inferno::Render {
         if (Game::BriefingVisible)
             DrawBriefing(ctx, Adapter->BriefingColorBuffer);
 
-        UpdateFrameConstants(outputSize * Render::RenderScale, Settings::Editor.FieldOfView);
+        UpdateFrameConstants(outputSize * Render::RenderScale, Settings::Editor.FieldOfView, Camera,
+                             Adapter->GetFrameConstants(), &ViewProjection, &CameraFrustum);
 
         DrawLevel(ctx, Game::Level);
         Debug::EndFrame(cmdList);
@@ -649,7 +898,7 @@ namespace Inferno::Render {
 
         //LegitProfiler::ProfilerTask resolve("Resolve multisample", LegitProfiler::Colors::CLOUDS);
         if (Settings::Graphics.MsaaSamples > 1) {
-            Adapter->SceneColorBuffer.ResolveFromMultisample(cmdList, Adapter->MsaaColorBuffer);
+            Adapter->SceneColorBuffer.ResolveFromMultisample(cmdList, Adapter->SceneColorBufferMsaa);
         }
 
         LegitProfiler::ProfilerTask postProcess("Post process");

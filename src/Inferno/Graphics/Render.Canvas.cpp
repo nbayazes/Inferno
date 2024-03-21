@@ -94,7 +94,7 @@ namespace Inferno::Render {
             uchar c = str[i];
             if (c == '\n') {
                 xOffset = 0;
-                yOffset += font->Height * scale * FONT_LINE_SPACING;
+                yOffset += (font->Height + FONT_LINE_SPACING) * scale;
                 continue;
             }
 

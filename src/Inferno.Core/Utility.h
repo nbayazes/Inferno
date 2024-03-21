@@ -595,6 +595,16 @@ namespace Inferno {
     //    return { Fix16ToFloat(packed >> 16), Fix16ToFloat(packed & 0xFFFF) };
     //}
 
+    // Decodes shifted text from a TXB or bitmap.tbl
+    constexpr void DecodeText(span<byte> data) {
+        for (auto& c : data) {
+            if (c != '\n') {
+                c = std::rotl(c, 1) ^ 0xD3;
+                c = std::rotl(c, 1);
+            }
+        }
+    }
+
     namespace String {
         constexpr bool Contains(const string_view str, const string_view value) {
             return str.find(value) != string::npos;

@@ -455,7 +455,7 @@ namespace Inferno::Editor {
         }
 
         if (ImGui::TableBeginTreeNode("Robot animations")) {
-            auto animationRow = [&imId, &obj](const char* label, AnimState state) {
+            auto animationRow = [&imId, &obj](const char* label, Animation state) {
                 ImGui::PushID(imId++);
                 ImGui::TableRowLabel(label);
                 if (ImGui::Button(label, { -1, 0 }))
@@ -463,11 +463,11 @@ namespace Inferno::Editor {
                 ImGui::PopID();
             };
 
-            animationRow("Rest", AnimState::Rest);
-            animationRow("Fire", AnimState::Fire);
-            animationRow("Flinch", AnimState::Flinch);
-            animationRow("Recoil", AnimState::Recoil);
-            animationRow("Alert", AnimState::Alert);
+            animationRow("Rest", Animation::Rest);
+            animationRow("Fire", Animation::Fire);
+            animationRow("Flinch", Animation::Flinch);
+            animationRow("Recoil", Animation::Recoil);
+            animationRow("Alert", Animation::Alert);
             ImGui::TreePop();
         }
 

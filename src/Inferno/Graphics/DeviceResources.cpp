@@ -608,6 +608,7 @@ namespace Inferno {
     void DeviceResources::CreateBuffers(UINT width, UINT height) {
         // Order of buffer creation matters
         Color clearColor(0.1f, 0.1f, 0.1f);
+        Color emptyColor(0, 0, 0, 0);
         clearColor.x = std::pow(clearColor.x, 2.2f);
         clearColor.y = std::pow(clearColor.y, 2.2f);
         clearColor.z = std::pow(clearColor.z, 2.2f);
@@ -621,22 +622,36 @@ namespace Inferno {
         DistortionBuffer.Create(L"Scene distortion buffer", width, height, IntermediateFormat, 1);
         DistortionBuffer.AddShaderResourceView();
         SceneDepthBuffer.Create(L"Scene depth buffer", width, height, m_depthBufferFormat, 1);
-        BriefingColorBuffer.Create(L"Briefing color buffer", 640, 480, DXGI_FORMAT_R8G8B8A8_UNORM, { 0, 0, 0, 0 });
-        BriefingScanlineBuffer.Create(L"Briefing scanline buffer", 640, 480, DXGI_FORMAT_R8G8B8A8_UNORM, { 0, 0, 0, 0 });
+        BriefingColorBuffer.Create(L"Briefing color buffer", 640, 480, DXGI_FORMAT_R8G8B8A8_UNORM, emptyColor);
+        BriefingScanlineBuffer.Create(L"Briefing scanline buffer", 640, 480, DXGI_FORMAT_R8G8B8A8_UNORM, emptyColor);
         BriefingScanlineBuffer.AddUnorderedAccessView();
-        //FrameConstantsBuffer.CreateGenericBuffer(L"Frame constants");
+
+        constexpr uint BRIEFING_ROBOT_WIDTH = 166 * 2;
+        constexpr uint BRIEFING_ROBOT_HEIGHT = uint(138 * 2.4f);
+
+        BriefingRobot.Create(L"Briefing robot", BRIEFING_ROBOT_WIDTH, BRIEFING_ROBOT_HEIGHT, IntermediateFormat, emptyColor);
+        BriefingRobot.AddRenderTargetView();
+        BriefingRobot.AddShaderResourceView();
+        BriefingRobotDepth.Create(L"Briefing robot depth", BRIEFING_ROBOT_WIDTH, BRIEFING_ROBOT_HEIGHT);
 
         if (Settings::Graphics.MsaaSamples > 1) {
-            MsaaColorBuffer.Create(L"MSAA Color Buffer", width, height, IntermediateFormat, clearColor, Settings::Graphics.MsaaSamples);
-            MsaaDepthBuffer.Create(L"MSAA Depth Buffer", width, height, m_depthBufferFormat, Settings::Graphics.MsaaSamples);
+            BriefingRobotMsaa.Create(L"MSAA Briefing robot", BRIEFING_ROBOT_WIDTH, BRIEFING_ROBOT_HEIGHT, IntermediateFormat, emptyColor, Settings::Graphics.MsaaSamples);
+            BriefingRobotMsaa.AddRenderTargetView();
+            BriefingRobotMsaa.AddShaderResourceView();
+            BriefingRobotDepthMsaa.Create(L"MSAA Briefing robot depth", BRIEFING_ROBOT_WIDTH, BRIEFING_ROBOT_HEIGHT, m_depthBufferFormat, Settings::Graphics.MsaaSamples);
+
+            SceneColorBufferMsaa.Create(L"MSAA Color Buffer", width, height, IntermediateFormat, clearColor, Settings::Graphics.MsaaSamples);
+            SceneDepthBufferMsaa.Create(L"MSAA Depth Buffer", width, height, m_depthBufferFormat, Settings::Graphics.MsaaSamples);
             MsaaLinearizedDepthBuffer.Create(L"MSAA Linear depth buffer", width, height, DepthShader::OutputFormat, Settings::Graphics.MsaaSamples);
             MsaaLinearizedDepthBuffer.AddRenderTargetView();
             MsaaLinearizedDepthBuffer.AddShaderResourceView();
         }
         else {
-            MsaaColorBuffer.Release();
-            MsaaDepthBuffer.Release();
+            BriefingRobotMsaa.Release();
+            SceneColorBufferMsaa.Release();
+            SceneDepthBufferMsaa.Release();
             MsaaLinearizedDepthBuffer.Release();
+            BriefingRobotDepthMsaa.Release();
         }
 
         {

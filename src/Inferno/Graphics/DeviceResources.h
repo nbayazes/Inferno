@@ -89,32 +89,44 @@ namespace Inferno {
 
         // Both MSAA and normal render targets are necessary when using MSAA.
         // The MSAA buffers are resolved to normal sources before being drawn
-        Inferno::RenderTarget MsaaColorBuffer;
-        Inferno::DepthBuffer MsaaDepthBuffer;
         Inferno::ColorBuffer MsaaLinearizedDepthBuffer;
         Inferno::ColorBuffer /*MsaaDistortionBuffer,*/ DistortionBuffer; // Color buffers for distortion effects
+        Inferno::RenderTarget BriefingRobot, BriefingRobotMsaa;
+        Inferno::DepthBuffer BriefingRobotDepth, BriefingRobotDepthMsaa;
 
-        Inferno::RenderTarget SceneColorBuffer;
-        Inferno::DepthBuffer SceneDepthBuffer;
+        Inferno::RenderTarget& GetBriefingRobotBuffer() {
+            return Settings::Graphics.MsaaSamples > 1 ? BriefingRobotMsaa : BriefingRobot;
+        }
+
+        Inferno::DepthBuffer& GetBriefingRobotDepthBuffer() {
+            return Settings::Graphics.MsaaSamples > 1 ? BriefingRobotDepthMsaa : BriefingRobotDepth;
+        }
+
+        Inferno::RenderTarget SceneColorBuffer, SceneColorBufferMsaa;
+        Inferno::DepthBuffer SceneDepthBuffer, SceneDepthBufferMsaa;
         Inferno::ColorBuffer LinearizedDepthBuffer;
 
         Inferno::RenderTarget BriefingColorBuffer;
         Inferno::RenderTarget BriefingScanlineBuffer;
 
-        DescriptorHandle NullCube;
+        DescriptorHandle NullCube; // Null cubemap descriptor
 
         UploadBuffer<FrameConstants> FrameConstantsBuffer[2] = { { 2 }, { 2 } };
         UploadBuffer<FrameConstants>& GetFrameConstants() { return FrameConstantsBuffer[GetCurrentFrameIndex()]; }
+
+        UploadBuffer<FrameConstants> BriefingFrameConstantsBuffer[2] = { { 2 }, { 2 } };
+        UploadBuffer<FrameConstants>& GetBriefingFrameConstants() { return BriefingFrameConstantsBuffer[GetCurrentFrameIndex()]; }
+
         PostFx::ScanlineCS Scanline;
 
         // Gets an intermediate buffer with HDR support
         Inferno::RenderTarget& GetHdrRenderTarget() {
-            return Settings::Graphics.MsaaSamples > 1 ? MsaaColorBuffer : SceneColorBuffer;
+            return Settings::Graphics.MsaaSamples > 1 ? SceneColorBufferMsaa : SceneColorBuffer;
         }
 
         // There's nothing special about the depth buffer for HDR, but MSAA needs a different one.
         Inferno::DepthBuffer& GetHdrDepthBuffer() {
-            return Settings::Graphics.MsaaSamples > 1 ? MsaaDepthBuffer : SceneDepthBuffer;
+            return Settings::Graphics.MsaaSamples > 1 ? SceneDepthBufferMsaa : SceneDepthBuffer;
         }
 
         Inferno::ColorBuffer& GetLinearDepthBuffer() {

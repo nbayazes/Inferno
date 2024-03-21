@@ -506,7 +506,7 @@ namespace Inferno::Game {
             info.Scale = 0.5f;
             info.Position = Vector2{ xOffset + PADDING, PADDING } * scale;
             constexpr float SPACING = 10;
-            Render::Canvas->DrawGameText("material defender, the reactor is", info);
+            Render::Canvas->DrawGameText("material defender, the primary reactor is", info);
             info.Position.y += SPACING * scale;
             Render::Canvas->DrawGameText("behind the door to your left.", info);
             info.Position.y += SPACING * scale;
@@ -514,11 +514,23 @@ namespace Inferno::Game {
         }
     }
 
+    void DrawBriefing() {
+        float scale = 1;
+        Inferno::Render::CanvasBitmapInfo info;
+        info.Size = Vector2{ 640, 480 } *scale;
+        info.Texture = Render::Adapter->BriefingColorBuffer.GetSRV();
+        info.HorizontalAlign = AlignH::Center;
+        info.VerticalAlign = AlignV::Center;
+        info.Color = Color(1, 1, 1);
+        Render::Canvas->DrawBitmap(info);
+    }
+
     void Update(float dt) {
         LegitProfiler::ProfilerTask update("Update game", LegitProfiler::Colors::CARROT);
 
         CheckLoadLevel();
 
+        Game::BriefingVisible = false;
         Inferno::Input::Update();
         Bindings.Update();
         CheckGlobalHotkeys();
@@ -541,6 +553,7 @@ namespace Inferno::Game {
             case GameState::Game:
                 LerpAmount = GameUpdate(dt);
                 //UpdateCommsMessage();
+                //DrawBriefing();
 
                 if (!Level.Objects.empty()) {
                     if (Player.IsDead)
@@ -764,7 +777,7 @@ namespace Inferno::Game {
                 obj.Faction = Faction::Robot;
                 SetFlag(obj.Physics.Flags, PhysicsFlag::SphereCollidePlayer);
                 obj.NextThinkTime = 0.5f; // Help against hot-starts by sleeping robots on level load
-                PlayRobotAnimation(obj, AnimState::Rest);
+                PlayRobotAnimation(obj, Animation::Rest);
                 //obj.Physics.Wiggle = obj.Radius * 0.01f;
                 //obj.Physics.WiggleRate = 0.33f;
             }

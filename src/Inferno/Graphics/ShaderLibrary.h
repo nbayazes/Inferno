@@ -590,6 +590,7 @@ namespace Inferno {
         HudShader Hud = ShaderInfo{ L"shaders/HUD.hlsl" };
         SpriteShader Sprite = ShaderInfo{ L"shaders/sprite.hlsl" };
         ObjectShader Object = ShaderInfo{ L"shaders/object.hlsl" };
+        ObjectShader BriefingObject = ShaderInfo{ L"shaders/BriefingObject.hlsl" };
         ObjectDistortionShader ObjectDistortion = ShaderInfo{ L"shaders/Cloak.hlsl" };
     };
 
@@ -611,6 +612,7 @@ namespace Inferno {
         Effect<ObjectDepthShader> DepthObjectFlipped = { &_shaders->DepthObject, { BlendMode::Opaque, CullMode::Clockwise } };
 
         Effect<ObjectShader> Object = { &_shaders->Object, { BlendMode::Alpha, CullMode::None, DepthMode::Read } };
+        Effect<ObjectShader> BriefingObject = { &_shaders->BriefingObject, { BlendMode::Alpha, CullMode::None, DepthMode::ReadWrite } };
         Effect<ObjectShader> ObjectGlow = { &_shaders->Object, { BlendMode::Additive, CullMode::None, DepthMode::Read } };
         Effect<ObjectDistortionShader> ObjectDistortion{ &_shaders->ObjectDistortion, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read } };
 
@@ -637,6 +639,7 @@ namespace Inferno {
             CompileShader(&_shaders->Briefing);
             CompileShader(&_shaders->Sprite);
             CompileShader(&_shaders->Object);
+            CompileShader(&_shaders->BriefingObject);
             CompileShader(&_shaders->ObjectDistortion);
             CompileShader(&_shaders->Depth);
             CompileShader(&_shaders->DepthObject);
@@ -668,6 +671,7 @@ namespace Inferno {
             compile(Object);
             compile(ObjectGlow);
             compile(ObjectDistortion);
+            compile(BriefingObject);
             compile(Sprite);
             compile(SpriteOpaque);
             compile(SpriteAdditive);
