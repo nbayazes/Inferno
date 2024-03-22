@@ -195,9 +195,9 @@ Est. Armament:	Pulse defense system
 Threat:			Moderate
 
 advances in fusion technology lead to the
-breakthrough of miniaturized reactors.
-these reactors are crucial to PTMC's
-financial success and rapid expansion.
+development of small modular reactors.
+these reactors have been pivotal to 
+PTMC's rapid expansion and success.
 
 upon taking significant damage 
 the fusion containment field 
@@ -205,9 +205,29 @@ will fail, resulting in
 self-destruction and complete 
 vaporization of the facility.
 )";
-
+                // these reactors are pivotal to PTMC's
+                // financial success and rapid expansion.
                 reactorPage.VisibleCharacters = (int)reactorPage.Text.size() - 2;
                 briefing.Screens[2].Pages.insert(briefing.Screens[2].Pages.begin() + 1, reactorPage);
+            }
+        }
+
+        static void ResolveImages(Briefing& briefing) {
+            for (auto& screen : briefing.Screens) {
+                for (auto& page : screen.Pages) {
+                    if (page.Image.empty()) continue;
+
+                    if (String::Contains(page.Image, "#")) {
+                        if (auto tid = Resources::LookupLevelTexID(Resources::FindTexture(page.Image)); tid != LevelTexID::None) {
+                            page.Door = Resources::GetDoorClipID(tid);
+                            page.Image = {}; // Clear source image
+                        }
+                    }
+                    else if (!String::Contains(page.Image, ".")) {
+                        // todo: also search for PNG, PCX, DDS
+                        page.Image += ".bbm"; // Assume BBM for now
+                    }
+                }
             }
         }
 
@@ -225,6 +245,7 @@ vaporization of the facility.
                 }
             }
 
+            ResolveImages(_briefing);
             _buffer = _briefing.Raw;
             DebugBriefing = _briefing;
             Elapsed = 0;

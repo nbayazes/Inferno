@@ -7,9 +7,10 @@ namespace Inferno {
         struct Page {
             string Text;
             int Robot = -1; // Robot id to display
-            string Image; // animated door, endguy
+            string Image; // static image (BBM)
             uint VisibleCharacters = 0; // number of visible characters (non-control characters)
             ModelID Model = ModelID::None; // Model to display
+            DClipID Door = DClipID::None; // animated door
         };
 
         struct Screen {

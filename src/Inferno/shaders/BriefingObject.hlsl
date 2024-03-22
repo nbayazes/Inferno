@@ -148,7 +148,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //float gloss = 16;
         float eyeTerm = pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
         float3 specularColor = diffuse.rgb * ambient * 3;
-        lighting += eyeTerm * specularColor * input.col.rgb * material.SpecularStrength * 10;
+        lighting += eyeTerm * specularColor * input.col.rgb * material.SpecularStrength * 5;
         //lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, ambient, diffuse.rgb, specularMask, .25) * nDotH;
     }
 

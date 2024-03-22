@@ -110,7 +110,7 @@ namespace Inferno::Render {
             Draw(payload);
         }
 
-        void DrawBitmap(D3D12_GPU_DESCRIPTOR_HANDLE texture, const Vector2& pos, const Vector2& size, const Color& color = { 1, 1, 1 }) {
+        void DrawBitmap(D3D12_GPU_DESCRIPTOR_HANDLE texture, const Vector2& pos, const Vector2& size, const Color& color = { 1, 1, 1 }, int layer = 0) {
             CanvasPayload payload{};
             auto hex = color.RGBA().v;
             payload.V0 = { Vector2{ pos.x, pos.y + size.y }, { 0, 1 }, hex }; // bottom left
@@ -118,6 +118,7 @@ namespace Inferno::Render {
             payload.V2 = { Vector2{ pos.x + size.x, pos.y }, { 1, 0 }, hex }; // top right
             payload.V3 = { Vector2{ pos.x, pos.y }, { 0, 0 }, hex }; // top left
             payload.Texture = texture;
+            payload.Layer = layer;
             Draw(payload);
         }
 

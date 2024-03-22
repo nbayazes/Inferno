@@ -731,8 +731,36 @@ namespace Inferno::Render {
                 }
 
                 if (page->Robot != -1 || page->Model != ModelID::None) {
-                    BriefingCanvas->DrawBitmap(Adapter->BriefingRobot.GetSRV(), Vector2(138, 55) * scale, Vector2(166, 138) * scale);
+                    BriefingCanvas->DrawBitmap(Adapter->BriefingRobot.GetSRV(), Vector2(138, 55) * scale, Vector2(166, 138) * scale, Color(1, 1, 1), 1);
                 }
+
+                D3D12_GPU_DESCRIPTOR_HANDLE imageHandle{};
+
+                if (page->Door != DClipID::None) {
+                    // Draw a door
+                    auto& dclip = Resources::GetDoorClip(page->Door);
+
+                    // ping-pong the door animation
+                    if (dclip.NumFrames > 0) {
+                        auto frameTime = dclip.PlayTime / dclip.NumFrames;
+                        auto frame = int(Inferno::Clock.GetTotalTimeSeconds() / frameTime);
+                        frame %= dclip.NumFrames * 2;
+
+                        if (frame >= dclip.NumFrames)
+                            frame = (dclip.NumFrames - 1) - (frame % dclip.NumFrames);
+                        else
+                            frame %= dclip.NumFrames;
+
+                        imageHandle = Render::Materials->Get(dclip.Frames[frame]).Handle();
+                    }
+                }
+                else if (!page->Image.empty()) {
+                    // Draw a static image (BBM, etc)
+                    imageHandle = Render::Materials->Get(page->Image).Handle();
+                }
+
+                if (imageHandle.ptr)
+                    BriefingCanvas->DrawBitmap(imageHandle, Vector2(220, 45) * scale, Vector2(64 * scale.x, 64 * scale.x), Color(1, 1, 1), 1);
 
                 Render::DrawTextInfo info;
                 info.Position = Vector2((float)screen->x, (float)screen->y) * scale;
