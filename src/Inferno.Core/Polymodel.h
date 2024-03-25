@@ -7,6 +7,25 @@ namespace Inferno {
     constexpr auto MAX_SUBMODELS = 10; //how many animating sub-objects per model
     constexpr ubyte ROOT_SUBMODEL = 255;
 
+    enum class Animation : int8 {
+        Rest = 0,
+        Alert = 1,
+        Fire = 2,
+        Recoil = 3,
+        Flinch = 4
+    };
+
+    using AnimationAngles = Array<Vector3, MAX_SUBMODELS>;
+
+    struct AnimationState {
+        float Timer = 0;
+        float Duration = 0;
+        Animation Animation = Animation::Rest;
+        AnimationAngles DeltaAngles{};
+
+        bool IsPlayingAnimation() const { return Timer < Duration; }
+    };
+
     //describes the position of a certain joint
     struct JointPos {
         short ID; // joint number

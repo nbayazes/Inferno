@@ -5,6 +5,7 @@
 #include "Settings.h"
 #include "WindowBase.h"
 #include "Resources.h"
+#include "Game.Briefing.h"
 
 namespace Inferno::Editor {
     class BriefingEditor : public WindowBase {
@@ -18,56 +19,9 @@ namespace Inferno::Editor {
             _buffer.resize(BUFFER_SIZE);
         }
 
-        inline static Briefing DebugBriefing;
-        inline static float Elapsed = 0;
 
     protected:
-        static void NextPage() {
-            if (auto screen = Seq::tryItem(DebugBriefing.Screens, Game::BriefingScreen)) {
-                auto visibleChars = uint(Elapsed / Game::BRIEFING_TEXT_SPEED);
-
-                if (auto page = Seq::tryItem(screen->Pages, Game::BriefingPage)) {
-                    if (visibleChars < page->VisibleCharacters && !Input::ControlDown) {
-                        Elapsed = 1000.0f;
-                        return; // Show all text if not finished
-                    }
-                }
-
-                Elapsed = 0;
-                Game::BriefingPage++;
-
-                if (Game::BriefingPage >= screen->Pages.size()) {
-                    // Go forward one screen
-                    if (Game::BriefingScreen < DebugBriefing.Screens.size()) {
-                        Game::BriefingScreen++;
-                        Game::BriefingPage = 0;
-                    }
-                }
-            }
-            else {
-                // Something went wrong
-                Game::BriefingScreen = Game::BriefingPage = 0;
-                Elapsed = 0;
-            }
-        }
-
-        static void PreviousPage() {
-            Game::BriefingPage--;
-            Elapsed = 0;
-
-            if (Game::BriefingPage < 0) {
-                // Go back one screen
-                if (Game::BriefingScreen > 0) {
-                    Game::BriefingScreen--;
-                    if (auto screen = Seq::tryItem(DebugBriefing.Screens, Game::BriefingScreen)) {
-                        Game::BriefingPage = (int)screen->Pages.size() - 1;
-                    }
-                }
-            }
-
-            if (Game::BriefingPage < 0) Game::BriefingPage = 0;
-        }
-
+        
         void OnUpdate() override {
             if (!Game::Mission) {
                 ImGui::Text("Current file is not a mission (HOG)");
@@ -88,29 +42,29 @@ namespace Inferno::Editor {
 
             ImGui::SameLine();
 
-            Elapsed += Render::FrameTime;
+            Game::Briefing.Update(Render::FrameTime);
 
             {
                 ImGui::BeginGroup();
 
                 ImGui::BeginChild("editor", { 0, 0 }, true);
 
-                if (ImGui::Button("Prev"))
-                    PreviousPage();
+                if (ImGui::Button("Back"))
+                    Game::Briefing.Back();
 
                 ImGui::SameLine();
 
                 if (ImGui::Button("Next"))
-                    NextPage();
+                    Game::Briefing.Forward();
 
-                ImGui::SameLine();
+                //ImGui::SameLine();
 
-                ImGui::Text("Screen: %i Page: %i", Game::BriefingScreen, Game::BriefingPage);
+                //ImGui::Text("Screen: %i Page: %i", Game::BriefingScreen, Game::BriefingPage);
 
-                if (auto screen = Seq::tryItem(DebugBriefing.Screens, Game::BriefingScreen); screen && !screen->Background.empty()) {
+                /*if (auto screen = Seq::tryItem( DebugBriefing.Screens, Game::BriefingScreen); screen && !screen->Background.empty()) {
                     ImGui::SameLine();
                     ImGui::Text("Background: %s", screen->Background.c_str());
-                }
+                }*/
 
                 ImGui::InputTextMultiline("##editor", _buffer.data(), _buffer.size(), { 600, -1 }, ImGuiInputTextFlags_AllowTabInput);
                 //ImGui::EndChild();
@@ -124,10 +78,10 @@ namespace Inferno::Editor {
                     ImGui::Image((ImTextureID)srv.ptr, { 640, 480 });
 
                     if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
-                        NextPage();
+                        Game::Briefing.Forward();
 
                     if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
-                        PreviousPage();
+                        Game::Briefing.Back();
                 }
 
                 //ImGui::SameLine();
@@ -247,10 +201,7 @@ vaporization of the facility.
 
             ResolveImages(_briefing);
             _buffer = _briefing.Raw;
-            DebugBriefing = _briefing;
-            Elapsed = 0;
-            Game::BriefingPage = 0;
-            Game::BriefingScreen = 0;
+            Game::Briefing = BriefingState(_briefing, 0);
         }
     };
 }

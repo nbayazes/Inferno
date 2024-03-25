@@ -66,12 +66,4 @@ namespace Inferno {
     //    Recoil,
     //    Error
     //};
-
-    enum class Animation : int8 {
-        Rest = 0,
-        Alert = 1,
-        Fire = 2,
-        Recoil = 3,
-        Flinch = 4
-    };
 }

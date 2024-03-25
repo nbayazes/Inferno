@@ -238,6 +238,7 @@
     <ClInclude Include="zip\miniz.h" />
     <ClInclude Include="Formats\PCX.h" />
     <ClInclude Include="Formats\BBM.h" />
+    <ClInclude Include="Game.Briefing.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />

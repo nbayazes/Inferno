@@ -584,59 +584,7 @@ namespace Inferno::Render {
         }
     }
 
-    using AnimationAngles = Array<Vector3, MAX_SUBMODELS>;
-
-    struct AnimationState {
-        float Timer = 0;
-        float Duration = 0;
-        Animation Animation = Animation::Rest;
-        AnimationAngles DeltaAngles{};
-
-        bool IsPlayingAnimation() const { return Timer < Duration; }
-    };
-
-    AnimationState PlayAnimation(const Object& object, const AnimationAngles& currentAngles, Animation anim, float time, float moveMult, float delay) {
-        AnimationState state;
-        state.Duration = time;
-        state.Timer = -delay;
-        state.Animation = anim;
-
-        if (!object.IsRobot()) return state;
-
-        auto& robotInfo = Resources::GetRobotInfo(object);
-
-        for (int gun = 0; gun <= robotInfo.Guns; gun++) {
-            const auto robotJoints = Resources::GetRobotJoints(object.ID, gun, anim);
-
-            for (auto& joint : robotJoints) {
-                const auto& angle = currentAngles[joint.ID];
-
-                if (angle == joint.Angle * moveMult) {
-                    state.DeltaAngles[joint.ID] = Vector3::Zero;
-                    continue;
-                }
-
-                //ai.GoalAngles[joint.ID] = jointAngle;
-                state.DeltaAngles[joint.ID] = joint.Angle * moveMult - angle;
-            }
-        }
-
-        return state;
-    }
-
-
-    void UpdateAnimation(AnimationAngles& angles, const Object& robot, AnimationState& state, float dt) {
-        auto& model = Resources::GetModel(robot);
-
-        state.Timer += dt;
-        if (state.Timer > state.Duration || state.Timer < 0) return;
-
-        for (int joint = 1; joint < model.Submodels.size(); joint++) {
-            angles[joint] += state.DeltaAngles[joint] / state.Duration * dt;
-        }
-    }
-
-    void DrawBriefingObject(GraphicsContext& ctx, Object& object) {
+    void DrawBriefingObject(GraphicsContext& ctx, const Object& object) {
         auto& target = Adapter->GetBriefingRobotBuffer();
         target.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_RENDER_TARGET);
         auto& depthTarget = Adapter->GetBriefingRobotDepthBuffer();
@@ -649,35 +597,16 @@ namespace Inferno::Render {
         ctx.SetViewport(UINT(size.x), UINT(size.y));
         ctx.SetScissor(UINT(target.GetWidth()), UINT(target.GetHeight()));
 
-        //auto& robotInfo = Resources::GetRobotInfo(robotId);
         auto& model = Resources::GetModel(object.Render.Model.ID);
         if (model.DataSize == 0) return;
 
         auto& frameConstants = Adapter->GetBriefingFrameConstants();
         BriefingCamera.Position = Vector3(0, model.Radius * .5f, -model.Radius * 3.0f);
-        static float orbit = 0;
-        orbit -= 1.0f * Render::FrameTime;
-        BriefingCamera.Orbit(orbit, 0);
         constexpr float fov = 45;
         UpdateFrameConstants(size, fov, BriefingCamera, frameConstants);
 
         ctx.GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-        {
-            // ping-pong between alert and rest states
-            static AnimationState animState{};
-            static Array<Vector3, 10> angles{};
-
-            if (!animState.IsPlayingAnimation()) {
-                auto animation = animState.Animation == Animation::Rest ? Animation::Alert : Animation::Rest;
-                animState = PlayAnimation(object, angles, animation, 1.5f, 5, 1.0f);
-            }
-
-            UpdateAnimation(angles, object, animState, Render::FrameTime);
-            object.Render.Model.Angles = angles;
-        }
-
-        //Render::ModelDepthPrepass(ctx, obj, modelId);
         Render::DrawBriefingModel(ctx, object, frameConstants);
 
         if (Settings::Graphics.MsaaSamples > 1) {
@@ -689,34 +618,21 @@ namespace Inferno::Render {
         // spin and animate
     }
 
-    void DrawBriefing(GraphicsContext& ctx, RenderTarget& target) {
+    void DrawBriefing(GraphicsContext& ctx, RenderTarget& target, const BriefingState& briefing) {
         PIXScopedEvent(ctx.GetCommandList(), PIX_COLOR_INDEX(10), "Briefing");
+        ctx.ClearColor(target);
 
-        auto& briefing = Editor::BriefingEditor::DebugBriefing;
-
-        if (auto screen = Seq::tryItem(briefing.Screens, Game::BriefingScreen)) {
-            if (auto page = Seq::tryItem(screen->Pages, Game::BriefingPage)) {
+        if (auto screen = briefing.GetScreen()) {
+            if (auto page = briefing.GetPage()) {
                 Vector2 scale(1, 1);
                 if (Game::Level.IsDescent1()) {
                     scale.x = 640.0f / 320;
                     scale.y = 480.0f / 200;
                 }
 
-                if (page->Robot != -1) {
-                    Object object{};
-                    InitObject(Game::Level, object, ObjectType::Robot, (int8)page->Robot, true);
-                    //object.Render.Model.ID = Resources::GetRobotInfo(page->Robot).Model;
-                    DrawBriefingObject(ctx, object);
-                }
+                if (auto object = briefing.GetObject())
+                    DrawBriefingObject(ctx, *object);
 
-                if (page->Model != ModelID::None) {
-                    Object object{};
-                    InitObject(Game::Level, object, ObjectType::Player, 0, true);
-                    object.Render.Model.ID = page->Model;
-                    DrawBriefingObject(ctx, object);
-                }
-
-                ctx.ClearColor(target);
                 ctx.SetRenderTarget(target.GetRTV());
                 ctx.SetViewport(UINT(target.GetWidth()), UINT(target.GetHeight()));
                 ctx.SetScissor(UINT(target.GetWidth()), UINT(target.GetHeight()));
@@ -769,8 +685,8 @@ namespace Inferno::Render {
                 info.Color = Color(0, 1, 0);
                 info.TabStop = screen->TabStop * scale.x;
                 BriefingCanvas->DrawFadingText(page->Text, info,
-                                               Editor::BriefingEditor::Elapsed,
-                                               Game::BRIEFING_TEXT_SPEED, screen->Cursor);
+                                               Game::Briefing.GetElapsed(),
+                                               BRIEFING_TEXT_SPEED, screen->Cursor);
 
                 BriefingCanvas->Render(ctx);
 
@@ -913,7 +829,7 @@ namespace Inferno::Render {
         }
 
         if (Game::BriefingVisible)
-            DrawBriefing(ctx, Adapter->BriefingColorBuffer);
+            DrawBriefing(ctx, Adapter->BriefingColorBuffer, Game::Briefing);
 
         UpdateFrameConstants(outputSize * Render::RenderScale, Settings::Editor.FieldOfView, Camera,
                              Adapter->GetFrameConstants(), &ViewProjection, &CameraFrustum);

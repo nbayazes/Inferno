@@ -343,6 +343,7 @@
     <ClInclude Include="Render.Effect.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Audio\Music.h" />
+    <ClInclude Include="Game.Briefing.h" />
     <ClInclude Include="SoundTypes.h" />
     <ClInclude Include="unordered_dense.h" />
     <ClInclude Include="Version.h" />

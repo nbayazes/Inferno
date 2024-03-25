@@ -105,4 +105,8 @@ namespace Inferno {
 
     // Tries to shift object away from intersecting walls
     void FixObjectPosition(Object& obj);
+
+    AnimationState StartAnimation(const Object& object, const AnimationAngles& currentAngles, Animation anim, float time, float moveMult, float delay);
+
+    void UpdateAnimation(AnimationAngles& angles, const Object& robot, AnimationState& state, float dt);
 }

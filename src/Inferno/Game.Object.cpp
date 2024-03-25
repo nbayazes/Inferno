@@ -1205,4 +1205,44 @@ namespace Inferno {
             //}
         }
     }
+
+    AnimationState StartAnimation(const Object& object, const AnimationAngles& currentAngles, Animation anim, float time, float moveMult, float delay) {
+        AnimationState state;
+        state.Duration = time;
+        state.Timer = -delay;
+        state.Animation = anim;
+
+        if (!object.IsRobot()) return state;
+
+        auto& robotInfo = Resources::GetRobotInfo(object);
+
+        for (int gun = 0; gun <= robotInfo.Guns; gun++) {
+            const auto robotJoints = Resources::GetRobotJoints(object.ID, gun, anim);
+
+            for (auto& joint : robotJoints) {
+                const auto& angle = currentAngles[joint.ID];
+
+                if (angle == joint.Angle * moveMult) {
+                    state.DeltaAngles[joint.ID] = Vector3::Zero;
+                    continue;
+                }
+
+                //ai.GoalAngles[joint.ID] = jointAngle;
+                state.DeltaAngles[joint.ID] = joint.Angle * moveMult - angle;
+            }
+        }
+
+        return state;
+    }
+
+    void UpdateAnimation(AnimationAngles& angles, const Object& robot, AnimationState& state, float dt) {
+        auto& model = Resources::GetModel(robot);
+
+        state.Timer += dt;
+        if (state.Timer > state.Duration || state.Timer < 0) return;
+
+        for (int joint = 1; joint < model.Submodels.size(); joint++) {
+            angles[joint] += state.DeltaAngles[joint] / state.Duration * dt;
+        }
+    }
 }
