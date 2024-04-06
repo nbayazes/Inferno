@@ -122,14 +122,14 @@ namespace Inferno::Editor {
             case ObjectType::Player:
                 if (GetObjectCount(level, ObjectType::Player) >= level.Limits.Players) {
                     SetStatusMessageWarn("Cannot add more than {} players!", level.Limits.Players);
-                    InitObject(level, obj, ObjectType::Powerup);
+                    InitObject(obj, ObjectType::Powerup);
                 }
                 break;
 
             case ObjectType::Coop:
                 if (GetObjectCount(level, ObjectType::Coop) >= level.Limits.Coop) {
                     SetStatusMessageWarn("Cannot add more than {} co-op players!", level.Limits.Coop);
-                    InitObject(level, obj, ObjectType::Powerup);
+                    InitObject(obj, ObjectType::Powerup);
                 }
                 break;
 
@@ -156,7 +156,7 @@ namespace Inferno::Editor {
 
     ObjID AddObject(Level& level, PointTag tag, ObjectType type) {
         Object obj{};
-        InitObject(level, obj, type);
+        InitObject(obj, type);
         return AddObject(level, tag, obj);
     }
 

@@ -169,6 +169,8 @@
     <ClCompile Include="Game.AI.Pathing.cpp" />
     <ClCompile Include="Game.Bindings.cpp" />
     <ClCompile Include="Game.Boss.cpp" />
+    <ClCompile Include="Game.Briefing.cpp" />
+    <ClCompile Include="Game.EscapeSequence.cpp" />
     <ClCompile Include="Game.Input.cpp" />
     <ClCompile Include="Game.IO.cpp" />
     <ClCompile Include="Game.Navigation.cpp" />
@@ -277,6 +279,7 @@
     <ClInclude Include="Game.AI.Pathing.h" />
     <ClInclude Include="Game.Bindings.h" />
     <ClInclude Include="Game.Boss.h" />
+    <ClInclude Include="Game.EscapeSequence.h" />
     <ClInclude Include="Game.Input.h" />
     <ClInclude Include="Game.Navigation.h" />
     <ClInclude Include="Game.Object.h" />
@@ -344,6 +347,10 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="Audio\Music.h" />
     <ClInclude Include="Game.Briefing.h" />
+    <None Include="shaders\Terrain.hlsl">
+      <DeploymentContent>true</DeploymentContent>
+      <FileType>HLSL</FileType>
+    </None>
     <ClInclude Include="SoundTypes.h" />
     <ClInclude Include="unordered_dense.h" />
     <ClInclude Include="Version.h" />

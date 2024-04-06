@@ -1,6 +1,6 @@
 #pragma once
-#include "Object.h"
 #include "Level.h"
+#include "Object.h"
 
 namespace Inferno {
     struct SubmodelRef {
@@ -95,7 +95,7 @@ namespace Inferno {
 
     // Reloads various properties for the object from the game data.
     // The editor snapshots certain props such as health and it's best to refresh them.
-    void InitObject(const Level&, Object&, ObjectType type, int8 id = 0, bool fullReset = true);
+    void InitObject(Object&, ObjectType type, int8 id = 0, bool fullReset = true);
 
     float GetObjectRadius(const Object& obj);
 

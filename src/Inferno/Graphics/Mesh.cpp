@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Mesh.h"
-
 #include "MaterialLibrary.h"
 #include "Resources.h"
+#include "ShaderLibrary.h"
 
 namespace Inferno::Render {
     void GetTangentBitangent(span<ObjectVertex> verts) {
@@ -82,7 +82,7 @@ namespace Inferno::Render {
                 GetTangentBitangent(std::span{ &verts[i], 3 });
             }
 
-            auto vertexView = _buffer.PackVertices(verts);
+            auto vertexView = _buffer.PackVertices(span{ verts });
 
             // Create meshes
             for (int16 slot = 0; auto& indices : submodel.ExpandedIndices) {
@@ -91,7 +91,7 @@ namespace Inferno::Render {
                 auto& mesh = _meshes.emplace_back();
                 handle.Meshes[smIndex][slot] = &mesh;
                 mesh.VertexBuffer = vertexView;
-                mesh.IndexBuffer = _buffer.PackIndices(indices);
+                mesh.IndexBuffer = _buffer.PackIndices(span{ indices });
                 mesh.IndexCount = (uint)indices.size();
                 mesh.Texture = texId == TexID::None ? flatMaterial : texId; // for flat shaded meshes
                 mesh.EffectClip = Resources::GetEffectClipID(mesh.Texture);
@@ -170,8 +170,8 @@ namespace Inferno::Render {
             for (auto& [i, smm] : smMeshes) {
                 auto& mesh = _meshes.emplace_back();
                 handle.Meshes[smIndex][i] = &mesh;
-                mesh.VertexBuffer = _buffer.PackVertices(smm.Vertices);
-                mesh.IndexBuffer = _buffer.PackIndices(smm.Indices);
+                mesh.VertexBuffer = _buffer.PackVertices(span{ smm.Vertices });
+                mesh.IndexBuffer = _buffer.PackIndices(span{ smm.Indices });
                 mesh.IndexCount = (uint)smm.Indices.size();
                 mesh.Texture = tid;
             }

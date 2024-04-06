@@ -98,6 +98,8 @@
     <ClCompile Include="Game.IO.cpp" />
     <ClCompile Include="Formats\PCX.cpp" />
     <ClCompile Include="Formats\BBM.cpp" />
+    <ClCompile Include="Game.EscapeSequence.cpp" />
+    <ClCompile Include="Game.Briefing.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\Audio.h" />
@@ -239,6 +241,7 @@
     <ClInclude Include="Formats\PCX.h" />
     <ClInclude Include="Formats\BBM.h" />
     <ClInclude Include="Game.Briefing.h" />
+    <ClInclude Include="Game.EscapeSequence.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />
@@ -285,5 +288,6 @@
     <None Include="data\d2\game.yml" />
     <None Include="shaders\UnpackBufferCS.hlsl" />
     <None Include="shaders\BriefingObject.hlsl" />
+    <None Include="shaders\Terrain.hlsl" />
   </ItemGroup>
 </Project>

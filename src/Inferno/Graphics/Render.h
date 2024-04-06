@@ -57,7 +57,6 @@ namespace Inferno::Render {
         Walls,      // Level walls, might be transparent
         Transparent, // Sprites, transparent portions of models
         Distortion, // Cloaked enemies, shockwaves
-        Briefing
     };
 
     //void DrawVClip(Graphics::GraphicsContext& ctx, const VClip& vclip, const Vector3& position, float radius, const Color& color, float elapsed, bool additive = false, float rotation = 0, const Vector3* up = nullptr);
@@ -77,6 +76,7 @@ namespace Inferno::Render {
     void LoadTextureDynamic(LevelTexID);
     void LoadTextureDynamic(VClipID);
     void LoadLevel(const Inferno::Level&);
+    void LoadTerrain(const EscapeInfo& info);
 
     MeshIndex& GetMeshHandle(ModelID);
     MeshIndex& GetOutrageMeshHandle(ModelID);
@@ -123,6 +123,7 @@ namespace Inferno::Render {
 
     extern bool LevelChanged;
     PackedBuffer* GetLevelMeshBuffer();
+    const Mesh* GetTerrainMesh();
 
     //const string TEST_MODEL = "robottesttube(orbot).OOF"; // mixed transparency test
     const string TEST_MODEL = "gyro.OOF";

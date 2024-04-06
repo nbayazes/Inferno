@@ -485,7 +485,7 @@ namespace Inferno::Editor {
                 auto iStr = std::to_string(i);
                 if (ImGui::Selectable(iStr.c_str(), isSelected)) {
                     obj.ID = i;
-                    InitObject(Game::Level, obj, obj.Type, obj.ID);
+                    InitObject(obj, obj.Type, obj.ID);
                     Render::LoadModelDynamic(obj.Render.Model.ID);
                     changed = true;
                 }
@@ -659,12 +659,12 @@ namespace Inferno::Editor {
                 const bool isSelected = obj.Type == type;
                 if (ImGui::Selectable(GetObjectTypeName(type), isSelected)) {
                     int8 objId = type == ObjectType::Weapon ? (int8)WeaponID::LevelMine : 0;
-                    InitObject(Game::Level, obj, type, objId);
+                    InitObject(obj, type, objId);
                     if (type == ObjectType::Weapon) RandomizeMineRotation(obj);
 
                     ForMarkedObjects([type, objId](Object& o) {
                         if (type == ObjectType::Weapon) RandomizeMineRotation(o);
-                        InitObject(Game::Level, o, type, objId);
+                        InitObject(o, type, objId);
                     });
                     Editor::History.SnapshotLevel("Change object type");
                 }
@@ -681,10 +681,10 @@ namespace Inferno::Editor {
                 ImGui::TableRowLabel("Powerup");
                 ImGui::SetNextItemWidth(-1);
                 if (PowerupDropdown("##Powerup", obj.ID, &obj)) {
-                    InitObject(Game::Level, obj, obj.Type, obj.ID);
+                    InitObject(obj, obj.Type, obj.ID);
                     ForMarkedObjects([&obj](Object& o) {
                         if (o.Type != obj.Type) return;
-                        InitObject(Game::Level, o, obj.Type, obj.ID);
+                        InitObject(o, obj.Type, obj.ID);
                     });
                     Editor::History.SnapshotLevel("Change object");
                 }

@@ -1,9 +1,11 @@
 #pragma once
+#include "Bezier.h"
 #include "Camera.h"
 #include "Editor/Editor.IO.h"
 #include "Game.Navigation.h"
 #include "Game.Player.h"
 #include "Game.Briefing.h"
+#include "Game.EscapeSequence.h"
 #include "HogFile.h"
 #include "Intersect.h"
 #include "Level.h"
@@ -186,6 +188,7 @@ namespace Inferno::Game {
     inline int TotalCountdown = -1; // the starting countdown time
     inline float GlobalDimming = 1; // Amount of global fade to apply to 'mine' light sources
 
+
     void SetState(GameState);
     GameState GetState();
 
@@ -235,4 +238,7 @@ namespace Inferno::Game {
 
     inline float FrameTime = 0; // Time of this frame in seconds. 0 when paused.
     inline bool ResetDeltaTime = false;
+
+
+    inline Inferno::EscapeInfo EscapeInfo;
 }

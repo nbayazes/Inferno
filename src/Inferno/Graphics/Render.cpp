@@ -52,6 +52,7 @@ namespace Inferno::Render {
         Ptr<GraphicsMemory> _graphicsMemory;
 
         Ptr<MeshBuffer> _meshBuffer;
+        Ptr<TerrainMesh> _terrainMesh;
         Ptr<SpriteBatch> _postBatch;
         Ptr<PackedBuffer> _levelMeshBuffer;
 
@@ -61,6 +62,11 @@ namespace Inferno::Render {
     }
 
     PackedBuffer* GetLevelMeshBuffer() { return _levelMeshBuffer.get(); }
+
+    const Mesh* GetTerrainMesh() {
+        if (_terrainMesh) return &_terrainMesh->GetMesh();
+        return nullptr;
+    }
 
     void DrawBillboard(GraphicsContext& ctx,
                        TexID tid,
@@ -291,6 +297,7 @@ namespace Inferno::Render {
         StopProceduralWorker();
         _levelMeshBuffer.reset();
         _meshBuffer.reset();
+        _terrainMesh.reset();
 
         Adapter.reset();
         ToneMapping.reset();
@@ -385,6 +392,7 @@ namespace Inferno::Render {
         // Load models for objects in the level
         constexpr int DESCENT3_MODEL_COUNT = 200;
         _meshBuffer = MakePtr<MeshBuffer>(Resources::GameData.Models.size(), DESCENT3_MODEL_COUNT);
+        _terrainMesh = {};
 
         List<ModelID> modelIds;
         for (auto& obj : level.Objects) {
@@ -402,6 +410,12 @@ namespace Inferno::Render {
         Graphics::Lights = {};
         ResetEffects();
         LevelChanged = true;
+    }
+
+    void LoadTerrain(const EscapeInfo& info) {
+        std::array textures = { info.PlanetTexture, info.TerrainTexture };
+        Render::Materials->LoadTextures(textures);
+        _terrainMesh = make_unique<TerrainMesh>(info.Vertices, info.Indices);
     }
 
     MeshIndex& GetMeshHandle(ModelID id) {

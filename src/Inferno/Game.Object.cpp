@@ -253,7 +253,7 @@ namespace Inferno {
 
     void CreateRobot(SegID segment, const Vector3& position, int8 type, MatcenID srcMatcen) {
         Object obj{};
-        InitObject(Game::Level, obj, ObjectType::Robot, type);
+        InitObject(obj, ObjectType::Robot, type);
         obj.Position = position;
         obj.Segment = segment;
         obj.SourceMatcen = srcMatcen;
@@ -306,7 +306,7 @@ namespace Inferno {
             return {}; // Cloak was already nearby. Original uses a segdepth of 3
 
         Object powerup{};
-        InitObject(Level, powerup, ObjectType::Powerup, (int)pid);
+        InitObject(powerup, ObjectType::Powerup, (int)pid);
         powerup.Position = position;
         powerup.Segment = segId;
 
@@ -355,7 +355,7 @@ namespace Inferno {
             {
                 for (int i = 0; i < contains.Count; i++) {
                     Object spawn{};
-                    InitObject(level, spawn, ObjectType::Robot, contains.ID, true);
+                    InitObject(spawn, ObjectType::Robot, contains.ID, true);
                     spawn.Position = position;
                     spawn.Segment = segId;
                     spawn.Type = ObjectType::Robot;
@@ -662,7 +662,7 @@ namespace Inferno {
         // Note this won't update weapons
         for (int id = 0; id < level.Objects.size(); id++) {
             auto& obj = level.Objects[id];
-            InitObject(level, obj, obj.Type, obj.ID, false);
+            InitObject(obj, obj.Type, obj.ID, false);
             if (auto seg = level.TryGetSegment(obj.Segment)) {
                 obj.Ambient.SetTarget(seg->VolumeLight, Game::Time, 0);
             }
@@ -982,9 +982,7 @@ namespace Inferno {
         obj.HitPoints = 20;
     }
 
-    void InitObject(const Level& level, Object& obj, ObjectType type, int8 id, bool fullReset) {
-        const ModelID coopModel = level.IsDescent1() ? ModelID::D1Coop : ModelID::D2Player;
-
+    void InitObject(Object& obj, ObjectType type, int8 id, bool fullReset) {
         obj.Type = type;
         obj.ID = id;
         if (fullReset) {
@@ -1026,7 +1024,7 @@ namespace Inferno {
             case ObjectType::Coop:
                 obj.Movement = MovementType::Physics;
                 obj.Render.Type = RenderType::Model;
-                obj.Render.Model = { .ID = coopModel };
+                obj.Render.Model = { .ID = Resources::GetCoopShipModel() };
                 obj.ID = 0;
                 break;
 

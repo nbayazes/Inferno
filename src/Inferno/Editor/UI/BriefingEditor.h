@@ -1,11 +1,11 @@
 #pragma once
 
 #include "Briefing.h"
+#include "Game.Briefing.h"
 #include "Game.h"
+#include "Resources.h"
 #include "Settings.h"
 #include "WindowBase.h"
-#include "Resources.h"
-#include "Game.Briefing.h"
 
 namespace Inferno::Editor {
     class BriefingEditor : public WindowBase {

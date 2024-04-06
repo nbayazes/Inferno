@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Types.h"
-#include "Utility.h"
-#include "Object.h"
-#include "Streams.h"
-#include "Wall.h"
 #include "DataPool.h"
+#include "Object.h"
 #include "Room.h"
 #include "Segment.h"
+#include "Streams.h"
+#include "Types.h"
+#include "Utility.h"
+#include "Wall.h"
 
 namespace Inferno {
     struct Matcen {

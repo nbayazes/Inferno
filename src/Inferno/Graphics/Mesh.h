@@ -13,8 +13,8 @@ namespace Inferno::Render {
     struct Mesh {
         D3D12_INDEX_BUFFER_VIEW IndexBuffer;
         D3D12_VERTEX_BUFFER_VIEW VertexBuffer;
-        uint IndexCount;
-        TexID Texture;
+        uint IndexCount = 0;
+        TexID Texture = TexID::None;
         EClipID EffectClip = EClipID::None;
         bool IsTransparent = false;
     };
@@ -56,5 +56,18 @@ namespace Inferno::Render {
         MeshIndex& GetOutrageHandle(ModelID id) {
             return _handles[_capacity + (int)id];
         }
+    };
+
+    class TerrainMesh {
+        Mesh _mesh{};
+        PackedBuffer _buffer{ 1024 * 1024 * 1 };
+    public:
+        TerrainMesh(span<const ObjectVertex> verts, span<const uint16> indices) {
+            _mesh.VertexBuffer = _buffer.PackVertices(verts);
+            _mesh.IndexBuffer = _buffer.PackIndices(indices);
+            _mesh.IndexCount = (uint)indices.size();
+        }
+
+        const Mesh& GetMesh() const { return _mesh; }
     };
 }

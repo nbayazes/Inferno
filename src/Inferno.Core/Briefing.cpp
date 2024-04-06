@@ -105,13 +105,7 @@ namespace Inferno {
 
         Briefing briefing;
         briefing.Raw = string(data.begin(), data.end());
-        std::stringstream stream(briefing.Raw);
-
-        List<string> lines;
-        string line;
-        while (std::getline(stream, line))
-            lines.push_back(line);
-
+        auto lines = String::ToLines(briefing.Raw);
         briefing.Screens = ParseScreens(lines);
         //briefing.Screens = ParseScreens(data);
         return briefing;

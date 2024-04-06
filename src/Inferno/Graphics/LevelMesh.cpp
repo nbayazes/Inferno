@@ -467,23 +467,23 @@ namespace Inferno {
         _wallMeshes.clear();
         _decalMeshes.clear();
 
-        auto vbv = buffer.PackVertices(_geometry.Vertices);
+        auto vbv = buffer.PackVertices(span{ _geometry.Vertices });
 
         for (auto& c : _geometry.Chunks) {
             UpdateBounds(c, _geometry.Vertices);
-            auto ibv = buffer.PackIndices(c.Indices);
+            auto ibv = buffer.PackIndices(span{ c.Indices });
             _meshes.emplace_back(LevelMesh{ vbv, ibv, (uint)c.Indices.size(), &c });
         }
 
         for (auto& c : _geometry.Lights) {
             UpdateBounds(c, _geometry.Vertices);
-            auto ibv = buffer.PackIndices(c.Indices);
+            auto ibv = buffer.PackIndices(span{ c.Indices });
             _meshes.emplace_back(LevelMesh{ vbv, ibv, (uint)c.Indices.size(), &c });
         }
 
         for (auto& c : _geometry.Walls) {
             UpdateBounds(c, _geometry.Vertices);
-            auto ibv = buffer.PackIndices(c.Indices);
+            auto ibv = buffer.PackIndices(span{ c.Indices });
             _wallMeshes.emplace_back(LevelMesh{ vbv, ibv, (uint)c.Indices.size(), &c });
         }
     }

@@ -49,6 +49,7 @@ namespace Inferno::Resources {
 
     ModelID GetDeadModelID(ModelID);
     ModelID GetDyingModelID(ModelID);
+    ModelID GetCoopShipModel();
 
     const RobotInfo& GetRobotInfo(uint);
 

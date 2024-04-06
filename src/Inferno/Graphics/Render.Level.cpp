@@ -477,6 +477,42 @@ namespace Inferno::Render {
         LevelChanged = false;
     }
 
+    void DrawTerrain(Graphics::GraphicsContext& ctx) {
+        auto terrainMesh = GetTerrainMesh();
+        if (!terrainMesh) return;
+
+        auto cmdList = ctx.GetCommandList();
+        ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        auto& effect = Effects->Terrain;
+        ctx.ApplyEffect(effect);
+        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+        effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
+        effect.Shader->SetNormalSampler(cmdList, GetNormalSampler());
+        //effect.Shader->SetLightGrid(cmdList, *Render::LightGrid);
+
+        TerrainShader::Constants constants = {};
+        constants.World = Game::EscapeInfo.TerrainTransform;
+        constants.Ambient = Vector4(1, 1, 1, 1);
+        effect.Shader->SetConstants(cmdList, constants);
+        auto& terrainTexture = Render::Materials->Get(Game::EscapeInfo.TerrainTexture);
+        effect.Shader->SetDiffuse(cmdList, terrainTexture.Handle());
+
+        auto& depthBuffer = Adapter->GetHdrDepthBuffer();
+        depthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+
+        cmdList->IASetVertexBuffers(0, 1, &terrainMesh->VertexBuffer);
+        cmdList->IASetIndexBuffer(&terrainMesh->IndexBuffer);
+        cmdList->DrawIndexedInstanced(terrainMesh->IndexCount, 1, 0, 0, 0);
+
+        // bind object shader
+        // bind texture
+        //auto& frameConstants = Adapter->GetBriefingFrameConstants();
+        //UpdateFrameConstants(size, fov, BriefingCamera, frameConstants);
+
+        //ctx.GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    }
+
     void DrawLevel(Graphics::GraphicsContext& ctx, Level& level) {
         if (Settings::Editor.ShowFlickeringLights)
             UpdateFlickeringLights(level, (float)ElapsedTime, Game::FrameTime);
@@ -571,7 +607,11 @@ namespace Inferno::Render {
             ctx.SetViewportAndScissor(UINT(target.GetWidth() * Render::RenderScale), UINT(target.GetHeight() * Render::RenderScale));
             LightGrid->SetLightConstants(UINT(target.GetWidth() * Render::RenderScale), UINT(target.GetHeight() * Render::RenderScale));
 
+            DrawTerrain(ctx);
+
             ScopedTimer execTimer(&Metrics::ExecuteRenderCommands);
+
+            depthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
 
             {
                 PIXScopedEvent(cmdList, PIX_COLOR_INDEX(1), "Opaque queue");

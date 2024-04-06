@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Types.h"
 #include "AI.h"
 #include "Dynamics.h"
 #include "Polymodel.h"
+#include "Types.h"
 #include "Weapon.h"
 
 namespace Inferno {

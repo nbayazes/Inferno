@@ -3,6 +3,7 @@
 #include "Editor/Editor.IO.h"
 #include "Editor/UI/TextureBrowserUI.h"
 #include "FileSystem.h"
+#include "Game.EscapeSequence.h"
 #include "Game.h"
 #include "Game.Room.h"
 #include "Game.Text.h"
@@ -214,6 +215,16 @@ namespace Inferno::Game {
             Editor::OnLevelLoad(reload);
             Render::Materials->Prune();
             Render::Adapter->PrintMemoryUsage();
+
+            Game::EscapeInfo = {};
+
+            auto exitConfig = String::NameWithoutExtension(Level.FileName) + ".txb";
+            if (auto data = Resources::ReadBinaryFile(exitConfig); !data.empty()) {
+                DecodeText(data);
+                auto lines = String::ToLines(String::OfBytes(data));
+                Game::EscapeInfo = ParseEscapeInfo(Level, lines);
+                Render::LoadTerrain(Game::EscapeInfo);
+            }
 
             //Render::Materials->LoadMaterials(Resources::GameData.HiResGauges, false);
             //Render::Materials->LoadMaterials(Resources::GameData.Gauges, false);

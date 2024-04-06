@@ -384,9 +384,7 @@ namespace Inferno::Render {
             return;
         }
 
-        auto& effect = pass == RenderPass::Briefing ? Effects->BriefingObject : Effects->Object;
-        if (pass == RenderPass::Briefing) pass = RenderPass::Opaque;
-
+        auto& effect = Effects->Object;
         auto cmdList = ctx.GetCommandList();
 
         auto& model = Resources::GetModel(modelId);

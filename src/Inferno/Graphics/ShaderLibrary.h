@@ -1,11 +1,10 @@
 #pragma once
 
 #include "DirectX.h"
-#include <typeindex>
-#include "Lighting.h"
-#include "Settings.h"
 #include "Effect.h"
+#include "Lighting.h"
 #include "Material2D.h"
+#include "Settings.h"
 
 namespace Inferno {
     namespace Render {
@@ -488,6 +487,51 @@ namespace Inferno {
         }
     };
 
+    class TerrainShader : public IShader {
+        enum RootParameterIndex : uint {
+            FrameConstants, // b0
+            RootConstants, // b1
+            Diffuse, // t0
+            Material, // t1 - t4
+            Sampler, // s0
+            NormalSampler, // s1
+            LightGrid, // t11, t12, t13, b2
+        };
+
+    public:
+        struct Constants {
+            Matrix World;
+            Vector4 Ambient;
+        };
+
+        TerrainShader(const ShaderInfo& info) : IShader(info) {
+            InputLayout = ObjectVertex::Layout;
+        }
+
+        static void SetDiffuse(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
+            commandList->SetGraphicsRootDescriptorTable(Diffuse, handle);
+        }
+
+        static void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
+            commandList->SetGraphicsRootDescriptorTable(Sampler, sampler);
+        }
+
+        static void SetNormalSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
+            commandList->SetGraphicsRootDescriptorTable(NormalSampler, sampler);
+        }
+
+        static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
+            Render::BindTempConstants(commandList, consts, RootConstants);
+        }
+
+        static void SetLightGrid(ID3D12GraphicsCommandList* commandList, Graphics::FillLightGridCS& lightGrid) {
+            commandList->SetGraphicsRootDescriptorTable(LightGrid, lightGrid.GetSRVTable());
+            commandList->SetGraphicsRootDescriptorTable(LightGrid + 1, lightGrid.GetLightGrid().GetSRV());
+            commandList->SetGraphicsRootDescriptorTable(LightGrid + 2, lightGrid.GetBitMask().GetSRV());
+            commandList->SetGraphicsRootConstantBufferView(LightGrid + 3, lightGrid.GetConstants());
+        }
+    };
+
     class FlatShader : public IShader {
         enum RootParameterIndex : uint {
             ConstantBuffer
@@ -591,6 +635,7 @@ namespace Inferno {
         SpriteShader Sprite = ShaderInfo{ L"shaders/sprite.hlsl" };
         ObjectShader Object = ShaderInfo{ L"shaders/object.hlsl" };
         ObjectShader BriefingObject = ShaderInfo{ L"shaders/BriefingObject.hlsl" };
+        TerrainShader Terrain = ShaderInfo{ L"shaders/Terrain.hlsl" };
         ObjectDistortionShader ObjectDistortion = ShaderInfo{ L"shaders/Cloak.hlsl" };
     };
 
@@ -605,6 +650,8 @@ namespace Inferno {
         Effect<LevelShader> LevelWallAdditive = { &_shaders->Level, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
         Effect<FlatLevelShader> LevelFlat = { &_shaders->LevelFlat, { BlendMode::Opaque, CullMode::CounterClockwise, DepthMode::Read } };
         Effect<FlatLevelShader> LevelWallFlat = { &_shaders->LevelFlat, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read } };
+
+        Effect<TerrainShader> Terrain = { &_shaders->Terrain, { BlendMode::Opaque, CullMode::CounterClockwise, DepthMode::ReadWrite } };
 
         Effect<DepthShader> Depth = { &_shaders->Depth, { BlendMode::Opaque } };
         Effect<DepthCutoutShader> DepthCutout = { &_shaders->DepthCutout, { BlendMode::Opaque } };
@@ -645,6 +692,7 @@ namespace Inferno {
             CompileShader(&_shaders->DepthObject);
             CompileShader(&_shaders->DepthCutout);
             CompileShader(&_shaders->Hud);
+            CompileShader(&_shaders->Terrain);
 
             auto compile = [&](auto& effect, uint renderTargets = 1) {
                 try {
@@ -667,6 +715,8 @@ namespace Inferno {
 
             compile(LevelFlat);
             compile(LevelWallFlat);
+
+            compile(Terrain);
 
             compile(Object);
             compile(ObjectGlow);

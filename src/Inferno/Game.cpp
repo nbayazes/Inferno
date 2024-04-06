@@ -45,7 +45,6 @@ namespace Inferno::Game {
         ScreenFlash = Color();
     }
 
-
     void UpdateAmbientSounds() {
         auto& player = Level.Objects[0];
         if (player.Segment == SegID::None) return;
@@ -517,7 +516,7 @@ namespace Inferno::Game {
     void DrawBriefing() {
         float scale = 1;
         Inferno::Render::CanvasBitmapInfo info;
-        info.Size = Vector2{ 640, 480 } *scale;
+        info.Size = Vector2{ 640, 480 } * scale;
         info.Texture = Render::Adapter->BriefingColorBuffer.GetSRV();
         info.HorizontalAlign = AlignH::Center;
         info.VerticalAlign = AlignV::Center;
@@ -552,8 +551,8 @@ namespace Inferno::Game {
         switch (State) {
             case GameState::Game:
                 LerpAmount = GameUpdate(dt);
-                //UpdateCommsMessage();
-                //DrawBriefing();
+            //UpdateCommsMessage();
+            //DrawBriefing();
 
                 if (!Level.Objects.empty()) {
                     if (Player.IsDead)
@@ -732,7 +731,7 @@ namespace Inferno::Game {
         ResetDeltaTime = true;
 
         // Activate game mode
-        InitObject(Level, *player, ObjectType::Player);
+        InitObject(*player, ObjectType::Player);
         Player.Reference = { ObjID(0), player->Signature };
         Player.SpawnPosition = player->Position;
         Player.SpawnRotation = player->Rotation;

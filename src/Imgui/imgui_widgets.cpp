@@ -5690,6 +5690,53 @@ bool ImGui::ColorPicker4(const char* label, float col[4], ImGuiColorEditFlags fl
         draw_list->PrimVtx(tra, uv_white, hue_color32);
         draw_list->PrimVtx(trb, uv_white, col_black);
         draw_list->PrimVtx(trc, uv_white, col_white);
+
+        // Attempt at making better SRGB triangle...
+        //auto edge0 = ImLerp(tra, trb, 0.65f);
+        //auto edge1 = ImLerp(tra, trc, 0.65f);
+        //auto edge2 = ImLerp(trb, trc, 0.5f);
+
+        ////ImPow(color0.r 2);
+        //auto hueColor4 =ColorConvertU32ToFloat4(hue_color32);
+
+        //ImVec4 c0{};
+        //c0.x = ImPow(ImLerp(0.0f, hueColor4.x, 0.25f), 1);
+        //c0.y = ImPow(ImLerp(0.0f, hueColor4.y, 0.25f), 1);
+        //c0.z = ImPow(ImLerp(0.0f, hueColor4.z, 0.25f), 1);
+        //c0.w = 1;
+
+        //ImVec4 c1{};
+        //c1.x = ImPow(ImLerp(1.0f, hueColor4.x, 0.25f), 1);
+        //c1.y = ImPow(ImLerp(1.0f, hueColor4.y, 0.25f), 1);
+        //c1.z = ImPow(ImLerp(1.0f, hueColor4.z, 0.25f), 1);
+        //c1.w = 1;
+
+        //ImVec4 c2{};
+        //c2.x = 0.25f;
+        //c2.y = 0.25f;
+        //c2.z = 0.25f;
+        //c2.w = 1;
+
+        //draw_list->PrimReserve(3, 3);
+        //draw_list->PrimVtx(tra, uv_white, hue_color32);
+        //draw_list->PrimVtx(edge0, uv_white, ColorConvertFloat4ToU32(c0));
+        //draw_list->PrimVtx(edge1, uv_white, ColorConvertFloat4ToU32(c1));
+
+        //draw_list->PrimReserve(3, 3);
+        //draw_list->PrimVtx(trb, uv_white, col_black);
+        //draw_list->PrimVtx(edge0, uv_white, ColorConvertFloat4ToU32(c0));
+        //draw_list->PrimVtx(edge2, uv_white, ColorConvertFloat4ToU32(c2));
+
+        //draw_list->PrimReserve(3, 3);
+        //draw_list->PrimVtx(trc, uv_white, col_white);
+        //draw_list->PrimVtx(edge1, uv_white, ColorConvertFloat4ToU32(c1));
+        //draw_list->PrimVtx(edge2, uv_white, ColorConvertFloat4ToU32(c2));
+
+        //draw_list->PrimReserve(3, 3);
+        //draw_list->PrimVtx(edge2, uv_white, ColorConvertFloat4ToU32(c2));
+        //draw_list->PrimVtx(edge1, uv_white, ColorConvertFloat4ToU32(c1));   
+        //draw_list->PrimVtx(edge0, uv_white, ColorConvertFloat4ToU32(c0));
+
         draw_list->AddTriangle(tra, trb, trc, col_midgrey, 1.5f);
         sv_cursor_pos = ImLerp(ImLerp(trc, tra, ImSaturate(S)), trb, ImSaturate(1 - V));
     }

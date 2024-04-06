@@ -122,13 +122,13 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //}
 
     //float3 ambient = Object.Ambient.rgb;
-    float3 ambient =  1.0.rrr;
+    float3 ambient = 1.0.rrr;
     MaterialInfo material = Materials[matid];
 
     float3 lighting = ambient;
     diffuse *= input.col;
 
-    
+
     float3 normal = SampleNormal(TextureTable[NonUniformResourceIndex(texid * 5 + 4)], input.uv, NormalSampler, Frame.FilterMode);
     normal.xy *= material.NormalStrength;
     normal = normalize(normal);
@@ -155,67 +155,5 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //lighting *= Specular(lightDir, viewDir, input.normal, 32) * 5;
     lighting += emissive * diffuse.rgb * material.EmissiveStrength * .2;
 
-
     return float4(diffuse.rgb * lighting * Frame.GlobalDimming, diffuse.a);
-
-    //if (!Frame.NewLightMode) {
-    //    float3 lightDir = float3(0, -1, 0);
-    //    lighting += saturate(ambient * 4);
-    //    lighting.rgb = saturate(Luminance(lighting.rgb)); // Desaturate
-    //    lighting *= Specular(lightDir, viewDir, input.normal);
-    //    diffuse *= input.col;
-    //    return float4(diffuse.rgb * lighting * Frame.GlobalDimming, diffuse.a);
-    //}
-    //else {
-    //    if (any(Object.EmissiveLight.rgb)) {
-    //        lighting += Object.EmissiveLight.rgb * Object.EmissiveLight.a * diffuse.rgb;
-    //    }
-    //    else {
-    //        //float specularMask = Specular1.Sample(Sampler, input.uv).r;
-    //        float specularMask = Sample2D(TextureTable[NonUniformResourceIndex(texid * 5 + 3)], input.uv, Sampler, Frame.FilterMode).r;
-
-    //        MaterialInfo material = Materials[matid];
-    //        float3 normal = SampleNormal(TextureTable[NonUniformResourceIndex(texid * 5 + 4)], input.uv, NormalSampler, Frame.FilterMode);
-    //        normal.xy *= material.NormalStrength;
-    //        normal = normalize(normal);
-    //        emissive *= material.EmissiveStrength;
-
-    //        if (emissive > 0 && material.LightReceived == 0) {
-    //            emissive = emissive + 1; // make lava and forcefields full bright
-    //        }
-    //        else {
-    //            diffuse *= input.col; // apply per-poly color when not using fullbright textures
-    //        }
-
-    //        float3x3 tbn = float3x3(input.tangent, input.bitangent, input.normal);
-    //        normal = normalize(mul(normal, tbn));
-
-    //        float3 colorSum = float3(0, 0, 0);
-    //        uint2 pixelPos = uint2(input.pos.xy);
-    //        ambient *= Frame.GlobalDimming;
-    //        specularMask *= material.SpecularStrength;
-
-    //        lighting += emissive * diffuse.rgb;
-    //        lighting += diffuse.rgb * ambient * 0.20 * material.LightReceived * (1 - material.Metalness * .20); // ambient
-    //        ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
-    //        lighting += colorSum * material.LightReceived;
-
-    //        {
-    //            // Add some fake specular highlights so objects without direct lighting aren't completely flat
-    //            float nDotH = HalfLambert(normal, -viewDir);
-    //            float gloss = RoughnessToGloss(material.Roughness) / 4;
-    //            //float gloss = 16;
-    //            float eyeTerm = pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
-    //            // saturate metallic diffuse. It looks better and removes white highlights. Causes yellow to look orange.
-    //            diffuse.rgb = pow(diffuse.rgb, 1 + material.Metalness);
-    //            float3 specularColor = diffuse.rgb * ambient * 3;
-    //            lighting += eyeTerm * specularColor /** specularMask*/ * input.col.rgb * material.SpecularStrength;
-    //            //lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, ambient, diffuse.rgb, specularMask, .25) * nDotH;
-    //        }
-    //    }
-
-    //    lighting.rgb += phaseColor;
-
-    //    return float4(lighting, diffuse.a);
-    //}
 }

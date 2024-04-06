@@ -56,7 +56,7 @@ namespace Inferno {
         void ResetIndex() { _index = 0; }
 
         template <class TVertex>
-        D3D12_VERTEX_BUFFER_VIEW PackVertices(List<TVertex> data) {
+        D3D12_VERTEX_BUFFER_VIEW PackVertices(span<TVertex> data) {
             constexpr auto stride = sizeof(TVertex);
             auto size = uint(data.size() * stride);
             if (_index + size > _size) 
@@ -74,7 +74,7 @@ namespace Inferno {
         }
 
         template <class TIndex = uint16>
-        D3D12_INDEX_BUFFER_VIEW PackIndices(List<TIndex> data) {
+        D3D12_INDEX_BUFFER_VIEW PackIndices(span<TIndex> data) {
             constexpr auto stride = sizeof(TIndex);
             static_assert(stride == 2 || stride == 4);
             constexpr auto format = stride == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;

@@ -1,8 +1,8 @@
 #pragma once
 #include <fstream>
+#include "Streams.h"
 #include "Types.h"
 #include "Utility.h"
-#include "Streams.h"
 
 namespace Inferno {
     struct HogEntry {
@@ -45,7 +45,7 @@ namespace Inferno {
     class HogFile {
     public:
         List<HogEntry> Entries;
-        std::filesystem::path Path;
+        filesystem::path Path;
 
         // Reads data from an entry. Can come from the HogFile Path or a file system path.
         List<ubyte> ReadEntry(const HogEntry& entry) const;

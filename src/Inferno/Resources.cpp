@@ -187,6 +187,10 @@ namespace Inferno::Resources {
         return GameData.DyingModels[(int)id];
     }
 
+    ModelID GetCoopShipModel() {
+        return Game::Level.IsDescent1() ? ModelID::D1Coop : ModelID::D2Player;
+    }
+
     const RobotInfo& GetRobotInfo(uint id) {
         if (!Seq::inRange(GameData.Robots, id)) return DEFAULT_ROBOT;
         return GameData.Robots[id];

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <vector>
 #include <functional>
 #include <span>
+#include <vector>
 
 namespace Inferno {
     // Contiguous data pool that reuses elements when a condition is met.
@@ -21,7 +21,7 @@ namespace Inferno {
 
         TData& Get(TKey key) {
             assert(InRange(key));
-            return _data[(int64)key];
+            return _data[(int64_t)key];
         }
 
         size_t Count() const { return _liveItems; }

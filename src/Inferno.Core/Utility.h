@@ -616,6 +616,10 @@ namespace Inferno {
             return p;
         }
 
+        inline string OfBytes(span<byte> data) {
+            return { data.begin(), data.end() };
+        }
+
         template <class T>
         constexpr bool TryParse(string_view str, T& result) {
             return std::from_chars(str.data(), str.data() + str.size(), result).ec == std::errc{};
@@ -708,6 +712,18 @@ namespace Inferno {
             return items;
         }
 
+        // Splits a string into lines
+        inline List<string> ToLines(const string& source) {
+            List<string> lines;
+            std::stringstream stream(source);
+
+            string line;
+            while (std::getline(stream, line))
+                lines.push_back(line);
+
+            return lines;
+        }
+
         // djb2 hash algorithm by Dan Bernstein.
         // Prefer using std::hash when compile time values aren't necessary.
         constexpr auto Hash(string_view s) noexcept {
@@ -760,7 +776,7 @@ namespace Inferno {
             r.reserve(std::size(xs));
             for (auto& x : xs)
                 r.push_back(std::invoke(fn, x));
-            
+
             return r;
         }
 
