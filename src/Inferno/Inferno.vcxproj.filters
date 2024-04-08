@@ -289,5 +289,6 @@
     <None Include="shaders\UnpackBufferCS.hlsl" />
     <None Include="shaders\BriefingObject.hlsl" />
     <None Include="shaders\Terrain.hlsl" />
+    <None Include="shaders\Stars.hlsl" />
   </ItemGroup>
 </Project>

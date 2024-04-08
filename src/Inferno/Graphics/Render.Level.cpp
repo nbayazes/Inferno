@@ -513,6 +513,14 @@ namespace Inferno::Render {
         //ctx.GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     }
 
+    void DrawStars(Graphics::GraphicsContext& ctx) {
+        auto cmdList = ctx.GetCommandList();
+        ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        ctx.ApplyEffect(Effects->Stars);
+        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+        cmdList->DrawInstanced(3, 1, 0, 0);
+    }
+
     void DrawLevel(Graphics::GraphicsContext& ctx, Level& level) {
         if (Settings::Editor.ShowFlickeringLights)
             UpdateFlickeringLights(level, (float)ElapsedTime, Game::FrameTime);
@@ -607,6 +615,7 @@ namespace Inferno::Render {
             ctx.SetViewportAndScissor(UINT(target.GetWidth() * Render::RenderScale), UINT(target.GetHeight() * Render::RenderScale));
             LightGrid->SetLightConstants(UINT(target.GetWidth() * Render::RenderScale), UINT(target.GetHeight() * Render::RenderScale));
 
+            DrawStars(ctx);
             DrawTerrain(ctx);
 
             ScopedTimer execTimer(&Metrics::ExecuteRenderCommands);

@@ -17,6 +17,7 @@ struct FrameConstants {
     float NearClip, FarClip;
     float3 EyeDir; // Camera direction
     float GlobalDimming;
+    float3 EyeUp; //Camera up
     bool NewLightMode; // dynamic light mode
     int FilterMode; // 0: Point, 1: AA point, 2: smooth - must match TextureFilterMode
     float RenderScale; // Resolution scaling

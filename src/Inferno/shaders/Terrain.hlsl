@@ -100,11 +100,11 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //float3x3 tbn = float3x3(input.tangent, input.bitangent, input.normal);
     //normal = normalize(mul(normal, tbn));
 
-    float3 lightDir = normalize(float3(1, -2, 0));
+    float3 lightDir = normalize(float3(0.5, -2, 0));
     //return float4((input.normal + 1) * 0.5f, 1);
 
-    lighting += pow(HalfLambert(input.normal, -lightDir), 12) * 1.25;
-    lighting += 0.005.rrr; // ambient
+    lighting += pow(HalfLambert(input.normal, -lightDir), 12) * 0.75;
+    lighting += 0.075.rrr; // ambient
     //lighting = pow(1 + lighting, 1.5) - 1;
 
     float nDotH = Lambert(input.normal, -viewDir);

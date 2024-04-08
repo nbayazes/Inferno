@@ -34,6 +34,7 @@ namespace Inferno {
         float NearClip, FarClip;
         Vector3 EyeDir;
         float GlobalDimming;
+        Vector3 EyeUp;
         HlslBool NewLightMode;
         TextureFilterMode FilterMode;
         float RenderScale;
@@ -276,6 +277,11 @@ namespace Inferno {
         static void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
             commandList->SetGraphicsRootDescriptorTable(Sampler, sampler);
         }
+    };
+
+    class StarShader : public IShader {
+    public:
+        StarShader(const ShaderInfo& info) : IShader(info) {}
     };
 
     class LevelShader : public IShader {
@@ -637,6 +643,7 @@ namespace Inferno {
         ObjectShader BriefingObject = ShaderInfo{ L"shaders/BriefingObject.hlsl" };
         TerrainShader Terrain = ShaderInfo{ L"shaders/Terrain.hlsl" };
         ObjectDistortionShader ObjectDistortion = ShaderInfo{ L"shaders/Cloak.hlsl" };
+        StarShader Stars = ShaderInfo{ L"shaders/stars.hlsl" };
     };
 
     class EffectResources {
@@ -678,6 +685,8 @@ namespace Inferno {
         Effect<SpriteShader> SpriteAdditiveBiased = { &_shaders->Sprite, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::ReadDecalBiased } };
         Effect<SpriteShader> SpriteMultiply = { &_shaders->Sprite, { BlendMode::Multiply, CullMode::CounterClockwise, DepthMode::ReadDecalBiased } };
 
+        Effect<StarShader> Stars = { &_shaders->Stars, { BlendMode::Opaque, CullMode::None, DepthMode::None } };
+
         void Compile(ID3D12Device* device, uint msaaSamples) {
             CompileShader(&_shaders->Flat);
             CompileShader(&_shaders->Level);
@@ -693,6 +702,7 @@ namespace Inferno {
             CompileShader(&_shaders->DepthCutout);
             CompileShader(&_shaders->Hud);
             CompileShader(&_shaders->Terrain);
+            CompileShader(&_shaders->Stars);
 
             auto compile = [&](auto& effect, uint renderTargets = 1) {
                 try {
@@ -737,6 +747,8 @@ namespace Inferno {
             compile(Briefing);
             compile(Hud);
             compile(HudAdditive);
+
+            compile(Stars);
         }
     };
 }

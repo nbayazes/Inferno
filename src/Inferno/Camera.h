@@ -70,7 +70,6 @@ namespace Inferno {
         void Rotate(float yaw, float pitch) {
             auto qyaw = Quaternion::CreateFromAxisAngle(Up, yaw);
             auto qpitch = Quaternion::CreateFromAxisAngle(GetRight(), pitch);
-            //SPDLOG_INFO("Yaw pitch: {}, {}", yaw, pitch);
 
             Vector3 offset = Target - Position;
             Target = Vector3::Transform(offset, qyaw * qpitch) + Position;

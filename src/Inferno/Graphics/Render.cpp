@@ -471,6 +471,7 @@ namespace Inferno::Render {
         frameConstants.FarClip = camera.FarClip;
         frameConstants.Eye = camera.Position;
         frameConstants.EyeDir = camera.GetForward();
+        frameConstants.EyeUp = camera.Up;
         frameConstants.Size = size;
         frameConstants.RenderScale = Render::RenderScale;
         frameConstants.GlobalDimming = Game::GlobalDimming;
