@@ -12,9 +12,20 @@ namespace Inferno::Editor {
         bool _showWarnings = false, _markErrors = false, _fixErrors = true, _checkDegeneracy = false;
         bool _checked = false; // user has checked the level once already
         bool _showStats = true;
+        bool _countedObjects = false;
+
+        uint _powerups = 0;
+        uint _robots = 0;
+
     public:
         DiagnosticWindow() : WindowBase("Diagnostics", &Settings::Editor.Windows.Diagnostics) {
-            auto onLevelChanged = [this] { if (IsOpen() && _checked) CheckLevel(_fixErrors); };
+            auto onLevelChanged = [this] {
+                if (IsOpen()) {
+                    if (_checked) CheckLevel(_fixErrors);
+                    _countedObjects = false;
+                }
+            };
+
             Events::SegmentsChanged += onLevelChanged;
             Events::ObjectsChanged += onLevelChanged;
             Events::SnapshotChanged += [this] {
@@ -29,6 +40,15 @@ namespace Inferno::Editor {
         }
 
     protected:
+        void CountObjects() {
+            _powerups = _robots = 0;
+
+            for (auto& obj : Game::Level.Objects) {
+                if (obj.Type == ObjectType::Powerup) _powerups++;
+                if (obj.Type == ObjectType::Robot) _robots++;
+            }
+        }
+
         void CheckLevel(bool fixErrors) {
             _checked = true;
             _segments = CheckSegments(Game::Level, fixErrors, _checkDegeneracy);
@@ -46,6 +66,11 @@ namespace Inferno::Editor {
         }
 
         void OnUpdate() override {
+            if (!_countedObjects) {
+                CountObjects();
+                _countedObjects = true;
+            }
+
             if (ImGui::Button("Check level"))
                 CheckLevel(_fixErrors);
 
@@ -92,9 +117,7 @@ namespace Inferno::Editor {
 
                     ImGui::TableNextRow();
                     ImGui::TableNextColumn();
-                    auto segLabel = item.Tag.Side == SideID::None ?
-                        fmt::format("{}", (int)item.Tag.Segment) :
-                        fmt::format("{}:{}", (int)item.Tag.Segment, (int)item.Tag.Side);
+                    auto segLabel = item.Tag.Side == SideID::None ? fmt::format("{}", (int)item.Tag.Segment) : fmt::format("{}:{}", (int)item.Tag.Segment, (int)item.Tag.Side);
 
                     ImGui::Text(segLabel.c_str());
 
@@ -161,6 +184,12 @@ namespace Inferno::Editor {
                     ImGui::Text("%i", level.Objects.size());
                     ImGui::TableNextColumn();
                     ImGui::Text("%i", level.Limits.Objects);
+
+                    ImGui::TableRowLabel("Powerups");
+                    ImGui::Text("%i", _powerups);
+
+                    ImGui::TableRowLabel("Robots");
+                    ImGui::Text("%i", _robots);
 
                     ImGui::TableRowLabel("Walls");
                     ImGui::Text("%i", level.Walls.size());

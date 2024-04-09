@@ -176,6 +176,7 @@ namespace Inferno::Editor {
             for (auto& id : newObjects)
                 Editor::Marked.Objects.insert(id);
 
+            Events::ObjectsChanged();
             return CursorDragMode::Transform;
         }
         else if (Settings::Editor.SelectionMode == SelectionMode::Segment &&
