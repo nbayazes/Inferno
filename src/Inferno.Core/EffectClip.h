@@ -57,7 +57,7 @@ namespace Inferno {
         Explodes = 1,  // door explodes when opening (hostage door)
         Blastable = 2, // this is a blastable wall
         TMap1 = 4,     // this uses primary tmap, not tmap2
-        Hidden = 8
+        Hidden = 8 // Secret door
     };
 
     //DEFINE_ENUM_FLAG_OPERATORS(WallClipFlag);

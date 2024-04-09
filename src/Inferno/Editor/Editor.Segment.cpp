@@ -829,6 +829,10 @@ namespace Inferno::Editor {
         else
             side->TMap2 = clip->Frames[0];
 
+        // Clear the overlay texture when it is a secret door
+        if (HasFlag(clip->Flags, WallClipFlag::Hidden))
+            side->TMap2 = LevelTexID::Unset;
+
         if (auto wall = level.TryGetWall(tag))
             wall->Clip = id;
     }

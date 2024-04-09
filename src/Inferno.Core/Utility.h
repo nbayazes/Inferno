@@ -78,6 +78,21 @@ namespace Inferno {
     }
 
     template <class T>
+    constexpr void SetFlag(T& flags, T flag) { flags |= flag; }
+
+    template <class T>
+    constexpr bool HasFlag(const T& flags, T flag) { return bool(flags & flag); }
+
+    template <class T>
+    constexpr void ClearFlag(T& flags, T flag) { flags &= ~flag; }
+
+    template <class T>
+    constexpr void SetFlag(T& flags, T flag, bool value) {
+        if (value) flags |= flag;
+        else flags &= ~flag;
+    }
+
+    template <class T>
     concept IsEnum = is_scoped_enum_v<T>;
 
     //// Converts an enum to the underlying type
