@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "CustomTextureLibrary.h"
+#include "CustomResourceLibrary.h"
 #include "Resources.h"
 
 namespace Inferno {
@@ -65,7 +65,7 @@ namespace Inferno {
         writer.Write<uint32>(entry.DataOffset);
     }
 
-    void CustomTextureLibrary::ImportBmp(const filesystem::path& path, bool transparent, PigEntry entry, bool descent1, bool whiteAsTransparent) {
+    void CustomResourceLibrary::ImportBmp(const filesystem::path& path, bool transparent, PigEntry entry, bool descent1, bool whiteAsTransparent) {
         StreamReader stream(path);
         BITMAPFILEHEADER bmfh{};
         BITMAPINFOHEADER bmih{};
@@ -193,10 +193,10 @@ namespace Inferno {
         }
     }
 
-    size_t CustomTextureLibrary::WritePog(StreamWriter& writer, const Palette& palette) {
+    size_t CustomResourceLibrary::WritePog(StreamWriter& writer, const Palette& palette) {
         if (_textures.empty()) return 0;
         auto startPos = writer.Position();
-        writer.Write<int32>('GOPD'); // Descent POG
+        writer.Write<int32>(MakeFourCC("DPOG")); // Descent POG
         writer.Write<int32>(1);
         writer.Write((int32)_textures.size());
 
@@ -222,10 +222,10 @@ namespace Inferno {
         return writer.Position() - startPos;
     }
 
-    size_t CustomTextureLibrary::WriteDtx(StreamWriter& writer, const Palette& palette) {
+    size_t CustomResourceLibrary::WriteDtx(StreamWriter& writer, const Palette& palette) {
         auto startPos = writer.Position();
         writer.Write((int32)_textures.size());
-        writer.Write<int32>(0); // Sound count
+        writer.Write((int32)_sounds.size());
 
         auto ids = GetSortedIds();
         uint32 offset = 0;
@@ -238,23 +238,33 @@ namespace Inferno {
             offset += entry.Width * entry.Height; // bytes
         }
 
-        // Sound headers would be here but are omitted
+        // Sound headers
+        for (auto& [name, data] : _sounds) {
+            writer.WriteString(name, 8);
+            writer.Write((int32)data.size());
+            writer.Write((int32)data.size());
+            writer.Write(offset);
+            offset += data.size();
+        }
 
         // write bitmap data
         PaletteLookup lookup(palette);
         for (auto& id : ids)
             writer.WriteBytes(_textures[id].Indexed);
 
-        // Sound data would be here but is omitted
+        for (auto& data : _sounds | views::values)
+            writer.WriteBytes(data);
+
+        SPDLOG_INFO("Wrote DTX with {} custom textures and {} custom sounds", _textures.size(), _sounds.size());
         return writer.Position() - startPos;
     }
 
-    void CustomTextureLibrary::LoadPog(span<PigEntry> pigEntries, span<ubyte> data, const Palette& palette) {
+    void CustomResourceLibrary::LoadPog(span<PigEntry> pigEntries, span<ubyte> data, const Palette& palette) {
         StreamReader reader(data);
 
         auto fileId = reader.ReadInt32();
         auto version = reader.ReadInt32();
-        if (fileId != 'GOPD' || version != 1) {
+        if (fileId != MakeFourCC("DPOG") || version != 1) {
             SPDLOG_WARN("POG file has incorrect header");
             return;
         }
@@ -284,7 +294,7 @@ namespace Inferno {
         SPDLOG_INFO("Loaded {} custom textures from POG", ids.size());
     }
 
-    void CustomTextureLibrary::LoadDtx(span<PigEntry> pigEntries, span<ubyte> data, const Palette& palette) {
+    void CustomResourceLibrary::LoadDtx(span<PigEntry> pigEntries, span<ubyte> data, const Palette& palette) {
         StreamReader reader(data);
 
         auto nBitmaps = reader.ReadInt32();
@@ -302,6 +312,8 @@ namespace Inferno {
                 entry.Custom = true;
                 *existing = entry;
             }
+
+            //SPDLOG_INFO("{}:{} offset {}", entry.Name, entry.Width*entry.Height, entry.DataOffset);
         }
 
         List<SoundFile::Header> sounds;
@@ -316,8 +328,15 @@ namespace Inferno {
             _textures[entry.ID] = ReadBitmapEntry(reader, dataStart, entry, palette);
         }
 
-        // There's sound data here but we don't care
+        for (auto& entry : sounds) {
+            //SPDLOG_INFO("{}:{} offset {}", entry.Name, entry.DataLength, entry.Offset);
 
-        SPDLOG_INFO("Loaded {} custom textures from DTX", nBitmaps);
+            reader.Seek(dataStart + entry.Offset);
+            auto& record = _sounds[entry.Name];
+            record.resize(entry.DataLength);
+            reader.ReadBytes(record);
+        }
+
+        SPDLOG_INFO("Loaded {} custom textures and {} custom sounds from DTX", nBitmaps, nSounds);
     }
 }

@@ -356,3 +356,5 @@ imgui.ini
 dxil.dll
 dxcompiler.dll
 dxc.exe
+*.dxa
+*.ied

@@ -193,13 +193,13 @@ namespace Inferno::Resources {
     }
 
     const PigEntry& GetTextureInfo(TexID id) {
-        if (auto bmp = CustomTextures.Get(id)) return bmp->Info;
+        if (auto bmp = CustomResources.Get(id)) return bmp->Info;
         return Pig.Get(id);
     }
 
     const PigEntry* TryGetTextureInfo(TexID id) {
         if (id <= TexID::Invalid || (int)id >= Pig.Entries.size()) return nullptr;
-        if (auto bmp = CustomTextures.Get(id)) return &bmp->Info;
+        if (auto bmp = CustomResources.Get(id)) return &bmp->Info;
         return &Pig.Get(id);
     }
 
@@ -351,7 +351,7 @@ namespace Inferno::Resources {
         auto pogData = TryReadMissionFile(folder / pog);
         if (!pogData.empty()) {
             SPDLOG_INFO("Loading POG data");
-            CustomTextures.LoadPog(pig.Entries, pogData, palette);
+            CustomResources.LoadPog(pig.Entries, pogData, palette);
         }
 
         // Everything loaded okay, set the internal data
@@ -468,7 +468,7 @@ namespace Inferno::Resources {
         auto dtxData = TryReadFile(folder / dtx);
         if (!dtxData.empty()) {
             SPDLOG_INFO("DTX data found");
-            CustomTextures.LoadDtx(pig.Entries, dtxData, palette);
+            CustomResources.LoadDtx(pig.Entries, dtxData, palette);
         }
 
         FixD1ReactorModel(level);
@@ -487,7 +487,7 @@ namespace Inferno::Resources {
         Pig = {};
         Hog = {};
         GameData = {};
-        CustomTextures.Clear();
+        CustomResources.Clear();
         Textures.clear();
     }
 
@@ -553,7 +553,7 @@ namespace Inferno::Resources {
         if (Textures.empty())
             return DEFAULT_BITMAP;
 
-        if (auto bmp = CustomTextures.Get(id)) return *bmp;
+        if (auto bmp = CustomResources.Get(id)) return *bmp;
         if (!Seq::inRange(Textures, (int)id)) id = (TexID)0;
         return Textures[(int)id];
     }

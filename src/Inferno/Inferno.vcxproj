@@ -150,7 +150,7 @@
     </ClCompile>
     <ClCompile Include="..\vendor\WAVFileReader.cpp" />
     <ClCompile Include="Application.cpp" />
-    <ClCompile Include="CustomTextureLibrary.cpp" />
+    <ClCompile Include="CustomResourceLibrary.cpp" />
     <ClCompile Include="Editor\Editor.Diagnostics.cpp" />
     <ClCompile Include="BitmapCache.cpp" />
     <ClCompile Include="Editor\UI\LightingWindow.cpp" />
@@ -204,7 +204,7 @@
   <ItemGroup>
     <ClInclude Include="..\vendor\WAVFileReader.h" />
     <ClInclude Include="BitmapCache.h" />
-    <ClInclude Include="CustomTextureLibrary.h" />
+    <ClInclude Include="CustomResourceLibrary.h" />
     <ClInclude Include="DirectX.h" />
     <ClInclude Include="Editor\Command.h" />
     <ClInclude Include="Concurrent.h" />

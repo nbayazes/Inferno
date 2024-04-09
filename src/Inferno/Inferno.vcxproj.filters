@@ -167,7 +167,7 @@
     <ClCompile Include="Editor\UI\TextureEditor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CustomTextureLibrary.cpp">
+    <ClCompile Include="CustomResourceLibrary.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Editor\UI\LightingWindow.cpp">
@@ -442,7 +442,7 @@
     <ClInclude Include="Editor\UI\TextureEditor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CustomTextureLibrary.h">
+    <ClInclude Include="CustomResourceLibrary.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Room.h">

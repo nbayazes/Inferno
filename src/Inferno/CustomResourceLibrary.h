@@ -11,8 +11,10 @@ namespace Inferno {
 
     TextureType ClassifyTexture(const PigEntry& entry);
 
-    class CustomTextureLibrary {
+    class CustomResourceLibrary {
         Dictionary<TexID, PigBitmap> _textures;
+        Dictionary<string, List<ubyte>> _sounds;
+
     public:
         void Delete(TexID id) {
             if (_textures.contains(id))
@@ -26,15 +28,21 @@ namespace Inferno {
             return nullptr;
         }
 
-        bool Any() const { return !_textures.empty(); }
-        void Clear() { _textures.clear(); }
+        const List<ubyte> GetSound(const string& name) {
+            if (_sounds.contains(name)) return _sounds[name];
+            return {};
+        }
+
+        bool Any() const { return !_textures.empty() && !_sounds.empty(); }
+
+        void Clear() {
+            _textures.clear();
+            _sounds.clear();
+        }
+
         void ImportBmp(const filesystem::path& path, bool transparent, PigEntry entry, bool descent1, bool whiteAsTransparent);
         size_t WritePog(StreamWriter&, const Palette&);
         size_t WriteDtx(StreamWriter&, const Palette&);
-
-        //std::vector<ubyte> SerializePog(const Palette& palette) {
-        //    SerializeToMemory([&palette, this](StreamWriter& writer) { return WritePog(writer, palette); });
-        //}
 
         // Loads a POG and updates the PIG entry table.
         void LoadPog(span<PigEntry> pigEntries, span<ubyte> data, const Palette& palette);

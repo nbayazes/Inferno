@@ -53,7 +53,8 @@ namespace Inferno::Sound {
 
                 float muffleMult = 1;
 
-                if (dist < MAX_DISTANCE) { // only hit test if sound is actually within range
+                if (dist < MAX_DISTANCE) {
+                    // only hit test if sound is actually within range
                     Ray ray(emitterPos, dir);
                     LevelHit hit;
                     if (IntersectLevel(Game::Level, ray, Segment, dist, hit)) {
@@ -96,7 +97,7 @@ namespace Inferno::Sound {
         };
 
         constexpr X3DAUDIO_DISTANCE_CURVE_POINT c_emitter_LFE_CurvePoints[3] = {
-            { 0.0f, 0.1f }, { 0.5f, 0.5f}, { 0.5f, 0.5f }
+            { 0.0f, 0.1f }, { 0.5f, 0.5f }, { 0.5f, 0.5f }
         };
 
         constexpr X3DAUDIO_DISTANCE_CURVE c_emitter_LFE_Curve = {
@@ -104,7 +105,7 @@ namespace Inferno::Sound {
         };
 
         constexpr X3DAUDIO_DISTANCE_CURVE_POINT c_emitter_Reverb_CurvePoints[3] = {
-            { 0.0f, 0.5f}, { 0.75f, 1.0f }, { 1.0f, 0.65f }
+            { 0.0f, 0.5f }, { 0.75f, 1.0f }, { 1.0f, 0.65f }
         };
         constexpr X3DAUDIO_DISTANCE_CURVE c_emitter_Reverb_Curve = {
             (X3DAUDIO_DISTANCE_CURVE_POINT*)&c_emitter_Reverb_CurvePoints[0], 3
@@ -184,8 +185,7 @@ namespace Inferno::Sound {
             }
             else {
                 // https://github.com/microsoft/DirectXTK/wiki/AudioEngine
-                if (!Engine->IsAudioDevicePresent()) {
-                }
+                if (!Engine->IsAudioDevicePresent()) {}
 
                 if (Engine->IsCriticalError()) {
                     SPDLOG_WARN("Attempting to reset audio engine");
@@ -296,6 +296,14 @@ namespace Inferno::Sound {
         float trimStart = 0;
         if (id == 47)
             trimStart = 0.05f; // Trim the first 50ms from the door close sound due to a crackle
+
+        // The following code would load custom sounds, but this version of the sound system doesn't support unloading between levels.
+        // The full engine supports this.
+        //List<ubyte> data;
+        //if (auto soundInfo = Seq::tryItem(Resources::SoundsD1.Sounds, id)) {
+        //    auto custom = Resources::CustomResources.GetSound(soundInfo->Name);
+        //    data = custom.empty() ? Resources::SoundsD1.Read(id) : custom;
+        //}
 
         auto data = Resources::SoundsD1.Read(id);
         if (data.empty()) return nullptr;

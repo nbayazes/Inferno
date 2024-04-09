@@ -238,7 +238,7 @@ namespace Inferno::Editor {
             try {
                 static constexpr COMDLG_FILTERSPEC filter[] = { { L"256 Color Bitmap", L"*.BMP" }, };
                 if (auto file = OpenFileDialog(filter, L"Import custom texture")) {
-                    Resources::CustomTextures.ImportBmp(*file, _useTransparency, entry, Game::Level.IsDescent1(), _whiteAsTransparent);
+                    Resources::CustomResources.ImportBmp(*file, _useTransparency, entry, Game::Level.IsDescent1(), _whiteAsTransparent);
                     std::array ids{ _selection };
                     Render::Materials->LoadMaterialsAsync(ids, true);
                     UpdateTextureList();
@@ -251,8 +251,8 @@ namespace Inferno::Editor {
         }
 
         void OnRevert(TexID id) {
-            if (Resources::CustomTextures.Get(id)) {
-                Resources::CustomTextures.Delete(id);
+            if (Resources::CustomResources.Get(id)) {
+                Resources::CustomResources.Delete(id);
                 std::array ids{ id };
                 Render::Materials->LoadMaterialsAsync(ids, true);
                 UpdateTextureList();

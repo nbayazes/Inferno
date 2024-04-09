@@ -66,7 +66,7 @@ namespace Inferno::Editor {
         SetStatusMessage(L"Saved level to {}", path.wstring());
 
         // Save custom textures
-        if (Resources::CustomTextures.Any()) {
+        if (Resources::CustomResources.Any()) {
             auto ext = level.IsDescent1() ? ".dtx" : ".pog";
             filesystem::path texPath = path;
             texPath.replace_extension(ext);
@@ -74,10 +74,10 @@ namespace Inferno::Editor {
             StreamWriter writer(file, false);
 
             if (level.IsDescent1()) {
-                Resources::CustomTextures.WriteDtx(writer, Resources::GetPalette());
+                Resources::CustomResources.WriteDtx(writer, Resources::GetPalette());
             }
             else {
-                Resources::CustomTextures.WritePog(writer, Resources::GetPalette());
+                Resources::CustomResources.WritePog(writer, Resources::GetPalette());
             }
         }
 
@@ -187,7 +187,7 @@ namespace Inferno::Editor {
             auto baseName = String::NameWithoutExtension(level.FileName);
             auto metadataName = baseName + "." + METADATA_EXTENSION;
             HogWriter writer(tempPath); // write to temp
-            fmt::print("Copying existing HOG files:\n");
+            fmt::println("Copying existing HOG files:");
 
             for (auto& entry : mission.Entries) {
                 // Does the file match the level name?
@@ -219,22 +219,24 @@ namespace Inferno::Editor {
             if (level.IsVertigo() && !mission.ContainsFileType(".ham"))
                 AppendVertigoData(writer, path.stem().string() + ".ham");
 
-            if (Resources::CustomTextures.Any()) {
+            if (Resources::CustomResources.Any()) {
                 if (mission.IsDescent1()) {
                     auto dtx = SerializeToMemory([](StreamWriter& w) {
-                        return Resources::CustomTextures.WriteDtx(w, Resources::GetPalette());
+                        return Resources::CustomResources.WriteDtx(w, Resources::GetPalette());
                     });
                     writer.WriteEntry(baseName + ".dtx", dtx);
                     fmt::print("{}:{} ", baseName + ".dtx", dtx.size());
                 }
                 else {
                     auto pog = SerializeToMemory([](StreamWriter& w) {
-                        return Resources::CustomTextures.WritePog(w, Resources::GetPalette());
+                        return Resources::CustomResources.WritePog(w, Resources::GetPalette());
                     });
                     writer.WriteEntry(baseName + ".pog", pog);
                     fmt::print("{}:{} ", baseName + ".pog", pog.size());
                 }
             }
+
+            fmt::println("");
         }
         catch (const std::exception& e) {
             ShowErrorMessage(e);
@@ -527,16 +529,16 @@ namespace Inferno::Editor {
             }
         }
 
-        if (Resources::CustomTextures.Any()) {
+        if (Resources::CustomResources.Any()) {
             if (level.IsDescent1()) {
                 auto dtx = SerializeToMemory([](StreamWriter& w) {
-                    return Resources::CustomTextures.WriteDtx(w, Resources::GetPalette());
+                    return Resources::CustomResources.WriteDtx(w, Resources::GetPalette());
                 });
                 writer.WriteEntry("_test.dtx", dtx);
             }
             else {
                 auto pog = SerializeToMemory([](StreamWriter& w) {
-                    return Resources::CustomTextures.WritePog(w, Resources::GetPalette());
+                    return Resources::CustomResources.WritePog(w, Resources::GetPalette());
                 });
                 writer.WriteEntry("_test.pog", pog);
             }

@@ -1,5 +1,5 @@
 #pragma once
-#include "CustomTextureLibrary.h"
+#include "CustomResourceLibrary.h"
 #include "Level.h"
 #include "Pig.h"
 #include "HamFile.h"
@@ -14,7 +14,7 @@
 namespace Inferno::Resources {
     void Init();
 
-    inline CustomTextureLibrary CustomTextures;
+    inline CustomResourceLibrary CustomResources;
 
     extern SoundFile SoundsD1, SoundsD2;
     Sound::SoundResource GetSoundResource(SoundID id);
