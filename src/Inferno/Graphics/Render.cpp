@@ -316,6 +316,10 @@ namespace Inferno::Render {
 
         CreateWindowSizeDependentResources(width, height);
         Camera.SetViewport((float)width, (float)height);
+        // Reset frame upload buffers, otherwise they run out of memory.
+        // For some reason resizing does not increment the adapter frame index, causing the same buffer to be used.
+        FrameUploadBuffers[0]->ResetIndex();
+        FrameUploadBuffers[1]->ResetIndex();
     }
 
     // Loads a single model at runtime
