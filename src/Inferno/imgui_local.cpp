@@ -158,8 +158,8 @@ void ImGui::SeparatorVertical() {
 
 namespace Inferno {
     struct FrameResources {
-        UploadBuffer<ImDrawVert> VertexBuffer = { 20000 };
-        UploadBuffer<ImDrawIdx> IndexBuffer = { 40000 };
+        UploadBuffer<ImDrawVert> VertexBuffer = { 20000, L"imgui vertices" };
+        UploadBuffer<ImDrawIdx> IndexBuffer = { 40000, L"imgui indices" };
     };
 
     struct FrameContext {

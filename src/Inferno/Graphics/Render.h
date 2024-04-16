@@ -52,9 +52,9 @@ namespace Inferno::Render {
     }
 
     enum class RenderPass {
-        Opaque,     // Solid level geometry or objects
-        Decals,     // Solid level geometry decals
-        Walls,      // Level walls, might be transparent
+        Opaque, // Solid level geometry or objects
+        Decals, // Solid level geometry decals
+        Walls, // Level walls, might be transparent
         Transparent, // Sprites, transparent portions of models
         Distortion, // Cloaked enemies, shockwaves
     };
@@ -76,7 +76,7 @@ namespace Inferno::Render {
     void LoadTextureDynamic(LevelTexID);
     void LoadTextureDynamic(VClipID);
     void LoadLevel(const Inferno::Level&);
-    void LoadTerrain(const EscapeInfo& info);
+    void LoadTerrain(const TerrainInfo& info);
 
     MeshIndex& GetMeshHandle(ModelID);
     MeshIndex& GetOutrageMeshHandle(ModelID);
@@ -95,14 +95,26 @@ namespace Inferno::Render {
 
     inline Matrix ViewProjection;
 
-    inline float FrameTime = 0;     // Time of this frame in seconds
-    inline double ElapsedTime = 0;  // Time elapsed in seconds. Stops updating when paused or animations are disabled.
+    inline float FrameTime = 0; // Time of this frame in seconds
+    inline double ElapsedTime = 0; // Time elapsed in seconds. Stops updating when paused or animations are disabled.
     inline DirectX::BoundingFrustum CameraFrustum;
 
     // Returns the squared distance of an object to the camera
     inline float GetRenderDepth(const Vector3& pos) {
         return Vector3::DistanceSquared(Render::Camera.Position, pos);
     }
+
+    void DrawBillboard(Graphics::GraphicsContext& ctx,
+                       float ratio,
+                       D3D12_GPU_DESCRIPTOR_HANDLE texture,
+                       D3D12_GPU_VIRTUAL_ADDRESS frameConstants,
+                       Inferno::Camera& camera,
+                       const Vector3& position,
+                       float radius,
+                       const Color& color,
+                       bool additive,
+                       float rotation,
+                       const Vector3* up);
 
     void DrawBillboard(Graphics::GraphicsContext& ctx,
                        TexID tid,
@@ -114,16 +126,17 @@ namespace Inferno::Render {
                        const Vector3* up);
 
     // Call ApplyEffect and SetConstantBuffer first
-    void DrawDepthBillboard(ID3D12GraphicsCommandList* cmdList, 
+    void DrawDepthBillboard(ID3D12GraphicsCommandList* cmdList,
                             TexID tid,
-                            const Vector3& position, 
-                            float radius, 
-                            float rotation, 
+                            const Vector3& position,
+                            float radius,
+                            float rotation,
                             const Vector3* up);
 
     extern bool LevelChanged;
     PackedBuffer* GetLevelMeshBuffer();
-    const Mesh* GetTerrainMesh();
+    const TerrainMesh* GetTerrainMesh();
+
 
     //const string TEST_MODEL = "robottesttube(orbot).OOF"; // mixed transparency test
     const string TEST_MODEL = "gyro.OOF";

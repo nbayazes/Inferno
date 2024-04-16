@@ -102,7 +102,7 @@ namespace Inferno::FileSystem {
 
     Option<filesystem::path> TryFindFile(const filesystem::path& file) {
         if (filesystem::exists(file)) // check current directory or absolute path first
-            return wstring(file);
+            return file;
 
         // reverse so last directories are searched first
         for (auto& dir : Directories | std::views::reverse) {

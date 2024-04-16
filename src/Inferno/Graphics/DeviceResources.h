@@ -111,10 +111,13 @@ namespace Inferno {
 
         DescriptorHandle NullCube; // Null cubemap descriptor
 
-        UploadBuffer<FrameConstants> FrameConstantsBuffer[2] = { { 2 }, { 2 } };
+        UploadBuffer<FrameConstants> FrameConstantsBuffer[2] = { { 2, L"Frame constants" }, { 2, L"Frame constants" } };
         UploadBuffer<FrameConstants>& GetFrameConstants() { return FrameConstantsBuffer[GetCurrentFrameIndex()]; }
 
-        UploadBuffer<FrameConstants> BriefingFrameConstantsBuffer[2] = { { 2 }, { 2 } };
+        UploadBuffer<FrameConstants> TerrainConstantsBuffer[2] = { { 2, L"Terrain constants" }, { 2, L"Terrain constants" } };
+        UploadBuffer<FrameConstants>& GetTerrainConstants() { return TerrainConstantsBuffer[GetCurrentFrameIndex()]; }
+
+        UploadBuffer<FrameConstants> BriefingFrameConstantsBuffer[2] = { { 2, L"Briefing constants" }, { 2, L"Briefing constants" } };
         UploadBuffer<FrameConstants>& GetBriefingFrameConstants() { return BriefingFrameConstantsBuffer[GetCurrentFrameIndex()]; }
 
         PostFx::ScanlineCS Scanline;

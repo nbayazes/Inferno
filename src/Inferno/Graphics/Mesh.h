@@ -15,6 +15,7 @@ namespace Inferno::Render {
         D3D12_VERTEX_BUFFER_VIEW VertexBuffer;
         uint IndexCount = 0;
         TexID Texture = TexID::None;
+        string TextureName; // alternative to texture id
         EClipID EffectClip = EClipID::None;
         bool IsTransparent = false;
     };
@@ -60,14 +61,30 @@ namespace Inferno::Render {
 
     class TerrainMesh {
         Mesh _mesh{};
+        List<Mesh> _satellites;
         PackedBuffer _buffer{ 1024 * 1024 * 1 };
+
     public:
-        TerrainMesh(span<const ObjectVertex> verts, span<const uint16> indices) {
+        TerrainMesh() {}
+
+        void AddTerrain(span<const ObjectVertex> verts, span<const uint16> indices, string_view texture) {
             _mesh.VertexBuffer = _buffer.PackVertices(verts);
             _mesh.IndexBuffer = _buffer.PackIndices(indices);
             _mesh.IndexCount = (uint)indices.size();
+            _mesh.TextureName = texture;
         }
 
-        const Mesh& GetMesh() const { return _mesh; }
+        void AddSatellite(span<const ObjectVertex> verts, span<const uint16> indices, string_view texture) {
+            Mesh mesh;
+            mesh.VertexBuffer = _buffer.PackVertices(verts);
+            mesh.IndexBuffer = _buffer.PackIndices(indices);
+            mesh.IndexCount = (uint)indices.size();
+            mesh.TextureName = texture;
+            _satellites.push_back(mesh);
+        }
+
+        const Mesh& GetTerrain() const { return _mesh; }
+
+        span<const Mesh> GetSatellites() const { return _satellites; }
     };
 }

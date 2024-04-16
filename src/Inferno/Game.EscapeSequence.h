@@ -5,24 +5,33 @@
 #include "Types.h"
 
 namespace Inferno {
-    struct EscapeInfo {
-        string TerrainTexture;
+    struct TerrainInfo {
+        string SurfaceTexture;
         string Heightmap;
         int ExitX, ExitY;
         float ExitAngle;
-        string PlanetTexture;
+
+        Vector3 StationDir;
         int StationX, StationY;
+
+        string SatelliteTexture;
         float SatelliteSize;
-        Vector3 SatelliteDir, StationDir;
+        float SatelliteHeight = 400.0f;
+        Vector3 SatelliteDir;
+        bool SatelliteAdditive = false;
+        float SatelliteAspectRatio = 1; // Ratio to use when drawing sprite
+        Color SatelliteColor = { 1, 1, 1 };
+        Color AtmosphereColor = { 0.3f, 0.4f, 1, 0.5f };
 
         List<ObjectVertex> Vertices;
         List<uint16> Indices;
 
-        Matrix TerrainTransform;
+        Matrix Transform;
+        Matrix3x3 InverseTransform;
         List<Vector3> PlayerPath;
     };
 
     void UpdateEscapeSequence(float dt);
 
-    EscapeInfo ParseEscapeInfo(Level& level, span<string> lines);
+    TerrainInfo ParseEscapeInfo(Level& level, span<string> lines);
 }

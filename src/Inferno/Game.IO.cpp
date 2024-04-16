@@ -216,14 +216,14 @@ namespace Inferno::Game {
             Render::Materials->Prune();
             Render::Adapter->PrintMemoryUsage();
 
-            Game::EscapeInfo = {};
+            Game::Terrain = {};
 
             auto exitConfig = String::NameWithoutExtension(Level.FileName) + ".txb";
             if (auto data = Resources::ReadBinaryFile(exitConfig); !data.empty()) {
                 DecodeText(data);
                 auto lines = String::ToLines(String::OfBytes(data));
-                Game::EscapeInfo = ParseEscapeInfo(Level, lines);
-                Render::LoadTerrain(Game::EscapeInfo);
+                Game::Terrain = ParseEscapeInfo(Level, lines);
+                Render::LoadTerrain(Game::Terrain);
             }
 
             //Render::Materials->LoadMaterials(Resources::GameData.HiResGauges, false);

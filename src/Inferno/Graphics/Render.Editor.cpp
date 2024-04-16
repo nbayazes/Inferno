@@ -549,9 +549,9 @@ namespace Inferno::Render {
             DrawPath(Inferno::Debug::OptimizedPath, Color(1, 0, 0));
         }
 
-        if (Game::EscapeInfo.PlayerPath.size() >= 2) {
-            for (int i = 0; i < Game::EscapeInfo.PlayerPath.size() - 1; i++) {
-                Debug::DrawLine(Game::EscapeInfo.PlayerPath[i], Game::EscapeInfo.PlayerPath[i + 1], Color(0, 1, 0));
+        if (Game::Terrain.PlayerPath.size() >= 2) {
+            for (int i = 0; i < Game::Terrain.PlayerPath.size() - 1; i++) {
+                Debug::DrawLine(Game::Terrain.PlayerPath[i], Game::Terrain.PlayerPath[i + 1], Color(0, 1, 0));
             }
         }
 

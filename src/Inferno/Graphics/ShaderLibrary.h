@@ -55,7 +55,7 @@ namespace Inferno {
         Vector3 LightDir;
         //int TexID1 = 0, TexID2 = -1;
 
-        static inline constexpr D3D12_INPUT_ELEMENT_DESC Description[] = {
+        static constexpr D3D12_INPUT_ELEMENT_DESC Description[] = {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -68,19 +68,19 @@ namespace Inferno {
             //{ "OVERLAY", 0, DXGI_FORMAT_R32_SINT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         };
 
-        static inline constexpr D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
+        static constexpr D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
     };
 
     struct FlatVertex {
         Vector3 Position;
         Color Color;
 
-        static inline constexpr D3D12_INPUT_ELEMENT_DESC Description[] = {
+        static constexpr D3D12_INPUT_ELEMENT_DESC Description[] = {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         };
 
-        static inline constexpr D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
+        static constexpr D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
     };
 
     // this should match imgui shader
@@ -89,13 +89,13 @@ namespace Inferno {
         Vector2 UV;
         uint32 Color;
 
-        static inline constexpr D3D12_INPUT_ELEMENT_DESC Description[] = {
+        static constexpr D3D12_INPUT_ELEMENT_DESC Description[] = {
             { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         };
 
-        static inline constexpr D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
+        static constexpr D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
     };
 
     struct HudVertex {
@@ -103,13 +103,13 @@ namespace Inferno {
         Vector2 UV;
         Color Color = { 1, 1, 1, 1 };
 
-        static inline constexpr D3D12_INPUT_ELEMENT_DESC Description[] = {
+        static constexpr D3D12_INPUT_ELEMENT_DESC Description[] = {
             { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         };
 
-        static inline constexpr D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
+        static constexpr D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
     };
 
     struct ObjectVertex {
@@ -121,7 +121,7 @@ namespace Inferno {
         Vector3 Bitangent;
         int TexID;
 
-        static inline constexpr D3D12_INPUT_ELEMENT_DESC Description[] = {
+        static constexpr D3D12_INPUT_ELEMENT_DESC Description[] = {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -131,7 +131,7 @@ namespace Inferno {
             { "TEXID", 0, DXGI_FORMAT_R32_SINT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         };
 
-        static inline constexpr D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
+        static constexpr D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
     };
 
     // Shaders can be combined with different PSOs to create several effects
@@ -281,7 +281,15 @@ namespace Inferno {
 
     class StarShader : public IShader {
     public:
+        struct Parameters {
+            Color AtmosphereColor;
+        };
+
         StarShader(const ShaderInfo& info) : IShader(info) {}
+
+        static void SetParameters(ID3D12GraphicsCommandList* commandList, const Parameters& consts) {
+            commandList->SetGraphicsRoot32BitConstants(1, sizeof(consts) / 4, &consts, 0);
+        }
     };
 
     class LevelShader : public IShader {
@@ -394,6 +402,28 @@ namespace Inferno {
 
         static void SetDepthTexture(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
             commandList->SetGraphicsRootDescriptorTable(Depth, texture);
+        }
+    };
+
+    class SunShader : public IShader {
+        enum RootParameterIndex : uint {
+            FrameConstants,
+            Diffuse,
+            Sampler,
+            RootParameterCount
+        };
+
+    public:
+        SunShader(const ShaderInfo& info) : IShader(info) {
+            InputLayout = ObjectVertex::Layout;
+        }
+
+        static void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
+            commandList->SetGraphicsRootDescriptorTable(Sampler, sampler);
+        }
+
+        static void SetDiffuse(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
+            commandList->SetGraphicsRootDescriptorTable(Diffuse, texture);
         }
     };
 
@@ -644,6 +674,7 @@ namespace Inferno {
         TerrainShader Terrain = ShaderInfo{ L"shaders/Terrain.hlsl" };
         ObjectDistortionShader ObjectDistortion = ShaderInfo{ L"shaders/Cloak.hlsl" };
         StarShader Stars = ShaderInfo{ L"shaders/stars.hlsl" };
+        SpriteShader Sun = ShaderInfo{ L"shaders/Sun.hlsl" };
     };
 
     class EffectResources {
@@ -685,6 +716,7 @@ namespace Inferno {
         Effect<SpriteShader> SpriteAdditiveBiased = { &_shaders->Sprite, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::ReadDecalBiased } };
         Effect<SpriteShader> SpriteMultiply = { &_shaders->Sprite, { BlendMode::Multiply, CullMode::CounterClockwise, DepthMode::ReadDecalBiased } };
 
+        Effect<SpriteShader> Sun = { &_shaders->Sun, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
         Effect<StarShader> Stars = { &_shaders->Stars, { BlendMode::Opaque, CullMode::None, DepthMode::None } };
 
         void Compile(ID3D12Device* device, uint msaaSamples) {
@@ -703,6 +735,7 @@ namespace Inferno {
             CompileShader(&_shaders->Hud);
             CompileShader(&_shaders->Terrain);
             CompileShader(&_shaders->Stars);
+            CompileShader(&_shaders->Sun);
 
             auto compile = [&](auto& effect, uint renderTargets = 1) {
                 try {
@@ -749,6 +782,7 @@ namespace Inferno {
             compile(HudAdditive);
 
             compile(Stars);
+            compile(Sun);
         }
     };
 }

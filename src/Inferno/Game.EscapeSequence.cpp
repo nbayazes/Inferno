@@ -45,7 +45,7 @@ namespace Inferno {
         }
     }
 
-    void LoadTerrain(const Bitmap2D& bitmap, EscapeInfo& dest, float heightScale = 1.0f, float gridScale = 40.0f) {
+    void LoadTerrain(const Bitmap2D& bitmap, TerrainInfo& dest, float heightScale = 1.0f, float gridScale = 40.0f) {
         List<uint8> terrain;
         auto& vertices = dest.Vertices;
         auto& indices = dest.Indices;
@@ -138,7 +138,7 @@ namespace Inferno {
         return {};
     }
 
-    void CreateEscapePath(Level& level, EscapeInfo& info) {
+    void CreateEscapePath(Level& level, TerrainInfo& info) {
         // Find exit tunnel start
         auto curSeg = FindExitSegment(level);
         if (!curSeg) return;
@@ -174,11 +174,15 @@ namespace Inferno {
                     forward.Normalize();
 
                     auto up = seg.Center - bottom.Center;
+                    up.Normalize();
+                    //up = Vector3::UnitY;
+                    //forward = Vector3::UnitZ;
                     //auto right = up.Cross(forward);
                     //up = right.Cross(forward);
 
-                    info.TerrainTransform = VectorToRotation(forward, up);
-                    info.TerrainTransform.Translation(bottom.Center);
+                    info.Transform = VectorToRotation(forward, up);
+                    info.InverseTransform = Matrix3x3(info.Transform.Invert());
+                    info.Transform.Translation(bottom.Center);
 
                     break;
                 }
@@ -194,13 +198,13 @@ namespace Inferno {
         if (!foundSurface) points.clear();
     }
 
-    EscapeInfo ParseEscapeInfo(Level& level, span<string> lines) {
+    TerrainInfo ParseEscapeInfo(Level& level, span<string> lines) {
         if (lines.size() < 7)
             throw Exception("Not enough lines in level escape data. 7 required");
 
-        EscapeInfo info{};
+        TerrainInfo info{};
 
-        info.TerrainTexture = lines[0]; // moon01.bbm
+        info.SurfaceTexture = lines[0]; // moon01.bbm
         info.Heightmap = lines[1]; // lev01ter.bbm
 
         auto exitPos = String::Split(lines[2], ',');
@@ -212,29 +216,40 @@ namespace Inferno {
         if (String::TryParse(lines[3], info.ExitAngle))
             info.ExitAngle /= 360.0f;
 
-        info.PlanetTexture = lines[4];
+        info.SatelliteTexture = lines[4];
 
-        auto satellitePos = String::Split(lines[5], ',');
-        if (satellitePos.size() >= 2) {
-            Vector3 angles;
-            String::TryParse(satellitePos[0], angles.x); // heading
-            String::TryParse(satellitePos[1], angles.y); // pitch
-            angles /= 360.0f;
-            angles.Normalize();
-            info.SatelliteDir = DirectionToRotationMatrix(angles).Forward();
+        if (String::Contains(info.SatelliteTexture, "sun")) {
+            info.SatelliteAdditive = true;
+            //info.SatelliteAspectRatio = 0.9f;
+            info.SatelliteColor = Color(3, 3, 3);
         }
+
+        if (String::Contains(info.SatelliteTexture, "earth")) {
+            info.SatelliteAspectRatio = 64.0f / 54.0f; // The earth bitmap only uses 54 of 64 pixels in height
+            info.SatelliteColor = Color(2, 2, 2);
+        }
+
+
+        auto parseDirection = [](const List<string>& tokens) {
+            float heading{}, pitch{};
+            String::TryParse(tokens[0], heading); // heading
+            String::TryParse(tokens[1], pitch); // pitch
+
+            auto dir = Vector3::UnitX;
+            dir = Vector3::Transform(dir, Matrix::CreateRotationZ(pitch * DegToRad));
+            dir = Vector3::Transform(dir, Matrix::CreateRotationY(heading * DegToRad));
+            return dir;
+        };
+
+        auto satelliteDir = String::Split(lines[5], ',');
+        if (satelliteDir.size() >= 2)
+            info.SatelliteDir = parseDirection(satelliteDir);
 
         String::TryParse(lines[6], info.SatelliteSize);
 
-        auto stationPos = String::Split(lines[7], ',');
-        if (stationPos.size() >= 2) {
-            Vector3 angles;
-            String::TryParse(stationPos[0], angles.x); // heading
-            String::TryParse(stationPos[1], angles.y); // pitch
-            angles /= 360.0f;
-            angles.Normalize();
-            info.StationDir = DirectionToRotationMatrix(angles).Forward();
-        }
+        auto stationDir = String::Split(lines[7], ',');
+        if (stationDir.size() >= 2)
+            info.StationDir = parseDirection(satelliteDir);
 
         if (auto data = Resources::ReadBinaryFile(info.Heightmap); !data.empty()) {
             auto bitmap = ReadBbm(data);

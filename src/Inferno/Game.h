@@ -240,5 +240,5 @@ namespace Inferno::Game {
     inline bool ResetDeltaTime = false;
 
 
-    inline Inferno::EscapeInfo EscapeInfo;
+    inline Inferno::TerrainInfo Terrain;
 }

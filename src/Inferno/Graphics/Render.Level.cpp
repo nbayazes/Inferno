@@ -484,6 +484,38 @@ namespace Inferno::Render {
         auto cmdList = ctx.GetCommandList();
         ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+        const auto& terrain = Game::Terrain;
+
+        if (!terrain.SatelliteTexture.empty()) {
+            // Draw satellites
+            auto& effect = terrain.SatelliteAdditive ? Effects->Sun : Effects->Sprite;
+            ctx.ApplyEffect(effect);
+            ctx.SetConstantBuffer(0, Adapter->GetTerrainConstants().GetGPUVirtualAddress());
+            //effect.Shader->SetDepthTexture(ctx.GetCommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
+            effect.Shader->SetSampler(ctx.GetCommandList(), Render::GetClampedTextureSampler());
+
+            for (auto& sat : terrainMesh->GetSatellites()) {
+                auto& texture = Render::Materials->Get(sat.TextureName);
+                effect.Shader->SetDiffuse(cmdList, texture.Handle());
+
+                cmdList->IASetVertexBuffers(0, 1, &sat.VertexBuffer);
+                cmdList->IASetIndexBuffer(&sat.IndexBuffer);
+                cmdList->DrawIndexedInstanced(sat.IndexCount, 1, 0, 0, 0);
+            }
+
+            //Game::Terrain.PlanetTexture = "sun.bbm";
+
+            //auto& planet = Render::Materials->Get(terrain.SatelliteTexture);
+            //auto pos = terrain.SatelliteDir * 1000 + Vector3(0, terrain.SatelliteHeight, 0);
+            //pos = Vector3::Transform(pos, terrain.Transform);
+            //auto up = terrain.Transform.Up();
+            //up = Vector3::Up;
+            ////auto color = isSun ? Color(1, 1, 1) * 1 : Color(3, 3, 3);
+            //auto color = Color(3, 3, 3);
+            //color.A(1);
+            //DrawBillboard(ctx, terrain.SatelliteAspectRatio, planet.Handle(), Adapter->GetTerrainConstants().GetGPUVirtualAddress(), TerrainCamera, pos, terrain.SatelliteSize, color, terrain.SatelliteAdditive, 0, &up);
+        }
+
         auto& effect = Effects->Terrain;
         ctx.ApplyEffect(effect);
         ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
@@ -492,23 +524,23 @@ namespace Inferno::Render {
         //effect.Shader->SetLightGrid(cmdList, *Render::LightGrid);
 
         TerrainShader::Constants constants = {};
-        constants.World = Game::EscapeInfo.TerrainTransform;
+        constants.World = Game::Terrain.Transform;
         constants.Ambient = Vector4(1, 1, 1, 1);
         effect.Shader->SetConstants(cmdList, constants);
-        auto& terrainTexture = Render::Materials->Get(Game::EscapeInfo.TerrainTexture);
-        effect.Shader->SetDiffuse(cmdList, terrainTexture.Handle());
 
         auto& depthBuffer = Adapter->GetHdrDepthBuffer();
         depthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
-        cmdList->IASetVertexBuffers(0, 1, &terrainMesh->VertexBuffer);
-        cmdList->IASetIndexBuffer(&terrainMesh->IndexBuffer);
-        cmdList->DrawIndexedInstanced(terrainMesh->IndexCount, 1, 0, 0, 0);
+        {
+            // Draw terrain
+            auto& mesh = terrainMesh->GetTerrain();
+            auto& terrainTexture = Render::Materials->Get(mesh.TextureName);
+            effect.Shader->SetDiffuse(cmdList, terrainTexture.Handle());
 
-        // bind object shader
-        // bind texture
-        //auto& frameConstants = Adapter->GetBriefingFrameConstants();
-        //UpdateFrameConstants(size, fov, BriefingCamera, frameConstants);
+            cmdList->IASetVertexBuffers(0, 1, &mesh.VertexBuffer);
+            cmdList->IASetIndexBuffer(&mesh.IndexBuffer);
+            cmdList->DrawIndexedInstanced(mesh.IndexCount, 1, 0, 0, 0);
+        }
 
         //ctx.GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     }
@@ -517,7 +549,8 @@ namespace Inferno::Render {
         auto cmdList = ctx.GetCommandList();
         ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         ctx.ApplyEffect(Effects->Stars);
-        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+        ctx.SetConstantBuffer(0, Adapter->GetTerrainConstants().GetGPUVirtualAddress());
+        Shaders->Stars.SetParameters(cmdList, { Game::Terrain.AtmosphereColor });
         cmdList->DrawInstanced(3, 1, 0, 0);
     }
 

@@ -64,8 +64,8 @@ namespace Inferno::Graphics {
         ByteAddressBuffer _bitMask;
         ByteAddressBuffer _lightGrid;
         StructuredBuffer _lightData;
-        UploadBuffer<LightData> _lightUploadBuffer;
-        UploadBuffer<LightingConstants> _lightingConstantsBuffer{ 1 };
+        UploadBuffer<LightData> _lightUploadBuffer{ MAX_LIGHTS, L"Light data" };
+        UploadBuffer<LightingConstants> _lightingConstantsBuffer{ 1, L"Light constants" };
 
         struct alignas(16) CSConstants {
             uint32_t ViewportWidth, ViewportHeight;
@@ -76,14 +76,14 @@ namespace Inferno::Graphics {
             alignas(16) Matrix InverseProjection;
         };
 
-        UploadBuffer<CSConstants> _csConstants{ 1 };
+        UploadBuffer<CSConstants> _csConstants{ 1, L"Light grid CS" };
 
         enum RootSig { B0_Constants, T0_LightBuffer, T1_LinearDepth, U0_Grid, U1_GridMask };
 
         uint32 _width = 1, _height = 1;
 
     public:
-        FillLightGridCS() : ComputeShader(LIGHT_GRID, LIGHT_GRID), _lightUploadBuffer(MAX_LIGHTS) {}
+        FillLightGridCS() : ComputeShader(LIGHT_GRID, LIGHT_GRID) {}
 
         const ByteAddressBuffer& GetBitMask() { return _bitMask; }
         const ByteAddressBuffer& GetLightGrid() { return _lightGrid; }

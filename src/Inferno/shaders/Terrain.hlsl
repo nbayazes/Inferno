@@ -91,7 +91,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //float3 ambient = Object.Ambient.rgb;
     //MaterialInfo material = Materials[matid];
 
-    float3 lighting = float3(0,0,0);
+    float3 lighting = float3(0, 0, 0);
 
     //float3 normal = SampleNormal(Normal1, input.uv, NormalSampler, Frame.FilterMode);
     //normal.xy *= material.NormalStrength;

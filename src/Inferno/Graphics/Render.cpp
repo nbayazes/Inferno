@@ -62,28 +62,25 @@ namespace Inferno::Render {
     }
 
     PackedBuffer* GetLevelMeshBuffer() { return _levelMeshBuffer.get(); }
-
-    const Mesh* GetTerrainMesh() {
-        if (_terrainMesh) return &_terrainMesh->GetMesh();
-        return nullptr;
-    }
+    const TerrainMesh* GetTerrainMesh() { return _terrainMesh.get(); }
 
     void DrawBillboard(GraphicsContext& ctx,
-                       TexID tid,
+                       float ratio,
+                       D3D12_GPU_DESCRIPTOR_HANDLE texture,
+                       D3D12_GPU_VIRTUAL_ADDRESS frameConstants,
+                       Inferno::Camera& camera,
                        const Vector3& position,
                        float radius,
                        const Color& color,
                        bool additive,
                        float rotation,
                        const Vector3* up) {
-        auto transform = up ? Matrix::CreateConstrainedBillboard(position, Camera.Position, *up) : Matrix::CreateBillboard(position, Camera.Position, Camera.Up);
+        auto transform = up ? Matrix::CreateConstrainedBillboard(position, camera.Position, *up) : Matrix::CreateBillboard(position, camera.Position, camera.Up);
 
         if (rotation != 0)
             transform = Matrix::CreateRotationZ(rotation) * transform;
 
         // create quad and transform it
-        auto& ti = Resources::GetTextureInfo(tid);
-        auto ratio = (float)ti.Height / (float)ti.Width;
         auto h = radius * ratio;
         auto w = radius;
         auto p0 = Vector3::Transform({ -w, h, 0 }, transform); // bl
@@ -98,9 +95,8 @@ namespace Inferno::Render {
 
         auto& effect = additive ? Effects->SpriteAdditive : Effects->Sprite;
         ctx.ApplyEffect(effect);
-        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-        auto& material = Materials->Get(tid);
-        effect.Shader->SetDiffuse(ctx.GetCommandList(), material.Handle());
+        ctx.SetConstantBuffer(0, frameConstants);
+        effect.Shader->SetDiffuse(ctx.GetCommandList(), texture);
         effect.Shader->SetDepthTexture(ctx.GetCommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
         auto sampler = Render::GetClampedTextureSampler();
         effect.Shader->SetSampler(ctx.GetCommandList(), sampler);
@@ -110,6 +106,21 @@ namespace Inferno::Render {
         g_SpriteBatch->Begin(ctx.GetCommandList());
         g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
         g_SpriteBatch->End();
+    }
+
+    void DrawBillboard(GraphicsContext& ctx,
+                       TexID tid,
+                       const Vector3& position,
+                       float radius,
+                       const Color& color,
+                       bool additive,
+                       float rotation,
+                       const Vector3* up) {
+        auto& ti = Resources::GetTextureInfo(tid);
+        auto ratio = (float)ti.Height / (float)ti.Width;
+        auto& material = Materials->Get(tid);
+
+        DrawBillboard(ctx, ratio, material.Handle(), Adapter->GetFrameConstants().GetGPUVirtualAddress(), Camera, position, radius, color, additive, rotation, up);
     }
 
     void DrawDepthBillboard(ID3D12GraphicsCommandList* cmdList,
@@ -180,43 +191,43 @@ namespace Inferno::Render {
 
     // Initialize device dependent objects here (independent of window size).
     void CreateDeviceDependentResources() {
-        Shaders = MakePtr<ShaderResources>();
-        Effects = MakePtr<EffectResources>(Shaders.get());
-        ToneMapping = MakePtr<PostFx::ToneMapping>();
-        MaterialInfoUploadBuffer = MakePtr<UploadBuffer<MaterialInfo>>(MATERIAL_COUNT);
-        MaterialInfoBuffer = MakePtr<StructuredBuffer>();
+        Shaders = make_unique<ShaderResources>();
+        Effects = make_unique<EffectResources>(Shaders.get());
+        ToneMapping = make_unique<PostFx::ToneMapping>();
+        MaterialInfoUploadBuffer = make_unique<UploadBuffer<MaterialInfo>>(MATERIAL_COUNT, L"Material upload buffer");
+        MaterialInfoBuffer = make_unique<StructuredBuffer>();
         MaterialInfoBuffer->Create(L"MaterialInfo", sizeof MaterialInfo, MATERIAL_COUNT);
         MaterialInfoBuffer->AddShaderResourceView();
 
-        VClipUploadBuffer = MakePtr<UploadBuffer<GpuVClip>>(VCLIP_COUNT);
-        VClipBuffer = MakePtr<StructuredBuffer>();
+        VClipUploadBuffer = make_unique<UploadBuffer<GpuVClip>>(VCLIP_COUNT, L"vclip buffer");
+        VClipBuffer = make_unique<StructuredBuffer>();
         VClipBuffer->Create(L"VClips", sizeof GpuVClip, VCLIP_COUNT);
         VClipBuffer->AddShaderResourceView();
 
         for (auto& buffer : FrameUploadBuffers)
-            buffer = MakePtr<FrameUploadBuffer>(1024 * 1024 * 10);
+            buffer = make_unique<FrameUploadBuffer>(1024 * 1024 * 10);
 
         //Materials2 = MakePtr<MaterialLibrary2>(Device, 64 * 64 * 4 * 1000);
-        g_SpriteBatch = MakePtr<PrimitiveBatch<ObjectVertex>>(Device);
-        Canvas = MakePtr<Canvas2D<UIShader>>(Device, Effects->UserInterface);
-        DebugCanvas = MakePtr<Canvas2D<UIShader>>(Device, Effects->UserInterface);
+        g_SpriteBatch = make_unique<PrimitiveBatch<ObjectVertex>>(Device);
+        Canvas = make_unique<Canvas2D<UIShader>>(Device, Effects->UserInterface);
+        DebugCanvas = make_unique<Canvas2D<UIShader>>(Device, Effects->UserInterface);
         BriefingCanvas = make_unique<Canvas2D<BriefingShader>>(Device, Effects->Briefing);
 
-        HudCanvas = MakePtr<HudCanvas2D>(Device, Effects->Hud);
-        HudGlowCanvas = MakePtr<HudCanvas2D>(Device, Effects->HudAdditive);
-        _graphicsMemory = MakePtr<GraphicsMemory>(Device);
-        LightGrid = MakePtr<FillLightGridCS>();
+        HudCanvas = make_unique<HudCanvas2D>(Device, Effects->Hud);
+        HudGlowCanvas = make_unique<HudCanvas2D>(Device, Effects->HudAdditive);
+        _graphicsMemory = make_unique<GraphicsMemory>(Device);
+        LightGrid = make_unique<FillLightGridCS>();
         //LightGrid->Load(L"shaders/FillLightGridCS.hlsl");
         //NewTextureCache = MakePtr<TextureCache>();
 
         CreateDefaultTextures();
 
-        Materials = MakePtr<MaterialLibrary>(MATERIAL_COUNT);
+        Materials = make_unique<MaterialLibrary>(MATERIAL_COUNT);
         Debug::Initialize();
 
         InitializeImGui(_hwnd, (float)Settings::Editor.FontSize);
         static_assert(sizeof(ImTextureID) >= sizeof(D3D12_CPU_DESCRIPTOR_HANDLE), "D3D12_CPU_DESCRIPTOR_HANDLE is too large to fit in an ImTextureID");
-        g_ImGuiBatch = MakePtr<ImGuiBatch>(Adapter->GetBackBufferCount());
+        g_ImGuiBatch = make_unique<ImGuiBatch>(Adapter->GetBackBufferCount());
 
         CreateEditorResources();
         LoadFonts();
@@ -229,7 +240,7 @@ namespace Inferno::Render {
             RenderTargetState rtState(Adapter->GetBackBufferFormat(), Adapter->SceneDepthBuffer.GetFormat());
             SpriteBatchPipelineStateDescription pd(rtState);
             pd.samplerDescriptor = Heaps->States.PointClamp();
-            _postBatch = MakePtr<SpriteBatch>(Device, resourceUpload, pd);
+            _postBatch = make_unique<SpriteBatch>(Device, resourceUpload, pd);
         }
 
         auto task = resourceUpload.End(Adapter->GetCommandQueue());
@@ -245,7 +256,7 @@ namespace Inferno::Render {
         assert(hwnd);
         _hwnd = hwnd;
         Adapter = make_unique<DeviceResources>(BackBufferFormat);
-        StaticTextures = MakePtr<StaticTextureDef>();
+        StaticTextures = make_unique<StaticTextureDef>();
         Adapter->SetWindow(hwnd, width, height);
         Adapter->CreateDeviceResources();
 
@@ -416,10 +427,71 @@ namespace Inferno::Render {
         LevelChanged = true;
     }
 
-    void LoadTerrain(const EscapeInfo& info) {
-        std::array textures = { info.PlanetTexture, info.TerrainTexture };
+    void LoadTerrain(const TerrainInfo& info) {
+        std::array textures = { info.SatelliteTexture, info.SurfaceTexture };
         Render::Materials->LoadTextures(textures);
-        _terrainMesh = make_unique<TerrainMesh>(info.Vertices, info.Indices);
+        _terrainMesh = make_unique<TerrainMesh>();
+        _terrainMesh->AddTerrain(info.Vertices, info.Indices, info.SurfaceTexture);
+
+        {
+            //Matrix::CreateFromAxisAngle(Vector3::UnitY, info.SatelliteDir);
+            auto satPosition = info.SatelliteDir * 1000 + Vector3(0, info.SatelliteHeight, 0);
+
+            //const float planetRadius = 200; // Add a planet radius
+            auto normal = /*Vector3(0, planetRadius, 0)*/ -satPosition;
+            normal.Normalize();
+            auto tangent = normal.Cross(Vector3::UnitY);
+            tangent.Normalize();
+            auto bitangent = tangent.Cross(normal);
+            tangent = bitangent.Cross(normal);
+
+            List<ObjectVertex> satVerts;
+
+            auto addVertex = [&](const Vector3& position, const Vector2& uv) {
+                ObjectVertex vertex{
+                    .Position = position,
+                    .UV = uv,
+                    .Color = info.SatelliteColor,
+                    .Normal = normal,
+                    .Tangent = tangent,
+                    .Bitangent = bitangent,
+                    .TexID = (int)TexID::None // Rely on override
+                };
+
+                satVerts.push_back(vertex);
+            };
+
+            //auto delta = Vector3(-info.SatelliteSize, -info.SatelliteSize, 0);
+            //auto transform = Matrix::CreateRotationZ(DirectX::XM_PIDIV2);
+            //auto transform = Matrix::CreateFromAxisAngle(normal, DirectX::XM_PIDIV2);
+            auto radius = info.SatelliteSize;
+            auto ratio = info.SatelliteAspectRatio;
+
+            addVertex(satPosition - tangent * radius - bitangent * radius * ratio, Vector2(1, 1)); // bl
+            addVertex(satPosition + tangent * radius - bitangent * radius * ratio, Vector2(0, 1)); // br
+            addVertex(satPosition + tangent * radius + bitangent * radius * ratio, Vector2(0, 0)); // tr
+            addVertex(satPosition - tangent * radius + bitangent * radius * ratio, Vector2(1, 0)); // tl
+
+            List<uint16> satIndices = { 0, 1, 2, 0, 2, 3 };
+
+            _terrainMesh->AddSatellite(satVerts, satIndices, info.SatelliteTexture);
+
+            //for (int i = 0; i < 4; i++) {
+            //    ObjectVertex vertex{
+            //        .Position = satPosition + delta,
+            //        .UV = Vector2(0, 0),
+            //        .Color = Color(1, 1, 1),
+            //        .Normal = normal,
+            //        .Tangent = tangent,
+            //        .Bitangent = bitangent,
+            //        .TexID = (int)TexID::None // Rely on override
+            //    };
+
+            //    vertices.push_back(vertex);
+
+            //    delta = delta.Transform(delta, transform);
+            //}
+        }
     }
 
     MeshIndex& GetMeshHandle(ModelID id) {
@@ -849,6 +921,21 @@ namespace Inferno::Render {
 
         if (Game::BriefingVisible)
             DrawBriefing(ctx, Adapter->BriefingColorBuffer, Game::Briefing);
+
+
+        // Create a terrain camera at the origin and orient it with the terrain
+        // Always positioning it at the origin prevents any parallax effects on the planets
+        auto terrainCamera = Camera;
+        terrainCamera.NearClip = 50;
+        terrainCamera.FarClip = 30'000;
+        terrainCamera.Target -= terrainCamera.Position;
+        terrainCamera.Position = Vector3::Zero;
+
+        auto cameraRotation = Matrix3x3(Camera.GetForward(), Camera.Up);
+        terrainCamera.Target = (cameraRotation * Game::Terrain.InverseTransform).Forward();
+        terrainCamera.Up = (cameraRotation * Game::Terrain.InverseTransform).Up();
+
+        UpdateFrameConstants(outputSize * Render::RenderScale, Settings::Editor.FieldOfView, terrainCamera, Adapter->GetTerrainConstants());
 
         UpdateFrameConstants(outputSize * Render::RenderScale, Settings::Editor.FieldOfView, Camera,
                              Adapter->GetFrameConstants(), &ViewProjection, &CameraFrustum);

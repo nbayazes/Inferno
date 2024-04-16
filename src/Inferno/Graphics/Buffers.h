@@ -59,7 +59,7 @@ namespace Inferno {
         D3D12_VERTEX_BUFFER_VIEW PackVertices(span<TVertex> data) {
             constexpr auto stride = sizeof(TVertex);
             auto size = uint(data.size() * stride);
-            if (_index + size > _size) 
+            if (_index + size > _size)
                 throw Exception("Ran out of space in GPU buffer");
             memcpy((byte*)_resource.Memory() + _index, data.data(), size);
 
@@ -80,7 +80,7 @@ namespace Inferno {
             constexpr auto format = stride == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
 
             auto size = uint(data.size() * stride);
-            if (_index + size > _size) 
+            if (_index + size > _size)
                 throw Exception("Ran out of space in GPU buffer");
 
             memcpy((byte*)_resource.Memory() + _index, data.data(), size);
@@ -281,9 +281,10 @@ namespace Inferno {
         List<T> _buffer;
         DescriptorHandle _srv, _uav;
         bool _forbidResize = false;
+        wstring _name;
 
     public:
-        UploadBuffer(size_t capacity) : _requestedCapacity(capacity) {
+        UploadBuffer(size_t capacity, wstring_view name) : _requestedCapacity(capacity), _name(name) {
             _buffer.reserve(capacity);
             _gpuCapacity = _requestedCapacity;
         }
@@ -335,6 +336,7 @@ namespace Inferno {
                 if (shouldGrow)
                     _gpuCapacity = size_t(_requestedCapacity * 1.5);
                 CreateUploadHeap(_resource, _gpuCapacity * sizeof(T));
+                std::ignore = _resource->SetName(_name.c_str());
 
                 //if (_mapped) _resource->Unmap(0, &CPU_READ_NONE);
                 // leave the buffer mapped
@@ -383,7 +385,8 @@ namespace Inferno {
         uint8* _cpuMemory{};
         D3D12_GPU_VIRTUAL_ADDRESS _gpuMemory{};
         size_t _size;
-        std::atomic<int64> _frameCount = 0;
+        std::atomic<int64> _allocated = 0;
+        bool _reset = false;
 
     public:
         FrameUploadBuffer(size_t size) : _size(size) {
@@ -410,7 +413,14 @@ namespace Inferno {
         MappedHandle GetMemory(uint64 size, uint64 alignment) {
             uint64 allocSize = size + alignment;
             //uint64 offset = InterlockedAdd64(&_frameCount, allocSize) - allocSize;
-            uint64 offset = _frameCount.fetch_add(allocSize);
+            //SPDLOG_INFO("ALLOC: {} ADDR: {}", _allocated.load(), (void*)this);
+
+            if (_reset) {
+                ASSERT(_allocated == 0);
+                _reset = false;
+            }
+
+            uint64 offset = _allocated.fetch_add(allocSize);
             if (alignment > 0)
                 offset = AlignTo(offset, alignment);
 
@@ -426,7 +436,9 @@ namespace Inferno {
         }
 
         void ResetIndex() {
-            _frameCount = 0;
+            _allocated = 0;
+            //SPDLOG_INFO("RESET INDEX: {} ADDR: {}", _allocated.load(), (void*)this);
+            _reset = true;
         }
     };
 }

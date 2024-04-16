@@ -32,7 +32,6 @@ namespace Inferno::Editor {
     }
 
     void OldDebugInfo() {
-
         /*_timeCounter += Render::FrameTime;
 
         if (_timeCounter > 0.5f) {
@@ -76,16 +75,16 @@ namespace Inferno::Editor {
         /*ImGui::Text("Ray pos: %.2f, %.2f, %.2f", ray.position.x, ray.position.y, ray.position.z);
             ImGui::Text("Ray dir: %.2f, %.2f, %.2f", ray.direction.x, ray.direction.y, ray.direction.z);*/
 
-            /* auto& beginDrag = Editor::Selection.BeginDrag;
-                    ImGui::Text("Begin drag: %.2f, %.2f, %.2f", beginDrag.x, beginDrag.y, beginDrag.z);
+        /* auto& beginDrag = Editor::Selection.BeginDrag;
+                ImGui::Text("Begin drag: %.2f, %.2f, %.2f", beginDrag.x, beginDrag.y, beginDrag.z);
 
-                    auto& endDrag = Editor::Selection.EndDrag;
-                    ImGui::Text("End drag: %.2f, %.2f, %.2f", endDrag.x, endDrag.y, endDrag.z);
+                auto& endDrag = Editor::Selection.EndDrag;
+                ImGui::Text("End drag: %.2f, %.2f, %.2f", endDrag.x, endDrag.y, endDrag.z);
 
-                    auto& dragVec = Editor::Selection.DragVector;
-                    auto& mag = Editor::Selection.DragMagnitude;
-                    ImGui::Text("Drag: %.2f, %.2f, %.2f", dragVec.x, dragVec.y, dragVec.z);
-                    ImGui::Text("Drag mag: %.2f, %.2f, %.2f", mag.x, mag.y, mag.z);*/
+                auto& dragVec = Editor::Selection.DragVector;
+                auto& mag = Editor::Selection.DragMagnitude;
+                ImGui::Text("Drag: %.2f, %.2f, %.2f", dragVec.x, dragVec.y, dragVec.z);
+                ImGui::Text("Drag mag: %.2f, %.2f, %.2f", mag.x, mag.y, mag.z);*/
 
         for (auto& hit : Editor::Selection.Hits)
             ImGui::Text("Hit seg %d:%d normal: %.2f, %.2f, %.2f", hit.Tag.Segment, hit.Tag.Side, hit.Normal.x, hit.Normal.y, hit.Normal.z);
@@ -155,7 +154,6 @@ namespace Inferno::Editor {
 
             if (ImGui::Button("Reset inventory"))
                 ResetPlayerInventory();
-
         }
 
         {
@@ -197,7 +195,6 @@ namespace Inferno::Editor {
                 if (ImGui::SliderInt("Render scale", &renderScale, 0, 3, angles[renderScale]))
                     Render::RenderScale = (renderScale + 1) / 4.0f;
             }
-
         }
 
         {
@@ -276,6 +273,9 @@ namespace Inferno::Editor {
             }
 
             ImGui::Separator();
+
+            ImGui::ColorEdit4("Atmosphere", &Game::Terrain.AtmosphereColor.x);
+            //ImGui::ColorPicker4("Atmosphere", &Game::Terrain.AtmosphereColor.x);
         }
     }
 }

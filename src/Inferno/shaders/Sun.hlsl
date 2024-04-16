@@ -9,7 +9,6 @@
 ConstantBuffer<FrameConstants> Frame : register(b0);
 SamplerState Sampler : register(s0);
 Texture2D Diffuse : register(t0);
-Texture2D Depth : register(t1);
 
 struct VS_INPUT {
     float3 pos : POSITION;
@@ -32,41 +31,23 @@ PS_INPUT vsmain(VS_INPUT input) {
     return output;
 }
 
-float LinearizeDepth(float near, float far, float depth) {
-    return near / (far + depth * (near - far));
-}
-
-float SaturateSoft(float depth, float contrast) {
-    float Output = 0.5 * pow(saturate(2 * ((depth > 0.5) ? 1 - depth : depth)), contrast);
-    return (depth > 0.5) ? 1 - Output : Output;
-}
-
 float4 psmain(PS_INPUT input) : SV_Target {
     //float4 diffuse = Diffuse.Sample(Sampler, input.uv);
     float4 diffuse = Sample2D(Diffuse, input.uv, Sampler, Frame.FilterMode);
+    float4 origDiffuse = diffuse;
     //diffuse.xyz = pow(diffuse.xyz, 2.2);
     diffuse.rgb *= input.col;
-    diffuse.a = clamp(diffuse.a, 0, 1);
+    diffuse.rgb *= float3(1, .96, .9);
+    diffuse.a = saturate(pow(diffuse.r, 0.5));
+    diffuse.rgb += pow(saturate(diffuse.rgb - 0.9) * 4, 4) * float3(1.0, 0.6, .35);
+    //diffuse.rgb += origDiffuse.rgb;
+    //diffuse.a = origDiffuse.a;
+
+    //diffuse.a = saturate(diffuse.a);
     if (diffuse.a <= 0.0)
         discard;
 
-    // (1 - (1-2*(Target-0.5)) * (1-Blend))
-    //if (length(input.col.rgb) > 1 && length(diffuse.rgb) > 0.75)
-    //    diffuse.rgb *= input.col.rgb;
-        //(1 - (1 - 2 * target - 0.5)) * (1 - blend)
-    //diffuse.rgb += clamp(diffuse.rgb - 0.5, 0, 1) * clamp(diffuse.rgb - 0.5, 0, 1);
-    
-    float sceneDepth = Depth.Sample(Sampler, (input.pos.xy + 0.5) / Frame.Size).x;
-    if (sceneDepth <= 0.0f)
-        return diffuse; // don't apply softening to particles against the background
-    
-    float pixelDepth = LinearizeDepth(Frame.NearClip, Frame.FarClip, input.pos.z);
-    const float DEPTH_SCALE = 0.85; // larger explosions want a smaller scale to blend into the surroundings better (0.85)
-    const float DEPTH_EXPONENT = 1.5;
-    float d = saturate((sceneDepth - pixelDepth) * 1000);
-    //float d = SaturateSoft((sceneDepth - pixelDepth) * FarClip * DEPTH_SCALE, DEPTH_EXPONENT);
     return diffuse;
-    
     // highlights on sprites
     //float4 color = diffuse * input.col;
     //float4 specular = pow(saturate(color - 0.6) + 1, 5) - 1;
