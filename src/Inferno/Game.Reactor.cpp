@@ -97,46 +97,43 @@ namespace Inferno::Game {
 
         int instances = 1000; // Want this to last forever in case multiple reactor levels are ever added
 
-        if (auto e = Render::EffectLibrary.GetSparks("reactor_destroyed"))
+        if (auto e = EffectLibrary.GetSparks("reactor_destroyed"))
             Render::AddSparkEmitter(*e, obj.Segment, obj.Position);
 
-        if (auto e = Render::EffectLibrary.GetExplosion("reactor_initial_explosion")) {
+        if (auto e = EffectLibrary.GetExplosion("reactor_initial_explosion")) {
             e->Radius = { obj.Radius * 0.5f, obj.Radius * 0.7f };
             e->Variance = obj.Radius * 0.9f;
             Render::CreateExplosion(*e, obj.Segment, obj.Position);
         }
 
-        if (auto e = Render::EffectLibrary.GetExplosion("reactor_large_explosions")) {
+        if (auto e = EffectLibrary.GetExplosion("reactor_large_explosions")) {
             // Larger periodic explosions with sound
             e->Variance = obj.Radius * 0.45f;
             e->Instances = instances;
             Render::CreateExplosion(*e, obj.Segment, obj.Position);
         }
 
-        if (auto e = Render::EffectLibrary.GetExplosion("reactor_small_explosions")) {
+        if (auto e = EffectLibrary.GetExplosion("reactor_small_explosions")) {
             e->Variance = obj.Radius * 0.55f;
             e->Instances = instances * 10;
             Render::CreateExplosion(*e, obj.Segment, obj.Position);
         }
 
-        if (auto beam = Render::EffectLibrary.GetBeamInfo("reactor_arcs")) {
-            Render::DynamicLight light;
+        if (auto beam = EffectLibrary.GetBeamInfo("reactor_arcs")) {
+            LightEffectInfo light;
             light.LightColor = beam->Color * 0.25f;
             light.Radius = 25;
             light.Mode = DynamicLightMode::StrongFlicker;
-            light.Duration = MAX_OBJECT_LIFE;
-            light.Segment = obj.Segment;
-            light.Position = obj.Position;
-            Render::AddDynamicLight(light);
+            Render::AddLight(light, obj.Position, MAX_OBJECT_LIFE, obj.Segment);
 
             for (int i = 0; i < 4; i++) {
                 auto startObj = Game::GetObjectRef(obj);
                 beam->StartDelay = i * 0.4f + Random() * 0.125f;
-                Render::AddBeam(*beam, (float)instances, startObj);
+                Render::AttachBeam(*beam, (float)instances, startObj);
             }
         }
 
-        //if (auto beam = Render::EffectLibrary.GetBeamInfo("reactor_internal_arcs")) {
+        //if (auto beam = EffectLibrary.GetBeamInfo("reactor_internal_arcs")) {
         //    for (int i = 0; i < 4; i++) {
         //        auto startObj = ObjID(&obj - Level.Objects.data());
         //        beam->StartDelay = i * 0.4f + Random() * 0.125f;

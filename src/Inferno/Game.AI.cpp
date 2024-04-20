@@ -14,6 +14,7 @@
 #include "Editor/Editor.Selection.h"
 #include "Graphics/Render.Debug.h"
 #include "Graphics/Render.Particles.h"
+#include "EffectTypes.h"
 
 namespace Inferno {
     namespace {
@@ -350,23 +351,21 @@ namespace Inferno {
 
             if (Random() < dt * 16) {
                 auto effect = ri.IsBoss ? "boss large fireball" : "large fireball";
-                if (auto e = Render::EffectLibrary.GetExplosion(effect)) {
+                if (auto e = EffectLibrary.GetExplosion(effect)) {
                     // Larger periodic explosions with sound
                     //e->Variance = obj.Radius * 0.75f;
-                    e->Parent = Game::GetObjectRef(obj);
                     e->Volume = volume;
-                    Render::CreateExplosion(*e, obj.Segment, obj.Position);
+                    Render::CreateExplosion(*e, Game::GetObjectRef(obj));
                 }
             }
         }
         else if (Random() < dt * 8) {
             // Winding up, create fireballs on object
             auto effect = ri.IsBoss ? "boss small fireball" : "small fireball";
-            if (auto e = Render::EffectLibrary.GetExplosion(effect)) {
+            if (auto e = EffectLibrary.GetExplosion(effect)) {
                 //e->Variance = obj.Radius * 0.65f;
-                e->Parent = Game::GetObjectRef(obj);
                 e->Volume = volume;
-                Render::CreateExplosion(*e, obj.Segment, obj.Position);
+                Render::CreateExplosion(*e, Game::GetObjectRef(obj));
             }
         }
 
@@ -801,14 +800,14 @@ namespace Inferno {
                 ai.RemainingStun = stunTime;
                 PlayRobotAnimation(robot, Animation::Flinch, 0.2f);
 
-                if (auto beam = Render::EffectLibrary.GetBeamInfo("stunned object arcs")) {
+                if (auto beam = EffectLibrary.GetBeamInfo("stunned object arcs")) {
                     auto startObj = Game::GetObjectRef(robot);
                     beam->Radius = { robot.Radius * 0.6f, robot.Radius * 0.9f };
-                    Render::AddBeam(*beam, stunTime, startObj);
+                    Render::AttachBeam(*beam, stunTime, startObj);
                     beam->StartDelay = stunTime / 3;
-                    Render::AddBeam(*beam, stunTime - beam->StartDelay, startObj);
+                    Render::AttachBeam(*beam, stunTime - beam->StartDelay, startObj);
                     beam->StartDelay = stunTime * 2 / 3;
-                    Render::AddBeam(*beam, stunTime - beam->StartDelay, startObj);
+                    Render::AttachBeam(*beam, stunTime - beam->StartDelay, startObj);
                     //SetFlag(robot.Physics.Flags, PhysicsFlag::Gravity);
                 }
             }
@@ -888,15 +887,15 @@ namespace Inferno {
         if (ai.NextChargeSoundDelay <= 0) {
             ai.NextChargeSoundDelay = 0.125f + Random() / 8;
 
-            if (auto fx = Render::EffectLibrary.GetSparks("robot_fusion_charge")) {
-                fx->Parent = Game::GetObjectRef(robot);
+            if (auto fx = EffectLibrary.GetSparks("robot_fusion_charge")) {
+                auto parent = Game::GetObjectRef(robot);
                 Sound3D sound(SoundID::FusionWarmup);
                 sound.Radius = AI_SOUND_RADIUS;
                 ai.SoundHandle = Sound::PlayFrom(sound, robot);
 
                 for (uint8 i = 0; i < robotInfo.Guns; i++) {
-                    fx->ParentSubmodel.Offset = GetGunpointOffset(robot, i);
-                    Render::AddSparkEmitter(*fx, robot.Segment);
+                    auto offset = GetGunpointOffset(robot, i);
+                    Render::AddSparkEmitter(*fx, parent, offset);
                 }
             }
         }
@@ -1132,17 +1131,14 @@ namespace Inferno {
                     target.Physics.Velocity += targetDir * 5; // shove the target backwards
                     ai.Awareness = 1; // Hit something, reset awareness (cloaked targets)
 
-                    if (auto sparks = Render::EffectLibrary.GetSparks("melee hit")) {
+                    if (auto sparks = EffectLibrary.GetSparks("melee hit")) {
                         auto position = robot.Position + targetDir * robot.Radius;
                         Render::AddSparkEmitter(*sparks, robot.Segment, position);
 
-                        Render::DynamicLight light{};
+                        LightEffectInfo light{};
                         light.LightColor = sparks->Color * .4f;
                         light.Radius = 18;
-                        light.Position = position;
-                        light.Duration = light.FadeTime = 0.5f;
-                        light.Segment = robot.Segment;
-                        Render::AddDynamicLight(light);
+                        Render::AddLight(light, position, light.FadeTime, robot.Segment);
                     }
                 }
             }
@@ -1554,7 +1550,7 @@ namespace Inferno {
                 GetBehindTarget(robot, ai, robotInfo, target);
 
             if (Settings::Cheats.ShowPathing)
-                Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, 0, 0));
+                Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, 0, 0), Game::GameCamera);
 
             AlertNearby(ai, robot, robotInfo);
             PlayCombatNoise(robot, ai);
@@ -1565,7 +1561,7 @@ namespace Inferno {
             // Robot can either choose to chase the target or hold position and blind fire
 
             if (Settings::Cheats.ShowPathing)
-                Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, .5, .5));
+                Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, .5, .5), Game::GameCamera);
 
             if (ai.CombatState == AICombatState::Normal && ai.StrafeTimer <= 0 && ai.LostSightDelay <= 0) {
                 OnLostLineOfSight(ai, robot, robotInfo);
@@ -1675,7 +1671,7 @@ namespace Inferno {
                 GetBehindTarget(robot, ai, robotInfo, target);
 
             if (Settings::Cheats.ShowPathing)
-                Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, 0, 0));
+                Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, 0, 0), Game::GameCamera);
 
             AlertNearby(ai, robot, robotInfo);
             PlayCombatNoise(robot, ai);
@@ -1685,7 +1681,7 @@ namespace Inferno {
             DecayAwareness(ai);
 
             if (Settings::Cheats.ShowPathing)
-                Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, .5, .5));
+                Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, .5, .5), Game::GameCamera);
 
             // Chasing a cloaked target does no good, AI just gets confused.
             // Also don't chase the player ghost
@@ -1738,7 +1734,7 @@ namespace Inferno {
             bool validState = ai.CombatState == AICombatState::Normal || ai.CombatState == AICombatState::Chase;
 
             if (Settings::Cheats.ShowPathing)
-                Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, 0, 1));
+                Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, 0, 1), Game::GameCamera);
 
             // Move around a little to look more alive
             if (ai.DodgeDelay <= 0) {

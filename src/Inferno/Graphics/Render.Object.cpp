@@ -8,12 +8,11 @@
 #include "Render.h"
 #include "Resources.h"
 #include "Render.Object.h"
+#include "OpenSimplex2.h"
 
 //#define DEBUG_DISSOLVE
 
 namespace Inferno::Render {
-    using Graphics::GraphicsContext;
-
     constexpr Color MIN_POWERUP_AMBIENT = Color(0.1f, 0.1f, 0.1f);
 
     constexpr float GetTimeOffset(const Object& obj) {
@@ -40,7 +39,7 @@ namespace Inferno::Render {
             object.Render.Type == RenderType::Hostage) {
             auto& vclip = Resources::GetVideoClip(object.Render.VClip.ID);
             if (vclip.NumFrames == 0) {
-                DrawObjectOutline(object);
+                DrawObjectOutline(object, ctx.Camera);
                 return;
             }
 
@@ -54,11 +53,11 @@ namespace Inferno::Render {
             DrawBillboard(ctx, weapon.BlobBitmap, pos, object.Radius, color, additive, object.Render.Rotation, up);
         }
         else {
-            DrawObjectOutline(object);
+            DrawObjectOutline(object, ctx.Camera);
         }
     }
 
-    void SpriteDepthPrepass(ID3D12GraphicsCommandList* cmdList, const Object& object, const Vector3* up = nullptr) {
+    void SpriteDepthPrepass(GraphicsContext& ctx, const Object& object, const Vector3* up = nullptr) {
         auto pos = object.GetPosition(Game::LerpAmount);
 
         if (object.Render.Type == RenderType::WeaponVClip ||
@@ -70,12 +69,12 @@ namespace Inferno::Render {
             }
 
             auto tid = vclip.GetFrame((float)ElapsedTime);
-            DrawDepthBillboard(cmdList, tid, pos, object.Radius, object.Render.Rotation, up);
+            DrawDepthBillboard(ctx, tid, pos, object.Radius, object.Render.Rotation, up);
         }
         else if (object.Render.Type == RenderType::Laser) {
             // "laser" is used for still-image "blobs" like spreadfire
             auto& weapon = Resources::GetWeapon((WeaponID)object.ID);
-            DrawDepthBillboard(cmdList, weapon.BlobBitmap, pos, object.Radius, object.Render.Rotation, up);
+            DrawDepthBillboard(ctx, weapon.BlobBitmap, pos, object.Radius, object.Render.Rotation, up);
         }
     }
 
@@ -261,7 +260,7 @@ namespace Inferno::Render {
 
             if (submodel.HasFlag(SubmodelFlag::Facing)) {
                 auto smPos = Vector3::Transform(Vector3::Zero, world);
-                auto billboard = Matrix::CreateBillboard(smPos, Camera.Position, Camera.Up);
+                auto billboard = Matrix::CreateBillboard(smPos, ctx.Camera.Position, ctx.Camera.Up);
                 constants.World = billboard;
                 //constants.Projection = billboard * ViewProjection;
             }
@@ -339,7 +338,7 @@ namespace Inferno::Render {
 
         auto& model = Resources::GetModel(modelId);
         if (model.DataSize == 0) {
-            DrawObjectOutline(object);
+            DrawObjectOutline(object, ctx.Camera);
             return;
         }
 
@@ -389,7 +388,7 @@ namespace Inferno::Render {
 
         auto& model = Resources::GetModel(modelId);
         if (model.DataSize == 0) {
-            DrawObjectOutline(object);
+            DrawObjectOutline(object, ctx.Camera);
             return;
         }
 

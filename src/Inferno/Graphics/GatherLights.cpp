@@ -11,8 +11,9 @@ namespace Inferno::Graphics {
         return view / view.w;
     }
 
-    Vector4 ScreenToView(const Vector4& screen, const Matrix& inverseProj) {
-        Vector2 texCoord(screen.x / Render::Camera.Viewport.width, screen.y / Render::Camera.Viewport.height);
+    Vector4 ScreenToView(const Vector4& screen, const Matrix& inverseProj, const Camera& camera) {
+        auto size = camera.GetViewportSize();
+        Vector2 texCoord(screen.x / size.x, screen.y / size.y);
         texCoord.y = 1 - texCoord.y; // flip y
         // Convert to clip space. * 2 - 1 transforms from -1, 1 to 0 1
         Vector4 clip(texCoord.x * 2.0f - 1.0f, texCoord.y * 2.0f - 1.0f, screen.z, screen.w);

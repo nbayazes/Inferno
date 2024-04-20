@@ -8,7 +8,7 @@ namespace Inferno::Render::Debug {
     void Initialize();
     void Shutdown();
 
-    constexpr float WallMarkerOffset = 1.0f;
+    constexpr float WALL_MARKER_OFFSET = 1.0f;
 
     // Immediately draws an arrow
     void DrawArrow(ID3D12GraphicsCommandList* cmdList, const Matrix& transform, const Color& color);
@@ -19,15 +19,15 @@ namespace Inferno::Render::Debug {
     void DrawLine(const Vector3& v0, const Vector3& v1, const Color& color);
     void DrawLines(span<FlatVertex> verts);
     void DrawCross(const Vector3& p, const Color& color);
-    void DrawPoint(const Vector3& p, const Color& color);
+    void DrawPoint(const Vector3& p, const Color& color, const Camera& camera);
 
     void DrawTriangle(const Vector3& v0, const Vector3& v1, const Vector3& v2, const Color& color);
 
     // Draws a circle on the x/y plane with the given radius
     void DrawCircle(float radius, const Matrix& transform, const Color& color);
-    void DrawSolidCircle(const Vector3& position, float radius, const Color& color);
+    void DrawSolidCircle(const Vector3& position, float radius, const Color& color, const Camera& camera);
 
-    void DrawFacingSquare(const Vector3& p, float size, const Color& color);
+    void DrawFacingSquare(const Vector3& p, float size, const Color& color, const Camera& camera);
 
     void DrawRing(float radius, float thickness, const Matrix& transform, const Color& color);
     // Drawns an arc on the x/y plane with the given radius and angle offset
@@ -35,14 +35,14 @@ namespace Inferno::Render::Debug {
     void DrawArc(float radius, float radians, float offset, const Matrix& transform, const Color& color);
     void DrawSolidArc(float radius, float thickness, float length, float offset, const Matrix& transform, const Color& color);
 
-    void DrawWallMarker(const ConstFace& face, const Color& color, float height = Debug::WallMarkerOffset);
+    void DrawWallMarker(const ConstFace& face, const Color& color, float height = WALL_MARKER_OFFSET);
 
-    void DrawArrow(const Vector3& start, const Vector3& end, const Color& color);
+    void DrawArrow(const Vector3& start, const Vector3& end, const Color& color, const Camera& camera);
 
     void BeginFrame();
-    void EndFrame(ID3D12GraphicsCommandList* cmdList);
+    void EndFrame(GraphicsContext& ctx);
 
-    void DrawCrosshair(float size);
+    void DrawCrosshair(float size, const Camera& camera);
 
     void DrawSide(Level&, Tag, const Color&);
     void DrawSide(const Level& level, Segment& seg, SideID side, const Color& color);

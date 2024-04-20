@@ -21,7 +21,7 @@ namespace Inferno::Graphics {
 }
 
 namespace Inferno::Render {
-    void DrawLevel(Graphics::GraphicsContext& ctx, Level& level);
+    void DrawLevel(GraphicsContext& ctx, Level& level);
     void RebuildLevelResources(Level& level);
     int GetTransparentQueueSize();
     span<RoomID> GetVisibleRooms();

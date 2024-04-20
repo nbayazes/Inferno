@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Buffers.h"
+#include "CameraContext.h"
 #include "ComputeShader.h"
 
 namespace Inferno::PostFx {
@@ -19,7 +19,7 @@ namespace Inferno::PostFx {
     public:
         LinearizeDepthCS() : ComputeShader(16, 16) {}
 
-        void Execute(ID3D12GraphicsCommandList* commandList, DepthBuffer& source, PixelBuffer& dest) const;
+        void Execute(const GraphicsContext& ctx, DepthBuffer& source, PixelBuffer& dest) const;
     };
 
     class BloomExtractDownsampleCS : public ComputeShader {

@@ -82,42 +82,42 @@ namespace Inferno::Editor {
         };
 
         Command CameraForward{
-            .Action = [] { Render::Camera.MoveForward(Render::FrameTime * Settings::Editor.MoveSpeed); },
+            .Action = [] { Editor::EditorCamera.MoveForward(Render::FrameTime * Settings::Editor.MoveSpeed); },
             .Name = "Camera: Forward"
         };
 
         Command CameraBack{
-            .Action = [] { Render::Camera.MoveBack(Render::FrameTime * Settings::Editor.MoveSpeed); },
+            .Action = [] { Editor::EditorCamera.MoveBack(Render::FrameTime * Settings::Editor.MoveSpeed); },
             .Name = "Camera: Back"
         };
 
         Command CameraLeft{
-            .Action = [] { Render::Camera.MoveLeft(Render::FrameTime * Settings::Editor.MoveSpeed); },
+            .Action = [] { Editor::EditorCamera.MoveLeft(Render::FrameTime * Settings::Editor.MoveSpeed); },
             .Name = "Camera: Left"
         };
 
         Command CameraRight{
-            .Action = [] { Render::Camera.MoveRight(Render::FrameTime * Settings::Editor.MoveSpeed); },
+            .Action = [] { Editor::EditorCamera.MoveRight(Render::FrameTime * Settings::Editor.MoveSpeed); },
             .Name = "Camera: Right"
         };
 
         Command CameraUp{
-            .Action = [] { Render::Camera.MoveUp(Render::FrameTime * Settings::Editor.MoveSpeed); },
+            .Action = [] { Editor::EditorCamera.MoveUp(Render::FrameTime * Settings::Editor.MoveSpeed); },
             .Name = "Camera: Up"
         };
 
         Command CameraDown{
-            .Action = [] { Render::Camera.MoveDown(Render::FrameTime * Settings::Editor.MoveSpeed); },
+            .Action = [] { Editor::EditorCamera.MoveDown(Render::FrameTime * Settings::Editor.MoveSpeed); },
             .Name = "Camera: Down"
         };
 
         Command CameraRollLeft{
-            .Action = [] { Render::Camera.Roll(Render::FrameTime); },
+            .Action = [] { Editor::EditorCamera.Roll(Render::FrameTime); },
             .Name = "Camera: Roll Left"
         };
 
         Command CameraRollRight{
-            .Action = [] { Render::Camera.Roll(-Render::FrameTime); },
+            .Action = [] { Editor::EditorCamera.Roll(-Render::FrameTime); },
             .Name = "Camera: Roll Right"
         };
 

@@ -408,7 +408,7 @@ namespace Inferno {
 
             if (vclip.PlayTime == 0) return; // Data not found
 
-            Render::Particle p{};
+            ParticleInfo p{};
             auto up = top - bottom;
             p.Clip = VClipID::Matcen;
             p.Radius = up.Length() / 2;
@@ -417,30 +417,23 @@ namespace Inferno {
             p.Color = Color(.2f, 1, .2f, 5);
             Render::AddParticle(p, segId, seg->Center);
 
-            Render::DynamicLight light;
+            LightEffectInfo light;
             light.Radius = p.Radius * 2.0f;
             light.LightColor = Color(1, 0, 0.8f, 5.0f);
-            light.Position = seg->Center;
-            light.Duration = vclip.PlayTime * 2;
             light.FadeTime = vclip.PlayTime;
-            light.Segment = segId;
-            Render::AddDynamicLight(light);
+            Render::AddLight(light, seg->Center, vclip.PlayTime * 2, segId);
 
-            if (auto beam = Render::EffectLibrary.GetBeamInfo("matcen")) {
-                beam->Segment = segId;
-
+            if (auto beam = EffectLibrary.GetBeamInfo("matcen")) {
                 for (int i = 0; i < 4; i++) {
                     //beam->StartDelay = i * 0.4f + Random() * 0.125f;
-                    Render::AddBeam(*beam, vclip.PlayTime, top, bottom);
+                    Render::AddBeam(*beam, segId, vclip.PlayTime, top, bottom);
                 }
             }
 
-            if (auto beam = Render::EffectLibrary.GetBeamInfo("matcen arcs")) {
-                beam->Segment = segId;
-
+            if (auto beam = EffectLibrary.GetBeamInfo("matcen arcs")) {
                 for (int i = 0; i < 8; i++) {
                     //beam->StartDelay = i * 0.4f + Random() * 0.125f;
-                    Render::AddBeam(*beam, vclip.PlayTime, seg->Center, {});
+                    Render::AddBeam(*beam, segId, vclip.PlayTime, seg->Center, {});
                 }
             }
         }
@@ -659,14 +652,11 @@ namespace Inferno {
             if (matcen.Light == EffectID::None) {
                 if (auto seg = level.TryGetSegment(matcen.Segment)) {
                     // Ambient light while matcen has energy remaining
-                    Render::DynamicLight light;
+                    LightEffectInfo light;
                     light.Radius = seg->GetLongestEdge() * 1.5f;
                     light.LightColor = Color(1, 0, 0.8f, 0.05f);
-                    light.Position = seg->Center;
-                    light.Segment = matcen.Segment;
                     light.Mode = DynamicLightMode::BigPulse;
-                    light.Duration = MAX_OBJECT_LIFE;
-                    matcen.Light = Render::AddDynamicLight(light);
+                    matcen.Light = Render::AddLight(light, seg->Center, MAX_OBJECT_LIFE, matcen.Segment);
                 }
             }
         }

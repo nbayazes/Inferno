@@ -152,7 +152,7 @@ namespace Inferno::Render {
             Draw(payload);
         }
 
-        void Render(Graphics::GraphicsContext& ctx) {
+        void Render(GraphicsContext& ctx) {
             // draw batched text
             auto orthoProj = Matrix::CreateOrthographicOffCenter(0, _size.x, _size.y, 0.0, 0.0, -2.0f);
 
@@ -394,7 +394,7 @@ namespace Inferno::Render {
 
         void DrawBitmap(const CanvasBitmapInfo& info);
 
-        void Render(Graphics::GraphicsContext& ctx);
+        void Render(GraphicsContext& ctx);
 
         void DrawGameText(string_view str, const DrawTextInfo& info);
 

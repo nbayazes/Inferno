@@ -453,7 +453,7 @@ namespace Inferno {
                     CreateExplosion(level, nullptr, expl);
                 }
 
-                Render::Particle p{};
+                ParticleInfo p{};
                 p.Clip = VClipID::SmallExplosion;
                 p.Radius = size / 2;
                 p.Color = Color(1, .75f, .75f, 2.0f);
@@ -740,7 +740,7 @@ namespace Inferno {
         //ei.Position = point;
         //ei.Segment = tag.Segment;
         //Render::CreateExplosion(ei);
-        if (auto e = Render::EffectLibrary.GetSparks("overlay_destroyed")) {
+        if (auto e = EffectLibrary.GetSparks("overlay_destroyed")) {
             e->Direction = side.AverageNormal;
             e->Up = side.Tangents[0];
             auto position = point + side.AverageNormal * 0.1f;
@@ -850,7 +850,7 @@ namespace Inferno {
             ge.Room = level.GetRoomID(obj);
             CreateExplosion(level, &obj, ge);
 
-            Render::ExplosionInfo e;
+            ExplosionEffectInfo e;
             e.Radius = { weapon.ImpactSize * 0.9f, weapon.ImpactSize * 1.1f };
             e.Clip = vclip;
             e.FadeTime = weapon.Extended.ExplosionTime;
@@ -885,7 +885,7 @@ namespace Inferno {
                 CreateExplosion(level, &obj, ge);
             }
 
-            Render::Particle e;
+            ParticleInfo e;
             e.Radius = NumericRange(weapon.ImpactSize * 0.9f, weapon.ImpactSize * 1.1f).GetRandom();
             e.Clip = vclip;
             e.FadeTime = weapon.Extended.ExplosionTime;

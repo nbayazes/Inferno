@@ -24,70 +24,25 @@ namespace Inferno::Render {
             return pos + dir * radius;
     }
 
-    struct Beam {
-        SegID Segment = SegID::None;
-        List<ObjectVertex> Mesh{};
-        float NextUpdate = 0;
-        BeamInfo Info;
-    };
+    //struct Beam {
+    //    SegID Segment = SegID::None;
+    //    List<ObjectVertex> Mesh{};
+    //    float NextUpdate = 0;
+    //    BeamInfo Info;
+    //};
 
-    void InitRandomBeamPoints(BeamInfo& beam, const Object* object) {
-        if (HasFlag(beam.Flags, BeamFlag::RandomObjStart)) {
+    void BeamInstance::InitRandomPoints(const Object* object) {
+        if (HasFlag(Info.Flags, BeamFlag::RandomObjStart)) {
             if (object)
-                beam.ParentSubmodel = GetRandomPointOnObject(*object);
+                ParentSubmodel = GetRandomPointOnObject(*object);
         }
 
-        if (HasFlag(beam.Flags, BeamFlag::RandomObjEnd)) {
+        if (HasFlag(Info.Flags, BeamFlag::RandomObjEnd)) {
             if (object)
-                beam.EndSubmodel = GetRandomPointOnObject(*object);
+                EndSubmodel = GetRandomPointOnObject(*object);
         }
-        else if (HasFlag(beam.Flags, BeamFlag::RandomEnd)) {
-            beam.End = GetRandomPoint(beam.Start, beam.Segment, beam.Radius.GetRandom());
-        }
-    }
-
-    void AddBeam(BeamInfo beam, float life, const Vector3& start, const Vector3& end) {
-        beam.Start = start;
-        beam.End = end;
-        beam.Duration = life;
-        AddBeam(beam);
-    }
-
-    void AddBeam(BeamInfo beam, float life, ObjRef start, const Vector3& end, int startGun) {
-        auto obj = Game::Level.TryGetObject(start);
-
-        if (obj) {
-            beam.Parent = start;
-            if (startGun >= 0) {
-                beam.Start = GetGunpointOffset(*obj, (uint8)startGun);
-                beam.ParentSubmodel = GetGunpointSubmodelOffset(*obj, (uint8)startGun);
-            }
-            else {
-                beam.Start = obj->Position;
-            }
-            beam.Segment = obj->Segment;
-            beam.End = end;
-            beam.Duration = life;
-            AddBeam(beam);
-        }
-    }
-
-    void AddBeam(BeamInfo beam, float duration, ObjRef start, ObjRef end, int startGun) {
-        auto obj = Game::Level.TryGetObject(start);
-
-        if (obj) {
-            beam.Parent = start;
-            if (startGun >= 0) {
-                beam.Start = GetGunpointOffset(*obj, (uint8)startGun);
-                beam.ParentSubmodel = GetGunpointSubmodelOffset(*obj, (uint8)startGun);
-            }
-            else {
-                beam.Start = obj->Position;
-            }
-            beam.Segment = obj->Segment;
-            beam.EndObj = end;
-            beam.Duration = duration;
-            AddBeam(beam);
+        else if (HasFlag(Info.Flags, BeamFlag::RandomEnd)) {
+            End = GetRandomPoint(Start, Segment, Info.Radius.GetRandom());
         }
     }
 
@@ -119,15 +74,15 @@ namespace Inferno::Render {
         }
     }
 
-    Vector3 GetBeamPerpendicular(const Vector3 delta) {
+    Vector3 GetBeamPerpendicular(const Vector3 delta, const Camera& camera) {
         Vector3 dir;
         delta.Normalize(dir);
-        auto perp = Camera.GetForward().Cross(dir);
+        auto perp = camera.GetForward().Cross(dir);
         perp.Normalize();
         return perp;
     }
 
-    void BeamInfo::Draw(Graphics::GraphicsContext& ctx) {
+    void BeamInstance::Draw(GraphicsContext& ctx) {
         if (StartDelay > 0) {
             StartDelay -= Game::FrameTime;
             return;
@@ -136,7 +91,7 @@ namespace Inferno::Render {
         auto startObj = Game::Level.TryGetObject(Parent);
         auto endObj = Game::Level.TryGetObject(EndObj);
 
-        if (!Parent.IsNull() && !HasFlag(Flags, BeamFlag::RandomObjStart)) {
+        if (!Parent.IsNull() && !HasFlag(Info.Flags, BeamFlag::RandomObjStart)) {
             if (startObj) {
                 if (ParentSubmodel.ID > -1) {
                     auto offset = GetSubmodelOffset(*startObj, ParentSubmodel);
@@ -150,14 +105,14 @@ namespace Inferno::Render {
 
         float dissolveFade = 1;
 
-        if (HasFlag(Flags, BeamFlag::RandomObjStart) && startObj) {
+        if (HasFlag(Info.Flags, BeamFlag::RandomObjStart) && startObj) {
             auto offset = GetSubmodelOffset(*startObj, ParentSubmodel);
             Start = Vector3::Transform(offset, startObj->GetTransform(Game::LerpAmount));
             if (startObj->IsPhasing())
                 dissolveFade = 1 - startObj->Effects.GetPhasePercent();
         }
 
-        if (HasFlag(Flags, BeamFlag::RandomObjEnd) && startObj) {
+        if (HasFlag(Info.Flags, BeamFlag::RandomObjEnd) && startObj) {
             // note that this effect uses the start object for begin and end
             auto offset = GetSubmodelOffset(*startObj, EndSubmodel);
             End = Vector3::Transform(offset, startObj->GetTransform(Game::LerpAmount));
@@ -166,9 +121,9 @@ namespace Inferno::Render {
             End = endObj->GetPosition(Game::LerpAmount);
         }
 
-        if (HasRandomEndpoints() && Game::Time > Runtime.NextStrikeTime) {
-            InitRandomBeamPoints(*this, startObj); // Relies on Start being updated
-            Runtime.NextStrikeTime = Game::Time + StrikeTime;
+        if (Info.HasRandomEndpoints() && Game::Time > Runtime.NextStrikeTime) {
+            InitRandomPoints(startObj); // Relies on Start being updated
+            Runtime.NextStrikeTime = Game::Time + Info.StrikeTime;
         }
 
         Time += Game::FrameTime;
@@ -178,14 +133,14 @@ namespace Inferno::Render {
         if (length < 1) return; // don't draw really short beams
 
         // DrawSegs()
-        auto scale = Amplitude;
+        auto scale = Info.Amplitude;
 
         int segments = (int)(length / (Runtime.Width * 0.5 * 1.414)) + 1;
         segments = std::clamp(segments, 2, 64);
         auto div = 1.0f / (segments - 1);
 
-        auto vLast = std::fmodf(Time * ScrollSpeed, 1);
-        if (HasFlag(Flags, BeamFlag::SineNoise)) {
+        auto vLast = std::fmodf((float)Time * Info.ScrollSpeed, 1);
+        if (HasFlag(Info.Flags, BeamFlag::SineNoise)) {
             if (segments < 16) {
                 segments = 16;
                 div = 1.0f / (segments - 1);
@@ -199,13 +154,13 @@ namespace Inferno::Render {
 
         noise.resize(segments);
 
-        if (Amplitude > 0 && Game::Time > Runtime.NextUpdate) {
-            if (HasFlag(Flags, BeamFlag::SineNoise))
+        if (Info.Amplitude > 0 && Game::Time > Runtime.NextUpdate) {
+            if (HasFlag(Info.Flags, BeamFlag::SineNoise))
                 SineNoise(noise);
             else
                 FractalNoise(noise);
 
-            Runtime.NextUpdate = Game::Time + Frequency;
+            Runtime.NextUpdate = Game::Time + Info.Frequency;
             Runtime.OffsetU = Random();
         }
 
@@ -216,7 +171,7 @@ namespace Inferno::Render {
         };
 
         BeamSeg curSeg{};
-        auto vStep = length / 20 * div * Scale;
+        auto vStep = length / 20 * div * Info.Scale;
 
         auto& effect = Effects->SpriteAdditive;
         ctx.ApplyEffect(effect);
@@ -225,7 +180,7 @@ namespace Inferno::Render {
         effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
         effect.Shader->SetSampler(cmdList, Render::GetWrappedTextureSampler());
 
-        auto& material = Render::Materials->Get(Texture);
+        auto& material = Render::Materials->Get(Info.Texture);
         effect.Shader->SetDiffuse(cmdList, material.Handle());
         Stats::DrawCalls++;
         g_SpriteBatch->Begin(cmdList);
@@ -233,36 +188,36 @@ namespace Inferno::Render {
         Vector3 prevNormal;
         Vector3 prevUp;
 
-        auto tangent = GetBeamNormal(Start, End);
+        auto tangent = GetBeamNormal(Start, End, ctx.Camera);
 
         float fade = 1;
-        if (FadeInOutTime > 0) {
+        if (Info.FadeInOutTime > 0) {
             auto elapsed = GetElapsedTime();
-            if (elapsed < FadeInOutTime) {
-                fade = 1 - (FadeInOutTime - elapsed) / FadeInOutTime;
+            if (elapsed < Info.FadeInOutTime) {
+                fade = 1 - (Info.FadeInOutTime - elapsed) / Info.FadeInOutTime;
             }
-            else if (elapsed > Duration - FadeInOutTime) {
-                fade = (Duration - elapsed) / FadeInOutTime;
+            else if (elapsed > Duration - Info.FadeInOutTime) {
+                fade = (Duration - elapsed) / Info.FadeInOutTime;
             }
         }
 
         fade *= dissolveFade;
 
         for (int i = 0; i < segments; i++) {
-            BeamSeg nextSeg{ .color = Color };
+            BeamSeg nextSeg{ .color = Info.Color };
             auto fraction = i * div;
 
             nextSeg.pos = Start + delta * fraction;
 
-            if (Amplitude != 0) {
+            if (Info.Amplitude != 0) {
                 //auto factor = Runtime.Noise[noiseIndex >> 16] * Amplitude;
-                auto factor = noise[i] * Amplitude;
+                auto factor = noise[i] * Info.Amplitude;
 
-                if (HasFlag(Flags, BeamFlag::SineNoise)) {
+                if (HasFlag(Info.Flags, BeamFlag::SineNoise)) {
                     // rotate the noise along the perpendicluar axis a bit to keep the bolt from looking diagonal
-                    auto c = SinCos(fraction * DirectX::XM_PI * length + Time);
-                    nextSeg.pos += Render::Camera.Up * factor * c.x;
-                    nextSeg.pos += Render::Camera.GetRight() * factor * c.y;
+                    auto c = SinCos(fraction * DirectX::XM_PI * length + (float)Time);
+                    nextSeg.pos += ctx.Camera.Up * factor * c.x;
+                    nextSeg.pos += ctx.Camera.GetRight() * factor * c.y;
                 }
                 else {
                     //nextSeg.pos += perp1 * factor;
@@ -271,17 +226,17 @@ namespace Inferno::Render {
             }
 
             nextSeg.texcoord = Runtime.OffsetU + vLast;
-            float brightness = HasFlag(Flags, BeamFlag::FadeStart) ? 0.0f : 1.0f;
-            if (HasFlag(Flags, BeamFlag::FadeStart) && HasFlag(Flags, BeamFlag::FadeEnd)) {
+            float brightness = HasFlag(Info.Flags, BeamFlag::FadeStart) ? 0.0f : 1.0f;
+            if (HasFlag(Info.Flags, BeamFlag::FadeStart) && HasFlag(Info.Flags, BeamFlag::FadeEnd)) {
                 if (fraction < 0.5f)
                     brightness = 2.0f * fraction;
                 else
                     brightness = 2.0f * (1.0f - fraction);
             }
-            else if (HasFlag(Flags, BeamFlag::FadeStart)) {
+            else if (HasFlag(Info.Flags, BeamFlag::FadeStart)) {
                 brightness = fraction;
             }
-            else if (HasFlag(Flags, BeamFlag::FadeEnd)) {
+            else if (HasFlag(Info.Flags, BeamFlag::FadeEnd)) {
                 brightness = 1 - fraction;
             }
 
@@ -290,7 +245,7 @@ namespace Inferno::Render {
 
             if (i > 0) {
                 Vector3 avgNormal;
-                auto normal = GetBeamNormal(curSeg.pos, nextSeg.pos);
+                auto normal = GetBeamNormal(curSeg.pos, nextSeg.pos, ctx.Camera);
 
                 if (i > 1) {
                     // Average with previous normal

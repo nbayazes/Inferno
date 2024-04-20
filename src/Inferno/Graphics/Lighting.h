@@ -1,4 +1,6 @@
 #pragma once
+#include "Camera.h"
+#include "CameraContext.h"
 #include "ComputeShader.h"
 #include "LightInfo.h"
 
@@ -116,9 +118,9 @@ namespace Inferno::Graphics {
 
         void SetLightConstants(uint32 width, uint32 height);
 
-        void SetLights(ID3D12GraphicsCommandList* cmdList, span<LightData> lights);
+        void SetLights(const GraphicsContext& ctx, span<LightData> lights);
 
-        void Dispatch(ID3D12GraphicsCommandList* cmdList, ColorBuffer& linearDepth);
+        void Dispatch(const GraphicsContext& ctx, ColorBuffer& linearDepth);
     };
 
     class LightBuffer {
@@ -132,7 +134,7 @@ namespace Inferno::Graphics {
             _lights[1].resize(MAX_LIGHTS);
         }
 
-        void Dispatch(ID3D12GraphicsCommandList* cmdList);
+        void Dispatch(const GraphicsContext& ctx);
 
         void AddLight(const LightData&);
 

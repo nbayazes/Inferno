@@ -1,10 +1,9 @@
 ﻿#include "pch.h"
 #include <fstream>
-
+#include "EffectTypes.h"
 #include "HamFile.h"
-#include "Yaml.h"
-#include "Graphics/Render.Particles.h"
 #include "logging.h"
+#include "Yaml.h"
 
 namespace Inferno {
     template <class T>
@@ -188,8 +187,8 @@ namespace Inferno {
         return name;
     }
 
-    void ReadBeamInfo(ryml::NodeRef node, Dictionary<string, Render::BeamInfo>& beams) {
-        Render::BeamInfo info{};
+    void ReadBeamInfo(ryml::NodeRef node, Dictionary<string, BeamInfo>& beams) {
+        BeamInfo info{};
 
 #define READ_PROP(name) Yaml::ReadValue(node[#name], info.##name)
         ReadRange(node["Radius"], info.Radius);
@@ -211,18 +210,18 @@ namespace Inferno {
         Yaml::ReadValue(node["RandomEnd"], randomEnd);
         Yaml::ReadValue(node["RandomObjStart"], randomObjStart);
         Yaml::ReadValue(node["RandomObjEnd"], randomObjEnd);
-        SetFlag(info.Flags, Render::BeamFlag::FadeEnd, fadeEnd);
-        SetFlag(info.Flags, Render::BeamFlag::FadeStart, fadeStart);
-        SetFlag(info.Flags, Render::BeamFlag::RandomEnd, randomEnd);
-        SetFlag(info.Flags, Render::BeamFlag::RandomObjStart, randomObjStart);
-        SetFlag(info.Flags, Render::BeamFlag::RandomObjEnd, randomObjEnd);
+        SetFlag(info.Flags, BeamFlag::FadeEnd, fadeEnd);
+        SetFlag(info.Flags, BeamFlag::FadeStart, fadeStart);
+        SetFlag(info.Flags, BeamFlag::RandomEnd, randomEnd);
+        SetFlag(info.Flags, BeamFlag::RandomObjStart, randomObjStart);
+        SetFlag(info.Flags, BeamFlag::RandomObjEnd, randomObjEnd);
 
         if (auto name = ReadEffectName(node))
             beams[*name] = info;
     }
 
-    void ReadSparkInfo(ryml::NodeRef node, Dictionary<string, Render::SparkEmitter>& sparks) {
-        Render::SparkEmitter info;
+    void ReadSparkInfo(ryml::NodeRef node, Dictionary<string, SparkEmitterInfo>& sparks) {
+        SparkEmitterInfo info;
 
 #define READ_PROP(name) Yaml::ReadValue(node[#name], info.##name)
         READ_PROP(Color);
@@ -253,8 +252,8 @@ namespace Inferno {
             sparks[*name] = info;
     }
 
-    void ReadExplosions(ryml::NodeRef node, Dictionary<string, Render::ExplosionInfo>& explosions) {
-        Render::ExplosionInfo info;
+    void ReadExplosions(ryml::NodeRef node, Dictionary<string, ExplosionEffectInfo>& explosions) {
+        ExplosionEffectInfo info;
         Yaml::ReadValue(node["Instances"], info.Instances);
         Yaml::ReadValue(node["FadeTime"], info.FadeTime);
         Yaml::ReadValue(node["UseParentVertices"], info.UseParentVertices);
@@ -269,8 +268,8 @@ namespace Inferno {
             explosions[*name] = info;
     }
 
-    void ReadTracers(ryml::NodeRef node, Dictionary<string, Render::TracerInfo>& tracers) {
-        Render::TracerInfo info;
+    void ReadTracers(ryml::NodeRef node, Dictionary<string, TracerInfo>& tracers) {
+        TracerInfo info;
         Yaml::ReadValue(node["Length"], info.Length);
         Yaml::ReadValue(node["Width"], info.Width);
         Yaml::ReadValue(node["Texture"], info.Texture);
@@ -404,7 +403,7 @@ namespace Inferno {
                 return;
             }
 
-            Render::EffectLibrary = {}; // Reset effect library
+            EffectLibrary = {}; // Reset effect library
 
             if (auto weapons = root["Weapons"]; !weapons.is_seed()) {
                 for (const auto& weapon : weapons.children()) {
@@ -459,50 +458,50 @@ namespace Inferno {
             if (auto beams = effects["Beams"]; !beams.is_seed()) {
                 for (const auto& beam : beams.children()) {
                     try {
-                        ReadBeamInfo(beam, Render::EffectLibrary.Beams);
+                        ReadBeamInfo(beam, EffectLibrary.Beams);
                     }
                     catch (const std::exception& e) {
                         SPDLOG_WARN("Error reading beam info", e.what());
                     }
                 }
-                SPDLOG_INFO("Loaded {} beams", Render::EffectLibrary.Beams.size());
+                SPDLOG_INFO("Loaded {} beams", EffectLibrary.Beams.size());
             }
 
 
             if (auto sparks = effects["Sparks"]; !sparks.is_seed()) {
                 for (const auto& beam : sparks.children()) {
                     try {
-                        ReadSparkInfo(beam, Render::EffectLibrary.Sparks);
+                        ReadSparkInfo(beam, EffectLibrary.Sparks);
                     }
                     catch (const std::exception& e) {
                         SPDLOG_WARN("Error reading spark info", e.what());
                     }
                 }
-                SPDLOG_INFO("Loaded {} sparks", Render::EffectLibrary.Sparks.size());
+                SPDLOG_INFO("Loaded {} sparks", EffectLibrary.Sparks.size());
             }
 
             if (auto explosions = effects["Explosions"]; !explosions.is_seed()) {
                 for (const auto& beam : explosions.children()) {
                     try {
-                        ReadExplosions(beam, Render::EffectLibrary.Explosions);
+                        ReadExplosions(beam, EffectLibrary.Explosions);
                     }
                     catch (const std::exception& e) {
                         SPDLOG_WARN("Error reading explosion info", e.what());
                     }
                 }
-                SPDLOG_INFO("Loaded {} explosions", Render::EffectLibrary.Explosions.size());
+                SPDLOG_INFO("Loaded {} explosions", EffectLibrary.Explosions.size());
             }
 
             if (auto tracers = effects["Tracers"]; !tracers.is_seed()) {
                 for (const auto& beam : tracers.children()) {
                     try {
-                        ReadTracers(beam, Render::EffectLibrary.Tracers);
+                        ReadTracers(beam, EffectLibrary.Tracers);
                     }
                     catch (const std::exception& e) {
                         SPDLOG_WARN("Error reading tracer info", e.what());
                     }
                 }
-                SPDLOG_INFO("Loaded {} tracers", Render::EffectLibrary.Tracers.size());
+                SPDLOG_INFO("Loaded {} tracers", EffectLibrary.Tracers.size());
             }
 
         }

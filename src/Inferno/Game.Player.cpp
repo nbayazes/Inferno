@@ -286,13 +286,9 @@ namespace Inferno {
                         AlertRobotsOfNoise(player, Game::PLAYER_FUSION_SOUND_RADIUS, 0.5f);
                     }
 
-                    if (auto fx = Render::EffectLibrary.GetSparks("fusion_charge")) {
-                        fx->Parent = Reference;
-                        fx->ParentSubmodel.Offset = GetGunpointOffset(player, 0);
-                        Render::AddSparkEmitter(*fx, player.Segment);
-
-                        fx->ParentSubmodel.Offset = GetGunpointOffset(player, 1);
-                        Render::AddSparkEmitter(*fx, player.Segment);
+                    if (auto fx = EffectLibrary.GetSparks("fusion_charge")) {
+                        Render::AddSparkEmitter(*fx, Reference, GetGunpointOffset(player, 0));
+                        Render::AddSparkEmitter(*fx, Reference, GetGunpointOffset(player, 1));
                     }
 
                     FusionNextSoundDelay = 0.125f + Random() / 8;
@@ -737,7 +733,7 @@ namespace Inferno {
             ResetInventory();
 
             // Play respawn effect
-            Render::Particle p{};
+            ParticleInfo p{};
             p.Clip = VClipID::PlayerSpawn;
             p.Radius = player.Radius;
             p.RandomRotation = false;
@@ -1393,10 +1389,10 @@ namespace Inferno {
                 explosion.Segment = player.Segment;
                 CreateExplosion(Game::Level, &player, explosion);
 
-                if (auto e = Render::EffectLibrary.GetExplosion("player explosion"))
+                if (auto e = EffectLibrary.GetExplosion("player explosion"))
                     Render::CreateExplosion(*e, player.Segment, playerPos);
 
-                if (auto e = Render::EffectLibrary.GetExplosion("player explosion trail"))
+                if (auto e = EffectLibrary.GetExplosion("player explosion trail"))
                     Render::CreateExplosion(*e, player.Segment, playerPos);
 
                 CreateObjectDebris(player, player.Render.Model.ID, Vector3::Zero);
@@ -1435,9 +1431,8 @@ namespace Inferno {
             player.Render.Type = RenderType::Model; // Camera is in third person, show the player
 
             if (Random() < dt * 4) {
-                if (auto e = Render::EffectLibrary.GetExplosion("large fireball")) {
-                    e->Parent = Game::GetObjectRef(player);
-                    Render::CreateExplosion(*e, player.Segment, playerPos);
+                if (auto e = EffectLibrary.GetExplosion("large fireball")) {
+                    Render::CreateExplosion(*e, Game::GetObjectRef(player));
                 }
             }
 
@@ -1458,7 +1453,7 @@ namespace Inferno {
             //    }
             //}
 
-            Game::MoveCameraToObject(Render::Camera, *camera, Game::LerpAmount);
+            Game::MoveCameraToObject(Game::GameCamera, *camera, Game::LerpAmount);
         }
     }
 

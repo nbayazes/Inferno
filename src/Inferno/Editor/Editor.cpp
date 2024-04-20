@@ -297,7 +297,7 @@ namespace Inferno::Editor {
 
         auto& level = Game::Level;
         auto& io = ImGui::GetIO();
-        MouseRay = Render::Camera.UnprojectRay(Input::MousePosition * Render::RenderScale);
+        MouseRay = Editor::EditorCamera.UnprojectRay(Input::MousePosition * Render::RenderScale);
 
         if (!io.WantCaptureMouse && ImGuiHadMouseFocus) {
             // Reset the keyboard state so holding a key down while moving the mouse
@@ -315,7 +315,7 @@ namespace Inferno::Editor {
             Bindings::Update();
 
         // selection state is determined first, then gizmo, then cursor
-        Editor::Gizmo.Update(Input::DragState, Render::Camera);
+        Editor::Gizmo.Update(Input::DragState, Editor::EditorCamera);
 
         // Cancel right click drags on global transform mode and texture mode
         if ((Settings::Editor.SelectionMode == SelectionMode::Transform || Settings::Editor.EnableTextureMode) &&
@@ -355,13 +355,13 @@ namespace Inferno::Editor {
                     UpdateSelections(level);
                     break;
                 case SelectionState::ReleasedDrag:
-                    Editor::Marked.UpdateFromWindow(level, Input::DragStart, Input::MousePosition, Render::Camera);
+                    Editor::Marked.UpdateFromWindow(level, Input::DragStart, Input::MousePosition, Editor::EditorCamera);
                     Editor::Gizmo.UpdatePosition();
                     break;
             }
 
             if (Input::GetMouseMode() != Input::MouseMode::Normal || Input::LeftDragState == SelectionState::None)
-                UpdateCamera(Render::Camera); // Only allow camera movement when not dragging unless in mouselook mode
+                UpdateCamera(Editor::EditorCamera); // Only allow camera movement when not dragging unless in mouselook mode
         }
 
         CheckForAutosave();
@@ -545,9 +545,9 @@ namespace Inferno::Editor {
         auto& level = Game::Level;
         if (!reload) {
             if (level.CameraUp != Vector3::Zero) {
-                Render::Camera.Position = level.CameraPosition;
-                Render::Camera.Target = level.CameraTarget;
-                Render::Camera.Up = level.CameraUp;
+                Editor::EditorCamera.Position = level.CameraPosition;
+                Editor::EditorCamera.Target = level.CameraTarget;
+                Editor::EditorCamera.Up = level.CameraUp;
             }
             else {
                 Commands::ZoomExtents();
@@ -630,12 +630,12 @@ namespace Inferno::Editor {
 
     namespace Commands {
         Command AlignViewToFace{
-            .Action = [] { Editor::AlignViewToFace(Game::Level, Render::Camera, Selection.Tag(), Selection.Point); },
+            .Action = [] { Editor::AlignViewToFace(Game::Level, Editor::EditorCamera, Selection.Tag(), Selection.Point); },
             .Name = "Align View to Face"
         };
 
         Command ZoomExtents{
-            .Action = [] { Editor::ZoomExtents(Game::Level, Render::Camera); },
+            .Action = [] { Editor::ZoomExtents(Game::Level, Editor::EditorCamera); },
             .Name = "Zoom Extents"
         };
 

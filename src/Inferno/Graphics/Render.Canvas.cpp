@@ -51,7 +51,7 @@ namespace Inferno::Render {
         Draw(payload);
     }
 
-    void HudCanvas2D::Render(Graphics::GraphicsContext& ctx) {
+    void HudCanvas2D::Render(GraphicsContext& ctx) {
         // draw batched text
         //auto orthoProj = Matrix::CreateOrthographicOffCenter(0, _size.x, _size.y, 0.0, 0.0, -2.0f);
 

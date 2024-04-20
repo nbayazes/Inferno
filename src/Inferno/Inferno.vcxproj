@@ -274,6 +274,7 @@
     <ClInclude Include="Editor\UI\BriefingEditor.h" />
     <ClInclude Include="Editor\UI\DiagnosticWindow.h" />
     <ClInclude Include="Effect.h" />
+    <ClInclude Include="EffectTypes.h" />
     <ClInclude Include="Formats\BBM.h" />
     <ClInclude Include="Game.AI.h" />
     <ClInclude Include="Game.AI.Pathing.h" />
@@ -297,6 +298,7 @@
     <ClInclude Include="GameTimer.h" />
     <ClInclude Include="Graphics\Buffers.h" />
     <ClInclude Include="Graphics\CommandContext.h" />
+    <ClInclude Include="Graphics\CommandQueue.h" />
     <ClInclude Include="Graphics\Compiler.h" />
     <ClInclude Include="Graphics\ComputeShader.h" />
     <ClInclude Include="Graphics\GpuResources.h" />
@@ -328,6 +330,7 @@
     <ClInclude Include="Graphics\Render.Object.h" />
     <ClInclude Include="Graphics\Render.Particles.h" />
     <ClInclude Include="Graphics\Render.Queue.h" />
+    <ClInclude Include="Graphics\CameraContext.h" />
     <ClInclude Include="HUD.h" />
     <ClInclude Include="Intersect.h" />
     <ClInclude Include="LegitProfiler.h" />

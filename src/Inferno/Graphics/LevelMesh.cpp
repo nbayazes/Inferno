@@ -443,17 +443,17 @@ namespace Inferno {
         Render::Stats::DrawCalls++;
     }
 
-    void LevelVolume::Draw(ID3D12GraphicsCommandList* cmdList) const {
-        cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        Render::Adapter->GetGraphicsContext().ApplyEffect(Render::Effects->FlatAdditive);
+    void LevelVolume::Draw(ID3D12GraphicsCommandList* /*cmdList*/) const {
+        //cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        //Render::Adapter->GetGraphicsContext().ApplyEffect(Render::Effects->FlatAdditive);
 
-        FlatShader::Constants constants;
-        constants.Transform = Render::ViewProjection;
-        constants.Tint = Color{ 1.00f, 0.6f, 0.01f, 0.66f };
-        Render::Shaders->Flat.SetConstants(cmdList, constants);
-        cmdList->IASetVertexBuffers(0, 1, &VertexBuffer);
-        cmdList->IASetIndexBuffer(&IndexBuffer);
-        cmdList->DrawIndexedInstanced(IndexCount, 1, 0, 0, 0);
+        //FlatShader::Constants constants;
+        //constants.Transform = Render::ViewProjection;
+        //constants.Tint = Color{ 1.00f, 0.6f, 0.01f, 0.66f };
+        //Render::Shaders->Flat.SetConstants(cmdList, constants);
+        //cmdList->IASetVertexBuffers(0, 1, &VertexBuffer);
+        //cmdList->IASetIndexBuffer(&IndexBuffer);
+        //cmdList->DrawIndexedInstanced(IndexCount, 1, 0, 0, 0);
     }
 
     void LevelMeshBuilder::Update(Level& level, PackedBuffer& buffer) {

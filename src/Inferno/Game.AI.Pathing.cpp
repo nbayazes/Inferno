@@ -246,8 +246,8 @@ namespace Inferno {
                 //auto target = edgeMidpoint + vec * 20;
                 if (Settings::Cheats.ShowPathing) {
                     Render::Debug::DrawLine(edgeMidpoint + vec * 20, edgeMidpoint, Color(1, 0, 1));
-                    Render::Debug::DrawPoint(target, Color(1, 0, 1));
-                    Render::Debug::DrawPoint(side.Center, Color(1, 0, 1));
+                    Render::Debug::DrawPoint(target, Color(1, 0, 1), Game::GameCamera);
+                    Render::Debug::DrawPoint(side.Center, Color(1, 0, 1), Game::GameCamera);
                 }
                 //MoveTowardsPoint(obj, target, thrust);
 

@@ -10,7 +10,6 @@
 #include "Resources.h"
 
 using namespace std::chrono;
-using Inferno::Graphics::CommandContext;
 
 namespace Inferno {
     template <uint TCapacity>
@@ -109,7 +108,7 @@ namespace Inferno {
     Ptr<ProceduralTextureBase> CreateProceduralFire(Outrage::TextureInfo& texture, TexID dest);
 
     class ProceduralWorker {
-        Ptr<Graphics::CommandQueue> _uploadQueue, _copyQueue;
+        Ptr<Inferno::CommandQueue> _uploadQueue, _copyQueue;
         Ptr<CommandContext> _uploadCommands, _copyCommands;
         double _prevTime = 0;
         Worker _worker = { std::bind_front(&ProceduralWorker::Task, this), "Procedural", 1ms };
@@ -118,8 +117,8 @@ namespace Inferno {
         List<Ptr<ProceduralTextureBase>> Procedurals;
 
         ProceduralWorker(ID3D12Device* device) {
-            _uploadQueue = MakePtr<Graphics::CommandQueue>(device, D3D12_COMMAND_LIST_TYPE_COPY, L"Procedural Upload Queue");
-            _copyQueue = MakePtr<Graphics::CommandQueue>(device, D3D12_COMMAND_LIST_TYPE_DIRECT, L"Procedural Copy Queue");
+            _uploadQueue = MakePtr<Inferno::CommandQueue>(device, D3D12_COMMAND_LIST_TYPE_COPY, L"Procedural Upload Queue");
+            _copyQueue = MakePtr<Inferno::CommandQueue>(device, D3D12_COMMAND_LIST_TYPE_DIRECT, L"Procedural Copy Queue");
             _uploadCommands = MakePtr<CommandContext>(device, _uploadQueue.get(), L"Procedural upload queue");
             _copyCommands = MakePtr<CommandContext>(device, _copyQueue.get(), L"Procedural copy queue");
             Pause(false); // Start the worker after creating queues

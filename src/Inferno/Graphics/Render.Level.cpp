@@ -1,11 +1,13 @@
 #include "pch.h"
 #include "Render.Level.h"
 #include "DirectX.h"
+#include "Editor/Editor.h"
 #include "Game.h"
 #include "Game.Segment.h"
 #include "LegitProfiler.h"
 #include "MaterialLibrary.h"
 #include "Object.h"
+#include "OpenSimplex2.h"
 #include "Physics.h"
 #include "Procedural.h"
 #include "Render.Debug.h"
@@ -143,7 +145,7 @@ namespace Inferno::Render {
         mesh.Draw(cmdList);
     }
 
-    void ClearDepthPrepass(Graphics::GraphicsContext& ctx) {
+    void ClearDepthPrepass(GraphicsContext& ctx) {
         auto& depthBuffer = Adapter->GetHdrDepthBuffer();
         auto& linearDepthBuffer = Adapter->GetLinearDepthBuffer();
         ctx.ClearDepth(depthBuffer);
@@ -436,16 +438,16 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawDebug(const Level& level) {
+    void DrawDebug(const Level& level, const Camera& camera) {
         //Debug::DrawPoint(Inferno::Debug::ClosestPoint, Color(1, 0, 0));
         if (Settings::Editor.EnablePhysics) {
             for (auto& point : Inferno::Debug::ClosestPoints) {
-                Debug::DrawPoint(point, Color(1, 0, 0));
+                Debug::DrawPoint(point, Color(1, 0, 0), camera);
             }
         }
 
         for (auto& emitter : Inferno::Sound::Debug::Emitters) {
-            Debug::DrawPoint(emitter, { 0, 1, 0 });
+            Debug::DrawPoint(emitter, { 0, 1, 0 }, camera);
         }
 
         for (auto& room : level.Rooms) {
@@ -477,7 +479,7 @@ namespace Inferno::Render {
         LevelChanged = false;
     }
 
-    void DrawTerrain(Graphics::GraphicsContext& ctx) {
+    void DrawTerrain(GraphicsContext& ctx) {
         auto terrainMesh = GetTerrainMesh();
         if (!terrainMesh) return;
 
@@ -545,7 +547,7 @@ namespace Inferno::Render {
         //ctx.GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     }
 
-    void DrawStars(Graphics::GraphicsContext& ctx) {
+    void DrawStars(GraphicsContext& ctx) {
         auto cmdList = ctx.GetCommandList();
         ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         ctx.ApplyEffect(Effects->Stars);
@@ -554,7 +556,7 @@ namespace Inferno::Render {
         cmdList->DrawInstanced(3, 1, 0, 0);
     }
 
-    void DrawLevel(Graphics::GraphicsContext& ctx, Level& level) {
+    void DrawLevel(GraphicsContext& ctx, Level& level) {
         if (Settings::Editor.ShowFlickeringLights)
             UpdateFlickeringLights(level, (float)ElapsedTime, Game::FrameTime);
 
@@ -562,7 +564,7 @@ namespace Inferno::Render {
         if (Game::GetState() == GameState::Editor && !Settings::Editor.ShowObjects)
             drawObjects = false;
 
-        _renderQueue.Update(level, _levelMeshBuilder, drawObjects);
+        _renderQueue.Update(level, _levelMeshBuilder, drawObjects, ctx.Camera);
 
         for (auto& id : _renderQueue.GetVisibleRooms()) {
             auto room = level.GetRoom(id);
@@ -598,7 +600,7 @@ namespace Inferno::Render {
                                 Debug::DrawLine(light.pos - light.right + light.up, light.pos + light.right + light.up, lineColor); // top
                             }
                             else {
-                                Debug::DrawPoint(light.pos, lineColor);
+                                Debug::DrawPoint(light.pos, lineColor, Game::GameCamera);
                                 //Debug::DrawLine(light.pos, light.pos + light.normal * light.radius/2, color);
                                 if (light.normal != Vector3::Zero) {
                                     auto transform = Matrix(VectorToRotation(light.normal));
@@ -634,7 +636,7 @@ namespace Inferno::Render {
         LegitProfiler::AddCpuTask(std::move(depth));
 
         auto cmdList = ctx.GetCommandList();
-        Graphics::Lights.Dispatch(cmdList);
+        Graphics::Lights.Dispatch(ctx);
 
         {
             PIXScopedEvent(cmdList, PIX_COLOR_INDEX(5), "Level");
@@ -714,8 +716,8 @@ namespace Inferno::Render {
         if (!Settings::Inferno.ScreenshotMode && Game::GetState() == GameState::Editor) {
             PIXScopedEvent(cmdList, PIX_COLOR_INDEX(6), "Editor");
             LegitProfiler::ProfilerTask editor("Draw editor", LegitProfiler::Colors::CLOUDS);
-            DrawEditor(ctx.GetCommandList(), level);
-            DrawDebug(level);
+            DrawEditor(ctx, level);
+            DrawDebug(level, ctx.Camera);
             LegitProfiler::AddCpuTask(std::move(editor));
         }
         else {

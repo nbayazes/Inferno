@@ -60,9 +60,9 @@ namespace Inferno::Editor {
         filesystem::path metadataPath = path;
         metadataPath.replace_extension(METADATA_EXTENSION);
         std::ofstream metadata(metadataPath);
-        level.CameraPosition = Render::Camera.Position;
-        level.CameraTarget = Render::Camera.Target;
-        level.CameraUp = Render::Camera.Up;
+        level.CameraPosition = Editor::EditorCamera.Position;
+        level.CameraTarget = Editor::EditorCamera.Target;
+        level.CameraUp = Editor::EditorCamera.Up;
         SaveLevelMetadata(level, metadata, EditorLightSettings);
         SetStatusMessage(L"Saved level to {}", path.wstring());
 

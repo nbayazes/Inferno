@@ -7,6 +7,8 @@
 #include "Types.h"
 
 namespace Inferno::Editor {
+    inline Camera EditorCamera;
+
     void UpdateCamera(Camera&);
 
     // The mouse cursor projected into the scene

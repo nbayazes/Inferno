@@ -16,7 +16,8 @@ namespace Inferno::Render::Debug {
             _vertices.Begin();
         }
 
-        void End(ID3D12GraphicsCommandList* cmdList, auto effect) {
+        void End(GraphicsContext& ctx, auto effect) {
+            auto cmdList = ctx.GetCommandList();
             _vertices.End();
 
             D3D12_VERTEX_BUFFER_VIEW vbv{};
@@ -27,7 +28,7 @@ namespace Inferno::Render::Debug {
 
             Render::Adapter->GetGraphicsContext().ApplyEffect(effect);
 
-            FlatShader::Constants constants = { Render::ViewProjection, { 1, 1, 1, 1 } };
+            FlatShader::Constants constants = { ctx.Camera.ViewProjection, { 1, 1, 1, 1 } };
             effect.Shader->SetConstants(cmdList, constants);
 
             cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
@@ -54,7 +55,8 @@ namespace Inferno::Render::Debug {
             _vertices.Begin();
         }
 
-        void End(ID3D12GraphicsCommandList* cmdList, auto effect) {
+        void End(GraphicsContext& ctx, auto effect) {
+            auto cmdList = ctx.GetCommandList();
             _vertices.End();
 
             D3D12_VERTEX_BUFFER_VIEW vbv{};
@@ -64,7 +66,7 @@ namespace Inferno::Render::Debug {
             cmdList->IASetVertexBuffers(0, 1, &vbv);
 
             Render::Adapter->GetGraphicsContext().ApplyEffect(effect);
-            FlatShader::Constants constants = { Render::ViewProjection, { 1, 1, 1, 1 } };
+            FlatShader::Constants constants = { ctx.Camera.ViewProjection, { 1, 1, 1, 1 } };
             effect.Shader->SetConstants(cmdList, constants);
 
             cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -189,10 +191,10 @@ namespace Inferno::Render::Debug {
         Resources->LineBatch.DrawLine({ p - Vector3::UnitZ, color }, { p + Vector3::UnitZ, color });
     }
 
-    void DrawPoint(const Vector3& p, const Color& color) {
-        auto right = Render::Camera.GetRight();
-        auto up = Render::Camera.Up;
-        auto scale = (Render::Camera.Position - p).Length() * 0.006f;
+    void DrawPoint(const Vector3& p, const Color& color, const Camera& camera) {
+        auto right = camera.GetRight();
+        auto up = camera.Up;
+        auto scale = (camera.Position - p).Length() * 0.006f;
 
         Vector3 v0 = p - right * scale - up * scale;
         Vector3 v1 = p + right * scale - up * scale;
@@ -221,28 +223,28 @@ namespace Inferno::Render::Debug {
         InFrame = true;
     }
 
-    void EndFrame(ID3D12GraphicsCommandList* cmdList) {
+    void EndFrame(GraphicsContext& ctx) {
         if (!InFrame) throw Exception("Must call BeginFrame() first");
         for (auto& point : DebugPoints)
-            DrawPoint(point, { 1, 0, 0 });
+            DrawPoint(point, { 1, 0, 0 }, ctx.Camera);
 
         for (auto& point : DebugPoints2)
-            DrawPoint(point, { 0, 1, 0 });
+            DrawPoint(point, { 0, 1, 0 }, ctx.Camera);
 
         for (int i = 0; i + 1 < DebugLines.size(); i += 2)
             DrawLine(DebugLines[i], DebugLines[i + 1], { 1, 0, 0 });
 
-        Resources->LineBatch.End(cmdList, Render::Effects->Line);
-        Resources->PolygonBatch.End(cmdList, Render::Effects->Flat);
-        Resources->AdditivePolygonBatch.End(cmdList, Render::Effects->FlatAdditive);
+        Resources->LineBatch.End(ctx, Render::Effects->Line);
+        Resources->PolygonBatch.End(ctx, Render::Effects->Flat);
+        Resources->AdditivePolygonBatch.End(ctx, Render::Effects->FlatAdditive);
         InFrame = false;
     }
 
     // Draws a crosshair in front of the camera
-    void DrawCrosshair(float size) {
-        auto center = Render::Camera.Position + Render::Camera.GetForward() * 10;
-        auto right = Render::Camera.GetRight();
-        auto up = Render::Camera.Up;
+    void DrawCrosshair(float size, const Camera& camera) {
+        auto center = camera.Position + camera.GetForward() * 10;
+        auto right = camera.GetRight();
+        auto up = camera.Up;
 
         Color color(0, 1, 0);
         DrawLine(center - right * size, center - right * (size / 2), color);
@@ -300,8 +302,8 @@ namespace Inferno::Render::Debug {
     }
 
     // Draws a solid circle that always faces the camera
-    void DrawSolidCircle(const Vector3& position, float radius, const Color& color) {
-        auto transform = Matrix::CreateBillboard(position, Camera.Position, Camera.Up);
+    void DrawSolidCircle(const Vector3& position, float radius, const Color& color, const Camera& camera) {
+        auto transform = Matrix::CreateBillboard(position, camera.Position, camera.Up);
         Vector3 p0 = Vector3::Transform({ radius, 0, 0 }, transform);
 
         constexpr int Steps = 16;
@@ -315,9 +317,9 @@ namespace Inferno::Render::Debug {
         }
     }
 
-    void DrawFacingSquare(const Vector3& p, float size, const Color& color) {
-        auto right = Render::Camera.GetRight();
-        auto up = Render::Camera.Up;
+    void DrawFacingSquare(const Vector3& p, float size, const Color& color, const Camera& camera) {
+        auto right = camera.GetRight();
+        auto up = camera.Up;
         //auto scale = (Render::Camera.Position - p).Length() * 0.006f;
 
         Vector3 v0 = p - right * size;
@@ -405,12 +407,12 @@ namespace Inferno::Render::Debug {
         DrawLine(face[3], center, color);
     }
 
-    void DrawArrow(const Vector3& start, const Vector3& end, const Color& color) {
+    void DrawArrow(const Vector3& start, const Vector3& end, const Color& color, const Camera& camera) {
         auto dir = end - start;
         dir.Normalize();
 
         DrawLine(start, end, color);
-        auto up = dir.Cross(Camera.GetForward());
+        auto up = dir.Cross(camera.GetForward());
         up.Normalize();
 
         auto p0 = end - dir * 2 + up * 2;

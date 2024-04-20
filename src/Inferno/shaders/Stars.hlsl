@@ -93,16 +93,18 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //if (rd.x < 0.0) { rd.x = 0.0; }
     //if (rd.y < 0.0) { rd.y = 0.0; }
     //if (rd.z < 0.0) { rd.z = 0.0; }
-
+    
     float3 origin = float3(0., 15, 0); // position of scattering
     float3 rdScatter = rd;
+    // TODO: adjust due to FOV
     rdScatter.y -= abs(p.x * p.x * 0.035); // surface curvature
     float4 atmosphere = float4(Atmosphere(origin, rdScatter), 1) * Args.AtmosphereColor;
 
     // Scale starfield to same pixel density regardless of resolution
     // This does mean higher resolutions will have more stars, but they look odd when larger than a few pixels
     float scale = 1440 / Frame.Size.y; 
-    float density = 0.25;
-    float3 bg = Starfield(rd, scale, density) * (1 - saturate(dot(atmosphere.rgb, float3(1, 1, 1))));
+    float density = 0.25  / Frame.RenderScale; // Increase density at lower render scales to keep similar overall density
+    float3 starfield = Starfield(rd * Frame.RenderScale, scale, density) * Frame.RenderScale;
+    float3 bg = starfield * (1 - saturate(dot(atmosphere.rgb, float3(1, 1, 1))));
     return float4(bg, 1) + atmosphere;
 }

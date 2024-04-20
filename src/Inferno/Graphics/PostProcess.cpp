@@ -23,12 +23,13 @@ namespace Inferno::PostFx {
         Dispatch2D(commandList, dest);
     }
 
-    void LinearizeDepthCS::Execute(ID3D12GraphicsCommandList* commandList, DepthBuffer& source, PixelBuffer& dest) const {
+    void LinearizeDepthCS::Execute(const GraphicsContext& ctx, DepthBuffer& source, PixelBuffer& dest) const {
+        const auto& commandList = ctx.GetCommandList();
         source.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
         dest.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
-        const float nearClip = Render::Camera.NearClip;
-        const float farClip = Render::Camera.FarClip;
+        const float nearClip = ctx.Camera.GetNearClip();
+        const float farClip = ctx.Camera.GetFarClip();
         float constants[2] = { nearClip, farClip };
         //float constants[1] = { (farClip - nearClip) / nearClip };
 

@@ -28,7 +28,7 @@ namespace Inferno {
 
         Matrix Transform;
         Matrix3x3 InverseTransform;
-        List<Vector3> PlayerPath;
+        List<Vector3> EscapePath;
     };
 
     void UpdateEscapeSequence(float dt);

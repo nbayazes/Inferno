@@ -20,7 +20,6 @@
 #include "MaterialLibrary.h"
 #include "Procedural.h"
 #include "Render.Level.h"
-#include "Render.Object.h"
 #include "Resources.h"
 
 using namespace DirectX;
@@ -59,10 +58,17 @@ namespace Inferno::Render {
         Ptr<UploadBuffer<MaterialInfo>> MaterialInfoUploadBuffer;
         Ptr<UploadBuffer<GpuVClip>> VClipUploadBuffer;
         Ptr<FrameUploadBuffer> FrameUploadBuffers[2];
+
+        //Inferno::Camera DEFAULT_CAMERA;
+        //Inferno::Camera* pCam = &DEFAULT_CAMERA;
     }
 
     PackedBuffer* GetLevelMeshBuffer() { return _levelMeshBuffer.get(); }
     const TerrainMesh* GetTerrainMesh() { return _terrainMesh.get(); }
+
+    //void SetCamera(Inferno::Camera& camera) {
+    //    pCam = &camera;
+    //}
 
     void DrawBillboard(GraphicsContext& ctx,
                        float ratio,
@@ -120,16 +126,18 @@ namespace Inferno::Render {
         auto ratio = (float)ti.Height / (float)ti.Width;
         auto& material = Materials->Get(tid);
 
-        DrawBillboard(ctx, ratio, material.Handle(), Adapter->GetFrameConstants().GetGPUVirtualAddress(), Camera, position, radius, color, additive, rotation, up);
+        DrawBillboard(ctx, ratio, material.Handle(), Adapter->GetFrameConstants().GetGPUVirtualAddress(), ctx.Camera, position, radius, color, additive, rotation, up);
     }
 
-    void DrawDepthBillboard(ID3D12GraphicsCommandList* cmdList,
+    void DrawDepthBillboard(GraphicsContext& ctx,
                             TexID tid,
                             const Vector3& position,
                             float radius,
                             float rotation,
                             const Vector3* up) {
-        auto transform = up ? Matrix::CreateConstrainedBillboard(position, Camera.Position, *up) : Matrix::CreateBillboard(position, Camera.Position, Camera.Up);
+        auto transform = up
+            ? Matrix::CreateConstrainedBillboard(position, ctx.Camera.Position, *up)
+            : Matrix::CreateBillboard(position, ctx.Camera.Position, ctx.Camera.Up);
 
         if (rotation != 0)
             transform = Matrix::CreateRotationZ(rotation) * transform;
@@ -152,7 +160,7 @@ namespace Inferno::Render {
 
         // todo: replace horrible code with proper batching
         Stats::DrawCalls++;
-        g_SpriteBatch->Begin(cmdList);
+        g_SpriteBatch->Begin(ctx.GetCommandList());
         g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
         g_SpriteBatch->End();
     }
@@ -265,7 +273,9 @@ namespace Inferno::Render {
         Adapter->ReloadResources();
 
         CreateWindowSizeDependentResources(width, height);
-        Camera.SetViewport((float)width, (float)height);
+        Editor::EditorCamera.SetViewport(Vector2((float)width, (float)height));
+        Game::GameCamera.SetViewport(Vector2((float)width, (float)height));
+
         _levelMeshBuffer = make_unique<PackedBuffer>(1024 * 1024 * 20);
 
         Editor::Events::LevelChanged += [] { LevelChanged = true; };
@@ -326,7 +336,9 @@ namespace Inferno::Render {
             return;
 
         CreateWindowSizeDependentResources(width, height);
-        Camera.SetViewport((float)width, (float)height);
+        Editor::EditorCamera.SetViewport(Vector2((float)width, (float)height));
+        Game::GameCamera.SetViewport(Vector2((float)width, (float)height));
+        //pCam->SetViewport((float)width, (float)height);
         // Reset frame upload buffers, otherwise they run out of memory.
         // For some reason resizing does not increment the adapter frame index, causing the same buffer to be used.
         FrameUploadBuffers[0]->ResetIndex();
@@ -529,27 +541,21 @@ namespace Inferno::Render {
         g_ImGuiBatch->Render(ctx.GetCommandList());
     }
 
-    void UpdateFrameConstants(const Vector2& size, float fovDeg, Inferno::Camera& camera,
-                              UploadBuffer<FrameConstants>& dest,
-                              Matrix* viewProj = nullptr,
-                              BoundingFrustum* frustum = nullptr) {
-        camera.Update(FrameTime);
-        camera.SetViewport(size.x, size.y);
-        camera.LookAtPerspective(fovDeg, Game::Time);
-        auto cameraViewProj = camera.ViewProj();
-        if (viewProj) *viewProj = cameraViewProj;
-        if (frustum) *frustum = camera.GetFrustum();
+    void UpdateFrameConstants(const Inferno::Camera& camera, UploadBuffer<FrameConstants>& dest, float renderScale = 1) {
+        //camera.Update(FrameTime);
+        //camera.UpdatePerspective();
+        auto size = camera.GetViewportSize();
 
         FrameConstants frameConstants{};
         frameConstants.ElapsedTime = (float)ElapsedTime;
-        frameConstants.ViewProjection = cameraViewProj;
-        frameConstants.NearClip = camera.NearClip;
-        frameConstants.FarClip = camera.FarClip;
+        frameConstants.ViewProjection = camera.ViewProjection;
+        frameConstants.NearClip = camera.GetNearClip();
+        frameConstants.FarClip = camera.GetFarClip();
         frameConstants.Eye = camera.Position;
         frameConstants.EyeDir = camera.GetForward();
         frameConstants.EyeUp = camera.Up;
-        frameConstants.Size = size;
-        frameConstants.RenderScale = Render::RenderScale;
+        frameConstants.Size = size * renderScale;
+        frameConstants.RenderScale = renderScale;
         frameConstants.GlobalDimming = Game::GlobalDimming;
         frameConstants.NewLightMode = Settings::Graphics.NewLightMode;
         frameConstants.FilterMode = Settings::Graphics.FilterMode;
@@ -557,8 +563,6 @@ namespace Inferno::Render {
         dest.Begin();
         dest.Copy({ &frameConstants, 1 });
         dest.End();
-
-        DebugCanvas->SetSize((uint)size.x, (uint)size.y, (uint)size.y);
     }
 
     Inferno::Camera BriefingCamera;
@@ -692,9 +696,11 @@ namespace Inferno::Render {
         if (model.DataSize == 0) return;
 
         auto& frameConstants = Adapter->GetBriefingFrameConstants();
-        BriefingCamera.Position = Vector3(0, model.Radius * .5f, -model.Radius * 3.0f);
-        constexpr float fov = 45;
-        UpdateFrameConstants(size, fov, BriefingCamera, frameConstants);
+        BriefingCamera.SetPosition(Vector3(0, model.Radius * .5f, -model.Radius * 3.0f));
+        BriefingCamera.SetFov(45);
+        BriefingCamera.SetViewport(size);
+        BriefingCamera.UpdatePerspectiveMatrices();
+        UpdateFrameConstants(BriefingCamera, frameConstants);
 
         ctx.GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
@@ -856,41 +862,41 @@ namespace Inferno::Render {
         //Adapter->WaitForGpu();
     }
 
-    void RenderProbe(const Vector3& position) {
-        Render::Camera.Position = position;
+    void RenderProbe(const Vector3& position, Inferno::Camera& camera) {
+        camera.Position = position;
 
         for (uint i = 0; i < 6; i++) {
             if (i == 0 || i == 1 || i == 4 || i == 5) {
-                Render::Camera.Up = Vector3::UnitY;
+                camera.Up = Vector3::UnitY;
             }
 
             if (i == 0)
-                Render::Camera.Target = position + Vector3::UnitX;
+                camera.Target = position + Vector3::UnitX;
             if (i == 1)
-                Render::Camera.Target = position - Vector3::UnitX;
+                camera.Target = position - Vector3::UnitX;
 
             // top and bottom
             if (i == 2) {
-                Render::Camera.Target = position + Vector3::UnitY;
-                Render::Camera.Up = -Vector3::UnitZ;
+                camera.Target = position + Vector3::UnitY;
+                camera.Up = -Vector3::UnitZ;
             }
             if (i == 3) {
-                Render::Camera.Target = position - Vector3::UnitY;
-                Render::Camera.Up = Vector3::UnitZ;
+                camera.Target = position - Vector3::UnitY;
+                camera.Up = Vector3::UnitZ;
             }
 
             if (i == 4) {
-                Render::Camera.Target = position + Vector3::UnitZ;
+                camera.Target = position + Vector3::UnitZ;
             }
             if (i == 5) {
-                Render::Camera.Target = position - Vector3::UnitZ;
+                camera.Target = position - Vector3::UnitZ;
             }
 
             RenderProbe(i);
         }
     }
 
-    void Present() {
+    void Present(const Camera& camera) {
         Metrics::BeginFrame();
         ScopedTimer presentTimer(&Metrics::Present);
         Stats::DrawCalls = 0;
@@ -898,9 +904,10 @@ namespace Inferno::Render {
 
         auto& ctx = Adapter->GetGraphicsContext();
         ctx.Reset();
+        ctx.Camera = camera;
         auto cmdList = ctx.GetCommandList();
         Heaps->SetDescriptorHeaps(cmdList);
-        auto outputSize = Adapter->GetOutputSize();
+        //auto outputSize = Adapter->GetOutputSize();
 
         if (LevelChanged) {
             Adapter->WaitForGpu();
@@ -925,23 +932,17 @@ namespace Inferno::Render {
 
         // Create a terrain camera at the origin and orient it with the terrain
         // Always positioning it at the origin prevents any parallax effects on the planets
-        auto terrainCamera = Camera;
-        terrainCamera.NearClip = 50;
-        terrainCamera.FarClip = 30'000;
-        terrainCamera.Target -= terrainCamera.Position;
-        terrainCamera.Position = Vector3::Zero;
+        Camera terrainCamera = ctx.Camera;
+        terrainCamera.SetClipPlanes(50, 30'000);
+        auto terrainInverse = ctx.Camera.GetOrientation() * Game::Terrain.InverseTransform;
+        terrainCamera.MoveTo(Vector3::Zero, terrainInverse.Forward(), terrainInverse.Up());
+        terrainCamera.UpdatePerspectiveMatrices();
 
-        auto cameraRotation = Matrix3x3(Camera.GetForward(), Camera.Up);
-        terrainCamera.Target = (cameraRotation * Game::Terrain.InverseTransform).Forward();
-        terrainCamera.Up = (cameraRotation * Game::Terrain.InverseTransform).Up();
-
-        UpdateFrameConstants(outputSize * Render::RenderScale, Settings::Editor.FieldOfView, terrainCamera, Adapter->GetTerrainConstants());
-
-        UpdateFrameConstants(outputSize * Render::RenderScale, Settings::Editor.FieldOfView, Camera,
-                             Adapter->GetFrameConstants(), &ViewProjection, &CameraFrustum);
+        UpdateFrameConstants(terrainCamera, Adapter->GetTerrainConstants(), Render::RenderScale);
+        UpdateFrameConstants(ctx.Camera, Adapter->GetFrameConstants(), Render::RenderScale);
 
         DrawLevel(ctx, Game::Level);
-        Debug::EndFrame(cmdList);
+        Debug::EndFrame(ctx);
 
         if ((Game::GetState() == GameState::Game || Game::GetState() == GameState::GameMenu) && !Game::Player.IsDead)
             DrawHud(ctx);

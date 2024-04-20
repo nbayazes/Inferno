@@ -6,7 +6,6 @@
 #include "DirectX.h"
 #include "FileSystem.h"
 #include "Game.h"
-#include "Graphics/Render.h"
 #include "logging.h"
 #include "Physics.h"
 #include "Resources.h"
@@ -549,8 +548,9 @@ namespace Inferno::Sound {
 
         void Update() {
             auto dt = (float)_pollRate.count() / 1000.0f;
-            _listener.SetOrientation(Render::Camera.GetForward(), Render::Camera.Up);
-            _listener.Position = Render::Camera.Position * AUDIO_SCALE;
+            auto& camera = *Game::ActiveCamera;
+            _listener.SetOrientation(camera.GetForward(), camera.Up);
+            _listener.Position = camera.Position * AUDIO_SCALE;
             //std::scoped_lock lock(SoundInstancesMutex);
             std::scoped_lock lock(_threadMutex);
 
@@ -579,7 +579,7 @@ namespace Inferno::Sound {
 
                 if (!instance.Alive || !instance.Effect) continue;
 
-                instance.UpdateEmitter(Render::Camera.Position, dt);
+                instance.UpdateEmitter(camera.Position, dt);
 
                 if (instance.PlayCount == 0) {
                     // Check if the source is dead before playing

@@ -73,9 +73,9 @@ namespace Inferno {
         // Gets the active render target
         auto GetBackBuffer() noexcept { return &BackBuffers[m_backBufferIndex]; }
         ID3D12CommandQueue* GetCommandQueue() const noexcept { return CommandQueue->Get(); }
-        Ptr<Graphics::CommandQueue> CommandQueue, CopyQueue, BatchUploadQueue, AsyncBatchUploadQueue;
+        Ptr<CommandQueue> CommandQueue, CopyQueue, BatchUploadQueue, AsyncBatchUploadQueue;
 
-        Graphics::GraphicsContext& GetGraphicsContext() const { return *_graphicsContext[m_backBufferIndex].get(); }
+        GraphicsContext& GetGraphicsContext() const { return *_graphicsContext[m_backBufferIndex].get(); }
 
         //ID3D12CommandAllocator* GetCommandAllocator() const noexcept { return m_commandAllocators[m_backBufferIndex].Get(); }
         //auto                        GetCommandList() const noexcept { return m_commandList.Get(); }
@@ -167,7 +167,7 @@ namespace Inferno {
 
         UINT m_backBufferIndex;
 
-        Ptr<Graphics::GraphicsContext> _graphicsContext[2];
+        Ptr<GraphicsContext> _graphicsContext[2];
         // Direct3D objects.
         Microsoft::WRL::ComPtr<ID3D12Device>                m_d3dDevice;
         //Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>   m_commandList;

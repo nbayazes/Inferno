@@ -639,15 +639,13 @@ namespace Inferno::Editor {
             }
         };
 
-        auto frustum = camera.GetFrustum();
-
         switch (Settings::Editor.SelectionMode) {
             default:
             case SelectionMode::Segment:
             {
                 for (SegID i{}; (int)i < level.Segments.size(); i++) {
                     auto& seg = level.GetSegment(i);
-                    if (!frustum.Contains(seg.Center)) continue;
+                    if (!camera.Frustum.Contains(seg.Center)) continue;
                     auto vscreen = camera.Project(seg.Center, Matrix::Identity);
                     markOrUnmark(vscreen, Segments, i);
                 }
@@ -660,7 +658,7 @@ namespace Inferno::Editor {
 
                     for (auto& side : SIDE_IDS) {
                         auto face = Face::FromSide(level, seg, side);
-                        if (!frustum.Contains(face.Center())) continue;
+                        if (!camera.Frustum.Contains(face.Center())) continue;
                         auto vscreen = camera.Project(face.Center(), Matrix::Identity);
                         markOrUnmark(vscreen, Faces, Tag{ i, side });
                     }
@@ -672,7 +670,7 @@ namespace Inferno::Editor {
             {
                 for (PointID i = 0; i < level.Vertices.size(); i++) {
                     auto& v = level.Vertices[i];
-                    if (!frustum.Contains(v)) continue;
+                    if (!camera.Frustum.Contains(v)) continue;
                     auto vscreen = camera.Project(v, Matrix::Identity);
                     markOrUnmark(vscreen, Points, i);
                 }
@@ -683,7 +681,7 @@ namespace Inferno::Editor {
                 for (int i = 0; i < level.Objects.size(); i++) {
                     auto& obj = level.Objects[i];
                     auto pos = obj.Position;
-                    if (!frustum.Contains(pos)) continue;
+                    if (!camera.Frustum.Contains(pos)) continue;
                     auto vscreen = camera.Project(pos, Matrix::Identity);
                     markOrUnmark(vscreen, Objects, (ObjID)i);
                 }

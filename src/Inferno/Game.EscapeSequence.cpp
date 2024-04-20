@@ -2,6 +2,8 @@
 #include "Game.EscapeSequence.h"
 #include "Bezier.h"
 #include "Formats/BBM.h"
+#include "Game.h"
+#include "Game.Object.h"
 #include "Graphics/ShaderLibrary.h"
 #include "Resources.h"
 
@@ -31,7 +33,7 @@ namespace Inferno {
         while (Escape.PathIndex < Escape.Path.size()) {}
     }
 
-    void UpdateEscapeSequence(float dt) {
+    void UpdateEscapeSequence(float /*dt*/) {
         switch (Escape.Scene) {
             case EscapeScene::None:
                 break;
@@ -143,7 +145,7 @@ namespace Inferno {
         auto curSeg = FindExitSegment(level);
         if (!curSeg) return;
 
-        auto& points = info.PlayerPath;
+        auto& points = info.EscapePath;
         bool foundSurface = false;
 
         while (curSeg) {
@@ -195,6 +197,33 @@ namespace Inferno {
             }
         }
 
+        if (points.empty()) return;
+
+        // Add path to station
+        {
+            auto& end = points.back();
+            auto normal = end - points[points.size() - 2];
+            normal.Normalize();
+
+            constexpr auto STATION_DIST = 500.0f;
+            auto stationPos = info.StationDir * STATION_DIST * 0.5f;
+            stationPos.y = STATION_DIST;
+            stationPos = Vector3::Transform(stationPos, info.Transform);
+
+            auto stationDir = stationPos - (end + normal * 250);
+            stationDir.Normalize();
+
+            BezierCurve curve = {
+                end,
+                end + normal * 250,
+                stationPos - stationDir * 250,
+                stationPos,
+            };
+
+            auto curvePoints = DivideCurveIntoSteps(curve.Points, 40);
+            Seq::append(points, curvePoints);
+        }
+
         if (!foundSurface) points.clear();
     }
 
@@ -229,13 +258,12 @@ namespace Inferno {
             info.SatelliteColor = Color(2, 2, 2);
         }
 
-
         auto parseDirection = [](const List<string>& tokens) {
             float heading{}, pitch{};
             String::TryParse(tokens[0], heading); // heading
             String::TryParse(tokens[1], pitch); // pitch
 
-            auto dir = Vector3::UnitX;
+            auto dir = Vector3::UnitZ;
             dir = Vector3::Transform(dir, Matrix::CreateRotationZ(pitch * DegToRad));
             dir = Vector3::Transform(dir, Matrix::CreateRotationY(heading * DegToRad));
             return dir;
@@ -261,6 +289,38 @@ namespace Inferno {
         return info;
     }
 
+    namespace {
+        int PlayerPathIndex = 0; // The node closest to the player
+    }
+
+    void MoveShipAlongPath(Object& ship, span<Vector3> path, float thrust, float turnRate) {
+        // turn and move towards the next node
+
+        constexpr float PATH_TOLERANCE = 5;
+
+        for (; PlayerPathIndex < path.size(); PlayerPathIndex++) {
+            if (Vector3::Distance(path[PlayerPathIndex], ship.Position) > PATH_TOLERANCE)
+                break;
+        }
+
+        if (PlayerPathIndex >= path.size()) return;
+
+        auto& node = path[PlayerPathIndex];
+        auto dir = node - ship.Position;
+        dir.Normalize();
+        ship.Physics.Thrust = dir * thrust;
+
+        TurnTowardsDirection(ship, dir, turnRate);
+    }
+
+    void UpdateEscapeSequence() {
+
+        float thrust = 50;
+        float turnRate = 1;
+        MoveShipAlongPath(Game::GetPlayerObject(), Game::Terrain.EscapePath, thrust, turnRate);
+    }
+
+    
     //void LoadEscape(span<byte> data) {
     //    DecodeText(data);
     //    auto lines = String::ToLines(String::OfBytes(data));

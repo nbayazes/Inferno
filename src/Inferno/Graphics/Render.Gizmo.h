@@ -3,6 +3,7 @@
 #include "Render.Debug.h"
 #include <DirectXMath.h>
 #include "Editor/Gizmo.h"
+#include "CameraContext.h"
 
 namespace Inferno::Render {
     namespace Colors {
@@ -39,7 +40,7 @@ namespace Inferno::Render {
         }
     }
 
-    inline void DrawGizmoPreview(const Editor::TransformGizmo& gizmo) {
+    inline void DrawGizmoPreview(const Editor::TransformGizmo& gizmo, const Camera& camera) {
         using namespace Editor;
         if (gizmo.SelectedAxis == GizmoAxis::None) return;
 
@@ -56,7 +57,7 @@ namespace Inferno::Render {
             Debug::DrawLine(GizmoPreview::Start, GizmoPreview::End, color);
 
         auto position = gizmo.Transform.Translation();
-        auto gizmoScale = Editor::GetGizmoScale(position, Camera);
+        auto gizmoScale = Editor::GetGizmoScale(position, camera);
 
         if (gizmo.Mode == TransformMode::Rotation) {
             auto scale = Matrix::CreateScale(gizmoScale);
@@ -66,14 +67,14 @@ namespace Inferno::Render {
             auto rvec = GizmoPreview::RotationStart - position;
             rvec.Normalize();
 
-            auto gizmoDir = Camera.Position - position;
+            auto gizmoDir = camera.Position - position;
             gizmoDir.Normalize();
 
-            auto DrawAxis = [&](GizmoAxis axis, const Vector3& normal) {
+            auto drawAxis = [&](GizmoAxis axis, const Vector3& normal) {
                 //auto target = ProjectPointOntoPlane(Camera.Position, position, normal);
                 auto rotation = Matrix::CreateRotationY(DirectX::XM_PIDIV2) * DirectionToRotationMatrix(normal);
                 auto transform = rotation * scale * translation;
-                auto color = GetColor(axis, gizmo, Editor::TransformMode::Rotation);
+                auto axisColor = GetColor(axis, gizmo, Editor::TransformMode::Rotation);
                 Plane plane(position, transform.Forward());
 
                 auto& ray = Editor::MouseRay;
@@ -83,17 +84,17 @@ namespace Inferno::Render {
                     ivec.Normalize();
 
                     auto rotationEnd = position + ivec * Settings::Editor.GizmoSize * gizmoScale;
-                    Debug::DrawLine(position, GizmoPreview::RotationStart, color);
-                    Debug::DrawLine(position, rotationEnd, color);
+                    Debug::DrawLine(position, GizmoPreview::RotationStart, axisColor);
+                    Debug::DrawLine(position, rotationEnd, axisColor);
                 }
 
-                Debug::DrawRing(Settings::Editor.GizmoSize, 0.25f, transform, color);
+                Debug::DrawRing(Settings::Editor.GizmoSize, 0.25f, transform, axisColor);
             };
 
             switch (gizmo.SelectedAxis) {
-                case GizmoAxis::X: return DrawAxis(GizmoAxis::X, gizmo.Transform.Forward());
-                case GizmoAxis::Y: return DrawAxis(GizmoAxis::Y, gizmo.Transform.Up());
-                case GizmoAxis::Z: return DrawAxis(GizmoAxis::Z, gizmo.Transform.Right());
+                case GizmoAxis::X: return drawAxis(GizmoAxis::X, gizmo.Transform.Forward());
+                case GizmoAxis::Y: return drawAxis(GizmoAxis::Y, gizmo.Transform.Up());
+                case GizmoAxis::Z: return drawAxis(GizmoAxis::Z, gizmo.Transform.Right());
             }
         }
 
@@ -112,38 +113,38 @@ namespace Inferno::Render {
         }
     }
 
-    inline void DrawTranslationGizmo(ID3D12GraphicsCommandList* commandList, const Editor::TransformGizmo& gizmo, const Matrix& viewProjection) {
+    inline void DrawTranslationGizmo(GraphicsContext& ctx, const Editor::TransformGizmo& gizmo) {
         using namespace Editor;
         auto sizeScale = Settings::Editor.GizmoSize / 5.0f; // arrows have a default size of 5
         auto position = gizmo.Transform.Translation();
-        auto scale = Matrix::CreateScale(Editor::GetGizmoScale(position, Camera) * sizeScale);
+        auto scale = Matrix::CreateScale(Editor::GetGizmoScale(position, ctx.Camera) * sizeScale);
         auto translation = Matrix::CreateTranslation(position);
 
-        auto gizmoDir = Camera.Position - position;
+        auto gizmoDir = ctx.Camera.Position - position;
         gizmoDir.Normalize();
 
-        auto DrawAxis = [&](GizmoAxis axis, Vector3 dir) {
+        auto drawAxis = [&](GizmoAxis axis, Vector3 dir) {
             if (std::abs(dir.Dot(gizmoDir)) > TransformGizmo::MaxViewAngle)
                 return; // Hide gizmo if camera is aligned to it
 
             auto rotation = DirectionToRotationMatrix(dir);
-            auto transform = rotation * scale * translation * viewProjection;
+            auto transform = rotation * scale * translation * ctx.Camera.ViewProjection;
             auto color = GetColor(axis, gizmo, Editor::TransformMode::Translation);
-            Debug::DrawArrow(commandList, transform, color);
+            Debug::DrawArrow(ctx.GetCommandList(), transform, color);
         };
 
-        if (gizmo.ShowTranslationAxis[0]) DrawAxis(GizmoAxis::X, gizmo.Transform.Forward());
-        if (gizmo.ShowTranslationAxis[1]) DrawAxis(GizmoAxis::Y, gizmo.Transform.Up());
-        if (gizmo.ShowTranslationAxis[2]) DrawAxis(GizmoAxis::Z, gizmo.Transform.Right());
+        if (gizmo.ShowTranslationAxis[0]) drawAxis(GizmoAxis::X, gizmo.Transform.Forward());
+        if (gizmo.ShowTranslationAxis[1]) drawAxis(GizmoAxis::Y, gizmo.Transform.Up());
+        if (gizmo.ShowTranslationAxis[2]) drawAxis(GizmoAxis::Z, gizmo.Transform.Right());
     }
 
-    inline void DrawRotationGizmo(const Editor::TransformGizmo& gizmo) {
+    inline void DrawRotationGizmo(const Editor::TransformGizmo& gizmo, const Camera& camera) {
         using namespace Editor;
         auto position = gizmo.Transform.Translation();
-        auto scale = Matrix::CreateScale(Editor::GetGizmoScale(position, Camera));
+        auto scale = Matrix::CreateScale(Editor::GetGizmoScale(position, camera));
         auto translation = Matrix::CreateTranslation(position);
 
-        auto gizmoDir = Camera.Position - position;
+        auto gizmoDir = camera.Position - position;
         gizmoDir.Normalize();
 
         auto DrawAxis = [&](GizmoAxis axis, const Vector3& normal, const Vector3& orient) {
@@ -159,7 +160,7 @@ namespace Inferno::Render {
             }
             else {
                 // DrawArc() draws on the XY axis, rotate it by 90 on Y to align to XZ axis.
-                auto target = ProjectPointOntoPlane(Camera.Position, position, normal);
+                auto target = ProjectPointOntoPlane(camera.Position, position, normal);
                 auto cameraDir = target - position; // direction towards the camera on this plane
                 cameraDir.Normalize();
                 auto cameraAngle = AngleBetweenVectors(orient, cameraDir, normal); // angle between the camera on this plane and the ref
@@ -177,15 +178,15 @@ namespace Inferno::Render {
         if (gizmo.ShowRotationAxis[2]) DrawAxis(GizmoAxis::Z, gizmo.Transform.Right(), gizmo.Transform.Up());
     }
 
-    inline void DrawScaleGizmo(ID3D12GraphicsCommandList* commandList, const Editor::TransformGizmo& gizmo, const Matrix& viewProjection) {
+    inline void DrawScaleGizmo(const GraphicsContext& ctx, const Editor::TransformGizmo& gizmo) {
         using namespace Editor;
-        auto scale = Matrix::CreateScale(Editor::GetGizmoScale(gizmo.Transform.Translation(), Camera));
+        auto scale = Matrix::CreateScale(Editor::GetGizmoScale(gizmo.Transform.Translation(), ctx.Camera));
         auto translation = Matrix::CreateTranslation(gizmo.Transform.Translation());
 
-        auto gizmoDir = Camera.Position - gizmo.Transform.Translation();
+        auto gizmoDir = ctx.Camera.Position - gizmo.Transform.Translation();
         gizmoDir.Normalize();
 
-        auto DrawAxis = [&](GizmoAxis axis) {
+        auto drawAxis = [&](GizmoAxis axis) {
             auto rotation = gizmo.Transform;
             rotation.Translation(Vector3::Zero);
 
@@ -203,13 +204,13 @@ namespace Inferno::Render {
                 return; // Hide gizmo if camera is aligned to it
 
             auto offset = Matrix::CreateTranslation(rotation.Forward() * Settings::Editor.GizmoSize);
-            auto transform = rotation * offset * scale * translation * viewProjection;
+            auto transform = rotation * offset * scale * translation * ctx.Camera.ViewProjection;
             auto color = GetColor(axis, gizmo, Editor::TransformMode::Scale);
-            Debug::DrawCube(commandList, transform, color);
+            Debug::DrawCube(ctx.GetCommandList(), transform, color);
         };
 
-        if (gizmo.ShowScaleAxis[0]) DrawAxis(GizmoAxis::X);
-        if (gizmo.ShowScaleAxis[1]) DrawAxis(GizmoAxis::Y);
-        if (gizmo.ShowScaleAxis[2]) DrawAxis(GizmoAxis::Z);
+        if (gizmo.ShowScaleAxis[0]) drawAxis(GizmoAxis::X);
+        if (gizmo.ShowScaleAxis[1]) drawAxis(GizmoAxis::Y);
+        if (gizmo.ShowScaleAxis[2]) drawAxis(GizmoAxis::Z);
     }
 }

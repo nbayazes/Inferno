@@ -410,30 +410,30 @@ namespace Inferno {
             auto explosionDir = world.Translation() - obj.Position; // explode outwards
             explosionDir.Normalize();
 
-            Render::Debris debris;
+            DebrisInfo debris;
             //Vector3 vec(Random() + 0.5, Random() + 0.5, Random() + 0.5);
             //auto vec = RandomVector(obj.Radius * 5);
             //debris.Velocity = vec + obj.LastHitVelocity / (4 + obj.Movement.Physics.Mass);
             //debris.Velocity =  RandomVector(obj.Radius * 5);
-            debris.Velocity = sm == 0 ? force : explosionDir * 20 + RandomVector(5) + force;
-            debris.Velocity += obj.Physics.Velocity;
-            debris.AngularVelocity.x = RandomN11();
-            debris.AngularVelocity.y = RandomN11();
-            debris.AngularVelocity.z = RandomN11();
+            auto velocity = sm == 0 ? force : explosionDir * 20 + RandomVector(5) + force;
+            velocity += obj.Physics.Velocity;
+            Vector3 angularVelocity;
+            angularVelocity.x = RandomN11();
+            angularVelocity.y = RandomN11();
+            angularVelocity.z = RandomN11();
+
             //debris.AngularVelocity = RandomVector(std::min(obj.LastHitForce.Length(), 3.14f));
-            debris.Transform = world;
             //debris.Transform.Translation(debris.Transform.Translation() + RandomVector(obj.Radius / 2));
-            debris.PrevTransform = world;
             debris.Mass = .75f;
             debris.Drag = 0.0075f;
             // It looks weird if the main body (sm 0) sticks around, so destroy it quick
-            debris.Duration = sm == 0 ? 0 : 2.5f + Random() * 2.0f;
+            auto duration = sm == 0 ? 0 : 2.5f + Random() * 2.0f;
             //debris.Duration = 10;
             debris.Radius = model.Submodels[sm].Radius;
             debris.Model = modelId;
             debris.Submodel = sm;
             debris.TexOverride = Resources::LookupTexID(obj.Render.Model.TextureOverride);
-            AddDebris(debris, obj.Segment);
+            Render::AddDebris(debris, world, obj.Segment, velocity, angularVelocity, duration);
         }
     }
 
@@ -453,17 +453,16 @@ namespace Inferno {
 
                 auto& robot = Resources::GetRobotInfo(obj.ID);
 
-                Render::ExplosionInfo expl;
+                ExplosionEffectInfo expl;
                 expl.Sound = robot.ExplosionSound2;
                 expl.Clip = robot.ExplosionClip2;
                 expl.Radius = { obj.Radius * 1.75f, obj.Radius * 1.9f };
                 Render::CreateExplosion(expl, obj.Segment, obj.GetPosition(Game::LerpAmount));
 
                 expl.Sound = SoundID::None;
-                expl.StartDelay = EXPLOSION_DELAY;
                 expl.Radius = { obj.Radius * 1.15f, obj.Radius * 1.55f };
                 expl.Variance = obj.Radius * 0.5f;
-                Render::CreateExplosion(expl, obj.Segment, obj.GetPosition(Game::LerpAmount));
+                Render::CreateExplosion(expl, obj.Segment, obj.GetPosition(Game::LerpAmount), 0, EXPLOSION_DELAY);
 
                 if (robot.ExplosionStrength > 0) {
                     GameExplosion ge{};
@@ -557,7 +556,8 @@ namespace Inferno {
     // Attaches a light to an object based on its settings
     void Game::AttachLight(const Object& obj, ObjRef ref) {
         if (!obj.IsAlive()) return;
-        Render::DynamicLight light;
+        LightEffectInfo light;
+        SubmodelRef submodel;
 
         switch (obj.Type) {
             case ObjectType::None:
@@ -570,8 +570,8 @@ namespace Inferno {
                 if (obj.ID == 23) {
                     light.LightColor = Color(0.2f, 1, 0.2f, 1.75f);
                     light.Radius = 45;
-                    light.ParentSubmodel.ID = 0;
-                    light.ParentSubmodel.Offset = Vector3(0, -2.5f, -5);
+                    submodel.ID = 0;
+                    submodel.Offset = Vector3(0, -2.5f, -5);
                 }
             }
             break;
@@ -632,10 +632,7 @@ namespace Inferno {
         }
 
         if (light.Radius > 0 && light.LightColor != Color()) {
-            light.Parent = ref;
-            light.Duration = MAX_OBJECT_LIFE; // lights will be removed when their parent is destroyed
-            light.Segment = obj.Segment;
-            Render::AddDynamicLight(light);
+            Render::AttachLight(light, ref, submodel);
         }
     }
 
@@ -763,9 +760,9 @@ namespace Inferno {
                 ? "damaged boss arcs"
                 : "damaged object arcs";
 
-            if (auto beam = Render::EffectLibrary.GetBeamInfo(effect)) {
+            if (auto beam = EffectLibrary.GetBeamInfo(effect)) {
                 auto startObj = Game::GetObjectRef(obj);
-                Render::AddBeam(*beam, beam->Duration, startObj);
+                Render::AttachBeam(*beam, beam->Duration, startObj);
             }
         }
     }

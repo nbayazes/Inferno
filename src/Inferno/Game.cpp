@@ -31,7 +31,6 @@ namespace Inferno::Game {
     namespace {
         GameState State = GameState::Editor;
         GameState RequestedState = GameState::Editor;
-        Camera EditorCameraSnapshot;
         constexpr size_t OBJECT_BUFFER_SIZE = 100; // How many new objects to keep in reserve
         int MenuIndex = 0;
     }
@@ -295,7 +294,7 @@ namespace Inferno::Game {
     void UpdateExitSequence() {
         // todo: escape sequence
         // for first 5? seconds move camera to player
-        MoveCameraToObject(Render::Camera, Level.Objects[0], LerpAmount);
+        //MoveCameraToObject(Render::Camera, Level.Objects[0], LerpAmount);
         // otherwise shift camera in front of player by 20? units
 
         // use a smoothed path between segment centers
@@ -327,7 +326,6 @@ namespace Inferno::Game {
                 Editor::History.Undo();
                 State = GameState::Editor;
                 ResetCountdown();
-                Render::Camera = EditorCameraSnapshot;
                 Input::SetMouseMode(Input::MouseMode::Normal);
                 Sound::StopAllSounds();
                 Sound::StopMusic();
@@ -359,7 +357,7 @@ namespace Inferno::Game {
             case GameState::Paused:
                 if (State != GameState::Game && State != GameState::ExitSequence) return;
                 State = GameState::Paused;
-                MoveCameraToObject(Render::Camera, GetPlayerObject(), LerpAmount);
+                MoveCameraToObject(Game::GameCamera, GetPlayerObject(), LerpAmount);
                 GetPlayerObject().Render.Type = RenderType::Model; // Make player visible
                 Input::SetMouseMode(Input::MouseMode::Mouselook);
                 break;
@@ -558,7 +556,7 @@ namespace Inferno::Game {
                     if (Player.IsDead)
                         UpdateDeathSequence(dt);
                     else
-                        MoveCameraToObject(Render::Camera, Level.Objects[0], LerpAmount);
+                        MoveCameraToObject(Game::GameCamera, Level.Objects[0], LerpAmount);
                 }
 
                 if (Input::IsKeyPressed(Input::Keys::Escape))
@@ -584,6 +582,8 @@ namespace Inferno::Game {
                 }
 
                 Editor::Update();
+                Editor::EditorCamera.SetFov(Settings::Editor.FieldOfView);
+                Editor::EditorCamera.UpdatePerspectiveMatrices();
                 if (!Settings::Inferno.ScreenshotMode) EditorUI.OnRender();
                 break;
 
@@ -596,7 +596,7 @@ namespace Inferno::Game {
                     Game::SetState(Game::GetState() == GameState::Paused ? GameState::Game : GameState::Paused);
 
                 Editor::Bindings::Update(); // Using editor camera bindings
-                Editor::UpdateCamera(Render::Camera);
+                Editor::UpdateCamera(Editor::EditorCamera);
                 break;
         }
 
@@ -607,7 +607,7 @@ namespace Inferno::Game {
         Game::Player.DirectLight = Color{};
 
         g_ImGuiBatch->EndFrame();
-        Render::Present();
+        Render::Present(Editor::EditorCamera);
 
         LegitProfiler::Profiler.cpuGraph.LoadFrameData(LegitProfiler::CpuTasks);
         LegitProfiler::Profiler.gpuGraph.LoadFrameData(LegitProfiler::GpuTasks);
@@ -810,7 +810,7 @@ namespace Inferno::Game {
         MarkAmbientSegments(SoundFlag::AmbientWater, TextureFlag::Water);
         AddSoundSources();
 
-        EditorCameraSnapshot = Render::Camera;
+        //EditorCameraSnapshot = Render::Camera;
         Settings::Editor.RenderMode = RenderMode::Shaded;
         Input::SetMouseMode(Input::MouseMode::Mouselook);
         Player.Respawn(false);

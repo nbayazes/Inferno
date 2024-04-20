@@ -186,14 +186,14 @@ namespace Inferno {
         Render::Device = m_d3dDevice.Get();
 
         // Create the command queues
-        CommandQueue = MakePtr<Graphics::CommandQueue>(m_d3dDevice.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT, L"DeviceResources Command Queue");
-        BatchUploadQueue = MakePtr<Graphics::CommandQueue>(m_d3dDevice.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT, L"DeviceResources Batch Queue");
-        AsyncBatchUploadQueue = MakePtr<Graphics::CommandQueue>(m_d3dDevice.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT, L"DeviceResources Batch Queue");
-        CopyQueue = MakePtr<Graphics::CommandQueue>(m_d3dDevice.Get(), D3D12_COMMAND_LIST_TYPE_COPY, L"DeviceResources Copy Queue");
+        CommandQueue = make_unique<Inferno::CommandQueue>(m_d3dDevice.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT, L"DeviceResources Command Queue");
+        BatchUploadQueue = make_unique<Inferno::CommandQueue>(m_d3dDevice.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT, L"DeviceResources Batch Queue");
+        AsyncBatchUploadQueue = make_unique<Inferno::CommandQueue>(m_d3dDevice.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT, L"DeviceResources Batch Queue");
+        CopyQueue = make_unique<Inferno::CommandQueue>(m_d3dDevice.Get(), D3D12_COMMAND_LIST_TYPE_COPY, L"DeviceResources Copy Queue");
 
         // Create a command allocator for each back buffer that will be rendered to.
         for (UINT n = 0; n < m_backBufferCount; n++) {
-            _graphicsContext[n] = MakePtr<Graphics::GraphicsContext>(m_d3dDevice.Get(), CommandQueue.get(), fmt::format(L"Render target {}", n));
+            _graphicsContext[n] = MakePtr<GraphicsContext>(m_d3dDevice.Get(), CommandQueue.get(), fmt::format(L"Render target {}", n));
             //ThrowIfFailed(m_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_commandAllocators[n].ReleaseAndGetAddressOf())));
             //m_commandAllocators[n]->SetName();
         }

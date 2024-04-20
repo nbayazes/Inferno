@@ -9,7 +9,6 @@
 #include "BitmapCache.h"
 #include "Mesh.h"
 #include "Render.Canvas.h"
-#include "Graphics/CommandContext.h"
 #include "Lighting.h"
 
 class CommandListManager;
@@ -59,12 +58,12 @@ namespace Inferno::Render {
         Distortion, // Cloaked enemies, shockwaves
     };
 
-    //void DrawVClip(Graphics::GraphicsContext& ctx, const VClip& vclip, const Vector3& position, float radius, const Color& color, float elapsed, bool additive = false, float rotation = 0, const Vector3* up = nullptr);
+    //void DrawVClip(GraphicsContext& ctx, const VClip& vclip, const Vector3& position, float radius, const Color& color, float elapsed, bool additive = false, float rotation = 0, const Vector3* up = nullptr);
 
     void Initialize(HWND hwnd, int width, int height);
     void Resize(int width, int height);
     void Shutdown();
-    void Present();
+    void Present(const Camera& camera);
 
     void RenderProbe(const Vector3& position);
 
@@ -91,20 +90,15 @@ namespace Inferno::Render {
     // Also need to switch camera for drawing sub-views, like guided missiles or rear view.
     //void SetCamera(Inferno::Camera&);
 
-    inline Inferno::Camera Camera;
-
-    inline Matrix ViewProjection;
-
     inline float FrameTime = 0; // Time of this frame in seconds
     inline double ElapsedTime = 0; // Time elapsed in seconds. Stops updating when paused or animations are disabled.
-    inline DirectX::BoundingFrustum CameraFrustum;
 
     // Returns the squared distance of an object to the camera
-    inline float GetRenderDepth(const Vector3& pos) {
-        return Vector3::DistanceSquared(Render::Camera.Position, pos);
+    inline float GetRenderDepth(const Vector3& pos, const Camera& camera) {
+        return Vector3::DistanceSquared(camera.Position, pos);
     }
 
-    void DrawBillboard(Graphics::GraphicsContext& ctx,
+    void DrawBillboard(GraphicsContext& ctx,
                        float ratio,
                        D3D12_GPU_DESCRIPTOR_HANDLE texture,
                        D3D12_GPU_VIRTUAL_ADDRESS frameConstants,
@@ -116,7 +110,7 @@ namespace Inferno::Render {
                        float rotation,
                        const Vector3* up);
 
-    void DrawBillboard(Graphics::GraphicsContext& ctx,
+    void DrawBillboard(GraphicsContext& ctx,
                        TexID tid,
                        const Vector3& position,
                        float radius,
@@ -126,7 +120,7 @@ namespace Inferno::Render {
                        const Vector3* up);
 
     // Call ApplyEffect and SetConstantBuffer first
-    void DrawDepthBillboard(ID3D12GraphicsCommandList* cmdList,
+    void DrawDepthBillboard(GraphicsContext& ctx,
                             TexID tid,
                             const Vector3& position,
                             float radius,
@@ -142,13 +136,15 @@ namespace Inferno::Render {
     const string TEST_MODEL = "gyro.OOF";
 
     // returns a vector perpendicular to the camera and the start/end points
-    inline Vector3 GetBeamNormal(const Vector3& start, const Vector3 end) {
+    inline Vector3 GetBeamNormal(const Vector3& start, const Vector3 end, const Camera& camera) {
         auto tangent = start - end;
-        auto dirToBeam = start - Camera.Position;
+        auto dirToBeam = start - camera.Position;
         auto normal = dirToBeam.Cross(tangent);
         normal.Normalize();
         return normal;
     }
+
+    //void SetCamera(Camera& camera);
 
     namespace Stats {
         inline uint16 VisitedSegments = 0;

@@ -9,6 +9,7 @@
 #include "Face.h"
 #include "Game.h"
 #include "Game.Object.h"
+#include "OpenSimplex2.h"
 
 namespace Inferno::Editor {
     using Input::SelectionState;

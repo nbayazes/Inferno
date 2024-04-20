@@ -47,7 +47,7 @@ namespace Inferno::Game {
     constexpr float WEAPON_HOMING_DELAY = 1 / 8.0f; // Delay before homing weapons start turning
     constexpr float DEFAULT_WEAPON_VOLUME = 0.55f; // Default volume when firing weapons
     constexpr float CLOAK_FIRING_FLICKER = 0.75f; // How long a cloaked object 'flickers' after firing
-    constexpr Color MATCEN_PHASING_COLOR = Color(8, 0, 8);
+    constexpr Color MATCEN_PHASING_COLOR = { 8, 0, 8 };
     constexpr float MATCEN_SOUND_RADIUS = 300;
     constexpr float FRIENDLY_FIRE_MULT = 0.5f; // Multiplier on damage robots do to each other or themselves
     constexpr float POWERUP_RADIUS_MULT = 2.00f; // Make powerups easier to pick up
@@ -83,6 +83,8 @@ namespace Inferno::Game {
     // Only single player for now
     inline class Player Player = {};
     inline ObjRef DeathCamera = {};
+    inline Camera GameCamera;
+    inline Camera* ActiveCamera = &GameCamera;
 
     // is the game level loading?
     inline std::atomic IsLoading = false;
@@ -201,7 +203,7 @@ namespace Inferno::Game {
         return Level.Objects[(int)Player.Reference.Id];
     }
 
-    bool ObjectIsInFOV(const Ray& ray, const Object& obj, float fov);
+    //bool ObjectIsInFOV(const Ray& ray, const Object& obj, float fov);
 
     // Returns an object reference based on its address
     inline ObjRef GetObjectRef(const Object& obj) {

@@ -151,7 +151,7 @@ namespace Inferno::Render {
         List<ObjDepth> _objects;
 
     public:
-        void Update(Level& level, LevelMeshBuilder& meshBuilder, bool drawObjects);
+        void Update(Level& level, LevelMeshBuilder& meshBuilder, bool drawObjects, const Camera& camera);
         span<RenderCommand> Opaque() { return _opaqueQueue; }
         span<RenderCommand> Decal() { return _decalQueue; }
         span<RenderCommand> Transparent() { return _transparentQueue; }
@@ -159,9 +159,9 @@ namespace Inferno::Render {
         span<RoomID> GetVisibleRooms() { return _visibleRooms; }
 
     private:
-        void QueueEditorObject(Object& obj, float lerp);
-        void QueueRoomObjects(Level& level, const Room& room);
-        void CheckRoomVisibility(Level& level, const Portal& srcPortal, const Bounds2D& srcBounds);
-        void TraverseLevelRooms(RoomID startRoomId, Level& level, span<LevelMesh> wallMeshes);
+        void QueueEditorObject(Object& obj, float lerp, const Camera& camera);
+        void QueueRoomObjects(Level& level, const Room& room, const Camera& camera);
+        void CheckRoomVisibility(Level& level, const Portal& srcPortal, const Bounds2D& srcBounds, const Camera& camera);
+        void TraverseLevelRooms(RoomID startRoomId, Level& level, span<LevelMesh> wallMeshes, const Camera& camera);
     };
 }

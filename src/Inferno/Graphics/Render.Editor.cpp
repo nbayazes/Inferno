@@ -16,8 +16,8 @@
 #include "Settings.h"
 
 namespace Inferno::Render {
-    void DrawFacingCircle(const Vector3& position, float radius, const Color& color) {
-        auto facingMatrix = Matrix::CreateBillboard(position, Camera.Position, Camera.Up);
+    void DrawFacingCircle(const Vector3& position, float radius, const Color& color, const Camera& camera) {
+        auto facingMatrix = Matrix::CreateBillboard(position, camera.Position, camera.Up);
         Debug::DrawCircle(radius, facingMatrix, color);
     }
 
@@ -44,10 +44,10 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawObjectOutline(const Object& object, const Color& color, float scale = 1.0f) {
+    void DrawObjectOutline(const Object& object, const Color& color, const Camera& camera, float scale = 1.0f) {
         if (object.Radius == 0) return;
         if (Game::GetState() != GameState::Editor || Settings::Inferno.ScreenshotMode) return;
-        DrawFacingCircle(object.Position, object.Radius * scale, color);
+        DrawFacingCircle(object.Position, object.Radius * scale, color, camera);
         //DrawObjectBoundingBoxes(object, Color(0, 1, 0));
     }
 
@@ -64,7 +64,7 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawObjectOutline(const Object& object) {
+    void DrawObjectOutline(const Object& object, const Camera& camera) {
         float radius = object.Radius <= 0 ? 2.5f : object.Radius;
 
         Color color = [&object] {
@@ -82,7 +82,7 @@ namespace Inferno::Render {
         }();
 
         color.A(0.5f);
-        DrawFacingCircle(object.Position, radius, color);
+        DrawFacingCircle(object.Position, radius, color, camera);
     }
 
     void OutlineBossTeleportSegments() {
@@ -93,11 +93,11 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawTunnelPathNode(const Editor::PathNode& node) {
+    void DrawTunnelPathNode(const Editor::PathNode& node, const Camera& camera) {
         Matrix m = node.Rotation;
         Vector3 v[4] = { m.Right(), m.Up(), m.Forward(), node.Axis };
 
-        Debug::DrawPoint(node.Position, Colors::MarkedFace);
+        Debug::DrawPoint(node.Position, Colors::MarkedFace, camera);
         static constexpr Color colors[4] = { Colors::DoorRed, Colors::Hostage, Colors::DoorBlue, Colors::DoorGold };
 
         for (int i = 0; i < 3; i++) {
@@ -105,7 +105,7 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawTunnelBuilder(Level& level) {
+    void DrawTunnelBuilder(Level& level, const Camera& camera) {
         //for (int i = 1; i < Editor::TunnelBuilderPath.size(); i++) {
         //    auto& p0 = Editor::TunnelBuilderPath[i - 1];
         //    auto& p1 = Editor::TunnelBuilderPath[i];
@@ -162,14 +162,14 @@ namespace Inferno::Render {
             auto start = face.Center();
             auto end = start - face.AverageNormal() * handle.Length;
             Debug::DrawLine(start, end, Colors::Reactor);
-            Debug::DrawPoint(end, Colors::Reactor);
+            Debug::DrawPoint(end, Colors::Reactor, camera);
         };
 
         drawStartFace(Editor::PreviewTunnelStart);
         drawStartFace(Editor::PreviewTunnelEnd);
     }
 
-    void DrawSelection(const Editor::EditorSelection& selection, const Level& level) {
+    void DrawSelection(const Editor::EditorSelection& selection, const Level& level, const Camera& camera) {
         using namespace Editor;
         if (!level.SegmentExists(selection.Segment)) return;
         auto& seg = level.GetSegment(selection.Segment);
@@ -198,19 +198,19 @@ namespace Inferno::Render {
         auto indices = seg.GetVertexIndices(selection.Side);
         auto& pointPos = level.Vertices[indices[selection.Point]];
         if (Settings::Editor.SelectionMode == SelectionMode::Point)
-            DrawFacingCircle(pointPos, 1.5, Colors::SelectionPrimary);
+            DrawFacingCircle(pointPos, 1.5, Colors::SelectionPrimary, camera);
     }
 
-    void DrawUserCSysMarker(ID3D12GraphicsCommandList* cmdList) {
+    void DrawUserCSysMarker(const GraphicsContext& ctx) {
         using namespace Editor;
         auto pos = Editor::UserCSys.Translation();
-        auto scale = Matrix::CreateScale(Editor::GetGizmoScale(pos, Camera) * 0.5f);
+        auto scale = Matrix::CreateScale(Editor::GetGizmoScale(pos, EditorCamera) * 0.5f);
         auto translation = Matrix::CreateTranslation(pos);
 
         auto DrawAxis = [&](Vector3 dir) {
             auto rotation = DirectionToRotationMatrix(dir);
-            auto transform = rotation * scale * translation * Render::ViewProjection;
-            Debug::DrawArrow(cmdList, transform, Colors::GlobalOrientation);
+            auto transform = rotation * scale * translation * ctx.Camera.ViewProjection;
+            Debug::DrawArrow(ctx.GetCommandList(), transform, Colors::GlobalOrientation);
         };
 
         DrawAxis(Editor::UserCSys.Forward());
@@ -218,15 +218,15 @@ namespace Inferno::Render {
         DrawAxis(Editor::UserCSys.Right());
     }
 
-    void DrawSecretLevelReturn(ID3D12GraphicsCommandList* cmdList, const Matrix& matrix, float size = 1) {
+    void DrawSecretLevelReturn(const GraphicsContext& ctx, const Matrix& matrix, float size = 1) {
         using namespace Editor;
         auto scale = Matrix::CreateScale(size);
         auto translation = Matrix::CreateTranslation(matrix.Translation());
 
         auto DrawAxis = [&](Vector3 dir) {
             auto rotation = DirectionToRotationMatrix(dir);
-            auto transform = rotation * scale * translation * Render::ViewProjection;
-            Debug::DrawArrow(cmdList, transform, Colors::GlobalOrientation);
+            auto transform = rotation * scale * translation * ctx.Camera.ViewProjection;
+            Debug::DrawArrow(ctx.GetCommandList(), transform, Colors::GlobalOrientation);
         };
 
         DrawAxis(matrix.Forward());
@@ -246,7 +246,7 @@ namespace Inferno::Render {
     }
 
     // draws markers for all walls and triggers
-    void DrawWallMarkers(Level& level) {
+    void DrawWallMarkers(Level& level, const Camera& camera) {
         for (auto& wall : level.Walls) {
             if (!wall.IsValid()) continue;
 
@@ -254,10 +254,10 @@ namespace Inferno::Render {
             //auto verts = VerticesForSide(*CurrentLevel, seg, wall.Side);
             auto face = Face::FromSide(level, seg, wall.Tag.Side);
             //auto& normal = seg.GetSide(wall.Side).Normals[0];
-            auto center = face.Center() + face.AverageNormal() * Debug::WallMarkerOffset;
+            auto center = face.Center() + face.AverageNormal() * Debug::WALL_MARKER_OFFSET;
 
             // fade distant markers
-            auto distance = Vector3::Distance(Camera.Position, center);
+            auto distance = Vector3::Distance(camera.Position, center);
             auto alpha = std::clamp((500.0f - distance) / 500.0f, 0.1f, 0.65f);
             Color color = GetWallColor(wall);
 
@@ -284,10 +284,11 @@ namespace Inferno::Render {
                     }
                     else {
                         auto targetFace = Face::FromSide(level, targetSeg, target.Side);
-                        targetCenter = targetFace.Center() + targetFace.AverageNormal() * Debug::WallMarkerOffset;
+                        targetCenter = targetFace.Center() + targetFace.AverageNormal() * Debug::WALL_MARKER_OFFSET;
                         arrowColor = Colors::TriggerArrow;
                     }
-                    Debug::DrawArrow(center, targetCenter, arrowColor);
+
+                    Debug::DrawArrow(center, targetCenter, arrowColor, camera);
                 }
             }
 
@@ -295,11 +296,11 @@ namespace Inferno::Render {
             Debug::DrawWallMarker(face, color);
 
             if (wall.Type == WallType::Open)
-                Debug::DrawArrow(center, center - face.AverageNormal() * 5, color);
+                Debug::DrawArrow(center, center - face.AverageNormal() * 5, color, camera);
         }
     }
 
-    void DrawReactorTriggers(Level& level) {
+    void DrawReactorTriggers(Level& level, const Camera& camera) {
         Object* reactor = nullptr;
         for (auto& obj : level.Objects) {
             if (obj.Type == ObjectType::Reactor || IsBossRobot(obj)) {
@@ -312,8 +313,8 @@ namespace Inferno::Render {
             for (auto& target : level.ReactorTriggers) {
                 auto& seg = level.GetSegment(target.Segment);
                 auto targetFace = Face::FromSide(level, seg, target.Side);
-                auto targetCenter = targetFace.Center() + targetFace.AverageNormal() * Debug::WallMarkerOffset;
-                Debug::DrawArrow(reactor->Position, targetCenter, Colors::ReactorTriggerArrow);
+                auto targetCenter = targetFace.Center() + targetFace.AverageNormal() * Debug::WALL_MARKER_OFFSET;
+                Debug::DrawArrow(reactor->Position, targetCenter, Colors::ReactorTriggerArrow, camera);
             }
         }
     }
@@ -360,19 +361,19 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawPath(span<const NavPoint> path, const Color& color) {
+    void DrawPath(span<const NavPoint> path, const Color& color, const Camera& camera) {
         if (path.size() < 2) return;
         Vector3 prev = path[0].Position;
-        Debug::DrawPoint(prev, color);
+        Debug::DrawPoint(prev, color, camera);
 
         for (int i = 1; i < path.size(); i++) {
             Debug::DrawLine(prev, path[i].Position, color);
-            Debug::DrawPoint(path[i].Position, color);
+            Debug::DrawPoint(path[i].Position, color, camera);
             prev = path[i].Position;
         }
     }
 
-    void DrawMarked(ID3D12GraphicsCommandList* cmdList, Level& level) {
+    void DrawMarked(GraphicsContext& ctx, Level& level) {
         bool hideMarks = Editor::Bindings::Active.IsBindingHeld(Editor::EditorAction::HideMarks);
         bool drawTranslationGizmo = true, drawRotationGizmo = true, drawScaleGizmo = true;
 
@@ -405,7 +406,7 @@ namespace Inferno::Render {
                     for (auto& p : Editor::Marked.Points) {
                         if (!level.VertexIsValid(p)) continue;
                         auto& v = level.Vertices[p];
-                        Debug::DrawPoint(v, Colors::MarkedPoint);
+                        Debug::DrawPoint(v, Colors::MarkedPoint, ctx.Camera);
                     }
                 }
                 break;
@@ -415,30 +416,31 @@ namespace Inferno::Render {
                 drawScaleGizmo = false;
 
                 if (auto obj = level.TryGetObject(Editor::Selection.Object))
-                    DrawObjectOutline(*obj, Colors::SelectedObject);
+                    DrawObjectOutline(*obj, Colors::SelectedObject, ctx.Camera);
                 else
                     drawTranslationGizmo = drawRotationGizmo = drawScaleGizmo = false;
 
                 for (auto& id : Editor::Marked.Objects) {
                     if (auto obj = level.TryGetObject(id))
-                        DrawObjectOutline(*obj, Colors::MarkedObject, 1.1f);
+                        DrawObjectOutline(*obj, Colors::MarkedObject, ctx.Camera, 1.1f);
                 }
                 break;
             }
         }
 
-        DrawUserCSysMarker(cmdList);
+        DrawUserCSysMarker(ctx);
+
         if (Editor::Gizmo.State != Editor::GizmoState::Dragging) {
-            if (drawTranslationGizmo) DrawTranslationGizmo(cmdList, Editor::Gizmo, Render::ViewProjection);
-            if (drawRotationGizmo) DrawRotationGizmo(Editor::Gizmo);
-            if (drawScaleGizmo) DrawScaleGizmo(cmdList, Editor::Gizmo, Render::ViewProjection);
+            if (drawTranslationGizmo) DrawTranslationGizmo(ctx, Editor::Gizmo);
+            if (drawRotationGizmo) DrawRotationGizmo(Editor::Gizmo, ctx.Camera);
+            if (drawScaleGizmo) DrawScaleGizmo(ctx, Editor::Gizmo);
         }
         else {
-            DrawGizmoPreview(Editor::Gizmo);
+            DrawGizmoPreview(Editor::Gizmo, ctx.Camera);
         }
     }
 
-    void DrawRooms(Level& level) {
+    void DrawRooms(Level& level, const Camera& camera) {
         if (!Settings::Editor.ShowPortals) return;
         //std::array colors = { Color(1, 0.75, 0.5), Color(1, 0.5, 0.75), Color(0.75, 0.5, 1), Color(0.5, 0.75, 1), Color(0.5, 1, 0.75), Color(0.75, 1, 0.5) };
         //int colorIndex = 0;
@@ -458,7 +460,7 @@ namespace Inferno::Render {
                 if (auto seg = level.TryGetSegment(portal.Tag)) {
                     Debug::DrawSide(Game::Level, *seg, portal.Tag.Side, Colors::Portal);
                     auto side = Face::FromSide(level, *seg, portal.Tag.Side);
-                    Debug::DrawArrow(side.Center(), side.Center() + side.AverageNormal() * 5, Color(0, 1, 0));
+                    Debug::DrawArrow(side.Center(), side.Center() + side.AverageNormal() * 5, Color(0, 1, 0), camera);
                 }
             }
         }
@@ -486,25 +488,25 @@ namespace Inferno::Render {
         }*/
     }
 
-    void DrawEditor(ID3D12GraphicsCommandList* cmdList, Level& level) {
+    void DrawEditor(GraphicsContext& ctx, Level& level) {
         if (Settings::Editor.ShowWireframe)
             DrawWireframe(level);
 
         if (Settings::Editor.EnableWallMode) {
-            DrawWallMarkers(level);
-            DrawReactorTriggers(level);
+            DrawWallMarkers(level, ctx.Camera);
+            DrawReactorTriggers(level, ctx.Camera);
         }
 
         if (Settings::Editor.ShowFlickeringLights) {
             for (auto& fl : level.FlickeringLights) {
                 if (!level.SegmentExists(fl.Tag)) continue;
                 auto face = Face::FromSide(level, fl.Tag);
-                Debug::DrawFacingSquare(face.Center(), 4, Color(1, 1, 0, 0.5f));
+                Debug::DrawFacingSquare(face.Center(), 4, Color(1, 1, 0, 0.5f), ctx.Camera);
             }
         }
 
-        DrawMarked(cmdList, level);
-        DrawSelection(Editor::Selection, level);
+        DrawMarked(ctx, level);
+        DrawSelection(Editor::Selection, level, ctx.Camera);
 
         //if (level.HasSecretExit()) {
         //    if (auto seg = level.TryGetSegment(level.SecretExitReturn)) {
@@ -514,7 +516,7 @@ namespace Inferno::Render {
         //}
 
         if (Input::GetMouseMode() != Input::MouseMode::Normal)
-            Debug::DrawCrosshair(Settings::Editor.CrosshairSize);
+            Debug::DrawCrosshair(Settings::Editor.CrosshairSize, ctx.Camera);
 
         if (Settings::Editor.ShowLevelTitle) {
             Render::DrawTextInfo info;
@@ -538,24 +540,24 @@ namespace Inferno::Render {
 
         //DrawFaceNormals(level);
         if (Settings::Editor.Windows.TunnelBuilder)
-            DrawTunnelBuilder(level);
+            DrawTunnelBuilder(level, ctx.Camera);
 
         {
             Debug::DrawLine(Inferno::Debug::RayStart, Inferno::Debug::RayEnd, Color(1, 0, 0));
-            Debug::DrawPoint(Inferno::Debug::RayStart, Color(1, 0, 0));
+            Debug::DrawPoint(Inferno::Debug::RayStart, Color(1, 0, 0), ctx.Camera);
             //Debug::DrawPoint(Inferno::Debug::RayEnd, Color(1, 0, 0));
 
-            DrawPath(Inferno::Debug::Path, Colors::Path);
-            DrawPath(Inferno::Debug::OptimizedPath, Color(1, 0, 0));
+            DrawPath(Inferno::Debug::Path, Colors::Path, ctx.Camera);
+            DrawPath(Inferno::Debug::OptimizedPath, Color(1, 0, 0), ctx.Camera);
         }
 
-        if (Game::Terrain.PlayerPath.size() >= 2) {
-            for (int i = 0; i < Game::Terrain.PlayerPath.size() - 1; i++) {
-                Debug::DrawLine(Game::Terrain.PlayerPath[i], Game::Terrain.PlayerPath[i + 1], Color(0, 1, 0));
+        if (Game::Terrain.EscapePath.size() >= 2) {
+            for (int i = 0; i < Game::Terrain.EscapePath.size() - 1; i++) {
+                Debug::DrawLine(Game::Terrain.EscapePath[i], Game::Terrain.EscapePath[i + 1], Color(0, 1, 0));
             }
         }
 
-        DrawRooms(level);
+        DrawRooms(level, ctx.Camera);
         OutlineBossTeleportSegments();
 
         if (Settings::Graphics.OutlineVisibleRooms) {

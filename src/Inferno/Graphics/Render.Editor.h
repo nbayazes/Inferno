@@ -1,12 +1,15 @@
 #pragma once 
+#include "Camera.h"
+#include "CommandContext.h"
 #include "DirectX.h"
 #include "Level.h"
 
 namespace Inferno::Render {
-    void DrawEditor(ID3D12GraphicsCommandList* cmdList, Level& level);
     void CreateEditorResources();
     void ReleaseEditorResources();
-    void DrawObjectOutline(const Object&);
+
+    void DrawEditor(GraphicsContext& ctx, Level& level);
+    void DrawObjectOutline(const Object&, const Camera& camera);
 
     // Editor colors
     namespace Colors {
@@ -84,6 +87,4 @@ namespace Inferno::Render {
         }
 
     }
-
-
 }

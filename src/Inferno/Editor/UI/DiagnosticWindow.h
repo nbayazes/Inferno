@@ -4,7 +4,7 @@
 #include "Editor/Editor.Diagnostics.h"
 #include "Camera.h"
 #include "Editor/Editor.Object.h"
-#include "Editor/Editor.Undo.h"
+
 namespace Inferno::Editor {
     class DiagnosticWindow final : public WindowBase {
         List<SegmentDiagnostic> _segments;
@@ -105,7 +105,7 @@ namespace Inferno::Editor {
                         _selection = i;
                         Editor::Selection.SetSelection(item.Tag);
                         auto& seg = Game::Level.GetSegment(item.Tag);
-                        Render::Camera.LerpTo(seg.Center, 0.25f);
+                        Editor::EditorCamera.LerpTo(seg.Center, 0.25f);
                     }
                     ImGui::PopID();
                 }

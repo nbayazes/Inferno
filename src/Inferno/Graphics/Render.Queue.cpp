@@ -18,7 +18,7 @@ namespace Inferno::Render {
         return true;
     }
 
-    void RenderQueue::Update(Level& level, LevelMeshBuilder& meshBuilder, bool drawObjects) {
+    void RenderQueue::Update(Level& level, LevelMeshBuilder& meshBuilder, bool drawObjects, const Camera& camera) {
         LegitProfiler::ProfilerTask task("Render queue", LegitProfiler::Colors::ALIZARIN);
         _transparentQueue.clear();
         _opaqueQueue.clear();
@@ -32,12 +32,12 @@ namespace Inferno::Render {
 
         // Queue commands for level meshes
         for (auto& mesh : meshBuilder.GetMeshes()) {
-            if (!Render::CameraFrustum.Contains(mesh.Chunk->Bounds)) continue;
+            if (!camera.Frustum.Contains(mesh.Chunk->Bounds)) continue;
             _opaqueQueue.push_back({ &mesh, 0 });
         }
 
         for (auto& mesh : meshBuilder.GetDecals()) {
-            if (!Render::CameraFrustum.Contains(mesh.Chunk->Bounds)) continue;
+            if (!camera.Frustum.Contains(mesh.Chunk->Bounds)) continue;
             _decalQueue.push_back({ &mesh, 0 });
         }
 
@@ -45,8 +45,8 @@ namespace Inferno::Render {
             UpdateAllEffects(Game::FrameTime);
 
             for (auto& mesh : meshBuilder.GetWallMeshes()) {
-                if (!Render::CameraFrustum.Contains(mesh.Chunk->Bounds)) continue;
-                float depth = Vector3::DistanceSquared(Camera.Position, mesh.Chunk->Center);
+                if (!camera.Frustum.Contains(mesh.Chunk->Bounds)) continue;
+                float depth = Vector3::DistanceSquared(camera.Position, mesh.Chunk->Center);
                 _transparentQueue.push_back({ &mesh, depth });
             }
 
@@ -54,8 +54,8 @@ namespace Inferno::Render {
                 for (auto& obj : level.Objects) {
                     if (!ShouldDrawObject(obj)) continue;
                     DirectX::BoundingSphere bounds(obj.GetPosition(Game::LerpAmount), obj.Radius);
-                    if (CameraFrustum.Contains(bounds))
-                        QueueEditorObject(obj, Game::LerpAmount);
+                    if (camera.Frustum.Contains(bounds))
+                        QueueEditorObject(obj, Game::LerpAmount, camera);
                 }
             }
 
@@ -68,7 +68,7 @@ namespace Inferno::Render {
             for (int i = 0; i < level.Segments.size(); i++) {
                 for (auto& effectID : level.Segments[i].Effects) {
                     if (auto effect = GetEffect(effectID)) {
-                        _transparentQueue.push_back({ effect, GetRenderDepth(effect->Position) });
+                        _transparentQueue.push_back({ effect, GetRenderDepth(effect->Position, camera) });
                     }
                 }
             }
@@ -83,24 +83,24 @@ namespace Inferno::Render {
             //TraverseLevel(level.Objects[0].Segment, level, wallMeshes);
 
             auto roomId = level.GetRoomID(Game::GetPlayerObject());
-            TraverseLevelRooms(roomId, level, meshBuilder.GetWallMeshes());
+            TraverseLevelRooms(roomId, level, meshBuilder.GetWallMeshes(), camera);
         }
 
         LegitProfiler::AddCpuTask(std::move(task));
     }
 
-    void RenderQueue::QueueEditorObject(Object& obj, float lerp) {
+    void RenderQueue::QueueEditorObject(Object& obj, float lerp, const Camera& camera) {
         auto position = obj.GetPosition(lerp);
 
         DirectX::BoundingSphere bounds(position, obj.Radius);
-        if (!CameraFrustum.Contains(bounds))
+        if (!camera.Frustum.Contains(bounds))
             return;
 
-        float depth = GetRenderDepth(position);
+        float depth = GetRenderDepth(position, camera);
         const float maxDistSquared = Settings::Editor.ObjectRenderDistance * Settings::Editor.ObjectRenderDistance;
 
         if (depth > maxDistSquared && Game::GetState() == GameState::Editor) {
-            DrawObjectOutline(obj);
+            DrawObjectOutline(obj, camera);
         }
         else if (obj.Render.Model.Outrage) {
             // d3 has transparent model materials mixed with opaque ones. they should be registered with both queues?
@@ -209,7 +209,7 @@ namespace Inferno::Render {
     //    }
     //}
 
-    void RenderQueue::QueueRoomObjects(Level& level, const Room& room) {
+    void RenderQueue::QueueRoomObjects(Level& level, const Room& room, const Camera& camera) {
         _objects.clear();
 
         for (auto& segId : room.Segments) {
@@ -221,14 +221,14 @@ namespace Inferno::Render {
             for (auto oid : seg.Objects) {
                 if (auto obj = level.TryGetObject(oid)) {
                     if (!ShouldDrawObject(*obj)) continue;
-                    _objects.push_back({ obj, GetRenderDepth(obj->Position) });
+                    _objects.push_back({ obj, GetRenderDepth(obj->Position, camera) });
                 }
             }
 
             for (auto& effectId : seg.Effects) {
                 if (auto effect = GetEffect(effectId)) {
                     Stats::EffectDraws++;
-                    _objects.push_back({ nullptr, GetRenderDepth(effect->Position), effect });
+                    _objects.push_back({ nullptr, GetRenderDepth(effect->Position, camera), effect });
                 }
             }
         }
@@ -274,7 +274,7 @@ namespace Inferno::Render {
                 }
             }
             else if (obj.Effect) {
-                auto depth = GetRenderDepth(obj.Effect->Position);
+                auto depth = GetRenderDepth(obj.Effect->Position, camera);
                 if (obj.Effect->Queue == RenderQueueType::Transparent)
                     _transparentQueue.push_back({ obj.Effect, depth });
                 else if (obj.Effect->Queue == RenderQueueType::Opaque)
@@ -411,7 +411,7 @@ namespace Inferno::Render {
         DebugCanvas->Draw(payload);
     }
 
-    void RenderQueue::CheckRoomVisibility(Level& level, const Portal& srcPortal, const Bounds2D& srcBounds) {
+    void RenderQueue::CheckRoomVisibility(Level& level, const Portal& srcPortal, const Bounds2D& srcBounds, const Camera& camera) {
         auto room = level.GetRoom(srcPortal.RoomLink);
         if (!room) return;
 
@@ -426,12 +426,12 @@ namespace Inferno::Render {
                 continue; // stop at opaque walls
 
             auto face = ConstFace::FromSide(level, portal.Tag);
-            if (!Render::CameraFrustum.Contains(face[0], face[1], face[2])) continue;
-            if (!Render::CameraFrustum.Contains(face[1], face[2], face[3])) continue;
+            if (!camera.Frustum.Contains(face[0], face[1], face[2])) continue;
+            if (!camera.Frustum.Contains(face[1], face[2], face[3])) continue;
 
             //auto dot = face.AverageNormal().Dot(srcFace.AverageNormal());
 
-            auto ndc = GetNdc(face, Render::ViewProjection);
+            auto ndc = GetNdc(face, camera.ViewProjection);
             if (!ndc) continue;
             auto bounds = Bounds2D::FromPoints(*ndc);
 
@@ -448,14 +448,14 @@ namespace Inferno::Render {
                 if (Settings::Editor.ShowPortals)
                     DrawBounds(bounds, Color(0, 1, 0, 0.2f));
 
-                CheckRoomVisibility(level, portal, bounds);
+                CheckRoomVisibility(level, portal, bounds, camera);
             }
         }
 
         _roomStack.Rewind(srcPortal.RoomLink);
     }
 
-    void RenderQueue::TraverseLevelRooms(RoomID startRoomId, Level& level, span<LevelMesh> wallMeshes) {
+    void RenderQueue::TraverseLevelRooms(RoomID startRoomId, Level& level, span<LevelMesh> wallMeshes, const Camera& camera) {
         _objects.clear();
         _visibleRooms.clear();
         _visibleRooms.push_back(startRoomId);
@@ -472,7 +472,7 @@ namespace Inferno::Render {
                 continue; // stop at opaque walls like closed doors
 
             auto face = ConstFace::FromSide(level, portal.Tag);
-            auto basePoints = GetNdc(face, Render::ViewProjection);
+            auto basePoints = GetNdc(face, camera.ViewProjection);
 
             // Search next room if portal is on screen
             if (basePoints) {
@@ -497,7 +497,7 @@ namespace Inferno::Render {
                 if (Settings::Editor.ShowPortals)
                     DrawBounds(bounds, Color(0, 0, 1, 0.2f));
 
-                CheckRoomVisibility(level, portal, bounds);
+                CheckRoomVisibility(level, portal, bounds, camera);
             }
         }
 
@@ -525,11 +525,11 @@ namespace Inferno::Render {
                 for (auto& index : room->WallMeshes) {
                     if (!Seq::inRange(wallMeshes, index)) continue;
                     auto& mesh = wallMeshes[index];
-                    float depth = Vector3::DistanceSquared(Camera.Position, mesh.Chunk->Center);
+                    float depth = Vector3::DistanceSquared(camera.Position, mesh.Chunk->Center);
                     _transparentQueue.push_back({ &mesh, depth });
                 }
 
-                QueueRoomObjects(level, *room);
+                QueueRoomObjects(level, *room, camera);
 
                 // Update effects in the room
                 for (auto& sid : room->Segments) {

@@ -227,14 +227,13 @@ namespace Inferno::Game {
                 sound.Radius = 1000;
                 Sound::Play(sound, boss.Position, boss.Segment);
 
-                Render::DynamicLight light;
+                LightEffectInfo light;
                 light.Radius = 200;
-                light.Duration = light.FadeTime = 0.25f;
+                light.FadeTime = 0.25f;
                 light.LightColor = Color(1, 0.45f, 0.25f, 25);
-                light.Position = boss.Position;
-                light.Segment = boss.Segment;
-                Render::AddDynamicLight(light);
+                Render::AddLight(light, boss.Position, 0.25f, boss.Segment);
             }
+
             return /*false*/;
         }
 

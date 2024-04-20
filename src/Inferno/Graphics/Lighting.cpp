@@ -22,16 +22,18 @@ namespace Inferno::Graphics {
         _lightingConstantsBuffer.End();
     }
 
-    void FillLightGridCS::SetLights(ID3D12GraphicsCommandList* cmdList, span<LightData> lights) {
+    void FillLightGridCS::SetLights(const GraphicsContext& ctx, span<LightData> lights) {
         _lightUploadBuffer.Begin();
         _lightUploadBuffer.Copy(lights);
         _lightUploadBuffer.End();
 
+        auto cmdList = ctx.GetCommandList();
         _lightData.Transition(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
         cmdList->CopyResource(_lightData.Get(), _lightUploadBuffer.Get());
     }
 
-    void FillLightGridCS::Dispatch(ID3D12GraphicsCommandList* cmdList, ColorBuffer& linearDepth) {
+    void FillLightGridCS::Dispatch(const GraphicsContext& ctx, ColorBuffer& linearDepth) {
+        auto cmdList = ctx.GetCommandList();
         PIXScopedEvent(cmdList, PIX_COLOR_DEFAULT, "Fill Light Grid");
 
         //ColorBuffer& LinearDepth = g_LinearDepth[TemporalEffects::GetFrameIndexMod2()];
@@ -47,8 +49,8 @@ namespace Inferno::Graphics {
         uint32_t tileCountX = AlignedCeil(renderWidth, LIGHT_GRID);
         //uint32_t tileCountY = AlignedCeil((int)color.GetHeight(), LIGHT_GRID);
 
-        float farClip = Inferno::Render::Camera.FarClip;
-        float nearClip = Inferno::Render::Camera.NearClip;
+        float farClip = ctx.Camera.GetFarClip();
+        float nearClip = ctx.Camera.GetNearClip();
         const float rcpZMagic = nearClip / (farClip - nearClip);
 
         CSConstants constants{};
@@ -58,11 +60,10 @@ namespace Inferno::Graphics {
         constants.RcpZMagic = rcpZMagic;
         constants.TileCount = tileCountX;
 
-        auto& camera = Inferno::Render::Camera;
         //constants.ViewProjMatrix = camera.ViewProj();
-        constants.ViewMatrix = camera.View;
+        constants.ViewMatrix = ctx.Camera.View;
         //constants.ViewProjMatrix = camera.Projection * camera.View;
-        constants.InverseProjection = camera.Projection.Invert();
+        constants.InverseProjection = ctx.Camera.InverseProjection;
 
         _csConstants.Begin();
         _csConstants.Copy({ &constants, 1 });
@@ -94,12 +95,12 @@ namespace Inferno::Graphics {
         }
     }
 
-    void LightBuffer::Dispatch(ID3D12GraphicsCommandList* cmdList) {
+    void LightBuffer::Dispatch(const GraphicsContext& ctx) {
         auto index = Adapter->GetCurrentFrameIndex();
         auto& lightBuffer = _lights[index];
         //UpdateDynamicLights(level, lightBuffer);
-        LightGrid->SetLights(cmdList, lightBuffer);
-        LightGrid->Dispatch(cmdList, Adapter->LinearizedDepthBuffer);
+        LightGrid->SetLights(ctx, lightBuffer);
+        LightGrid->Dispatch(ctx, Adapter->LinearizedDepthBuffer);
 
         // Clear the next buffer
         ResetBuffer(_lights[(index + 1) % 2]);

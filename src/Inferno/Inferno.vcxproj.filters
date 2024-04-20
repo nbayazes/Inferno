@@ -242,6 +242,9 @@
     <ClInclude Include="Formats\BBM.h" />
     <ClInclude Include="Game.Briefing.h" />
     <ClInclude Include="Game.EscapeSequence.h" />
+    <ClInclude Include="Graphics\CameraContext.h" />
+    <ClInclude Include="Graphics\CommandQueue.h" />
+    <ClInclude Include="EffectTypes.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />

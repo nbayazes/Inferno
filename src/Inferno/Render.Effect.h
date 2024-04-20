@@ -1,6 +1,7 @@
 #pragma once
 #include "Game.Object.h"
-#include "Graphics/CommandContext.h"
+#include "Graphics/CameraContext.h"
+#include "Types.h"
 
 namespace Inferno::Render {
     struct RenderCommand;
@@ -36,9 +37,9 @@ namespace Inferno::Render {
         virtual void OnUpdate(float /*dt*/, EffectID) {}
         virtual void OnFixedUpdate(float /*dt*/, EffectID) {}
 
-        virtual void Draw(Graphics::GraphicsContext&) {}
+        virtual void Draw(GraphicsContext&) {}
 
-        virtual void DepthPrepass(Graphics::GraphicsContext&) {
+        virtual void DepthPrepass(GraphicsContext&) {
             ASSERT(Queue == RenderQueueType::Transparent); // must provide a depth prepass if not transparent
         }
 

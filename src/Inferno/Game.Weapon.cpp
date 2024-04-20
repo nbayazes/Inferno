@@ -14,7 +14,7 @@
 
 namespace Inferno::Game {
     void DrawWeaponExplosion(const Object& obj, const Weapon& weapon, float scale) {
-        Render::ExplosionInfo e;
+        ExplosionEffectInfo e;
         e.Radius = { weapon.ImpactSize * 0.9f * scale, weapon.ImpactSize * 1.1f * scale };
         e.Clip = weapon.SplashRadius > 0 ? weapon.RobotHitVClip : weapon.WallHitVClip;
         e.FadeTime = weapon.Extended.ExplosionTime;
@@ -27,7 +27,7 @@ namespace Inferno::Game {
         const Weapon& weapon = Resources::GetWeapon(obj);
 
         // Create sparks
-        if (auto sparks = Render::EffectLibrary.GetSparks(weapon.Extended.DeathSparks)) {
+        if (auto sparks = EffectLibrary.GetSparks(weapon.Extended.DeathSparks)) {
             auto position = Vector3::Transform(sparks->Offset, obj.GetTransform(Game::LerpAmount));
             Render::AddSparkEmitter(*sparks, obj.Segment, position);
         }
@@ -206,7 +206,7 @@ namespace Inferno::Game {
 
             if (!target.IsPlayer() && !weapon.IsExplosive()) {
                 // Missiles create their explosion effects when expiring
-                Render::ExplosionInfo expl;
+                ExplosionEffectInfo expl;
                 expl.Sound = weapon.RobotHitSound;
                 //expl.Parent = src.Parent;
                 expl.Clip = VClipID::SmallExplosion;
@@ -222,7 +222,7 @@ namespace Inferno::Game {
             constexpr float HEAVY_HIT = 25;
             float damageMult = damage < HEAVY_HIT ? 1.0f : 2.0f;
 
-            if (auto sparks = Render::EffectLibrary.GetSparks("weapon_hit_obj")) {
+            if (auto sparks = EffectLibrary.GetSparks("weapon_hit_obj")) {
                 // Mass weapons set explosion color, energy weapons set light color
                 if (weapon.Extended.ExplosionColor != LIGHT_UNSET)
                     sparks->Color += weapon.Extended.ExplosionColor * 60;
@@ -234,13 +234,10 @@ namespace Inferno::Game {
                 sparks->Count.Max = int(sparks->Count.Max * damageMult);
                 Render::AddSparkEmitter(*sparks, target.Segment, hit.Point);
 
-                Render::DynamicLight light{};
+                LightEffectInfo light{};
                 light.LightColor = weapon.Extended.ExplosionColor;
                 light.Radius = weapon.Extended.LightRadius;
-                light.Position = hit.Point;
-                light.Duration = light.FadeTime = weapon.Extended.ExplosionTime;
-                light.Segment = target.Segment;
-                Render::AddDynamicLight(light);
+                Render::AddLight(light, hit.Point, light.FadeTime, target.Segment);
             }
 
             // Tearing metal on heavy hit
@@ -500,42 +497,37 @@ namespace Inferno::Game {
             showFlash = false; // Hide weapon flash if setting is disabled
 
         if (showFlash) {
-            Render::Particle p{};
+            ParticleInfo p{};
             p.Clip = weapon.FlashVClip;
             p.Radius = weapon.FlashSize;
-            p.Parent = ref;
-            p.ParentSubmodel = gunSubmodel;
             p.FadeTime = 0.175f;
             p.Color = weapon.Extended.FlashColor * 10; // Flash sprites look better when overexposed
-            Render::AddParticle(p, obj.Segment, position);
+            Render::AttachParticle(p, ref, gunSubmodel);
 
             // Muzzle flash. Important for mass weapons that don't emit lights on their own.
-            Render::DynamicLight light;
+            LightEffectInfo light;
             light.LightColor = weapon.Extended.FlashColor;
             light.Radius = weapon.FlashSize * 4;
-            light.FadeTime = light.Duration = 0.25f;
-            light.Segment = obj.Segment;
-            light.Position = position;
+            light.FadeTime = 0.25f;
             light.SpriteMult = 0;
-            Render::AddDynamicLight(light);
+            Render::AddLight(light, position, light.FadeTime, obj.Segment);
         }
 
         auto objRef = AddObject(projectile);
 
         if (id == WeaponID::Vulcan) {
-            if (auto tracer = Render::EffectLibrary.GetTracer("vulcan_tracer"))
-                Render::AddTracer(*tracer, obj.Segment, objRef);
+            if (auto tracer = EffectLibrary.GetTracer("vulcan_tracer"))
+                Render::AddTracer(*tracer, objRef);
         }
 
         if (id == WeaponID::Gauss) {
-            if (auto tracer = Render::EffectLibrary.GetTracer("gauss_tracer"))
-                Render::AddTracer(*tracer, obj.Segment, objRef);
+            if (auto tracer = EffectLibrary.GetTracer("gauss_tracer"))
+                Render::AddTracer(*tracer, objRef);
         }
 
-        if (auto sparks = Render::EffectLibrary.GetSparks(weapon.Extended.Sparks)) {
-            sparks->Parent = objRef;
+        if (auto sparks = EffectLibrary.GetSparks(weapon.Extended.Sparks)) {
             sparks->Duration = (float)obj.Lifespan;
-            Render::AddSparkEmitter(*sparks, obj.Segment, obj.Position);
+            Render::AddSparkEmitter(*sparks, objRef);
         }
 
         return objRef;
@@ -670,7 +662,7 @@ namespace Inferno::Game {
         auto start = Vector3::Transform(objOffset, playerObj.GetTransform());
         auto initialTarget = GetClosestObjectInFOV(playerObj, FOV, MAX_DIST, ObjectMask::Robot | ObjectMask::Mine, Faction::Robot | Faction::Neutral);
 
-        auto spark = Render::EffectLibrary.GetSparks("omega_hit");
+        auto spark = EffectLibrary.GetSparks("omega_hit");
 
         if (initialTarget) {
             // found a target! try chaining to others
@@ -692,9 +684,9 @@ namespace Inferno::Game {
             ObjRef prevRef = player.Reference;
             int objGunpoint = gun;
 
-            auto beam = Render::EffectLibrary.GetBeamInfo("omega_beam");
-            auto beam2 = Render::EffectLibrary.GetBeamInfo("omega_beam2");
-            auto tracer = Render::EffectLibrary.GetBeamInfo("omega_tracer");
+            auto beam = EffectLibrary.GetBeamInfo("omega_beam");
+            auto beam2 = EffectLibrary.GetBeamInfo("omega_beam2");
+            auto tracer = EffectLibrary.GetBeamInfo("omega_tracer");
 
             auto damage = weapon.Damage[Difficulty];
 
@@ -713,24 +705,24 @@ namespace Inferno::Game {
                 }
 
                 // Beams between previous and next target
-                if (beam) Render::AddBeam(*beam, weapon.FireDelay, prevRef, targetRef, objGunpoint);
+                if (beam) Render::AttachBeam(*beam, weapon.FireDelay, prevRef, targetRef, objGunpoint);
                 if (beam2) {
-                    Render::AddBeam(*beam2, weapon.FireDelay, prevRef, targetRef, objGunpoint);
-                    Render::AddBeam(*beam2, weapon.FireDelay, prevRef, targetRef, objGunpoint);
+                    Render::AttachBeam(*beam2, weapon.FireDelay, prevRef, targetRef, objGunpoint);
+                    Render::AttachBeam(*beam2, weapon.FireDelay, prevRef, targetRef, objGunpoint);
                 }
 
                 prevRef = targetRef;
                 objGunpoint = -1;
 
                 if (tracer) {
-                    Render::AddBeam(*tracer, weapon.FireDelay, targetRef);
-                    Render::AddBeam(*tracer, weapon.FireDelay, targetRef);
+                    Render::AttachBeam(*tracer, weapon.FireDelay, targetRef);
+                    Render::AttachBeam(*tracer, weapon.FireDelay, targetRef);
                 }
 
                 // Sparks and explosion
                 if (spark) Render::AddSparkEmitter(*spark, target->Segment, target->Position);
 
-                Render::ExplosionInfo expl;
+                ExplosionEffectInfo expl;
                 //expl.Sound = weapon.RobotHitSound;
                 expl.Clip = VClipID::SmallExplosion;
                 expl.Radius = { weapon.ImpactSize * 0.85f, weapon.ImpactSize * 1.15f };
@@ -785,7 +777,7 @@ namespace Inferno::Game {
                 tracerEnd = start + dir * MAX_DIST;
             }
 
-            if (auto miss = Render::EffectLibrary.GetBeamInfo("omega_miss"))
+            if (auto miss = EffectLibrary.GetBeamInfo("omega_miss"))
                 Render::AddBeam(*miss, weapon.FireDelay, player.Reference, tracerEnd, gun);
         }
 
@@ -795,14 +787,12 @@ namespace Inferno::Game {
         sound.AttachOffset = gunSubmodel.Offset;
         Sound::AtPlayer(sound);
 
-        Render::Particle p{};
+        ParticleInfo p{};
         p.Clip = weapon.FlashVClip;
         p.Radius = weapon.FlashSize;
-        p.Parent = player.Reference;
-        p.ParentSubmodel = gunSubmodel;
         p.FadeTime = 0.175f;
         p.Color = weapon.Extended.FlashColor;
-        Render::AddParticle(p, playerObj.Segment, start);
+        Render::AttachParticle(p, player.Reference, gunSubmodel);
     }
 
     void FusionBehavior(const Inferno::Player& player, uint8 gun, WeaponID wid) {
