@@ -1,12 +1,12 @@
 #include "pch.h"
 #define NOMINMAX
 #include <numeric>
-
 #include "Game.h"
 #include "DebugOverlay.h"
 #include "Editor/Editor.h"
 #include "Editor/Editor.Object.h"
 #include "Editor/UI/EditorUI.h"
+#include "VisualEffects.h"
 #include "Game.AI.h"
 #include "Game.Bindings.h"
 #include "Game.Input.h"
@@ -16,9 +16,8 @@
 #include "Game.Segment.h"
 #include "Game.Visibility.h"
 #include "Game.Wall.h"
+#include "Graphics.h"
 #include "Graphics/Render.Debug.h"
-#include "Graphics/Render.h"
-#include "Graphics/Render.Particles.h"
 #include "HUD.h"
 #include "imgui_local.h"
 #include "Input.h"
@@ -154,7 +153,7 @@ namespace Inferno::Game {
         if (ControlCenterDestroyed)
             UpdateReactorCountdown(dt);
 
-        Render::FixedUpdateEffects(dt);
+        FixedUpdateEffects(dt);
 
         for (int i = 0; i < Level.Objects.size(); i++) {
             auto& obj = Level.Objects[i];
@@ -181,7 +180,7 @@ namespace Inferno::Game {
         ActiveRooms = GetRoomsByDepth(Level.Rooms, playerRoom, NEARBY_PORTAL_DEPTH, flags);
 
         // Merge the nearby rooms with the visible rooms
-        for (auto& id : Render::GetVisibleRooms()) {
+        for (auto& id : Graphics::GetVisibleRooms()) {
             if (!Seq::contains(ActiveRooms, id)) ActiveRooms.push_back(id);
         }
 
@@ -329,7 +328,7 @@ namespace Inferno::Game {
                 Input::SetMouseMode(Input::MouseMode::Normal);
                 Sound::StopAllSounds();
                 Sound::StopMusic();
-                Render::ResetEffects();
+                ResetEffects();
                 LerpAmount = 1;
                 ResetGlobalLighting();
                 break;
@@ -750,7 +749,7 @@ namespace Inferno::Game {
         Sound::WaitInitialized();
         Sound::StopAllSounds();
         Resources::LoadGameTables(Level);
-        Render::ResetEffects();
+        ResetEffects();
         Render::Materials->UnloadNamedTextures();
         Render::Materials->LoadGameTextures();
         InitObjects(Level);

@@ -77,14 +77,12 @@ void Application::Initialize(int width, int height) {
     };
 }
 
-void Application::Update() {}
-
 void Application::UpdateFpsLimit() {
     auto limit = _isForeground ? Settings::Graphics.ForegroundFpsLimit : Settings::Graphics.BackgroundFpsLimit;
     _fpsLimitMs = limit > 0 ? int(1000.0f / (float)limit) : 0;
 }
 
-void Application::Tick() {
+void Application::Tick() const {
     if (_fpsLimitMs > 0) {
         if (Inferno::Clock.MaybeSleep(_fpsLimitMs))
             return; // spinwait
@@ -92,7 +90,7 @@ void Application::Tick() {
 
     Inferno::Clock.Update();
 
-    auto dt = (float)Inferno::Clock.GetFrameTimeSeconds();
+    auto dt = Inferno::Clock.GetFrameTimeSeconds();
     if (dt == 0)
         return; // Skip first tick
 

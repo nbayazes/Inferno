@@ -77,7 +77,6 @@ namespace Inferno::Render {
 
     // Either call this or individual effects using UpdateEffect()
     void UpdateAllEffects(float dt);
-    void FixedUpdateEffects(float dt);
     void EndUpdateEffects();
 
 }

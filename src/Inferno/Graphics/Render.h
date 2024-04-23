@@ -36,8 +36,6 @@ namespace Inferno::Render {
     inline bool DebugEmissive = false;
     inline Ptr<TextureCache> NewTextureCache;
 
-    inline float RenderScale = 1; // Scale of 3D render target
-
     inline D3D12_GPU_DESCRIPTOR_HANDLE GetWrappedTextureSampler() {
         return Settings::Graphics.FilterMode == TextureFilterMode::Point ? Heaps->States.PointWrap() : Heaps->States.AnisotropicWrap();
     }
@@ -65,23 +63,12 @@ namespace Inferno::Render {
     void Shutdown();
     void Present(const Camera& camera);
 
-    void RenderProbe(const Vector3& position);
+    //void RenderProbe(const Vector3& position);
 
-    //void ReloadShaders();
-    void ReloadTextures();
-
-    void LoadModelDynamic(ModelID);
-    void LoadTextureDynamic(TexID);
-    void LoadTextureDynamic(LevelTexID);
-    void LoadTextureDynamic(VClipID);
     void LoadLevel(const Inferno::Level&);
-    void LoadTerrain(const TerrainInfo& info);
 
     MeshIndex& GetMeshHandle(ModelID);
     MeshIndex& GetOutrageMeshHandle(ModelID);
-
-    // Locates and loads an OOF by path. Returns -1 if not found.
-    ModelID LoadOutrageModel(const string& path);
 
     inline ID3D12Device* Device;
 
@@ -128,9 +115,16 @@ namespace Inferno::Render {
                             const Vector3* up);
 
     extern bool LevelChanged;
-    PackedBuffer* GetLevelMeshBuffer();
-    const TerrainMesh* GetTerrainMesh();
+    //PackedBuffer* GetLevelMeshBuffer();
+    //const TerrainMesh* GetTerrainMesh();
 
+    struct LevelGpuResources {
+        Ptr<TerrainMesh> TerrainMesh;
+        Ptr<PackedBuffer> LevelMeshes;
+        Ptr<MeshBuffer> ObjectMeshes;
+    };
+
+    inline LevelGpuResources LevelResources;
 
     //const string TEST_MODEL = "robottesttube(orbot).OOF"; // mixed transparency test
     const string TEST_MODEL = "gyro.OOF";

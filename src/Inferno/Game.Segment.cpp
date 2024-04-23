@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Game.Segment.h"
 #include "Editor/Editor.h"
-#include "EffectTypes.h"
+#include "VisualEffects.h"
 #include "Game.AI.Pathing.h"
 #include "Game.h"
 #include "Graphics/Render.h"

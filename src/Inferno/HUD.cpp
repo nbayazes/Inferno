@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "HUD.h"
 #include "Game.h"
-#include "Graphics/MaterialLibrary.h"
+#include "Graphics.h"
 #include "Graphics/Render.h"
 #include "Resources.h"
 #include "SoundSystem.h"
@@ -210,7 +210,7 @@ namespace Inferno {
     //}
 
     void DrawWeaponBitmap(const Vector2& offset, AlignH align, TexID id, float sizeScale, float alpha) {
-        Render::LoadTextureDynamic(id);
+        Graphics::LoadTextureDynamic(id);
         auto& ti = Resources::GetTextureInfo(id);
         float scale = Render::HudCanvas->GetScale();
 

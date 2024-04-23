@@ -102,6 +102,6 @@ namespace Inferno::Editor {
 
     private:
         void SegmentProperties();
-        void ObjectProperties() const;
+        static void ObjectProperties();
     };
 }

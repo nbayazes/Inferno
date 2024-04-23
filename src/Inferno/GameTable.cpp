@@ -1,6 +1,6 @@
 ﻿#include "pch.h"
 #include <fstream>
-#include "EffectTypes.h"
+#include "VisualEffects.h"
 #include "HamFile.h"
 #include "logging.h"
 #include "Yaml.h"

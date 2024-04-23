@@ -158,6 +158,7 @@ namespace Inferno {
         int ToneMapper = 1;
         TextureFilterMode FilterMode = TextureFilterMode::EnhancedPoint;
         float FieldOfView = 65;
+        float RenderScale = 1; // Scale of 3D render target
 
         // Debugging
 

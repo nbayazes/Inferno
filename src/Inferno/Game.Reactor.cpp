@@ -1,13 +1,14 @@
 #include "pch.h"
-#include "Game.Reactor.h"
-#include "EffectTypes.h"
-
+#include "VisualEffects.h"
 #include "Game.AI.h"
 #include "Game.h"
+#include "Game.Reactor.h"
 #include "Game.Wall.h"
-#include "Graphics/Render.h"
+#include "Graphics.h"
 #include "Resources.h"
+#include "Settings.h"
 #include "SoundSystem.h"
+#include "logging.h"
 
 namespace Inferno::Game {
     void PlaySelfDestructSounds(float delay) {
@@ -85,7 +86,7 @@ namespace Inferno::Game {
 
         if (Seq::inRange(Resources::GameData.DeadModels, (int)obj.Render.Model.ID)) {
             obj.Render.Model.ID = Resources::GameData.DeadModels[(int)obj.Render.Model.ID];
-            Render::LoadModelDynamic(obj.Render.Model.ID);
+            Graphics::LoadModelDynamic(obj.Render.Model.ID);
         }
 
         AddPointsToScore(REACTOR_SCORE);
@@ -181,16 +182,19 @@ namespace Inferno::Game {
 
             auto flash = -CountdownTimer / 4.0f; // 4 seconds to fade out
             ScreenFlash = Color{ flash, flash, flash };
-            Render::ToneMapping->ToneMap.BloomStrength = std::lerp(0.0f, 10.0f, flash);
-            Render::ToneMapping->ToneMap.Exposure = std::lerp(0.0f, 60.0f, flash);
+
+            float bloom = std::lerp(0.0f, 10.0f, flash);
+            float exposure = std::lerp(0.0f, 60.0f, flash);
 
             if (CountdownTimer < -4) {
                 // todo: kill player, show "you have died in the mine" message
-                Render::ToneMapping->ToneMap.BloomStrength = .35f; // restore default
-                Render::ToneMapping->ToneMap.Exposure = 1;
+                bloom = 0.35f; // restore default
+                exposure = 1;
                 Game::Player.ResetInventory();
                 SetState(GameState::Editor);
             }
+
+            Graphics::SetExposure(exposure, bloom);
         }
     }
 

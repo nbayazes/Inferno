@@ -5,8 +5,8 @@
 #include "Game.Object.h"
 #include "Game.Segment.h"
 #include "Gizmo.h"
+#include "Graphics.h"
 #include "Resources.h"
-#include "Graphics/Render.h"
 
 namespace Inferno::Editor {
     void DeleteObject(Level& level, ObjID id) {
@@ -179,7 +179,7 @@ namespace Inferno::Editor {
             marker.Position = seg->Center;
 
         level.Objects.push_back(marker);
-        Render::LoadModelDynamic(marker.Render.Model.ID);
+        Graphics::LoadModelDynamic(marker.Render.Model.ID);
     }
 
     void RemoveSecretLevelReturnMarker(Level& level) {

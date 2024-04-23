@@ -247,6 +247,7 @@ namespace Inferno {
         //    style.WindowRounding = 0.0f;
         //    style.Colors[ImGuiCol_WindowBg].w = 1.0f;
         //}
+        style.Colors[ImGuiCol_WindowBg].w = 0.99f;
 
         // Setup Platform/Renderer bindings
         ImGui_ImplWin32_Init(hwnd);

@@ -1,7 +1,6 @@
 #include "pch.h"
 #include <lodepng.h>
 #include "Editor.h"
-#include "Graphics/Render.h"
 #include "Input.h"
 #include "Bindings.h"
 #include "Gizmo.h"
@@ -21,6 +20,7 @@
 #include "Version.h"
 #include "Game.Segment.h"
 #include "Resources.h"
+#include "logging.h"
 
 namespace Inferno::Editor {
     using Input::SelectionState;
@@ -296,7 +296,7 @@ namespace Inferno::Editor {
 
         auto& level = Game::Level;
         auto& io = ImGui::GetIO();
-        MouseRay = Editor::EditorCamera.UnprojectRay(Input::MousePosition * Render::RenderScale);
+        MouseRay = Editor::EditorCamera.UnprojectRay(Input::MousePosition * Settings::Graphics.RenderScale);
 
         if (!io.WantCaptureMouse && ImGuiHadMouseFocus) {
             // Reset the keyboard state so holding a key down while moving the mouse

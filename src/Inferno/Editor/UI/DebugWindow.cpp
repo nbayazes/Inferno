@@ -190,10 +190,10 @@ namespace Inferno::Editor {
 
             {
                 static constexpr std::array angles = { "25%%", "50%%", "75%%", "100%%" };
-                int renderScale = std::clamp(int(Render::RenderScale * 4) - 1, 0, 3);
+                int renderScale = std::clamp(int(Settings::Graphics.RenderScale * 4) - 1, 0, 3);
                 ImGui::SetNextItemWidth(175);
                 if (ImGui::SliderInt("Render scale", &renderScale, 0, 3, angles[renderScale]))
-                    Render::RenderScale = (renderScale + 1) / 4.0f;
+                    Settings::Graphics.RenderScale = (renderScale + 1) / 4.0f;
             }
         }
 

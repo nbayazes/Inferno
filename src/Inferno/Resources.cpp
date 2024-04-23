@@ -9,7 +9,6 @@
 #include "Game.h"
 #include "GameTable.h"
 #include "Graphics/MaterialLibrary.h"
-#include "Graphics/Render.h"
 #include "logging.h"
 #include "Pig.h"
 #include "Sound.h"
@@ -1036,14 +1035,15 @@ namespace Inferno::Resources {
                 return ModelID(i);
         }
 
-        if (auto model = TryReadOutrageModel(name)) {
-            for (auto& texture : model->Textures) {
-                model->TextureHandles.push_back(Render::NewTextureCache->ResolveFileName(texture));
-            }
-            Render::Materials->LoadTextures(model->Textures);
-            OutrageModels.push_back({ name, std::move(*model) });
-            return ModelID(OutrageModels.size() - 1);
-        }
+        // todo: merge / rework texture caching
+        //if (auto model = TryReadOutrageModel(name)) {
+        //    for (auto& texture : model->Textures) {
+        //        model->TextureHandles.push_back(Render::NewTextureCache->ResolveFileName(texture));
+        //    }
+        //    Render::Materials->LoadTextures(model->Textures);
+        //    OutrageModels.push_back({ name, std::move(*model) });
+        //    return ModelID(OutrageModels.size() - 1);
+        //}
 
         return ModelID::None;
     }

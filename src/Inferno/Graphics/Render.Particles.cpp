@@ -707,19 +707,6 @@ namespace Inferno::Render {
         LegitProfiler::AddCpuTask(std::move(task));
     }
 
-    void FixedUpdateEffects(float dt) {
-        if (VisualEffects.size() + 100 > VisualEffects.capacity()) {
-            VisualEffects.resize(VisualEffects.size() + 100);
-            SPDLOG_WARN("Resizing visual effects buffer to {}", VisualEffects.size());
-        }
-
-        for (size_t effectId = 0; effectId < VisualEffects.size(); effectId++) {
-            auto& effect = VisualEffects[effectId];
-            if (effect)
-                effect->FixedUpdate(dt, EffectID(effectId));
-        }
-    }
-
     // Updates owners and releases expired effects
     void EndUpdateEffects() {
         for (int id = 0; id < VisualEffects.size(); id++) {

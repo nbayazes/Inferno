@@ -125,8 +125,8 @@ namespace Inferno {
         }
 
         // The duration of the last update in seconds
-        double GetFrameTimeSeconds() const {
-            return (double)_frameTime / 1'000'000'000.0;
+        float GetFrameTimeSeconds() const {
+            return float((double)_frameTime / 1'000'000'000.0);
         }
 
         // returns the time in seconds from the start of this frame

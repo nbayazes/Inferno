@@ -3,8 +3,8 @@
 #include "Editor/Events.h"
 #include "FileSystem.h"
 #include "Game.h"
+#include "Graphics.h"
 #include "Graphics/MaterialLibrary.h"
-#include "Graphics/Render.h"
 #include "Resources.h"
 
 namespace Inferno::Editor {
@@ -619,15 +619,15 @@ namespace Inferno::Editor {
         Events::SettingsChanged();
 
         if (vsyncChanged) {
-            Render::Adapter->CreateWindowSizeDependentResources(true);
+            Graphics::CreateWindowSizeDependentResources(true);
         }
 
         if (resourcesChanged) {
             FileSystem::Init();
             Resources::LoadLevel(Game::Level);
-            Render::LoadLevel(Game::Level);
-            Render::Materials->LoadLevelTextures(Game::Level, true);
-            Render::Adapter->ReloadResources();
+            Graphics::LoadLevel(Game::Level);
+            Graphics::LoadLevelTextures(Game::Level, true);
+            Graphics::ReloadResources();
         }
     }
 }

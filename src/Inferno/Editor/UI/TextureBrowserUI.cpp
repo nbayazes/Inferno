@@ -1,10 +1,10 @@
 #include "pch.h"
-#include "TextureBrowserUI.h"
-#include "Game.h"
 #include "../Editor.h"
-#include "Graphics/Render.h"
+#include "Game.h"
+#include "Graphics.h"
+#include "logging.h"
 #include "Resources.h"
-#include "Graphics/MaterialLibrary.h"
+#include "TextureBrowserUI.h"
 
 namespace Inferno::Editor {
     struct TextureFilter {
@@ -148,7 +148,7 @@ namespace Inferno::Editor {
         auto ids = FilterLevelTextures(filter, _showInUse, _showEverything);
         auto tids = Seq::map(ids, Resources::LookupTexID);
         if (loadMaterials)
-            Render::Materials->LoadMaterialsAsync(tids, false, true);
+            Graphics::LoadMaterialsAsync(tids, false, true);
 
         // Update ids immediately. They will display as loading completes.
         _textureIds.clear();
@@ -330,7 +330,7 @@ namespace Inferno::Editor {
         constexpr int borderThickess = 2;
 
         for (auto& id : _textureIds) {
-            auto& material = Render::Materials->Get(id);
+            auto material = Graphics::GetMaterialGpuPtr(id);
             if (!material) 
                 continue; // don't show invalid textures (usually TID 910)
 
@@ -348,7 +348,7 @@ namespace Inferno::Editor {
 
             // Only draw the tile texture if it is on screen
             if (ImGui::GetCurrentWindow()->ClipRect.Overlaps(tileRect))
-                ImGui::ImageButton((ImTextureID)material.Pointer(), tileSize, { 0, 0 }, { 1, 1 }, borderThickess, bg);
+                ImGui::ImageButton((ImTextureID)material, tileSize, { 0, 0 }, { 1, 1 }, borderThickess, bg);
             else
                 ImGui::Dummy({ tileSize.x + borderThickess * 2, tileSize.y + borderThickess * 2 });
                 //ImGui::Button(tileSize, { 0, 0 }, { 1, 1 }, borderThickess, bg);
@@ -358,13 +358,13 @@ namespace Inferno::Editor {
                     tmap1 = id;
                     Events::SelectTexture(tmap1, LevelTexID::None);
                     Events::TextureInfo(tmap1);
-                    Render::LoadTextureDynamic(tmap1);
+                    Graphics::LoadTextureDynamic(tmap1);
                 }
                 else if (ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
                     tmap2 = id;
                     Events::SelectTexture(LevelTexID::None, tmap2);
                     Events::TextureInfo(tmap2);
-                    Render::LoadTextureDynamic(tmap2);
+                    Graphics::LoadTextureDynamic(tmap2);
                 }
                 else if (ImGui::IsMouseClicked(ImGuiMouseButton_Middle)) {
                     Events::TextureInfo(id);

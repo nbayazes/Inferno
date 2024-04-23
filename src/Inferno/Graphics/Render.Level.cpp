@@ -156,7 +156,7 @@ namespace Inferno::Render {
 
         auto& target = Adapter->GetHdrRenderTarget();
         ctx.ClearColor(target);
-        ctx.SetViewportAndScissor(UINT(target.GetWidth() * RenderScale), UINT(target.GetHeight() * RenderScale));
+        ctx.SetViewportAndScissor(UINT(target.GetWidth() * Settings::Graphics.RenderScale), UINT(target.GetHeight() * Settings::Graphics.RenderScale));
     }
 
     void DepthPrepass(GraphicsContext& ctx) {
@@ -461,7 +461,7 @@ namespace Inferno::Render {
     }
 
     void RebuildLevelResources(Level& level) {
-        _levelMeshBuilder.Update(level, *GetLevelMeshBuffer());
+        _levelMeshBuilder.Update(level, *LevelResources.LevelMeshes.get());
 
         for (auto& room : level.Rooms) {
             room.WallMeshes.clear();
@@ -480,7 +480,7 @@ namespace Inferno::Render {
     }
 
     void DrawTerrain(GraphicsContext& ctx) {
-        auto terrainMesh = GetTerrainMesh();
+        auto terrainMesh = LevelResources.TerrainMesh.get();
         if (!terrainMesh) return;
 
         auto cmdList = ctx.GetCommandList();
@@ -647,8 +647,8 @@ namespace Inferno::Render {
             auto& target = Adapter->GetHdrRenderTarget();
             target.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
             ctx.SetRenderTarget(target.GetRTV(), depthBuffer.GetDSV());
-            ctx.SetViewportAndScissor(UINT(target.GetWidth() * Render::RenderScale), UINT(target.GetHeight() * Render::RenderScale));
-            LightGrid->SetLightConstants(UINT(target.GetWidth() * Render::RenderScale), UINT(target.GetHeight() * Render::RenderScale));
+            ctx.SetViewportAndScissor(UINT(target.GetWidth() * Settings::Graphics.RenderScale), UINT(target.GetHeight() * Settings::Graphics.RenderScale));
+            LightGrid->SetLightConstants(UINT(target.GetWidth() * Settings::Graphics.RenderScale), UINT(target.GetHeight() * Settings::Graphics.RenderScale));
 
             DrawStars(ctx);
             DrawTerrain(ctx);

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "EffectTypes.h"
+#include "VisualEffects.h"
 #include "Types.h"
 #include "Render.Effect.h"
 

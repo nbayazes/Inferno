@@ -100,15 +100,15 @@ namespace Inferno {
     // stride is the number of indices to allocate at once
     template <uint TStride = 1>
     class DescriptorRange {
-        UserDescriptorHeap& _heap;
-        const uint _start, _size;
+        UserDescriptorHeap* _heap;
+        uint _start, _size;
         uint _index = 0;
         std::mutex _indexLock;
         List<bool> _free; // number of "free slots" based on stride
 
     public:
         DescriptorRange(UserDescriptorHeap& heap, uint size, uint offset = 0)
-            : _heap(heap), _start(offset), _size(size), _free(size / TStride) {
+            : _heap(&heap), _start(offset), _size(size), _free(size / TStride) {
             assert(offset + size <= heap.Size());
             SPDLOG_INFO("Created heap with offset: {} and size: {}", offset, size);
             std::fill(_free.begin(), _free.end(), true);
@@ -152,20 +152,20 @@ namespace Inferno {
             return GetHandle(index);
         }
 
-        DescriptorHandle GetHandle(uint index) const { return _heap.GetHandle(_start + index); }
+        DescriptorHandle GetHandle(uint index) const { return _heap->GetHandle(_start + index); }
         DescriptorHandle operator[](int index) const { return GetHandle(index); }
 
         CD3DX12_GPU_DESCRIPTOR_HANDLE GetGpuHandle(uint index) const {
-            return CD3DX12_GPU_DESCRIPTOR_HANDLE(_heap.GetHandle(_start + index).GetGpuHandle());
+            return CD3DX12_GPU_DESCRIPTOR_HANDLE(_heap->GetHandle(_start + index).GetGpuHandle());
         }
 
         CD3DX12_CPU_DESCRIPTOR_HANDLE GetCpuHandle(uint index) const {
-            return CD3DX12_CPU_DESCRIPTOR_HANDLE(_heap.GetHandle(_start + index).GetCpuHandle());
+            return CD3DX12_CPU_DESCRIPTOR_HANDLE(_heap->GetHandle(_start + index).GetCpuHandle());
         }
 
         static uint Stride() { return TStride; }
         size_t GetSize() const { return _size; };
-        auto DescriptorSize() const { return _heap.DescriptorSize(); }
+        auto DescriptorSize() const { return _heap->DescriptorSize(); }
 
     private:
         uint FindFreeIndex() {

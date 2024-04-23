@@ -159,7 +159,8 @@
     <ClCompile Include="Audio\SoundEffect.cpp" />
     <ClCompile Include="Audio\SoundEffectInstance.cpp" />
     <ClCompile Include="Audio\WAVFileReader.cpp" />
-    <ClCompile Include="EffectTypes.cpp" />
+    <ClCompile Include="DebugOverlay.cpp" />
+    <ClCompile Include="VisualEffects.cpp" />
     <ClCompile Include="Formats\BBM.cpp" />
     <ClCompile Include="CustomTextureLibrary.cpp" />
     <ClCompile Include="Editor\UI\DebugWindow.cpp" />
@@ -204,6 +205,7 @@
     <ClCompile Include="Editor\UI\PropertyEditor.Object.cpp" />
     <ClCompile Include="Editor\UI\PropertyEditor.Segment.cpp" />
     <ClCompile Include="Editor\TunnelBuilder.cpp" />
+    <ClCompile Include="Graphics.cpp" />
     <ClCompile Include="Graphics\LevelMesh.cpp" />
     <ClCompile Include="Graphics\Lighting.cpp" />
     <ClCompile Include="Graphics\Mesh.cpp" />
@@ -275,7 +277,7 @@
     <ClInclude Include="Editor\UI\BriefingEditor.h" />
     <ClInclude Include="Editor\UI\DiagnosticWindow.h" />
     <ClInclude Include="Effect.h" />
-    <ClInclude Include="EffectTypes.h" />
+    <ClInclude Include="VisualEffects.h" />
     <ClInclude Include="Formats\BBM.h" />
     <ClInclude Include="Game.AI.h" />
     <ClInclude Include="Game.AI.Pathing.h" />
@@ -298,7 +300,6 @@
     <ClInclude Include="GameTable.h" />
     <ClInclude Include="GameTimer.h" />
     <ClInclude Include="Graphics\Buffers.h" />
-    <ClInclude Include="Graphics\CommandContext.h" />
     <ClInclude Include="Graphics\CommandQueue.h" />
     <ClInclude Include="Graphics\Compiler.h" />
     <ClInclude Include="Graphics\ComputeShader.h" />
@@ -323,10 +324,10 @@
     <ClInclude Include="Editor\UI\SettingsDialog.h" />
     <ClInclude Include="Editor\TunnelBuilder.h" />
     <ClInclude Include="Editor\UI\TunnelBuilderWindow.h" />
+    <ClInclude Include="Graphics.h" />
     <ClInclude Include="Graphics\IDeviceNotify.h" />
     <ClInclude Include="Graphics\Lighting.h" />
     <ClInclude Include="Graphics\Render.Canvas.h" />
-    <ClInclude Include="Graphics\Render.Commands.h" />
     <ClInclude Include="Graphics\Render.Level.h" />
     <ClInclude Include="Graphics\Render.Object.h" />
     <ClInclude Include="Graphics\Render.Particles.h" />
@@ -358,6 +359,7 @@
     <ClInclude Include="SoundTypes.h" />
     <ClInclude Include="unordered_dense.h" />
     <ClInclude Include="Version.h" />
+    <ClInclude Include="VertexTypes.h" />
     <ClInclude Include="WindowsDialogs.h" />
     <ClInclude Include="Editor\Gizmo.h" />
     <ClInclude Include="Editor\UI\HogEditor.h" />

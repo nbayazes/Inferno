@@ -2,14 +2,14 @@
 #include "Editor/Editor.h"
 #include "Editor/Editor.IO.h"
 #include "Editor/UI/TextureBrowserUI.h"
-#include "EffectTypes.h"
+#include "VisualEffects.h"
 #include "FileSystem.h"
 #include "Game.EscapeSequence.h"
 #include "Game.h"
 #include "Game.Room.h"
 #include "Game.Text.h"
+#include "Graphics.h"
 #include "Graphics/MaterialLibrary.h"
-#include "Graphics/Render.h"
 #include "LevelMetadata.h"
 #include "Procedural.h"
 #include "Resources.h"
@@ -190,17 +190,10 @@ namespace Inferno::Game {
             if (forceReload || Resources::CustomTextures.Any()) // Check for custom textures before or after load
                 Render::Materials->Unload();
 
-            Render::Materials->LoadLevelTextures(Level, forceReload);
+            Graphics::LoadLevelTextures(Level, forceReload);
             string extraTextures[] = { "noise" };
-            Render::Materials->LoadTextures(extraTextures);
-
-            if (auto path = FileSystem::TryFindFile("env.dds")) {
-                DirectX::ResourceUploadBatch batch(Render::Device);
-                batch.Begin();
-                Render::Materials->EnvironmentCube.LoadDDS(batch, *path);
-                Render::Materials->EnvironmentCube.CreateCubeSRV();
-                batch.End(Render::Adapter->BatchUploadQueue->Get());
-            }
+            Graphics::LoadTextures(extraTextures);
+            Graphics::LoadEnvironmentMap("env.dds");
 
             for (auto& seg : Level.Segments) {
                 // Clamp volume light if overly bright segments are saved
@@ -208,13 +201,12 @@ namespace Inferno::Game {
                     seg.VolumeLight = Color(1, 1, 1);
             }
 
-            Render::LoadLevel(Level);
+            Graphics::LoadLevel(Level);
             Inferno::ResetEffects();
             InitObjects(Level);
 
             Editor::OnLevelLoad(reload);
             Render::Materials->Prune();
-            Render::Adapter->PrintMemoryUsage();
 
             Game::Terrain = {};
 
@@ -223,7 +215,7 @@ namespace Inferno::Game {
                 DecodeText(data);
                 auto lines = String::ToLines(String::OfBytes(data));
                 Game::Terrain = ParseEscapeInfo(Level, lines);
-                Render::LoadTerrain(Game::Terrain);
+                Graphics::LoadTerrain(Game::Terrain);
             }
 
             //Render::Materials->LoadMaterials(Resources::GameData.HiResGauges, false);

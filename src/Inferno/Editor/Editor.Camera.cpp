@@ -4,7 +4,6 @@
 #include "Gizmo.h"
 #include "imgui.h"
 #include "Types.h"
-#include "Graphics/Render.h"
 
 namespace Inferno::Editor {
     void UpdateCamera(Camera& camera) {

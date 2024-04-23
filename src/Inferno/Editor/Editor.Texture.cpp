@@ -5,7 +5,6 @@
 #include "Editor.Texture.h"
 #include "Editor.Segment.h"
 #include "Editor.Wall.h"
-#include "Editor.IO.h"
 #include "Face.h"
 #include "Procedural.h"
 #include "Resources.h"

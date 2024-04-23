@@ -12,7 +12,7 @@ namespace Inferno {
         ~Application();
         // Initialization and management
         void Initialize(int width, int height);
-        void Tick();
+        void Tick() const;
         bool OnClose();
         void OnActivated();
         void OnDeactivated();
@@ -26,7 +26,6 @@ namespace Inferno {
         bool EnableImgui = true;
 
     private:
-        void Update();
         void UpdateFpsLimit();
     };
 }

@@ -5,7 +5,6 @@
 #include "SystemClock.h"
 #include "Graphics/GpuResources.h"
 #include "Graphics/Render.h"
-#include "Graphics/CommandContext.h"
 #include "Convert.h"
 #include "Resources.h"
 

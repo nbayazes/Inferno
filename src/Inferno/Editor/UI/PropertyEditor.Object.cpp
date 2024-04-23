@@ -1,13 +1,12 @@
 #include "pch.h"
+#include "../Editor.h"
+#include "Editor/Gizmo.h"
 #include "Game.AI.h"
-#include "PropertyEditor.h"
 #include "Game.h"
 #include "Game.Object.h"
-#include "../Editor.h"
+#include "Graphics.h"
+#include "PropertyEditor.h"
 #include "SoundSystem.h"
-#include "Editor/Editor.Object.h"
-#include "Editor/Gizmo.h"
-#include "Graphics/Render.h"
 
 namespace Inferno::Editor {
     const char* GetObjectTypeName(ObjectType type) {
@@ -147,7 +146,7 @@ namespace Inferno::Editor {
                 if (ImGui::Selectable(powerup.Name.c_str(), isSelected)) {
                     id = sorted[i].ID;
                     if (obj) {
-                        Render::LoadTextureDynamic(obj->Render.VClip.ID);
+                        Graphics::LoadTextureDynamic(obj->Render.VClip.ID);
                     }
                     changed = true;
                 }
@@ -353,7 +352,7 @@ namespace Inferno::Editor {
                 o.Physics.Drag = obj.Physics.Drag;
             });
 
-            Render::LoadModelDynamic(robot.Model);
+            Graphics::LoadModelDynamic(robot.Model);
             changed = true;
         }
 
@@ -486,7 +485,7 @@ namespace Inferno::Editor {
                 if (ImGui::Selectable(iStr.c_str(), isSelected)) {
                     obj.ID = i;
                     InitObject(obj, obj.Type, obj.ID);
-                    Render::LoadModelDynamic(obj.Render.Model.ID);
+                    Graphics::LoadModelDynamic(obj.Render.Model.ID);
                     changed = true;
                 }
 
@@ -619,7 +618,7 @@ namespace Inferno::Editor {
         obj.Physics.AngularVelocity.y = (Random() - Random()) * 1.25f; // value between -1.25 and 1.25
     }
 
-    void PropertyEditor::ObjectProperties() const {
+    void PropertyEditor::ObjectProperties() {
         DisableControls disable(!Resources::HasGameData());
 
         auto label = fmt::format("Object {}", (int)Editor::Selection.Object);
@@ -729,7 +728,7 @@ namespace Inferno::Editor {
             ImGui::TableRowLabel("Texture override");
             ImGui::SetNextItemWidth(-1);
             if (LevelTextureDropdown("##Texture", obj.Render.Model.TextureOverride)) {
-                Render::LoadTextureDynamic(obj.Render.Model.TextureOverride);
+                Graphics::LoadTextureDynamic(obj.Render.Model.TextureOverride);
                 ForMarkedObjects([&obj](Object& o) {
                     if (o.Render.Type != obj.Render.Type) return;
                     o.Render.Model.TextureOverride = obj.Render.Model.TextureOverride;

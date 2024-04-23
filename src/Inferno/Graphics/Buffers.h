@@ -53,7 +53,7 @@ namespace Inferno {
             _resource = DirectX::GraphicsMemory::Get().Allocate(size);
         }
 
-        void ResetIndex() { _index = 0; }
+        void ResetIndex() { _index =  0; }
 
         template <class TVertex>
         D3D12_VERTEX_BUFFER_VIEW PackVertices(span<TVertex> data) {

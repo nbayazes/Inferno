@@ -13,7 +13,7 @@
 #include "SoundSystem.h"
 #include "Editor/Editor.Selection.h"
 #include "Graphics/Render.Debug.h"
-#include "EffectTypes.h"
+#include "VisualEffects.h"
 
 namespace Inferno {
     namespace {

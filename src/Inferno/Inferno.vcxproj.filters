@@ -100,7 +100,9 @@
     <ClCompile Include="Formats\BBM.cpp" />
     <ClCompile Include="Game.EscapeSequence.cpp" />
     <ClCompile Include="Game.Briefing.cpp" />
-    <ClCompile Include="EffectTypes.cpp" />
+    <ClCompile Include="VisualEffects.cpp" />
+    <ClCompile Include="Graphics.cpp" />
+    <ClCompile Include="DebugOverlay.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\Audio.h" />
@@ -134,7 +136,6 @@
     <ClInclude Include="Game.Wall.h" />
     <ClInclude Include="GameTable.h" />
     <ClInclude Include="Graphics\Buffers.h" />
-    <ClInclude Include="Graphics\CommandContext.h" />
     <ClInclude Include="Graphics\Compiler.h" />
     <ClInclude Include="Graphics\ComputeShader.h" />
     <ClInclude Include="Graphics\GpuResources.h" />
@@ -161,7 +162,6 @@
     <ClInclude Include="Graphics\IDeviceNotify.h" />
     <ClInclude Include="Graphics\Lighting.h" />
     <ClInclude Include="Graphics\Render.Canvas.h" />
-    <ClInclude Include="Graphics\Render.Commands.h" />
     <ClInclude Include="Graphics\Render.Level.h" />
     <ClInclude Include="Graphics\Render.Object.h" />
     <ClInclude Include="Graphics\Render.Particles.h" />
@@ -245,7 +245,9 @@
     <ClInclude Include="Game.EscapeSequence.h" />
     <ClInclude Include="Graphics\CameraContext.h" />
     <ClInclude Include="Graphics\CommandQueue.h" />
-    <ClInclude Include="EffectTypes.h" />
+    <ClInclude Include="VisualEffects.h" />
+    <ClInclude Include="VertexTypes.h" />
+    <ClInclude Include="Graphics.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />

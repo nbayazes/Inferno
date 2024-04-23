@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Game.Player.h"
-#include "EffectTypes.h"
+#include "VisualEffects.h"
 #include "Game.AI.h"
 #include "Game.Bindings.h"
 #include "Game.h"

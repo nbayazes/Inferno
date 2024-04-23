@@ -4,7 +4,6 @@
 #include "Editor.Geometry.h"
 #include "Editor.h"
 #include "Input.h"
-#include "Graphics/Render.h"
 #include "imgui_local.h"
 #include "Editor.Texture.h"
 #include "Editor.Segment.h"
@@ -82,42 +81,42 @@ namespace Inferno::Editor {
         };
 
         Command CameraForward{
-            .Action = [] { Editor::EditorCamera.MoveForward(Render::FrameTime * Settings::Editor.MoveSpeed); },
+            .Action = [] { Editor::EditorCamera.MoveForward(Clock.GetFrameTimeSeconds() * Settings::Editor.MoveSpeed); },
             .Name = "Camera: Forward"
         };
 
         Command CameraBack{
-            .Action = [] { Editor::EditorCamera.MoveBack(Render::FrameTime * Settings::Editor.MoveSpeed); },
+            .Action = [] { Editor::EditorCamera.MoveBack(Clock.GetFrameTimeSeconds() * Settings::Editor.MoveSpeed); },
             .Name = "Camera: Back"
         };
 
         Command CameraLeft{
-            .Action = [] { Editor::EditorCamera.MoveLeft(Render::FrameTime * Settings::Editor.MoveSpeed); },
+            .Action = [] { Editor::EditorCamera.MoveLeft(Clock.GetFrameTimeSeconds() * Settings::Editor.MoveSpeed); },
             .Name = "Camera: Left"
         };
 
         Command CameraRight{
-            .Action = [] { Editor::EditorCamera.MoveRight(Render::FrameTime * Settings::Editor.MoveSpeed); },
+            .Action = [] { Editor::EditorCamera.MoveRight(Clock.GetFrameTimeSeconds() * Settings::Editor.MoveSpeed); },
             .Name = "Camera: Right"
         };
 
         Command CameraUp{
-            .Action = [] { Editor::EditorCamera.MoveUp(Render::FrameTime * Settings::Editor.MoveSpeed); },
+            .Action = [] { Editor::EditorCamera.MoveUp(Clock.GetFrameTimeSeconds() * Settings::Editor.MoveSpeed); },
             .Name = "Camera: Up"
         };
 
         Command CameraDown{
-            .Action = [] { Editor::EditorCamera.MoveDown(Render::FrameTime * Settings::Editor.MoveSpeed); },
+            .Action = [] { Editor::EditorCamera.MoveDown(Clock.GetFrameTimeSeconds() * Settings::Editor.MoveSpeed); },
             .Name = "Camera: Down"
         };
 
         Command CameraRollLeft{
-            .Action = [] { Editor::EditorCamera.Roll(Render::FrameTime); },
+            .Action = [] { Editor::EditorCamera.Roll(Clock.GetFrameTimeSeconds()); },
             .Name = "Camera: Roll Left"
         };
 
         Command CameraRollRight{
-            .Action = [] { Editor::EditorCamera.Roll(-Render::FrameTime); },
+            .Action = [] { Editor::EditorCamera.Roll(-Clock.GetFrameTimeSeconds()); },
             .Name = "Camera: Roll Right"
         };
 

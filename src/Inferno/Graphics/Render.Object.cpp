@@ -1,6 +1,5 @@
 #include "pch.h"
 
-#include "CommandContext.h"
 #include "Game.h"
 #include "Game.Object.h"
 #include "MaterialLibrary.h"
@@ -13,7 +12,7 @@
 //#define DEBUG_DISSOLVE
 
 namespace Inferno::Render {
-    constexpr Color MIN_POWERUP_AMBIENT = Color(0.1f, 0.1f, 0.1f);
+    constexpr Color MIN_POWERUP_AMBIENT = { 0.1f, 0.1f, 0.1f };
 
     constexpr float GetTimeOffset(const Object& obj) {
         return (float)obj.Signature * 0.762f; // randomize time across objects

@@ -1,9 +1,9 @@
 ﻿#include "pch.h"
-
-#include "EffectTypes.h"
+#include "VisualEffects.h"
 #include "Render.Effect.h"
 #include "Game.h"
 #include "Game.Segment.h"
+#include "Graphics.h"
 #include "Graphics/MaterialLibrary.h"
 #include "Graphics/Render.h"
 #include "Graphics/Render.Particles.h"
@@ -11,8 +11,6 @@
 #include "Resources.h"
 
 namespace Inferno {
-    //using Render::VisualEffects;
-    //using Render::EffectBase;
     using namespace Render;
 
     void AddBeamInstance(BeamInstance& beam) {
@@ -28,7 +26,7 @@ namespace Inferno {
         beam.Runtime.Length = (beam.Start - beam.End).Length();
         beam.Runtime.Width = beam.Info.Width.GetRandom();
         beam.Runtime.OffsetU = Random();
-        
+
         AddEffect(make_unique<BeamInstance>(beam));
     }
 
@@ -97,7 +95,7 @@ namespace Inferno {
         if (info.RandomRotation)
             p.Info.Rotation = Random() * DirectX::XM_2PI;
 
-        Render::LoadTextureDynamic(info.Clip);
+        Graphics::LoadTextureDynamic(info.Clip);
         AddEffect(make_unique<Particle>(p));
     }
 
@@ -119,7 +117,7 @@ namespace Inferno {
         if (info.RandomRotation)
             p.Info.Rotation = Random() * DirectX::XM_2PI;
 
-        Render::LoadTextureDynamic(info.Clip);
+        Graphics::LoadTextureDynamic(info.Clip);
         AddEffect(make_unique<Particle>(p));
     }
 
@@ -131,7 +129,7 @@ namespace Inferno {
         debris.AngularVelocity = angularVelocity;
         debris.Duration = duration;
         debris.Transform = debris.PrevTransform = transform;
-        
+
         AddEffect(make_unique<Debris>(debris));
     }
 
@@ -321,5 +319,18 @@ namespace Inferno {
 
     void ResetEffects() {
         Render::ResetEffects();
+    }
+
+    void FixedUpdateEffects(float dt) {
+        if (VisualEffects.size() + 100 > VisualEffects.capacity()) {
+            VisualEffects.resize(VisualEffects.size() + 100);
+            SPDLOG_WARN("Resizing visual effects buffer to {}", VisualEffects.size());
+        }
+
+        for (size_t effectId = 0; effectId < VisualEffects.size(); effectId++) {
+            auto& effect = VisualEffects[effectId];
+            if (effect)
+                effect->FixedUpdate(dt, EffectID(effectId));
+        }
     }
 }

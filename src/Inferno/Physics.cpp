@@ -7,7 +7,6 @@
 #include "Game.Object.h"
 #include "Game.Wall.h"
 #include "Graphics/Render.Debug.h"
-#include "Graphics/Render.h"
 #include "Input.h"
 #include "Intersect.h"
 #include "Resources.h"
@@ -970,7 +969,7 @@ namespace Inferno {
 
                     float hitDistance = FLT_MAX;
                     Vector3 hitPoint, hitNormal;
-                    bool hitEdge = false;
+                    //bool hitEdge = false;
 
 #ifdef DEBUG_LEVEL_OUTLINE
                     Render::Debug::DrawLine(p0, p1, { 0, 1, 0 });
@@ -1038,7 +1037,7 @@ namespace Inferno {
                                     tanVec = p0 - p2;
 
                                 tanVec.Normalize(tangent);
-                                hitEdge = true;
+                                //hitEdge = true;
                             }
                         }
                     }
@@ -1097,13 +1096,13 @@ namespace Inferno {
             }
         }
 
-        bool sticky = false;
+        //bool sticky = false;
 
-        if (obj.IsWeapon()) {
-            // Sticky weapons shouldn't be repositioned to geometry surface
-            auto& weapon = Resources::GetWeapon(obj);
-            sticky = weapon.Extended.Sticky;
-        }
+        //if (obj.IsWeapon()) {
+        //    // Sticky weapons shouldn't be repositioned to geometry surface
+        //    auto& weapon = Resources::GetWeapon(obj);
+        //    sticky = weapon.Extended.Sticky;
+        //}
 
         //if (hits > 0 && !sticky) {
             //obj.Physics.Velocity += faceVel != Vector3::Zero ? faceVel / (float)hits : edgeVel / (float)hits;

@@ -50,10 +50,7 @@ namespace Inferno::Render {
         // todo: put all of these resources into a class and use RAII
         Ptr<GraphicsMemory> _graphicsMemory;
 
-        Ptr<MeshBuffer> _meshBuffer;
-        Ptr<TerrainMesh> _terrainMesh;
         Ptr<SpriteBatch> _postBatch;
-        Ptr<PackedBuffer> _levelMeshBuffer;
 
         Ptr<UploadBuffer<MaterialInfo>> MaterialInfoUploadBuffer;
         Ptr<UploadBuffer<GpuVClip>> VClipUploadBuffer;
@@ -62,9 +59,6 @@ namespace Inferno::Render {
         //Inferno::Camera DEFAULT_CAMERA;
         //Inferno::Camera* pCam = &DEFAULT_CAMERA;
     }
-
-    PackedBuffer* GetLevelMeshBuffer() { return _levelMeshBuffer.get(); }
-    const TerrainMesh* GetTerrainMesh() { return _terrainMesh.get(); }
 
     //void SetCamera(Inferno::Camera& camera) {
     //    pCam = &camera;
@@ -276,8 +270,6 @@ namespace Inferno::Render {
         Editor::EditorCamera.SetViewport(Vector2((float)width, (float)height));
         Game::GameCamera.SetViewport(Vector2((float)width, (float)height));
 
-        _levelMeshBuffer = make_unique<PackedBuffer>(1024 * 1024 * 20);
-
         Editor::Events::LevelChanged += [] { LevelChanged = true; };
         Editor::Events::TexturesChanged += [] {
             //PendingTextures.push_back(id);
@@ -316,9 +308,7 @@ namespace Inferno::Render {
 
         ReleaseEditorResources();
         StopProceduralWorker();
-        _levelMeshBuffer.reset();
-        _meshBuffer.reset();
-        _terrainMesh.reset();
+        LevelResources = {};
 
         Adapter.reset();
         ToneMapping.reset();
@@ -343,49 +333,6 @@ namespace Inferno::Render {
         // For some reason resizing does not increment the adapter frame index, causing the same buffer to be used.
         FrameUploadBuffers[0]->ResetIndex();
         FrameUploadBuffers[1]->ResetIndex();
-    }
-
-    // Loads a single model at runtime
-    void LoadModelDynamic(ModelID id) {
-        if (!_meshBuffer) return;
-        _meshBuffer->LoadModel(id);
-        Set<TexID> ids;
-        GetTexturesForModel(id, ids);
-        auto tids = Seq::ofSet(ids);
-        Materials->LoadMaterials(tids, false);
-    }
-
-    void LoadTextureDynamic(LevelTexID id) {
-        List<TexID> list = { Resources::LookupTexID(id) };
-        auto& eclip = Resources::GetEffectClip(id);
-        Seq::append(list, eclip.VClip.GetFrames());
-        Materials->LoadMaterials(list, false);
-    }
-
-    void LoadTextureDynamic(TexID id) {
-        if (id <= TexID::None) return;
-        List<TexID> list{ id };
-        auto& eclip = Resources::GetEffectClip(id);
-        Seq::append(list, eclip.VClip.GetFrames());
-        Materials->LoadMaterials(list, false);
-    }
-
-    void LoadTextureDynamic(VClipID id) {
-        auto& vclip = Resources::GetVideoClip(id);
-        Materials->LoadMaterials(vclip.GetFrames(), false);
-    }
-
-    ModelID LoadOutrageModel(const string& path) {
-        auto id = Resources::LoadOutrageModel(path);
-        if (auto model = Resources::GetOutrageModel(id)) {
-            _meshBuffer->LoadOutrageModel(*model, id);
-            Materials->LoadTextures(model->Textures);
-
-            //Materials->LoadOutrageModel(*model);
-            //NewTextureCache->MakeResident();
-        }
-
-        return id;
     }
 
     void LoadVClips(ID3D12GraphicsCommandList* cmdList) {
@@ -418,15 +365,17 @@ namespace Inferno::Render {
         SPDLOG_INFO("Load models");
         // Load models for objects in the level
         constexpr int DESCENT3_MODEL_COUNT = 200;
-        _meshBuffer = MakePtr<MeshBuffer>(Resources::GameData.Models.size(), DESCENT3_MODEL_COUNT);
-        _terrainMesh = {};
+        LevelResources = {};
+        LevelResources.LevelMeshes = make_unique<PackedBuffer>(1024 * 1024 * 20);
+        LevelResources.ObjectMeshes = MakePtr<MeshBuffer>(Resources::GameData.Models.size(), DESCENT3_MODEL_COUNT);
+        auto& objectMeshes = LevelResources.ObjectMeshes;
 
         List<ModelID> modelIds;
         for (auto& obj : level.Objects) {
             if (obj.Render.Type == RenderType::Model) {
-                _meshBuffer->LoadModel(obj.Render.Model.ID);
-                _meshBuffer->LoadModel(Resources::GetDeadModelID(obj.Render.Model.ID));
-                _meshBuffer->LoadModel(Resources::GetDyingModelID(obj.Render.Model.ID));
+                objectMeshes->LoadModel(obj.Render.Model.ID);
+                objectMeshes->LoadModel(Resources::GetDeadModelID(obj.Render.Model.ID));
+                objectMeshes->LoadModel(Resources::GetDyingModelID(obj.Render.Model.ID));
             }
         }
 
@@ -439,79 +388,12 @@ namespace Inferno::Render {
         LevelChanged = true;
     }
 
-    void LoadTerrain(const TerrainInfo& info) {
-        std::array textures = { info.SatelliteTexture, info.SurfaceTexture };
-        Render::Materials->LoadTextures(textures);
-        _terrainMesh = make_unique<TerrainMesh>();
-        _terrainMesh->AddTerrain(info.Vertices, info.Indices, info.SurfaceTexture);
-
-        {
-            //Matrix::CreateFromAxisAngle(Vector3::UnitY, info.SatelliteDir);
-            auto satPosition = info.SatelliteDir * 1000 + Vector3(0, info.SatelliteHeight, 0);
-
-            //const float planetRadius = 200; // Add a planet radius
-            auto normal = /*Vector3(0, planetRadius, 0)*/ -satPosition;
-            normal.Normalize();
-            auto tangent = normal.Cross(Vector3::UnitY);
-            tangent.Normalize();
-            auto bitangent = tangent.Cross(normal);
-            tangent = bitangent.Cross(normal);
-
-            List<ObjectVertex> satVerts;
-
-            auto addVertex = [&](const Vector3& position, const Vector2& uv) {
-                ObjectVertex vertex{
-                    .Position = position,
-                    .UV = uv,
-                    .Color = info.SatelliteColor,
-                    .Normal = normal,
-                    .Tangent = tangent,
-                    .Bitangent = bitangent,
-                    .TexID = (int)TexID::None // Rely on override
-                };
-
-                satVerts.push_back(vertex);
-            };
-
-            //auto delta = Vector3(-info.SatelliteSize, -info.SatelliteSize, 0);
-            //auto transform = Matrix::CreateRotationZ(DirectX::XM_PIDIV2);
-            //auto transform = Matrix::CreateFromAxisAngle(normal, DirectX::XM_PIDIV2);
-            auto radius = info.SatelliteSize;
-            auto ratio = info.SatelliteAspectRatio;
-
-            addVertex(satPosition - tangent * radius - bitangent * radius * ratio, Vector2(1, 1)); // bl
-            addVertex(satPosition + tangent * radius - bitangent * radius * ratio, Vector2(0, 1)); // br
-            addVertex(satPosition + tangent * radius + bitangent * radius * ratio, Vector2(0, 0)); // tr
-            addVertex(satPosition - tangent * radius + bitangent * radius * ratio, Vector2(1, 0)); // tl
-
-            List<uint16> satIndices = { 0, 1, 2, 0, 2, 3 };
-
-            _terrainMesh->AddSatellite(satVerts, satIndices, info.SatelliteTexture);
-
-            //for (int i = 0; i < 4; i++) {
-            //    ObjectVertex vertex{
-            //        .Position = satPosition + delta,
-            //        .UV = Vector2(0, 0),
-            //        .Color = Color(1, 1, 1),
-            //        .Normal = normal,
-            //        .Tangent = tangent,
-            //        .Bitangent = bitangent,
-            //        .TexID = (int)TexID::None // Rely on override
-            //    };
-
-            //    vertices.push_back(vertex);
-
-            //    delta = delta.Transform(delta, transform);
-            //}
-        }
-    }
-
     MeshIndex& GetMeshHandle(ModelID id) {
-        return _meshBuffer->GetHandle(id);
+        return LevelResources.ObjectMeshes->GetHandle(id);
     }
 
     MeshIndex& GetOutrageMeshHandle(ModelID id) {
-        return _meshBuffer->GetOutrageHandle(id);
+        return LevelResources.ObjectMeshes->GetOutrageHandle(id);
     }
 
     void PostProcess(GraphicsContext& ctx) {
@@ -529,7 +411,7 @@ namespace Inferno::Render {
         _postBatch->SetViewport(Adapter->GetScreenViewport());
         _postBatch->Begin(cmdList);
         auto size = Adapter->GetOutputSize();
-        _postBatch->Draw(Adapter->SceneColorBuffer.GetSRV(), XMUINT2{ (uint)(size.x / RenderScale), (uint)(size.y / RenderScale) }, XMFLOAT2{ 0, 0 });
+        _postBatch->Draw(Adapter->SceneColorBuffer.GetSRV(), XMUINT2{ (uint)(size.x / Settings::Graphics.RenderScale), (uint)(size.y / Settings::Graphics.RenderScale) }, XMFLOAT2{ 0, 0 });
         _postBatch->End();
     }
 
@@ -938,8 +820,8 @@ namespace Inferno::Render {
         terrainCamera.MoveTo(Vector3::Zero, terrainInverse.Forward(), terrainInverse.Up());
         terrainCamera.UpdatePerspectiveMatrices();
 
-        UpdateFrameConstants(terrainCamera, Adapter->GetTerrainConstants(), Render::RenderScale);
-        UpdateFrameConstants(ctx.Camera, Adapter->GetFrameConstants(), Render::RenderScale);
+        UpdateFrameConstants(terrainCamera, Adapter->GetTerrainConstants(), Settings::Graphics.RenderScale);
+        UpdateFrameConstants(ctx.Camera, Adapter->GetFrameConstants(), Settings::Graphics.RenderScale);
 
         DrawLevel(ctx, Game::Level);
         Debug::EndFrame(ctx);
@@ -970,10 +852,5 @@ namespace Inferno::Render {
         CopyProceduralsToMainThread();
         _graphicsMemory->Commit(Adapter->BatchUploadQueue->Get());
         LegitProfiler::AddCpuTask(std::move(copy));
-    }
-
-    void ReloadTextures() {
-        Materials->Reload();
-        //NewTextureCache->Reload();
     }
 }

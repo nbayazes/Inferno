@@ -11,8 +11,8 @@
 #include "Game.AI.h"
 #include "Resources.h"
 #include "Editor/Events.h"
-#include "EffectTypes.h"
-#include "Graphics/Render.h"
+#include "VisualEffects.h"
+#include "Graphics.h"
 
 namespace Inferno {
     //template<class TData, class TKey = int>
@@ -714,8 +714,8 @@ namespace Inferno {
                     destroyed.OneShotTag = tag;
                     destroyed.DestroyedTexture = eclip.DestroyedTexture;
                     usedEClip = true;
-                    Render::LoadTextureDynamic(eclip.DestroyedTexture);
-                    Render::LoadTextureDynamic(side.TMap2);
+                    Graphics::LoadTextureDynamic(eclip.DestroyedTexture);
+                    Graphics::LoadTextureDynamic(side.TMap2);
                 }
             }
         }
@@ -723,7 +723,7 @@ namespace Inferno {
         if (!usedEClip) {
             // Skip to the destroyed fully texture
             side.TMap2 = hasEClip ? eclip.DestroyedTexture : tmi.DestroyedTexture;
-            Render::LoadTextureDynamic(side.TMap2);
+            Graphics::LoadTextureDynamic(side.TMap2);
         }
 
         //Editor::Events::LevelChanged();

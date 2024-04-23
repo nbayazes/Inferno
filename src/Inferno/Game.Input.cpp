@@ -6,7 +6,7 @@
 #include "Resources.h"
 #include "Settings.h"
 #include "Editor/Events.h"
-#include "Graphics/Render.h"
+#include "Graphics.h"
 
 namespace Inferno {
     using Keys = Input::Keys;
@@ -23,16 +23,16 @@ namespace Inferno {
 
         if (Input::IsKeyPressed(Keys::F5)) {
             Resources::LoadDataTables(Game::Level);
-            Render::Adapter->ReloadResources();
+            Graphics::ReloadResources();
             Editor::Events::LevelChanged();
         }
 
         if (Input::IsKeyPressed(Keys::F6))
-            Render::ReloadTextures();
+            Graphics::ReloadTextures();
 
         if (Input::IsKeyPressed(Keys::F7)) {
             Settings::Graphics.HighRes = !Settings::Graphics.HighRes;
-            Render::ReloadTextures();
+            Graphics::ReloadTextures();
         }
 
         if (Input::IsKeyPressed(Keys::F9)) {

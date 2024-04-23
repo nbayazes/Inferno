@@ -217,4 +217,6 @@ namespace Inferno {
 
     // Clears all effects
     void ResetEffects();
+
+    void FixedUpdateEffects(float dt);
 }

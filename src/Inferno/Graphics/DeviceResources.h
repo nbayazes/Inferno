@@ -8,7 +8,6 @@
 #include "Heap.h"
 #include "Buffers.h"
 #include "Settings.h"
-#include "CommandContext.h"
 #include "IDeviceNotify.h"
 #include "PostProcess.h"
 #include "ShaderLibrary.h"
@@ -45,8 +44,6 @@ namespace Inferno {
 
         DeviceResources(DeviceResources const&) = delete;
         DeviceResources& operator= (DeviceResources const&) = delete;
-
-        float RenderScale = 1.0; // Scaling applied to 3D render targets
 
         void CreateDeviceResources();
         void CreateWindowSizeDependentResources(bool forceSwapChainRebuild = false);

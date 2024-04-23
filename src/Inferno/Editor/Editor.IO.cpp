@@ -7,8 +7,7 @@
 #include "Events.h"
 #include "FileSystem.h"
 #include "Game.h"
-#include "Graphics/MaterialLibrary.h"
-#include "Graphics/Render.h"
+#include "Graphics.h"
 #include "LevelMetadata.h"
 #include "logging.h"
 #include "Resources.h"
@@ -382,8 +381,8 @@ namespace Inferno::Editor {
                 obj.ID = 0;
         }
 
-        Render::Materials->LoadLevelTextures(Game::Level, false);
-        Render::LoadLevel(Game::Level);
+        Graphics::LoadLevelTextures(Game::Level, false);
+        Graphics::LoadLevel(Game::Level);
         Editor::History.Reset(); // Undo / redo could cause models to get loaded without the proper data
     }
 
@@ -400,7 +399,7 @@ namespace Inferno::Editor {
         // change version and reload resources
         Game::Level.Version = 8;
         Resources::LoadLevel(Game::Level);
-        Render::LoadLevel(Game::Level);
+        Graphics::LoadLevel(Game::Level);
         Editor::History.Reset(); // Undo / redo could cause models to get loaded without the proper data
     }
 

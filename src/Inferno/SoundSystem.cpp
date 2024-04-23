@@ -9,6 +9,7 @@
 #include "logging.h"
 #include "Physics.h"
 #include "Resources.h"
+#include "Settings.h"
 
 using namespace DirectX::SimpleMath;
 using namespace std::chrono;

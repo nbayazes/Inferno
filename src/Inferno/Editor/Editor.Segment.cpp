@@ -3,16 +3,15 @@
 #include "Level.h"
 #include "Editor.h"
 #include "Editor.Segment.h"
-
 #include "Editor.Clipboard.h"
 #include "Editor.Object.h"
 #include "Editor.Wall.h"
 #include "Editor.Texture.h"
-#include "Graphics/Render.h"
 #include "Editor.Diagnostics.h"
 #include "Editor.Geometry.h"
 #include "Game.Object.h"
 #include "Game.Segment.h"
+#include "Graphics.h"
 #include "Resources.h"
 
 namespace Inferno::Editor {
@@ -431,10 +430,10 @@ namespace Inferno::Editor {
 
         seg.UpdateGeometricProps(level);
 
-        Render::LoadTextureDynamic(seg.Sides[0].TMap);
-        Render::LoadTextureDynamic(seg.Sides[1].TMap);
-        Render::LoadTextureDynamic(seg.Sides[3].TMap);
-        Render::LoadTextureDynamic(seg.Sides[4].TMap);
+        Graphics::LoadTextureDynamic(seg.Sides[0].TMap);
+        Graphics::LoadTextureDynamic(seg.Sides[1].TMap);
+        Graphics::LoadTextureDynamic(seg.Sides[3].TMap);
+        Graphics::LoadTextureDynamic(seg.Sides[4].TMap);
         level.Segments.push_back(std::move(seg));
         auto id = SegID(level.Segments.size() - 1);
         ResetSegmentUVs(level, std::array{ id }, 1, 0);

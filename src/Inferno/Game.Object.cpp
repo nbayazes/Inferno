@@ -2,14 +2,14 @@
 
 #include "Level.h"
 #include "Game.Object.h"
-#include "EffectTypes.h"
+#include "VisualEffects.h"
 #include "Game.AI.h"
 #include "Game.h"
 #include "Game.Segment.h"
 #include "Game.Wall.h"
+#include "Graphics.h"
 #include "Physics.h"
 #include "SoundSystem.h"
-#include "Graphics/Render.h"
 #include "Resources.h"
 
 namespace Inferno {
@@ -323,7 +323,7 @@ namespace Inferno {
         if (auto seg = Level.TryGetSegment(segId))
             powerup.Ambient.SetTarget(seg->VolumeLight, Game::Time, 0);
 
-        Render::LoadTextureDynamic(pinfo.VClip);
+        Graphics::LoadTextureDynamic(pinfo.VClip);
         return AddObject(powerup);
     }
 
@@ -1104,10 +1104,10 @@ namespace Inferno {
         obj.NextThinkTime = 0;
 
         if (obj.Render.Type == RenderType::Model)
-            Render::LoadModelDynamic(obj.Render.Model.ID);
+            Graphics::LoadModelDynamic(obj.Render.Model.ID);
 
         if (obj.Render.Type == RenderType::Hostage || obj.Render.Type == RenderType::Powerup)
-            Render::LoadTextureDynamic(obj.Render.VClip.ID);
+            Graphics::LoadTextureDynamic(obj.Render.VClip.ID);
     }
 
     Vector3 RandomLateralDirection(const Object& obj) {

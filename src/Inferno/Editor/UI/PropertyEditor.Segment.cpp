@@ -1,12 +1,11 @@
 #include "pch.h"
-
-#include "Game.Segment.h"
-#include "PropertyEditor.h"
 #include "../Editor.h"
+#include "Editor/Editor.Lighting.h"
 #include "Editor/Editor.Segment.h"
 #include "Editor/Editor.Wall.h"
-#include "Graphics/Render.h"
-#include "Editor/Editor.Lighting.h"
+#include "Game.Segment.h"
+#include "Graphics.h"
+#include "PropertyEditor.h"
 
 namespace Inferno::Editor {
     // Sets snapshot to true when the previous item finishes editing
@@ -912,7 +911,7 @@ namespace Inferno::Editor {
     void OnChangeDoorClip(Level& level, const Wall& wall) {
         SetTextureFromDoorClip(level, wall.Tag, wall.Clip);
         auto& clip = Resources::GetDoorClip(wall.Clip);
-        Render::LoadTextureDynamic(clip.Frames[0]);
+        Graphics::LoadTextureDynamic(clip.Frames[0]);
         Events::LevelChanged();
     }
 

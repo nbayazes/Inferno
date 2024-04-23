@@ -1,15 +1,16 @@
 #include "pch.h"
-#include "EffectTypes.h"
+#include "VisualEffects.h"
 #include "Game.AI.h"
 #include "Object.h"
 #include "Game.h"
 #include "Game.Object.h"
 #include "Game.Segment.h"
 #include "Game.Wall.h"
+#include "Graphics.h"
 #include "Physics.h"
 #include "SoundSystem.h"
-#include "Graphics/Render.h"
 #include "Resources.h"
+#include "Settings.h"
 
 namespace Inferno::Game {
     void DrawWeaponExplosion(const Object& obj, const Weapon& weapon, float scale) {
@@ -374,13 +375,13 @@ namespace Inferno::Game {
         if (weapon.RenderType == WeaponRenderType::Blob) {
             bullet.Render.Type = RenderType::Laser; // Blobs overload the laser render path
             bullet.Radius = weapon.Extended.Size >= 0 ? weapon.Extended.Size : weapon.BlobSize;
-            Render::LoadTextureDynamic(weapon.BlobBitmap);
+            Graphics::LoadTextureDynamic(weapon.BlobBitmap);
         }
         else if (weapon.RenderType == WeaponRenderType::VClip) {
             bullet.Render.Type = RenderType::WeaponVClip;
             bullet.Render.VClip.ID = weapon.WeaponVClip;
             bullet.Radius = weapon.Extended.Size >= 0 ? weapon.Extended.Size : weapon.BlobSize;
-            Render::LoadTextureDynamic(weapon.WeaponVClip);
+            Graphics::LoadTextureDynamic(weapon.WeaponVClip);
         }
         else if (weapon.RenderType == WeaponRenderType::Model) {
             bullet.Render.Type = RenderType::Model;
@@ -389,10 +390,10 @@ namespace Inferno::Game {
             bullet.Radius = weapon.Extended.Size >= 0 ? weapon.Extended.Size : model.Radius / weapon.ModelSizeRatio;
             if (bullet.Radius < 0) bullet.Radius = 1;
 
-            auto d3Model = weapon.Extended.ModelName.empty() ? ModelID::None : Render::LoadOutrageModel(weapon.Extended.ModelName);
+            auto d3Model = weapon.Extended.ModelName.empty() ? ModelID::None : Graphics::LoadOutrageModel(weapon.Extended.ModelName);
 
             if (Settings::Inferno.Descent3Enhanced && d3Model != ModelID::None) {
-                bullet.Render.Model.ID = Render::LoadOutrageModel(weapon.Extended.ModelName);
+                bullet.Render.Model.ID = Graphics::LoadOutrageModel(weapon.Extended.ModelName);
                 bullet.Render.Model.Outrage = true;
                 bullet.Scale = weapon.Extended.ModelScale;
             }
@@ -406,8 +407,8 @@ namespace Inferno::Game {
             bullet.PrevRotation = bullet.Rotation;
 
             //auto length = model.Radius * 2;
-            Render::LoadModelDynamic(weapon.Model);
-            Render::LoadModelDynamic(weapon.ModelInner);
+            Graphics::LoadModelDynamic(weapon.Model);
+            Graphics::LoadModelDynamic(weapon.ModelInner);
 
             if (bullet.Render.Model.ID == ModelID::None)
                 bullet.Render.Type = RenderType::None;

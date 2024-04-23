@@ -2,13 +2,14 @@
 
 #include <numeric>
 #include "Game.Boss.h"
-#include "EffectTypes.h"
+#include "VisualEffects.h"
 #include "Game.AI.h"
 #include "Game.h"
 #include "Game.Reactor.h"
 #include "Game.Segment.h"
 #include "Physics.h"
 #include "Resources.h"
+#include "Settings.h"
 #include "SoundSystem.h"
 
 namespace Inferno::Game {

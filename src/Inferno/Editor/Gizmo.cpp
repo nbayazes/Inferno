@@ -34,7 +34,7 @@ namespace Inferno::Editor {
         }
     }
 
-    Hit IntersectTranslation(const Matrix& transform, const Ray& ray, Array<bool, 3>& enabled, const Camera& camera) {
+    Hit IntersectTranslation(const Matrix& transform, const Ray& ray, const Array<bool, 3>& enabled, const Camera& camera) {
         auto position = transform.Translation();
         auto scale = GetGizmoScale(position, camera);
         auto xAxis = transform.Forward(), yAxis = transform.Up(), zAxis = transform.Right();
@@ -115,7 +115,7 @@ namespace Inferno::Editor {
         return {};
     }
 
-    Hit IntersectScale(const Matrix& transform, const Ray& ray, Array<bool, 3>& enabled, const Camera& camera) {
+    Hit IntersectScale(const Matrix& transform, const Ray& ray, const Array<bool, 3>& enabled, const Camera& camera) {
         auto GetBoundingBox = [](const Vector3& position, const Vector3& direction, float scale) {
             BoundingOrientedBox bounds({ 0, 0, 0 }, { 1, 1, 1 }, Vector4::UnitW);
             auto translation = Matrix::CreateTranslation(position + direction * Settings::Editor.GizmoSize * scale);

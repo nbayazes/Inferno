@@ -1,6 +1,6 @@
 #pragma once
-#include "CommandContext.h"
 #include "Level.h"
+#include "Lighting.h"
 
 namespace Inferno::Graphics {
     struct SegmentLight {

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Graphics/ShaderLibrary.h"
 #include "Level.h"
 #include "Types.h"
+#include "VertexTypes.h"
 
 namespace Inferno {
     struct TerrainInfo {

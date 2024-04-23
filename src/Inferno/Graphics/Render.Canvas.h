@@ -3,7 +3,6 @@
 #include "Types.h"
 #include "DirectX.h"
 #include "ShaderLibrary.h"
-#include "CommandContext.h"
 #include "Game.h"
 #include "Game.Text.h"
 #include "MaterialLibrary.h"
