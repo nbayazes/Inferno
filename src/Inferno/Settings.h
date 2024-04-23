@@ -157,6 +157,7 @@ namespace Inferno {
         bool NewLightMode = true;
         int ToneMapper = 1;
         TextureFilterMode FilterMode = TextureFilterMode::EnhancedPoint;
+        float FieldOfView = 65;
 
         // Debugging
 

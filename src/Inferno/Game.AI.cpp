@@ -13,7 +13,6 @@
 #include "SoundSystem.h"
 #include "Editor/Editor.Selection.h"
 #include "Graphics/Render.Debug.h"
-#include "Graphics/Render.Particles.h"
 #include "EffectTypes.h"
 
 namespace Inferno {
@@ -355,7 +354,7 @@ namespace Inferno {
                     // Larger periodic explosions with sound
                     //e->Variance = obj.Radius * 0.75f;
                     e->Volume = volume;
-                    Render::CreateExplosion(*e, Game::GetObjectRef(obj));
+                    CreateExplosion(*e, Game::GetObjectRef(obj));
                 }
             }
         }
@@ -365,7 +364,7 @@ namespace Inferno {
             if (auto e = EffectLibrary.GetExplosion(effect)) {
                 //e->Variance = obj.Radius * 0.65f;
                 e->Volume = volume;
-                Render::CreateExplosion(*e, Game::GetObjectRef(obj));
+                CreateExplosion(*e, Game::GetObjectRef(obj));
             }
         }
 
@@ -803,11 +802,11 @@ namespace Inferno {
                 if (auto beam = EffectLibrary.GetBeamInfo("stunned object arcs")) {
                     auto startObj = Game::GetObjectRef(robot);
                     beam->Radius = { robot.Radius * 0.6f, robot.Radius * 0.9f };
-                    Render::AttachBeam(*beam, stunTime, startObj);
+                    AttachBeam(*beam, stunTime, startObj);
                     beam->StartDelay = stunTime / 3;
-                    Render::AttachBeam(*beam, stunTime - beam->StartDelay, startObj);
+                    AttachBeam(*beam, stunTime - beam->StartDelay, startObj);
                     beam->StartDelay = stunTime * 2 / 3;
-                    Render::AttachBeam(*beam, stunTime - beam->StartDelay, startObj);
+                    AttachBeam(*beam, stunTime - beam->StartDelay, startObj);
                     //SetFlag(robot.Physics.Flags, PhysicsFlag::Gravity);
                 }
             }
@@ -895,7 +894,7 @@ namespace Inferno {
 
                 for (uint8 i = 0; i < robotInfo.Guns; i++) {
                     auto offset = GetGunpointOffset(robot, i);
-                    Render::AddSparkEmitter(*fx, parent, offset);
+                    AttachSparkEmitter(*fx, parent, offset);
                 }
             }
         }
@@ -1133,12 +1132,12 @@ namespace Inferno {
 
                     if (auto sparks = EffectLibrary.GetSparks("melee hit")) {
                         auto position = robot.Position + targetDir * robot.Radius;
-                        Render::AddSparkEmitter(*sparks, robot.Segment, position);
+                        AddSparkEmitter(*sparks, robot.Segment, position);
 
                         LightEffectInfo light{};
                         light.LightColor = sparks->Color * .4f;
                         light.Radius = 18;
-                        Render::AddLight(light, position, light.FadeTime, robot.Segment);
+                        AddLight(light, position, light.FadeTime, robot.Segment);
                     }
                 }
             }

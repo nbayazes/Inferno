@@ -968,7 +968,7 @@ Effects:
 
   Sparks:
     - Name: omega_hit
-      SparkDuration: [ 0.25, 0.35 ]
+      Duration: [ 0.25, 0.35 ]
       Restitution: 0.6
       Velocity: [ 60, 120 ]
       Count: [ 13, 20 ]
@@ -981,7 +981,7 @@ Effects:
     - Name: weapon_hit_obj
       Color: 1, 1, 0.9
       Count: [ 8, 12 ]
-      SparkDuration: [ 0.55, 1.15 ]
+      Duration: [ 0.55, 1.15 ]
       Restitution: 0.6
       Drag: 0.06
       Velocity: [ 25, 30 ]
@@ -993,7 +993,7 @@ Effects:
     - Name: melee hit
       Color: 1, .5, .3, 20
       Count: 20
-      SparkDuration: [ 0.55, 1.15 ]
+      Duration: [ 0.55, 1.15 ]
       Drag: 0.02
       Velocity: [ 25, 35 ]
       FadeTime: 1
@@ -1004,7 +1004,7 @@ Effects:
     - Name: flare death sparks
       Color: 1, 0.66, 0.1, 10
       Count: 6
-      SparkDuration: [ 0.3, .325 ]
+      Duration: [ 0.3, .325 ]
       Restitution: 0.9
       Drag: 0.08
       Velocity: [ 45, 55 ]
@@ -1017,7 +1017,7 @@ Effects:
     - Name: flare sparks
       Color: 1, 0.66, 0.1, 10
       Count: [ 2, 4 ]
-      SparkDuration: [ 0.3, 0.6 ]
+      Duration: [ 0.3, 0.6 ]
       Restitution: 0.6
       Drag: 0.03
       Velocity: [ 9, 16]
@@ -1032,7 +1032,7 @@ Effects:
     - Name: fusion_charge
       Color: .6, 0, 1, 20
       Count: 8
-      SparkDuration: [ .45, .5 ]
+      Duration: [ .45, .5 ]
       Drag: 0.01
       Velocity: 0
       FadeTime: .4
@@ -1051,7 +1051,7 @@ Effects:
     - Name: robot_fusion_charge
       Color: .6, 0, 1, 20
       Count: 8
-      SparkDuration: [ .45, .5 ]
+      Duration: [ .45, .5 ]
       Drag: 0.01
       Velocity: 0
       FadeTime: .4
@@ -1068,7 +1068,7 @@ Effects:
 
     - Name: overlay_destroyed
       ConeRadius: 1
-      SparkDuration: [ 0.75, 2.4 ]
+      Duration: [ 0.75, 2.4 ]
       Restitution: 0.6
       Velocity: [ 35, 40 ]
       Count: [ 35, 40 ]
@@ -1079,7 +1079,7 @@ Effects:
       Color: 1, .5, .166, 6
 
     - Name: reactor_destroyed
-      SparkDuration: [ 0.75, 0.95 ]
+      Duration: [ 0.75, 0.95 ]
       Restitution: 0.6
       Velocity: [ 60, 100 ]
       Count: 60

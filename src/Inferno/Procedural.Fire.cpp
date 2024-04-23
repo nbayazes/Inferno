@@ -389,7 +389,7 @@ namespace Inferno {
 
                 particle.VelX = int(std::cos(ang) * 65536);
                 particle.VelY = int(std::sin(ang) * 65536);
-
+                
                 particle.X = int((elem.X1 - size * particle.VelX) * 65536);
                 particle.Y = int((elem.Y1 - size * particle.VelY) * 65536);
                 particle.Color = 254;

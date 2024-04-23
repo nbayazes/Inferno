@@ -2,6 +2,7 @@
 
 #include <numeric>
 #include "Game.Boss.h"
+#include "EffectTypes.h"
 #include "Game.AI.h"
 #include "Game.h"
 #include "Game.Reactor.h"
@@ -9,7 +10,6 @@
 #include "Physics.h"
 #include "Resources.h"
 #include "SoundSystem.h"
-#include "Graphics/Render.Particles.h"
 
 namespace Inferno::Game {
     namespace {
@@ -231,7 +231,7 @@ namespace Inferno::Game {
                 light.Radius = 200;
                 light.FadeTime = 0.25f;
                 light.LightColor = Color(1, 0.45f, 0.25f, 25);
-                Render::AddLight(light, boss.Position, 0.25f, boss.Segment);
+                AddLight(light, boss.Position, 0.25f, boss.Segment);
             }
 
             return /*false*/;

@@ -100,6 +100,7 @@
     <ClCompile Include="Formats\BBM.cpp" />
     <ClCompile Include="Game.EscapeSequence.cpp" />
     <ClCompile Include="Game.Briefing.cpp" />
+    <ClCompile Include="EffectTypes.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\Audio.h" />

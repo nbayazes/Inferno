@@ -2,6 +2,7 @@
 
 #include "Level.h"
 #include "Game.Object.h"
+#include "EffectTypes.h"
 #include "Game.AI.h"
 #include "Game.h"
 #include "Game.Segment.h"
@@ -9,7 +10,6 @@
 #include "Physics.h"
 #include "SoundSystem.h"
 #include "Graphics/Render.h"
-#include "Graphics/Render.Particles.h"
 #include "Resources.h"
 
 namespace Inferno {
@@ -433,7 +433,7 @@ namespace Inferno {
             debris.Model = modelId;
             debris.Submodel = sm;
             debris.TexOverride = Resources::LookupTexID(obj.Render.Model.TextureOverride);
-            Render::AddDebris(debris, world, obj.Segment, velocity, angularVelocity, duration);
+            AddDebris(debris, world, obj.Segment, velocity, angularVelocity, duration);
         }
     }
 
@@ -457,12 +457,12 @@ namespace Inferno {
                 expl.Sound = robot.ExplosionSound2;
                 expl.Clip = robot.ExplosionClip2;
                 expl.Radius = { obj.Radius * 1.75f, obj.Radius * 1.9f };
-                Render::CreateExplosion(expl, obj.Segment, obj.GetPosition(Game::LerpAmount));
+                CreateExplosion(expl, obj.Segment, obj.GetPosition(Game::LerpAmount));
 
                 expl.Sound = SoundID::None;
                 expl.Radius = { obj.Radius * 1.15f, obj.Radius * 1.55f };
                 expl.Variance = obj.Radius * 0.5f;
-                Render::CreateExplosion(expl, obj.Segment, obj.GetPosition(Game::LerpAmount), 0, EXPLOSION_DELAY);
+                CreateExplosion(expl, obj.Segment, obj.GetPosition(Game::LerpAmount), 0, EXPLOSION_DELAY);
 
                 if (robot.ExplosionStrength > 0) {
                     GameExplosion ge{};
@@ -632,7 +632,7 @@ namespace Inferno {
         }
 
         if (light.Radius > 0 && light.LightColor != Color()) {
-            Render::AttachLight(light, ref, submodel);
+            AttachLight(light, ref, submodel);
         }
     }
 
@@ -762,7 +762,7 @@ namespace Inferno {
 
             if (auto beam = EffectLibrary.GetBeamInfo(effect)) {
                 auto startObj = Game::GetObjectRef(obj);
-                Render::AttachBeam(*beam, beam->Duration, startObj);
+                AttachBeam(*beam, beam->Duration, startObj);
             }
         }
     }
@@ -782,7 +782,7 @@ namespace Inferno {
             DestroyObject(obj);
             // Keep playing effects from a dead reactor
             if (obj.Type != ObjectType::Reactor) {
-                Render::RemoveEffects(ref);
+                RemoveEffects(ref);
                 Sound::Stop(ref); // stop any sounds playing from this object
             }
         }
@@ -791,7 +791,7 @@ namespace Inferno {
             Game::FreeObject(id);
             // Detach effects on expired objects so out of view effects fade properly.
             // Mainly affects flares.
-            Render::DetachEffects(ref);
+            DetachEffects(ref);
         }
 
         if (!HasFlag(obj.Flags, ObjectFlag::Dead)) {

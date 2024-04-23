@@ -21,7 +21,6 @@
 #include "Version.h"
 #include "Game.Segment.h"
 #include "Resources.h"
-#include "Graphics/Render.Particles.h"
 
 namespace Inferno::Editor {
     using Input::SelectionState;

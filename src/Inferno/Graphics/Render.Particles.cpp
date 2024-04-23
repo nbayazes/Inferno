@@ -16,93 +16,11 @@
 
 namespace Inferno::Render {
     namespace {
-        Array<DecalInfo, 100> Decals;
-        Array<DecalInfo, 20> AdditiveDecals;
+        Array<DecalInstance, 100> Decals;
+        Array<DecalInstance, 20> AdditiveDecals;
         uint16 DecalIndex = 0;
         uint16 AdditiveDecalIndex = 0;
-
-        List<Ptr<EffectBase>> VisualEffects;
     }
-
-    struct LightEffect final : EffectBase {
-        explicit LightEffect(const LightEffectInfo& info) : Info(info) { Queue = RenderQueueType::None; }
-        LightEffectInfo Info;
-
-        void OnUpdate(float dt, EffectID) override;
-
-    private:
-        Color _currentColor;
-        float _currentRadius = 0;
-    };
-
-    struct Particle final : EffectBase {
-        explicit Particle(const ParticleInfo& info) : Info(info) {}
-        ParticleInfo Info;
-        //float FadeDuration = 0;
-
-        void Draw(GraphicsContext&) override;
-    };
-
-    struct ParticleEmitterInfo {
-        VClipID Clip = VClipID::None;
-        float Life = 0; // How long the emitter lives for
-        ObjRef Parent; // Moves with this object
-        //Vector3 ParentOffset; // Offset from parent
-        Vector3 Position;
-        Vector3 Velocity;
-
-        //SegID Segment = SegID::None; // For sorting
-        Color Color = { 1, 1, 1 };
-        float Variance = 0;
-        bool RandomRotation = true;
-        int ParticlesToSpawn = 1; // stops creating particles once this reaches zero. -1 to create particles forever
-        float StartDelay = 0; // How long to wait before emitting particles
-        float MinDelay = 0, MaxDelay = 0; // How often to spawn a particle
-        float MinRadius = 1, MaxRadius = 2;
-
-        Particle CreateParticle() const;
-    };
-
-    class ParticleEmitter final : public EffectBase {
-        float _spawnTimer = 0; // internal timer for when to create a particle
-        ParticleEmitterInfo _info;
-        DataPool<Particle> _particles;
-
-    public:
-        explicit ParticleEmitter(const ParticleEmitterInfo& info, size_t capacity)
-            : _info(info), _particles(IsExpired, capacity) {
-            StartDelay = info.StartDelay;
-            Position = info.Position;
-        }
-
-        void OnUpdate(float dt, EffectID) override;
-    };
-
-    // Remains of a destroyed robot
-    struct Debris final : EffectBase {
-        explicit Debris(const DebrisInfo& info) : Info(info) { Queue = RenderQueueType::Opaque; }
-
-        Matrix Transform, PrevTransform;
-        Vector3 Velocity;
-        Vector3 AngularVelocity;
-        DebrisInfo Info;
-
-        void Draw(GraphicsContext&) override;
-        void DepthPrepass(GraphicsContext&) override;
-        void OnFixedUpdate(float dt, EffectID) override;
-        void OnExpire() override;
-    };
-
-    // An explosion can consist of multiple particles
-    struct ExplosionEffect : EffectBase {
-        ExplosionEffect() { Queue = RenderQueueType::None; }
-
-        ExplosionEffectInfo Info;
-
-        //bool IsAlive() const { return InitialDelay >= 0; }
-        void OnUpdate(float, EffectID) override;
-    };
-
 
     bool IsExpired(const EffectBase& effect) {
         return Game::Time >= effect.CreationTime + effect.Duration;
@@ -148,6 +66,7 @@ namespace Inferno::Render {
         LinkEffect(effect, id, SegID::None);
     }
 
+
     EffectID AddEffect(Ptr<EffectBase> e) {
         if (VisualEffects.size() >= VisualEffects.capacity()) {
             //__debugbreak(); // Cannot resize effects array mid frame!
@@ -166,7 +85,7 @@ namespace Inferno::Render {
         auto newId = EffectID::None;
 
         // Find an unused effect slot
-        for (size_t i = 0; i < VisualEffects.size(); i++) {
+        for (size_t i = 0; i < Render::VisualEffects.size(); i++) {
             auto& effect = VisualEffects[i];
             if (!effect) {
                 effect = std::move(e);
@@ -188,109 +107,6 @@ namespace Inferno::Render {
         //SPDLOG_INFO("Add effect {}", SegmentEffects[seg].size());
     }
 
-    void AddBeamInstance(BeamInstance& beam) {
-        auto segId = FindContainingSegment(Game::Level, beam.Start);
-        if (segId != SegID::None) beam.Segment = segId;
-
-        std::array tex = { beam.Info.Texture };
-        Render::Materials->LoadTextures(tex);
-
-        if (beam.Info.HasRandomEndpoints())
-            beam.InitRandomPoints(Game::GetObject(beam.Parent));
-
-        beam.Runtime.Length = (beam.Start - beam.End).Length();
-        beam.Runtime.Width = beam.Info.Width.GetRandom();
-        beam.Runtime.OffsetU = Random();
-        AddEffect(MakePtr<BeamInstance>(beam));
-    }
-
-    void AddBeam(const BeamInfo& info, SegID seg, float duration, const Vector3& start, const Vector3& end) {
-        BeamInstance beam;
-        beam.Info = info;
-        beam.Start = start;
-        beam.End = end;
-        beam.Segment = seg;
-        if (duration > 0) beam.Duration = duration;
-        AddBeamInstance(beam);
-    }
-
-    void AddBeam(const BeamInfo& info, float duration, ObjRef start, const Vector3& end, int startGun) {
-        if (auto obj = Game::GetObject(start)) {
-            BeamInstance beam;
-            beam.Info = info;
-            beam.Parent = start;
-
-            if (startGun >= 0) {
-                beam.Start = GetGunpointOffset(*obj, (uint8)startGun);
-                beam.ParentSubmodel = GetGunpointSubmodelOffset(*obj, (uint8)startGun);
-            }
-            else {
-                beam.Start = obj->Position;
-            }
-
-            beam.Segment = obj->Segment;
-            beam.End = end;
-            if (duration > 0) beam.Duration = duration;
-            AddBeamInstance(beam);
-        }
-    }
-
-    void AttachBeam(const BeamInfo& info, float duration, ObjRef start, ObjRef end, int startGun) {
-        if (auto obj = Game::GetObject(start)) {
-            BeamInstance beam;
-            beam.Info = info;
-            beam.Parent = start;
-
-            if (startGun >= 0) {
-                beam.Start = GetGunpointOffset(*obj, (uint8)startGun);
-                beam.ParentSubmodel = GetGunpointSubmodelOffset(*obj, (uint8)startGun);
-            }
-            else {
-                beam.Start = obj->Position;
-            }
-
-            beam.Segment = obj->Segment;
-            beam.EndObj = end;
-            if (duration > 0) beam.Duration = duration;
-            AddBeamInstance(beam);
-        }
-    }
-
-    void AddParticle(const ParticleInfo& info, SegID seg, const Vector3& position) {
-        auto& vclip = Resources::GetVideoClip(info.Clip);
-        if (vclip.NumFrames <= 0) return;
-
-        Particle p(info);
-        p.Duration = vclip.PlayTime;
-        p.Segment = seg;
-        p.Position = position;
-        if (info.RandomRotation)
-            p.Info.Rotation = Random() * DirectX::XM_2PI;
-
-        Render::LoadTextureDynamic(info.Clip);
-        AddEffect(MakePtr<Particle>(p));
-    }
-
-    void AttachParticle(const ParticleInfo& info, ObjRef parent, SubmodelRef submodel) {
-        auto obj = Game::GetObject(parent);
-        if (!obj) return;
-
-        auto& vclip = Resources::GetVideoClip(info.Clip);
-        if (vclip.NumFrames <= 0) return;
-
-        Particle p(info);
-        p.Duration = vclip.PlayTime;
-        p.Segment = obj->Segment;
-        p.Position = obj->GetPosition(Game::LerpAmount);
-        p.Parent = parent;
-        p.ParentSubmodel = submodel;
-
-        if (info.RandomRotation)
-            p.Info.Rotation = Random() * DirectX::XM_2PI;
-
-        Render::LoadTextureDynamic(info.Clip);
-        AddEffect(MakePtr<Particle>(p));
-    }
 
     void Particle::Draw(GraphicsContext& ctx) {
         if (Info.Delay > 0 || IsExpired(*this)) return;
@@ -308,22 +124,22 @@ namespace Inferno::Render {
         DrawBillboard(ctx, tid, Position, Info.Radius, color, true, Info.Rotation, up);
     }
 
-    Particle ParticleEmitterInfo::CreateParticle() const {
-        auto& vclip = Resources::GetVideoClip(Clip);
+    Particle CreateParticle(const ParticleEmitterInfo& emitter) {
+        auto& vclip = Resources::GetVideoClip(emitter.Clip);
 
         ParticleInfo info;
-        info.Color = Color;
-        info.Clip = Clip;
+        info.Color = emitter.Color;
+        info.Clip = emitter.Clip;
         //p.Submodel.Offset = ParentOffset;
         //p.Submodel.ID = 0;
-        info.Radius = MinRadius + Random() * (MaxRadius - MinRadius);
+        info.Radius = emitter.MinRadius + Random() * (emitter.MaxRadius - emitter.MinRadius);
 
-        if (RandomRotation)
+        if (emitter.RandomRotation)
             info.Rotation = Random() * DirectX::XM_2PI;
 
         Particle p(info);
-        p.Position = Position;
-        p.Parent = Parent;
+        p.Position = emitter.Position;
+        p.Parent = emitter.Parent;
         p.Duration = vclip.PlayTime;
         return p;
     }
@@ -332,13 +148,13 @@ namespace Inferno::Render {
         if (_info.MaxDelay == 0 && _info.MinDelay == 0 && _info.ParticlesToSpawn > 0) {
             // Create all particles at once if delay is zero
             while (_info.ParticlesToSpawn-- > 0) {
-                _particles.Add(_info.CreateParticle());
+                _particles.Add(CreateParticle(_info));
             }
         }
         else {
             _spawnTimer -= dt;
             if (_spawnTimer < 0) {
-                _particles.Add(_info.CreateParticle());
+                _particles.Add(CreateParticle(_info));
                 _spawnTimer = _info.MinDelay + Random() * (_info.MaxDelay - _info.MinDelay);
             }
         }
@@ -468,47 +284,6 @@ namespace Inferno::Render {
         CreateExplosion(info, Segment, PrevTransform.Translation());
     }
 
-    void AddDebris(const DebrisInfo& info, const Matrix& transform, SegID seg, const Vector3& velocity, const Vector3& angularVelocity, float duration) {
-        Debris debris(info);
-        debris.Segment = seg;
-        debris.Velocity = velocity;
-        debris.AngularVelocity = angularVelocity;
-        debris.Duration = duration;
-        debris.Transform = debris.PrevTransform = transform;
-        AddEffect(MakePtr<Debris>(debris));
-    }
-
-    void CreateExplosion(ExplosionEffectInfo& info, SegID seg, const Vector3& position, float duration, float startDelay) {
-        if (info.Clip == VClipID::None) return;
-        if (info.Instances < 0) info.Instances = 1;
-        if (duration <= 0) duration = startDelay + info.Delay.Max * info.Instances;
-
-        ExplosionEffect e;
-        e.Segment = seg;
-        e.Position = position;
-        e.StartDelay = startDelay;
-        e.Duration = duration;
-        AddEffect(MakePtr<ExplosionEffect>(e));
-    }
-
-    void CreateExplosion(ExplosionEffectInfo& info, ObjRef parent, float duration, float startDelay) {
-        if (info.Clip == VClipID::None) return;
-        if (info.Instances < 0) info.Instances = 1;
-        if (duration <= 0) duration = startDelay + info.Delay.Max * info.Instances;
-
-        ExplosionEffect e;
-        e.StartDelay = startDelay;
-        e.Duration = duration;
-        e.Parent = parent;
-
-        if (auto obj = Game::GetObject(parent)) {
-            e.Position = obj->GetPosition(Game::LerpAmount);
-            e.Segment = obj->Segment;
-        }
-
-        AddEffect(MakePtr<ExplosionEffect>(e));
-    }
-
     void ExplosionEffect::OnUpdate(float /*dt*/, EffectID) {
         auto instances = Info.Instances;
 
@@ -551,7 +326,7 @@ namespace Inferno::Render {
                 light.FadeTime = lightDuration;
                 light.LightColor = Info.LightColor;
                 light.Radius = Info.LightRadius > 0 ? Info.LightRadius : info.Radius * 4;
-                AddLight(light, position, lightDuration, Segment);
+                Inferno::AddLight(light, position, lightDuration, Segment);
             }
 
             AddParticle(info, Segment, position);
@@ -642,51 +417,14 @@ namespace Inferno::Render {
         }
     }
 
-    void AddTracer(const TracerInfo& info, ObjRef parent) {
-        std::array tex = { info.Texture, info.BlobTexture };
-        Render::Materials->LoadTextures(tex);
-
-        Tracer tracer;
-        tracer.Parent = parent;
-        auto obj = Game::GetObject(parent);
-        if (!obj) return;
-
-        tracer.PrevPosition = tracer.Position = obj->Position;
-        tracer.Segment = obj->Segment;
-
-        tracer.Duration = 5;
-        AddEffect(MakePtr<Tracer>(tracer));
-    }
-
-    void AddDecal(DecalInfo& decal) {
-        if (!Render::Materials->LoadTexture(decal.Texture))
-            return;
-
-        if (decal.Duration == 0)
-            decal.Duration = FLT_MAX;
-
-        if (decal.Additive) {
-            AdditiveDecals[AdditiveDecalIndex++] = decal;
-
-            if (AdditiveDecalIndex >= AdditiveDecals.size())
-                AdditiveDecalIndex = 0;
-        }
-        else {
-            Decals[DecalIndex++] = decal;
-
-            if (DecalIndex >= Decals.size())
-                DecalIndex = 0;
-        }
-    }
-
-    void DrawDecal(const DecalInfo& decal, DirectX::PrimitiveBatch<ObjectVertex>& batch) {
-        auto radius = decal.Radius;
-        auto color = decal.Color;
+    void DrawDecal(const DecalInstance& decal, DirectX::PrimitiveBatch<ObjectVertex>& batch) {
+        auto radius = decal.Info.Radius;
+        auto color = decal.Info.Color;
         if (decal.FadeTime > 0) {
             float remaining = decal.GetRemainingTime();
             auto t = std::lerp(1.0f, 0.0f, std::clamp((decal.FadeTime - remaining) / decal.FadeTime, 0.0f, 1.0f));
             color.w = t;
-            radius += (1 - t) * decal.Radius * 0.5f; // expand as fading out
+            radius += (1 - t) * decal.Info.Radius * 0.5f; // expand as fading out
         }
 
         const auto& pos = decal.Position;
@@ -718,7 +456,7 @@ namespace Inferno::Render {
 
                 decal.Update(dt, EffectID(0));
 
-                auto& material = Render::Materials->Get(decal.Texture);
+                auto& material = Render::Materials->Get(decal.Info.Texture);
                 effect.Shader->SetDiffuse(cmdList, material.Handle());
                 g_SpriteBatch->Begin(cmdList);
                 DrawDecal(decal, *g_SpriteBatch.get());
@@ -741,7 +479,7 @@ namespace Inferno::Render {
 
                 decal.Update(dt, EffectID(0));
 
-                auto& material = Render::Materials->Get(decal.Texture);
+                auto& material = Render::Materials->Get(decal.Info.Texture);
                 effect.Shader->SetDiffuse(cmdList, material.Handle());
                 g_SpriteBatch->Begin(cmdList);
                 DrawDecal(decal, *g_SpriteBatch.get());
@@ -751,49 +489,8 @@ namespace Inferno::Render {
         }
     }
 
-    span<DecalInfo> GetAdditiveDecals() { return AdditiveDecals; }
-    span<DecalInfo> GetDecals() { return Decals; }
-
-    void RemoveDecals(Tag tag) {
-        if (!tag) return;
-        auto cside = Game::Level.GetConnectedSide(tag);
-
-        for (auto& decal : Decals) {
-            Tag decalTag = { decal.Segment, decal.Side };
-            if (decalTag == tag || (cside && decalTag == cside))
-                decal.Duration = 0;
-        }
-    }
-
-    void RemoveEffects(ObjRef id) {
-        // Expire effects attached to an object when it is destroyed
-        for (size_t effectId = 0; effectId < VisualEffects.size(); effectId++) {
-            auto& effect = VisualEffects[effectId];
-            if (effect && effect->Parent == id)
-                effect->Duration = 0; // expire the effect
-        }
-    }
-
-    void DetachEffects(EffectBase& effect) {
-        // Had a parent but it was destroyed
-        if (effect.FadeTime > 0) {
-            // Detach from parent and fade out
-            effect.Duration = float(Game::Time - effect.CreationTime) + effect.FadeTime;
-            effect.Parent = {};
-        }
-        else {
-            effect.Duration = 0; // Remove
-        }
-    }
-
-    void DetachEffects(ObjRef id) {
-        // Expire effects attached to an object when it is destroyed
-        for (size_t effectId = 0; effectId < VisualEffects.size(); effectId++) {
-            auto& effect = VisualEffects[effectId];
-            if (effect && effect->Parent == id)
-                DetachEffects(*effect);
-        }
-    }
+    span<DecalInstance> GetAdditiveDecals() { return AdditiveDecals; }
+    span<DecalInstance> GetDecals() { return Decals; }
 
     void SparkEmitter::OnInit() {
         _nextInterval = Info.Interval.GetRandom();
@@ -832,7 +529,7 @@ namespace Inferno::Render {
                 auto center = Position;
                 if (parent && (Info.PointGravityVelocity != Vector3::Zero || Info.PointGravityOffset != Vector3::Zero)) {
                     // Offset the gravity center over the lifetime of the particle
-                    auto t = Info.SparkDuration.Max - (Info.SparkDuration.Max - spark.Life);
+                    auto t = Info.Duration.Max - (Info.Duration.Max - spark.Life);
                     center += Vector3::Transform(Info.PointGravityVelocity * t + Info.PointGravityOffset + ParentSubmodel.Offset, parent->Rotation);
                 }
 
@@ -950,7 +647,7 @@ namespace Inferno::Render {
 
     void SparkEmitter::CreateSpark() {
         Spark spark;
-        spark.Life = Info.SparkDuration.GetRandom();
+        spark.Life = Info.Duration.GetRandom();
         auto position = Position;
         if (Info.SpawnRadius > 0)
             position += RandomPointOnSphere() * Info.SpawnRadius;
@@ -980,73 +677,6 @@ namespace Inferno::Render {
         }
 
         _sparks.Add(spark);
-    }
-
-    void AddSparkEmitter(const SparkEmitterInfo& info, SegID seg, const Vector3& worldPos) {
-        if (info.Color == LIGHT_UNSET) return;
-        SparkEmitter emitter;
-        emitter.Info = info;
-        emitter.Segment = seg;
-        emitter.Position = worldPos;
-        emitter.Info.Color.Premultiply();
-        emitter.Info.Color.w = 0;
-
-        //if (auto parent = Game::GetObject(emitter.Parent)) {
-        //    emitter.Position = parent->GetPosition(Game::LerpAmount);
-        //}
-
-        Render::Materials->LoadTexture(info.Texture);
-        if (emitter.Duration == 0) emitter.Duration = info.SparkDuration.Max;
-        AddEffect(MakePtr<SparkEmitter>(std::move(emitter)));
-    }
-
-    void AddSparkEmitter(const SparkEmitterInfo& info, ObjRef parent, const Vector3& offset) {
-        if (info.Color == LIGHT_UNSET) return;
-        SparkEmitter emitter;
-        emitter.Info = info;
-        emitter.Info.Color.Premultiply();
-        emitter.Info.Color.w = 0;
-        emitter.Parent = parent;
-        emitter.ParentSubmodel.Offset = offset;
-
-        if (auto obj = Game::GetObject(parent)) {
-            emitter.Position = obj->GetPosition(Game::LerpAmount);
-            emitter.Segment = obj->Segment;
-        }
-
-        Render::Materials->LoadTexture(info.Texture);
-        if (emitter.Duration == 0) emitter.Duration = info.SparkDuration.Max;
-        AddEffect(MakePtr<SparkEmitter>(std::move(emitter)));
-    }
-
-    EffectID AddLight(LightEffectInfo& info, const Vector3& position, float duration, SegID segment) {
-        ASSERT(duration > 0);
-        if (info.Radius <= 0 || info.LightColor == LIGHT_UNSET) return EffectID::None;
-        LightEffect light(info);
-        light.Info.LightColor.Premultiply();
-        light.Info.LightColor.w = 1;
-        light.Duration = duration;
-        light.FadeTime = info.FadeTime;
-        light.Segment = segment;
-        light.Position = position;
-        return AddEffect(make_unique<LightEffect>(std::move(light)));
-    }
-
-    EffectID AttachLight(const LightEffectInfo& info, ObjRef parent, SubmodelRef submodel) {
-        auto obj = Game::GetObject(parent);
-        if (!obj || info.Radius <= 0 || info.LightColor == LIGHT_UNSET) return EffectID::None;
-
-        LightEffect light(info);
-        light.Info.LightColor.Premultiply();
-        light.Info.LightColor.w = 1;
-        light.Duration = MAX_OBJECT_LIFE; // lights will be removed when their parent is destroyed
-        light.FadeTime = info.FadeTime;
-        light.Parent = parent;
-        light.ParentSubmodel = submodel;
-        light.Position = obj->GetPosition(Game::LerpAmount);
-        light.Segment = obj->Segment;
-
-        return AddEffect(make_unique<LightEffect>(std::move(light)));
     }
 
     void UpdateEffect(float dt, EffectID id) {
@@ -1125,6 +755,18 @@ namespace Inferno::Render {
 
         for (auto& decal : Decals)
             decal.Duration = 0;
+    }
+
+    void DetachEffects(EffectBase& effect) {
+        // Had a parent but it was destroyed
+        if (effect.FadeTime > 0) {
+            // Detach from parent and fade out
+            effect.Duration = float(Game::Time - effect.CreationTime) + effect.FadeTime;
+            effect.Parent = {};
+        }
+        else {
+            effect.Duration = 0; // Remove
+        }
     }
 
     void EffectBase::Update(float dt, EffectID id) {

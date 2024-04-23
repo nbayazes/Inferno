@@ -3,10 +3,8 @@
 #include "Game.AI.h"
 #include "imgui_local.h"
 #include "Game.h"
-#include "Game.Visibility.h"
 #include "Physics.h"
 #include "Graphics/Render.h"
-#include "Graphics/Render.Particles.h"
 #include "Graphics/Render.Level.h"
 
 namespace Inferno {

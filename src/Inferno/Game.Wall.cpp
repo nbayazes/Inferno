@@ -6,12 +6,12 @@
 #include <Game.Segment.h>
 #include "Face.h"
 #include "Game.h"
-#include "Graphics/Render.Particles.h"
 #include "HUD.h"
 #include "DataPool.h"
 #include "Game.AI.h"
 #include "Resources.h"
 #include "Editor/Events.h"
+#include "EffectTypes.h"
 #include "Graphics/Render.h"
 
 namespace Inferno {
@@ -60,7 +60,7 @@ namespace Inferno {
 
     // Removes all effects and objects stuck to a wall
     void RemoveAttachments(Level& level, Tag tag) {
-        Render::RemoveDecals(tag);
+        RemoveDecals(tag);
         StuckObjects.Remove(level, tag);
     }
 
@@ -457,7 +457,7 @@ namespace Inferno {
                 p.Clip = VClipID::SmallExplosion;
                 p.Radius = size / 2;
                 p.Color = Color(1, .75f, .75f, 2.0f);
-                Render::AddParticle(p, wall.Tag.Segment, pos);
+                AddParticle(p, wall.Tag.Segment, pos);
             }
 
             if (wall.Time >= EXPLODE_TIME)
@@ -633,20 +633,15 @@ namespace Inferno {
         auto rotation = Matrix::CreateFromAxisAngle(hit.Normal, Random() * DirectX::XM_2PI);
 
         // Add the planar explosion effect
-        Render::DecalInfo planar{};
-        planar.Normal = hit.Normal;
-        planar.Tangent = Vector3::Transform(hit.Tangent, rotation);
-        planar.Bitangent = planar.Tangent.Cross(hit.Normal);
-        planar.Texture = weapon.Extended.ExplosionTexture;
-        planar.Radius = weapon.Extended.ExplosionSize;
-        planar.Duration = planar.FadeTime = weapon.Extended.ExplosionTime;
-        planar.Segment = hit.Tag.Segment;
-        planar.Side = hit.Tag.Side;
-        planar.Position = hit.Point;
-        planar.FadeRadius = weapon.GetDecalSize() * 2.4f;
-        planar.Additive = true;
-        planar.Color = Color{ 1.5f, 1.5f, 1.5f };
-        Render::AddDecal(planar);
+        Decal decal{};
+        auto tangent = Vector3::Transform(hit.Tangent, rotation);
+        decal.Texture = weapon.Extended.ExplosionTexture;
+        decal.Radius = weapon.Extended.ExplosionSize;
+        decal.FadeTime = weapon.Extended.ExplosionTime;
+        decal.FadeRadius = weapon.GetDecalSize() * 2.4f;
+        decal.Additive = true;
+        decal.Color = Color{ 1.5f, 1.5f, 1.5f };
+        AddDecal(decal, hit.Tag, hit.Point, hit.Normal, tangent, decal.FadeTime);
 
         //Render::DynamicLight light{};
         //light.LightColor = weapon.Extended.ExplosionColor;
@@ -744,7 +739,7 @@ namespace Inferno {
             e->Direction = side.AverageNormal;
             e->Up = side.Tangents[0];
             auto position = point + side.AverageNormal * 0.1f;
-            Render::AddSparkEmitter(*e, tag.Segment, position);
+            AddSparkEmitter(*e, tag.Segment, position);
         }
 
         auto& vclip = Resources::GetVideoClip(eclip.DestroyedVClip);
@@ -857,7 +852,7 @@ namespace Inferno {
             e.Color = Color{ 1, .7f, .7f, 2 };
             e.LightColor = Color{ 1.0f, 0.05f, 0.05f, 4 };
             e.LightRadius = splashRadius;
-            Render::CreateExplosion(e, obj.Segment, obj.Position);
+            CreateExplosion(e, obj.Segment, obj.Position);
 
             Sound::Play({ SoundID::HitLava }, hit.Point, hit.Tag.Segment);
         }
@@ -890,7 +885,7 @@ namespace Inferno {
             e.Clip = vclip;
             e.FadeTime = weapon.Extended.ExplosionTime;
             e.Color = Color(1, 1, 1);
-            Render::AddParticle(e, obj.Segment, obj.Position);
+            AddParticle(e, obj.Segment, obj.Position);
 
             auto splashId = weapon.IsMatter ? SoundID::MissileHitWater : SoundID::HitWater;
             Sound::Play({ splashId }, hit.Point, hit.Tag.Segment);

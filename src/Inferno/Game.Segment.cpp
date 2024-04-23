@@ -1,10 +1,10 @@
 #include "pch.h"
 #include "Game.Segment.h"
 #include "Editor/Editor.h"
+#include "EffectTypes.h"
 #include "Game.AI.Pathing.h"
 #include "Game.h"
 #include "Graphics/Render.h"
-#include "Graphics/Render.Particles.h"
 #include "Resources.h"
 #include "Settings.h"
 #include "SoundSystem.h"
@@ -415,25 +415,25 @@ namespace Inferno {
             up.Normalize(p.Up);
             p.RandomRotation = false;
             p.Color = Color(.2f, 1, .2f, 5);
-            Render::AddParticle(p, segId, seg->Center);
+            AddParticle(p, segId, seg->Center);
 
             LightEffectInfo light;
             light.Radius = p.Radius * 2.0f;
             light.LightColor = Color(1, 0, 0.8f, 5.0f);
             light.FadeTime = vclip.PlayTime;
-            Render::AddLight(light, seg->Center, vclip.PlayTime * 2, segId);
+            AddLight(light, seg->Center, vclip.PlayTime * 2, segId);
 
             if (auto beam = EffectLibrary.GetBeamInfo("matcen")) {
                 for (int i = 0; i < 4; i++) {
                     //beam->StartDelay = i * 0.4f + Random() * 0.125f;
-                    Render::AddBeam(*beam, segId, vclip.PlayTime, top, bottom);
+                    AddBeam(*beam, segId, vclip.PlayTime, top, bottom);
                 }
             }
 
             if (auto beam = EffectLibrary.GetBeamInfo("matcen arcs")) {
                 for (int i = 0; i < 8; i++) {
                     //beam->StartDelay = i * 0.4f + Random() * 0.125f;
-                    Render::AddBeam(*beam, segId, vclip.PlayTime, seg->Center, {});
+                    AddBeam(*beam, segId, vclip.PlayTime, seg->Center, {});
                 }
             }
         }
@@ -464,11 +464,9 @@ namespace Inferno {
                     obj.Lifespan = 1; // Expire the light object
             }
 
-            if (matcen.Energy <= 0) {
-                // Remove the ambient light if out of energy
-                if (auto effect = Render::GetEffect(matcen.Light))
-                    effect->Duration = 0;
-            }
+            if (matcen.Energy <= 0)
+                StopEffect(matcen.Light); // Remove the ambient light if out of energy
+
             return;
         }
 
@@ -656,7 +654,7 @@ namespace Inferno {
                     light.Radius = seg->GetLongestEdge() * 1.5f;
                     light.LightColor = Color(1, 0, 0.8f, 0.05f);
                     light.Mode = DynamicLightMode::BigPulse;
-                    matcen.Light = Render::AddLight(light, seg->Center, MAX_OBJECT_LIFE, matcen.Segment);
+                    matcen.Light = AddLight(light, seg->Center, MAX_OBJECT_LIFE, matcen.Segment);
                 }
             }
         }

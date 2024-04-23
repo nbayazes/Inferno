@@ -2,6 +2,7 @@
 #include "Editor/Editor.h"
 #include "Editor/Editor.IO.h"
 #include "Editor/UI/TextureBrowserUI.h"
+#include "EffectTypes.h"
 #include "FileSystem.h"
 #include "Game.EscapeSequence.h"
 #include "Game.h"
@@ -9,7 +10,6 @@
 #include "Game.Text.h"
 #include "Graphics/MaterialLibrary.h"
 #include "Graphics/Render.h"
-#include "Graphics/Render.Particles.h"
 #include "LevelMetadata.h"
 #include "Procedural.h"
 #include "Resources.h"
@@ -209,7 +209,7 @@ namespace Inferno::Game {
             }
 
             Render::LoadLevel(Level);
-            Render::ResetEffects();
+            Inferno::ResetEffects();
             InitObjects(Level);
 
             Editor::OnLevelLoad(reload);

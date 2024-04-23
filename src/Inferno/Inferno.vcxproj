@@ -159,6 +159,7 @@
     <ClCompile Include="Audio\SoundEffect.cpp" />
     <ClCompile Include="Audio\SoundEffectInstance.cpp" />
     <ClCompile Include="Audio\WAVFileReader.cpp" />
+    <ClCompile Include="EffectTypes.cpp" />
     <ClCompile Include="Formats\BBM.cpp" />
     <ClCompile Include="CustomTextureLibrary.cpp" />
     <ClCompile Include="Editor\UI\DebugWindow.cpp" />

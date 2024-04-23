@@ -61,7 +61,6 @@ namespace Inferno {
 
     struct LightEffectInfo {
         float FadeTime = 0;
-
         DynamicLightMode Mode = DynamicLightMode::Constant;
         bool FadeOnParentDeath = false;
         //float FlickerSpeed = 4.0f;
@@ -72,13 +71,12 @@ namespace Inferno {
     };
 
     struct SparkEmitterInfo {
-        float Duration = 1;
         float FadeTime = 0;
         string Texture = "tracer";
         Color Color = { 3.0, 3.0, 3.0 };
         float Width = 0.35f;
 
-        NumericRange<float> SparkDuration = { 1.0, 2.4f }; // Range for individual spark lifespans 
+        NumericRange<float> Duration = { 1.0, 2.4f }; // Range for individual spark lifespans 
         NumericRange<uint> Count = { 80, 100 };
         NumericRange<float> Velocity = { 50, 75 };
         NumericRange<float> Interval = { 0, 0 }; // Interval between creating sparks. When zero, only creates sparks once.
@@ -124,7 +122,15 @@ namespace Inferno {
         string Texture, BlobTexture;
         Color Color = { 1, 1, 1 };
         //float FadeSpeed = 0.2f; // How quickly the tracer fades in and out
+    };
 
+    struct Decal {
+        float FadeTime = 0;
+        float FadeRadius = 3.0; // Radius to grow to at end of life
+        string Texture = "scorchB";
+        float Radius = 2;
+        Color Color = { 1, 1, 1 };
+        bool Additive = false;
     };
 
     // Stores default effects
@@ -151,5 +157,64 @@ namespace Inferno {
         //void LoadEffects(const filesystem::path& path);
     };
 
+    struct ParticleEmitterInfo {
+        VClipID Clip = VClipID::None;
+        float Life = 0; // How long the emitter lives for
+        ObjRef Parent; // Moves with this object
+        //Vector3 ParentOffset; // Offset from parent
+        Vector3 Position;
+        Vector3 Velocity;
+
+        //SegID Segment = SegID::None; // For sorting
+        Color Color = { 1, 1, 1 };
+        float Variance = 0;
+        bool RandomRotation = true;
+        int ParticlesToSpawn = 1; // stops creating particles once this reaches zero. -1 to create particles forever
+        float StartDelay = 0; // How long to wait before emitting particles
+        float MinDelay = 0, MaxDelay = 0; // How often to spawn a particle
+        float MinRadius = 1, MaxRadius = 2;
+
+        //Particle CreateParticle() const;
+    };
+
+    // Adds a tracer effect attached to an object that is removed when the parent object dies.
+    // Tracers are only drawn when the minimum length is reached
+    void AddTracer(const TracerInfo&, ObjRef parent);
+
+    //void AddSparkEmitter(SparkEmitter&);
+    //void AddDecal(Decal& decal, Tag tag, const Vector3& position);
     inline class EffectLibrary EffectLibrary;
+
+    void AddDecal(const Decal& info, Tag tag, const Vector3& position, const Vector3& normal, const Vector3& tangent, float duration);
+    void AddBeam(const BeamInfo&, SegID seg, float duration, const Vector3& start, const Vector3& end);
+    void AddBeam(const BeamInfo&, float duration, ObjRef start, const Vector3& end, int startGun);
+    void AttachBeam(const BeamInfo&, float duration, ObjRef start, ObjRef end = {}, int startGun = -1);
+
+    void AddParticle(const ParticleInfo&, SegID, const Vector3& position);
+    void AttachParticle(const ParticleInfo&, ObjRef parent, SubmodelRef submodel = {});
+
+    void AddSparkEmitter(const SparkEmitterInfo&, SegID, const Vector3& worldPos = Vector3::Zero);
+    void AttachSparkEmitter(const SparkEmitterInfo&, ObjRef parent, const Vector3& offset = Vector3::Zero);
+
+    EffectID AddLight(const LightEffectInfo& info, const Vector3& position, float duration, SegID segment);
+    EffectID AttachLight(const LightEffectInfo& info, ObjRef parent, SubmodelRef submodel);
+
+    void AddDebris(const DebrisInfo& info, const Matrix& transform, SegID seg, const Vector3& velocity, const Vector3& angularVelocity, float duration);
+
+    void CreateExplosion(ExplosionEffectInfo&, SegID, const Vector3& position, float duration = 0, float startDelay = 0);
+    void CreateExplosion(ExplosionEffectInfo&, ObjRef parent, float duration = 0, float startDelay = 0);
+
+    // Removes decals on a side
+    void RemoveDecals(Tag);
+
+    // Removes all effects associated with an object
+    void RemoveEffects(ObjRef);
+
+    // Detach effects from an object and cause them to fade out
+    void DetachEffects(ObjRef);
+
+    void StopEffect(EffectID);
+
+    // Clears all effects
+    void ResetEffects();
 }

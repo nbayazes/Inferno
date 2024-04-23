@@ -1,11 +1,11 @@
 #include "pch.h"
 #include "Game.Reactor.h"
+#include "EffectTypes.h"
 
 #include "Game.AI.h"
 #include "Game.h"
 #include "Game.Wall.h"
 #include "Graphics/Render.h"
-#include "Graphics/Render.Particles.h"
 #include "Resources.h"
 #include "SoundSystem.h"
 
@@ -98,25 +98,25 @@ namespace Inferno::Game {
         int instances = 1000; // Want this to last forever in case multiple reactor levels are ever added
 
         if (auto e = EffectLibrary.GetSparks("reactor_destroyed"))
-            Render::AddSparkEmitter(*e, obj.Segment, obj.Position);
+            AddSparkEmitter(*e, obj.Segment, obj.Position);
 
         if (auto e = EffectLibrary.GetExplosion("reactor_initial_explosion")) {
             e->Radius = { obj.Radius * 0.5f, obj.Radius * 0.7f };
             e->Variance = obj.Radius * 0.9f;
-            Render::CreateExplosion(*e, obj.Segment, obj.Position);
+            CreateExplosion(*e, obj.Segment, obj.Position);
         }
 
         if (auto e = EffectLibrary.GetExplosion("reactor_large_explosions")) {
             // Larger periodic explosions with sound
             e->Variance = obj.Radius * 0.45f;
             e->Instances = instances;
-            Render::CreateExplosion(*e, obj.Segment, obj.Position);
+            CreateExplosion(*e, obj.Segment, obj.Position);
         }
 
         if (auto e = EffectLibrary.GetExplosion("reactor_small_explosions")) {
             e->Variance = obj.Radius * 0.55f;
             e->Instances = instances * 10;
-            Render::CreateExplosion(*e, obj.Segment, obj.Position);
+            CreateExplosion(*e, obj.Segment, obj.Position);
         }
 
         if (auto beam = EffectLibrary.GetBeamInfo("reactor_arcs")) {
@@ -124,12 +124,12 @@ namespace Inferno::Game {
             light.LightColor = beam->Color * 0.25f;
             light.Radius = 25;
             light.Mode = DynamicLightMode::StrongFlicker;
-            Render::AddLight(light, obj.Position, MAX_OBJECT_LIFE, obj.Segment);
+            AddLight(light, obj.Position, MAX_OBJECT_LIFE, obj.Segment);
 
             for (int i = 0; i < 4; i++) {
                 auto startObj = Game::GetObjectRef(obj);
                 beam->StartDelay = i * 0.4f + Random() * 0.125f;
-                Render::AttachBeam(*beam, (float)instances, startObj);
+                AttachBeam(*beam, (float)instances, startObj);
             }
         }
 
@@ -137,7 +137,7 @@ namespace Inferno::Game {
         //    for (int i = 0; i < 4; i++) {
         //        auto startObj = ObjID(&obj - Level.Objects.data());
         //        beam->StartDelay = i * 0.4f + Random() * 0.125f;
-        //        Render::AddBeam(*beam, CountdownTimer + 5, startObj);
+        //        AddBeam(*beam, CountdownTimer + 5, startObj);
         //    }
         //}
         return true;

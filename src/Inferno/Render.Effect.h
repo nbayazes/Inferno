@@ -54,4 +54,30 @@ namespace Inferno::Render {
         EffectBase& operator=(EffectBase&&) = default;
     };
 
+    struct DecalInstance final : EffectBase {
+        Decal Info;
+        Vector3 Normal, Tangent, Bitangent;
+        SideID Side;
+    };
+
+    inline List<Ptr<EffectBase>> VisualEffects;
+
+    void DrawDecals(GraphicsContext& ctx, float dt);
+
+    span<DecalInstance> GetAdditiveDecals();
+    span<DecalInstance> GetDecals();
+
+    // Gets a visual effect
+    EffectBase* GetEffect(EffectID effect);
+    EffectID AddEffect(Ptr<EffectBase> e);
+
+    void ResetEffects();
+    void DetachEffects(EffectBase& effect);
+    void UpdateEffect(float dt, EffectID id);
+
+    // Either call this or individual effects using UpdateEffect()
+    void UpdateAllEffects(float dt);
+    void FixedUpdateEffects(float dt);
+    void EndUpdateEffects();
+
 }

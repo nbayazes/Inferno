@@ -231,7 +231,6 @@ namespace Inferno {
         READ_PROP(FadeTime);
         READ_PROP(Drag);
         READ_PROP(VelocitySmear);
-        READ_PROP(Duration);
         READ_PROP(SpawnRadius);
         READ_PROP(UseWorldGravity);
         READ_PROP(UsePointGravity);
@@ -242,7 +241,7 @@ namespace Inferno {
         READ_PROP(FadeSize);
         READ_PROP(Relative);
         READ_PROP(Physics);
-        ReadRange(node["SparkDuration"], info.SparkDuration);
+        ReadRange(node["Duration"], info.Duration);
         ReadRange(node["Interval"], info.Interval);
         ReadRange(node["Velocity"], info.Velocity);
         ReadRange(node["Count"], info.Count);

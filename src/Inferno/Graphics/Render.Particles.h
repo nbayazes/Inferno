@@ -3,10 +3,8 @@
 #include "DataPool.h"
 #include "EffectClip.h"
 #include "DirectX.h"
-#include "Game.Object.h"
 #include "Render.Beam.h"
 #include "Render.Effect.h"
-#include "Graphics/CommandContext.h"
 
 namespace Inferno {
     struct Level;
@@ -17,12 +15,28 @@ namespace Inferno::Render {
 
     bool IsExpired(const EffectBase& effect);
 
-    void AddDebris(const DebrisInfo& info, const Matrix& transform, SegID seg, const Vector3& velocity, const Vector3& angularVelocity, float duration);
+    struct Particle final : EffectBase {
+        explicit Particle(const ParticleInfo& info) : Info(info) {}
+        ParticleInfo Info;
+        //float FadeDuration = 0;
 
-    void CreateExplosion(ExplosionEffectInfo&, SegID, const Vector3& position, float duration = 0, float startDelay = 0);
-    void CreateExplosion(ExplosionEffectInfo&, ObjRef parent, float duration = 0, float startDelay = 0);
+        void Draw(GraphicsContext&) override;
+    };
+
+    // An explosion can consist of multiple particles
+    struct ExplosionEffect : EffectBase {
+        explicit ExplosionEffect(const ExplosionEffectInfo& info) : Info(info) {
+            Queue = RenderQueueType::None;
+        }
+
+        ExplosionEffectInfo Info;
+
+        //bool IsAlive() const { return InitialDelay >= 0; }
+        void OnUpdate(float, EffectID) override;
+    };
 
     struct Tracer final : EffectBase {
+        explicit Tracer(const TracerInfo& info): Info(info) {}
         TracerInfo Info;
 
         // Runtime vars
@@ -34,22 +48,6 @@ namespace Inferno::Render {
 
         void OnUpdate(float dt, EffectID) override;
         void Draw(GraphicsContext&) override;
-    };
-
-    // Adds a tracer effect attached to an object that is removed when the parent object dies.
-    // Tracers are only drawn when the minimum length is reached
-    void AddTracer(const TracerInfo&, ObjRef parent);
-
-    struct DecalInfo final : EffectBase {
-        Vector3 Normal, Tangent, Bitangent;
-        string Texture = "scorchB";
-
-        float Radius = 2;
-        float FadeRadius = 3.0; // Radius to grow to at end of life
-
-        Color Color = { 1, 1, 1 };
-        SideID Side;
-        bool Additive = false;
     };
 
     struct Spark {
@@ -65,10 +63,12 @@ namespace Inferno::Render {
         float _nextInterval = 0;
 
     public:
+        explicit SparkEmitter(const SparkEmitterInfo& info) : Info(info) {
+            Queue = RenderQueueType::Transparent;
+        }
+
         SparkEmitterInfo Info;
         Vector3 PrevParentPosition;
-
-        SparkEmitter() { Queue = RenderQueueType::Transparent; }
 
         void OnInit() override;
         void OnUpdate(float dt, EffectID) override;
@@ -79,46 +79,46 @@ namespace Inferno::Render {
         void CreateSpark();
     };
 
-    //void AddSparkEmitter(SparkEmitter&);
-    void AddDecal(DecalInfo& decal);
-    void DrawDecals(GraphicsContext& ctx, float dt);
-    span<DecalInfo> GetAdditiveDecals();
-    span<DecalInfo> GetDecals();
+    struct LightEffect final : EffectBase {
+        explicit LightEffect(const LightEffectInfo& info) : Info(info) { Queue = RenderQueueType::None; }
+        LightEffectInfo Info;
 
-    // Removes decals on a side
-    void RemoveDecals(Tag);
+        void OnUpdate(float dt, EffectID) override;
 
-    // Removes all effects associated with an object
-    void RemoveEffects(ObjRef);
+    private:
+        Color _currentColor;
+        float _currentRadius = 0;
+    };
 
-    // Detach effects from an object and cause them to fade out
-    void DetachEffects(ObjRef);
+    class ParticleEmitter final : public EffectBase {
+        float _spawnTimer = 0; // internal timer for when to create a particle
+        ParticleEmitterInfo _info;
+        DataPool<Particle> _particles;
 
-    void AddBeam(const BeamInfo&, SegID seg, float duration, const Vector3& start, const Vector3& end);
-    void AddBeam(const BeamInfo&, float duration, ObjRef start, const Vector3& end, int startGun);
-    void AttachBeam(const BeamInfo&, float duration, ObjRef start, ObjRef end = {}, int startGun = -1);
-    
-    void AddParticle(const ParticleInfo&, SegID, const Vector3& position);
-    void AttachParticle(const ParticleInfo&, ObjRef parent, SubmodelRef submodel = {});
+    public:
+        explicit ParticleEmitter(const ParticleEmitterInfo& info, size_t capacity)
+            : _info(info), _particles(IsExpired, capacity) {
+            StartDelay = info.StartDelay;
+            Position = info.Position;
+        }
 
-    void AddSparkEmitter(const SparkEmitterInfo&, SegID, const Vector3& worldPos = Vector3::Zero);
-    void AddSparkEmitter(const SparkEmitterInfo& info, ObjRef parent, const Vector3& offset = Vector3::Zero);
+        void OnUpdate(float dt, EffectID) override;
+    };
 
-    void ScanNearbySegments(const Level& level, SegID start, const Vector3& point, float radius, const std::function<void(const Segment&)>& action);
+    // Remains of a destroyed robot
+    struct Debris final : EffectBase {
+        explicit Debris(const DebrisInfo& info) : Info(info) { Queue = RenderQueueType::Opaque; }
 
-    EffectID AddLight(LightEffectInfo& info, const Vector3& position, float duration, SegID segment);
-    EffectID AttachLight(const LightEffectInfo& info, ObjRef parent, SubmodelRef submodel);
+        Matrix Transform, PrevTransform;
+        Vector3 Velocity;
+        Vector3 AngularVelocity;
+        DebrisInfo Info;
 
-    // Gets a visual effect
-    EffectBase* GetEffect(EffectID effect);
-
-    void ResetEffects();
-    void UpdateEffect(float dt, EffectID id);
-
-    // Either call this or individual effects using UpdateEffect()
-    void UpdateAllEffects(float dt);
-    void FixedUpdateEffects(float dt);
-    void EndUpdateEffects();
+        void Draw(GraphicsContext&) override;
+        void DepthPrepass(GraphicsContext&) override;
+        void OnFixedUpdate(float dt, EffectID) override;
+        void OnExpire() override;
+    };
 
     namespace Stats {
         inline uint EffectDraws = 0;

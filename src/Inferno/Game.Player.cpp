@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Game.Player.h"
+#include "EffectTypes.h"
 #include "Game.AI.h"
 #include "Game.Bindings.h"
 #include "Game.h"
@@ -10,7 +11,6 @@
 #include "Settings.h"
 #include "SoundSystem.h"
 #include "Graphics/Render.h"
-#include "Graphics/Render.Particles.h"
 
 namespace Inferno {
     constexpr uint8 SUPER_WEAPON = 5;
@@ -287,8 +287,8 @@ namespace Inferno {
                     }
 
                     if (auto fx = EffectLibrary.GetSparks("fusion_charge")) {
-                        Render::AddSparkEmitter(*fx, Reference, GetGunpointOffset(player, 0));
-                        Render::AddSparkEmitter(*fx, Reference, GetGunpointOffset(player, 1));
+                        AttachSparkEmitter(*fx, Reference, GetGunpointOffset(player, 0));
+                        AttachSparkEmitter(*fx, Reference, GetGunpointOffset(player, 1));
                     }
 
                     FusionNextSoundDelay = 0.125f + Random() / 8;
@@ -738,7 +738,7 @@ namespace Inferno {
             p.Radius = player.Radius;
             p.RandomRotation = false;
             Vector3 position = player.Position + player.Rotation.Forward() * 3;
-            Render::AddParticle(p, player.Segment, position);
+            AddParticle(p, player.Segment, position);
 
             auto& vclip = Resources::GetVideoClip(VClipID::PlayerSpawn);
             Sound3D sound(vclip.Sound);
@@ -1390,10 +1390,10 @@ namespace Inferno {
                 CreateExplosion(Game::Level, &player, explosion);
 
                 if (auto e = EffectLibrary.GetExplosion("player explosion"))
-                    Render::CreateExplosion(*e, player.Segment, playerPos);
+                    CreateExplosion(*e, player.Segment, playerPos);
 
                 if (auto e = EffectLibrary.GetExplosion("player explosion trail"))
-                    Render::CreateExplosion(*e, player.Segment, playerPos);
+                    CreateExplosion(*e, player.Segment, playerPos);
 
                 CreateObjectDebris(player, player.Render.Model.ID, Vector3::Zero);
                 player.Render.Type = RenderType::None; // Hide the player after exploding
@@ -1432,7 +1432,7 @@ namespace Inferno {
 
             if (Random() < dt * 4) {
                 if (auto e = EffectLibrary.GetExplosion("large fireball")) {
-                    Render::CreateExplosion(*e, Game::GetObjectRef(player));
+                    CreateExplosion(*e, Game::GetObjectRef(player));
                 }
             }
 

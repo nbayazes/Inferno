@@ -186,6 +186,12 @@ namespace Inferno {
         return std::lerp(outMin, outMax, t);
     }
 
+    // Premultiplies the RGB components of a color with its alpha and sets alpha to 1
+    inline void PremultiplyColor(Color& color) {
+        color.Premultiply();
+        color.w = 1;
+    }
+
     template <class T>
     struct NumericRange {
         T Min{}, Max{};

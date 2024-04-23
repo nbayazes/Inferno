@@ -14,6 +14,7 @@
 #include "Game.Reactor.h"
 #include "Game.Room.h"
 #include "Game.Segment.h"
+#include "Game.Visibility.h"
 #include "Game.Wall.h"
 #include "Graphics/Render.Debug.h"
 #include "Graphics/Render.h"
@@ -279,9 +280,8 @@ namespace Inferno::Game {
 
     void MoveCameraToObject(Camera& camera, const Object& obj, float lerp) {
         Matrix transform = obj.GetTransform(lerp);
-        camera.Position = transform.Translation();
-        camera.Target = camera.Position + transform.Forward();
-        camera.Up = transform.Up();
+        auto target = transform.Translation() + transform.Forward();
+        camera.MoveTo(transform.Translation(), target, transform.Up());
     }
 
     void ResetGlobalLighting() {
@@ -545,18 +545,21 @@ namespace Inferno::Game {
         Game::DeltaTime = 0;
         UpdateGameState();
 
+        auto camera = &Game::GameCamera;
+        camera->SetFov(Settings::Graphics.FieldOfView);
+
         g_ImGuiBatch->BeginFrame();
         switch (State) {
             case GameState::Game:
                 LerpAmount = GameUpdate(dt);
-            //UpdateCommsMessage();
-            //DrawBriefing();
+                //UpdateCommsMessage();
+                //DrawBriefing();
 
                 if (!Level.Objects.empty()) {
                     if (Player.IsDead)
                         UpdateDeathSequence(dt);
                     else
-                        MoveCameraToObject(Game::GameCamera, Level.Objects[0], LerpAmount);
+                        MoveCameraToObject(*camera, Level.Objects[0], LerpAmount);
                 }
 
                 if (Input::IsKeyPressed(Input::Keys::Escape))
@@ -582,8 +585,8 @@ namespace Inferno::Game {
                 }
 
                 Editor::Update();
-                Editor::EditorCamera.SetFov(Settings::Editor.FieldOfView);
-                Editor::EditorCamera.UpdatePerspectiveMatrices();
+                camera = &Editor::EditorCamera;
+                camera->SetFov(Settings::Editor.FieldOfView);
                 if (!Settings::Inferno.ScreenshotMode) EditorUI.OnRender();
                 break;
 
@@ -596,7 +599,7 @@ namespace Inferno::Game {
                     Game::SetState(Game::GetState() == GameState::Paused ? GameState::Game : GameState::Paused);
 
                 Editor::Bindings::Update(); // Using editor camera bindings
-                Editor::UpdateCamera(Editor::EditorCamera);
+                //Editor::UpdateCamera(Editor::EditorCamera);
                 break;
         }
 
@@ -607,7 +610,8 @@ namespace Inferno::Game {
         Game::Player.DirectLight = Color{};
 
         g_ImGuiBatch->EndFrame();
-        Render::Present(Editor::EditorCamera);
+        camera->UpdatePerspectiveMatrices();
+        Render::Present(*camera);
 
         LegitProfiler::Profiler.cpuGraph.LoadFrameData(LegitProfiler::CpuTasks);
         LegitProfiler::Profiler.gpuGraph.LoadFrameData(LegitProfiler::GpuTasks);
