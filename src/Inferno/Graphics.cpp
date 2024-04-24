@@ -187,4 +187,16 @@ namespace Inferno::Graphics {
     void ReloadTextures() {
         Render::Materials->Reload();
     }
+
+    void UnloadTextures() {
+        Render::Materials->Unload();
+    }
+
+    void PruneTextures() {
+        Render::Materials->Prune();
+    }
+
+    void NotifyLevelChanged() {
+        Render::LevelChanged = true;
+    }
 }

@@ -1,9 +1,8 @@
 #pragma once
 #include "Game.h"
+#include "Graphics.h"
 #include "WindowBase.h"
 #include "Resources.h"
-#include "Graphics/MaterialLibrary.h"
-#include "Settings.h"
 
 namespace Inferno::Editor {
     enum class BitmapTransparencyMode {
@@ -49,7 +48,7 @@ namespace Inferno::Editor {
             if (Resources::CustomTextures.Get(id)) {
                 Resources::CustomTextures.Delete(id);
                 std::array ids{ id };
-                Render::Materials->LoadMaterialsAsync(ids, true);
+                Graphics::LoadMaterialsAsync(ids, true);
                 UpdateTextureList();
             }
         }

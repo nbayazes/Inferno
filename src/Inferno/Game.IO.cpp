@@ -9,7 +9,6 @@
 #include "Game.Room.h"
 #include "Game.Text.h"
 #include "Graphics.h"
-#include "Graphics/MaterialLibrary.h"
 #include "LevelMetadata.h"
 #include "Procedural.h"
 #include "Resources.h"
@@ -125,8 +124,7 @@ namespace Inferno::Game {
             "noise"
         };
 
-        Render::Materials->LoadTextures(customHudTextures);
-
+        Graphics::LoadTextures(customHudTextures);
 
         if (Game::Mission) {
             List<string> bbms;
@@ -143,7 +141,7 @@ namespace Inferno::Game {
                 }
             }
 
-            Render::Materials->LoadTextures(bbms);
+            Graphics::LoadTextures(bbms);
         }
     }
 
@@ -188,7 +186,7 @@ namespace Inferno::Game {
             LevelNumber = GetLevelNumber(Level.FileName);
 
             if (forceReload || Resources::CustomTextures.Any()) // Check for custom textures before or after load
-                Render::Materials->Unload();
+                Graphics::UnloadTextures();
 
             Graphics::LoadLevelTextures(Level, forceReload);
             string extraTextures[] = { "noise" };
@@ -206,8 +204,7 @@ namespace Inferno::Game {
             InitObjects(Level);
 
             Editor::OnLevelLoad(reload);
-            Render::Materials->Prune();
-
+            Graphics::PruneTextures();
             Game::Terrain = {};
 
             auto exitConfig = String::NameWithoutExtension(Level.FileName) + ".txb";

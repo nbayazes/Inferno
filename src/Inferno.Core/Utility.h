@@ -4,7 +4,6 @@
 #include <cmath>
 #include <concepts>
 #include <future>
-#include <random>
 #include <sstream>
 
 #include "Types.h"
@@ -88,7 +87,6 @@ namespace Inferno {
         return (offset + (alignment - 1)) & ~(alignment - 1);
     }
 
-    ::std::mt19937& InternalMt19937();
 
     void InitRandom();
 
@@ -101,10 +99,6 @@ namespace Inferno {
     // Returns a random int between min and max (inclusive)
     int RandomInt(int minimum, int maximum);
 
-    // Randomly shuffles a range in place
-    void Shuffle(auto&& range) {
-        ranges::shuffle(range, InternalMt19937());
-    }
 
     // Returns a random value between -1 and 1
     inline float RandomN11() {

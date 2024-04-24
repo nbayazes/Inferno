@@ -279,7 +279,7 @@ namespace Inferno {
         }
 
         void UpdatePerspectiveMatrices() {
-            if (!_changed) return;
+            //if (!_changed) return;
             View = DirectX::XMMatrixLookAtLH(Position, Target, Up);
             Projection = DirectX::XMMatrixPerspectiveFovLH(_fovDeg * DegToRad, _viewport.AspectRatio(), _viewport.minDepth, _viewport.maxDepth);
             ViewProjection = View * Projection;

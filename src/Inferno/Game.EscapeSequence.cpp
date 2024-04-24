@@ -4,7 +4,6 @@
 #include "Formats/BBM.h"
 #include "Game.h"
 #include "Game.Object.h"
-#include "Graphics/ShaderLibrary.h"
 #include "Resources.h"
 
 namespace Inferno {

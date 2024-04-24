@@ -31,6 +31,7 @@ namespace Inferno::Graphics {
 
     void PrintMemoryUsage();
 
+    // Returns the diffuse GPU material pointer
     uint64 GetMaterialGpuPtr(TexID id);
 
     // Returns the diffuse GPU material pointer
@@ -45,4 +46,8 @@ namespace Inferno::Graphics {
     void ReloadResources();
 
     void ReloadTextures();
+    void UnloadTextures();
+    void PruneTextures();
+
+    void NotifyLevelChanged();
 }

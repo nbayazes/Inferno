@@ -4,7 +4,7 @@
 #include "VisualEffects.h"
 #include "Game.AI.Pathing.h"
 #include "Game.h"
-#include "Graphics/Render.h"
+#include "Graphics.h"
 #include "Resources.h"
 #include "Settings.h"
 #include "SoundSystem.h"
@@ -22,7 +22,7 @@ namespace Inferno {
             }
         }
 
-        Render::LevelChanged = true;
+        Graphics::NotifyLevelChanged();
     }
 
     void SubtractLight(Level& level, Tag light, Segment& seg) {

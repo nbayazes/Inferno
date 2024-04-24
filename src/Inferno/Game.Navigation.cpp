@@ -2,9 +2,9 @@
 #include "Game.Navigation.h"
 #include <numeric>
 #include "Game.h"
-#include "Game.Segment.h"
 #include "Game.Wall.h"
 #include "logging.h"
+#include "Random.h"
 #include "Resources.h"
 
 namespace Inferno {

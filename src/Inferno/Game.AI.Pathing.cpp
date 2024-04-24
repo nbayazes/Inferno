@@ -4,9 +4,10 @@
 #include "Game.AI.h"
 #include "Game.h"
 #include "Game.Object.h"
+#include "Graphics.Debug.h"
 #include "Resources.h"
 #include "Robot.h"
-#include "Graphics/Render.Debug.h"
+#include "Settings.h"
 
 namespace Inferno {
     void AI::SetPath(Object& obj, const List<NavPoint>& path) {
@@ -245,9 +246,9 @@ namespace Inferno {
                 target /= 2;
                 //auto target = edgeMidpoint + vec * 20;
                 if (Settings::Cheats.ShowPathing) {
-                    Render::Debug::DrawLine(edgeMidpoint + vec * 20, edgeMidpoint, Color(1, 0, 1));
-                    Render::Debug::DrawPoint(target, Color(1, 0, 1), Game::GameCamera);
-                    Render::Debug::DrawPoint(side.Center, Color(1, 0, 1), Game::GameCamera);
+                    Graphics::DrawLine(edgeMidpoint + vec * 20, edgeMidpoint, Color(1, 0, 1));
+                    Graphics::DrawPoint(target, Color(1, 0, 1));
+                    Graphics::DrawPoint(side.Center, Color(1, 0, 1));
                 }
                 //MoveTowardsPoint(obj, target, thrust);
 
@@ -375,12 +376,12 @@ namespace Inferno {
         auto& robotInfo = Resources::GetRobotInfo(robot.ID);
 
         if (Settings::Cheats.ShowPathing) {
-            Render::Debug::DrawLine(robot.Position, node.Position, Color(0, 1, 0));
+            Graphics::DrawLine(robot.Position, node.Position, Color(0, 1, 0));
 
             for (int i = 0; i < ai.Path.size() - 1; i++) {
                 auto& a = ai.Path[i];
                 auto& b = ai.Path[i + 1];
-                Render::Debug::DrawLine(a.Position, b.Position, Color(0, .8, 1));
+                Graphics::DrawLine(a.Position, b.Position, Color(0, .8, 1));
             }
         }
 

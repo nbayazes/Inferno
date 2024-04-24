@@ -12,7 +12,7 @@
 #include "logging.h"
 #include "SoundSystem.h"
 #include "Editor/Editor.Selection.h"
-#include "Graphics/Render.Debug.h"
+#include "Graphics.Debug.h"
 #include "VisualEffects.h"
 
 namespace Inferno {
@@ -1549,7 +1549,7 @@ namespace Inferno {
                 GetBehindTarget(robot, ai, robotInfo, target);
 
             if (Settings::Cheats.ShowPathing)
-                Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, 0, 0), Game::GameCamera);
+                Graphics::DrawPoint(ai.TargetPosition->Position, Color(1, 0, 0));
 
             AlertNearby(ai, robot, robotInfo);
             PlayCombatNoise(robot, ai);
@@ -1560,7 +1560,7 @@ namespace Inferno {
             // Robot can either choose to chase the target or hold position and blind fire
 
             if (Settings::Cheats.ShowPathing)
-                Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, .5, .5), Game::GameCamera);
+                Graphics::DrawPoint(ai.TargetPosition->Position, Color(1, .5, .5));
 
             if (ai.CombatState == AICombatState::Normal && ai.StrafeTimer <= 0 && ai.LostSightDelay <= 0) {
                 OnLostLineOfSight(ai, robot, robotInfo);
@@ -1670,7 +1670,7 @@ namespace Inferno {
                 GetBehindTarget(robot, ai, robotInfo, target);
 
             if (Settings::Cheats.ShowPathing)
-                Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, 0, 0), Game::GameCamera);
+                Graphics::DrawPoint(ai.TargetPosition->Position, Color(1, 0, 0));
 
             AlertNearby(ai, robot, robotInfo);
             PlayCombatNoise(robot, ai);
@@ -1680,7 +1680,7 @@ namespace Inferno {
             DecayAwareness(ai);
 
             if (Settings::Cheats.ShowPathing)
-                Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, .5, .5), Game::GameCamera);
+                Graphics::DrawPoint(ai.TargetPosition->Position, Color(1, .5, .5));
 
             // Chasing a cloaked target does no good, AI just gets confused.
             // Also don't chase the player ghost
@@ -1733,7 +1733,7 @@ namespace Inferno {
             bool validState = ai.CombatState == AICombatState::Normal || ai.CombatState == AICombatState::Chase;
 
             if (Settings::Cheats.ShowPathing)
-                Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, 0, 1), Game::GameCamera);
+                Graphics::DrawPoint(ai.TargetPosition->Position, Color(1, 0, 1));
 
             // Move around a little to look more alive
             if (ai.DodgeDelay <= 0) {

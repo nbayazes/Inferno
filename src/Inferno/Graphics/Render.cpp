@@ -779,7 +779,6 @@ namespace Inferno::Render {
     }
 
     void Present(const Camera& camera) {
-        Metrics::BeginFrame();
         ScopedTimer presentTimer(&Metrics::Present);
         Stats::DrawCalls = 0;
         Stats::PolygonCount = 0;

@@ -1,5 +1,6 @@
 #pragma once
 #include "Graphics/IDeviceNotify.h"
+#include "Types.h"
 
 namespace Inferno {
     class Application final : public IDeviceNotify {

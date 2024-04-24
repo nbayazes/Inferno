@@ -7,6 +7,7 @@
 #include <cassert>
 #include <array>
 #include <filesystem>
+#include <random>
 
 // Copied from <windows.h> to make SimpleMath happy
 //using UINT = unsigned int;

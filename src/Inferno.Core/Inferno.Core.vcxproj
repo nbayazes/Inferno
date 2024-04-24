@@ -125,6 +125,7 @@
     <ClInclude Include="Pig.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="Polymodel.h" />
+    <ClInclude Include="Random.h" />
     <ClInclude Include="Robot.h" />
     <ClInclude Include="Room.h" />
     <ClInclude Include="Segment.h" />

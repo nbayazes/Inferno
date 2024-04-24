@@ -3,6 +3,7 @@
 #include "ShaderLibrary.h"
 #include "Level.h"
 #include "Face.h"
+#include "VertexTypes.h"
 
 namespace Inferno::Render::Debug {
     void Initialize();

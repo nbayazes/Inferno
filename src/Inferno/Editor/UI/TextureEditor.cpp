@@ -2,6 +2,7 @@
 #include "TextureEditor.h"
 #include "Editor/Editor.Undo.h"
 #include "Editor/Events.h"
+#include "Graphics/MaterialLibrary.h"
 
 namespace Inferno::Editor {
     void OnExport(TexID id) {

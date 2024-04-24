@@ -4,11 +4,10 @@
 #include "Face.h"
 #include "Game.Segment.h"
 #include "Game.Visibility.h"
+#include "Graphics.Debug.h"
 #include "Physics.Capsule.h"
 #include "Physics.h"
 #include "ScopedTimer.h"
-#include "Graphics/Render.Commands.h"
-#include "Graphics/Render.Debug.h"
 
 namespace Inferno::Game {
     constexpr auto NAV_OBJECT_RADIUS = 4.0f; // expected object radius to follow a navigation path
@@ -1287,9 +1286,7 @@ namespace Inferno::Game {
             UpdatePortalDistances(level, room);
         }
 
-        Render::Debug::DebugPoints.clear();
-        Render::Debug::DebugPoints2.clear();
-        Render::Debug::DebugLines.clear();
+        Graphics::ResetDebug();
         UpdatePortalLinks(level, rooms);
         //ComputeRoomVisibility(level, rooms, rooms[4]);
 

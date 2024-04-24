@@ -8,6 +8,7 @@
 #include "Game.Reactor.h"
 #include "Game.Segment.h"
 #include "Physics.h"
+#include "Random.h"
 #include "Resources.h"
 #include "Settings.h"
 #include "SoundSystem.h"

@@ -16,8 +16,8 @@
 #include "Game.Segment.h"
 #include "Game.Visibility.h"
 #include "Game.Wall.h"
+#include "Graphics.Debug.h"
 #include "Graphics.h"
-#include "Graphics/Render.Debug.h"
 #include "HUD.h"
 #include "imgui_local.h"
 #include "Input.h"
@@ -540,7 +540,7 @@ namespace Inferno::Game {
             HandleShipInput(dt);
         }
 
-        Render::Debug::BeginFrame(); // enable debug calls during updates
+        Graphics::BeginFrame(); // enable debug calls during updates
         Game::DeltaTime = 0;
         UpdateGameState();
 
@@ -610,6 +610,7 @@ namespace Inferno::Game {
 
         g_ImGuiBatch->EndFrame();
         camera->UpdatePerspectiveMatrices();
+        Graphics::SetDebugCamera(*camera); // this will lag behind by a frame
         Render::Present(*camera);
 
         LegitProfiler::Profiler.cpuGraph.LoadFrameData(LegitProfiler::CpuTasks);

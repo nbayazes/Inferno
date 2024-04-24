@@ -2,7 +2,6 @@
 #include "Application.h"
 #include "SoundSystem.h"
 #include "Input.h"
-#include "Editor/Bindings.h"
 #include "Game.h"
 #include "imgui_local.h"
 #include "Resources.h"
