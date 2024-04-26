@@ -92,7 +92,6 @@ namespace Inferno {
                     for (size_t m = 0; m < model.Submodels.size(); m++) {
                         for (size_t f = 0; f < frames; f++) {
                             model.Animation[f][m] = r.ReadAngleVec();
-                            model.Animation[f][m].z *= -1;
                             std::swap(model.Animation[f][m].y, model.Animation[f][m].z);
                         }
                     }

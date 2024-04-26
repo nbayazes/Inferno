@@ -75,7 +75,7 @@ namespace Inferno::Render {
                 // create vectors for two edges and cross to get normal
                 auto v1 = verts[i + 1].Position - verts[i].Position;
                 auto v2 = verts[i + 2].Position - verts[i].Position;
-                auto normal = -v1.Cross(v2);
+                auto normal = v1.Cross(v2);
                 normal.Normalize();
                 verts[i].Normal = verts[i + 1].Normal = verts[i + 2].Normal = normal;
 

@@ -333,6 +333,11 @@ namespace Inferno {
             readChunk(submodel.Pointer, submodel);
         }
 
+
+        // Flip x axis of models, they are stored mirrored for some reason
+        for (auto& vert : model.Vertices)
+            vert.x *= -1;
+
         // Generate normals. We do this here rather than inline because some custom models reference points before they are loaded.
         for (int smIndex = 0; smIndex < model.Submodels.size(); smIndex++) {
             auto& submodel = model.Submodels[smIndex];
@@ -342,7 +347,7 @@ namespace Inferno {
                     Vector3 p0 = model.Vertices[indices[i + 0]];
                     Vector3 p1 = model.Vertices[indices[i + 1]];
                     Vector3 p2 = model.Vertices[indices[i + 2]];
-                    auto normal = -(p1 - p0).Cross(p2 - p0);
+                    auto normal = (p1 - p0).Cross(p2 - p0);
                     normal.Normalize();
                     normals.push_back(normal);
                 }
