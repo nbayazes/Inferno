@@ -98,7 +98,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
                 SPDLOG_INFO("Display Resolution Changed {} {}", LOWORD(lParam), HIWORD(lParam));
 
                 WINDOWPLACEMENT wp = {};
-                wp.length = sizeof(WINDOWPLACEMENT);
+                wp.length = sizeof(wp);
                 GetWindowPlacement(hWnd, &wp);
 
                 if (wp.showCmd == SW_MAXIMIZE) {
@@ -108,6 +108,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
                     ShowWindow(hWnd, SW_MAXIMIZE);
                 }
 
+                Inferno::Shell::DpiScale = (float)GetDpiForWindow(hWnd) / 96.0f;
                 app->Tick();
             }
             break;
