@@ -9,6 +9,7 @@
 #include "VisualEffects.h"
 #include "Game.AI.h"
 #include "Game.Bindings.h"
+#include "Game.Cinematics.h"
 #include "Game.Input.h"
 #include "Game.Object.h"
 #include "Game.Reactor.h"
@@ -33,6 +34,7 @@ namespace Inferno::Game {
         GameState RequestedState = GameState::Editor;
         constexpr size_t OBJECT_BUFFER_SIZE = 100; // How many new objects to keep in reserve
         int MenuIndex = 0;
+        Ptr<Editor::EditorUI> EditorUI;
     }
 
     bool StartLevel();
@@ -45,6 +47,7 @@ namespace Inferno::Game {
     }
 
     void UpdateAmbientSounds() {
+        if (Level.Objects.empty()) return;
         auto& player = Level.Objects[0];
         if (player.Segment == SegID::None) return;
 
@@ -275,8 +278,6 @@ namespace Inferno::Game {
         return float(accumulator / TICK_RATE);
     }
 
-    Inferno::Editor::EditorUI EditorUI;
-
     void MoveCameraToObject(Camera& camera, const Object& obj, float lerp) {
         Matrix transform = obj.GetTransform(lerp);
         auto target = transform.Translation() + transform.Forward();
@@ -370,25 +371,6 @@ namespace Inferno::Game {
         }
 
         State = RequestedState;
-    }
-
-    void UpdateDeathSequence(float dt) {
-        Player.DoDeathSequence(dt);
-
-        if (Player.TimeDead > 2 && Player.Lives == 0) {
-            Render::DrawTextInfo info;
-            info.Font = FontSize::Big;
-            info.HorizontalAlign = AlignH::Center;
-            info.VerticalAlign = AlignV::Center;
-            Render::Canvas->DrawGameText("game over", info);
-        }
-
-        if (Game::Player.TimeDead > 2 && ConfirmedInput()) {
-            if (Game::Player.Lives == 0)
-                Game::SetState(GameState::Editor); // todo: score screen
-            else
-                Game::Player.Respawn(true); // todo: EndCutscene() with fades
-        }
     }
 
 
@@ -551,13 +533,13 @@ namespace Inferno::Game {
         switch (State) {
             case GameState::Game:
                 LerpAmount = GameUpdate(dt);
-                //UpdateCommsMessage();
-                //DrawBriefing();
+            //UpdateCommsMessage();
+            //DrawBriefing();
 
                 if (!Level.Objects.empty()) {
                     if (Player.IsDead)
                         UpdateDeathSequence(dt);
-                    else
+                    else if (!Level.Objects.empty())
                         MoveCameraToObject(*camera, Level.Objects[0], LerpAmount);
                 }
 
@@ -586,7 +568,10 @@ namespace Inferno::Game {
                 Editor::Update();
                 camera = &Editor::EditorCamera;
                 camera->SetFov(Settings::Editor.FieldOfView);
-                if (!Settings::Inferno.ScreenshotMode) EditorUI.OnRender();
+                if (!Settings::Inferno.ScreenshotMode) {
+                    if (!EditorUI) EditorUI = make_unique<Inferno::Editor::EditorUI>();
+                    EditorUI->OnRender();
+                }
                 break;
 
             case GameState::GameMenu:
@@ -598,7 +583,7 @@ namespace Inferno::Game {
                     Game::SetState(Game::GetState() == GameState::Paused ? GameState::Game : GameState::Paused);
 
                 Editor::Bindings::Update(); // Using editor camera bindings
-                //Editor::UpdateCamera(Editor::EditorCamera);
+            //Editor::UpdateCamera(Editor::EditorCamera);
                 break;
         }
 

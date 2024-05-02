@@ -97,7 +97,7 @@ namespace Inferno::Resources {
     string ReadTextFile(const string& name);
 
     // Tries to read a binary file by checking the mission, the game specific directory, the shared directory, and finally the game HOG
-    List<byte> ReadBinaryFile(const string& name);
+    List<byte> ReadBinaryFile(const string& name, bool skipMission = false);
 
     void LoadDataTables(const Level& level);
 

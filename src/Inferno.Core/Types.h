@@ -233,6 +233,8 @@ namespace Inferno {
         }
 
         explicit operator bool() const { return !IsNull(); }
+
+        static const ObjRef None;
     };
 
     // Level Texture ID. Maps to TexIDs.

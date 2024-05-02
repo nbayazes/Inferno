@@ -426,6 +426,7 @@ namespace Inferno {
         node["PasteSegmentSpecial"] << s.PasteSegmentSpecial;
         node["TexturePreviewSize"] << (int)s.TexturePreviewSize;
         node["ShowLevelTitle"] << s.ShowLevelTitle;
+        node["ShowTerrain"] << s.ShowTerrain;
 
         SaveSelectionSettings(node["Selection"], s.Selection);
         SaveOpenWindows(node["Windows"], s.Windows);
@@ -502,6 +503,7 @@ namespace Inferno {
         ReadValue(node["PasteSegmentSpecial"], s.PasteSegmentSpecial);
         ReadValue(node["TexturePreviewSize"], (int&)s.TexturePreviewSize);
         ReadValue(node["ShowLevelTitle"], s.ShowLevelTitle);
+        ReadValue(node["ShowTerrain"], s.ShowTerrain);
 
         s.Palette = LoadPalette(node["Palette"]);
         s.Selection = LoadSelectionSettings(node["Selection"]);

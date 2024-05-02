@@ -84,6 +84,7 @@ namespace Inferno {
         bool PasteSegmentWalls = true;
         bool PasteSegmentSpecial = true;
         bool OutlineBossTeleportSegments = false;
+        bool ShowTerrain = false;
 
         float ObjectRenderDistance = 300.0f;
 
@@ -185,7 +186,7 @@ namespace Inferno {
         bool DisableWallCollision = false;
         bool DisableAI = false;
         bool ShowPathing = false;
-        bool FullyLoaded = false; // Max weapons on spawn
+        bool FullyLoaded = true; // Max weapons on spawn
         bool Invulnerable = false;
         bool Cloaked = false;
         bool LowShields = false;

@@ -459,6 +459,24 @@ namespace Inferno {
     void LevelMeshBuilder::Update(Level& level, PackedBuffer& buffer) {
         CreateLevelGeometry(level);
         UpdateBuffers(buffer);
+
+        // Create the exit portal face
+        if (level.SegmentExists(Game::Terrain.ExitTag)) {
+            auto face = ConstFace::FromSide(level, Game::Terrain.ExitTag);
+
+            Array<uint32, 6> indices{ 2, 1, 0, 3, 2, 0 };
+            
+            LevelVertex verts[] = {
+                LevelVertex(face.P0),
+                LevelVertex(face.P1),
+                LevelVertex(face.P2),
+                LevelVertex(face.P3),
+            };
+
+            auto vbv = buffer.PackVertices(span<LevelVertex>{ verts });
+            auto ibv = buffer.PackIndices(span<uint32>{ indices });
+            _exitPortal = LevelMesh{ vbv, ibv, (uint)indices.size() };
+        }
     }
 
     void LevelMeshBuilder::UpdateBuffers(PackedBuffer& buffer) {

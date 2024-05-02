@@ -103,7 +103,7 @@
     </ProjectReference>
     <Manifest />
     <Manifest>
-      <EnableDpiAwareness>true</EnableDpiAwareness>
+      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -140,7 +140,7 @@
     </Link>
     <Manifest>
       <OutputManifestFile>$(IntDir)$(TargetName)$(TargetExt).embed.manifest</OutputManifestFile>
-      <EnableDpiAwareness>true</EnableDpiAwareness>
+      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <ManifestResourceCompile>
       <ResourceOutputFileName>$(IntDir)$(TargetName)$(TargetExt).embed.manifest.res</ResourceOutputFileName>
@@ -159,6 +159,7 @@
     <ClCompile Include="Audio\SoundEffect.cpp" />
     <ClCompile Include="Audio\SoundEffectInstance.cpp" />
     <ClCompile Include="Audio\WAVFileReader.cpp" />
+    <ClCompile Include="Game.Cinematics.cpp" />
     <ClCompile Include="DebugOverlay.cpp" />
     <ClCompile Include="Graphics.Debug.cpp" />
     <ClCompile Include="VisualEffects.cpp" />
@@ -268,6 +269,7 @@
     <ClInclude Include="Audio\SoundCommon.h" />
     <ClInclude Include="Audio\WAVFileReader.h" />
     <ClInclude Include="BitmapCache.h" />
+    <ClInclude Include="Game.Cinematics.h" />
     <ClInclude Include="CustomTextureLibrary.h" />
     <ClInclude Include="Debug.h" />
     <ClInclude Include="DirectX.h" />

@@ -164,4 +164,6 @@ namespace Inferno::Render {
         void CheckRoomVisibility(Level& level, const Portal& srcPortal, const Bounds2D& srcBounds, const Camera& camera);
         void TraverseLevelRooms(RoomID startRoomId, Level& level, span<LevelMesh> wallMeshes, const Camera& camera);
     };
+
+    Option<Array<Vector3, 4>> GetNdc(const ConstFace& face, const Matrix& viewProj);
 }

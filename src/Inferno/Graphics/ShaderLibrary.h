@@ -563,7 +563,7 @@ namespace Inferno {
 
     void CompileShader(IShader*);
 
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC BuildPipelineStateDesc(EffectSettings effect, IShader* shader, uint msaaSamples, uint renderTargets = 1);
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC BuildPipelineStateDesc(EffectSettings info, IShader* shader, bool useStencil, uint msaaSamples, uint renderTargets = 1);
 
     struct ShaderResources {
         LevelShader Level = ShaderInfo{ L"shaders/level.hlsl" };
@@ -590,41 +590,43 @@ namespace Inferno {
     public:
         EffectResources(ShaderResources* shaders) : _shaders(shaders) {}
 
-        Effect<LevelShader> Level = { &_shaders->Level, { BlendMode::Opaque, CullMode::CounterClockwise, DepthMode::Read } };
-        Effect<LevelShader> LevelWall = { &_shaders->Level, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read } };
-        Effect<LevelShader> LevelWallAdditive = { &_shaders->Level, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
-        Effect<FlatLevelShader> LevelFlat = { &_shaders->LevelFlat, { BlendMode::Opaque, CullMode::CounterClockwise, DepthMode::Read } };
-        Effect<FlatLevelShader> LevelWallFlat = { &_shaders->LevelFlat, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read } };
+        Effect<LevelShader> Level = { &_shaders->Level, { BlendMode::Opaque, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
+        Effect<LevelShader> LevelWall = { &_shaders->Level, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
+        Effect<LevelShader> LevelWallAdditive = { &_shaders->Level, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
+        Effect<FlatLevelShader> LevelFlat = { &_shaders->LevelFlat, { BlendMode::Opaque, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
+        Effect<FlatLevelShader> LevelWallFlat = { &_shaders->LevelFlat, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
 
-        Effect<TerrainShader> Terrain = { &_shaders->Terrain, { BlendMode::Opaque, CullMode::CounterClockwise, DepthMode::ReadWrite } };
+        Effect<DepthShader> Depth = { &_shaders->Depth, { .Blend = BlendMode::Opaque, .Stencil = StencilMode::PortalRead } };
+        Effect<DepthCutoutShader> DepthCutout = { &_shaders->DepthCutout, { .Blend = BlendMode::Opaque, .Stencil = StencilMode::PortalRead } };
+        Effect<ObjectDepthShader> DepthObject = { &_shaders->DepthObject, { .Blend = BlendMode::Opaque, .Culling = CullMode::None, .Stencil = StencilMode::PortalRead } };
+        Effect<ObjectDepthShader> DepthObjectFlipped = { &_shaders->DepthObject, { .Blend = BlendMode::Opaque, .Culling = CullMode::Clockwise, .Stencil = StencilMode::PortalRead } };
 
-        Effect<DepthShader> Depth = { &_shaders->Depth, { BlendMode::Opaque } };
-        Effect<DepthCutoutShader> DepthCutout = { &_shaders->DepthCutout, { BlendMode::Opaque } };
-        Effect<ObjectDepthShader> DepthObject = { &_shaders->DepthObject, { BlendMode::Opaque, CullMode::None } };
-        Effect<ObjectDepthShader> DepthObjectFlipped = { &_shaders->DepthObject, { BlendMode::Opaque, CullMode::Clockwise } };
+        Effect<ObjectShader> Object = { &_shaders->Object, { .Blend = BlendMode::Alpha, .Culling = CullMode::None, .Depth = DepthMode::Read, .Stencil = StencilMode::PortalRead } };
+        Effect<ObjectShader> ObjectGlow = { &_shaders->Object, { .Blend = BlendMode::Additive, .Culling = CullMode::None, .Depth = DepthMode::Read, .Stencil = StencilMode::PortalRead } };
+        Effect<ObjectDistortionShader> ObjectDistortion{ &_shaders->ObjectDistortion, { .Blend = BlendMode::Alpha, .Culling = CullMode::CounterClockwise, .Depth = DepthMode::Read, .Stencil = StencilMode::PortalRead } };
+        Effect<ObjectShader> BriefingObject = { &_shaders->BriefingObject, { BlendMode::Alpha, CullMode::None, DepthMode::ReadWrite, StencilMode::PortalRead } };
 
-        Effect<ObjectShader> Object = { &_shaders->Object, { BlendMode::Alpha, CullMode::None, DepthMode::Read } };
-        Effect<ObjectShader> BriefingObject = { &_shaders->BriefingObject, { BlendMode::Alpha, CullMode::None, DepthMode::ReadWrite } };
-        Effect<ObjectShader> ObjectGlow = { &_shaders->Object, { BlendMode::Additive, CullMode::None, DepthMode::Read } };
-        Effect<ObjectDistortionShader> ObjectDistortion{ &_shaders->ObjectDistortion, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read } };
-
-        Effect<UIShader> UserInterface = { &_shaders->UserInterface, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, false } };
-        Effect<BriefingShader> Briefing = { &_shaders->Briefing, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, false } };
+        Effect<UIShader> UserInterface = { &_shaders->UserInterface, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, StencilMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, false } };
+        Effect<BriefingShader> Briefing = { &_shaders->Briefing, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, StencilMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, false } };
         Effect<HudShader> Hud = { &_shaders->Hud, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None } };
         Effect<HudShader> HudAdditive = { &_shaders->Hud, { BlendMode::Additive, CullMode::None, DepthMode::None } };
-        Effect<FlatShader> Flat = { &_shaders->Flat, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None } };
-        Effect<FlatShader> FlatAdditive = { &_shaders->Flat, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
-        Effect<FlatShader> EditorSelection = { &_shaders->Flat, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None } };
-        Effect<FlatShader> Line = { &_shaders->Flat, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE } };
+        Effect<FlatShader> Flat = { &_shaders->Flat, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, StencilMode::PortalRead } };
+        Effect<FlatShader> FlatAdditive = { &_shaders->Flat, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
+        Effect<FlatShader> EditorSelection = { &_shaders->Flat, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, StencilMode::PortalRead } };
+        Effect<FlatShader> Line = { &_shaders->Flat, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, StencilMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE } };
 
-        Effect<SpriteShader> Sprite = { &_shaders->Sprite, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read } };
-        Effect<SpriteShader> SpriteOpaque = { &_shaders->Sprite, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::ReadWrite } };
-        Effect<SpriteShader> SpriteAdditive = { &_shaders->Sprite, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
-        Effect<SpriteShader> SpriteAdditiveBiased = { &_shaders->Sprite, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::ReadDecalBiased } };
-        Effect<SpriteShader> SpriteMultiply = { &_shaders->Sprite, { BlendMode::Multiply, CullMode::CounterClockwise, DepthMode::ReadDecalBiased } };
+        Effect<SpriteShader> Sprite = { &_shaders->Sprite, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
+        Effect<SpriteShader> SpriteOpaque = { &_shaders->Sprite, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::ReadWrite, StencilMode::PortalRead } };
+        Effect<SpriteShader> SpriteAdditive = { &_shaders->Sprite, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
+        Effect<SpriteShader> SpriteAdditiveBiased = { &_shaders->Sprite, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::ReadDecalBiased, StencilMode::PortalRead } };
+        Effect<SpriteShader> SpriteMultiply = { &_shaders->Sprite, { BlendMode::Multiply, CullMode::CounterClockwise, DepthMode::ReadDecalBiased, StencilMode::PortalRead } };
 
         Effect<SpriteShader> Sun = { &_shaders->Sun, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
         Effect<StarShader> Stars = { &_shaders->Stars, { BlendMode::Opaque, CullMode::None, DepthMode::None } };
+
+        Effect<TerrainShader> Terrain = { &_shaders->Terrain, {.Depth = DepthMode::ReadWrite, .Stencil = StencilMode::PortalReadNeq } };
+        Effect<DepthShader> TerrainPortal = { &_shaders->Depth, { .Depth = DepthMode::Read, .Stencil = StencilMode::PortalWrite } };
+        Effect<ObjectShader> TerrainObject = { &_shaders->Object, {.Blend = BlendMode::Alpha, .Culling = CullMode::CounterClockwise, .Depth = DepthMode::Read } };
 
         void Compile(ID3D12Device* device, uint msaaSamples) {
             CompileShader(&_shaders->Flat);
@@ -644,9 +646,9 @@ namespace Inferno {
             CompileShader(&_shaders->Stars);
             CompileShader(&_shaders->Sun);
 
-            auto compile = [&](auto& effect, uint renderTargets = 1) {
+            auto compile = [&](auto& effect, bool useStencil = true, uint renderTargets = 1) {
                 try {
-                    auto psoDesc = BuildPipelineStateDesc(effect.Settings, effect.Shader, msaaSamples, renderTargets);
+                    auto psoDesc = BuildPipelineStateDesc(effect.Settings, effect.Shader, useStencil, msaaSamples, renderTargets);
                     ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&effect.PipelineState)));
                 }
                 catch (const std::exception& e) {
@@ -667,11 +669,13 @@ namespace Inferno {
             compile(LevelWallFlat);
 
             compile(Terrain);
+            compile(TerrainPortal);
+            compile(TerrainObject);
 
             compile(Object);
             compile(ObjectGlow);
             compile(ObjectDistortion);
-            compile(BriefingObject);
+            compile(BriefingObject, false);
             compile(Sprite);
             compile(SpriteOpaque);
             compile(SpriteAdditive);
@@ -683,8 +687,8 @@ namespace Inferno {
             compile(EditorSelection);
             compile(Line);
 
-            compile(UserInterface);
-            compile(Briefing);
+            compile(UserInterface, false);
+            compile(Briefing, false);
             compile(Hud);
             compile(HudAdditive);
 

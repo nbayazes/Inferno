@@ -33,6 +33,8 @@ namespace Inferno {
         List<Vector3> EscapePath;
 
         ModelID ExitModel = ModelID::None;
+
+        Tag ExitTag;
     };
 
     void UpdateEscapeSequence(float dt);

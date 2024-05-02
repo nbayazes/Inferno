@@ -10,6 +10,10 @@ namespace Inferno {
 
     public:
         Application() = default;
+        Application(const Application& other) = delete;
+        Application(Application&& other) noexcept = delete;
+        Application& operator=(const Application& other) = delete;
+        Application& operator=(Application&& other) noexcept = delete;
         ~Application();
         // Initialization and management
         void Initialize(int width, int height);

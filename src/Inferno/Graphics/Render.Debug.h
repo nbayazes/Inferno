@@ -41,7 +41,7 @@ namespace Inferno::Render::Debug {
     void DrawArrow(const Vector3& start, const Vector3& end, const Color& color, const Camera& camera);
 
     void BeginFrame();
-    void EndFrame(GraphicsContext& ctx);
+    void EndFrame(const GraphicsContext& ctx);
 
     void DrawCrosshair(float size, const Camera& camera);
 

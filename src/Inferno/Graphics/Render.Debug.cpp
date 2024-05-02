@@ -16,7 +16,7 @@ namespace Inferno::Render::Debug {
             _vertices.Begin();
         }
 
-        void End(GraphicsContext& ctx, auto effect) {
+        void End(const GraphicsContext& ctx, auto effect) {
             auto cmdList = ctx.GetCommandList();
             _vertices.End();
 
@@ -55,7 +55,7 @@ namespace Inferno::Render::Debug {
             _vertices.Begin();
         }
 
-        void End(GraphicsContext& ctx, auto effect) {
+        void End(const GraphicsContext& ctx, auto effect) {
             auto cmdList = ctx.GetCommandList();
             _vertices.End();
 
@@ -223,7 +223,7 @@ namespace Inferno::Render::Debug {
         InFrame = true;
     }
 
-    void EndFrame(GraphicsContext& ctx) {
+    void EndFrame(const GraphicsContext& ctx) {
         if (!InFrame) throw Exception("Must call BeginFrame() first");
         for (auto& point : DebugPoints)
             DrawPoint(point, { 1, 0, 0 }, ctx.Camera);

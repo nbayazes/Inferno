@@ -19,7 +19,7 @@
 namespace Inferno::Editor {
     namespace {
         std::thread LightWorkerThread;
-        inline Option<Level> LightLevelResults; // New level lighting
+        Option<Level> LightLevelResults; // New level lighting
     }
 
     constexpr float PLANE_TOLERANCE = -0.01f;

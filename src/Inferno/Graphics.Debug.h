@@ -1,8 +1,6 @@
 ﻿#pragma once
 #include "Camera.h"
-#include "Face.h"
 #include "VertexTypes.h"
-#include "Level.h"
 
 namespace Inferno::Graphics {
     void ResetDebug();

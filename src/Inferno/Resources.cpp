@@ -593,9 +593,24 @@ namespace Inferno::Resources {
 
         for (auto& entry : Game::Mission->Entries) {
             if (entry.Name.ends_with(".pof")) {
-                auto modelData = Game::Mission->ReadEntry(entry);
+                auto modelData = ReadBinaryFile(entry.Name, true);
+
+                if (modelData.empty())
+                    modelData = ReadBinaryFile(entry.Name);
+
+                //auto modelData = ReadBinaryFile(entry.Name);
+
+                //auto modelData = Game::Mission->ReadEntry(entry);
                 auto model = ReadPof(modelData, &palette);
                 model.FileName = entry.Name;
+
+                //if (/*entry.Name == "exit01.pof" ||*/ entry.Name == "exit01d.pof") {
+                //    for (auto& sm : model.Submodels) {
+                //        for (auto& v : sm.ExpandedPoints) {
+                //            v.Point.z -= 1.0f;
+                //        }
+                //    }
+                //}
 
                 // Rest and fire animations are swapped on the green lifter in demo
                 if (entry.Name == "robot17.pof")
@@ -774,9 +789,9 @@ namespace Inferno::Resources {
         return false; // Wasn't found
     }
 
-    List<byte> ReadBinaryFile(const string& name) {
+    List<byte> ReadBinaryFile(const string& name, bool skipMission) {
         // current mission
-        if (Game::Mission) {
+        if (Game::Mission && !skipMission) {
             // 'unpacked' folder for the mission
             auto path = Game::Mission->Path.parent_path();
             auto unpacked = path / Game::Mission->Path.stem() / name;
@@ -926,6 +941,15 @@ namespace Inferno::Resources {
             else {
                 throw Exception("Unsupported level version");
             }
+
+            // Read replacement models
+            //for (auto& model : GameData.Models) {
+            //    if (model.FileName.empty()) continue;
+            //    auto modelData = ReadBinaryFile(model.FileName, true);
+            //    if (!modelData.empty()) {
+            //        model = ReadPof(modelData, &LevelPalette);
+            //    }
+            //}
 
             Materials = { Render::MATERIAL_COUNT };
 

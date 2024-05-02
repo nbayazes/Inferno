@@ -62,7 +62,7 @@ namespace Inferno::Render {
     class TerrainMesh {
         Mesh _mesh{};
         List<Mesh> _satellites;
-        PackedBuffer _buffer{ 1024 * 1024 * 1 };
+        PackedBuffer _buffer{ 1024 * 1024 * 2 };
 
     public:
         TerrainMesh() {}

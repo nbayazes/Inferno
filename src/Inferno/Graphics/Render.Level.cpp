@@ -146,15 +146,17 @@ namespace Inferno::Render {
     }
 
     void ClearDepthPrepass(GraphicsContext& ctx) {
-        auto& depthBuffer = Adapter->GetHdrDepthBuffer();
+        auto& depthBuffer = Adapter->GetDepthBuffer();
         auto& linearDepthBuffer = Adapter->GetLinearDepthBuffer();
         ctx.ClearDepth(depthBuffer);
         ctx.ClearColor(linearDepthBuffer);
+        ctx.ClearStencil(Adapter->GetDepthBuffer(), 0);
+        ctx.GetCommandList()->OMSetStencilRef(0);
 
         linearDepthBuffer.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_RENDER_TARGET);
         ctx.SetRenderTarget(linearDepthBuffer.GetRTV(), depthBuffer.GetDSV());
 
-        auto& target = Adapter->GetHdrRenderTarget();
+        auto& target = Adapter->GetRenderTarget();
         ctx.ClearColor(target);
         ctx.SetViewportAndScissor(UINT(target.GetWidth() * Settings::Graphics.RenderScale), UINT(target.GetHeight() * Settings::Graphics.RenderScale));
     }
@@ -165,6 +167,22 @@ namespace Inferno::Render {
 
         // Depth prepass
         ClearDepthPrepass(ctx);
+
+        if (!Game::Terrain.EscapePath.empty() && Settings::Editor.ShowTerrain) {
+            StaticModelDepthPrepass(ctx, Game::Terrain.ExitModel, Game::Terrain.ExitTransform);
+            //auto dsv = Adapter->GetDepthBuffer().GetDSV();
+            //cmdList->OMSetRenderTargets(0, nullptr, false, &dsv);
+
+            cmdList->OMSetStencilRef(1);
+            ctx.ApplyEffect(Effects->TerrainPortal);
+            ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+            _levelMeshBuilder.GetExitPortal().Draw(cmdList); // Mask the exit portal to 1
+            //ctx.SetRenderTarget(Adapter->GetLinearDepthBuffer().GetRTV(), Adapter->GetDepthBuffer().GetDSV());
+        }
+
+        //Adapter->LinearizedDepthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        //Adapter->GetDepthBuffer().Transition(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
+        //return;
 
         // Opaque geometry prepass
         for (auto& cmd : _renderQueue.Opaque()) {
@@ -256,7 +274,7 @@ namespace Inferno::Render {
         }
 
         Adapter->LinearizedDepthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-        Adapter->GetHdrDepthBuffer().Transition(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
+        Adapter->GetDepthBuffer().Transition(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
     }
 
     void DrawLevelMesh(const GraphicsContext& ctx, const Inferno::LevelMesh& mesh, bool decalSubpass) {
@@ -530,7 +548,7 @@ namespace Inferno::Render {
         constants.Ambient = Vector4(1, 1, 1, 1);
         effect.Shader->SetConstants(cmdList, constants);
 
-        auto& depthBuffer = Adapter->GetHdrDepthBuffer();
+        auto& depthBuffer = Adapter->GetDepthBuffer();
         depthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
         {
@@ -545,6 +563,9 @@ namespace Inferno::Render {
         }
 
         //ctx.GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        Color ambient = { 4, 4, 4 };
+        DrawStaticModel(ctx, Game::Terrain.ExitModel, RenderPass::Opaque, ambient, Adapter->GetFrameConstants(), Game::Terrain.ExitTransform);
     }
 
     void DrawStars(GraphicsContext& ctx) {
@@ -642,20 +663,44 @@ namespace Inferno::Render {
             PIXScopedEvent(cmdList, PIX_COLOR_INDEX(5), "Level");
             LegitProfiler::ProfilerTask queue("Execute queues", LegitProfiler::Colors::AMETHYST);
 
-            auto& depthBuffer = Adapter->GetHdrDepthBuffer();
+            auto& depthBuffer = Adapter->GetDepthBuffer();
 
-            auto& target = Adapter->GetHdrRenderTarget();
+            auto& target = Adapter->GetRenderTarget();
             target.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
             ctx.SetRenderTarget(target.GetRTV(), depthBuffer.GetDSV());
             ctx.SetViewportAndScissor(UINT(target.GetWidth() * Settings::Graphics.RenderScale), UINT(target.GetHeight() * Settings::Graphics.RenderScale));
             LightGrid->SetLightConstants(UINT(target.GetWidth() * Settings::Graphics.RenderScale), UINT(target.GetHeight() * Settings::Graphics.RenderScale));
 
-            DrawStars(ctx);
-            DrawTerrain(ctx);
+
+            // todo: OR game show terrain
+            if (Settings::Editor.ShowTerrain) {
+                //cmdList->OMSetStencilRef(0);
+                DrawStars(ctx);
+                DrawTerrain(ctx);
+                //cmdList->OMSetStencilRef(1);
+            }
 
             ScopedTimer execTimer(&Metrics::ExecuteRenderCommands);
 
             depthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
+
+            // Faking the exit portal using scissors
+            //if (Game::Level.SegmentExists(Game::Terrain.ExitTag)) {
+            //    auto face = ConstFace::FromSide(level, Game::Terrain.ExitTag);
+
+            //    if (auto ndc = GetNdc(face, ctx.Camera.ViewProjection)) {
+            //        auto bounds = Bounds2D::FromPoints(*ndc);
+
+            //        D3D12_RECT scissor{
+            //            .left = LONG((bounds.Min.x + 1) * target.GetWidth() * 0.5f),
+            //            .top = LONG((1 - bounds.Max.y) * target.GetHeight() * 0.5f),
+            //            .right = LONG((bounds.Max.x + 1) * target.GetWidth() * 0.5f),
+            //            .bottom = LONG((1 - bounds.Min.y) * target.GetHeight() * 0.5f)
+            //        };
+
+            //        cmdList->RSSetScissorRects(1, &scissor);
+            //    }
+            //}
 
             {
                 PIXScopedEvent(cmdList, PIX_COLOR_INDEX(1), "Opaque queue");
@@ -689,8 +734,10 @@ namespace Inferno::Render {
                     ExecuteRenderCommand(ctx, cmd, RenderPass::Transparent);
             }
 
+            //ctx.SetViewportAndScissor(UINT(target.GetWidth() * Settings::Graphics.RenderScale), UINT(target.GetHeight() * Settings::Graphics.RenderScale));
+
             // Copy the contents of the render target to the distortion buffer
-            auto& renderTarget = Adapter->GetHdrRenderTarget();
+            auto& renderTarget = Adapter->GetRenderTarget();
 
             if (Settings::Graphics.MsaaSamples > 1)
                 Adapter->DistortionBuffer.ResolveFromMultisample(cmdList, renderTarget);

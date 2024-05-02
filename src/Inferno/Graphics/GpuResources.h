@@ -743,7 +743,7 @@ namespace Inferno {
         D3D12_DEPTH_STENCIL_VIEW_DESC _dsvDesc = {};
 
     public:
-        float StencilDepth = 1.0f;
+        float ClearDepth = 1.0f;
 
         void Create(wstring_view name, UINT width, UINT height, DXGI_FORMAT format = DXGI_FORMAT_D32_FLOAT, UINT samples = 1) {
             CD3DX12_HEAP_PROPERTIES depthHeapProperties(D3D12_HEAP_TYPE_DEFAULT);
@@ -761,7 +761,7 @@ namespace Inferno {
 
             D3D12_CLEAR_VALUE clearValue = {};
             clearValue.Format = format;
-            clearValue.DepthStencil.Depth = StencilDepth;
+            clearValue.DepthStencil.Depth = ClearDepth;
             clearValue.DepthStencil.Stencil = 0;
 
             ThrowIfFailed(Render::Device->CreateCommittedResource(
@@ -782,16 +782,17 @@ namespace Inferno {
             _srvDesc.Texture2D.MipLevels = 1;
             _srvDesc.Texture2D.MostDetailedMip = 0;
             _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-            _srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+            _srvDesc.Format = format;
 
             AddDepthView();
-            AddShaderResourceView();
+            //if (format != DXGI_FORMAT_D32_FLOAT_S8X24_UINT)
+            //    AddShaderResourceView();
         }
 
         void Clear(ID3D12GraphicsCommandList* commandList) {
             //assert(_state == D3D12_RESOURCE_STATE_DEPTH_WRITE);
             Transition(commandList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-            commandList->ClearDepthStencilView(_dsv.GetCpuHandle(), D3D12_CLEAR_FLAG_DEPTH, StencilDepth, 0, 0, nullptr);
+            commandList->ClearDepthStencilView(_dsv.GetCpuHandle(), D3D12_CLEAR_FLAG_DEPTH, ClearDepth, 0, 0, nullptr);
         }
 
         auto GetDSV() const { return _dsv.GetCpuHandle(); }

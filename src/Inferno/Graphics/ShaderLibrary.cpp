@@ -69,7 +69,7 @@ namespace Inferno {
         } // BackFace
     };
 
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC BuildPipelineStateDesc(EffectSettings effect, IShader* shader, uint msaaSamples, uint renderTargets) {
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC BuildPipelineStateDesc(EffectSettings info, IShader* shader, bool useStencil, uint msaaSamples, uint renderTargets) {
         D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
         if (!shader->RootSignature || !shader->VertexShader || !shader->PixelShader)
             throw Exception("Shader is not valid");
@@ -79,16 +79,17 @@ namespace Inferno {
         psoDesc.PS = CD3DX12_SHADER_BYTECODE(shader->PixelShader.Get());
         psoDesc.InputLayout = shader->InputLayout;
 
-        psoDesc.RasterizerState = [&effect] {
-            switch (effect.Culling) {
+        psoDesc.RasterizerState = [&info] {
+            switch (info.Culling) {
                 case CullMode::None: return CommonStates::CullNone;
                 case CullMode::Clockwise: return CommonStates::CullClockwise;
                 case CullMode::CounterClockwise: default: return CommonStates::CullCounterClockwise;
+                case CullMode::Wireframe: return CommonStates::Wireframe;
             }
         }();
 
-        psoDesc.BlendState = [&effect] {
-            switch (effect.Blend) {
+        psoDesc.BlendState = [&info] {
+            switch (info.Blend) {
                 case BlendMode::Alpha: return CommonStates::AlphaBlend;
                 case BlendMode::StraightAlpha: return CommonStates::NonPremultiplied;
                 case BlendMode::Additive: return CommonStates::Additive;
@@ -97,9 +98,10 @@ namespace Inferno {
             }
         }();
 
-        psoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
-        psoDesc.DepthStencilState = [&effect] {
-            switch (effect.Depth) {
+        psoDesc.DSVFormat = useStencil ? DXGI_FORMAT_D32_FLOAT_S8X24_UINT : DXGI_FORMAT_D32_FLOAT;
+
+        psoDesc.DepthStencilState = [&info] {
+            switch (info.Depth) {
                 case DepthMode::None: return CommonStates::DepthNone;
                 case DepthMode::ReadWrite: return CommonStates::DepthDefault;
                 case DepthMode::Read: default: return CommonStates::DepthRead;
@@ -107,18 +109,54 @@ namespace Inferno {
             }
         }();
 
+        auto& stencil = psoDesc.DepthStencilState;
+
+        if (info.Stencil == StencilMode::PortalWrite) {
+            stencil.StencilEnable = true;
+            stencil.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
+            stencil.StencilReadMask = 0;
+            stencil.FrontFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
+            stencil.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+            stencil.BackFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
+            stencil.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+        }
+
+        if (info.Stencil == StencilMode::PortalRead) {
+            stencil.StencilEnable = true;
+            stencil.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
+            stencil.StencilWriteMask = 0;
+            stencil.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+            stencil.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+            stencil.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
+            stencil.BackFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+            stencil.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
+            stencil.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+        }
+
+        if (info.Stencil == StencilMode::PortalReadNeq) {
+            stencil.StencilEnable = true;
+            stencil.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
+            stencil.StencilWriteMask = 0;
+            stencil.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+            stencil.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+            stencil.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_NOT_EQUAL;
+            stencil.BackFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+            stencil.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_NOT_EQUAL;
+            stencil.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+        }
+
         psoDesc.SampleMask = UINT_MAX;
-        psoDesc.PrimitiveTopologyType = effect.TopologyType;
+        psoDesc.PrimitiveTopologyType = info.TopologyType;
         psoDesc.NumRenderTargets = renderTargets;
 
-        if (effect.Depth == DepthMode::ReadDecalBiased) {
+        if (info.Depth == DepthMode::ReadDecalBiased) {
             // Biases for decals
             psoDesc.RasterizerState.DepthBias = -10'000;
             psoDesc.RasterizerState.SlopeScaledDepthBias = -4.0f;
             psoDesc.RasterizerState.DepthBiasClamp = -100'000;
         }
 
-        if (effect.Depth == DepthMode::ReadSpriteBiased) {
+        if (info.Depth == DepthMode::ReadSpriteBiased) {
             // Biases for sprites
             psoDesc.RasterizerState.DepthBias = -20'000;
             psoDesc.RasterizerState.SlopeScaledDepthBias = -4.0f;
@@ -128,7 +166,7 @@ namespace Inferno {
         for (uint i = 0; i < renderTargets; i++)
             psoDesc.RTVFormats[i] = shader->Format;
 
-        psoDesc.SampleDesc.Count = effect.EnableMultisample ? msaaSamples : 1;
+        psoDesc.SampleDesc.Count = info.EnableMultisample ? msaaSamples : 1;
         return psoDesc;
     }
 }

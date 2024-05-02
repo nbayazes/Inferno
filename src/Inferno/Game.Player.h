@@ -122,7 +122,7 @@ namespace Inferno {
         bool PickUpEnergy();
         bool PickUpPrimary(PrimaryWeaponIndex);
         bool PickUpSecondary(SecondaryWeaponIndex, uint16 count = 1);
-        void DoDeathSequence(float dt);
+
         // Drops all items after dying
         void DropAllItems();
 

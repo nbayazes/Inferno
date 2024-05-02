@@ -372,6 +372,127 @@ namespace Inferno::Render {
         }
     }
 
+
+    void StaticModelDepthPrepass(GraphicsContext& ctx, ModelID modelId, const Matrix& transform) {
+        auto cmdList = ctx.GetCommandList();
+        auto& effect = Effects->DepthObject;
+
+        if (ctx.ApplyEffect(effect)) {
+            ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+            effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
+            effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
+            effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
+        }
+
+        auto& model = Resources::GetModel(modelId);
+        auto& meshHandle = GetMeshHandle(modelId);
+
+        ObjectDepthShader::Constants constants = {};
+        constants.World = transform;
+
+        auto& shader = Shaders->DepthObject;
+        shader.SetDissolveTexture(cmdList, Render::Materials->Black().Handle());
+
+        for (int submodel = 0; submodel < model.Submodels.size(); submodel++) {
+            shader.SetConstants(cmdList, constants);
+
+            // get the mesh associated with the submodel
+            auto& subMesh = meshHandle.Meshes[submodel];
+
+            for (int i = 0; i < subMesh.size(); i++) {
+                auto mesh = subMesh[i];
+                if (!mesh) continue;
+
+                cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
+                cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
+                cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
+                Stats::DrawCalls++;
+            }
+        }
+    }
+
+    void DrawStaticModel(GraphicsContext& ctx,
+                         ModelID modelId,
+                         RenderPass /*pass*/,
+                         const Color& ambient,
+                         const UploadBuffer<FrameConstants>& frameConstants,
+                         const Matrix& transform) {
+        auto& effect = Effects->TerrainObject;
+        auto cmdList = ctx.GetCommandList();
+
+        auto& model = Resources::GetModel(modelId);
+        if (model.DataSize == 0)
+            return;
+
+        if (ctx.ApplyEffect(effect)) {
+            ctx.SetConstantBuffer(0, frameConstants.GetGPUVirtualAddress());
+            effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
+            effect.Shader->SetNormalSampler(cmdList, GetNormalSampler());
+            effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
+            effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
+            effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());
+            effect.Shader->SetLightGrid(cmdList, *Render::LightGrid);
+            auto cubeSrv = Render::Materials->EnvironmentCube.GetCubeSRV().GetGpuHandle();
+            if (!cubeSrv.ptr)cubeSrv = Render::Adapter->NullCube.GetGpuHandle();
+            effect.Shader->SetEnvironmentCube(cmdList, cubeSrv);
+            effect.Shader->SetDissolveTexture(cmdList, Render::Materials->White().Handle());
+        }
+
+        ObjectShader::Constants constants = {};
+        constants.Ambient = ambient;
+        constants.EmissiveLight = Color(0, 0, 0);
+        constants.TimeOffset = 0;
+        constants.World = transform;
+
+        //Matrix transform = Matrix::CreateScale(object.Scale) * object.GetTransform(Game::LerpAmount);
+        bool transparentOverride = false;
+        auto texOverride = TexID::None;
+
+        constants.TexIdOverride = -1;
+
+        if (texOverride != TexID::None) {
+            if (auto effectId = Resources::GetEffectClipID(texOverride); effectId > EClipID::None)
+                constants.TexIdOverride = (int)effectId + VCLIP_RANGE;
+            else
+                constants.TexIdOverride = (int)texOverride;
+        }
+
+        auto& meshHandle = GetMeshHandle(modelId);
+
+        for (int submodel = 0; submodel < model.Submodels.size(); submodel++) {
+
+            // get the mesh associated with the submodel
+            auto& subMesh = meshHandle.Meshes[submodel];
+
+            for (int i = 0; i < subMesh.size(); i++) {
+                auto mesh = subMesh[i];
+                if (!mesh) continue;
+
+                //bool isTransparent = mesh->IsTransparent || transparentOverride;
+                //if (isTransparent && pass != RenderPass::Transparent) continue;
+                //if (!isTransparent && pass != RenderPass::Opaque) continue;
+
+                //if (isTransparent) {
+                //    auto& material = Resources::GetMaterial(mesh->Texture);
+                //    if (material.Additive)
+                //        ctx.ApplyEffect(Effects->ObjectGlow); // Additive blend
+                //    else
+                //        ctx.ApplyEffect(Effects->Object); // Alpha blend
+                //}
+                //else {
+                //    ctx.ApplyEffect(effect);
+                //}
+
+                effect.Shader->SetConstants(cmdList, constants);
+
+                cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
+                cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
+                cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
+                Stats::DrawCalls++;
+            }
+        }
+    }
+
     void DrawModel(GraphicsContext& ctx,
                    const Object& object,
                    ModelID modelId,

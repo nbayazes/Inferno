@@ -3,13 +3,15 @@
 
 namespace Inferno {
     enum class BlendMode { Opaque, Alpha, StraightAlpha, Additive, Multiply };
-    enum class CullMode { None, CounterClockwise, Clockwise };
+    enum class CullMode { None, CounterClockwise, Clockwise, Wireframe };
     enum class DepthMode { ReadWrite, Read, ReadDecalBiased, ReadSpriteBiased, ReadEqual, None };
+    enum class StencilMode { None, PortalRead, PortalReadNeq, PortalWrite };
 
     struct EffectSettings {
         BlendMode Blend = BlendMode::Opaque;
         CullMode Culling = CullMode::CounterClockwise;
         DepthMode Depth = DepthMode::ReadWrite;
+        StencilMode Stencil = StencilMode::None;
         D3D12_PRIMITIVE_TOPOLOGY_TYPE TopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
         bool EnableMultisample = true;
     };

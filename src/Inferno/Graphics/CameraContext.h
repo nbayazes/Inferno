@@ -82,23 +82,26 @@ namespace Inferno {
         }
 
         void ClearColor(RenderTarget& target, const D3D12_RECT* rect = nullptr) {
-            //FlushResourceBarriers();
             target.Transition(_cmdList.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET);
             _cmdList->ClearRenderTargetView(target.GetRTV(), target.ClearColor, (rect == nullptr) ? 0 : 1, rect);
             _activeEffect = 0;
         }
 
         void ClearColor(ColorBuffer& target, const D3D12_RECT* rect = nullptr) {
-            //FlushResourceBarriers();
             target.Transition(_cmdList.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET);
             _cmdList->ClearRenderTargetView(target.GetRTV(), target.ClearColor, (rect == nullptr) ? 0 : 1, rect);
             _activeEffect = 0;
         }
 
         void ClearDepth(DepthBuffer& target, const D3D12_RECT* rect = nullptr) {
-            //FlushResourceBarriers();
             target.Transition(_cmdList.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
-            _cmdList->ClearDepthStencilView(target.GetDSV(), D3D12_CLEAR_FLAG_DEPTH, target.StencilDepth, 0, (rect == nullptr) ? 0 : 1, rect);
+            _cmdList->ClearDepthStencilView(target.GetDSV(), D3D12_CLEAR_FLAG_DEPTH, target.ClearDepth, 0, (rect == nullptr) ? 0 : 1, rect);
+            _activeEffect = 0;
+        }
+
+        void ClearStencil(DepthBuffer& target, uint8 value, const D3D12_RECT* rect = nullptr) {
+            target.Transition(_cmdList.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
+            _cmdList->ClearDepthStencilView(target.GetDSV(), D3D12_CLEAR_FLAG_STENCIL, target.ClearDepth, value, (rect == nullptr) ? 0 : 1, rect);
             _activeEffect = 0;
         }
 

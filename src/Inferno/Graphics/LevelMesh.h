@@ -72,11 +72,6 @@ namespace Inferno {
         void Draw(ID3D12GraphicsCommandList* cmdList) const;
     };
 
-    struct LevelResources {
-        LevelGeometry Geometry;
-        List<LevelMesh> Meshes;
-        List<LevelMesh> WallMeshes;
-    };
 
     //class LevelMeshWorker : public WorkerThread {
     //    PackedUploadBuffer _upload[2]{};
@@ -116,10 +111,13 @@ namespace Inferno {
         List<LevelMesh> _meshes;
         List<LevelMesh> _wallMeshes, _decalMeshes;
         ChunkCache _chunks, _decals;
+        LevelMesh _exitPortal{};
+
     public:
         span<LevelMesh> GetMeshes() { return _meshes; }
         span<LevelMesh> GetDecals() { return _decalMeshes; }
         span<LevelMesh> GetWallMeshes() { return _wallMeshes; }
+        LevelMesh& GetExitPortal() { return _exitPortal; }
 
         void Update(Level& level, PackedBuffer& buffer);
     private:

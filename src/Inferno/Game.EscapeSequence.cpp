@@ -67,17 +67,17 @@ namespace Inferno {
     }
 
 
-    List<float> CubicResize(const Bitmap2D& bitmap, uint dest_width, uint dest_height) {
+    List<float> CubicResize(const Bitmap2D& bitmap, uint destWidth, uint destHeight) {
         List<float> heights;
-        heights.resize(dest_width * dest_height);
+        heights.resize(destWidth * destHeight);
 
-        float xRatio = float(bitmap.Width) / dest_width;
-        float yRatio = float(bitmap.Height) / dest_height;
+        float xRatio = float(bitmap.Width) / destWidth;
+        float yRatio = float(bitmap.Height) / destHeight;
 
         Array<float, 5> curve = {};
 
-        for (uint y = 0; y < dest_height; ++y) {
-            for (uint x = 0; x < dest_width; ++x) {
+        for (uint y = 0; y < destHeight; ++y) {
+            for (uint x = 0; x < destWidth; ++x) {
                 auto xPixel = int(x * xRatio);
                 auto yPixel = int(y * yRatio);
 
@@ -102,7 +102,7 @@ namespace Inferno {
                 float d3 = curve[3] - curve[1];
                 float a0 = curve[1];
 
-                heights[y * dest_width + x] = Cubic(d0, d2, d3, dy, a0);
+                heights[y * destWidth + x] = Cubic(d0, d2, d3, dy, a0);
             }
         }
 
@@ -214,32 +214,32 @@ namespace Inferno {
     }
 
 
-    void LoadTerrain(const Bitmap2D& bitmap, TerrainInfo& dest, uint cellCount, float heightScale = 1.0f, float gridScale = 40.0f) {
+    void LoadTerrain(const Bitmap2D& bitmap, TerrainInfo& info, uint cellDensity, float heightScale = 1.0f, float gridScale = 40.0f) {
         List<uint8> terrain;
-        auto& vertices = dest.Vertices;
-        auto& indices = dest.Indices;
+        auto& vertices = info.Vertices;
+        auto& indices = info.Indices;
 
-        const float cellScale = (float)bitmap.Width / cellCount;
+        const float cellScale = (float)bitmap.Width / cellDensity;
         const float uvStep = cellScale * 0.25f; // Repeat texture every four of the original cells
 
-        auto heights = CubicResize(bitmap, cellCount, cellCount);
+        auto heights = CubicResize(bitmap, cellDensity, cellDensity);
         List<Vector3> vertexPositions;
-        vertexPositions.resize(cellCount * cellCount);
+        vertexPositions.resize(cellDensity * cellDensity);
 
         // Fill vertex positions
-        for (uint y = 0; y < cellCount; y++) {
-            for (uint x = 0; x < cellCount; x++) {
-                auto index = y * cellCount + x;
+        for (uint y = 0; y < cellDensity; y++) {
+            for (uint x = 0; x < cellDensity; x++) {
+                auto index = y * cellDensity + x;
                 vertexPositions[index] = Vector3{ x * cellScale * gridScale, heights[index] * heightScale, y * cellScale * gridScale };
                 //constexpr float noiseScale = 0.10f;
                 //vertexPositions[index].y += OpenSimplex2::Noise2(321818, (double)x * noiseScale, (double)y * noiseScale) * 3.5f;
             }
         }
 
-        auto getVertex = [&vertexPositions, cellCount](uint x, uint y) -> Vector3& {
-            x = std::clamp(x, 0u, cellCount - 1u);
-            y = std::clamp(y, 0u, cellCount - 1u);
-            return vertexPositions[y * cellCount + x];
+        auto getVertex = [&vertexPositions, cellDensity](uint x, uint y) -> Vector3& {
+            x = std::clamp(x, 0u, cellDensity - 1u);
+            y = std::clamp(y, 0u, cellDensity - 1u);
+            return vertexPositions[y * cellDensity + x];
         };
 
         auto addVertex = [&](uint x, uint y) {
@@ -267,10 +267,35 @@ namespace Inferno {
             vertices.push_back(vertex);
         };
 
+
+        float aspect = 1;
+        auto projection = DirectX::XMMatrixPerspectiveFovLH(60 * DegToRad, aspect, 1, 300);
+        //Vector3 exitPosition = info.ExitTransform.Translation();
+        //exitPosition += info.ExitTransform.Forward() * 10;
+
+        Vector3 center = vertexPositions[cellDensity * (cellDensity / 2 - 1) + (cellDensity / 2 - 1)];
+
+        //Vector3 center = { gridScale * 8, 0, gridScale * 8 };
+        Vector3 exitPosition = { 0, 10, 30 };
+        exitPosition += center;
+        //auto view = DirectX::XMMatrixLookAtLH(Position, Target, Up);
+
+        auto view = DirectX::XMMatrixLookAtLH(exitPosition, Vector3(0, 10, 0) + center, Vector3::Up);
+        auto frustum = GetFrustum(exitPosition, view, projection);
+
+        //DirectX::BoundingFrustum frustum = { transform, orientation };
+
         // Generate faces
-        for (uint y = 0; y < cellCount - 1; y++) {
-            for (uint x = 0; x < cellCount - 1; x++) {
+        for (uint y = 0; y < cellDensity - 1; y++) {
+            for (uint x = 0; x < cellDensity - 1; x++) {
                 auto startIndex = (uint16)vertices.size();
+
+                //Vector2 center = { x * gridScale * cellScale, y * gridScale * cellScale };
+                //auto cellCenter = (getVertex(x, y) + getVertex(x + 1, y) + getVertex(x, y + 1) + getVertex(x + 1, y + 1)) / 4;
+
+                //if (frustum.Contains(cellCenter))
+                //    continue;
+
                 addVertex(x, y);
                 addVertex(x, y + 1);
                 addVertex(x + 1, y + 1);
@@ -287,8 +312,6 @@ namespace Inferno {
         }
 
         // Center the mesh
-        Vector3 center = vertexPositions[cellCount * (cellCount / 2 - 1) + (cellCount / 2 - 1)];
-
         for (auto& vertex : vertices) {
             vertex.Position -= center;
         }
@@ -334,6 +357,8 @@ namespace Inferno {
                 auto curvePoints = DivideCurveIntoSteps(curve.Points, 4);
 
                 if (seg.GetConnection(opp.Side) == SegID::Exit) {
+                    auto exitTag = Tag(cside.Segment, opp.Side);
+
                     foundSurface = true;
                     points.push_back(curvePoints[1]);
                     points.push_back(curvePoints[2]);
@@ -351,6 +376,7 @@ namespace Inferno {
                     info.InverseTransform = Matrix3x3(info.Transform.Invert());
                     info.Transform.Translation(bottom.Center);
                     info.ExitTransform = Matrix::CreateRotationY(DirectX::XM_PI) * Matrix::CreateTranslation(Vector3(0, 9, 10)) * info.Transform;
+                    info.ExitTag = exitTag;
                     break;
                 }
 
@@ -442,12 +468,12 @@ namespace Inferno {
         if (stationDir.size() >= 2)
             info.StationDir = parseDirection(satelliteDir);
 
+        CreateEscapePath(level, info);
+
         if (auto data = Resources::ReadBinaryFile(info.Heightmap); !data.empty()) {
             auto bitmap = ReadBbm(data);
-            LoadTerrain(bitmap, info, 48);
+            LoadTerrain(bitmap, info, 64);
         }
-
-        CreateEscapePath(level, info);
 
         info.ExitModel = Resources::GameData.ExitModel;
         return info;

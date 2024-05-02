@@ -9,8 +9,6 @@
 #include "SystemClock.h"
 #include "Graphics/Render.h"
 
-using namespace DirectX;
-using namespace DirectX::SimpleMath;
 using namespace Inferno;
 using namespace Inferno::Editor;
 

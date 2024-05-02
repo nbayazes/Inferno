@@ -325,6 +325,7 @@ namespace Inferno::Editor {
 
                 ImGui::MenuItem("Animation", nullptr, &Settings::Editor.ShowAnimation);
                 ImGui::MenuItem("Matcen Effects", nullptr, &Settings::Editor.ShowMatcenEffects);
+                ImGui::MenuItem("Terrain", nullptr, &Settings::Editor.ShowTerrain);
 
                 ImGui::EndMenu();
             }

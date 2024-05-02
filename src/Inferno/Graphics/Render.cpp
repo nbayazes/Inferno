@@ -379,6 +379,9 @@ namespace Inferno::Render {
             }
         }
 
+        objectMeshes->LoadModel(Resources::GameData.ExitModel);
+        objectMeshes->LoadModel(Resources::GameData.DestroyedExitModel);
+
         //{
         //    LoadOutrageModel(TEST_MODEL);
         //}

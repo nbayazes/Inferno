@@ -43,8 +43,13 @@ namespace Inferno::Graphics {
     }
 
     void LoadTerrain(const TerrainInfo& info) {
-        std::array textures = { info.SatelliteTexture, info.SurfaceTexture };
+        Array textures = { info.SatelliteTexture, info.SurfaceTexture };
         Render::Materials->LoadTextures(textures);
+
+        Set<TexID> ids;
+        Render::GetTexturesForModel(Resources::GameData.ExitModel, ids);
+        Render::GetTexturesForModel(Resources::GameData.DestroyedExitModel, ids);
+        LoadMaterials(Seq::ofSet(ids));
 
         auto& resources = Render::LevelResources;
         resources.TerrainMesh = make_unique<Render::TerrainMesh>();
