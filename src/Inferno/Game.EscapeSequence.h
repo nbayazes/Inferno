@@ -27,8 +27,12 @@ namespace Inferno {
         List<uint16> Indices;
 
         Matrix Transform;
+        Matrix ExitTransform;
+
         Matrix3x3 InverseTransform;
         List<Vector3> EscapePath;
+
+        ModelID ExitModel = ModelID::None;
     };
 
     void UpdateEscapeSequence(float dt);
