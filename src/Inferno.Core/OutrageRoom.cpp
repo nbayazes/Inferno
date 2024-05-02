@@ -14,6 +14,22 @@ namespace Inferno {
         constexpr int ROOM_FACES_CHUNK = 2;
         constexpr int ROOM_END_CHUNK = 3;
         constexpr int ROOM_TEXTURE_CHUNK = 4;
+
+        std::array DefaultTextures = {
+            "Tech Pan Rib 1",
+            "Diamondplatepanels1",
+            "Diamondplate Stripes1",
+            "Diamond Floor1",
+            "DiamondRoof",
+            "Lego Floor",
+            "Grainy1",
+            "TechDetail02x",
+            "TechDetail03x",
+            "ShinyGridS",
+            "P-FacPlain3S",
+            "P-FacPlain6S",
+            "P-Prove Plain4S"
+        };
     }
 
     // D3 ORF face
@@ -21,6 +37,7 @@ namespace Inferno {
         Vector3 Normal;
         List<short> Vertices; // Indices into the vertex array
         List<Vector2> UVs;
+        int16 Texture = 0; // Index into room texture chunk
     };
 
     void LoadRoom(StreamReader& reader) {
@@ -65,7 +82,7 @@ namespace Inferno {
 
                 case ROOM_FACES_CHUNK:
                 {
-                    /*auto lightMult = */reader.ReadByte();
+                    reader.ReadByte(); // light mult
                     auto nverts = reader.ReadInt32();
 
                     RoomFace face;
@@ -75,7 +92,7 @@ namespace Inferno {
                     face.Vertices.resize(nverts);
                     face.UVs.resize(nverts);
 
-                    /*auto texIndex = */reader.ReadInt16();
+                    reader.ReadInt16(); // tex index
 
                     for (int i = 0; i < nverts; i++) {
                         face.Vertices[i] = reader.ReadInt16();
@@ -91,7 +108,6 @@ namespace Inferno {
                     }
 
                     return; // Return due to bug with reading ending chunk
-                    break;
                 }
 
                 case ROOM_END_CHUNK:
@@ -141,15 +157,24 @@ namespace Inferno {
         }
 
         {
-            // texture ordering stuff (omitted)
-
             // write texture info
             writer.Write(ROOM_TEXTURE_CHUNK);
             auto texsize = (int)writer.Position();
             writer.Write(-1); // placeholder
 
-            writer.Write(1); // highest texture index
-            writer.WriteCString("Diamondplatepanels1", 64);
+            //writer.Write(1); // highest texture index
+            //writer.WriteCString("Diamondplatepanels1", 64);
+
+            int16 texCount = 0;
+            for (auto& face : faces) {
+                texCount = std::max(texCount, face.Texture);
+            }
+
+            texCount++;
+            writer.Write(int32(texCount)); // number of textures
+
+            for (int16 i = 0; i < texCount; i++)
+                writer.WriteCString(DefaultTextures[i], 64);
 
             pos = (int)writer.Position();
             writer.Seek(texsize);
@@ -168,17 +193,16 @@ namespace Inferno {
             writer.WriteFloat(face.Normal.x);
             writer.WriteFloat(face.Normal.y);
             writer.WriteFloat(face.Normal.z);
-
-            writer.Write((int16)0); // Texture index
+            writer.Write((int16)(face.Texture + 1)); // Texture index
 
             for (int t = 0; t < face.Vertices.size(); t++) {
                 writer.Write(face.Vertices[t]);
                 writer.WriteFloat(face.UVs[t].x);
                 writer.WriteFloat(face.UVs[t].y);
-                writer.WriteFloat(0.0f);
-                writer.WriteFloat(0.0f);
-                writer.WriteFloat(0.0f);
-                writer.WriteFloat(0.0f);
+                writer.WriteFloat(0.0f); // dummy data
+                writer.WriteFloat(0.0f); // dummy data
+                writer.WriteFloat(0.0f); // dummy data
+                writer.WriteFloat(0.0f); // dummy data
                 writer.WriteFloat(1.0f); // alpha
             }
         }
@@ -197,6 +221,10 @@ namespace Inferno {
         List<RoomFace> faces;
         short vertexIndex = 0;
 
+        //Dictionary<LevelTexID, int> textureIndex;
+
+        List<LevelTexID> textures;
+
         for (auto& segid : segs) {
             auto& seg = level.GetSegment(segid);
             for (auto& sid : SideIDs) {
@@ -208,9 +236,14 @@ namespace Inferno {
 
                 auto indices = side.GetRenderIndices();
 
-                if (side.Normals[0].Dot(side.Normals[1]) > 0.9999f) {
-                    // planar face
+                if (!Seq::contains(textures, face.Side.TMap))
+                    textures.push_back(face.Side.TMap);
 
+
+                auto texture = int16(Seq::indexOf(textures, face.Side.TMap).value_or(0) % std::size(DefaultTextures) - 1);
+
+                if (side.Normals[0].Dot(side.Normals[1]) > 0.999999f) {
+                    // planar face
                     RoomFace roomFace{};
                     roomFace.Vertices.push_back(vertexIndex++);
                     roomFace.Vertices.push_back(vertexIndex++);
@@ -225,6 +258,7 @@ namespace Inferno {
                     vertices.push_back(face[2]);
                     vertices.push_back(face[3]);
                     roomFace.Normal = side.AverageNormal;
+                    roomFace.Texture = texture;
                     faces.push_back(roomFace);
                 }
                 else {
@@ -243,6 +277,7 @@ namespace Inferno {
                         vertices.push_back(face[indices[2 + i * 3]]);
 
                         roomFace.Normal = side.Normals[i];
+                        roomFace.Texture = texture;
                         faces.push_back(roomFace);
                     }
                 }

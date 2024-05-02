@@ -244,7 +244,7 @@ namespace Inferno {
             writer.Write((int32)data.size());
             writer.Write((int32)data.size());
             writer.Write(offset);
-            offset += data.size();
+            offset += (uint32)data.size();
         }
 
         // write bitmap data
