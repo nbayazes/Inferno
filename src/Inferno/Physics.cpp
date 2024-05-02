@@ -726,7 +726,7 @@ namespace Inferno {
                     }
 
                     Plane plane(p0 + offset, p1 + offset, p2 + offset);
-                    auto planeDist = -plane.DotCoordinate(faceLocalPos); // flipped winding
+                    auto planeDist = plane.DotCoordinate(faceLocalPos);
                     if (planeDist > 0 || planeDist < -sphereSource.Radius)
                         continue; // Object isn't close enough to the triangle plane
 
