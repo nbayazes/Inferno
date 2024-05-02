@@ -361,3 +361,4 @@ dxc.exe
 *.flac
 *.dxa
 *.ied
+/src/Inferno/data/d1/*.pof
