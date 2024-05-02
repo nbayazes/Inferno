@@ -68,7 +68,6 @@ namespace Inferno::Render {
         }
 
         SparkEmitterInfo Info;
-        Vector3 PrevParentPosition;
 
         void OnInit() override;
         void OnUpdate(float dt, EffectID) override;

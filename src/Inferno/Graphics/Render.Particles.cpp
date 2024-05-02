@@ -510,36 +510,32 @@ namespace Inferno::Render {
                 _nextInterval = Info.Interval.GetRandom();
         }
 
-        auto parent = Game::GetObject(Parent);
-
-        Vector3 parentPos = parent ? parent->GetPosition(Game::LerpAmount) : Vector3::Zero;
-        Vector3 parentDelta = parent ? parentPos - PrevParentPosition : Vector3::Zero;
-        if (parent) PrevParentPosition = parentPos;
-
         for (auto& spark : _sparks) {
             if (!spark.IsAlive()) continue;
 
             spark.PrevPosition = spark.Position;
             spark.PrevVelocity = spark.Velocity;
 
-            if (Info.UseWorldGravity)
+            if (Info.UseWorldGravity && !Info.Relative)
                 spark.Velocity += Game::Gravity * dt;
 
             if (Info.UsePointGravity) {
-                auto center = Position;
-                if (parent && (Info.PointGravityVelocity != Vector3::Zero || Info.PointGravityOffset != Vector3::Zero)) {
-                    // Offset the gravity center over the lifetime of the particle
+                auto center = Info.Relative ? Vector3::Zero : Position;
+
+                if (Info.PointGravityVelocity != Vector3::Zero || Info.PointGravityOffset != Vector3::Zero) {
                     auto t = Info.Duration.Max - (Info.Duration.Max - spark.Life);
-                    center += Vector3::Transform(Info.PointGravityVelocity * t + Info.PointGravityOffset + ParentSubmodel.Offset, parent->Rotation);
+                    // Offset the gravity center over the lifetime of the particle
+                    center += Info.PointGravityVelocity * t + Info.PointGravityOffset + ParentSubmodel.Offset;
+
+                    if (!Info.Relative) {
+                        //center = Vector3::Transform(center, parent->Rotation);
+                    }
                 }
 
                 auto dir = center - spark.Position;
                 dir.Normalize();
                 spark.Velocity += dir * Info.PointGravityStrength * dt;
             }
-
-            if (parent && Info.Relative)
-                spark.Position += parentDelta; // Move particle with parent
 
             spark.Position += spark.Velocity * dt;
         }
@@ -612,16 +608,30 @@ namespace Inferno::Render {
         auto remaining = GetRemainingTime();
         float fade = remaining < FadeTime ? remaining / FadeTime : 1; // global emitter fade
 
+        auto parentTransform = Matrix::Identity;
+        if (auto parent = Game::GetObject(Parent)) {
+            parentTransform = parent->GetTransform(Game::LerpAmount);
+        }
+
         for (auto& spark : _sparks) {
             if (spark.Life <= 0) continue;
             auto pos = spark.Position;
             auto vec = spark.Position - spark.PrevPosition;
             vec.Normalize();
+            auto velocity = spark.Velocity;
+
+            // Move points to parent
+            if (Info.Relative) {
+                auto parentRotation = Matrix3x3(parentTransform);
+                pos = Vector3::Transform(pos, parentTransform);
+                vec = Vector3::Transform(vec, parentRotation);
+                velocity = Vector3::Transform(velocity, parentRotation);
+            }
 
             Vector3 head = pos + vec * Info.Width * 0.5;
             Vector3 tail = pos - vec * Info.Width * 0.5;
 
-            auto size = spark.Velocity * Info.VelocitySmear;
+            auto size = velocity * Info.VelocitySmear;
             head += size;
             tail -= size;
 
@@ -638,6 +648,7 @@ namespace Inferno::Render {
             ObjectVertex v1{ head - tangent, { 1, 1 }, color };
             ObjectVertex v2{ tail - tangent, { 1, 0 }, color };
             ObjectVertex v3{ tail + tangent, { 0, 0 }, color };
+
             g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
         }
 
@@ -648,7 +659,7 @@ namespace Inferno::Render {
     void SparkEmitter::CreateSpark() {
         Spark spark;
         spark.Life = Info.Duration.GetRandom();
-        auto position = Position;
+        auto position = Parent ? Vector3::Zero : Position;
         if (Info.SpawnRadius > 0)
             position += RandomPointOnSphere() * Info.SpawnRadius;
 
@@ -669,11 +680,11 @@ namespace Inferno::Render {
             spark.Velocity = direction * Info.Velocity.GetRandom();
         }
 
-        if (auto parent = Game::GetObject(Parent)) {
-            PrevParentPosition = parent->Position;
+        //if (auto parent = Game::GetObject(Parent)) {
+        if (Parent) {
 
-            //if (Offset != Vector3::Zero)
-            spark.Position += Vector3::Transform(ParentSubmodel.Offset + Info.Offset, parent->Rotation);
+            //spark.Position += Vector3::Transform(ParentSubmodel.Offset + Info.Offset, parent->Rotation);
+            spark.Position += ParentSubmodel.Offset + Info.Offset;
         }
 
         _sparks.Add(spark);
