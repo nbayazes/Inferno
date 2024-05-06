@@ -76,7 +76,6 @@ namespace Inferno::Sound {
         SegID Segment = SegID::None; // Segment the sound starts in, needed for occlusion
         SideID Side = SideID::None; // Side, used for turning off forcefields
         ObjRef Source = GLOBAL_SOUND_SOURCE; // Source to attach the sound to
-        bool FromPlayer = false; // For the player's firing sounds, afterburner, etc. Simulates 2D playback by positioning sound on the listener.
         SoundUID ID = SoundUID::None;
     };
 
@@ -449,7 +448,7 @@ namespace Inferno::Sound {
         }
 
         void PlaySound3DInternal(const PlaySound3DInfo& playInfo) {
-            ASSERT(playInfo.Segment != SegID::None || playInfo.FromPlayer);
+            //ASSERT(playInfo.Segment != SegID::None || playInfo.AtListener);
             auto& sound = playInfo.Sound;
 
             auto sfx = LoadSound(sound.Resource);
@@ -483,8 +482,10 @@ namespace Inferno::Sound {
                         info.Sound.Resource == sound.Resource &&
                         inst.StartTime + MERGE_WINDOW > currentTime + sound.Delay &&
                         !info.Sound.Looped) {
-                        if (info.Source != GLOBAL_SOUND_SOURCE)
-                            info.Sound.AttachOffset = (sound.AttachOffset + inst.Info.Sound.AttachOffset) / 2;
+                        if (info.Source != GLOBAL_SOUND_SOURCE) {
+                            info.Sound.AttachOffset = Vector3::Zero; // Don't try averaging offsets, it doesn't work
+                            //info.Sound.AttachOffset = (sound.AttachOffset + inst.Info.Sound.AttachOffset) / 2;
+                        }
 
                         inst.Emitter.Position = (playInfo.Position + inst.Emitter.Position) / 2;
                         info.Sound.Volume += sound.Volume * 0.5f;
@@ -549,7 +550,7 @@ namespace Inferno::Sound {
 
         void Update() {
             auto dt = (float)_pollRate.count() / 1000.0f;
-            auto& camera = *Game::ActiveCamera;
+            auto& camera = Game::GetActiveCamera();
             _listener.SetOrientation(camera.GetForward(), camera.Up);
             _listener.Position = camera.Position * AUDIO_SCALE;
             //std::scoped_lock lock(SoundInstancesMutex);
@@ -607,8 +608,8 @@ namespace Inferno::Sound {
 
                 // Hack to force sounds caused by the player to be exactly on top of the listener.
                 // Objects and the camera are slightly out of sync due to update timing and threading
-                if (Game::GetState() == GameState::Game && instance.Info.FromPlayer)
-                    instance.Emitter.Position = _listener.Position;
+                //if (Game::GetState() == GameState::Game && instance.Info.AtListener)
+                //    instance.Emitter.Position = _listener.Position;
 
                 instance.Effect->Apply3D(_listener, instance.Emitter, false);
             }
@@ -722,7 +723,7 @@ namespace Inferno::Sound {
                     if (filesystem::exists(path)) {
                         auto data = Inferno::File::ReadAllBytes(path);
                         SPDLOG_INFO("Reading D1 sound {} from `{}`", id, path);
-                        return (_effectsD1[int(id)] = MakePtr<SoundEffect>(CreateSoundEffectWav(*_engine, data))).get();
+                        return (_effectsD1[int(id)] = make_unique<SoundEffect>(CreateSoundEffectWav(*_engine, data))).get();
                     }
                 }
             }
@@ -738,7 +739,7 @@ namespace Inferno::Sound {
 
             auto data = _soundsD1.Compressed ? _soundsD1.ReadCompressed(id) : _soundsD1.Read(id);
             if (data.empty()) return nullptr;
-            return (_effectsD1[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*_engine, data, SAMPLE_RATE_11KHZ, trimStart, trimEnd))).get();
+            return (_effectsD1[int(id)] = make_unique<SoundEffect>(CreateSoundEffect(*_engine, data, SAMPLE_RATE_11KHZ, trimStart, trimEnd))).get();
         }
 
 
@@ -759,7 +760,7 @@ namespace Inferno::Sound {
                     if (filesystem::exists(path)) {
                         auto data = Inferno::File::ReadAllBytes(path);
                         SPDLOG_INFO("Reading D2 sound {} from `{}`", id, path);
-                        return (_effectsD2[int(id)] = MakePtr<SoundEffect>(CreateSoundEffectWav(*_engine, data))).get();
+                        return (_effectsD2[int(id)] = make_unique<SoundEffect>(CreateSoundEffectWav(*_engine, data))).get();
                     }
                 }
             }
@@ -772,7 +773,7 @@ namespace Inferno::Sound {
 
             auto data = _soundsD2.Read(id);
             if (data.empty()) return nullptr;
-            return (_effectsD2[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*_engine, data, sampleRate))).get();
+            return (_effectsD2[int(id)] = make_unique<SoundEffect>(CreateSoundEffect(*_engine, data, sampleRate))).get();
         }
 
         SoundEffect* LoadSoundD3(const string& fileName) {
@@ -783,7 +784,7 @@ namespace Inferno::Sound {
             if (!info) return nullptr;
 
             if (auto data = Resources::Descent3Hog.ReadEntry(info->FileName)) {
-                return (_soundsD3[fileName] = MakePtr<SoundEffect>(CreateSoundEffectWav(*_engine, *data))).get();
+                return (_soundsD3[fileName] = make_unique<SoundEffect>(CreateSoundEffectWav(*_engine, *data))).get();
             }
             else {
                 return nullptr;
@@ -826,11 +827,6 @@ namespace Inferno::Sound {
 
     SoundUID PlayFrom(const Sound3D& sound, const Object& source) {
         PlaySound3DInfo info{ sound, source.Position, source.Segment, {}, Game::GetObjectRef(source) };
-        return SoundThread->PlaySound3D(info);
-    }
-
-    SoundUID AtPlayer(const Sound3D& sound) {
-        PlaySound3DInfo info{ .Sound = sound, .Source = Game::Player.Reference, .FromPlayer = true };
         return SoundThread->PlaySound3D(info);
     }
 

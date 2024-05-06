@@ -301,5 +301,7 @@
     <None Include="shaders\Terrain.hlsl" />
     <None Include="shaders\Stars.hlsl" />
     <None Include="shaders\Sun.hlsl" />
+    <None Include="gsl\assert" />
+    <None Include="gsl\pointers" />
   </ItemGroup>
 </Project>

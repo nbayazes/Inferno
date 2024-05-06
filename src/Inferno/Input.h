@@ -77,7 +77,7 @@ namespace Inferno::Input {
 
     void ProcessMessage(UINT message, WPARAM, LPARAM);
 
-    string KeyToString(Keys key);
+    std::string KeyToString(Keys key);
 
     enum class EventType {
         KeyPress,

@@ -84,7 +84,13 @@ namespace Inferno::Game {
     inline class Player Player = {};
     inline ObjRef DeathCamera = {};
     inline Camera GameCamera;
-    inline Camera* ActiveCamera = &GameCamera;
+
+
+    // Sets the primary camera for the main view. Used for sound, rendering and mouse selection.
+    void SetActiveCamera(Camera& camera);
+
+    // Gets the primary camera for the main view. Used for sound, rendering and mouse selection.
+    Camera& GetActiveCamera();
 
     // is the game level loading?
     inline std::atomic IsLoading = false;

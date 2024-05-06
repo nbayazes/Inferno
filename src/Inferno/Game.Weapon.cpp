@@ -230,11 +230,13 @@ namespace Inferno::Game {
                 constexpr float duration = 1;
                 AddSparkEmitter(*sparks, target.Segment, hit.Point);
 
-                LightEffectInfo light{};
-                light.LightColor = weapon.Extended.ExplosionColor;
-                light.Radius = weapon.Extended.LightRadius;
-                
-                AddLight(light, hit.Point, duration, target.Segment);
+                if (!weapon.IsExplosive()) {
+                    LightEffectInfo light{};
+                    light.LightColor = weapon.Extended.ExplosionColor;
+                    light.Radius = weapon.Extended.LightRadius;
+                    light.FadeTime = sparks->FadeTime / 2;
+                    AddLight(light, hit.Point, duration, target.Segment);
+                }
             }
 
             // Tearing metal on heavy hit
@@ -310,7 +312,7 @@ namespace Inferno::Game {
 
     Object CreateWeaponProjectile(WeaponID id, const Vector3& position, const Vector3& direction,
                                   SegID segment, ObjRef parentRef,
-                                  float damageMultiplier = 1, float volume = DEFAULT_WEAPON_VOLUME) {
+                                  float damageMultiplier, float volume, uint8 gun = 255) {
         auto parent = Game::Level.TryGetObject(parentRef);
 
         auto& weapon = Resources::GetWeapon(id);
@@ -445,12 +447,12 @@ namespace Inferno::Game {
             }
 
             if (parent) {
-                sound.AttachOffset = parent->Position - position;
+                if (gun != 255) {
+                    auto gunSubmodel = GetGunpointSubmodelOffset(*parent, gun);
+                    sound.AttachOffset = GetSubmodelOffset(*parent, gunSubmodel);
+                }
 
-                if (parent->IsPlayer())
-                    Sound::AtPlayer(sound);
-                else
-                    Sound::PlayFrom(sound, *parent);
+                Sound::PlayFrom(sound, *parent);
             }
             else {
                 Sound::Play(sound, bullet.Position, bullet.Segment);
@@ -475,18 +477,21 @@ namespace Inferno::Game {
         auto objOffset = GetSubmodelOffset(obj, gunSubmodel);
         auto position = Vector3::Transform(objOffset, obj.GetTransform());
         Vector3 direction = customDir ? *customDir : obj.Rotation.Forward();
-        auto projectile = CreateWeaponProjectile(id, position, direction, obj.Segment, ref, damageMultiplier, volume);
+        auto projectile = CreateWeaponProjectile(id, position, direction, obj.Segment, ref, damageMultiplier, volume, gun);
         auto& weapon = Resources::GetWeapon(id);
         projectile.Faction = obj.Faction;
 
         if (weapon.Extended.Recoil)
             obj.Physics.Thrust += obj.Rotation.Backward() * weapon.Extended.Recoil;
 
-        if (obj.IsPlayer() && gun == 6 && Game::GetState() == GameState::Game)
-            showFlash = false; // Hide center gun flash in first person (gun is under the ship, player can't see it!)
+        // todo: check if in first person, not just if in-game
+        if (Game::GetState() == GameState::Game && obj.IsPlayer()) {
+            if (gun == 6)
+                showFlash = false; // Hide center gun flash in first person (gun is under the ship, player can't see it!)
 
-        if (obj.IsPlayer() && !Settings::Inferno.ShowWeaponFlash)
-            showFlash = false; // Hide weapon flash if setting is disabled
+            if (!Settings::Inferno.ShowWeaponFlash)
+                showFlash = false; // Hide first-person weapon flash if setting is disabled
+        }
 
         if (showFlash) {
             ParticleInfo p{};
@@ -776,7 +781,7 @@ namespace Inferno::Game {
         Sound3D sound(weapon.FlashSound);
         sound.Volume = 0.40f;
         sound.AttachOffset = gunSubmodel.Offset;
-        Sound::AtPlayer(sound);
+        Sound::PlayFrom(sound, playerObj);
 
         ParticleInfo p{};
         p.Clip = weapon.FlashVClip;

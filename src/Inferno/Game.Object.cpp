@@ -863,11 +863,7 @@ namespace Inferno {
         if (playSound) {
             Sound3D sound(SoundID::CloakOn);
             sound.Merge = false;
-
-            if (obj.IsPlayer())
-                Sound::AtPlayer(sound);
-            else
-                Sound::PlayFrom(sound, obj);
+            Sound::PlayFrom(sound, obj);
         }
     }
 
@@ -877,11 +873,7 @@ namespace Inferno {
         if (playSound) {
             Sound3D sound(SoundID::CloakOff);
             sound.Merge = false;
-
-            if (obj.IsPlayer())
-                Sound::AtPlayer(sound);
-            else
-                Sound::PlayFrom(sound, obj);
+            Sound::PlayFrom(sound, obj);
         }
     }
 
@@ -894,11 +886,7 @@ namespace Inferno {
         if (playSound) {
             Sound3D sound(SoundID::InvulnOn);
             sound.Merge = false;
-
-            if (obj.IsPlayer())
-                Sound::AtPlayer(sound);
-            else
-                Sound::PlayFrom(sound, obj);
+            Sound::PlayFrom(sound, obj);
         }
     }
 
@@ -908,14 +896,9 @@ namespace Inferno {
         if (playSound) {
             Sound3D sound(SoundID::InvulnOff);
             sound.Merge = false;
-
-            if (obj.IsPlayer())
-                Sound::AtPlayer(sound);
-            else
-                Sound::PlayFrom(sound, obj);
+            Sound::PlayFrom(sound, obj);
         }
     }
-
 
     float GetObjectRadius(const Object& obj) {
         constexpr float playerRadius = FixToFloat(0x46c35L);

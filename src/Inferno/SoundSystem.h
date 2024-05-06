@@ -40,9 +40,6 @@ namespace Inferno::Sound {
     // Plays a sound attached to an object that stops if it is destroyed
     SoundUID PlayFrom(const Sound3D& sound, const Object& source);
 
-    // Plays a 3D sound at the player's position. Necessary because 2D sounds don't support looping.
-    SoundUID AtPlayer(const Sound3D& sound);
-
     // Plays a raw music stream
     bool PlayMusic(const List<byte>&& data, bool loop);
 

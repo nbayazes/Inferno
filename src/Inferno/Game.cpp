@@ -1,6 +1,7 @@
 #include "pch.h"
 #define NOMINMAX
 #include <numeric>
+#include <gsl/pointers>
 #include "Game.h"
 #include "DebugOverlay.h"
 #include "Editor/Editor.h"
@@ -30,11 +31,20 @@ using namespace DirectX;
 
 namespace Inferno::Game {
     namespace {
-        GameState State = GameState::Editor;
-        GameState RequestedState = GameState::Editor;
+        auto State = GameState::Editor;
+        auto RequestedState = GameState::Editor;
         constexpr size_t OBJECT_BUFFER_SIZE = 100; // How many new objects to keep in reserve
         int MenuIndex = 0;
         Ptr<Editor::EditorUI> EditorUI;
+        gsl::not_null ActiveCamera = &GameCamera;
+    }
+
+    Camera& GetActiveCamera() { return *ActiveCamera.get(); }
+
+    void SetActiveCamera(Camera& camera) { ActiveCamera = &camera; }
+
+    bool EnableAi() {
+        return !Settings::Cheats.DisableAI && Game::GetState() == GameState::Game;
     }
 
     bool StartLevel();
@@ -73,7 +83,7 @@ namespace Inferno::Game {
             // but it would be nicer to come from the environment instead...
             Sound3D s(sound);
             s.Volume = Random() * 0.1f + 0.05f;
-            Sound::AtPlayer(s);
+            Sound::PlayFrom(s, GetPlayerObject());
         }
     }
 
@@ -526,21 +536,20 @@ namespace Inferno::Game {
         Game::DeltaTime = 0;
         UpdateGameState();
 
-        auto camera = &Game::GameCamera;
-        camera->SetFov(Settings::Graphics.FieldOfView);
-
         g_ImGuiBatch->BeginFrame();
         switch (State) {
             case GameState::Game:
                 LerpAmount = GameUpdate(dt);
             //UpdateCommsMessage();
             //DrawBriefing();
+                SetActiveCamera(Game::GameCamera);
+                Game::GameCamera.SetFov(Settings::Graphics.FieldOfView);
 
                 if (!Level.Objects.empty()) {
                     if (Player.IsDead)
                         UpdateDeathSequence(dt);
                     else if (!Level.Objects.empty())
-                        MoveCameraToObject(*camera, Level.Objects[0], LerpAmount);
+                        MoveCameraToObject(Game::GameCamera, Level.Objects[0], LerpAmount);
                 }
 
                 if (Input::IsKeyPressed(Input::Keys::Escape))
@@ -566,8 +575,9 @@ namespace Inferno::Game {
                 }
 
                 Editor::Update();
-                camera = &Editor::EditorCamera;
-                camera->SetFov(Settings::Editor.FieldOfView);
+                SetActiveCamera(Editor::EditorCamera);
+                Editor::EditorCamera.SetFov(Settings::Editor.FieldOfView);
+
                 if (!Settings::Inferno.ScreenshotMode) {
                     if (!EditorUI) EditorUI = make_unique<Inferno::Editor::EditorUI>();
                     EditorUI->OnRender();
@@ -594,9 +604,10 @@ namespace Inferno::Game {
         Game::Player.DirectLight = Color{};
 
         g_ImGuiBatch->EndFrame();
-        camera->UpdatePerspectiveMatrices();
-        Graphics::SetDebugCamera(*camera); // this will lag behind by a frame
-        Render::Present(*camera);
+        auto& camera = Game::GetActiveCamera();
+        camera.UpdatePerspectiveMatrices();
+        Graphics::SetDebugCamera(camera); // this will lag behind by a frame
+        Render::Present(camera);
 
         LegitProfiler::Profiler.cpuGraph.LoadFrameData(LegitProfiler::CpuTasks);
         LegitProfiler::Profiler.gpuGraph.LoadFrameData(LegitProfiler::GpuTasks);

@@ -84,7 +84,7 @@ namespace Inferno {
             sound.LoopStart = 32027;
             sound.LoopEnd = 48452;
             sound.Looped = true;
-            _afterburnerSoundSig = Sound::AtPlayer(sound);
+            _afterburnerSoundSig = Sound::PlayFrom(sound, Game::GetPlayerObject());
             //Render::Camera.Shake(2.0f);
         }
 
@@ -93,7 +93,7 @@ namespace Inferno {
             Sound::Stop(_afterburnerSoundSig);
             Sound3D sound(SoundID::AfterburnerStop);
             sound.Radius = 125;
-            Sound::AtPlayer(sound);
+            Sound::PlayFrom(sound, Game::GetPlayerObject());
         }
 
         AfterburnerActive = active;
@@ -275,14 +275,14 @@ namespace Inferno {
                 if (FusionNextSoundDelay < 0) {
                     if (WeaponCharge > weapon.Extended.MaxCharge) {
                         // Self damage
-                        Sound::AtPlayer({ SoundID::Explosion });
+                        Sound::PlayFrom({ SoundID::Explosion }, player);
                         constexpr float OVERCHARGE_DAMAGE = 3.0f;
                         ApplyDamage(Random() * OVERCHARGE_DAMAGE, false);
                     }
                     else {
                         Sound3D sound(SoundID::FusionWarmup);
                         sound.Volume = .6f;
-                        Sound::AtPlayer(sound);
+                        Sound::PlayFrom(sound, player);
                         AlertRobotsOfNoise(player, Game::PLAYER_FUSION_SOUND_RADIUS, 0.5f);
                     }
 
