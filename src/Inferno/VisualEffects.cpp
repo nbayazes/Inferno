@@ -23,9 +23,9 @@ namespace Inferno {
         if (beam.Info.HasRandomEndpoints())
             beam.InitRandomPoints(Game::GetObject(beam.Parent));
 
-        beam.Runtime.Length = (beam.Start - beam.End).Length();
-        beam.Runtime.Width = beam.Info.Width.GetRandom();
-        beam.Runtime.OffsetU = Random();
+        beam.Length = (beam.Start - beam.End).Length();
+        beam.Width = beam.Info.Width.GetRandom();
+        beam.OffsetU = Random();
 
         AddEffect(make_unique<BeamInstance>(beam));
     }

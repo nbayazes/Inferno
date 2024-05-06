@@ -288,6 +288,7 @@ namespace Inferno {
     class SpriteShader : public IShader {
         enum RootParameterIndex : uint {
             FrameConstants,
+            RootConstants,
             Diffuse,
             Depth,
             Sampler,
@@ -295,6 +296,10 @@ namespace Inferno {
         };
 
     public:
+        struct Constants {
+            float DepthBias = 0;
+        };
+
         SpriteShader(const ShaderInfo& info) : IShader(info) {
             InputLayout = ObjectVertex::Layout;
         }
@@ -309,6 +314,11 @@ namespace Inferno {
 
         static void SetDepthTexture(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
             commandList->SetGraphicsRootDescriptorTable(Depth, texture);
+        }
+
+        static void SetDepthBias(ID3D12GraphicsCommandList* commandList, float bias) {
+            Constants consts = { bias };
+            commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof(consts) / 4, &consts, 0);
         }
     };
 
@@ -616,17 +626,17 @@ namespace Inferno {
         Effect<FlatShader> Line = { &_shaders->Flat, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, StencilMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE } };
 
         Effect<SpriteShader> Sprite = { &_shaders->Sprite, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
-        Effect<SpriteShader> SpriteOpaque = { &_shaders->Sprite, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::ReadWrite, StencilMode::PortalRead } };
+        //Effect<SpriteShader> SpriteOpaque = { &_shaders->Sprite, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::ReadWrite, StencilMode::PortalRead } };
         Effect<SpriteShader> SpriteAdditive = { &_shaders->Sprite, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
-        Effect<SpriteShader> SpriteAdditiveBiased = { &_shaders->Sprite, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::ReadDecalBiased, StencilMode::PortalRead } };
+        //Effect<SpriteShader> SpriteAdditiveBiased = { &_shaders->Sprite, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::ReadDecalBiased, StencilMode::PortalRead } };
         Effect<SpriteShader> SpriteMultiply = { &_shaders->Sprite, { BlendMode::Multiply, CullMode::CounterClockwise, DepthMode::ReadDecalBiased, StencilMode::PortalRead } };
 
         Effect<SpriteShader> Sun = { &_shaders->Sun, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
         Effect<StarShader> Stars = { &_shaders->Stars, { BlendMode::Opaque, CullMode::None, DepthMode::None } };
 
-        Effect<TerrainShader> Terrain = { &_shaders->Terrain, {.Depth = DepthMode::ReadWrite, .Stencil = StencilMode::PortalReadNeq } };
+        Effect<TerrainShader> Terrain = { &_shaders->Terrain, { .Depth = DepthMode::ReadWrite, .Stencil = StencilMode::PortalReadNeq } };
         Effect<DepthShader> TerrainPortal = { &_shaders->Depth, { .Depth = DepthMode::Read, .Stencil = StencilMode::PortalWrite } };
-        Effect<ObjectShader> TerrainObject = { &_shaders->Object, {.Blend = BlendMode::Alpha, .Culling = CullMode::CounterClockwise, .Depth = DepthMode::Read } };
+        Effect<ObjectShader> TerrainObject = { &_shaders->Object, { .Blend = BlendMode::Alpha, .Culling = CullMode::CounterClockwise, .Depth = DepthMode::Read } };
 
         void Compile(ID3D12Device* device, uint msaaSamples) {
             CompileShader(&_shaders->Flat);
@@ -677,10 +687,10 @@ namespace Inferno {
             compile(ObjectDistortion);
             compile(BriefingObject, false);
             compile(Sprite);
-            compile(SpriteOpaque);
+            //compile(SpriteOpaque);
             compile(SpriteAdditive);
             compile(SpriteMultiply);
-            compile(SpriteAdditiveBiased);
+            //compile(SpriteAdditiveBiased);
 
             compile(Flat);
             compile(FlatAdditive);

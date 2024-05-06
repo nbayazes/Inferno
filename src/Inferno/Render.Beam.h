@@ -16,15 +16,13 @@ namespace Inferno::Render {
         SubmodelRef EndSubmodel;
         double Time = 0; // animates noise and determines the phase
 
-        struct {
-            float Length;
-            int Segments;
-            List<float> Noise;
-            double NextUpdate;
-            double NextStrikeTime;
-            float Width;
-            float OffsetU; // Random amount to offset the texture by
-        } Runtime{};
+        float Length;
+        int Segments;
+        List<float> Noise;
+        double NextUpdate;
+        double NextStrikeTime;
+        float Width;
+        float OffsetU; // Random amount to offset the texture by
 
         //bool IsAlive() const { return Life > 0; }
 

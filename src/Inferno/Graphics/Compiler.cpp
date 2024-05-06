@@ -25,7 +25,7 @@ namespace Inferno {
 
     // Load Root Signature from the shader (must be defined in hlsl)
     void LoadShaderRootSig(ID3DBlob& shader, ComPtr<ID3D12RootSignature>& rootSignature) {
-        ThrowIfFailed(Inferno::Render::Device->CreateRootSignature(
+        ThrowIfFailed(Render::Device->CreateRootSignature(
             0,
             shader.GetBufferPointer(),
             shader.GetBufferSize(),
@@ -35,7 +35,7 @@ namespace Inferno {
 
     // Load Root Signature from the shader (must be defined in hlsl)
     void LoadShaderRootSig(IDxcBlob& shader, ComPtr<ID3D12RootSignature>& rootSignature) {
-        ThrowIfFailed(Inferno::Render::Device->CreateRootSignature(
+        ThrowIfFailed(Render::Device->CreateRootSignature(
             0,
             shader.GetBufferPointer(),
             shader.GetBufferSize(),

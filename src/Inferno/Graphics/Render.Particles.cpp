@@ -351,11 +351,6 @@ namespace Inferno::Render {
 
     void Tracer::Draw(GraphicsContext& ctx) {
         auto& effect = Effects->SpriteAdditive;
-        ctx.ApplyEffect(effect);
-        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-        auto cmdList = ctx.GetCommandList();
-        effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
-        effect.Shader->SetSampler(cmdList, Render::GetWrappedTextureSampler());
 
         if (TravelDist < Info.Length * TRACER_MIN_DIST_MULT) return; // don't draw tracers that are too short
         if (Direction == Vector3::Zero || PrevPosition == Position) return;
@@ -382,6 +377,13 @@ namespace Inferno::Render {
         auto up = normal * halfWidth;
         auto color = Info.Color;
         color.w *= fade;
+
+        ctx.ApplyEffect(effect);
+        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+        auto cmdList = ctx.GetCommandList();
+        effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
+        effect.Shader->SetSampler(cmdList, Render::GetWrappedTextureSampler());
+        effect.Shader->SetDepthBias(cmdList, halfWidth);
 
         if (!Info.Texture.empty()) {
             auto& material = Render::Materials->Get(Info.Texture);
@@ -466,7 +468,8 @@ namespace Inferno::Render {
         }
 
         {
-            auto& effect = Effects->SpriteAdditiveBiased;
+            auto& effect = Effects->SpriteAdditive;
+            //auto& effect = Effects->SpriteAdditiveBiased;
 
             for (auto& decal : AdditiveDecals) {
                 if (IsExpired(decal)) continue;
@@ -475,6 +478,7 @@ namespace Inferno::Render {
                     ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
                     effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
                     effect.Shader->SetSampler(cmdList, Render::GetWrappedTextureSampler());
+                    effect.Shader->SetDepthBias(cmdList, 2);
                 }
 
                 decal.Update(dt, EffectID(0));
@@ -603,6 +607,7 @@ namespace Inferno::Render {
         effect.Shader->SetSampler(cmdList, Render::GetClampedTextureSampler());
         auto& material = Render::Materials->Get(Info.Texture);
         effect.Shader->SetDiffuse(cmdList, material.Handle());
+        effect.Shader->SetDepthBias(cmdList, Info.Width * 0.5f);
         g_SpriteBatch->Begin(cmdList);
 
         auto remaining = GetRemainingTime();

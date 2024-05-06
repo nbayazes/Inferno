@@ -121,13 +121,13 @@ namespace Inferno::Render {
             End = endObj->GetPosition(Game::LerpAmount);
         }
 
-        if (Info.HasRandomEndpoints() && Game::Time > Runtime.NextStrikeTime) {
+        if (Info.HasRandomEndpoints() && Game::Time > NextStrikeTime) {
             InitRandomPoints(startObj); // Relies on Start being updated
-            Runtime.NextStrikeTime = Game::Time + Info.StrikeTime;
+            NextStrikeTime = Game::Time + Info.StrikeTime;
         }
 
         Time += Game::FrameTime;
-        auto& noise = Runtime.Noise;
+        auto& noise = Noise;
         auto delta = End - Start;
         auto length = delta.Length();
         if (length < 1) return; // don't draw really short beams
@@ -135,7 +135,7 @@ namespace Inferno::Render {
         // DrawSegs()
         auto scale = Info.Amplitude;
 
-        int segments = (int)(length / (Runtime.Width * 0.5 * 1.414)) + 1;
+        int segments = (int)(length / (Width * 0.5 * 1.414)) + 1;
         segments = std::clamp(segments, 2, 64);
         auto div = 1.0f / (segments - 1);
 
@@ -154,14 +154,14 @@ namespace Inferno::Render {
 
         noise.resize(segments);
 
-        if (Info.Amplitude > 0 && Game::Time > Runtime.NextUpdate) {
+        if (Info.Amplitude > 0 && Game::Time > NextUpdate) {
             if (HasFlag(Info.Flags, BeamFlag::SineNoise))
                 SineNoise(noise);
             else
                 FractalNoise(noise);
 
-            Runtime.NextUpdate = Game::Time + Info.Frequency;
-            Runtime.OffsetU = Random();
+            NextUpdate = Game::Time + Info.Frequency;
+            OffsetU = Random();
         }
 
         struct BeamSeg {
@@ -177,6 +177,7 @@ namespace Inferno::Render {
         ctx.ApplyEffect(effect);
         ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
         auto cmdList = ctx.GetCommandList();
+        effect.Shader->SetDepthBias(cmdList, Width / 2);
         effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
         effect.Shader->SetSampler(cmdList, Render::GetWrappedTextureSampler());
 
@@ -225,7 +226,7 @@ namespace Inferno::Render {
                 }
             }
 
-            nextSeg.texcoord = Runtime.OffsetU + vLast;
+            nextSeg.texcoord = OffsetU + vLast;
             float brightness = HasFlag(Info.Flags, BeamFlag::FadeStart) ? 0.0f : 1.0f;
             if (HasFlag(Info.Flags, BeamFlag::FadeStart) && HasFlag(Info.Flags, BeamFlag::FadeEnd)) {
                 if (fraction < 0.5f)
@@ -261,7 +262,7 @@ namespace Inferno::Render {
                 // draw rectangular segment
                 auto start = curSeg.pos;
                 auto end = nextSeg.pos;
-                auto up = avgNormal * Runtime.Width * 0.5f;
+                auto up = avgNormal * Width * 0.5f;
                 if (i == 1) prevUp = up;
 
                 ObjectVertex v0{ start + prevUp, { 0, curSeg.texcoord }, curSeg.color * fade };

@@ -445,7 +445,6 @@ namespace Inferno::Render {
         constants.World = transform;
 
         //Matrix transform = Matrix::CreateScale(object.Scale) * object.GetTransform(Game::LerpAmount);
-        bool transparentOverride = false;
         auto texOverride = TexID::None;
 
         constants.TexIdOverride = -1;

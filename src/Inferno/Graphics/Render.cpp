@@ -93,17 +93,19 @@ namespace Inferno::Render {
         ObjectVertex v2(p2, { 1, 1 }, color);
         ObjectVertex v3(p3, { 0, 1 }, color);
 
+        auto cmdList = ctx.GetCommandList();
         auto& effect = additive ? Effects->SpriteAdditive : Effects->Sprite;
         ctx.ApplyEffect(effect);
         ctx.SetConstantBuffer(0, frameConstants);
-        effect.Shader->SetDiffuse(ctx.GetCommandList(), texture);
-        effect.Shader->SetDepthTexture(ctx.GetCommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
+        effect.Shader->SetDiffuse(cmdList, texture);
+        effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
         auto sampler = Render::GetClampedTextureSampler();
-        effect.Shader->SetSampler(ctx.GetCommandList(), sampler);
+        effect.Shader->SetSampler(cmdList, sampler);
+        effect.Shader->SetDepthBias(cmdList, radius);
 
         // todo: replace horrible code with proper batching
         Stats::DrawCalls++;
-        g_SpriteBatch->Begin(ctx.GetCommandList());
+        g_SpriteBatch->Begin(cmdList);
         g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
         g_SpriteBatch->End();
     }
