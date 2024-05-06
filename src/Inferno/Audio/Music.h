@@ -1,11 +1,9 @@
 #pragma once
 
 #include "Audio/Audio.h"
-#include "FileSystem.h"
 #include "pcm/dr_flac.h"
 #include "pcm/dr_mp3.h"
 #include "pcm/stb_vorbis.h"
-#include "SoundSystem.h"
 #include "Types.h"
 
 namespace Inferno::Sound {
@@ -28,6 +26,13 @@ namespace Inferno::Sound {
     public:
         Ptr<DynamicSoundEffectInstance> Effect;
         bool Loop = true;
+
+        MusicStream() = default;
+        MusicStream(const MusicStream&) = delete;
+        MusicStream(MusicStream&&) = default;
+        virtual MusicStream& operator=(const MusicStream&) = delete;
+        virtual MusicStream& operator=(MusicStream&&) = default;
+        virtual ~MusicStream() = default;
     };
 
     class Mp3Stream : public MusicStream {
@@ -39,12 +44,7 @@ namespace Inferno::Sound {
     public:
         Mp3Stream(std::vector<byte>&& source);
 
-        Mp3Stream(const Mp3Stream&) = delete;
-        Mp3Stream(Mp3Stream&&) = default;
-        Mp3Stream& operator=(const Mp3Stream&) = delete;
-        Mp3Stream& operator=(Mp3Stream&&) = default;
-
-        ~Mp3Stream() {
+        ~Mp3Stream() override {
             drmp3_uninit(&_decoder);
         }
 
@@ -66,12 +66,7 @@ namespace Inferno::Sound {
     public:
         OggStream(std::vector<byte>&& ogg);
 
-        OggStream(const OggStream&) = delete;
-        OggStream(OggStream&&) = default;
-        OggStream& operator=(const OggStream&) = delete;
-        OggStream& operator=(OggStream&&) = default;
-
-        ~OggStream() {
+        ~OggStream() override {
             stb_vorbis_close(_vorbis);
         }
 
@@ -92,12 +87,7 @@ namespace Inferno::Sound {
     public:
         FlacStream(std::vector<byte>&& ogg);
 
-        FlacStream(const FlacStream&) = delete;
-        FlacStream(FlacStream&&) = default;
-        FlacStream& operator=(const FlacStream&) = delete;
-        FlacStream& operator=(FlacStream&&) = default;
-
-        ~FlacStream() {
+        ~FlacStream() override {
             drflac_close(_flac);
         }
 

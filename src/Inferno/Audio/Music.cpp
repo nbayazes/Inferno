@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "music.h"
+#include "SoundSystem.h"
+#include "FileSystem.h"
 
 namespace Inferno::Sound {
     Mp3Stream::Mp3Stream(std::vector<byte>&& source): _source(std::move(source)) {
@@ -127,31 +129,34 @@ namespace Inferno::Sound {
     }
 
     Music LoadMp3(const List<byte>& mp3) {
-        drmp3 decoder{};
+        auto decoder = std::unique_ptr<drmp3, decltype([](drmp3* p) {
+            drmp3_uninit(p);
+            std::default_delete<drmp3>()(p);
+        })>{};
+
         Music music{};
 
-        if (!drmp3_init_memory(&decoder, mp3.data(), mp3.size(), nullptr)) {
+        if (!drmp3_init_memory(decoder.get(), mp3.data(), mp3.size(), nullptr)) {
             return music;
         }
 
-        uint64 samples = drmp3_get_pcm_frame_count(&decoder);
+        uint64 samples = drmp3_get_pcm_frame_count(decoder.get());
 
         if (!samples) {
-            drmp3_uninit(&decoder);
             return music;
         }
 
-        music.Data.resize(samples * decoder.channels);
-        music.SampleRate = decoder.sampleRate;
-        music.Channels = decoder.channels;
+        music.Data.resize(samples * decoder->channels);
+        music.SampleRate = decoder->sampleRate;
+        music.Channels = decoder->channels;
         music.Samples = samples;
 
-        drmp3_seek_to_pcm_frame(&decoder, 0);
+        drmp3_seek_to_pcm_frame(decoder.get(), 0);
 
         for (size_t i = 0; i < samples; i += 512) {
             float buffer[512 * MAX_CHANNELS] = {};
             auto frames = std::min(samples - i, 512ull);
-            drmp3_read_pcm_frames_f32(&decoder, frames, buffer);
+            drmp3_read_pcm_frames_f32(decoder.get(), frames, buffer);
 
             for (size_t f = 0; f < frames; f++) {
                 for (uint ch = 0; ch < music.Channels; ch++) {
@@ -159,8 +164,6 @@ namespace Inferno::Sound {
                 }
             }
         }
-
-        drmp3_uninit(&decoder);
 
         return music;
     }
