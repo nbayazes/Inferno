@@ -239,7 +239,7 @@ namespace Inferno::Game {
             return /*false*/;
         }
 
-        if (Settings::Cheats.DisableAI)
+        if (!Game::EnableAi())
             return /*false*/;
 
         if (ScanForTarget(boss, ai)) {

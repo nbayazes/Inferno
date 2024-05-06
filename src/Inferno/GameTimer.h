@@ -11,6 +11,7 @@ namespace Inferno {
 
         float Remaining() const;
         // Returns true if a timer has expired. Returns false if running or timer was never set.
+        // Prefer using the comparison operators to determine if the timer is running.
         bool Expired() const;
         void Reset() { _timestamp = 0; }
 

@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "GameTimer.h"
-
 #include "Game.h"
 
 namespace Inferno {

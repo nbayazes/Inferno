@@ -114,10 +114,14 @@ namespace Inferno::Game {
     string LevelNameByIndex(int index);
 
     inline double Time = 0; // Elapsed game time since level start in seconds. Stops when paused.
-    inline float DeltaTime = 0; // Elapsed fixed-step game time in seconds since last update. 0 when paused.
+    inline float FrameTime = 0; // Time of this frame in seconds. 0 when paused.
+    inline float TimeScale = 1.0f; // Multiplier applied to elapsed game time
+    
     inline float LerpAmount = 1; // How much to lerp between the previous and next object states
 
     inline bool BriefingVisible = false;
+
+    bool EnableAi();
 
     void WeaponHitObject(const LevelHit& hit, Object& src);
     void AddWeaponDecal(const LevelHit& hit, const Weapon& weapon);
@@ -243,10 +247,6 @@ namespace Inferno::Game {
         inline uint LiveObjects = 0;
         inline int ActiveRobots = 0;
     }
-
-    inline float FrameTime = 0; // Time of this frame in seconds. 0 when paused.
-    inline bool ResetDeltaTime = false;
-
 
     inline Inferno::TerrainInfo Terrain;
 }

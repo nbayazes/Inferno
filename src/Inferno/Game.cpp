@@ -273,7 +273,6 @@ namespace Inferno::Game {
         while (accumulator >= TICK_RATE) {
             FixedUpdate(TICK_RATE);
             accumulator -= TICK_RATE;
-            Game::DeltaTime += TICK_RATE;
         }
         //LegitProfiler::AddCpuTask(std::move(task));
 
@@ -533,7 +532,6 @@ namespace Inferno::Game {
         }
 
         Graphics::BeginFrame(); // enable debug calls during updates
-        Game::DeltaTime = 0;
         UpdateGameState();
 
         g_ImGuiBatch->BeginFrame();
@@ -727,8 +725,7 @@ namespace Inferno::Game {
         }
 
         // Reset level timing
-        Game::Time = Game::FrameTime = Game::DeltaTime = 0;
-        ResetDeltaTime = true;
+        Game::Time = Game::FrameTime = 0;
 
         // Activate game mode
         InitObject(*player, ObjectType::Player);

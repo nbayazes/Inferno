@@ -85,6 +85,12 @@ namespace Inferno {
             physics.AngularThrust.z = -maxAngularThrust;
         if (Input::IsKeyDown(Keys::NumPad9))
             physics.AngularThrust.z = maxAngularThrust;
+
+        // Weapons
+        if (Input::IsKeyDown(Keys::Enter))
+            Game::Player.FirePrimary();
+        if (Input::IsKeyDown(Keys::Decimal))
+            Game::Player.FireSecondary();
     }
 
     void HandleWeaponKeys() {

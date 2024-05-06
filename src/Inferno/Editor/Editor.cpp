@@ -19,6 +19,7 @@
 #include "Game.Object.h"
 #include "Version.h"
 #include "Game.Segment.h"
+#include "GameTimer.h"
 #include "Resources.h"
 #include "logging.h"
 
@@ -261,11 +262,11 @@ namespace Inferno::Editor {
     }
 
     void CreateMatcenEffects(const Level& level) {
-        static float nextMatcenTime = 0;
-        if (nextMatcenTime > Game::Time) return;
+        static GameTimer matcenTimer(0);
+        if (matcenTimer > 0) return;
 
         auto& vclip = Resources::GetVideoClip(VClipID::Matcen);
-        nextMatcenTime = (float)Game::Time + vclip.PlayTime + 1;
+        matcenTimer = vclip.PlayTime + 2.0f;
 
         for (int id = 0; id < level.Segments.size(); id++) {
             auto& seg = level.Segments[id];

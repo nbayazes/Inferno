@@ -250,7 +250,7 @@ Weapons:
     DecalRadius: 4
     LightRadius: 14
     LightColor: 1, .5, .25, 2
-    ExplosionColor: 1, 0.25, 0.0, 10
+    ExplosionColor: 1, 0.25, 0.0, 2
     FlashColor: 1, .5, .25, 3
     Size: 1.5 # was 1.5
     Mass: 1.0 # was 1
@@ -261,7 +261,7 @@ Weapons:
     DecalRadius: 4
     LightRadius: 14
     LightColor: 1, .5, .25, 2
-    ExplosionColor: 1, 0.25, 0.0, 10
+    ExplosionColor: 1, 0.25, 0.0, 2
     FlashColor: 1, .5, .25, 1.5
     Size: 1 # was 1.5
     SoundRadius: 350 # Large radius so player hears them coming

@@ -723,7 +723,7 @@ namespace Inferno {
             ai.LastCollision = Game::Time;
         }
 
-        if (Settings::Cheats.DisableAI) return;
+        if (!Game::EnableAi()) return;
 
         if (obj.IsPlayer()) {
             if (ai.State != AIState::Path && ai.State != AIState::FindHelp) {
@@ -1137,6 +1137,7 @@ namespace Inferno {
                         LightEffectInfo light{};
                         light.LightColor = sparks->Color * .4f;
                         light.Radius = 18;
+                        light.FadeTime = sparks->FadeTime / 2;
                         AddLight(light, position, light.FadeTime, robot.Segment);
                     }
                 }
@@ -1771,7 +1772,7 @@ namespace Inferno {
     }
 
     void SupervisorBehavior(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float /*dt*/) {
-        if (Settings::Cheats.DisableAI) return;
+        if (!Game::EnableAi()) return;
 
         // Periodically alert allies while not idle
         if (ai.State != AIState::Idle && ai.AlertTimer <= 0 && ai.TargetPosition) {
@@ -1810,7 +1811,7 @@ namespace Inferno {
     }
 
     void MineLayerBehavior(AIRuntime& ai, Object& robot, const RobotInfo& /*robotInfo*/, float /*dt*/) {
-        if (Settings::Cheats.DisableAI) return;
+        if (!Game::EnableAi()) return;
 
         ScanForTarget(robot, ai);
 
@@ -1895,7 +1896,7 @@ namespace Inferno {
     }
 
     void DefaultBehavior(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float dt) {
-        if (Settings::Cheats.DisableAI) return;
+        if (!Game::EnableAi()) return;
 
         switch (ai.State) {
             case AIState::Idle:
@@ -2007,7 +2008,7 @@ namespace Inferno {
         else
             DefaultBehavior(ai, robot, robotInfo, dt);
 
-        if (ai.DodgeTime > 0 && ai.DodgeVelocity != Vector3::Zero && !Settings::Cheats.DisableAI)
+        if (ai.DodgeTime > 0 && ai.DodgeVelocity != Vector3::Zero && Game::EnableAi())
             ai.Velocity += ai.DodgeVelocity;
 
         ai.Awareness = std::clamp(ai.Awareness, 0.0f, 1.0f);
