@@ -216,12 +216,10 @@ namespace Inferno {
         writer.Write(4);
     }
 
-    void WriteSegmentsToOrf(Level& level, span<SegID> segs, filesystem::path& path) {
+    void WriteSegmentsToOrf(Level& level, span<SegID> segs, const filesystem::path& path) {
         List<Vector3> vertices;
         List<RoomFace> faces;
         short vertexIndex = 0;
-
-        //Dictionary<LevelTexID, int> textureIndex;
 
         List<LevelTexID> textures;
 
@@ -242,7 +240,7 @@ namespace Inferno {
 
                 auto texture = int16(Seq::indexOf(textures, face.Side.TMap).value_or(0) % std::size(DefaultTextures) - 1);
 
-                if (side.Normals[0].Dot(side.Normals[1]) > 0.999999f) {
+                if (side.Normals[0].Dot(side.Normals[1]) > 0.99999f) {
                     // planar face
                     RoomFace roomFace{};
                     roomFace.Vertices.push_back(vertexIndex++);
@@ -280,6 +278,45 @@ namespace Inferno {
                         roomFace.Texture = texture;
                         faces.push_back(roomFace);
                     }
+                }
+            }
+        }
+
+        auto deleteVertex = [&](uint index) {
+            //Remap vertices in faces
+            for (int f = 0; f < faces.size(); f++) {
+                auto& face = faces[f];
+
+                for (int v = 0; v < face.Vertices.size(); v++) {
+                    if (face.Vertices[v] == index)
+                        throw Exception("Deleting a vertex still in use!");
+                    else if (face.Vertices[v] > index)
+                        face.Vertices[v]--;
+                }
+            }
+
+            Seq::removeAt(vertices, index);
+        };
+
+        uint removed = 0;
+        // Remove duplicate vertices
+        for (size_t i = 0; i < vertices.size(); i++) {
+            for (size_t j = 0; j < i; j++) {
+                if (Vector3::Distance(vertices[i], vertices[j]) < 0.1f) {
+                    //Replace the higher-numbered point with the lower-numbered in all the faces in this room
+                    auto fp = faces.begin();
+                    for (size_t f = 0; f < faces.size(); f++, fp++) {
+                        auto& face = faces[f];
+
+                        for (int v = 0; v < face.Vertices.size(); v++)
+                            if (face.Vertices[v] == i)
+                                face.Vertices[v] = j;
+                    }
+
+                    deleteVertex(i);
+                    i--; //back up, since the point we're checking is now gone
+                    removed++;
+                    break; //don't keep checking for duplicates
                 }
             }
         }

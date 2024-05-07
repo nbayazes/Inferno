@@ -359,3 +359,4 @@ dxc.exe
 *.dxa
 *.ied
 /src/Inferno/data/d1/*.pof
+*.mp3

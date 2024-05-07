@@ -61,7 +61,7 @@ namespace Inferno::Editor {
         MenuCommand(Commands::AlignObjectToSide);
     }
 
-    void ExportSegmentsToORF() {
+    void ExportSegmentsToOrf() {
         if (Editor::Marked.Segments.empty()) {
             SetStatusMessageWarn("Select segments before exporting");
             return;
@@ -73,7 +73,13 @@ namespace Inferno::Editor {
         if (path) {
             if (!path->has_extension()) path->replace_extension(".orf");
             auto segs = Seq::ofSet(Editor::Marked.Segments);
-            WriteSegmentsToOrf(Game::Level, segs, *path);
+
+            try {
+                WriteSegmentsToOrf(Game::Level, segs, *path);
+            }
+            catch (...) {
+                ShowErrorMessage(L"Something went wrong when exporting ORF.");
+            }
         }
     }
 
@@ -379,7 +385,7 @@ namespace Inferno::Editor {
 
             if (ImGui::BeginMenu("Export")) {
                 if (ImGui::MenuItem("Segments to ORF"))
-                    ExportSegmentsToORF();
+                    ExportSegmentsToOrf();
 
                 ImGui::EndMenu();
             }
