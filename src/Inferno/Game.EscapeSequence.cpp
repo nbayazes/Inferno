@@ -22,18 +22,20 @@ namespace Inferno {
         Vector3 Up;
     };
 
-    inline EscapeState Escape;
+    namespace {
+        EscapeState State;
+    }
 
     void BeginEscapeSequence() {
-        Escape = { .Scene = EscapeScene::Start };
+        State = { .Scene = EscapeScene::Start };
     }
 
     void MoveShipTowardsGoal() {
-        while (Escape.PathIndex < Escape.Path.size()) {}
+        while (State.PathIndex < State.Path.size()) {}
     }
 
     void UpdateEscapeSequence(float /*dt*/) {
-        switch (Escape.Scene) {
+        switch (State.Scene) {
             case EscapeScene::None:
                 break;
             case EscapeScene::Start:
@@ -268,20 +270,20 @@ namespace Inferno {
         };
 
 
-        float aspect = 1;
-        auto projection = DirectX::XMMatrixPerspectiveFovLH(60 * DegToRad, aspect, 1, 300);
+        //float aspect = 1;
+        //auto projection = DirectX::XMMatrixPerspectiveFovLH(60 * DegToRad, aspect, 1, 300);
         //Vector3 exitPosition = info.ExitTransform.Translation();
         //exitPosition += info.ExitTransform.Forward() * 10;
 
         Vector3 center = vertexPositions[cellDensity * (cellDensity / 2 - 1) + (cellDensity / 2 - 1)];
 
         //Vector3 center = { gridScale * 8, 0, gridScale * 8 };
-        Vector3 exitPosition = { 0, 10, 30 };
-        exitPosition += center;
+        //Vector3 exitPosition = { 0, 10, 30 };
+        //exitPosition += center;
         //auto view = DirectX::XMMatrixLookAtLH(Position, Target, Up);
 
-        auto view = DirectX::XMMatrixLookAtLH(exitPosition, Vector3(0, 10, 0) + center, Vector3::Up);
-        auto frustum = GetFrustum(exitPosition, view, projection);
+        //auto view = DirectX::XMMatrixLookAtLH(exitPosition, Vector3(0, 10, 0) + center, Vector3::Up);
+        //auto frustum = GetFrustum(exitPosition, view, projection);
 
         //DirectX::BoundingFrustum frustum = { transform, orientation };
 
@@ -479,23 +481,19 @@ namespace Inferno {
         return info;
     }
 
-    namespace {
-        int PlayerPathIndex = 0; // The node closest to the player
-    }
-
-    void MoveShipAlongPath(Object& ship, span<Vector3> path, float thrust, float turnRate) {
+    void MoveShipAlongPath(Object& ship, span<Vector3> path, float thrust, float turnRate, int& pathIndex) {
         // turn and move towards the next node
 
         constexpr float PATH_TOLERANCE = 5;
 
-        for (; PlayerPathIndex < path.size(); PlayerPathIndex++) {
-            if (Vector3::Distance(path[PlayerPathIndex], ship.Position) > PATH_TOLERANCE)
+        for (; pathIndex < path.size(); pathIndex++) {
+            if (Vector3::Distance(path[pathIndex], ship.Position) > PATH_TOLERANCE)
                 break;
         }
 
-        if (PlayerPathIndex >= path.size()) return;
+        if (pathIndex >= path.size()) return;
 
-        auto& node = path[PlayerPathIndex];
+        auto& node = path[pathIndex];
         auto dir = node - ship.Position;
         dir.Normalize();
         ship.Physics.Thrust = dir * thrust;
@@ -506,7 +504,7 @@ namespace Inferno {
     void UpdateEscapeSequence() {
         float thrust = 50;
         float turnRate = 1;
-        MoveShipAlongPath(Game::GetPlayerObject(), Game::Terrain.EscapePath, thrust, turnRate);
+        MoveShipAlongPath(Game::GetPlayerObject(), Game::Terrain.EscapePath, thrust, turnRate, State.PathIndex);
     }
 
 

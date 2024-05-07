@@ -549,6 +549,34 @@ namespace Inferno {
         }
     };
 
+    // Lerps a value to a target based on a given speed
+    class LerpedValue {
+        float _target = 0;
+        float _value = 0;
+        float _speed = 1;
+
+    public:
+        LerpedValue(float value) : _target(value), _value(value) {}
+
+        float GetValue() const { return _value; }
+
+        void SetTarget(float target, float speed) {
+            _target = target;
+            _speed = std::abs(speed);
+        }
+
+        void Update(float dt) {
+            if (_value < _target) {
+                _value += _speed * dt;
+                _value = std::min(_value, _target);
+            }
+            else if (_value > _target) {
+                _value -= _speed * dt;
+                _value = std::max(_value, _target);
+            }
+        }
+    };
+
     // Array with a fixed size that allows inserting and removing elements while
     // keeping them contiguous
     template<class T, size_t Capacity>

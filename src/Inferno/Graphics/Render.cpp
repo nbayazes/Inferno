@@ -434,7 +434,7 @@ namespace Inferno::Render {
         auto size = camera.GetViewportSize();
 
         FrameConstants frameConstants{};
-        frameConstants.ElapsedTime = (float)ElapsedTime;
+        frameConstants.ElapsedTime = (float)Game::Time;
         frameConstants.ViewProjection = camera.ViewProjection;
         frameConstants.NearClip = camera.GetNearClip();
         frameConstants.FarClip = camera.GetFarClip();
@@ -457,44 +457,25 @@ namespace Inferno::Render {
     void DrawBriefingModel(GraphicsContext& ctx,
                            const Object& object,
                            const UploadBuffer<FrameConstants>& frameConstants) {
-        //if (object.IsCloaked() && Game::GetState() != GameState::Editor) {
-        //    DrawCloakedModel(ctx, object, modelId, pass);
-        //    return;
-        //}
-
         auto& effect = Effects->BriefingObject;
         auto cmdList = ctx.GetCommandList();
 
         auto& model = Resources::GetModel(object.Render.Model.ID);
 
-        if (ctx.ApplyEffect(effect)) {
-            ctx.SetConstantBuffer(0, frameConstants.GetGPUVirtualAddress());
-            effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
-            effect.Shader->SetNormalSampler(cmdList, GetNormalSampler());
-            effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
-            effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
-            effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());
-            effect.Shader->SetLightGrid(cmdList, *Render::LightGrid);
-            auto cubeSrv = Render::Materials->EnvironmentCube.GetCubeSRV().GetGpuHandle();
-            if (!cubeSrv.ptr)cubeSrv = Render::Adapter->NullCube.GetGpuHandle();
-            effect.Shader->SetEnvironmentCube(cmdList, cubeSrv);
-            effect.Shader->SetDissolveTexture(cmdList, Render::Materials->White().Handle());
-        }
+        ctx.ApplyEffect(effect);
+        ctx.SetConstantBuffer(0, frameConstants.GetGPUVirtualAddress());
+        effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
+        effect.Shader->SetNormalSampler(cmdList, GetNormalSampler());
+        effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
+        effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
+        effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());
+        effect.Shader->SetLightGrid(cmdList, *Render::LightGrid);
+        auto cubeSrv = Render::Materials->EnvironmentCube.GetCubeSRV().GetGpuHandle();
+        if (!cubeSrv.ptr)cubeSrv = Render::Adapter->NullCube.GetGpuHandle();
+        effect.Shader->SetEnvironmentCube(cmdList, cubeSrv);
+        effect.Shader->SetDissolveTexture(cmdList, Render::Materials->White().Handle());
 
         ObjectShader::Constants constants = {};
-#ifdef DEBUG_DISSOLVE
-        constants.PhaseColor = object.Effects.PhaseColor;
-        effect.Shader->SetDissolveTexture(cmdList, Render::Materials->Get("noise").Handle());
-        effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
-        double x;
-        constants.PhaseAmount = (float)std::modf(Clock.GetTotalTimeSeconds() * 0.5, &x);
-#else
-        if (object.IsPhasing()) {
-            effect.Shader->SetDissolveTexture(cmdList, Render::Materials->Get("noise").Handle());
-            constants.PhaseAmount = std::max(1 - object.Effects.GetPhasePercent(), 0.001f); // Shader checks for 0 to skip effect
-            constants.PhaseColor = object.Effects.PhaseColor;
-        }
-#endif
 
         if (object.Render.Emissive != Color(0, 0, 0)) {
             // Ignore ambient if object is emissive
@@ -506,27 +487,10 @@ namespace Inferno::Render {
             constants.EmissiveLight = Color(0, 0, 0);
         }
 
-        //constants.TimeOffset = GetTimeOffset(object);
         constants.TimeOffset = 0;
 
-        Matrix transform = Matrix::CreateScale(object.Scale) * object.GetTransform(Game::LerpAmount);
-        bool transparentOverride = false;
-        auto texOverride = TexID::None;
-
-        if (object.Render.Model.TextureOverride != LevelTexID::None) {
-            texOverride = Resources::LookupTexID(object.Render.Model.TextureOverride);
-            if (texOverride != TexID::None)
-                transparentOverride = Resources::GetTextureInfo(texOverride).Transparent;
-        }
-
+        Matrix transform = object.GetTransform();
         constants.TexIdOverride = -1;
-
-        if (texOverride != TexID::None) {
-            if (auto effectId = Resources::GetEffectClipID(texOverride); effectId > EClipID::None)
-                constants.TexIdOverride = (int)effectId + VCLIP_RANGE;
-            else
-                constants.TexIdOverride = (int)texOverride;
-        }
 
         auto& meshHandle = GetMeshHandle(object.Render.Model.ID);
 
@@ -540,22 +504,6 @@ namespace Inferno::Render {
             for (int i = 0; i < subMesh.size(); i++) {
                 auto mesh = subMesh[i];
                 if (!mesh) continue;
-
-                bool isTransparent = mesh->IsTransparent || transparentOverride;
-                //if (isTransparent && pass != RenderPass::Transparent) continue;
-                //if (!isTransparent && pass != RenderPass::Opaque) continue;
-
-                if (isTransparent) {
-                    auto& material = Resources::GetMaterial(mesh->Texture);
-                    if (material.Additive)
-                        ctx.ApplyEffect(Effects->ObjectGlow); // Additive blend
-                    else
-                        ctx.ApplyEffect(Effects->Object); // Alpha blend
-                }
-                else {
-                    ctx.ApplyEffect(effect);
-                }
-
                 effect.Shader->SetConstants(cmdList, constants);
 
                 cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);

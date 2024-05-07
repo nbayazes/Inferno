@@ -289,6 +289,9 @@ namespace Inferno {
                     if (auto fx = EffectLibrary.GetSparks("fusion_charge")) {
                         AttachSparkEmitter(*fx, Reference, GetGunpointOffset(player, 0));
                         AttachSparkEmitter(*fx, Reference, GetGunpointOffset(player, 1));
+                        LightEffectInfo lightInfo{ .FadeTime = 0.1f, .Radius = 50.0f, .LightColor = fx->Color };
+                        lightInfo.LightColor.w = 3;
+                        AddLight(lightInfo, player.GetPosition(Game::LerpAmount), 0.25f, player.Segment);
                     }
 
                     FusionNextSoundDelay = 0.125f + Random() / 8;

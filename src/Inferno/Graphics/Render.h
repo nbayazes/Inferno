@@ -78,7 +78,6 @@ namespace Inferno::Render {
     //void SetCamera(Inferno::Camera&);
 
     inline float FrameTime = 0; // Time of this frame in seconds
-    inline double ElapsedTime = 0; // Time elapsed in seconds. Stops updating when paused or animations are disabled.
 
     // Returns the squared distance of an object to the camera
     inline float GetRenderDepth(const Vector3& pos, const Camera& camera) {

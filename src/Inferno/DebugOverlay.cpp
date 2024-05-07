@@ -20,9 +20,9 @@ namespace Inferno {
             static int usedValues = 0;
 
             if (refresh_time == 0.0)
-                refresh_time = Render::ElapsedTime;
+                refresh_time = Clock.GetTotalTimeSeconds();
 
-            while (refresh_time < Render::ElapsedTime) {
+            while (refresh_time < Clock.GetTotalTimeSeconds()) {
                 values[values_offset] = Render::FrameTime;
                 values_offset = (values_offset + 1) % values.size();
                 refresh_time += 1.0f / 60.0f;

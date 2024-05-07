@@ -42,7 +42,8 @@ namespace Inferno::Editor {
 
             ImGui::SameLine();
 
-            Game::Briefing.Update(Render::FrameTime);
+            Game::Briefing.Update(Inferno::Clock.GetFrameTimeSeconds());
+            //Game::Briefing.Update(Render::FrameTime);
 
             {
                 ImGui::BeginGroup();

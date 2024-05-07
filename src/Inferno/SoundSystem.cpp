@@ -320,6 +320,9 @@ namespace Inferno::Sound {
         SoundUID PlaySound3D(PlaySound3DInfo& sound) {
             std::unique_lock lock(_threadMutex);
 
+            if (Game::TimeScale != 1.0f)
+                sound.Sound.Pitch -=  (1 - Game::TimeScale) * 0.6f;
+
             sound.ID = GetSoundUID();
             //SPDLOG_INFO("Submit sound {}", (int)sound.ID);
             _pending3dSounds.push_back(sound);

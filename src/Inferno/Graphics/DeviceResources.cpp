@@ -638,7 +638,7 @@ namespace Inferno {
             BriefingRobotMsaa.Create(L"MSAA Briefing robot", BRIEFING_ROBOT_WIDTH, BRIEFING_ROBOT_HEIGHT, IntermediateFormat, emptyColor, Settings::Graphics.MsaaSamples);
             BriefingRobotMsaa.AddRenderTargetView();
             BriefingRobotMsaa.AddShaderResourceView();
-            BriefingRobotDepthMsaa.Create(L"MSAA Briefing robot depth", BRIEFING_ROBOT_WIDTH, BRIEFING_ROBOT_HEIGHT, m_depthBufferFormat, Settings::Graphics.MsaaSamples);
+            BriefingRobotDepthMsaa.Create(L"MSAA Briefing robot depth", BRIEFING_ROBOT_WIDTH, BRIEFING_ROBOT_HEIGHT, DXGI_FORMAT_D32_FLOAT, Settings::Graphics.MsaaSamples);
 
             SceneColorBufferMsaa.Create(L"MSAA Color Buffer", width, height, IntermediateFormat, clearColor, Settings::Graphics.MsaaSamples);
             SceneDepthBufferMsaa.Create(L"MSAA Depth Buffer", width, height, m_depthBufferFormat, Settings::Graphics.MsaaSamples);

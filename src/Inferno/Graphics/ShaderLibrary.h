@@ -614,7 +614,7 @@ namespace Inferno {
         Effect<ObjectShader> Object = { &_shaders->Object, { .Blend = BlendMode::Alpha, .Culling = CullMode::None, .Depth = DepthMode::Read, .Stencil = StencilMode::PortalRead } };
         Effect<ObjectShader> ObjectGlow = { &_shaders->Object, { .Blend = BlendMode::Additive, .Culling = CullMode::None, .Depth = DepthMode::Read, .Stencil = StencilMode::PortalRead } };
         Effect<ObjectDistortionShader> ObjectDistortion{ &_shaders->ObjectDistortion, { .Blend = BlendMode::Alpha, .Culling = CullMode::CounterClockwise, .Depth = DepthMode::Read, .Stencil = StencilMode::PortalRead } };
-        Effect<ObjectShader> BriefingObject = { &_shaders->BriefingObject, { BlendMode::Alpha, CullMode::None, DepthMode::ReadWrite, StencilMode::PortalRead } };
+        Effect<ObjectShader> BriefingObject = { &_shaders->BriefingObject, { BlendMode::Alpha, CullMode::None, DepthMode::ReadWrite } };
 
         Effect<UIShader> UserInterface = { &_shaders->UserInterface, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, StencilMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, false } };
         Effect<BriefingShader> Briefing = { &_shaders->Briefing, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, StencilMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, false } };

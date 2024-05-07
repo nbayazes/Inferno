@@ -113,10 +113,14 @@ namespace Inferno::Game {
 
     string LevelNameByIndex(int index);
 
+    inline bool ResetDeltaTime = false;
     inline double Time = 0; // Elapsed game time since level start in seconds. Stops when paused.
     inline float FrameTime = 0; // Time of this frame in seconds. 0 when paused.
     inline float TimeScale = 1.0f; // Multiplier applied to elapsed game time
-    
+
+    inline float ScaledTickRate() { return TICK_RATE * TimeScale; }
+    void SetTimeScale(float scale, float transitionSpeed = 0);
+
     inline float LerpAmount = 1; // How much to lerp between the previous and next object states
 
     inline bool BriefingVisible = false;

@@ -92,6 +92,11 @@ void Application::Tick() const {
         return; // Skip first tick
 
 
+    if (Game::ResetDeltaTime) {
+        dt = 0;
+        Game::ResetDeltaTime = false;
+    }
+
     if (dt > 2) {
         SPDLOG_WARN("Long delta time of {}, clamping to 2s", dt);
         dt = 2;
@@ -100,13 +105,9 @@ void Application::Tick() const {
     Render::FrameTime = dt;
     Game::FrameTime = 0;
 
-    
+
     Game::Time += dt * Game::TimeScale;
     Game::FrameTime = dt * Game::TimeScale;
-
-    if (Settings::Editor.ShowAnimation)
-        Render::ElapsedTime += dt;
-
     Game::Update(dt);
 }
 

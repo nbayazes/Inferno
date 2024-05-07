@@ -154,6 +154,17 @@ namespace Inferno {
         if (Input::IsKeyPressed(Keys::OemTilde) && Input::IsKeyDown(Keys::LeftAlt))
             Game::SetState(Game::GetState() == GameState::Paused ? GameState::Game : GameState::Paused);
 
+        if (Input::IsKeyPressed(Keys::R)) {
+            static bool toggle = false;
+
+            if (toggle)
+                Game::SetTimeScale(1, 1.0f);
+            else
+                Game::SetTimeScale(0.5f, 0.75f);
+
+            toggle = !toggle;
+        }
+
         HandleWeaponKeys();
     }
 
@@ -168,7 +179,6 @@ namespace Inferno {
 
         if (!Input::HasFocus || Game::Player.IsDead)
             return; // No player input without focus or while dead
-
 
         //auto ht0 = GetHoldTime(true, 0, frameTime);
         //auto ht1 = GetHoldTime(true, 1, frameTime);

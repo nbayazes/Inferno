@@ -57,19 +57,19 @@ namespace Inferno::Render {
             float flickerSpeeds[] = { 1.2f, 1.9f, 2.25f };
             float mults[] = { .25f, .4f, .55f };
 
-            auto noise = OpenSimplex2::Noise2((uint)side.Tag.Segment, Render::ElapsedTime * flickerSpeeds[index], hash);
+            auto noise = OpenSimplex2::Noise2((uint)side.Tag.Segment, Game::Time * flickerSpeeds[index], hash);
             //const float flickerRadius = lt.mode == DynamicLightMode::Flicker ? 0.05f : (lt.mode == DynamicLightMode::StrongFlicker ? 0.08f : 0.0125f);
             //lt.radius += lt.radius * noise * flickerRadius;
             auto t = 1.0f - abs(noise * noise * noise - .05f) * mults[index] * (Game::ControlCenterDestroyed ? 2 : 1);
             side.AnimatedColor.w *= t;
         }
         else if (mode == DynamicLightMode::Pulse) {
-            float t = 1 + sinf((float)Render::ElapsedTime * 3.14f * 1.25f + hash) * 0.125f;
+            float t = 1 + sinf((float)Game::Time * 3.14f * 1.25f + hash) * 0.125f;
             side.AnimatedRadius *= t;
             side.AnimatedColor.w *= t;
         }
         else if (mode == DynamicLightMode::BigPulse) {
-            float t = 1 + sinf((float)Render::ElapsedTime * 3.14f * 1.25f + hash) * 0.25f;
+            float t = 1 + sinf((float)Game::Time * 3.14f * 1.25f + hash) * 0.25f;
             side.AnimatedRadius *= t;
             side.AnimatedColor.w *= t;
         }
@@ -119,7 +119,7 @@ namespace Inferno::Render {
                 effect.Shader->SetDiffuse1(cmdList, proc->GetHandle());
             }
             else {
-                auto& map1 = chunk.EffectClip1 == EClipID::None ? Materials->Get(chunk.TMap1) : Materials->Get(chunk.EffectClip1, ElapsedTime, false);
+                auto& map1 = chunk.EffectClip1 == EClipID::None ? Materials->Get(chunk.TMap1) : Materials->Get(chunk.EffectClip1, Game::Time, false);
                 effect.Shader->SetDiffuse1(cmdList, map1.Handles[0]);
             }
 
@@ -130,7 +130,7 @@ namespace Inferno::Render {
                     effect.Shader->SetSuperTransparent(cmdList, map2);
                 }
                 else {
-                    auto& map2 = chunk.EffectClip2 == EClipID::None ? Materials->Get(chunk.TMap2) : Materials->Get(chunk.EffectClip2, ElapsedTime, Game::ControlCenterDestroyed);
+                    auto& map2 = chunk.EffectClip2 == EClipID::None ? Materials->Get(chunk.TMap2) : Materials->Get(chunk.EffectClip2, Game::Time, Game::ControlCenterDestroyed);
                     effect.Shader->SetDiffuse2(cmdList, map2.Handles[0]);
                     effect.Shader->SetSuperTransparent(cmdList, map2);
                 }
@@ -326,7 +326,7 @@ namespace Inferno::Render {
                         mat1Handle = proc->GetHandle();
                     }
                     else {
-                        auto& map1 = chunk.EffectClip1 == EClipID::None ? Materials->Get(chunk.TMap1) : Materials->Get(chunk.EffectClip1, ElapsedTime, false);
+                        auto& map1 = chunk.EffectClip1 == EClipID::None ? Materials->Get(chunk.TMap1) : Materials->Get(chunk.EffectClip1, Game::Time, false);
                         mat1 = &map1;
                         mat1Handle = map1.Handle();
                     }
@@ -344,7 +344,7 @@ namespace Inferno::Render {
                             effect = Resources::GetEffectClipID(side->TMap2);
                         }
 
-                        auto& map2 = effect == EClipID::None ? Materials->Get(decal) : Materials->Get(effect, ElapsedTime, Game::ControlCenterDestroyed);
+                        auto& map2 = effect == EClipID::None ? Materials->Get(decal) : Materials->Get(effect, Game::Time, Game::ControlCenterDestroyed);
                         mat1 = &map2;
                         mat1Handle = map2.Handle();
                     }
@@ -371,7 +371,7 @@ namespace Inferno::Render {
         }
         else if (constants.HasOverlay) {
             // Pass tex2 when drawing base texture to discard pixels behind the decal
-            auto decal = chunk.EffectClip2 == EClipID::None ? Resources::LookupTexID(chunk.TMap2) : Resources::GetEffectClip(chunk.TMap2).VClip.GetFrame(ElapsedTime);\
+            auto decal = chunk.EffectClip2 == EClipID::None ? Resources::LookupTexID(chunk.TMap2) : Resources::GetEffectClip(chunk.TMap2).VClip.GetFrame(Game::Time);
             constants.Tex2 = (int)decal;
             mat2 = &Materials->Get(decal);
             mat2Handle = mat2->Handle();
@@ -580,7 +580,7 @@ namespace Inferno::Render {
 
     void DrawLevel(GraphicsContext& ctx, Level& level) {
         if (Settings::Editor.ShowFlickeringLights)
-            UpdateFlickeringLights(level, (float)ElapsedTime, Game::FrameTime);
+            UpdateFlickeringLights(level, (float)Game::Time, Game::FrameTime);
 
         bool drawObjects = true;
         if (Game::GetState() == GameState::Editor && !Settings::Editor.ShowObjects)

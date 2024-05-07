@@ -43,7 +43,7 @@ namespace Inferno::Render {
             }
 
             // Randomize sprite animation
-            auto tid = vclip.GetFrame((float)ElapsedTime + GetTimeOffset(object));
+            auto tid = vclip.GetFrame(Game::Time + GetTimeOffset(object));
             DrawBillboard(ctx, tid, pos, object.Radius, color, additive, object.Render.Rotation, up);
         }
         else if (object.Render.Type == RenderType::Laser) {
@@ -67,7 +67,7 @@ namespace Inferno::Render {
                 return;
             }
 
-            auto tid = vclip.GetFrame((float)ElapsedTime);
+            auto tid = vclip.GetFrame(Game::Time);
             DrawDepthBillboard(ctx, tid, pos, object.Radius, object.Render.Rotation, up);
         }
         else if (object.Render.Type == RenderType::Laser) {
@@ -194,7 +194,7 @@ namespace Inferno::Render {
             }
             else {
                 if (submodel.HasFlag(SubmodelFlag::Rotate))
-                    world = Matrix::CreateFromAxisAngle(submodel.Keyframes[1].Axis, DirectX::XM_2PI * submodel.Rotation * (float)Render::ElapsedTime) * world;
+                    world = Matrix::CreateFromAxisAngle(submodel.Keyframes[1].Axis, DirectX::XM_2PI * submodel.Rotation * (float)Game::Time) * world;
 
                 constants.World = world;
             }
@@ -265,7 +265,7 @@ namespace Inferno::Render {
             }
             else {
                 if (submodel.HasFlag(SubmodelFlag::Rotate))
-                    world = Matrix::CreateFromAxisAngle(submodel.Keyframes[1].Axis, DirectX::XM_2PI * submodel.Rotation * (float)Render::ElapsedTime) * world;
+                    world = Matrix::CreateFromAxisAngle(submodel.Keyframes[1].Axis, DirectX::XM_2PI * submodel.Rotation * (float)Game::Time) * world;
 
                 constants.World = world;
                 //constants.Projection = world * ViewProjection;
@@ -346,9 +346,9 @@ namespace Inferno::Render {
         ObjectDistortionShader::Constants constants{};
         constants.TimeOffset = GetTimeOffset(object);
         constexpr float flickerSpeed = 3.75f;
-        auto noise = OpenSimplex2::Noise2((int)object.Signature, Render::ElapsedTime * flickerSpeed, 0);
+        auto noise = OpenSimplex2::Noise2((int)object.Signature, Game::Time * flickerSpeed, 0);
         constants.Noise = (1 + noise) * 0.5f; // Map to 0-1
-        auto noise2 = OpenSimplex2::Noise2((int)object.Signature, constants.TimeOffset + Render::ElapsedTime * flickerSpeed * 0.5f, 0);
+        auto noise2 = OpenSimplex2::Noise2((int)object.Signature, constants.TimeOffset + Game::Time * flickerSpeed * 0.5f, 0);
         constants.Noise2 = (1 + noise2) * 0.5f; // Map to 0-1
 
         for (int submodel = 0; submodel < model.Submodels.size(); submodel++) {

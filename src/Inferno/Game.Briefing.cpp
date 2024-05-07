@@ -56,6 +56,7 @@ namespace Inferno {
 
         if (auto page = GetPage()) {
             if (page->Robot != -1 || page->Model != ModelID::None)
+                //_object.Rotation = Matrix3x3(Matrix::CreateRotationY(dt));
                 _object.Rotation = Matrix3x3(Matrix(_object.Rotation) * Matrix::CreateRotationY(dt));
 
             if (page->Robot != -1) {

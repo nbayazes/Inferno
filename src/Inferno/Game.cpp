@@ -37,6 +37,11 @@ namespace Inferno::Game {
         int MenuIndex = 0;
         Ptr<Editor::EditorUI> EditorUI;
         gsl::not_null ActiveCamera = &GameCamera;
+        LerpedValue LerpedTimeScale(1);
+    }
+
+    void SetTimeScale(float scale, float transitionSpeed) {
+        LerpedTimeScale.SetTarget(scale, transitionSpeed);
     }
 
     Camera& GetActiveCamera() { return *ActiveCamera.get(); }
@@ -182,7 +187,7 @@ namespace Inferno::Game {
             UpdateEffects(obj, dt);
 
             if (obj.Lifespan > 0)
-                obj.Lifespan -= TICK_RATE;
+                obj.Lifespan -= dt;
         }
 
         auto playerRoom = Level.GetRoomID(GetPlayerObject());
@@ -237,6 +242,9 @@ namespace Inferno::Game {
             SPDLOG_INFO("Growing object buffer to {}", Level.Objects.capacity());
         }
 
+        LerpedTimeScale.Update(dt);
+        TimeScale = LerpedTimeScale.GetValue();
+
         Game::Player.HomingObjectDist = -1; // Clear each frame. Updating objects sets this.
         Game::Player.DirectLight = Color();
         DecayScreenFlash(dt);
@@ -269,9 +277,12 @@ namespace Inferno::Game {
         accumulator += dt;
         accumulator = std::min(accumulator, 2.0);
 
+        //const float tickRate = TICK_RATE * Game::TimeScale;
+        //SPDLOG_INFO("Tick rate: {}", tickRate);
+
         //LegitProfiler::ProfilerTask task("Fixed update");
         while (accumulator >= TICK_RATE) {
-            FixedUpdate(TICK_RATE);
+            FixedUpdate(TICK_RATE * Game::TimeScale);
             accumulator -= TICK_RATE;
         }
         //LegitProfiler::AddCpuTask(std::move(task));
@@ -811,6 +822,7 @@ namespace Inferno::Game {
         Settings::Editor.RenderMode = RenderMode::Shaded;
         Input::SetMouseMode(Input::MouseMode::Mouselook);
         Player.Respawn(false);
+        ResetDeltaTime = true;
         return true;
     }
 
