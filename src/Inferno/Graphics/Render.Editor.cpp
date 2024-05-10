@@ -240,9 +240,7 @@ namespace Inferno::Render {
                     Color arrowColor;
 
                     bool isMatcenTrigger =
-                        level.IsDescent1() ?
-                        trigger->HasFlag(TriggerFlagD1::Matcen) :
-                        trigger->Type == TriggerType::Matcen;
+                        level.IsDescent1() ? trigger->HasFlag(TriggerFlagD1::Matcen) : trigger->Type == TriggerType::Matcen;
 
                     // Check that the target is actually a matcen (for D1)
                     if (isMatcenTrigger && targetSeg.Matcen != MatcenID::None) {
@@ -287,7 +285,7 @@ namespace Inferno::Render {
     }
 
     void DrawMarkedFaces(Level& level) {
-        for (auto& tag : Editor::Marked.Faces) {
+        for (const auto& tag : Editor::Marked.Faces) {
             if (!level.SegmentExists(tag.Segment)) continue;
             auto [seg, side] = level.GetSegmentAndSide(tag);
 

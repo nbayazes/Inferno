@@ -5,18 +5,20 @@
 #include "Level.h"
 
 namespace Inferno {
-    struct FaceHit { float Distance; Vector3 Normal; };
+    struct FaceHit {
+        float Distance;
+        Vector3 Normal;
+    };
 
     // Helper to perform operations on a segment face. A face is always 4 points.
     // Do not store long term as it contains references and not a copy.
     struct Face {
-        Vector3& P0, & P1, & P2, & P3;
+        Vector3 &P0, &P1, &P2, &P3;
         SegmentSide& Side;
         Array<PointID, 4> Indices;
 
         Face(Vector3& p0, Vector3& p1, Vector3& p2, Vector3& p3, SegmentSide& side, Array<PointID, 4> indices) :
-            P0(p0), P1(p1), P2(p2), P3(p3), Side(side), Indices(indices) {
-        }
+            P0(p0), P1(p1), P2(p2), P3(p3), Side(side), Indices(indices) {}
 
         static Face FromSide(Level& level, SegID segId, SideID side) {
             auto& seg = level.GetSegment(segId);
@@ -54,7 +56,7 @@ namespace Inferno {
         }
 
         Vector3& operator [](int index) const {
-            switch (index % 4) {
+            switch (ModSafe(index, 4)) {
                 default:
                 case 0: return P0;
                 case 1: return P1;

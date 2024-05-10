@@ -315,11 +315,6 @@ namespace Inferno {
         return temp;
     }
 
-    // Returns the inverse (opposite) side
-    constexpr SideID operator!(SideID& side) {
-        return OppositeSideIDs[(int16)side];
-    }
-
     // Tags a segment side
     struct Tag {
         SegID Segment = SegID::None;

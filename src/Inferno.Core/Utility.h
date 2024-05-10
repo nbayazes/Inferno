@@ -110,13 +110,14 @@ namespace Inferno {
 
 
     // Modulus division without negative numbers
-    constexpr auto ModSafe(std::integral auto k, std::integral auto n) {
+    constexpr auto ModSafe(std::signed_integral auto k, std::signed_integral auto n) {
         return (k %= n) < 0 ? k + n : k;
     }
 
     // Returns 1 for positive numbers, -1 for negative numbers
     template <typename T>
     constexpr int Sign(T val) {
+        if(val == 0) return 1;
         return (T(0) < val) - (val < T(0));
     }
 

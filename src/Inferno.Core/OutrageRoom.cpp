@@ -282,12 +282,12 @@ namespace Inferno {
             }
         }
 
-        auto deleteVertex = [&](uint index) {
+        auto deleteVertex = [&](short index) {
             //Remap vertices in faces
-            for (int f = 0; f < faces.size(); f++) {
+            for (short f = 0; f < faces.size(); f++) {
                 auto& face = faces[f];
 
-                for (int v = 0; v < face.Vertices.size(); v++) {
+                for (short v = 0; v < face.Vertices.size(); v++) {
                     if (face.Vertices[v] == index)
                         throw Exception("Deleting a vertex still in use!");
                     else if (face.Vertices[v] > index)
@@ -300,12 +300,12 @@ namespace Inferno {
 
         uint removed = 0;
         // Remove duplicate vertices
-        for (size_t i = 0; i < vertices.size(); i++) {
-            for (size_t j = 0; j < i; j++) {
+        for (short i = 0; i < vertices.size(); i++) {
+            for (short j = 0; j < i; j++) {
                 if (Vector3::Distance(vertices[i], vertices[j]) < 0.1f) {
                     //Replace the higher-numbered point with the lower-numbered in all the faces in this room
                     auto fp = faces.begin();
-                    for (size_t f = 0; f < faces.size(); f++, fp++) {
+                    for (int f = 0; f < faces.size(); f++, fp++) {
                         auto& face = faces[f];
 
                         for (int v = 0; v < face.Vertices.size(); v++)

@@ -200,7 +200,7 @@ namespace Inferno {
             return true;
         }
 
-        int GetSegmentCount(SegmentType type) {
+        int GetSegmentCount(SegmentType type) const {
             int count = 0;
             for (auto& seg : Segments)
                 if (seg.Type == type) count++;
