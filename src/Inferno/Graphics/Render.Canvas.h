@@ -33,7 +33,7 @@ namespace Inferno::Render {
             // draw batched text
             auto orthoProj = Matrix::CreateOrthographicOffCenter(0, outputSize.x, outputSize.y, 0.0, 0.0, -2.0f);
 
-            auto cmdList = ctx.CommandList();
+            auto cmdList = ctx.GetCommandList();
             auto& effect = Effects->UserInterface;
             ctx.ApplyEffect(effect);
             effect.Shader->SetWorldViewProjection(cmdList, orthoProj);

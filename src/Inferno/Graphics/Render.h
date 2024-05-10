@@ -4,9 +4,7 @@
 #include "ShaderLibrary.h"
 #include "Heap.h"
 #include "Camera.h"
-#include "Polymodel.h"
 #include "PostProcess.h"
-#include "Fonts.h"
 #include "MaterialLibrary.h"
 #include "LevelMesh.h"
 #include "BitmapCache.h"
@@ -28,7 +26,7 @@ namespace Inferno::Render {
     inline Ptr<Canvas2D> Canvas, BriefingCanvas;
 
     inline bool DebugEmissive = false;
-    inline Ptr<TextureCache> NewTextureCache;
+    //inline Ptr<TextureCache> NewTextureCache;
 
     inline D3D12_GPU_DESCRIPTOR_HANDLE GetTextureSampler() {
         return Settings::Graphics.HighRes ? Heaps->States.AnisotropicWrap() : Heaps->States.PointWrap();
@@ -98,6 +96,7 @@ namespace Inferno::Render {
     struct StaticTextureDef {
         Texture2D Font;
         Texture2D ImguiFont;
+        Texture2D White, Black, Normal, Missing;
     };
 
     inline Ptr<StaticTextureDef> StaticTextures;

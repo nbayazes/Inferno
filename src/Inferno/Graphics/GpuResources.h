@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DirectX.h"
+#include "Heap.h"
 #include "Types.h"
 
 using Microsoft::WRL::ComPtr;
@@ -13,6 +14,7 @@ namespace Inferno {
         D3D12_RESOURCE_DESC _desc = {};
         D3D12_HEAP_TYPE _heapType = {};
         wstring _name;
+
     public:
         GpuResource() = default;
 
@@ -22,10 +24,11 @@ namespace Inferno {
         GpuResource& operator=(const GpuResource&) = delete;
         GpuResource& operator=(GpuResource&&) = default;
 
-        ID3D12Resource* Get() { return _resource.Get(); }
+        ID3D12Resource* Get() const { return _resource.Get(); }
         ID3D12Resource* operator->() { return _resource.Get(); }
         const ID3D12Resource* operator->() const { return _resource.Get(); }
-        operator bool() { return _resource.Get() != nullptr; }
+        operator bool() const { return _resource.Get() != nullptr; }
+
         void Release() {
             _resource.Reset();
         }
@@ -36,40 +39,27 @@ namespace Inferno {
             _state = state;
         }
 
-        void CreateOnUploadHeap(wstring name) {
-            Create(D3D12_HEAP_TYPE_UPLOAD, name);
+        void CreateOnUploadHeap(wstring_view name, const D3D12_CLEAR_VALUE* clearValue = nullptr) {
+            Create(D3D12_HEAP_TYPE_UPLOAD, name, clearValue);
         }
 
-        void CreateOnDefaultHeap(wstring name) {
-            Create(D3D12_HEAP_TYPE_DEFAULT, name);
-        }
-
-        // If desc is null then default initialization is used. Not supported for all resources.
-        void CreateShaderResourceView(D3D12_CPU_DESCRIPTOR_HANDLE dest, const D3D12_SHADER_RESOURCE_VIEW_DESC* desc = nullptr) {
-            Render::Device->CreateShaderResourceView(Get(), desc, dest);
+        void CreateOnDefaultHeap(wstring_view name, const D3D12_CLEAR_VALUE* clearValue = nullptr) {
+            Create(D3D12_HEAP_TYPE_DEFAULT, name, clearValue);
         }
 
         // If desc is null then default initialization is used. Not supported for all resources.
-        void CreateUnorderedAccessView(D3D12_CPU_DESCRIPTOR_HANDLE dest, const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc = nullptr) {
-            Render::Device->CreateUnorderedAccessView(Get(), nullptr, desc, dest);
+        void CreateShaderResourceView(D3D12_CPU_DESCRIPTOR_HANDLE dest, const D3D12_SHADER_RESOURCE_VIEW_DESC* desc = nullptr) const;
+
+        // If desc is null then default initialization is used. Not supported for all resources.
+        void CreateUnorderedAccessView(D3D12_CPU_DESCRIPTOR_HANDLE dest, const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc = nullptr) const;
+
+        void SetName(wstring_view name) {
+            _name = name;
+            ThrowIfFailed(_resource->SetName(name.data()));
         }
 
     private:
-        void Create(D3D12_HEAP_TYPE heapType, wstring name) {
-            _heapType = heapType;
-            CD3DX12_HEAP_PROPERTIES props(_heapType);
-            ThrowIfFailed(
-                Render::Device->CreateCommittedResource(
-                    &props,
-                    D3D12_HEAP_FLAG_NONE,
-                    &_desc,
-                    _state,
-                    nullptr,
-                    IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())));
-
-            _resource->SetName(name.c_str());
-            _name = name;
-        }
+        void Create(D3D12_HEAP_TYPE heapType, wstring_view name, const D3D12_CLEAR_VALUE* clearValue = nullptr);
     };
 
     // General purpose buffer
@@ -119,28 +109,64 @@ namespace Inferno {
         }
     };
 
-    class Texture2D : public PixelBuffer {
+    class Texture2D final : public PixelBuffer {
+        ComPtr<ID3D12Resource> _uploadBuffer; // Only used for CopyTo
+
     public:
         Texture2D() = default;
 
-        // Uploads a resource with no mip-mapping. Intended for use with low res textures.
+        Texture2D(ComPtr<ID3D12Resource> resource) {
+            _resource = std::move(resource);
+            _desc = _resource->GetDesc();
+        }
+
+        // Copies data from another texture into the resource
+        void CopyFrom(ID3D12GraphicsCommandList* cmdList, Texture2D& srcTex) {
+            CD3DX12_TEXTURE_COPY_LOCATION dst(Get());
+            CD3DX12_TEXTURE_COPY_LOCATION src(srcTex.Get());
+            srcTex.Transition(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
+            Transition(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+
+            cmdList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+            Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            srcTex.Transition(cmdList, D3D12_RESOURCE_STATE_COMMON);
+        }
+
+        // Copies data from a buffer into the resource
+        void CopyFrom(ID3D12GraphicsCommandList* cmdList, const void* data) {
+            D3D12_SUBRESOURCE_DATA textureData = {};
+            textureData.pData = data;
+            textureData.RowPitch = GetWidth() * 4;
+            textureData.SlicePitch = textureData.RowPitch * GetHeight();
+
+            // Reuse the upload buffer between each call
+            if (!_uploadBuffer)
+                CreateUploadBuffer();
+
+            //Transition(cmdList, D3D12_RESOURCE_STATE_COMMON);
+            Transition(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+            UpdateSubresources(cmdList, _resource.Get(), _uploadBuffer.Get(), 0, 0, 1, &textureData);
+            Transition(cmdList, D3D12_RESOURCE_STATE_COMMON);
+        }
+
+        // Uploads a resource with no mip-maps. Intended for use with low res textures.
         void Load(DirectX::ResourceUploadBatch& batch,
                   const void* data,
-                  int width, int height,
-                  wstring name,
+                  uint width, uint height,
+                  wstring_view name,
+                  bool enableMips = true,
                   DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM) {
+            // This should default to DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, but the editor doesn't use SRGB yet
+
             assert(data);
-            //auto mips = width == 64 && height == 64 ? 7 : 1;
-            _desc = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, 1, 1);
-            _srvDesc.Format = _desc.Format;
-            _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-            _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-            _srvDesc.Texture2D.MostDetailedMip = 0;
-            _srvDesc.Texture2D.MipLevels = _desc.MipLevels;
+            auto mips = enableMips && width == 64 && height == 64 ? 7u : 1u; // enable mips on standard level textures
+            SetDesc(width, height, (uint16)mips, format);
+
+            uint64 bpp = format == DXGI_FORMAT_R8_UNORM ? 1 : 4;
 
             D3D12_SUBRESOURCE_DATA upload = {};
             upload.pData = data;
-            upload.RowPitch = GetWidth() * 4;
+            upload.RowPitch = GetWidth() * bpp;
             upload.SlicePitch = upload.RowPitch * GetHeight();
 
             if (!_resource)
@@ -151,46 +177,89 @@ namespace Inferno {
             batch.Upload(resource, 0, &upload, 1);
             batch.Transition(resource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
             _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-            //batch.GenerateMips(resource);
+            if (mips > 1)
+                batch.GenerateMips(resource);
         }
 
-        void Create(int width, int height,
-                    wstring name,
-                    DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM) {
+        // Creates the texture on the default heap
+        void Create(uint width, uint height, wstring_view name, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
+            SetDesc(width, height, 1, format);
+            CreateOnDefaultHeap(name, nullptr);
+            _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+        }
 
-            _desc = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, 1, 1);
+        // Sets the SRV description
+        void SetDesc(uint width, uint height, uint16 mips = 1, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
+            _desc = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, 1, mips);
             _srvDesc.Format = _desc.Format;
             _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
             _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
             _srvDesc.Texture2D.MostDetailedMip = 0;
             _srvDesc.Texture2D.MipLevels = _desc.MipLevels;
-
-            CreateOnDefaultHeap(name);
-            _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
         }
 
-        Tuple<Ptr<uint8[]>, List<D3D12_SUBRESOURCE_DATA>> CreateFromDDS(filesystem::path path) {
-            Ptr<uint8[]> data;
-            List<D3D12_SUBRESOURCE_DATA> subres;
-            // this creates a new texture resource on the default heap in copy_dest state, but hasn't copied anything to it.
-            ThrowIfFailed(DirectX::LoadDDSTextureFromFile(Render::Device, path.c_str(), _resource.ReleaseAndGetAddressOf(), data, subres));
-            _state = D3D12_RESOURCE_STATE_COPY_DEST;
-            return { std::move(data), std::move(subres) };
+        // Returns the small placement alignment size in bytes
+        D3D12_RESOURCE_ALLOCATION_INFO GetPlacementAlignment(ID3D12Device* device) {
+            _desc.Alignment = D3D12_SMALL_RESOURCE_PLACEMENT_ALIGNMENT;
+            auto info = device->GetResourceAllocationInfo(0, 1, &_desc);
+            if (info.Alignment != D3D12_SMALL_RESOURCE_PLACEMENT_ALIGNMENT) {
+                // If the alignment requested is not granted, then let D3D tell us
+                // the alignment that needs to be used for these resources.
+                _desc.Alignment = 0;
+                info = device->GetResourceAllocationInfo(0, 1, &_desc);
+            }
+
+            return info;
         }
 
-        bool LoadDDS(DirectX::ResourceUploadBatch& batch, filesystem::path path) {
-            ThrowIfFailed(DirectX::CreateDDSTextureFromFile(Render::Device, batch, path.c_str(), _resource.ReleaseAndGetAddressOf()));
+        bool LoadDDS(DirectX::ResourceUploadBatch& batch, const filesystem::path& path, bool srgb = false) {
+            if (!filesystem::exists(path)) {
+                SPDLOG_WARN("File not found: {}", path.string());
+                return false;
+            }
+
+            auto loadFlags = srgb ? DirectX::DDS_LOADER_FORCE_SRGB : DirectX::DDS_LOADER_DEFAULT;
+
+            ThrowIfFailed(DirectX::CreateDDSTextureFromFileEx(Render::Device, batch, path.c_str(), 0, D3D12_RESOURCE_FLAG_NONE, loadFlags, _resource.ReleaseAndGetAddressOf()));
             _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE; // CreateDDS transitions state
             //Transition(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
             batch.Transition(_resource.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
             _desc = _resource->GetDesc();
+
+            _srvDesc.Format = _desc.Format;
+            _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+            _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            _srvDesc.Texture2D.MostDetailedMip = 0;
+            _srvDesc.Texture2D.MipLevels = _desc.MipLevels;
             return true;
+        }
+
+        // this creates a new texture resource on the default heap in copy_dest state, but hasn't copied anything to it.
+        void LoadDDS(ID3D12Device* device, const filesystem::path& path, Ptr<uint8[]>& data, List<D3D12_SUBRESOURCE_DATA>& subresources) {
+            ThrowIfFailed(DirectX::LoadDDSTextureFromFile(device, path.c_str(), &_resource, data, subresources));
+            SetName(_name);
+            _state = D3D12_RESOURCE_STATE_COPY_DEST;
+        }
+
+    private:
+        void CreateUploadBuffer() {
+            const uint64 uploadBufferSize = GetRequiredIntermediateSize(_resource.Get(), 0, 1);
+            auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
+            CD3DX12_HEAP_PROPERTIES props(D3D12_HEAP_TYPE_UPLOAD);
+
+            ThrowIfFailed(Render::Device->CreateCommittedResource(
+                &props,
+                D3D12_HEAP_FLAG_NONE,
+                &bufferDesc,
+                D3D12_RESOURCE_STATE_GENERIC_READ,
+                nullptr,
+                IID_PPV_ARGS(&_uploadBuffer)));
         }
     };
 
     // Color buffer for render targets or compute shaders
     class ColorBuffer : public PixelBuffer {
-        uint32 _fragmentCount, _sampleCount;
+        uint32 _fragmentCount{}, _sampleCount{};
 
     public:
         Color ClearColor;
@@ -254,7 +323,7 @@ namespace Inferno {
         D3D12_DEPTH_STENCIL_VIEW_DESC _dsvDesc = {};
 
     public:
-        float StencilDepth = 1.0f;
+        float ClearDepth = 1.0f;
 
         void Create(wstring name, UINT width, UINT height, DXGI_FORMAT format = DXGI_FORMAT_D32_FLOAT, UINT samples = 1) {
             CD3DX12_HEAP_PROPERTIES depthHeapProperties(D3D12_HEAP_TYPE_DEFAULT);
@@ -272,7 +341,7 @@ namespace Inferno {
 
             D3D12_CLEAR_VALUE clearValue = {};
             clearValue.Format = format;
-            clearValue.DepthStencil.Depth = StencilDepth;
+            clearValue.DepthStencil.Depth = ClearDepth;
             clearValue.DepthStencil.Stencil = 0;
 
             ThrowIfFailed(Render::Device->CreateCommittedResource(
@@ -284,7 +353,7 @@ namespace Inferno {
                 IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())
             ));
 
-            _resource->SetName(name.c_str());
+            SetName(name);
 
             _dsvDesc.Format = format;
             _dsvDesc.ViewDimension = samples > 1 ? D3D12_DSV_DIMENSION_TEXTURE2DMS : D3D12_DSV_DIMENSION_TEXTURE2D;
@@ -301,7 +370,7 @@ namespace Inferno {
         void Clear(ID3D12GraphicsCommandList* commandList) {
             //assert(_state == D3D12_RESOURCE_STATE_DEPTH_WRITE);
             Transition(commandList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-            commandList->ClearDepthStencilView(_descriptor.GetCpuHandle(), D3D12_CLEAR_FLAG_DEPTH, StencilDepth, 0, 0, nullptr);
+            commandList->ClearDepthStencilView(_descriptor.GetCpuHandle(), D3D12_CLEAR_FLAG_DEPTH, ClearDepth, 0, 0, nullptr);
         }
 
         auto GetDSV() { return _descriptor.GetCpuHandle(); }
@@ -320,11 +389,11 @@ namespace Inferno {
         Color ClearColor;
 
         // Creates a RTV for a swap chain buffer
-        void Create(wstring name, IDXGISwapChain* swapChain, UINT buffer, DXGI_FORMAT format) {
+        void Create(wstring_view name, IDXGISwapChain* swapChain, UINT buffer, DXGI_FORMAT format) {
             ThrowIfFailed(swapChain->GetBuffer(buffer, IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())));
 
             _desc = _resource->GetDesc();
-            _resource->SetName(name.c_str());
+            SetName(name);
 
             _rtvDesc.Format = format;
             _rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
@@ -332,7 +401,7 @@ namespace Inferno {
         }
 
         // Creates a render target on the default heap
-        void Create(wstring name, UINT width, UINT height, DXGI_FORMAT format, const Color& clearColor = { 0, 0, 0 }, UINT samples = 1) {
+        void Create(wstring_view name, UINT width, UINT height, DXGI_FORMAT format, const Color& clearColor = { 0, 0, 0 }, UINT samples = 1) {
             ClearColor = clearColor;
 
             _desc = CD3DX12_RESOURCE_DESC::Tex2D(
@@ -365,7 +434,7 @@ namespace Inferno {
                 IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())
             ));
 
-            _resource->SetName(name.c_str());
+            SetName(name);
 
             _rtvDesc.Format = format;
             _rtvDesc.ViewDimension = samples > 1 ? D3D12_RTV_DIMENSION_TEXTURE2DMS : D3D12_RTV_DIMENSION_TEXTURE2D;
@@ -381,7 +450,7 @@ namespace Inferno {
             //AddShaderResourceView();
         }
 
-        bool IsMultisampled() { return _desc.SampleDesc.Count > 1; }
+        bool IsMultisampled() const { return _desc.SampleDesc.Count > 1; }
 
 
         // Copies a MSAA source into a non-sampled buffer
@@ -394,14 +463,14 @@ namespace Inferno {
             commandList->ResolveSubresource(Get(), 0, src.Get(), 0, src._desc.Format);
         }
 
-        void SetAsRenderTarget(ID3D12GraphicsCommandList* commandList, Inferno::DepthBuffer* depthBuffer = nullptr) {
-            Transition(commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+        //void SetAsRenderTarget(ID3D12GraphicsCommandList* commandList, Inferno::DepthBuffer* depthBuffer = nullptr) {
+        //    Transition(commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-            if (depthBuffer)
-                commandList->OMSetRenderTargets(1, &_rtv, false, &depthBuffer->_descriptor);
-            else
-                commandList->OMSetRenderTargets(1, &_rtv, false, nullptr);
-        }
+        //    if (depthBuffer)
+        //        commandList->OMSetRenderTargets(1, &_rtv.GetCpuHandle(), false, &depthBuffer->_descriptor.GetCpuHandle());
+        //    else
+        //        commandList->OMSetRenderTargets(1, &_rtv, false, nullptr);
+        //}
 
         //void Clear(ID3D12GraphicsCommandList* commandList) {
         //    assert(_state == D3D12_RESOURCE_STATE_RENDER_TARGET);

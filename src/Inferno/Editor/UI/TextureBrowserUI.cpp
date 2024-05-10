@@ -137,17 +137,17 @@ namespace Inferno::Editor {
     void TextureBrowserUI::UpdateTextureList(FilterGroup filter, bool loadMaterials) {
         //SPDLOG_INFO("Updating texture browser");
         auto ids = FilterLevelTextures(filter, _showInUse, _showEverything);
-        auto tids = Seq::map(ids, Resources::LookupLevelTexID);
+        auto tids = Seq::map(ids, Resources::LookupTexID);
         if (loadMaterials)
             Render::Materials->LoadMaterialsAsync(tids);
 
         // Update ids immediately. They will display as loading completes.
         _textureIds.clear();
         Seq::append(_textureIds, ids);
-        Seq::insert(Render::Materials->KeepLoaded, tids); // so browser textures don't get discarded after a prune
+        //Seq::insert(Render::Materials->KeepLoaded, tids); // so browser textures don't get discarded after a prune
     }
 
-    TextureBrowserUI::TextureBrowserUI() : WindowBase("Textures", &Settings::Editor.Windows.Textures) {
+    TextureBrowserUI::TextureBrowserUI() : WindowBase(Name, &Settings::Editor.Windows.Textures) {
         Events::LevelLoaded += [this] { UpdateTextureList(_filter, true); };
         Events::LevelChanged += [this] { UpdateTextureList(_filter, false); };
 
@@ -327,7 +327,9 @@ namespace Inferno::Editor {
 
         for (auto& id : _textureIds) {
             auto& material = Render::Materials->Get(id);
-            if (material.ID <= TexID::Invalid) continue; // don't show invalid textures (usually TID 910)
+            if (!material || material.State != TextureState::Resident)
+                continue; // don't show invalid textures (usually TID 910)
+
 
             //ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 2, 2 });
             //ImGui::PushStyleColor(ImGuiCol_BorderShadow, { 1, 0, 0, 1 });
@@ -338,7 +340,7 @@ namespace Inferno::Editor {
 
             ImGui::PushStyleColor(ImGuiCol_Button, borderColor);
 
-            ImGui::ImageButton((ImTextureID)material.Handles[0].ptr, tileSize, { 0, 0 }, { 1, 1 }, borderThickess, bg);
+            ImGui::ImageButton((ImTextureID)material.Pointer(), tileSize, { 0, 0 }, { 1, 1 }, borderThickess, bg);
 
             if (ImGui::IsItemHovered()) {
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {

@@ -88,7 +88,7 @@ namespace Inferno {
 
         door.Time += dt;
 
-        auto& clip = Resources::GetWallClip(wall.Clip);
+        auto& clip = Resources::GetDoorClip(wall.Clip);
         auto frameTime = clip.PlayTime / clip.NumFrames;
         auto i = int(door.Time / frameTime);
 
@@ -137,7 +137,7 @@ namespace Inferno {
             }
         }
 
-        auto& clip = Resources::GetWallClip(wall.Clip);
+        auto& clip = Resources::GetDoorClip(wall.Clip);
 
         if (door.Time == 0) { // play sound at start of closing
             //auto sound = Resources::GetSoundIndex(clip.CloseSound);
@@ -187,7 +187,7 @@ namespace Inferno {
         fmt::print("Opening door {}:{}\n", tag.Segment, tag.Side);
 
         ActiveDoor* door = nullptr;
-        auto& clip = Resources::GetWallClip(wall->Clip);
+        auto& clip = Resources::GetDoorClip(wall->Clip);
 
         if (wall->State != WallState::Closed) {
             // Reuse door

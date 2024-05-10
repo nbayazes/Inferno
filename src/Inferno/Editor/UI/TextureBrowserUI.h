@@ -147,6 +147,7 @@ namespace Inferno::Editor {
         bool _showInUse = true;
         bool _showEverything = false;
     public:
+        static constexpr auto Name = "Textures";
         TextureBrowserUI();
 
     protected:

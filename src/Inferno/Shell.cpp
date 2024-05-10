@@ -237,7 +237,7 @@ bool RegisterWindowClass(HINSTANCE hInstance) {
     return RegisterClassEx(&wc) != 0;
 }
 
-int Shell::Show(int width, int height, int nCmdShow) {
+int Inferno::Shell::Show(int width, int height, int nCmdShow) const {
     if (!RegisterWindowClass(_hInstance))
         throw std::exception("Failed to register window class");
 

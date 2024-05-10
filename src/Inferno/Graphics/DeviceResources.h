@@ -9,6 +9,7 @@
 #include "Buffers.h"
 #include "Settings.h"
 #include "CommandContext.h"
+#include "CommandQueue.h"
 
 namespace Inferno {
     // Provides an interface for an application that owns DeviceResources to be notified of the device being lost or created.
@@ -64,9 +65,9 @@ namespace Inferno {
 
         // Gets the active render target
         auto GetBackBuffer() noexcept { return &BackBuffers[m_backBufferIndex]; }
-        ID3D12CommandQueue* GetCommandQueue() const noexcept { return m_commandQueue.Get(); }
+        Ptr<CommandQueue> CommandQueue, CopyQueue, BatchUploadQueue, AsyncBatchUploadQueue;
 
-        Graphics::GraphicsContext& GetGraphicsContext() { return *_graphicsContext[m_backBufferIndex].get(); }
+        Graphics::GraphicsContext& GetGraphicsContext() const { return *_graphicsContext[m_backBufferIndex].get(); }
 
         //ID3D12CommandAllocator* GetCommandAllocator() const noexcept { return m_commandAllocators[m_backBufferIndex].Get(); }
         //auto                        GetCommandList() const noexcept { return m_commandList.Get(); }
@@ -140,7 +141,7 @@ namespace Inferno {
         // Direct3D objects.
         Microsoft::WRL::ComPtr<ID3D12Device>                m_d3dDevice;
         //Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>   m_commandList;
-        Microsoft::WRL::ComPtr<ID3D12CommandQueue>          m_commandQueue;
+        //Microsoft::WRL::ComPtr<ID3D12CommandQueue>          m_commandQueue;
         //Microsoft::WRL::ComPtr<ID3D12CommandAllocator>      m_commandAllocators[MAX_BACK_BUFFER_COUNT];
 
         // Swap chain objects.

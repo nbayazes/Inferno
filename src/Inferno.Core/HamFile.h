@@ -66,7 +66,7 @@ namespace Inferno {
         List<uint8> AltSounds; // Low memory sounds, unneeded
         List<VClip> VClips;
         List<EffectClip> Effects;
-        List<WallClip> WallClips;
+        List<WallClip> DoorClips;
         List<RobotInfo> Robots;
         List<JointPos> RobotJoints;
         List<Weapon> Weapons;

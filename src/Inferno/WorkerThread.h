@@ -2,7 +2,7 @@
 
 #include <thread>
 #include <mutex>
-#include <spdlog/spdlog.h>
+#include "logging.h"
 
 // A long running worker thread that waits for notifications to start processing
 class WorkerThread {
@@ -11,19 +11,20 @@ class WorkerThread {
     std::thread _worker;
     std::atomic<bool> _hasWork;
     std::atomic<bool> _alive;
-public:
-    WorkerThread() {}
+    std::string _name;
 
-    virtual ~WorkerThread() {
-        Stop();
-    }
+public:
+    WorkerThread(std::string_view name) : _name(name) {}
+    virtual ~WorkerThread() { Stop(); }
 
     void Start() {
+        assert(!_alive);
         _alive = true;
         _worker = std::thread(&WorkerThread::Worker, this);
     }
 
     void Stop() {
+        assert(_alive);
         _alive = false;
         _workAvailable.notify_all();
         if (_worker.joinable())
@@ -47,7 +48,7 @@ protected:
 
 private:
     void Worker() {
-        SPDLOG_INFO("Starting worker");
+        SPDLOG_INFO("Starting worker `{}`", _name);
         while (_alive) {
             try {
                 _hasWork = false;
@@ -63,6 +64,6 @@ private:
                 SPDLOG_ERROR(e.what());
             }
         }
-        SPDLOG_INFO("Stopping worker");
+        SPDLOG_INFO("Stopping worker `{}`", _name);
     }
 };

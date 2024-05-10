@@ -232,7 +232,7 @@ namespace Inferno::Render {
                 color = Colors::Trigger;
 
                 for (auto& target : trigger->Targets) {
-                    if (!level.SegmentExists(target) || target.Side == SideID::None) 
+                    if (!level.SegmentExists(target) || target.Side == SideID::None)
                         continue;
 
                     auto& targetSeg = level.GetSegment(target.Segment);
@@ -433,6 +433,14 @@ namespace Inferno::Render {
         }
     }
 
+    void DrawInsetPreview() {
+        auto& src = Editor::InsetFacesPreview;
+
+        for (int n = 1; n < src.size(); n += 2) {
+            Debug::DrawLine(src[n - 1], src[n], Colors::Fuelcen);
+        }
+    }
+
     void DrawEditor(ID3D12GraphicsCommandList* cmdList, Level& level) {
         if (Settings::Editor.ShowWireframe)
             DrawWireframe(level);
@@ -487,6 +495,9 @@ namespace Inferno::Render {
 
         if (Settings::Editor.Windows.ProjectToPlane)
             DrawSnapToPlaneAxis();
+
+        if (Settings::Editor.Windows.InsetFaces)
+            DrawInsetPreview();
 
         DrawRooms(level);
     }

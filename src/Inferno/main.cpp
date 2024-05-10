@@ -187,7 +187,7 @@ int main() {
     std::srand((uint)std::time(nullptr)); // seed c-random
 
     try {
-        Shell shell;
+        Inferno::Shell shell;
         //CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
         Editor::Bindings::LoadDefaults();

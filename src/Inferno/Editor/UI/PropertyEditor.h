@@ -36,7 +36,7 @@ namespace Inferno::Editor {
     inline void TexturePreview(LevelTexID tid, const ImVec2& size = { 64.0f, 64.0f }) {
         if (tid == LevelTexID::None) return;
         auto& material = Render::Materials->Get(tid);
-        ImGui::Image((ImTextureID)material.Handles[Render::Material2D::Diffuse].ptr, size);
+        ImGui::Image((ImTextureID)material.Handles[Material2D::Diffuse].ptr, size);
     }
 
     inline void SideDropdown(SideID& id) {
@@ -65,7 +65,9 @@ namespace Inferno::Editor {
         MatcenEditor _matcenEditor;
         bool _loaded = false;
     public:
-        PropertyEditor() : WindowBase("Properties", &Settings::Editor.Windows.Properties) { }
+        static constexpr auto Name = "Properties";
+
+        PropertyEditor() : WindowBase(Name, &Settings::Editor.Windows.Properties) { }
 
     protected:
         void OnUpdate() override {

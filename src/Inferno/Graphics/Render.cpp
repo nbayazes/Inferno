@@ -29,75 +29,8 @@ namespace Inferno::Render {
 
     //const string TEST_MODEL = "robottesttube(orbot).OOF"; // mixed transparency test
     const string TEST_MODEL = "gyro.OOF";
-
-    // Dynamic render batches
-    // Usage: Batch vertices / indices then use returned structs to render later
-    template<class TVertex, class TIndex = unsigned short>
-    class RenderBatch {
-        ID3D12Device* _device;
-
-        ComPtr<ID3D12Resource> _indexBuffer;
-        ComPtr<ID3D12Resource> _vertexBuffer;
-
-        //Buffer<TVertex> _vertexBuffer;
-
-        int _vertexOffset = 0, _indexOffset = 0;
-        int _indexBufferSize;
-        int _vertexBufferSize;
-        bool _inBatch = false;
-        void* _pVertexBuffer;
-        void* _pIndexBuffer;
-        //int _requestedIndexBufferSize = _indexBufferSize;
-        //int _requestedVertexBufferSize = _vertexBufferSize;
-
-    public:
-        RenderBatch(ID3D12Device* device, uint vertexCapacity = 5000, uint indexCapacity = 10000)
-            : _device(device), _indexBufferSize(indexCapacity), _vertexBufferSize(vertexCapacity) {
-            //CreateUploadBuffer(_vertexBuffer, vertexCapacity * sizeof(TVertex));
-            //CreateUploadBuffer(_indexBuffer, indexCapacity * sizeof(TIndex));
-        }
-
-        void Begin() {
-            if (_inBatch) throw Exception("Cannot start batch if already began");
-
-            _inBatch = true;
-            _vertexOffset = 0;
-            _indexOffset = 0;
-
-            ThrowIfFailed(_vertexBuffer->Map(0, &CPU_READ_NONE, &_pVertexBuffer));
-            ThrowIfFailed(_indexBuffer->Map(0, &CPU_READ_NONE, &_pIndexBuffer));
-        }
-
-        //RenderBatchHandle Batch(List<TVertex>& vertices, List<TIndex>& index) {
-        //    if (_indexOffset + index.size() > _indexBufferSize) {
-        //        SPDLOG_WARN("Batch capacity reached");
-        //        return {};
-        //        // grow buffers if too small, but can't in the middle of a frame...
-        //        // request to grow on next frame? warning
-        //    }
-
-        //    std::memcpy(_pVertexBuffer + _vertexOffset * sizeof(TVertex), vertices.data(), vertices.size() * sizeof(TVertex));
-        //    std::memcpy(_pIndexBuffer + _indexOffset * sizeof(TIndex), index.data(), index.size() * sizeof(TIndex));
-        //    //std::copy(vertices.begin(), vertices.end(), _pVertexBuffer + _vertexOffset * sizeof(TVertex));
-
-        //    RenderBatchHandle handle = { _indexOffset, _vertexOffset, vertices.size() };
-        //    _vertexOffset += vertices.size();
-        //    _indexOffset += index.size();
-        //    return handle;
-        //}
-
-        void End() {
-            _inBatch = false;
-
-            _vertexBuffer->Unmap(0, &CPU_READ_NONE);
-            _indexBuffer->Unmap(0, &CPU_READ_NONE);
-        }
-    };
-
-
-}
-
-namespace Inferno::Render {
+    constexpr uint MATERIAL_COUNT = 6000; // 3000 D1/D2, extra 3000 for D3
+    constexpr uint VCLIP_COUNT = 150;
 
     using VertexType = DirectX::VertexPositionTexture;
 
@@ -204,7 +137,7 @@ namespace Inferno::Render {
                 if (texOverride == TexID::None)
                     tid = mesh->EffectClip == EClipID::None ? mesh->Texture : Resources::GetEffectClip(mesh->EffectClip).VClip.GetFrame(ElapsedTime);
 
-                const Material2D& material = tid == TexID::None ? Materials->White : Materials->Get(tid);
+                const Material2D& material = tid == TexID::None ? Materials->White() : Materials->Get(tid);
                 effect.Shader->SetMaterial(cmd, material);
 
                 cmd->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
@@ -232,90 +165,90 @@ namespace Inferno::Render {
         g_SpriteBatch->End();
     }
 
-    void DrawOutrageModel(const Object& object, ID3D12GraphicsCommandList* cmd, int index, bool transparentPass) {
-        auto& meshHandle = _meshBuffer->GetOutrageHandle(index);
+    void DrawOutrageModel(const Object& /*object*/, ID3D12GraphicsCommandList* /*cmd*/, int /*index*/, bool /*transparentPass*/) {
+        //auto& meshHandle = _meshBuffer->GetOutrageHandle(index);
 
-        ObjectShader::Constants constants = {};
-        constants.Eye = Camera.Position;
+        //ObjectShader::Constants constants = {};
+        //constants.Eye = Camera.Position;
 
-        auto& seg = Game::Level.GetSegment(object.Segment);
-        constants.Colors[0] = Settings::Editor.RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
+        //auto& seg = Game::Level.GetSegment(object.Segment);
+        //constants.Colors[0] = Settings::Editor.RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
 
-        Matrix transform = object.GetTransform();
-        transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
+        //Matrix transform = object.GetTransform();
+        //transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
 
-        auto model = Resources::GetOutrageModel(TEST_MODEL);
-        if (model == nullptr) return;
+        //auto model = Resources::GetOutrageModel(TEST_MODEL);
+        //if (model == nullptr) return;
 
-        for (int submodelIndex = 0; submodelIndex < model->Submodels.size(); submodelIndex++) {
-            auto& submodel = model->Submodels[submodelIndex];
-            auto& submesh = meshHandle.Meshes[submodelIndex];
+        //for (int submodelIndex = 0; submodelIndex < model->Submodels.size(); submodelIndex++) {
+        //    auto& submodel = model->Submodels[submodelIndex];
+        //    auto& submesh = meshHandle.Meshes[submodelIndex];
 
-            // accumulate the offsets for each submodel
-            auto submodelOffset = Vector3::Zero;
-            auto* smc = &submodel;
-            while (smc->Parent != -1) {
-                submodelOffset += smc->Offset;
-                smc = &model->Submodels[smc->Parent];
-            }
+        //    // accumulate the offsets for each submodel
+        //    auto submodelOffset = Vector3::Zero;
+        //    auto* smc = &submodel;
+        //    while (smc->Parent != -1) {
+        //        submodelOffset += smc->Offset;
+        //        smc = &model->Submodels[smc->Parent];
+        //    }
 
-            auto world = Matrix::CreateTranslation(submodelOffset) * transform;
+        //    auto world = Matrix::CreateTranslation(submodelOffset) * transform;
 
-            using namespace Outrage;
+        //    using namespace Outrage;
 
-            if (submodel.HasFlag(SubmodelFlag::Facing)) {
-                auto smPos = Vector3::Transform(Vector3::Zero, world);
-                auto billboard = Matrix::CreateBillboard(smPos, Camera.Position, Camera.Up);
-                constants.World = world;
-                constants.Projection = billboard * ViewProjection;
-            }
-            else {
-                if (submodel.HasFlag(SubmodelFlag::Rotate))
-                    world = Matrix::CreateFromAxisAngle(submodel.Keyframes[1].Axis, XM_2PI * submodel.Rotation * (float)Render::ElapsedTime) * world;
+        //    if (submodel.HasFlag(SubmodelFlag::Facing)) {
+        //        auto smPos = Vector3::Transform(Vector3::Zero, world);
+        //        auto billboard = Matrix::CreateBillboard(smPos, Camera.Position, Camera.Up);
+        //        constants.World = world;
+        //        constants.Projection = billboard * ViewProjection;
+        //    }
+        //    else {
+        //        if (submodel.HasFlag(SubmodelFlag::Rotate))
+        //            world = Matrix::CreateFromAxisAngle(submodel.Keyframes[1].Axis, XM_2PI * submodel.Rotation * (float)Render::ElapsedTime) * world;
 
-                constants.World = world;
-                constants.Projection = world * ViewProjection;
-            }
+        //        constants.World = world;
+        //        constants.Projection = world * ViewProjection;
+        //    }
 
-            //constants.Time = (float)ElapsedTime;
+        //    //constants.Time = (float)ElapsedTime;
 
-            // get the mesh associated with the submodel
-            for (auto& [i, mesh] : submesh) {
+        //    // get the mesh associated with the submodel
+        //    for (auto& [i, mesh] : submesh) {
 
-                auto& material = Render::NewTextureCache->GetTextureInfo(model->TextureHandles[i]);
-                bool transparent = material.Saturate() || material.Alpha();
+        //        auto& material = Render::NewTextureCache->GetTextureInfo(model->TextureHandles[i]);
+        //        bool transparent = material.Saturate() || material.Alpha();
 
-                if ((transparentPass && !transparent) || (!transparentPass && transparent))
-                    continue; // skip saturate textures unless on glow pass
+        //        if ((transparentPass && !transparent) || (!transparentPass && transparent))
+        //            continue; // skip saturate textures unless on glow pass
 
-                auto handle = i >= 0 ?
-                    Render::NewTextureCache->GetResource(model->TextureHandles[i], (float)ElapsedTime) :
-                    Materials->White.Handles[0];
+        //        auto handle = i >= 0 ?
+        //            Render::NewTextureCache->GetResource(model->TextureHandles[i], (float)ElapsedTime) :
+        //            Materials->White.Handles[0];
 
-                bool additive = material.Saturate() || submodel.HasFlag(SubmodelFlag::Facing);
+        //        bool additive = material.Saturate() || submodel.HasFlag(SubmodelFlag::Facing);
 
-                auto& effect = additive ? Effects->ObjectGlow : Effects->Object;
-                effect.Apply(cmd);
-                effect.Shader->SetSampler(cmd, GetTextureSampler());
-                effect.Shader->SetMaterial(cmd, handle);
+        //        auto& effect = additive ? Effects->ObjectGlow : Effects->Object;
+        //        effect.Apply(cmd);
+        //        effect.Shader->SetSampler(cmd, GetTextureSampler());
+        //        effect.Shader->SetMaterial(cmd, handle);
 
-                if (transparentPass && submodel.HasFlag(SubmodelFlag::Facing)) {
-                    if (material.Saturate())
-                        constants.Colors[0] = Color(1, 1, 1, 1);
-                    constants.Colors[1] = Color(1, 1, 1, 1);
-                    effect.Shader->SetConstants(cmd, constants);
-                    DrawObjectGlow(cmd, submodel.Radius, Color(1, 1, 1, 1));
-                }
-                else {
-                    constants.Colors[1] = material.Color; // color 1 is used for texture alpha
-                    effect.Shader->SetConstants(cmd, constants);
-                    cmd->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
-                    cmd->IASetIndexBuffer(&mesh->IndexBuffer);
-                    cmd->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
-                    DrawCalls++;
-                }
-            }
-        }
+        //        if (transparentPass && submodel.HasFlag(SubmodelFlag::Facing)) {
+        //            if (material.Saturate())
+        //                constants.Colors[0] = Color(1, 1, 1, 1);
+        //            constants.Colors[1] = Color(1, 1, 1, 1);
+        //            effect.Shader->SetConstants(cmd, constants);
+        //            DrawObjectGlow(cmd, submodel.Radius, Color(1, 1, 1, 1));
+        //        }
+        //        else {
+        //            constants.Colors[1] = material.Color; // color 1 is used for texture alpha
+        //            effect.Shader->SetConstants(cmd, constants);
+        //            cmd->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
+        //            cmd->IASetIndexBuffer(&mesh->IndexBuffer);
+        //            cmd->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
+        //            DrawCalls++;
+        //        }
+        //    }
+        //}
     }
 
     void DrawVClip(ID3D12GraphicsCommandList* cmd,
@@ -388,8 +321,8 @@ namespace Inferno::Render {
         consts.LightingScale = Settings::Editor.RenderMode == RenderMode::Shaded ? 1.0f : 0.0f; // How much light to apply
 
         if (chunk.Cloaked) {
-            Shaders->Level.SetMaterial1(cmdList, Materials->Black);
-            Shaders->Level.SetMaterial2(cmdList, Materials->Black);
+            Shaders->Level.SetMaterial1(cmdList, Materials->Black());
+            Shaders->Level.SetMaterial2(cmdList, Materials->Black());
             consts.LightingScale = 1;
         }
         else {
@@ -422,19 +355,40 @@ namespace Inferno::Render {
         DrawCalls++;
     }
 
+    void CreateDefaultTextures() {
+        auto batch = BeginTextureUpload();
+        uint normalData[] = { 0x00FF8080, 0x00FF8080, 0x00FF8080, 0x00FF8080 };
+        StaticTextures->Normal.Load(batch, normalData, 2, 2, L"normal", false, DXGI_FORMAT_R8G8B8A8_UNORM);
+        StaticTextures->Normal.AddShaderResourceView();
+
+        uint whiteData[] = { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
+        StaticTextures->White.Load(batch, whiteData, 2, 2, L"white", false, DXGI_FORMAT_R8G8B8A8_UNORM);
+        StaticTextures->White.AddShaderResourceView();
+
+        uint blackData[] = { 0xFF000000, 0xFF000000, 0xFF000000, 0xFF000000 };
+        StaticTextures->Black.Load(batch, blackData, 2, 2, L"black", false, DXGI_FORMAT_R8G8B8A8_UNORM);
+        StaticTextures->Black.AddShaderResourceView();
+
+        uint missingData[] = { 0xFFFF00FF, 0xFF000000, 0xFF000000, 0xFFFF00FF };
+        StaticTextures->Missing.Load(batch, missingData, 2, 2, L"missing", false, DXGI_FORMAT_R8G8B8A8_UNORM);
+        StaticTextures->Missing.AddShaderResourceView();
+
+        EndTextureUpload(batch, Render::Adapter->BatchUploadQueue->Get());
+    }
 
     // Initialize device dependent objects here (independent of window size).
     void CreateDeviceDependentResources() {
         Shaders = MakePtr<ShaderResources>();
         Effects = MakePtr<EffectResources>(Shaders.get());
-        Materials = MakePtr<MaterialLibrary>(3000);
         g_SpriteBatch = MakePtr<PrimitiveBatch<ObjectVertex>>(Device);
         Canvas = MakePtr<Canvas2D>(Device);
         BriefingCanvas = MakePtr<Canvas2D>(Device);
         _graphicsMemory = MakePtr<GraphicsMemory>(Device);
         Bloom = MakePtr<PostFx::Bloom>();
         Scanline = MakePtr<PostFx::ScanlineCS>();
-        NewTextureCache = MakePtr<TextureCache>();
+        //NewTextureCache = MakePtr<TextureCache>();
+        CreateDefaultTextures();
+        Materials = make_unique<MaterialLibrary>(MATERIAL_COUNT);
 
         Debug::Initialize();
 
@@ -455,7 +409,7 @@ namespace Inferno::Render {
             _tempBatch = MakePtr<SpriteBatch>(Device, resourceUpload, pd);
         }
 
-        auto task = resourceUpload.End(Adapter->GetCommandQueue());
+        auto task = resourceUpload.End(Adapter->CommandQueue->Get());
         task.wait();
     }
 
@@ -470,7 +424,6 @@ namespace Inferno::Render {
         StaticTextures = MakePtr<StaticTextureDef>();
         Adapter->SetWindow(hwnd, width, height);
         Adapter->CreateDeviceResources();
-        Render::Heaps = MakePtr<DescriptorHeaps>(20000, 100, 10);
         Adapter->CreateWindowSizeDependentResources();
         CreateDeviceDependentResources();
         Adapter->ReloadResources();
@@ -492,7 +445,7 @@ namespace Inferno::Render {
 
         Materials->Shutdown(); // wait for thread to terminate
         Materials.reset();
-        NewTextureCache.reset();
+        //NewTextureCache.reset();
         Render::Heaps.reset();
         StaticTextures.reset();
         Effects.reset();
@@ -539,8 +492,9 @@ namespace Inferno::Render {
     void LoadModelDynamic(ModelID id) {
         if (!_meshBuffer) return;
         _meshBuffer->LoadModel(id);
-        auto ids = GetTexturesForModel(id);
-        Materials->LoadMaterials(ids, false);
+        Set<TexID> ids;
+        GetTexturesForModel(id, ids);
+        Materials->LoadMaterials(Seq::ofSet(ids), false);
     }
 
 
@@ -552,7 +506,7 @@ namespace Inferno::Render {
     }
 
     void LoadTextureDynamic(LevelTexID id) {
-        return LoadTextureDynamic(Resources::LookupLevelTexID(id));
+        return LoadTextureDynamic(Resources::LookupTexID(id));
     }
 
     void LoadTextureDynamic(VClipID id) {
@@ -573,12 +527,12 @@ namespace Inferno::Render {
                 _meshBuffer->LoadModel(obj.Render.Model.ID);
 
         {
-            if (auto model = Resources::GetOutrageModel(TEST_MODEL)) {
-                _meshBuffer->LoadOutrageModel(*model, 0);
-                Materials->LoadOutrageModel(*model);
-            }
+            //if (auto model = Resources::GetOutrageModel(TEST_MODEL)) {
+            //    _meshBuffer->LoadOutrageModel(*model, 0);
+            //    Materials->LoadOutrageModel(*model);
+            //}
 
-            NewTextureCache->MakeResident();
+            //NewTextureCache->MakeResident();
         }
 
         _levelMeshBuilder.Update(level, *_levelMeshBuffer);
@@ -589,7 +543,7 @@ namespace Inferno::Render {
             case ObjectType::Robot:
             {
                 auto& info = Resources::GetRobotInfo(object.ID);
-                auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
+                auto texOverride = Resources::LookupTexID(object.Render.Model.TextureOverride);
                 DrawModel(cmd, object, info.Model, alpha, texOverride);
                 break;
             }
@@ -607,14 +561,14 @@ namespace Inferno::Render {
             case ObjectType::SecretExitReturn:
             case ObjectType::Marker:
             {
-                auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
+                auto texOverride = Resources::LookupTexID(object.Render.Model.TextureOverride);
                 DrawModel(cmd, object, object.Render.Model.ID, alpha, texOverride);
                 break;
             }
 
             case ObjectType::Weapon:
                 if (object.Render.Type == RenderType::Model) {
-                    auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
+                    auto texOverride = Resources::LookupTexID(object.Render.Model.TextureOverride);
                     DrawModel(cmd, object, object.Render.Model.ID, alpha, texOverride);
                 }
                 else {
@@ -728,8 +682,6 @@ namespace Inferno::Render {
     }
 
     void ClearMainRenderTarget(GraphicsContext& ctx) {
-        ctx.BeginEvent(L"Clear");
-
         auto& target = Adapter->GetHdrRenderTarget();
         auto& depthBuffer = Adapter->GetHdrDepthBuffer();
         ctx.SetRenderTarget(target.GetRTV(), depthBuffer.GetDSV());
@@ -741,12 +693,10 @@ namespace Inferno::Render {
         Camera.LookAtPerspective(Settings::Editor.FieldOfView);
         ViewProjection = Camera.ViewProj();
         CameraFrustum = Camera.GetFrustum();
-
-        ctx.EndEvent();
     }
 
     void DrawLevel(GraphicsContext& ctx, float lerp) {
-        ctx.BeginEvent(L"Level");
+        PIXScopedEvent(ctx.GetCommandList(), PIX_COLOR_INDEX(0), "Level");
 
         if (Settings::Editor.ShowFlickeringLights)
             UpdateFlickeringLights(Game::Level, (float)ElapsedTime, FrameTime);
@@ -777,19 +727,21 @@ namespace Inferno::Render {
             }
         }
 
+        auto cmdList = ctx.GetCommandList();
+
         {
             ScopedTimer execTimer(&Metrics::ExecuteRenderCommands);
             ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
             for (auto& cmd : _opaqueQueue)
-                ExecuteRenderCommand(ctx.CommandList(), cmd, lerp, false);
+                ExecuteRenderCommand(cmdList, cmd, lerp, false);
 
             Seq::sortBy(_transparentQueue, [](const RenderCommand& l, const RenderCommand& r) {
                 return l.Depth > r.Depth;
             });
 
             for (auto& cmd : _transparentQueue)
-                ExecuteRenderCommand(ctx.CommandList(), cmd, lerp, false);
+                ExecuteRenderCommand(cmdList, cmd, lerp, false);
 
             //for (auto& cmd : _transparentQueue) // draw transparent geometry on models
             //    ExecuteRenderCommand(cmdList, cmd, true);
@@ -797,10 +749,10 @@ namespace Inferno::Render {
             // Draw heat volumes
             //    _levelResources->Volumes.Draw(cmdList);
 
-            DrawParticles(ctx.CommandList());
+            DrawParticles(cmdList);
 
             if (!Settings::Inferno.ScreenshotMode) {
-                DrawEditor(ctx.CommandList(), Game::Level);
+                DrawEditor(cmdList, Game::Level);
                 DrawDebug(Game::Level);
             }
             else {
@@ -808,36 +760,34 @@ namespace Inferno::Render {
                 Inferno::DrawGameText(Game::Level.Name, *Canvas, target, 0, 20 * Shell::DpiScale, FontSize::Big, { 1, 1, 1 }, AlignH::Center, AlignV::Top);
                 Inferno::DrawGameText("Inferno Engine", *Canvas, target, -20 * Shell::DpiScale, -20 * Shell::DpiScale, FontSize::MediumGold, { 1, 1, 1 }, AlignH::Right, AlignV::Bottom);
             }
-            Debug::EndFrame(ctx.CommandList());
+            Debug::EndFrame(cmdList);
         }
 
 
         if (Settings::Graphics.MsaaSamples > 1) {
-            Adapter->SceneColorBuffer.ResolveFromMultisample(ctx.CommandList(), Adapter->MsaaColorBuffer);
+            Adapter->SceneColorBuffer.ResolveFromMultisample(cmdList, Adapter->MsaaColorBuffer);
         }
-
-
-
-        ctx.EndEvent();
     }
 
     void PostProcess(GraphicsContext& ctx) {
-        ctx.BeginEvent(L"Post");
+        auto cmdList = ctx.GetCommandList();
+        PIXScopedEvent(cmdList, PIX_COLOR_INDEX(8), "Post");
+
         // Post process
         auto backBuffer = Adapter->GetBackBuffer();
         ctx.ClearColor(*backBuffer);
         ctx.SetRenderTarget(backBuffer->GetRTV());
-        //backBuffer->Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_RENDER_TARGET);
-        //SetRenderTarget(ctx.CommandList(), *backBuffer);
+        //backBuffer->Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+        //SetRenderTarget(cmdList, *backBuffer);
 
-        Adapter->SceneColorBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        Adapter->SceneColorBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
         if (Settings::Graphics.EnableBloom && Adapter->TypedUAVLoadSupport_R11G11B10_FLOAT())
-            Bloom->Apply(ctx.CommandList(), Adapter->SceneColorBuffer);
+            Bloom->Apply(cmdList, Adapter->SceneColorBuffer);
 
         // draw to backbuffer using a shader + polygon
         _tempBatch->SetViewport(Adapter->GetScreenViewport());
-        _tempBatch->Begin(ctx.CommandList());
+        _tempBatch->Begin(cmdList);
         auto size = Adapter->GetOutputSize();
         _tempBatch->Draw(Adapter->SceneColorBuffer.GetSRV(), XMUINT2{ (uint)size.x, (uint)size.y }, XMFLOAT2{ 0, 0 });
         //if (DebugEmissive)
@@ -847,33 +797,32 @@ namespace Inferno::Render {
     }
 
     void DrawUI(GraphicsContext& ctx) {
-        ctx.BeginEvent(L"UI");
+        PIXScopedEvent(ctx.GetCommandList(), PIX_COLOR_INDEX(9), "UI");
         auto size = Adapter->GetOutputSize();
         ScopedTimer imguiTimer(&Metrics::ImGui);
         Canvas->Render(ctx, size);
         // Imgui batch modifies render state greatly. Normal geometry will likely not render correctly afterwards.
-        g_ImGuiBatch->Render(ctx.CommandList());
-        ctx.EndEvent();
+        g_ImGuiBatch->Render(ctx.GetCommandList());
     }
 
-    void DrawBriefing(GraphicsContext& ctx, RenderTarget& target) {
-        if (!Settings::Editor.Windows.BriefingEditor) return;
+    void DrawBriefing(GraphicsContext& /*ctx*/, RenderTarget& /*target*/) {
+        //if (!Settings::Editor.Windows.BriefingEditor) return;
 
-        ctx.BeginEvent(L"Briefing");
-        ctx.ClearColor(target);
-        ctx.SetRenderTarget(target.GetRTV());
-        ctx.SetViewportAndScissor((UINT)target.GetWidth(), (UINT)target.GetHeight());
-        auto& briefing = Editor::BriefingEditor::DebugBriefing;
-        if (!briefing.Screens.empty() && !briefing.Screens[0].Pages.empty()) {
-            DrawGameText(briefing.Screens[1].Pages[1], *BriefingCanvas, target, 20, 20, FontSize::Small, { 0, 1, 0 });
-        }
-        BriefingCanvas->Render(ctx, { (float)target.GetWidth(), (float)target.GetHeight() });
+        //ctx.BeginEvent(L"Briefing");
+        //ctx.ClearColor(target);
+        //ctx.SetRenderTarget(target.GetRTV());
+        //ctx.SetViewportAndScissor((UINT)target.GetWidth(), (UINT)target.GetHeight());
+        //auto& briefing = Editor::BriefingEditor::DebugBriefing;
+        //if (!briefing.Screens.empty() && !briefing.Screens[0].Pages.empty()) {
+        //    DrawGameText(briefing.Screens[1].Pages[1], *BriefingCanvas, target, 20, 20, FontSize::Small, { 0, 1, 0 });
+        //}
+        //BriefingCanvas->Render(ctx, { (float)target.GetWidth(), (float)target.GetHeight() });
 
-        Scanline->Execute(ctx.CommandList(), target, Adapter->BriefingScanlineBuffer);
-        Adapter->BriefingScanlineBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-        target.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        //Scanline->Execute(cmdList, target, Adapter->BriefingScanlineBuffer);
+        //Adapter->BriefingScanlineBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        //target.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-        ctx.EndEvent();
+        //ctx.EndEvent();
     }
 
     void Present(float alpha) {
@@ -886,23 +835,19 @@ namespace Inferno::Render {
         auto& ctx = Adapter->GetGraphicsContext();
         ctx.Reset();
 
-        Heaps->SetDescriptorHeaps(ctx.CommandList());
+        auto cmdList = ctx.GetCommandList();
+        Heaps->SetDescriptorHeaps(cmdList);
         DrawBriefing(ctx, Adapter->BriefingColorBuffer);
         ClearMainRenderTarget(ctx);
         DrawLevel(ctx, alpha);
         PostProcess(ctx);
         DrawUI(ctx);
 
-        auto commandQueue = Adapter->GetCommandQueue();
-        {
-            ScopedTimer presentCallTimer(&Metrics::PresentCall);
-            PIXBeginEvent(commandQueue, PIX_COLOR_DEFAULT, L"Present");
-            Adapter->Present();
-            PIXEndEvent(commandQueue);
-        }
-
+        Adapter->Present();
+        //GetFrameUploadBuffer()->ResetIndex();
         Materials->Dispatch();
-        _graphicsMemory->Commit(commandQueue);
+
+        _graphicsMemory->Commit(Adapter->BatchUploadQueue->Get());
         _opaqueQueue.clear();
         _transparentQueue.clear();
     }

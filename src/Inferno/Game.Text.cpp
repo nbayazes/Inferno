@@ -51,7 +51,7 @@ namespace Inferno {
         auto batch = Render::BeginTextureUpload();
         Render::StaticTextures->Font.Load(batch, buffer.data(), Atlas.Width(), Atlas.Height(), L"Font");
         Render::StaticTextures->Font.AddShaderResourceView();
-        Render::EndTextureUpload(batch);
+        Render::EndTextureUpload(batch, Render::Adapter->BatchUploadQueue->Get());
     }
 
     void DrawGameText(string_view str,

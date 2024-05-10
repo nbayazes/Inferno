@@ -44,7 +44,7 @@ namespace Inferno {
         LevelTexID ChangingWallTexture{}; //Which element of Textures array to replace.
         short ChangingObjectTexture{}; //Which element of ObjBitmapPtrs array to replace.
         EClipFlag Flags{};
-        int CritClip{};  //use this clip instead of above one when mine critical
+        EClipID CritClip{};  //use this clip instead of above one when mine critical
         LevelTexID DestroyedTexture{}; //use this bitmap when monitor destroyed
         VClipID DestroyedVClip{};  //what vclip to play when exploding
         EClipID DestroyedEClip{};  //what eclip to play when exploding

@@ -6,7 +6,6 @@
 #include "MaterialLibrary.h"
 
 namespace Inferno {
-    using Inferno::Render::Material2D;
 
     // Shader definition to allow recompilation
     struct ShaderInfo {

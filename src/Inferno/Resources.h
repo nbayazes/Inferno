@@ -22,7 +22,7 @@ namespace Inferno::Resources {
 
     const Palette& GetPalette();
     WClipID GetWallClipID(LevelTexID);
-    const WallClip& GetWallClip(WClipID);
+    const WallClip& GetDoorClip(WClipID);
     const WallClip* TryGetWallClip(WClipID);
     //const WallClip* TryGetWallClip(LevelTexID);
 
@@ -48,7 +48,7 @@ namespace Inferno::Resources {
     const RobotInfo& GetRobotInfo(uint);
 
     List<TexID> CopyLevelTextureLookup();
-    TexID LookupLevelTexID(LevelTexID);
+    TexID LookupTexID(LevelTexID);
     TexID LookupModelTexID(const Model&, int16);
 
     string GetRobotName(uint id);

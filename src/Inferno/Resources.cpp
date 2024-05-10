@@ -69,18 +69,18 @@ namespace Inferno::Resources {
         LoadRobotNames("robots.txt");
     }
 
-    const WallClip& GetWallClip(WClipID id) {
-        return GameData.WallClips[(int)id];
+    const WallClip& GetDoorClip(WClipID id) {
+        return GameData.DoorClips[(int)id];
     }
 
     const WallClip* TryGetWallClip(WClipID id) {
-        if (!Seq::inRange(GameData.WallClips, (int)id)) return nullptr;
-        return &GameData.WallClips[(int)id];
+        if (!Seq::inRange(GameData.DoorClips, (int)id)) return nullptr;
+        return &GameData.DoorClips[(int)id];
     }
 
     WClipID GetWallClipID(LevelTexID id) {
-        for (int i = 0; i < GameData.WallClips.size(); i++) {
-            if (GameData.WallClips[i].Frames[0] == id)
+        for (int i = 0; i < GameData.DoorClips.size(); i++) {
+            if (GameData.DoorClips[i].Frames[0] == id)
                 return WClipID(i);
         }
 
@@ -104,7 +104,7 @@ namespace Inferno::Resources {
     }
 
     const EffectClip& GetEffectClip(LevelTexID id) {
-        auto tid = LookupLevelTexID(id);
+        auto tid = LookupTexID(id);
         return GetEffectClip(tid);
     }
 
@@ -120,7 +120,7 @@ namespace Inferno::Resources {
     }
 
     EClipID GetEffectClipID(LevelTexID id) {
-        auto tid = LookupLevelTexID(id);
+        auto tid = LookupTexID(id);
         return GetEffectClipID(tid);
     }
 
@@ -158,7 +158,7 @@ namespace Inferno::Resources {
         return GameData.AllTexIdx;
     }
 
-    TexID LookupLevelTexID(LevelTexID tid) {
+    TexID LookupTexID(LevelTexID tid) {
         auto id = (int)tid;
         if (!Seq::inRange(GameData.AllTexIdx, id)) return TexID::None;
         return TexID((int)GameData.AllTexIdx[id]);
@@ -204,11 +204,11 @@ namespace Inferno::Resources {
     }
 
     const PigEntry& GetTextureInfo(LevelTexID id) {
-        return GetTextureInfo(LookupLevelTexID(id));
+        return GetTextureInfo(LookupTexID(id));
     }
 
     const PigEntry* TryGetTextureInfo(LevelTexID id) {
-        return TryGetTextureInfo(LookupLevelTexID(id));
+        return TryGetTextureInfo(LookupTexID(id));
     }
 
     Sound::SoundResource GetSoundResource(SoundID id) {
@@ -662,13 +662,13 @@ namespace Inferno::Resources {
         if (OutrageModels.contains(name))
             return &OutrageModels[name];
 
-        if (auto model = ReadOutrageModel(name)) {
-            for (auto& texture : model->Textures) {
-                model->TextureHandles.push_back(Render::NewTextureCache->ResolveFileName(texture));
-            }
-            OutrageModels[name] = std::move(*model);
-            return &OutrageModels[name];
-        }
+        //if (auto model = ReadOutrageModel(name)) {
+        //    for (auto& texture : model->Textures) {
+        //        model->TextureHandles.push_back(Render::NewTextureCache->ResolveFileName(texture));
+        //    }
+        //    OutrageModels[name] = std::move(*model);
+        //    return &OutrageModels[name];
+        //}
 
         return nullptr;
     }

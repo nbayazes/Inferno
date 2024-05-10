@@ -53,7 +53,7 @@ namespace Inferno {
         ec.ChangingWallTexture = (LevelTexID)r.ReadInt16();
         ec.ChangingObjectTexture = r.ReadInt16();
         ec.Flags = (EClipFlag)r.ReadInt32();
-        ec.CritClip = r.ReadInt32();
+        ec.CritClip = (EClipID)r.ReadInt32();
         ec.DestroyedTexture = (LevelTexID)r.ReadInt32();
         ec.DestroyedVClip = (VClipID)r.ReadInt32();
         ec.DestroyedEClip = (EClipID)r.ReadInt32();
@@ -415,8 +415,8 @@ namespace Inferno {
         ham.Effects.resize(reader.ReadInt32());
         for (auto& e : ham.Effects) e = ReadEffect(reader);
 
-        ham.WallClips.resize(reader.ReadInt32());
-        for (auto& wc : ham.WallClips) wc = ReadWallClip(reader);
+        ham.DoorClips.resize(reader.ReadInt32());
+        for (auto& wc : ham.DoorClips) wc = ReadWallClip(reader);
 
         ham.Robots.resize(reader.ReadInt32());
         for (auto& wc : ham.Robots) wc = ReadRobotInfo(reader);
@@ -652,7 +652,7 @@ namespace Inferno {
         ham.Sounds.resize(250);
         ham.VClips.resize(70);
         ham.Effects.resize(60);
-        ham.WallClips.resize(30);
+        ham.DoorClips.resize(30);
         ham.Robots.resize(30);
         ham.RobotJoints.resize(600);
         ham.Weapons.resize(30);
@@ -679,7 +679,7 @@ namespace Inferno {
         for (auto& c : ham.Effects) c = ReadEffect(reader);
 
         reader.ReadElementCount();
-        for (auto& c : ham.WallClips) c = ReadWallClipD1(reader);
+        for (auto& c : ham.DoorClips) c = ReadWallClipD1(reader);
 
         reader.ReadElementCount();
         for (auto& r : ham.Robots) r = ReadRobotD1(reader);
