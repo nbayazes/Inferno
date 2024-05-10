@@ -1,4 +1,6 @@
 #pragma once
+#include "Types.h"
+#include "WindowBase.h"
 
 namespace Inferno::Editor {
     struct ProjectionAxisArgs {

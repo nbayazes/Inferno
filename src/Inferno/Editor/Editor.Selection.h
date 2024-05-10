@@ -253,6 +253,7 @@ namespace Inferno::Editor {
             Segments.clear();
             Points.clear();
             Objects.clear();
+            Events::MarkedFacesChanged();
         }
 
         void ClearCurrentMode() {
@@ -266,6 +267,8 @@ namespace Inferno::Editor {
                 case SelectionMode::Object: Objects.clear();
                     break;
             }
+
+            Events::MarkedFacesChanged();
         }
 
         void ToggleMark();
@@ -299,7 +302,7 @@ namespace Inferno::Editor {
     }
 
     // Executes a function on each valid marked object
-    void ForMarkedObjects(std::function<void(Object&)> fn);
+    void ForMarkedObjects(const std::function<void(Object&)>& fn);
 
     namespace Commands {
         void MarkCoplanar(Tag);

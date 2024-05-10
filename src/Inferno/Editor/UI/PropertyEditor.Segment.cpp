@@ -642,11 +642,11 @@ namespace Inferno::Editor {
         auto label = std::to_string((int)id);
         ImGui::SetNextItemWidth(-1);
         if (ImGui::BeginCombo("##segs", label.c_str(), ImGuiComboFlags_HeightLarge)) {
-            for (int i = 0; i < Resources::GameData.WallClips.size(); i++) {
+            for (int i = 0; i < Resources::GameData.DoorClips.size(); i++) {
                 if (i == 2) continue; // clip 2 is invalid and has no animation frames
                 const bool isSelected = (int)id == i;
                 auto itemLabel = std::to_string(i);
-                auto& clip = Resources::GameData.WallClips[i];
+                auto& clip = Resources::GameData.DoorClips[i];
                 TexturePreview(clip.Frames[0], { 32 * Shell::DpiScale, 32 * Shell::DpiScale });
 
                 ImGui::SameLine();

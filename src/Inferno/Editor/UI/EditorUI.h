@@ -17,9 +17,11 @@
 #include "SoundBrowser.h"
 #include "DiagnosticWindow.h"
 #include "BriefingEditor.h"
+#include "InsetFacesWindow.h"
 #include "ScaleWindow.h"
 #include "TextureEditor.h"
 #include "ProjectToPlaneWindow.h"
+#include "InsetFacesWindow.h"
 
 namespace Inferno::Editor {
 
@@ -56,30 +58,26 @@ namespace Inferno::Editor {
     };
 
     class EditorUI {
-        TextureBrowserUI _textureBrowser;
-        TextureEditor _textureEditor;
-        PropertyEditor _propertyEditor;
-        DebugWindow _debugWindow;
-        BloomWindow _bloomWindow;
-        LightingWindow _lightingWindow;
         StatusBar _statusBar;
-        NoiseWindow _noise;
-        ReactorEditor _reactorEditor;
-        TunnelBuilderWindow _tunnelBuilder;
-        SoundBrowser _sounds;
-        DiagnosticWindow _diagnosticWindow;
-        BriefingEditor _briefingEditor;
-        ScaleWindow _scaleWindow;
-        ProjectToPlaneWindow _snapToPlaneWindow;
         bool _showImguiDemo = false;
 
         Dictionary<DialogType, Ptr<ModalWindowBase>> _dialogs;
+        List<Ptr<WindowBase>> _windows;
         float _mainMenuHeight = 30;
 
         template<class TModal>
         void RegisterDialog(DialogType type) {
             _dialogs[type] = MakePtr<TModal>();
         }
+
+        template<class TWindow>
+        TWindow* RegisterWindow() {
+            auto window = make_unique<TWindow>();
+            auto ptr = window.get();
+            _windows.push_back(std::move(window));
+            return ptr;
+        }
+
     public:
         EditorUI() {
             RegisterDialog<GotoSegmentDialog>(DialogType::GotoSegment);
@@ -91,13 +89,28 @@ namespace Inferno::Editor {
             RegisterDialog<HelpDialog>(DialogType::Help);
             RegisterDialog<AboutDialog>(DialogType::About);
 
+            RegisterWindow<ReactorEditor>();
+            RegisterWindow<NoiseWindow>();
+            RegisterWindow<TunnelBuilderWindow>();
+            RegisterWindow<SoundBrowser>();
+            RegisterWindow<BloomWindow>();
+            RegisterWindow<DebugWindow>();
+            RegisterWindow<LightingWindow>();
+            RegisterWindow<PropertyEditor>();
+            RegisterWindow<TextureBrowserUI>();
+            RegisterWindow<TextureEditor>();
+            RegisterWindow<DiagnosticWindow>();
+            //RegisterWindow<BriefingEditor>();
+            RegisterWindow<ScaleWindow>();
+            RegisterWindow<ProjectToPlaneWindow>();
+            RegisterWindow<InsetFacesWindow>();
+
             Events::ShowDialog += [this](DialogType type) {
                 // Don't show another dialog if one is already open as it will confuse imgui state
                 if (ImGui::GetTopMostPopupModal()) return;
                 if (auto& dialog = _dialogs[type]) dialog->Show();
             };
 
-            _bloomWindow.IsOpen(false);
             _statusBar.IsOpen(true);
         }
 

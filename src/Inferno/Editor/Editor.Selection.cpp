@@ -288,6 +288,7 @@ namespace Inferno::Editor {
 
             case SelectionMode::Face:
                 ToggleElement(Faces, Selection.Tag());
+                Events::MarkedFacesChanged();
                 break;
 
             case SelectionMode::Edge:
@@ -336,6 +337,8 @@ namespace Inferno::Editor {
                 for (int seg = 0; seg < Game::Level.Segments.size(); seg++)
                     for (auto side : SideIDs)
                         ToggleElement(Faces, Tag{ (SegID)seg, side });
+
+                Events::MarkedFacesChanged();
                 break;
 
             case SelectionMode::Point:
@@ -447,19 +450,20 @@ namespace Inferno::Editor {
 
         // Update side to be opposite of the connecting side
         auto& nextSeg = Game::Level.GetSegment(next);
-        SideID connectedSide = SideID::None;
+        auto connectedSide = SideID::None;
+
         for (auto& side : SideIDs) {
             if (nextSeg.GetConnection(side) == Segment)
                 connectedSide = side;
         }
 
-        SetSelection({ next, !connectedSide });
+        SetSelection({ next, GetOppositeSide(connectedSide) });
     }
 
     void EditorSelection::Back() {
         if (Segment == SegID::None) return;
         const auto& seg = Game::Level.GetSegment(Segment);
-        auto next = seg.GetConnection(!Side);
+        auto next = seg.GetConnection(GetOppositeSide(Side));
 
         // current side was not connected, search all sides for a connection
         if (next == SegID::None) {
@@ -474,7 +478,8 @@ namespace Inferno::Editor {
 
         // Update side to be opposite of the connecting side
         auto& nextSeg = Game::Level.GetSegment(next);
-        SideID connectedSide = SideID::None;
+        auto connectedSide = SideID::None;
+
         for (auto& side : SideIDs) {
             if (nextSeg.GetConnection(side) == Segment)
                 connectedSide = side;
@@ -502,6 +507,7 @@ namespace Inferno::Editor {
                 }
                 else if (Input::ControlDown) {
                     ToggleElement(Faces, tag);
+                    Events::MarkedFacesChanged();
                 }
                 else if (Input::ShiftDown) {
                     // if clicked face is selected, remove all faces in the seg
@@ -655,6 +661,8 @@ namespace Inferno::Editor {
                         MarkOrUnmark(vscreen, Faces, Tag{ i, side });
                     }
                 }
+
+                Events::MarkedFacesChanged();
                 break;
             }
             case SelectionMode::Edge:
@@ -787,7 +795,7 @@ namespace Inferno::Editor {
         return !seg.SideHasConnection(tag.Side);
     }
 
-    void ForMarkedObjects(std::function<void(Object&)> fn) {
+    void ForMarkedObjects(const std::function<void(Object&)>& fn) {
         for (auto& id : Editor::Marked.Objects) {
             if (auto o = Game::Level.TryGetObject(id))
                 fn(*o);
@@ -828,6 +836,8 @@ namespace Inferno::Editor {
                 }
             }
         }
+
+        Events::MarkedFacesChanged();
     }
 
     void Commands::MarkCoplanar(Tag tag) {

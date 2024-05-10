@@ -7,6 +7,7 @@
 #include "DebugOverlay.h"
 #include "OutrageRoom.h"
 #include "Editor/Editor.h"
+#include "logging.h"
 
 namespace Inferno::Editor {
     constexpr ImU32 TOOLBAR_COLOR = IM_COL32(20, 20, 20, 200);
@@ -358,6 +359,7 @@ namespace Inferno::Editor {
                 ImGui::MenuItem("Tunnel Builder", nullptr, &Settings::Editor.Windows.TunnelBuilder);
                 ImGui::MenuItem("Scale", nullptr, &Settings::Editor.Windows.Scale);
                 ImGui::MenuItem("Project to Plane", nullptr, &Settings::Editor.Windows.ProjectToPlane);
+                ImGui::MenuItem("Inset Faces", nullptr, &Settings::Editor.Windows.InsetFaces);
 
 #ifdef _DEBUG
                 ImGui::MenuItem("Briefing Editor", nullptr, &Settings::Editor.Windows.BriefingEditor);
@@ -369,12 +371,10 @@ namespace Inferno::Editor {
 
                 ImGui::Separator();
 
-                if (ImGui::MenuItem("Bloom", nullptr, _bloomWindow.IsOpen()))
-                    _bloomWindow.ToggleIsOpen();
+                ImGui::MenuItem("Bloom", nullptr, &Settings::Editor.Windows.Bloom);
 
 #ifdef _DEBUG
-                if (ImGui::MenuItem("Debug", nullptr, _debugWindow.IsOpen()))
-                    _debugWindow.ToggleIsOpen();
+                ImGui::MenuItem("Debug", nullptr, &Settings::Editor.Windows.Debug);
 
                 ImGui::Separator();
                 ImGui::MenuItem("Enable Physics", nullptr, &Settings::Editor.EnablePhysics);
@@ -837,8 +837,8 @@ namespace Inferno::Editor {
 
             //ImGuiID rightSplit;
             //ImGui::DockBuilderSplitNode(rightPanel, ImGuiDir_Down, 0.5f, &leftBottomSplit, &leftTopSplit);
-            ImGui::DockBuilderDockWindow(_textureBrowser.Name(), leftPanel);
-            ImGui::DockBuilderDockWindow(_propertyEditor.Name(), rightPanel);
+            ImGui::DockBuilderDockWindow(TextureBrowserUI::Name, leftPanel);
+            ImGui::DockBuilderDockWindow(PropertyEditor::Name, rightPanel);
             ImGui::DockBuilderFinish(dockspaceId);
             return ImGui::DockBuilderGetNode(dockspaceId);
         }
@@ -920,26 +920,13 @@ namespace Inferno::Editor {
         for (auto& dialog : _dialogs | views::values)
             dialog->Update();
 
-        _reactorEditor.Update();
-        _debugWindow.Update();
-        _bloomWindow.Update();
-        _noise.Update();
-        _lightingWindow.Update();
-        _textureBrowser.Update();
-        _textureEditor.Update();
-        _propertyEditor.Update();
-        _tunnelBuilder.Update();
-        _sounds.Update();
-        _diagnosticWindow.Update();
-        _briefingEditor.Update();
-        _scaleWindow.Update();
-        _snapToPlaneWindow.Update();
+        for (auto& window : _windows)
+            window->Update();
 
         if (Editor::Gizmo.State == GizmoState::Dragging) {
             DrawGizmoTooltip();
         }
-        else if (Input::LeftDragState == Input::SelectionState::Dragging &&
-            !ImGui::GetIO().WantCaptureMouse) {
+        else if (Input::LeftDragState == Input::SelectionState::Dragging && !ImGui::GetIO().WantCaptureMouse) {
             DrawSelectionBox();
         }
 

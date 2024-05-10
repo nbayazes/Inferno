@@ -154,10 +154,12 @@
     <ClCompile Include="Editor\Editor.Diagnostics.cpp" />
     <ClCompile Include="BitmapCache.cpp" />
     <ClCompile Include="Editor\UI\LightingWindow.cpp" />
+    <ClCompile Include="Editor\UI\TextureBrowserD3.cpp" />
     <ClCompile Include="Editor\UI\TextureEditor.cpp" />
     <ClCompile Include="Game.Text.cpp" />
     <ClCompile Include="Game.Segment.cpp" />
     <ClCompile Include="Game.Wall.cpp" />
+    <ClCompile Include="Graphics\GpuResources.cpp" />
     <ClCompile Include="Graphics\Compiler.cpp" />
     <ClCompile Include="Editor\Bindings.cpp" />
     <ClCompile Include="Editor\Command.cpp" />
@@ -212,6 +214,7 @@
     <ClInclude Include="Editor\UI\AboutDialog.h" />
     <ClInclude Include="Editor\UI\BriefingEditor.h" />
     <ClInclude Include="Editor\UI\DiagnosticWindow.h" />
+    <ClInclude Include="Editor\UI\InsetFacesWindow.h" />
     <ClInclude Include="Editor\UI\ScaleWindow.h" />
     <ClInclude Include="Editor\UI\ProjectToPlaneWindow.h" />
     <ClInclude Include="Editor\UI\TextureEditor.h" />
@@ -221,6 +224,7 @@
     <ClInclude Include="Game.Wall.h" />
     <ClInclude Include="Graphics\Buffers.h" />
     <ClInclude Include="Graphics\CommandContext.h" />
+    <ClInclude Include="Graphics\CommandQueue.h" />
     <ClInclude Include="Graphics\Compiler.h" />
     <ClInclude Include="Graphics\GpuResources.h" />
     <ClInclude Include="Convert.h" />
@@ -243,6 +247,7 @@
     <ClInclude Include="Editor\UI\SettingsDialog.h" />
     <ClInclude Include="Editor\TunnelBuilder.h" />
     <ClInclude Include="Editor\UI\TunnelBuilderWindow.h" />
+    <ClInclude Include="Graphics\Material2D.h" />
     <ClInclude Include="Graphics\Render.Canvas.h" />
     <ClInclude Include="Graphics\Render.Commands.h" />
     <ClInclude Include="Graphics\Render.Particles.h" />
@@ -339,6 +344,7 @@
     </CopyFileToFolders>
   </ItemGroup>
   <ItemGroup>
+    <None Include="packages.config" />
     <None Include="shaders\compile.bat" />
   </ItemGroup>
   <ItemGroup>
@@ -480,5 +486,12 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\..\packages\WinPixEventRuntime.1.0.240308001\build\WinPixEventRuntime.targets" Condition="Exists('..\..\packages\WinPixEventRuntime.1.0.240308001\build\WinPixEventRuntime.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\..\packages\WinPixEventRuntime.1.0.240308001\build\WinPixEventRuntime.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\WinPixEventRuntime.1.0.240308001\build\WinPixEventRuntime.targets'))" />
+  </Target>
 </Project>

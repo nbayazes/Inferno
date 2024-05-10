@@ -33,6 +33,7 @@ namespace Inferno::Editor {
 
     namespace Events {
         inline Event SelectSegment, SelectObject, LevelLoaded;
+        inline Event MarkedFacesChanged;
         inline Event<LevelTexID, LevelTexID> SelectTexture;
         inline Event<LevelTexID> TextureInfo;
         inline Event LevelChanged; // Level mesh needs regenerating

@@ -120,6 +120,9 @@ namespace Inferno {
             bool TextureEditor = false;
             bool Scale = false;
             bool ProjectToPlane = false;
+            bool InsetFaces = true;
+            bool Debug = false;
+            bool Bloom = false;
         } Windows;
 
         bool ShowWireframe = false;

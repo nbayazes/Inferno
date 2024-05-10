@@ -196,6 +196,7 @@ namespace Inferno::Editor {
         for (auto& seg : toAdd)
             JoinTouchingSegments(level, seg.Segment, newSegs, Settings::Editor.CleanupTolerance);
 
+        Events::MarkedFacesChanged();
         return newSegs;
     }
 
