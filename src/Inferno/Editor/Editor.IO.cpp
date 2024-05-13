@@ -250,7 +250,7 @@ namespace Inferno::Editor {
         fmt::print("\n");
     }
 
-    void LoadFile(filesystem::path path) {
+    void LoadFile(const filesystem::path& path) {
         try {
             auto version = FileVersionFromHeader(path);
             if (version > 0 && version <= 8) {
@@ -333,14 +333,14 @@ namespace Inferno::Editor {
         Game::LoadLevel(std::move(level));
     }
 
-    void BackupFile(filesystem::path path, string_view ext) {
+    void BackupFile(const filesystem::path& path, string_view ext) {
         if (!filesystem::exists(path)) return;
         filesystem::path backupPath = path;
         backupPath.replace_extension(ext);
         filesystem::copy(path, backupPath, filesystem::copy_options::overwrite_existing);
     }
 
-    void SaveUnpackagedLevel(Level& level, filesystem::path path) {
+    void SaveUnpackagedLevel(Level& level, const filesystem::path& path) {
         filesystem::path folder = path;
         folder.remove_filename();
         string newFileName = String::NameWithoutExtension(path.filename().string());

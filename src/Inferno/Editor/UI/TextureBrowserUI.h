@@ -140,12 +140,26 @@ namespace Inferno::Editor {
         }
     };
 
+    struct TextureFilterD3 {
+        bool Mine = false;
+        bool Object = false;
+        bool Terrain = false;
+        bool Water = false;
+        bool Forcefield = false;
+        bool Animated = false;
+        bool Light = false;
+        bool Procedural = false;
+    };
+
     class TextureBrowserUI : public WindowBase {
         TextureBrowserState _state{};
         FilterGroup _filter = FilterGroup::None;
+        TextureFilterD3 _filterD3;
         List<LevelTexID> _textureIds;
+        List<TexID> _textureIdsD3;
         bool _showInUse = true;
         bool _showEverything = false;
+        Option<Outrage::TextureInfo> _selectedTextureD3;
     public:
         static constexpr auto Name = "Textures";
         TextureBrowserUI();
@@ -156,6 +170,8 @@ namespace Inferno::Editor {
 
     private:
         void DrawFilter();
+        void Descent3Browser();
+        void UpdateSelectedTexture();
     };
 }
 

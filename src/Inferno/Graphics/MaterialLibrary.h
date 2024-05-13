@@ -8,6 +8,8 @@
 namespace Inferno::Render {
 
     extern const uint MATERIAL_COUNT;
+    constexpr auto OUTRAGE_TEX_INDEX = 3000;
+    constexpr auto OUTRAGE_TEXID_START = TexID(OUTRAGE_TEX_INDEX);
 
     struct MaterialUpload {
         TexID ID = TexID::None;
@@ -78,6 +80,10 @@ namespace Inferno::Render {
 
         void LoadLevelTextures(const Inferno::Level& level, bool force);
         void LoadTextures(span<const string> names);
+
+        // Indices start at 3000
+        void LoadOutrageTextures(span<const TexID> indices);
+
         void LoadGameTextures();
 
         // Tries to load a texture and returns true if it exists
@@ -115,11 +121,21 @@ namespace Inferno::Render {
 
         static constexpr auto LOOSE_TEXID_START = TexID(2905);
         TexID _looseTexId = LOOSE_TEXID_START;
+
         // returns a texid reserved for loose textures
         TexID GetUnusedTexID() {
             _looseTexId = TexID((int)_looseTexId + 1);
-            assert((uint)_looseTexId < MATERIAL_COUNT);
+            assert((uint)_looseTexId < MATERIAL_COUNT && _looseTexId < OUTRAGE_TEXID_START);
             return _looseTexId;
+        }
+
+        TexID _outrageTexId = OUTRAGE_TEXID_START;
+
+        TexID GetOutrageTexID() {
+            auto id = _outrageTexId;
+            _outrageTexId = TexID((int)_outrageTexId + 1);
+            assert((uint)id < MATERIAL_COUNT);
+            return id;
         }
     };
 

@@ -75,7 +75,8 @@ namespace Inferno::Editor {
                 filters.push_back(TextureFilter{
                     .Min = (short)std::stoi(rangeTokens[0]),
                     .Max = (short)std::stoi(rangeTokens[1]),
-                    .Group = group });
+                    .Group = group
+                });
             }
         }
         catch (...) {
@@ -135,6 +136,39 @@ namespace Inferno::Editor {
     }
 
     void TextureBrowserUI::UpdateTextureList(FilterGroup filter, bool loadMaterials) {
+        if (Settings::Editor.Descent3Mode) {
+            Set<TexID> ids;
+
+            if (_showInUse) {
+                auto inUse = GetInUseBaseTextures(Game::Level);
+                for (LevelTexID tex : inUse) {
+                    if ((int)tex >= Render::OUTRAGE_TEX_INDEX)
+                        ids.insert((TexID)tex); // treat level ids as tex ids for d3
+                    else
+                        ids.insert(Resources::LookupTexID(tex));
+                }
+            }
+
+            for (size_t i = 0; i < Resources::GameTable.Textures.size(); i++) {
+                auto& info = Resources::GameTable.Textures[i];
+
+                bool passesFilter =
+                    (_filterD3.Mine && HasFlag(info.Flags, Outrage::TextureFlag::Mine)) ||
+                    (_filterD3.Terrain && HasFlag(info.Flags, Outrage::TextureFlag::Terrain)) ||
+                    (_filterD3.Procedural && HasFlag(info.Flags, Outrage::TextureFlag::Procedural)) ||
+                    (_filterD3.Light && HasFlag(info.Flags, Outrage::TextureFlag::Light));
+
+                if (_showEverything || passesFilter) {
+                    ids.insert(TexID(i + Render::OUTRAGE_TEX_INDEX));
+                }
+            }
+
+            auto newTextures = Seq::ofSet(ids);
+            _textureIdsD3 = newTextures;
+            Render::Materials->LoadOutrageTextures(_textureIdsD3);
+            return;
+        }
+
         //SPDLOG_INFO("Updating texture browser");
         auto ids = FilterLevelTextures(filter, _showInUse, _showEverything);
         auto tids = Seq::map(ids, Resources::LookupTexID);
@@ -148,8 +182,15 @@ namespace Inferno::Editor {
     }
 
     TextureBrowserUI::TextureBrowserUI() : WindowBase(Name, &Settings::Editor.Windows.Textures) {
-        Events::LevelLoaded += [this] { UpdateTextureList(_filter, true); };
-        Events::LevelChanged += [this] { UpdateTextureList(_filter, false); };
+        Events::LevelLoaded += [this] {
+            UpdateSelectedTexture();
+            UpdateTextureList(_filter, true);
+        };
+        Events::LevelChanged += [this] {
+            UpdateSelectedTexture();
+            UpdateTextureList(_filter, false);
+        };
+        //Events::SelectSegment += [this] { UpdateSelectedTexture(); };
 
         D1Filter = ParseFilter("d1filter.txt");
         D2Filter = ParseFilter("d2filter.txt");
@@ -279,7 +320,168 @@ namespace Inferno::Editor {
         }
     }
 
+    // Scales a color to be visible
+    ImVec4 GetScaledColor(Color color) {
+        auto mag = std::max({ color.x, color.y, color.z });
+        if (mag > 0.001f)
+            color *= 1 / mag;
+
+        return { color.x, color.y, color.z, 1 };
+    }
+
+    void TextureBrowserUI::Descent3Browser() {
+        float contentWidth = ImGui::GetWindowContentRegionMax().x;
+        float availableWidth = ImGui::GetWindowPos().x + contentWidth;
+
+        //constexpr int ColumnWidth = 170;
+        //bool twoColumn = availableWidth >= ColumnWidth * 2 - 20; // + padding
+
+        if (ImGui::Checkbox("Show in use textures", &_showInUse))
+            UpdateTextureList(_filter, true);
+
+        if (ImGui::Checkbox("Show everything", &_showEverything))
+            UpdateTextureList(_filter, true);
+
+        ImGui::Text("Filter:");
+
+        if (ImGui::Checkbox("Mine", &_filterD3.Mine))
+            UpdateTextureList(_filter, true);
+
+        if (ImGui::Checkbox("Lights", &_filterD3.Light))
+            UpdateTextureList(_filter, true);
+
+        if (ImGui::Checkbox("Procedural", &_filterD3.Procedural))
+            UpdateTextureList(_filter, true);
+
+        ImGui::Separator();
+
+        if (_selectedTextureD3) {
+            ImGui::Text(_selectedTextureD3->Name.c_str());
+
+            const auto& color = _selectedTextureD3->Color;
+            auto scaledColor = GetScaledColor(color);
+
+            ImGui::ColorButton("light", scaledColor, ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoTooltip);
+            ImGui::SameLine();
+            ImGui::Text("%.2f, %.2f, %.2f", color.x, color.y, color.z);
+        }
+        else {
+            ImGui::Text("No texture selected");
+        }
+
+        ImGui::Separator();
+
+        ImGui::BeginChild("textures");
+
+        ImGuiStyle& style = ImGui::GetStyle();
+
+        uint i = 0;
+
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 2 });
+
+        ImVec2 tileSize{};
+        switch (Settings::Editor.TexturePreviewSize) {
+            case TexturePreviewSize::Small: tileSize = { 48, 48 };
+                break;
+            case TexturePreviewSize::Large: tileSize = { 96, 96 };
+                break;
+            default: tileSize = { 64, 64 };
+        }
+
+        tileSize.x *= Shell::DpiScale;
+        tileSize.y *= Shell::DpiScale;
+
+        constexpr ImVec4 bg = { 0.1f, 0.1f, 0.1f, 1.0f };
+        constexpr int borderThickess = 2;
+
+        auto tmap1 = LevelTexID::None, tmap2 = LevelTexID::Unset;
+        if (auto seg = Game::Level.TryGetSegment(Editor::Selection.Segment)) {
+            std::tie(tmap1, tmap2) = seg->GetTexturesForSide(Editor::Selection.Side);
+        }
+
+        for (auto& id : _textureIdsD3) {
+            auto ltid = LevelTexID(id);
+            auto& material = Render::Materials->Get(id);
+            if (!material || material.State != TextureState::Resident)
+                continue; // don't show invalid textures (usually TID 910)
+
+
+            //ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 2, 2 });
+            //ImGui::PushStyleColor(ImGuiCol_BorderShadow, { 1, 0, 0, 1 });
+
+            ImVec4 borderColor = ltid == tmap1 ? ImVec4(1, 1, 1, 0.8f) : ImVec4(1, 1, 1, 0);
+
+            ImGui::PushStyleColor(ImGuiCol_Button, borderColor);
+
+            //auto btnPos = ImGui::GetCursorPos();
+            auto btnPos = ImGui::GetCursorScreenPos();
+            ImGui::ImageButton((ImTextureID)material.Pointer(), tileSize, { 0, 0 }, { 1, 1 }, borderThickess, bg);
+
+            if (ImGui::IsItemHovered()) {
+                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                    tmap1 = ltid;
+                    Events::SelectTexture(tmap1, LevelTexID::None);
+                    Events::TextureInfo(tmap1);
+                    Render::LoadTextureDynamic(tmap1);
+                    UpdateSelectedTexture();
+                }
+                else if (ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {}
+                else if (ImGui::IsMouseClicked(ImGuiMouseButton_Middle)) {}
+            }
+
+            ImGui::PopStyleColor();
+            //ImGui::PopStyleVar();
+
+            if (id >= Render::OUTRAGE_TEXID_START) {
+                if (auto entry = Seq::tryItem(Resources::GameTable.Textures, (int)id - Render::OUTRAGE_TEX_INDEX)) {
+                    const auto& color = entry->Color;
+                    if (color.x > 0 || color.y > 0 || color.z > 0) {
+                        auto scaledColor = GetScaledColor(color);
+
+                        ImVec2 bmin = { btnPos.x + 1, btnPos.y + 1 };
+                        ImVec2 bmax = { bmin.x + 22 * Shell::DpiScale, bmin.y + 22 * Shell::DpiScale };
+                        ImVec2 borderMax = { btnPos.x + 24, btnPos.y + 24 };
+
+                        ImGui::GetCurrentWindow()->DrawList->AddRect(btnPos, borderMax, ImGui::GetColorU32({ 0, 0, 0, 1 }));
+                        ImGui::GetCurrentWindow()->DrawList->AddRectFilled(bmin, bmax, ImGui::GetColorU32(scaledColor));
+                    }
+                }
+            }
+
+            float spacing = style.ItemSpacing.x / 2.0f;
+            float xLast = ImGui::GetItemRectMax().x;
+            float xNext = xLast + spacing + tileSize.x; // Expected position if next button was on same line
+            if (i + 1 < _textureIdsD3.size() && xNext < availableWidth)
+                ImGui::SameLine(0, spacing);
+
+            i++;
+        };
+
+        ImGui::PopStyleVar();
+        ImGui::EndChild();
+    }
+
+    void TextureBrowserUI::UpdateSelectedTexture() {
+        if (!Settings::Editor.Descent3Mode) return;
+
+        if (auto seg = Game::Level.TryGetSegment(Editor::Selection.Segment)) {
+            auto [tmap1, tmap2] = seg->GetTexturesForSide(Editor::Selection.Side);
+
+            if (auto entry = Seq::tryItem(Resources::GameTable.Textures, (int)tmap1 - Render::OUTRAGE_TEX_INDEX)) {
+                _selectedTextureD3 = *entry;
+                return;
+            }
+        }
+
+        _selectedTextureD3 = {};
+    }
+
     void TextureBrowserUI::OnUpdate() {
+        if (Settings::Editor.Descent3Mode) {
+            Descent3Browser();
+            return;
+        }
+
         float contentWidth = ImGui::GetWindowContentRegionMax().x;
         float availableWidth = ImGui::GetWindowPos().x + contentWidth;
 
@@ -314,8 +516,10 @@ namespace Inferno::Editor {
 
         ImVec2 tileSize{};
         switch (Settings::Editor.TexturePreviewSize) {
-            case TexturePreviewSize::Small: tileSize = { 48, 48 }; break;
-            case TexturePreviewSize::Large: tileSize = { 96, 96 }; break;
+            case TexturePreviewSize::Small: tileSize = { 48, 48 };
+                break;
+            case TexturePreviewSize::Large: tileSize = { 96, 96 };
+                break;
             default: tileSize = { 64, 64 };
         }
 
@@ -335,8 +539,7 @@ namespace Inferno::Editor {
             //ImGui::PushStyleColor(ImGuiCol_BorderShadow, { 1, 0, 0, 1 });
 
             ImVec4 borderColor =
-                id == tmap1 ? ImVec4(1, 1, 1, 0.8f) :
-                (id == tmap2 && tmap2 > LevelTexID(0) ? ImVec4(0, 1, 1, 0.8f) : ImVec4(1, 1, 1, 0));
+                id == tmap1 ? ImVec4(1, 1, 1, 0.8f) : (id == tmap2 && tmap2 > LevelTexID(0) ? ImVec4(0, 1, 1, 0.8f) : ImVec4(1, 1, 1, 0));
 
             ImGui::PushStyleColor(ImGuiCol_Button, borderColor);
 

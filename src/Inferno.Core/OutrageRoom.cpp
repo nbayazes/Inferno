@@ -3,6 +3,7 @@
 #include "OutrageRoom.h"
 #include "Face.h"
 #include "Level.h"
+#include "OutrageTable.h"
 #include "Streams.h"
 
 namespace Inferno {
@@ -14,22 +15,6 @@ namespace Inferno {
         constexpr int ROOM_FACES_CHUNK = 2;
         constexpr int ROOM_END_CHUNK = 3;
         constexpr int ROOM_TEXTURE_CHUNK = 4;
-
-        std::array DefaultTextures = {
-            "Tech Pan Rib 1",
-            "Diamondplatepanels1",
-            "Diamondplate Stripes1",
-            "Diamond Floor1",
-            "DiamondRoof",
-            "Lego Floor",
-            "Grainy1",
-            "TechDetail02x",
-            "TechDetail03x",
-            "ShinyGridS",
-            "P-FacPlain3S",
-            "P-FacPlain6S",
-            "P-Prove Plain4S"
-        };
     }
 
     // D3 ORF face
@@ -123,15 +108,15 @@ namespace Inferno {
         }
     }
 
-    void SaveRoom(StreamWriter& writer, const List<Vector3>& vertices, const List<RoomFace>& faces) {
+    void SaveRoom(StreamWriter& writer, const List<Vector3>& vertices, const List<RoomFace>& faces, const Outrage::GameTable& table, span<LevelTexID> textures) {
         // Write header
         writer.Write(ROOM_NEW_HEADER_CHUNK);
         auto headsize = (int)writer.Position();
         writer.Write(-1); // header length
 
         writer.Write(ROOMFILE_VERSION);
-        writer.Write((int32)vertices.size());
-        writer.Write((int32)faces.size());
+        writer.Write((int)vertices.size());
+        writer.Write((int)faces.size());
 
         auto pos = (int)writer.Position();
         writer.Seek(headsize);
@@ -152,7 +137,7 @@ namespace Inferno {
 
             pos = (int)writer.Position();
             writer.Seek(vertsize);
-            writer.Write(pos - vertsize - 4);
+            writer.Write<int>(pos - vertsize - 4);
             writer.Seek(pos);
         }
 
@@ -162,19 +147,20 @@ namespace Inferno {
             auto texsize = (int)writer.Position();
             writer.Write(-1); // placeholder
 
-            //writer.Write(1); // highest texture index
-            //writer.WriteCString("Diamondplatepanels1", 64);
+            //texCount++;
+            assert(textures.size() > 0);
+            auto texCount = (int)textures.size();
 
-            int16 texCount = 0;
-            for (auto& face : faces) {
-                texCount = std::max(texCount, face.Texture);
+            //auto maxIndex = 0;
+            writer.Write(texCount); // number of textures
+
+            for (auto& texture : textures) {
+                if (auto entry = Seq::tryItem(table.Textures, (int)texture - 3000)) {
+                    writer.WriteCString(entry->Name, 64);
+                } else {
+                    writer.WriteCString("Rainbow Texture", 64);
+                }
             }
-
-            texCount++;
-            writer.Write(int32(texCount)); // number of textures
-
-            for (int16 i = 0; i < texCount; i++)
-                writer.WriteCString(DefaultTextures[i], 64);
 
             pos = (int)writer.Position();
             writer.Seek(texsize);
@@ -193,7 +179,7 @@ namespace Inferno {
             writer.WriteFloat(face.Normal.x);
             writer.WriteFloat(face.Normal.y);
             writer.WriteFloat(face.Normal.z);
-            writer.Write((int16)(face.Texture + 1)); // Texture index
+            writer.Write(face.Texture); // Texture index
 
             for (int t = 0; t < face.Vertices.size(); t++) {
                 writer.Write(face.Vertices[t]);
@@ -216,7 +202,7 @@ namespace Inferno {
         writer.Write(4);
     }
 
-    void WriteSegmentsToOrf(Level& level, span<SegID> segs, const filesystem::path& path) {
+    void WriteSegmentsToOrf(Level& level, span<SegID> segs, const filesystem::path& path, const Outrage::GameTable& table) {
         List<Vector3> vertices;
         List<RoomFace> faces;
         short vertexIndex = 0;
@@ -234,11 +220,10 @@ namespace Inferno {
 
                 auto indices = side.GetRenderIndices();
 
-                if (!Seq::contains(textures, face.Side.TMap))
+                if (face.Side.TMap != LevelTexID::Unset && !Seq::contains(textures, face.Side.TMap))
                     textures.push_back(face.Side.TMap);
 
-
-                auto texture = int16(Seq::indexOf(textures, face.Side.TMap).value_or(0) % std::size(DefaultTextures) - 1);
+                auto texture = int16(Seq::indexOf(textures, face.Side.TMap).value_or(0));
 
                 if (side.Normals[0].Dot(side.Normals[1]) > 0.99999f) {
                     // planar face
@@ -324,7 +309,9 @@ namespace Inferno {
         {
             std::ofstream file(path, std::ios::binary);
             StreamWriter writer(file, false);
-            SaveRoom(writer, vertices, faces);
+
+            if (textures.empty()) textures.push_back(LevelTexID(3000));
+            SaveRoom(writer, vertices, faces, table, textures);
         }
 
         //{

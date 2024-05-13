@@ -61,6 +61,7 @@ namespace Inferno {
         node["TextureEditor"] << w.TextureEditor;
         node["Scale"] << w.Scale;
         node["ProjectToPlane"] << w.ProjectToPlane;
+        node["InsetFaces"] << w.InsetFaces;
     }
 
     EditorSettings::OpenWindows LoadOpenWindows(ryml::NodeRef node) {
@@ -78,6 +79,7 @@ namespace Inferno {
         ReadValue(node["TextureEditor"], w.TextureEditor);
         ReadValue(node["Scale"], w.Scale);
         ReadValue(node["ProjectToPlane"], w.ProjectToPlane);
+        ReadValue(node["InsetFaces"], w.InsetFaces);
         return w;
     }
 
@@ -247,6 +249,7 @@ namespace Inferno {
         node["PasteSegmentSpecial"] << s.PasteSegmentSpecial;
         node["TexturePreviewSize"] << (int)s.TexturePreviewSize;
         node["ShowLevelTitle"] << s.ShowLevelTitle;
+        node["Descent3Mode"] << s.Descent3Mode;
 
         SaveSelectionSettings(node["Selection"], s.Selection);
         SaveOpenWindows(node["Windows"], s.Windows);
@@ -322,6 +325,7 @@ namespace Inferno {
         ReadValue(node["PasteSegmentSpecial"], s.PasteSegmentSpecial);
         ReadValue(node["TexturePreviewSize"], (int&)s.TexturePreviewSize);
         ReadValue(node["ShowLevelTitle"], s.ShowLevelTitle);
+        ReadValue(node["Descent3Mode"], s.Descent3Mode);
 
         s.Selection = LoadSelectionSettings(node["Selection"]);
         s.Windows = LoadOpenWindows(node["Windows"]);

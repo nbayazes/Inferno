@@ -263,9 +263,7 @@ namespace Inferno::Render {
         auto frame = vclip.NumFrames - (int)std::floor(elapsed / vclip.FrameTime) % vclip.NumFrames - 1;
         auto tid = vclip.Frames[frame];
 
-        auto transform = up ?
-            Matrix::CreateConstrainedBillboard(position, Camera.Position, *up) :
-            Matrix::CreateBillboard(position, Camera.Position, Camera.Up);
+        auto transform = up ? Matrix::CreateConstrainedBillboard(position, Camera.Position, *up) : Matrix::CreateBillboard(position, Camera.Position, Camera.Up);
 
         if (rotation != 0)
             transform = Matrix::CreateRotationZ(rotation) * transform;
@@ -316,7 +314,7 @@ namespace Inferno::Render {
         auto& chunk = *mesh.Chunk;
 
         LevelShader::InstanceConstants consts{};
-        consts.FrameTime = (float)FrameTime;
+        consts.FrameTime = FrameTime;
         consts.Time = (float)ElapsedTime;
         consts.LightingScale = Settings::Editor.RenderMode == RenderMode::Shaded ? 1.0f : 0.0f; // How much light to apply
 
@@ -326,22 +324,22 @@ namespace Inferno::Render {
             consts.LightingScale = 1;
         }
         else {
-            {
-                auto& map1 = chunk.EffectClip1 == EClipID::None ?
-                    Materials->Get(chunk.TMap1) :
-                    Materials->Get(Resources::GetEffectClip(chunk.EffectClip1).VClip.GetFrame(ElapsedTime));
-
+            if (chunk.TMap1 >= LevelTexID((int)Render::OUTRAGE_TEXID_START)) {
+                // D3 mode hacks tex ids into the higher slots
+                auto& map1 = Materials->Get((TexID)chunk.TMap1);
                 Shaders->Level.SetMaterial1(cmdList, map1);
             }
+            else {
+                auto& map1 = chunk.EffectClip1 == EClipID::None ? Materials->Get(chunk.TMap1) : Materials->Get(Resources::GetEffectClip(chunk.EffectClip1).VClip.GetFrame(ElapsedTime));
+                Shaders->Level.SetMaterial1(cmdList, map1);
 
-            if (chunk.TMap2 > LevelTexID::Unset) {
-                consts.Overlay = true;
+                if (chunk.TMap2 > LevelTexID::Unset) {
+                    consts.Overlay = true;
 
-                auto& map2 = chunk.EffectClip2 == EClipID::None ?
-                    Materials->Get(chunk.TMap2) :
-                    Materials->Get(Resources::GetEffectClip(chunk.EffectClip2).VClip.GetFrame(ElapsedTime));
+                    auto& map2 = chunk.EffectClip2 == EClipID::None ? Materials->Get(chunk.TMap2) : Materials->Get(Resources::GetEffectClip(chunk.EffectClip2).VClip.GetFrame(ElapsedTime));
 
-                Shaders->Level.SetMaterial2(cmdList, map2);
+                    Shaders->Level.SetMaterial2(cmdList, map2);
+                }
             }
         }
 
@@ -463,7 +461,7 @@ namespace Inferno::Render {
         Adapter.reset();
         Bloom.reset();
         Scanline.reset();
-        
+
         _tempBatch.reset();
         Debug::Shutdown();
         DeviceResources::ReportLiveObjects();
@@ -475,7 +473,7 @@ namespace Inferno::Render {
         //        debugInterface->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
         //        debugInterface->Release();
         //#endif
-                //device->Release();
+        //device->Release();
     }
 
     void Resize(int width, int height) {
@@ -677,7 +675,7 @@ namespace Inferno::Render {
         }
 
         for (auto& emitter : Inferno::Sound::Debug::Emitters) {
-            Debug::DrawPoint(emitter, { 0 ,1, 0 });
+            Debug::DrawPoint(emitter, { 0, 1, 0 });
         }
     }
 

@@ -35,7 +35,6 @@ void LoadAllD3Models() {
             try {
                 auto r = Resources::OpenFile(entry.name);
                 auto model = Outrage::Model::Read(*r);
-
             }
             catch (const std::exception& e) {
                 SPDLOG_ERROR("{}: {}", entry.name, e.what());
@@ -51,7 +50,6 @@ void LoadAllD3Models() {
             //}
         }
     }
-
 }
 
 void Application::OnShutdown() {
@@ -64,7 +62,6 @@ void Application::Initialize(int width, int height) {
     Render::Initialize(Shell::Hwnd, width, height);
 
     Resources::LoadSounds();
-    //Resources::MountDescent3();
 
     Editor::Initialize();
 
@@ -79,75 +76,10 @@ void Application::Initialize(int width, int height) {
 
 using Keys = Keyboard::Keys;
 
-float g_FireDelay = 0;
-
-void FireTestWeapon(Level& level, const Object& obj, int gun, int id) {
-    auto point = Vector3::Transform(Resources::GameData.PlayerShip.GunPoints[gun], obj.GetTransform());
-    auto& weapon = Resources::GameData.Weapons[id];
-
-    Object bullet{};
-    bullet.Movement.Type = MovementType::Physics;
-    bullet.Movement.Physics.Velocity = obj.Rotation.Forward() * weapon.Speed[0] * 1;
-    bullet.Movement.Physics.Flags = weapon.Bounce > 0 ? PhysicsFlag::Bounce : PhysicsFlag::None;
-    bullet.Movement.Physics.Drag = weapon.Drag;
-    bullet.Movement.Physics.Mass = weapon.Mass;
-    bullet.Position = bullet.LastPosition = point;
-    bullet.Rotation = bullet.LastRotation = obj.Rotation;
-
-    bullet.Render.Type = RenderType::WeaponVClip;
-    bullet.Render.VClip.ID = weapon.WeaponVClip;
-    bullet.Render.VClip.Rotation = Random() * DirectX::XM_2PI;
-    bullet.Lifespan = weapon.Lifetime;
-
-    bullet.Type = ObjectType::Weapon;
-    bullet.ID = (int8)id;
-    bullet.Parent = ObjID(0);
-
-    //auto pitch = -Random() * 0.2f;
-    Sound::Sound3D sound(point, obj.Segment);
-    sound.Resource = Resources::GetSoundResource(weapon.FlashSound);
-    sound.Source = ObjID(0);
-    sound.Volume = 0.35f;
-    Sound::Play(sound);
-
-    Render::LoadTextureDynamic(weapon.WeaponVClip);
-
-    Render::Particle p{};
-    p.Clip = weapon.FlashVClip;
-    p.Position = point;
-    p.Radius = weapon.FlashSize;
-    Render::AddParticle(p);
-
-    for (auto& o : level.Objects) {
-        if (o.Lifespan <= 0) {
-            o = bullet;
-            return; // found a dead object to reuse!
-        }
-    }
-
-    level.Objects.push_back(bullet); // insert a new object
-}
-
-
 void Application::Update() {
     PIXBeginEvent(PIX_COLOR_DEFAULT, L"Update");
 
     Inferno::Input::Update();
-
-    if (Settings::Editor.EnablePhysics) {
-        g_FireDelay -= Render::FrameTime;
-
-        if (Input::IsKeyDown(Keys::Enter)) {
-            if (g_FireDelay <= 0) {
-                g_FireDelay = 0;
-                auto id = Game::Level.IsDescent2() ? 13 : 13;
-                auto& weapon = Resources::GameData.Weapons[id];
-                g_FireDelay += weapon.FireDelay;
-                FireTestWeapon(Game::Level, Game::Level.Objects[0], 0, id);
-                FireTestWeapon(Game::Level, Game::Level.Objects[0], 1, id);
-            }
-        }
-    }
 
     if (Input::IsKeyPressed(Keys::F1))
         Editor::ShowDebugOverlay = !Editor::ShowDebugOverlay;
@@ -186,7 +118,6 @@ void Application::Update() {
         alpha = float(accumulator / dt);
     }
 
-    // todo: only update particles if game is not paused
     Render::UpdateParticles(Render::FrameTime);
     Editor::Update();
 

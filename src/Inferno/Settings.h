@@ -69,6 +69,7 @@ namespace Inferno {
         bool PasteSegmentObjects = true;
         bool PasteSegmentWalls = true;
         bool PasteSegmentSpecial = true;
+        bool Descent3Mode = false;
 
         float ObjectRenderDistance = 300.0f;
 
@@ -120,7 +121,7 @@ namespace Inferno {
             bool TextureEditor = false;
             bool Scale = false;
             bool ProjectToPlane = false;
-            bool InsetFaces = true;
+            bool InsetFaces = false;
             bool Debug = false;
             bool Bloom = false;
         } Windows;

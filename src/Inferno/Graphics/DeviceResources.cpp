@@ -62,6 +62,10 @@ namespace Inferno {
     DeviceResources::~DeviceResources() {
         // Ensure that the GPU is no longer referencing resources that are about to be destroyed.
         WaitForGpu();
+
+        Render::Heaps.reset();
+        Render::UploadHeap.reset();
+        Render::Uploads.reset();
     }
 
     // Configures the Direct3D device, and stores handles to it and the device context.

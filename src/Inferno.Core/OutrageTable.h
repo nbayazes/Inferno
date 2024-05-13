@@ -372,8 +372,6 @@ namespace Inferno::Outrage {
         Array<Array<string,NUM_ANIMS_PER_CLASS>,NUM_MOVEMENT_CLASSES> AnimSoundNames;
         float RespawnScalar;
         List<DeathInfo> DeathTypes;
-
-        constexpr bool HasFlag(GenericFlag flag) { return (bool)(Flags & flag); }
     };
 
     struct GameTable {

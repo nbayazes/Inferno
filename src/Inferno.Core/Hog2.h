@@ -5,14 +5,6 @@
 
 // Descent 3 HOG2 file
 namespace Inferno {
-    struct Hog2Entry {
-        string name;
-        uint flags;
-        uint len;
-        uint timestamp;
-        int64 offset;
-    };
-
     class Hog2 {
         static constexpr int PSFILENAME_LEN = 35;
         static constexpr int HOG_HDR_SIZE = 64;
@@ -29,7 +21,7 @@ namespace Inferno {
             int64 offset;
         };
 
-        static Hog2 Read(filesystem::path path) {
+        static Hog2 Read(const filesystem::path& path) {
             Hog2 hog;
             hog.Path = path;
 

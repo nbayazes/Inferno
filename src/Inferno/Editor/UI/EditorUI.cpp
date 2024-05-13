@@ -76,7 +76,7 @@ namespace Inferno::Editor {
             auto segs = Seq::ofSet(Editor::Marked.Segments);
 
             try {
-                WriteSegmentsToOrf(Game::Level, segs, *path);
+                WriteSegmentsToOrf(Game::Level, segs, *path, Resources::GameTable);
             }
             catch (...) {
                 ShowErrorMessage(L"Something went wrong when exporting ORF.");
@@ -176,6 +176,15 @@ namespace Inferno::Editor {
                         MenuCommand(Commands::ConvertToVertigo);
                         ImGui::EndMenu();
                     }
+                }
+
+                ImGui::Separator();
+
+                if (ImGui::MenuItem("Descent 3 Mode", nullptr, &Settings::Editor.Descent3Mode)) {
+                    if (Settings::Editor.Descent3Mode)
+                        EnableDescent3Mode();
+                    else
+                        Events::LevelChanged(); // Refresh the texture browser
                 }
 
                 if (!Settings::Editor.RecentFiles.empty()) {
@@ -487,7 +496,7 @@ namespace Inferno::Editor {
         }
 
         {
-            static const std::array insertModes = { "Normal", "Extrude", "Mirror" };
+            static constexpr std::array insertModes = { "Normal", "Extrude", "Mirror" };
 
             ImGui::AlignTextToFramePadding();
             ImGui::Text("Insert");
@@ -603,7 +612,7 @@ namespace Inferno::Editor {
             // Coordinate system settings
             ImGui::SetNextItemWidth(150 * Shell::DpiScale);
 
-            static const std::array csysModes = { "Local", "Global", "User Defined (UCS)" };
+            static constexpr std::array csysModes = { "Local", "Global", "User Defined (UCS)" };
             const ImVec2 csysBtnSize = { 150 * Shell::DpiScale, 0 };
 
             if (ImGui::BeginCombo("##csys-dropdown", csysModes[(int)Settings::Editor.CoordinateSystem], ImGuiComboFlags_HeightLarge)) {

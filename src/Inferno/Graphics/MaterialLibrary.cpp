@@ -682,13 +682,24 @@ namespace Inferno::Render {
             if (_namedMaterials.contains(name)) continue; // skip loaded
             Material2D material;
 
-            if (FileSystem::TryFindFile(name + ".dds")) {
-                material = UploadBitmap(batch, name, Render::StaticTextures->Black);
+            bool outrage = false;
+
+            try {
+                if (FileSystem::TryFindFile(name + ".dds")) {
+                    material = UploadBitmap(batch, name, Render::StaticTextures->Black);
+                }
+                else if (auto bitmap = Resources::ReadOutrageBitmap(name)) {
+                    // Try loading file from D3 data
+                    outrage = true;
+                    material = UploadOutrageMaterial(batch, *bitmap, Render::StaticTextures->Black);
+                    // todo: check for OAFs
+                }
             }
-            else if (auto bitmap = Resources::ReadOutrageBitmap(name)) {
-                // Try loading file from D3 data
-                material = UploadOutrageMaterial(batch, *bitmap, Render::StaticTextures->Black);
+            catch (const Exception& e) {
+                SPDLOG_WARN("Error reading texture {} - {}", name, e.what());
+                continue;
             }
+
             //else if (auto data = Resources::ReadBinaryFile(name); !data.empty()) {
             //    if (name.ends_with(".bbm")) {
             //        auto bbm = ReadBbm(data);
@@ -705,7 +716,7 @@ namespace Inferno::Render {
                 _namedMaterials[name] = {};
             }
             else {
-                _namedMaterials[name] = material.ID = GetUnusedTexID();
+                _namedMaterials[name] = material.ID = outrage ? GetOutrageTexID() : GetUnusedTexID();
                 uploads.emplace_back(std::move(material));
             }
         }
@@ -720,6 +731,55 @@ namespace Inferno::Render {
         //    upload.ID = texId;
         //    _materials[(int)texId] = std::move(upload);
         //}
+    }
+
+    void MaterialLibrary::LoadOutrageTextures(span<const TexID> indices) {
+        bool hasUnloaded = false;
+        for (auto& index : indices) {
+            if (index < OUTRAGE_TEXID_START) continue;
+            if (!Seq::inRange(_materials, (int)index)) continue;
+            if (_materials[(int)index].State == TextureState::Vacant) {
+                hasUnloaded = true;
+                break;
+            }
+
+            assert((int)index >= 3000);
+        }
+
+        if (!hasUnloaded) return;
+        Render::Adapter->WaitForGpu();
+
+        List<Material2D> uploads;
+        auto batch = BeginTextureUpload();
+
+        for (auto& index : indices) {
+            if (index < OUTRAGE_TEXID_START) continue;
+            if (!Seq::inRange(_materials, (int)index)) continue;
+            if (_materials[(int)index].State == TextureState::Resident || _materials[(int)index].State == TextureState::PagingIn) continue;
+
+            Material2D material;
+
+            auto entry = Seq::tryItem(Resources::GameTable.Textures, (int)index - (int)Render::OUTRAGE_TEXID_START);
+            if (!entry) continue;
+
+            try {
+                if (auto bitmap = Resources::ReadOutrageBitmap(entry->FileName)) {
+                    material = UploadOutrageMaterial(batch, *bitmap, Render::StaticTextures->Black);
+                    // todo: check for OAFs
+                }
+            }
+            catch (const Exception& e) {
+                SPDLOG_WARN("Error reading D3 texture {} - {}", (int)index - (int)Render::OUTRAGE_TEXID_START, e.what());
+                continue;
+            }
+
+            material.ID = (TexID)index;
+            uploads.emplace_back(std::move(material));
+        }
+
+        EndTextureUpload(batch, Render::Adapter->BatchUploadQueue->Get());
+
+        MoveUploads(uploads, _materials);
     }
 
     void MaterialLibrary::LoadGameTextures() {
@@ -742,7 +802,7 @@ namespace Inferno::Render {
     }
 
     void MaterialLibrary::ResetMaterial(Material2D& material) {
-        if (material.ID >= TexID(2900) && material.ID < TexID(3000)) return; // reserved range
+        if (material.ID >= TexID(2900) && material.ID < OUTRAGE_TEXID_START) return; // reserved range
 
         //auto id = material.ID;
         material = { .ID = material.ID }; // mark the material as unused
@@ -771,6 +831,7 @@ namespace Inferno::Render {
             //if (material.ID <= TexID::Invalid || ids.contains(material.ID) || material.State != TextureState::Resident) continue;
             if (ids.contains(material.ID)) continue;
             if (_keepLoaded[(int)material.ID]) continue;
+            if (material.ID >= OUTRAGE_TEXID_START) break;
             ResetMaterial(material);
         }
 
@@ -784,10 +845,12 @@ namespace Inferno::Render {
 
         for (auto& material : _materials) {
             if (material.ID <= TexID::Invalid) continue;
+            if (material.ID >= OUTRAGE_TEXID_START) break; // Don't unload d3 textures
             ResetMaterial(material);
         }
 
         _looseTexId = LOOSE_TEXID_START;
+        _outrageTexId = OUTRAGE_TEXID_START;
         Render::Adapter->PrintMemoryUsage();
     }
 
@@ -803,6 +866,7 @@ namespace Inferno::Render {
 
         _namedMaterials.clear();
         _looseTexId = LOOSE_TEXID_START;
+        _outrageTexId = OUTRAGE_TEXID_START;
         Render::Adapter->PrintMemoryUsage();
     }
 

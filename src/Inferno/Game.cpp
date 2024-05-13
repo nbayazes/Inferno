@@ -32,6 +32,8 @@ namespace Inferno::Game {
             IsLoading = false;
 
             //Rooms = CreateRooms(Level);
+            if (Settings::Editor.Descent3Mode)
+                Editor::EnableDescent3Mode();
 
             Editor::OnLevelLoad(reload);
             Render::Materials->Prune();
@@ -43,7 +45,7 @@ namespace Inferno::Game {
         }
     }
 
-    void LoadMission(filesystem::path file) {
+    void LoadMission(const filesystem::path& file) {
         Mission = HogFile::Read(FileSystem::FindFile(file));
     }
 

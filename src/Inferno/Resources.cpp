@@ -37,7 +37,7 @@ namespace Inferno::Resources {
                 RobotNames.push_back(line);
         }
         catch (...) {
-            SPDLOG_ERROR(L"Error reading robot names from `{}`", path.wstring());
+            SPDLOG_ERROR("Error reading robot names from `{}`", path.string());
         }
     }
 
@@ -54,7 +54,7 @@ namespace Inferno::Resources {
                 PowerupNames.push_back(line);
         }
         catch (...) {
-            SPDLOG_ERROR(L"Error reading powerup names from `{}`", path.wstring());
+            SPDLOG_ERROR("Error reading powerup names from `{}`", path.string());
         }
     }
 
@@ -69,7 +69,11 @@ namespace Inferno::Resources {
         LoadRobotNames("robots.txt");
     }
 
+
+    WallClip DEFAULT_WALL_CLIP = {};
+
     const WallClip& GetDoorClip(WClipID id) {
+        if (!Seq::inRange(GameData.DoorClips, (int)id)) return DEFAULT_WALL_CLIP;
         return GameData.DoorClips[(int)id];
     }
 
@@ -593,9 +597,9 @@ namespace Inferno::Resources {
 
     bool FoundDescent1() { return FileSystem::TryFindFile("descent.hog").has_value(); }
     bool FoundDescent2() { return FileSystem::TryFindFile("descent2.hog").has_value(); }
-    bool FoundDescent3() { return FileSystem::TryFindFile("d3.hog").has_value(); }
     bool FoundVertigo() { return FileSystem::TryFindFile("d2x.hog").has_value(); }
-    bool FoundMercenary() { return FileSystem::TryFindFile("merc.hog").has_value(); }
+    bool FoundDescent3() { return FileSystem::TryFindFile("d3.hog").has_value(); }
+    bool FoundMercenary() { return FileSystem::TryFindFile("merc.hog").has_value(); } // todo: steam release of merc uses a different hog name
 
     // Opens a file stream from the data paths or the loaded hogs
     Option<StreamReader> OpenFile(const string& name) {
@@ -625,7 +629,7 @@ namespace Inferno::Resources {
     void MountDescent3() {
         try {
             if (auto path = FileSystem::TryFindFile("d3.hog")) {
-                SPDLOG_INFO(L"Loading {} and Table.gam", path->wstring());
+                SPDLOG_INFO("Loading {} and Table.gam", path->string());
                 Descent3Hog = Hog2::Read(*path);
                 if (auto r = OpenFile("Table.gam"))
                     GameTable = Outrage::GameTable::Read(*r);

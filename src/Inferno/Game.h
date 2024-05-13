@@ -19,7 +19,7 @@ namespace Inferno::Game {
 
     void LoadLevel(Inferno::Level&&);
 
-    void LoadMission(filesystem::path file);
+    void LoadMission(const filesystem::path& file);
 
     inline void UnloadMission() {
         Mission = {};

@@ -173,9 +173,6 @@
     <ClCompile Include="Editor\UI\LightingWindow.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Editor\UI\TextureBrowserD3.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Graphics\GpuResources.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

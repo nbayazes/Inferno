@@ -10,7 +10,7 @@ namespace Inferno::Editor {
     class InsetFacesWindow final : public WindowBase {
         float _inset = 2;
         float _depth = 0;
-        bool _individual = false;
+        bool _individual = true;
         bool _showPreview = true;
         int _depthInt = 20;
 
@@ -27,9 +27,9 @@ namespace Inferno::Editor {
             if (ImGui::SliderFloat("Inset", &_inset, -20, 20, "%.1f")) UpdatePreview();
             if (ImGui::SliderFloat("Depth", &_depth, -20, 20, "%.1f")) UpdatePreview();
 
-            if (ImGui::Checkbox("Individual", &_individual)) {
-                UpdatePreview();
-            }
+            //if (ImGui::Checkbox("Individual", &_individual)) {
+            //    UpdatePreview();
+            //}
 
             if (ImGui::Checkbox("Preview", &_showPreview)) {
                 UpdatePreview();

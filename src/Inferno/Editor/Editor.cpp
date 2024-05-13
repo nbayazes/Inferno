@@ -133,9 +133,12 @@ namespace Inferno::Editor {
                 }
                 else {
                     switch (Settings::Editor.InsertMode) {
-                        case InsertMode::Normal: Commands::InsertSegment(); break;
-                        case InsertMode::Extrude: Commands::ExtrudeSegment(); break;
-                        case InsertMode::Mirror: Commands::InsertMirrored(); break;
+                        case InsertMode::Normal: Commands::InsertSegment();
+                            break;
+                        case InsertMode::Extrude: Commands::ExtrudeSegment();
+                            break;
+                        case InsertMode::Mirror: Commands::InsertMirrored();
+                            break;
                     }
                 }
                 break;
@@ -460,6 +463,19 @@ namespace Inferno::Editor {
         }
     }
 
+    void EnableDescent3Mode() {
+        if (!Resources::FoundDescent3()) {
+            ShowWarningMessage(L"Descent 3 mode not activated because d3.hog was not found.\n\nAdd the folder containing it to the 'Data Paths' in the editor settings.", L"Inferno");
+            Settings::Editor.Descent3Mode = false;
+        }
+        else {
+            if (Resources::Descent3Hog.Entries.empty())
+                Resources::MountDescent3();
+
+            Events::LevelChanged(); // Refresh the texture browser
+        }
+    }
+
     void ResetObjects(Level& level) {
         int id = 0;
         for (auto& obj : level.Objects) {
@@ -688,13 +704,13 @@ namespace Inferno::Editor {
             PROCESS_INFORMATION pi{};
 
             if (!CreateProcess(GetGameExecutablePath().c_str(),
-                               nullptr,     // Command line
-                               nullptr,     // Process handle not inheritable
-                               nullptr,     // Thread handle not inheritable
-                               false,       // Set handle inheritance to FALSE
-                               0,           // No creation flags
-                               nullptr,     // Use parent's environment block
-                               GetGameExecutablePath().parent_path().c_str(),  // Starting directory 
+                               nullptr, // Command line
+                               nullptr, // Process handle not inheritable
+                               nullptr, // Thread handle not inheritable
+                               false, // Set handle inheritance to FALSE
+                               0, // No creation flags
+                               nullptr, // Use parent's environment block
+                               GetGameExecutablePath().parent_path().c_str(), // Starting directory 
                                &si,
                                &pi)) {
                 auto msg = fmt::format("Unable to start game:\n{}", GetLastError());

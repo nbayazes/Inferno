@@ -97,7 +97,7 @@ namespace Inferno::Outrage {
     }
 
     PhysicsInfo ReadPhysicsInfo(StreamReader& r) {
-        PhysicsInfo phys;
+        PhysicsInfo phys{};
         phys.Mass = r.ReadFloat();
         phys.Drag = r.ReadFloat();
         phys.FullThrust = r.ReadFloat();
@@ -117,7 +117,7 @@ namespace Inferno::Outrage {
     }
 
     LightInfo ReadLightInfo(StreamReader& r) {
-        LightInfo light;
+        LightInfo light{};
         light.LightDistance = r.ReadFloat();
         light.Color1 = Color(r.ReadVector3());
         light.TimeInterval = r.ReadFloat();
@@ -132,7 +132,7 @@ namespace Inferno::Outrage {
     }
 
     AIInfo ReadAIInfo(StreamReader& r, int version, GenericFlag genFlags) {
-        AIInfo ai;
+        AIInfo ai{};
         ai.Flags = (AIFlag)r.ReadInt32();
         ai.AIClass = r.ReadByte();
         ai.AIType = r.ReadByte();
@@ -189,24 +189,28 @@ namespace Inferno::Outrage {
     }
 
     AnimInfo ReadAnimInfo(StreamReader& r, int version) {
-        AnimInfo anim;
-        for (int i = 0; i < NUM_MOVEMENT_CLASSES; i++)
+        AnimInfo anim{};
+
+        for (int i = 0; i < NUM_MOVEMENT_CLASSES; i++) {
             for (int j = 0; j < NUM_ANIMS_PER_CLASS; j++) {
                 auto& elem = anim.Classes[i].Elems[j];
                 if (version < 20) {
                     elem.From = r.ReadByte();
                     elem.To = r.ReadByte();
-                } else {
+                }
+                else {
                     elem.From = r.ReadInt16();
                     elem.To = r.ReadInt16();
                 }
                 elem.Speed = r.ReadFloat();
             }
+        }
+
         return anim;
     }
 
     DeathInfo ReadDeathInfo(StreamReader& r) {
-        DeathInfo dt;
+        DeathInfo dt{};
         dt.Flags = r.ReadInt32();
         dt.DelayMin = r.ReadFloat();
         dt.DelayMax = r.ReadFloat();
@@ -215,7 +219,7 @@ namespace Inferno::Outrage {
     }
 
     WeaponBatteryInfo ReadWeaponBatteryInfo(StreamReader& r, int version) {
-        WeaponBatteryInfo wb;
+        WeaponBatteryInfo wb{};
 
         wb.EnergyUsage = r.ReadFloat();
         wb.AmmoUsage = r.ReadFloat();
@@ -329,7 +333,7 @@ namespace Inferno::Outrage {
 
         if (version < 20 &&
             (gen.Type == ObjectType::Robot || gen.Type == ObjectType::Building) &&
-            gen.HasFlag(GenericFlag::ControlAI) && gen.HasFlag(GenericFlag::Destroyable))
+            HasFlag(gen.Flags, GenericFlag::ControlAI) && HasFlag(gen.Flags, GenericFlag::Destroyable))
             gen.Score = gen.HitPoints * 3;
 
         return gen;

@@ -76,6 +76,7 @@ namespace Inferno::Resources {
     bool FoundDescent1();
     bool FoundDescent2();
     bool FoundVertigo();
+    bool FoundDescent3();
 
     inline Hog2 Descent3Hog, Mercenary;
     inline Outrage::GameTable GameTable;
