@@ -319,6 +319,7 @@ namespace Inferno::Editor {
     }
 
     string EditorBinding::GetShortcutLabel() const {
+        if (Key == Keys::None) return {};
         if (!Shift && !Control && !Alt) return KeyToString(Key);
         string modifiers;
         if (Control) modifiers = "Ctrl";
