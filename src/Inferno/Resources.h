@@ -87,6 +87,7 @@ namespace Inferno::Resources {
     Option<StreamReader> OpenFile(const string& name);
 
     Option<Outrage::Bitmap> ReadOutrageBitmap(const string& name);
+    Option<Outrage::Bitmap> ReadOutrageVClip(const string& name);
     Option<Outrage::Model> ReadOutrageModel(const string& name);
 
     Outrage::Model const* GetOutrageModel(const string& name);

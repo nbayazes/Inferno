@@ -684,19 +684,22 @@ namespace Inferno::Render {
 
             bool outrage = false;
 
-            try {
-                if (FileSystem::TryFindFile(name + ".dds")) {
-                    material = UploadBitmap(batch, name, Render::StaticTextures->Black);
-                }
-                else if (auto bitmap = Resources::ReadOutrageBitmap(name)) {
-                    // Try loading file from D3 data
+            if (FileSystem::TryFindFile(name + ".dds")) {
+                material = UploadBitmap(batch, name, Render::StaticTextures->Black);
+            }
+            else if (name.ends_with(".oaf") || name.ends_with(".OAF")) {
+                if (auto bitmap = Resources::ReadOutrageVClip(name)) {
                     outrage = true;
                     material = UploadOutrageMaterial(batch, *bitmap, Render::StaticTextures->Black);
-                    // todo: check for OAFs
                 }
             }
-            catch (const Exception& e) {
-                SPDLOG_WARN("Error reading texture {} - {}", name, e.what());
+            else if (auto bitmap = Resources::ReadOutrageBitmap(name)) {
+                // Try loading file from D3 data
+                outrage = true;
+                material = UploadOutrageMaterial(batch, *bitmap, Render::StaticTextures->Black);
+            }
+            else {
+                SPDLOG_INFO("Unknown file type for '{}'", name);
                 continue;
             }
 
@@ -762,14 +765,17 @@ namespace Inferno::Render {
             auto entry = Seq::tryItem(Resources::GameTable.Textures, (int)index - (int)Render::OUTRAGE_TEXID_START);
             if (!entry) continue;
 
-            try {
-                if (auto bitmap = Resources::ReadOutrageBitmap(entry->FileName)) {
+            if (entry->FileName.ends_with(".oaf") || entry->FileName.ends_with(".OAF")) {
+                if (auto bitmap = Resources::ReadOutrageVClip(entry->FileName)) {
                     material = UploadOutrageMaterial(batch, *bitmap, Render::StaticTextures->Black);
-                    // todo: check for OAFs
                 }
             }
-            catch (const Exception& e) {
-                SPDLOG_WARN("Error reading D3 texture {} - {}", (int)index - (int)Render::OUTRAGE_TEXID_START, e.what());
+            else if (auto bitmap = Resources::ReadOutrageBitmap(entry->FileName)) {
+                // Try loading file from D3 data
+                material = UploadOutrageMaterial(batch, *bitmap, Render::StaticTextures->Black);
+            }
+            else {
+                SPDLOG_INFO("Unknown file type for '{}'", entry->FileName);
                 continue;
             }
 

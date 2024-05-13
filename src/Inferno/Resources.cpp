@@ -647,8 +647,27 @@ namespace Inferno::Resources {
     }
 
     Option<Outrage::Bitmap> ReadOutrageBitmap(const string& name) {
-        if (auto r = OpenFile(name))
-            return Outrage::Bitmap::Read(*r);
+        try {
+            if (auto r = OpenFile(name))
+                return Outrage::Bitmap::Read(*r);
+        }
+        catch (const Exception& e) {
+            SPDLOG_WARN("Error reading texture {} - {}", name, e.what());
+        }
+
+        return {};
+    }
+
+    Option<Outrage::Bitmap> ReadOutrageVClip(const string& name) {
+        try {
+            if (auto r = OpenFile(name)) {
+                auto vclip = Outrage::VClip::Read(*r);
+                return vclip.Frames[0]; // just return the first frame for now
+            }
+        }
+        catch (const Exception& e) {
+            SPDLOG_WARN("Error reading texture {} - {}", name, e.what());
+        }
 
         return {};
     }

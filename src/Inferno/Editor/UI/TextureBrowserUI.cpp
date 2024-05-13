@@ -156,6 +156,7 @@ namespace Inferno::Editor {
                     (_filterD3.Mine && HasFlag(info.Flags, Outrage::TextureFlag::Mine)) ||
                     (_filterD3.Terrain && HasFlag(info.Flags, Outrage::TextureFlag::Terrain)) ||
                     (_filterD3.Procedural && HasFlag(info.Flags, Outrage::TextureFlag::Procedural)) ||
+                    (_filterD3.Animated && HasFlag(info.Flags, Outrage::TextureFlag::Animated)) ||
                     (_filterD3.Light && HasFlag(info.Flags, Outrage::TextureFlag::Light));
 
                 if (_showEverything || passesFilter) {
@@ -351,6 +352,9 @@ namespace Inferno::Editor {
             UpdateTextureList(_filter, true);
 
         if (ImGui::Checkbox("Procedural", &_filterD3.Procedural))
+            UpdateTextureList(_filter, true);
+
+        if (ImGui::Checkbox("Animated", &_filterD3.Animated))
             UpdateTextureList(_filter, true);
 
         ImGui::Separator();
