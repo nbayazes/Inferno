@@ -33,7 +33,7 @@ namespace Inferno {
             return {};
         }
 
-        bool Any() const { return !_textures.empty() && !_sounds.empty(); }
+        bool Any() const { return !_textures.empty() || !_sounds.empty(); }
 
         void Clear() {
             _textures.clear();
