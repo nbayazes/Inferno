@@ -405,7 +405,7 @@ namespace Inferno::Editor {
                 // copy the MSN if it existed
                 if (filesystem::exists(srcMsn)) {
                     auto destMsn = Game::Mission->GetMissionPath();
-                    filesystem::copy(srcMsn, destMsn);
+                    filesystem::copy(srcMsn, destMsn, filesystem::copy_options::overwrite_existing);
                     SPDLOG_INFO(L"Copied mission to {}", destMsn.wstring());
                 }
             }
