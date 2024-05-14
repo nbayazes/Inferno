@@ -157,7 +157,8 @@ namespace Inferno {
             for (auto& texture : textures) {
                 if (auto entry = Seq::tryItem(table.Textures, (int)texture - 3000)) {
                     writer.WriteCString(entry->Name, 64);
-                } else {
+                }
+                else {
                     writer.WriteCString("Rainbow Texture", 64);
                 }
             }
@@ -224,6 +225,11 @@ namespace Inferno {
                     textures.push_back(face.Side.TMap);
 
                 auto texture = int16(Seq::indexOf(textures, face.Side.TMap).value_or(0));
+
+                if (auto entry = Seq::tryItem(table.Textures, (int)face.Side.TMap - 3000)) {
+                    if (entry->Name == "Rainbow Texture") 
+                        continue; // Don't export faces with the rainbow texture applied
+                }
 
                 if (side.Normals[0].Dot(side.Normals[1]) > 0.99999f) {
                     // planar face

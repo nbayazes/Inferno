@@ -183,14 +183,8 @@ namespace Inferno::Editor {
     }
 
     TextureBrowserUI::TextureBrowserUI() : WindowBase(Name, &Settings::Editor.Windows.Textures) {
-        Events::LevelLoaded += [this] {
-            UpdateSelectedTexture();
-            UpdateTextureList(_filter, true);
-        };
-        Events::LevelChanged += [this] {
-            UpdateSelectedTexture();
-            UpdateTextureList(_filter, false);
-        };
+        Events::LevelLoaded += [this] { UpdateTextureList(_filter, true); };
+        Events::LevelChanged += [this] { UpdateTextureList(_filter, false); };
         //Events::SelectSegment += [this] { UpdateSelectedTexture(); };
 
         D1Filter = ParseFilter("d1filter.txt");
@@ -330,6 +324,18 @@ namespace Inferno::Editor {
         return { color.x, color.y, color.z, 1 };
     }
 
+    Outrage::TextureInfo* GetSelectionTextureInfoD3() {
+        if (!Settings::Editor.Descent3Mode) return nullptr;
+
+        if (auto seg = Game::Level.TryGetSegment(Editor::Selection.Segment)) {
+            auto [tmap1, tmap2] = seg->GetTexturesForSide(Editor::Selection.Side);
+
+            return Seq::tryItem(Resources::GameTable.Textures, (int)tmap1 - Render::OUTRAGE_TEX_INDEX);
+        }
+
+        return nullptr;
+    }
+
     void TextureBrowserUI::Descent3Browser() {
         float contentWidth = ImGui::GetWindowContentRegionMax().x;
         float availableWidth = ImGui::GetWindowPos().x + contentWidth;
@@ -359,10 +365,9 @@ namespace Inferno::Editor {
 
         ImGui::Separator();
 
-        if (_selectedTextureD3) {
-            ImGui::Text(_selectedTextureD3->Name.c_str());
-
-            const auto& color = _selectedTextureD3->Color;
+        if (auto info = GetSelectionTextureInfoD3()) {
+            ImGui::Text(info->Name.c_str());
+            const auto& color = info->Color;
             auto scaledColor = GetScaledColor(color);
 
             ImGui::ColorButton("light", scaledColor, ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoTooltip);
@@ -427,7 +432,6 @@ namespace Inferno::Editor {
                     Events::SelectTexture(tmap1, LevelTexID::None);
                     Events::TextureInfo(tmap1);
                     Render::LoadTextureDynamic(tmap1);
-                    UpdateSelectedTexture();
                 }
                 else if (ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {}
                 else if (ImGui::IsMouseClicked(ImGuiMouseButton_Middle)) {}
@@ -463,21 +467,6 @@ namespace Inferno::Editor {
 
         ImGui::PopStyleVar();
         ImGui::EndChild();
-    }
-
-    void TextureBrowserUI::UpdateSelectedTexture() {
-        if (!Settings::Editor.Descent3Mode) return;
-
-        if (auto seg = Game::Level.TryGetSegment(Editor::Selection.Segment)) {
-            auto [tmap1, tmap2] = seg->GetTexturesForSide(Editor::Selection.Side);
-
-            if (auto entry = Seq::tryItem(Resources::GameTable.Textures, (int)tmap1 - Render::OUTRAGE_TEX_INDEX)) {
-                _selectedTextureD3 = *entry;
-                return;
-            }
-        }
-
-        _selectedTextureD3 = {};
     }
 
     void TextureBrowserUI::OnUpdate() {

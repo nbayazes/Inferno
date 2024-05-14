@@ -159,7 +159,6 @@ namespace Inferno::Editor {
         List<TexID> _textureIdsD3;
         bool _showInUse = true;
         bool _showEverything = false;
-        Option<Outrage::TextureInfo> _selectedTextureD3;
     public:
         static constexpr auto Name = "Textures";
         TextureBrowserUI();
@@ -171,7 +170,6 @@ namespace Inferno::Editor {
     private:
         void DrawFilter();
         void Descent3Browser();
-        void UpdateSelectedTexture();
     };
 }
 
