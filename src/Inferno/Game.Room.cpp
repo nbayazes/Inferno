@@ -1119,7 +1119,7 @@ namespace Inferno::Game {
 
                             pt += srcTransform.Forward() * 0.2f; // shift the point inside the start seg so parallel portals aren't marked as visible
 
-                            if (!PointInSegment(level, connectedSide.Segment, pt))
+                            if (!SegmentContainsPoint(level, connectedSide.Segment, pt))
                                 continue; // Shifting the point rarely pushes it outside the expected segment. Discard it if this happens.
 
                             // Check the source triangle against both dest triangles

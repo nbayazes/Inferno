@@ -11,6 +11,7 @@
 #include "Physics.h"
 #include "SoundSystem.h"
 #include "Resources.h"
+#include "logging.h"
 
 namespace Inferno {
     namespace {
@@ -173,12 +174,18 @@ namespace Inferno {
     }
 
     bool UpdateObjectSegment(Level& level, Object& obj) {
-        if (PointInSegment(level, obj.Segment, obj.Position))
+        if (SegmentContainsPoint(level, obj.Segment, obj.Position))
             return false; // Already in the right segment
 
         auto id = TraceSegment(level, obj.Segment, obj.Position);
-        // Leave the last good ID if nothing contains the object
-        if (id != SegID::None) obj.Segment = id;
+
+        if (id == SegID::None && obj.Segment == Game::Terrain.ExitTag.Segment) {
+            obj.Segment = SegID::Terrain; // Assume that the object has entered the terrain
+        }
+        else if (id != SegID::None) {
+            obj.Segment = id;
+        }
+        // Otherwise leave the last good ID if nothing contains the object
 
         auto& seg = level.GetSegment(obj.Segment);
         auto transitionTime = Game::GetState() == GameState::Game ? 0.5f : 0;
@@ -215,7 +222,7 @@ namespace Inferno {
         auto& prevSeg = level.GetSegment(prevSegId);
         for (auto& side : SIDE_IDS) {
             auto cid = prevSeg.GetConnection(side);
-            if (PointInSegment(level, cid, obj.Position)) {
+            if (SegmentContainsPoint(level, cid, obj.Position)) {
                 connection = { prevSegId, side };
                 break;
             }
@@ -1222,5 +1229,33 @@ namespace Inferno {
         for (int joint = 1; joint < model.Submodels.size(); joint++) {
             angles[joint] += state.DeltaAngles[joint] / state.Duration * dt;
         }
+    }
+
+    void TeleportObject(Object& obj, SegID segid, const Vector3* position, const Matrix3x3* rotation, bool resetPhysics) {
+        auto seg = Game::Level.TryGetSegment(segid);
+
+        if (!seg) {
+            SPDLOG_WARN("Tried to teleport object {} to invalid segment {}", obj.Signature, segid);
+            return;
+        }
+
+        Vector3 teleportPosition = seg->Center;
+
+        // Try to use the provided position
+        if (position && SegmentContainsPoint(Game::Level, segid, *position))
+            teleportPosition = *position;
+
+        obj.Position = obj.PrevPosition = teleportPosition;
+
+        if (resetPhysics) {
+            obj.Physics.PrevVelocity = obj.Physics.Velocity = Vector3();
+            obj.Physics.Thrust = Vector3();
+        }
+
+        if (rotation)
+            obj.PrevRotation = obj.Rotation = *rotation;
+
+        SPDLOG_INFO("Teleporting object {} to segment {}", obj.Signature, segid);
+        RelinkObject(Game::Level, obj, segid);
     }
 }

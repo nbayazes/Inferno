@@ -73,6 +73,12 @@ namespace Inferno::Render {
                 }
             }
 
+            for (auto& effectID : level.Terrain.Effects) {
+                if (auto effect = GetEffect(effectID)) {
+                    _transparentQueue.push_back({ effect, GetRenderDepth(effect->Position, camera) });
+                }
+            }
+
             // Mark all rooms as visible in editor mode
             for (int i = 0; i < level.Rooms.size(); i++) {
                 _visibleRooms.push_back((RoomID)i);

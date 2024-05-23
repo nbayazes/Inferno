@@ -362,24 +362,28 @@ namespace Inferno {
 
         bool SegmentExists(Tag tag) const { return SegmentExists(tag.Segment); }
 
+        Segment Terrain; // Placeholder terrain segment
+
         Segment* TryGetSegment(SegID id) {
+            if(id == SegID::Terrain) return &Terrain;
             if (!Seq::inRange(Segments, (int)id)) return nullptr;
             return &Segments[(int)id];
         }
 
         const Segment* TryGetSegment(SegID id) const {
+            if (id == SegID::Terrain) return &Terrain;
             if (!Seq::inRange(Segments, (int)id)) return nullptr;
             return &Segments[(int)id];
         }
 
-        Segment* TryGetSegment(Tag tag) { return TryGetSegment(tag.Segment); }
-        const Segment* TryGetSegment(Tag tag) const { return TryGetSegment(tag.Segment); }
+        Segment* TryGetSegment(Tag tag) {return tag.Segment == SegID::Terrain ? &Terrain : TryGetSegment(tag.Segment); }
+        const Segment* TryGetSegment(Tag tag) const { return tag.Segment == SegID::Terrain ? &Terrain : TryGetSegment(tag.Segment); }
 
-        Segment& GetSegment(SegID id) { return Segments[(int)id]; }
-        const Segment& GetSegment(SegID id) const { return Segments[(int)id]; }
+        Segment& GetSegment(SegID id) { return id == SegID::Terrain ? Terrain : Segments[(int)id]; }
+        const Segment& GetSegment(SegID id) const { return id == SegID::Terrain ? Terrain : Segments[(int)id]; }
 
-        Segment& GetSegment(Tag tag) { return Segments[(int)tag.Segment]; }
-        const Segment& GetSegment(Tag tag) const { return Segments[(int)tag.Segment]; }
+        Segment& GetSegment(Tag tag) { return tag.Segment == SegID::Terrain ? Terrain : Segments[(int)tag.Segment]; }
+        const Segment& GetSegment(Tag tag) const { return tag.Segment == SegID::Terrain ? Terrain : Segments[(int)tag.Segment]; }
 
         // Unchecked access
         SegmentSide& GetSide(Tag tag) {

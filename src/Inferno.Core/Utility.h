@@ -398,14 +398,6 @@ namespace Inferno {
         return normal;
     }
 
-    // Converts a direction vector into a rotation matrix
-    inline Matrix DirectionToRotationMatrix(const Vector3& direction, float roll = 0) {
-        assert(IsNormalized(direction));
-        auto pitch = asin(std::clamp(direction.y, -1.0f, 1.0f));
-        auto yaw = atan2(-direction.z, direction.x);
-        return Matrix::CreateFromYawPitchRoll(yaw, roll, pitch);
-    }
-
     // Projects a ray onto a plane. Returns nothing when parallel.
     inline Option<Vector3> ProjectRayOntoPlane(const Ray& ray, const Vector3& planeOrigin, Vector3 planeNormal) {
         assert(IsNormalized(planeNormal));
@@ -495,6 +487,14 @@ namespace Inferno {
         v0.Normalize();
         v1.Normalize();
         return AngleBetweenVectors(v0, v1, normal);
+    }
+
+    // Converts a direction vector into a rotation matrix
+    inline Matrix DirectionToRotationMatrix(const Vector3& direction, float roll = 0) {
+        assert(IsNormalized(direction));
+        auto pitch = asin(std::clamp(direction.y, -1.0f, 1.0f));
+        auto yaw = atan2(-direction.z, direction.x);
+        return Matrix::CreateFromYawPitchRoll(yaw, roll, pitch);
     }
 
     // Creates a world rotation matrix from a vector

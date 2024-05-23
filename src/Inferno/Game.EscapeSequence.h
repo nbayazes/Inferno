@@ -33,11 +33,18 @@ namespace Inferno {
         List<Vector3> EscapePath;
 
         ModelID ExitModel = ModelID::None;
+        int SurfacePathIndex = 0; // Node where the player has cleared the exit
+        int LookbackPathIndex = 0; // Node where the camera should switch from first to third person
 
         Tag ExitTag;
     };
 
-    void UpdateEscapeSequence(float dt);
+    // Returns true when playing an escape sequence
+    bool UpdateEscapeSequence(float dt);
+
+    void UpdateEscapeCamera(float dt);
+
+    void DebugEscapeSequence();
 
     TerrainInfo ParseEscapeInfo(Level& level, span<string> lines);
 }

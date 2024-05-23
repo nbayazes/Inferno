@@ -27,7 +27,7 @@
 
 #include "DirectX.h"
 #include "Types.h"
-#include "Logging.h"
+#include "logging.h"
 #include "Convert.h"
 
 #pragma warning(pop)

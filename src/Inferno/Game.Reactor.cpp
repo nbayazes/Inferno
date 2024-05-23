@@ -48,7 +48,7 @@ namespace Inferno::Game {
         }
     } 
 
-    void SelfDestructMine() {
+    void BeginSelfDestruct() {
         for (auto& tag : Level.ReactorTriggers) {
             if (auto wall = Level.TryGetWall(tag)) {
                 if (wall->Type == WallType::Door && wall->State == WallState::Closed)
@@ -75,8 +75,12 @@ namespace Inferno::Game {
         auto& player = Game::GetPlayerObject();
         auto signX = RandomInt(1) ? 1 : -1;
         auto signY = RandomInt(1) ? 1 : -1;
-        player.Physics.AngularVelocity.z += signX * .35f;
-        player.Physics.AngularVelocity.x += signY * .5f;
+        //player.Physics.AngularVelocity.z += signX * .35f;
+        //player.Physics.AngularVelocity.x += signY * .5f;
+    }
+
+    void StopSelfDestruct() {
+        ControlCenterDestroyed = false;
     }
 
     bool DestroyReactor(Object& obj) {
@@ -252,7 +256,7 @@ namespace Inferno::Game {
         // outside of the normal AI update range
         if (reactor.HitPoints <= 0) {
             if (DestroyReactor(reactor))
-                SelfDestructMine();
+                BeginSelfDestruct();
         }
     }
 

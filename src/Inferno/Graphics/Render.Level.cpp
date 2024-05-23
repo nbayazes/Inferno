@@ -508,7 +508,7 @@ namespace Inferno::Render {
 
         if (!terrain.SatelliteTexture.empty()) {
             // Draw satellites
-            auto& effect = terrain.SatelliteAdditive ? Effects->Sun : Effects->Sprite;
+            auto& effect = terrain.SatelliteAdditive ? Effects->Sun : Effects->SpriteTerrain;
             ctx.ApplyEffect(effect);
             ctx.SetConstantBuffer(0, Adapter->GetTerrainConstants().GetGPUVirtualAddress());
             effect.Shader->SetDepthBias(cmdList, 0);

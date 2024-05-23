@@ -66,7 +66,6 @@ namespace Inferno::Render {
         LinkEffect(effect, id, SegID::None);
     }
 
-
     EffectID AddEffect(Ptr<EffectBase> e) {
         if (VisualEffects.size() >= VisualEffects.capacity()) {
             //__debugbreak(); // Cannot resize effects array mid frame!
@@ -74,7 +73,7 @@ namespace Inferno::Render {
         }
 
         ASSERT(e->Segment > SegID::None); // Caller forgot to set segment
-        if (!Seq::inRange(Game::Level.Segments, (int)e->Segment))
+        if (!Seq::inRange(Game::Level.Segments, (int)e->Segment) && e->Segment != SegID::Terrain)
             return EffectID::None;
 
         e->CreationTime = Game::Time;
@@ -121,7 +120,8 @@ namespace Inferno::Render {
         }
 
         auto tid = vclip.GetFrameClamped(GetElapsedTime());
-        DrawBillboard(ctx, tid, Position, Info.Radius, color, true, Info.Rotation, up);
+        BillboardInfo info = { .Radius = Info.Radius, .Color = color, .Additive = true, .Rotation = Info.Rotation, .Up = up, .Terrain = Segment == SegID::Terrain };
+        DrawBillboard(ctx, tid, Position, info);
     }
 
     Particle CreateParticle(const ParticleEmitterInfo& emitter) {
@@ -266,7 +266,7 @@ namespace Inferno::Render {
             // todo: scorch marks on walls
         }
 
-        if (!PointInSegment(Game::Level, Segment, position)) {
+        if (!SegmentContainsPoint(Game::Level, Segment, position)) {
             LinkEffect(*this, effectId, Segment);
         }
     }

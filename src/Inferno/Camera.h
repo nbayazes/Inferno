@@ -67,6 +67,8 @@ namespace Inferno {
             _changed = true;
         }
 
+        float GetFov() const { return _fovDeg; }
+
         void SetPosition(const Vector3& position) {
             if (Position == position) return;
             Position = position;
@@ -114,7 +116,7 @@ namespace Inferno {
 
         void Roll(float roll) {
             _changed = true;
-            auto qroll = Quaternion::CreateFromAxisAngle(GetForward(), roll * 2);
+            auto qroll = Quaternion::CreateFromAxisAngle(GetForward(), roll);
             Up = Vector3::Transform(Up, qroll);
             Up.Normalize();
         }
@@ -125,7 +127,7 @@ namespace Inferno {
             Vector3 offset = Position - Target;
             auto qyaw = Quaternion::CreateFromAxisAngle(Up, yaw);
             auto qpitch = Quaternion::CreateFromAxisAngle(Up.Cross(offset), -pitch);
-
+            
             Position = Vector3::Transform(offset, qyaw * qpitch) + Target;
             Up = Vector3::Transform(Up, qpitch);
             Up.Normalize();

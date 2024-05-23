@@ -223,7 +223,7 @@ namespace Inferno {
                 if (index == 0 || p.DotCoordinate(point) <= 0) {
                     // Point was behind the plane or this was the starting segment
                     auto conn = seg.GetConnection(sideId);
-                    if (conn != SegID::None && !Seq::contains(g_VisitedStack, conn)) {
+                    if (conn > SegID::None && !Seq::contains(g_VisitedStack, conn)) {
                         g_VisitedStack.push_back(conn);
                     }
                 }
@@ -941,6 +941,7 @@ namespace Inferno {
         Ray pathRay(obj.Position, direction);
 
         for (auto& segId : pvs) {
+            if (segId == SegID::Terrain) return false; // no terrain intersection
             Debug::SegmentsChecked++;
             auto& seg = level.Segments[(int)segId];
 
@@ -1105,9 +1106,9 @@ namespace Inferno {
         //}
 
         //if (hits > 0 && !sticky) {
-            //obj.Physics.Velocity += faceVel != Vector3::Zero ? faceVel / (float)hits : edgeVel / (float)hits;
-            //obj.Physics.Velocity += slidingVel / (float)hits;
-            //obj.Position = averagePosition / (float)hits;
+        //obj.Physics.Velocity += faceVel != Vector3::Zero ? faceVel / (float)hits : edgeVel / (float)hits;
+        //obj.Physics.Velocity += slidingVel / (float)hits;
+        //obj.Position = averagePosition / (float)hits;
         //}
 
         return hit && hit.Tag;

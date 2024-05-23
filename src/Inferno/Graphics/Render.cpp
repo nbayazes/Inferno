@@ -65,43 +65,42 @@ namespace Inferno::Render {
     //}
 
     void DrawBillboard(GraphicsContext& ctx,
-                       float ratio,
                        D3D12_GPU_DESCRIPTOR_HANDLE texture,
                        D3D12_GPU_VIRTUAL_ADDRESS frameConstants,
                        Inferno::Camera& camera,
                        const Vector3& position,
-                       float radius,
-                       const Color& color,
-                       bool additive,
-                       float rotation,
-                       const Vector3* up) {
-        auto transform = up ? Matrix::CreateConstrainedBillboard(position, camera.Position, *up) : Matrix::CreateBillboard(position, camera.Position, camera.Up);
+                       BillboardInfo& info) {
+        auto transform = info.Up ? Matrix::CreateConstrainedBillboard(position, camera.Position, *info.Up) : Matrix::CreateBillboard(position, camera.Position, camera.Up);
 
-        if (rotation != 0)
-            transform = Matrix::CreateRotationZ(rotation) * transform;
+        if (info.Rotation != 0)
+            transform = Matrix::CreateRotationZ(info.Rotation) * transform;
 
         // create quad and transform it
-        auto h = radius * ratio;
-        auto w = radius;
+        auto h = info.Radius * info.Ratio;
+        auto w = info.Radius;
         auto p0 = Vector3::Transform({ -w, h, 0 }, transform); // bl
         auto p1 = Vector3::Transform({ w, h, 0 }, transform); // br
         auto p2 = Vector3::Transform({ w, -h, 0 }, transform); // tr
         auto p3 = Vector3::Transform({ -w, -h, 0 }, transform); // tl
 
-        ObjectVertex v0(p0, { 0, 0 }, color);
-        ObjectVertex v1(p1, { 1, 0 }, color);
-        ObjectVertex v2(p2, { 1, 1 }, color);
-        ObjectVertex v3(p3, { 0, 1 }, color);
+        ObjectVertex v0(p0, { 0, 0 }, info.Color);
+        ObjectVertex v1(p1, { 1, 0 }, info.Color);
+        ObjectVertex v2(p2, { 1, 1 }, info.Color);
+        ObjectVertex v3(p3, { 0, 1 }, info.Color);
 
         auto cmdList = ctx.GetCommandList();
-        auto& effect = additive ? Effects->SpriteAdditive : Effects->Sprite;
+
+        auto& effect = info.Terrain
+        ? (info.Additive ? Effects->SpriteAdditiveTerrain : Effects->SpriteTerrain)
+        : (info.Additive ? Effects->SpriteAdditive : Effects->Sprite);
+
         ctx.ApplyEffect(effect);
         ctx.SetConstantBuffer(0, frameConstants);
         effect.Shader->SetDiffuse(cmdList, texture);
         effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
         auto sampler = Render::GetClampedTextureSampler();
         effect.Shader->SetSampler(cmdList, sampler);
-        effect.Shader->SetDepthBias(cmdList, radius);
+        effect.Shader->SetDepthBias(cmdList, info.Radius);
 
         // todo: replace horrible code with proper batching
         Stats::DrawCalls++;
@@ -113,16 +112,12 @@ namespace Inferno::Render {
     void DrawBillboard(GraphicsContext& ctx,
                        TexID tid,
                        const Vector3& position,
-                       float radius,
-                       const Color& color,
-                       bool additive,
-                       float rotation,
-                       const Vector3* up) {
+                       BillboardInfo& info) {
         auto& ti = Resources::GetTextureInfo(tid);
-        auto ratio = (float)ti.Height / (float)ti.Width;
+        info.Ratio = (float)ti.Height / (float)ti.Width;
         auto& material = Materials->Get(tid);
 
-        DrawBillboard(ctx, ratio, material.Handle(), Adapter->GetFrameConstants().GetGPUVirtualAddress(), ctx.Camera, position, radius, color, additive, rotation, up);
+        DrawBillboard(ctx, material.Handle(), Adapter->GetFrameConstants().GetGPUVirtualAddress(), ctx.Camera, position, info);
     }
 
     void DrawDepthBillboard(GraphicsContext& ctx,
@@ -739,6 +734,9 @@ namespace Inferno::Render {
         auto& ctx = Adapter->GetGraphicsContext();
         ctx.Reset();
         ctx.Camera = camera;
+        ctx.Camera.SetViewport(Adapter->GetOutputSize());
+        ctx.Camera.UpdatePerspectiveMatrices();
+
         auto cmdList = ctx.GetCommandList();
         Heaps->SetDescriptorHeaps(cmdList);
         //auto outputSize = Adapter->GetOutputSize();

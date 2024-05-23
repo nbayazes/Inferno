@@ -626,8 +626,10 @@ namespace Inferno {
         Effect<FlatShader> Line = { &_shaders->Flat, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, StencilMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE } };
 
         Effect<SpriteShader> Sprite = { &_shaders->Sprite, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
+        Effect<SpriteShader> SpriteTerrain = { &_shaders->Sprite, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read } };
         //Effect<SpriteShader> SpriteOpaque = { &_shaders->Sprite, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::ReadWrite, StencilMode::PortalRead } };
         Effect<SpriteShader> SpriteAdditive = { &_shaders->Sprite, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
+        Effect<SpriteShader> SpriteAdditiveTerrain = { &_shaders->Sprite, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
         //Effect<SpriteShader> SpriteAdditiveBiased = { &_shaders->Sprite, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::ReadDecalBiased, StencilMode::PortalRead } };
         Effect<SpriteShader> SpriteMultiply = { &_shaders->Sprite, { BlendMode::Multiply, CullMode::CounterClockwise, DepthMode::ReadDecalBiased, StencilMode::PortalRead } };
 
@@ -636,7 +638,8 @@ namespace Inferno {
 
         Effect<TerrainShader> Terrain = { &_shaders->Terrain, { .Depth = DepthMode::ReadWrite, .Stencil = StencilMode::PortalReadNeq } };
         Effect<DepthShader> TerrainPortal = { &_shaders->Depth, { .Depth = DepthMode::Read, .Stencil = StencilMode::PortalWrite } };
-        Effect<ObjectShader> TerrainObject = { &_shaders->Object, { .Blend = BlendMode::Alpha, .Culling = CullMode::CounterClockwise, .Depth = DepthMode::Read } };
+        Effect<ObjectShader> TerrainObject = { &_shaders->Object, { .Blend = BlendMode::Alpha, .Culling = CullMode::None, .Depth = DepthMode::Read } };
+        Effect<ObjectDepthShader> TerrainDepthObject = { &_shaders->DepthObject, {.Blend = BlendMode::Opaque, .Culling = CullMode::None} };
 
         void Compile(ID3D12Device* device, uint msaaSamples) {
             CompileShader(&_shaders->Flat);
@@ -681,14 +684,17 @@ namespace Inferno {
             compile(Terrain);
             compile(TerrainPortal);
             compile(TerrainObject);
+            compile(TerrainDepthObject);
 
             compile(Object);
             compile(ObjectGlow);
             compile(ObjectDistortion);
             compile(BriefingObject, false);
             compile(Sprite);
+            compile(SpriteTerrain);
             //compile(SpriteOpaque);
             compile(SpriteAdditive);
+            compile(SpriteAdditiveTerrain);
             compile(SpriteMultiply);
             //compile(SpriteAdditiveBiased);
 

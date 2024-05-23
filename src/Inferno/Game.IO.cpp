@@ -560,11 +560,7 @@ namespace Inferno::Game {
         return result;
     }
 
-    void PlayMusic() {
-        //Sound::PlayMusic("Resignation.mp3");
-        //Sound::PlayMusic("Title.ogg");
-        //Sound::PlayMusic("Hostility.flac");
-
+    void PlayLevelMusic() {
         // Determine the correct song to play based on the level number
         auto sng = Resources::ReadTextFile("descent.sng");
         if (sng.empty()) {
@@ -584,51 +580,61 @@ namespace Inferno::Game {
         auto songIndex = FirstLevelSong + std::abs(LevelNumber - 1) % availableLevelSongs;
         string song = songs[songIndex];
 
-        if (String::ToLower(song).ends_with(".hmp")) {
-            if (Game::Mission) {
-                // Check the unpacked data folder for any music matching the default song names
-                auto base = std::filesystem::path(song).stem();
-                std::vector extensions = { ".ogg", ".mp3", ".flac" };
+        PlayMusic(song);
+    }
 
-                for (auto& ext : extensions) {
-                    auto unpacked = Game::Mission->Path.parent_path() / Game::Mission->Path.stem() / base;
-                    unpacked.replace_extension(ext);
-                    if (filesystem::exists(unpacked)) {
-                        Sound::PlayMusic(File::ReadAllBytes(unpacked), true);
-                        return;
-                    }
-                }
+    void PlayMusic(string_view song, bool loop) {
+        //Sound::PlayMusic("Resignation.mp3");
+        //Sound::PlayMusic("Title.ogg");
+        //Sound::PlayMusic("Hostility.flac");
 
-                for (auto& ext : extensions) {
-                    base.replace_extension(ext);
-                    auto entry = Game::Mission->TryReadEntry(base.string());
-                    if (!entry.empty()) {
-                        Sound::PlayMusic(std::move(entry), true);
-                        return;
-                    }
+        //PlayMusic("endlevel.hmp");
+
+        // Try playing the given file name if it exists
+        if (Resources::FileExists(song)) {
+            Sound::PlayMusic(song);
+            return;
+        }
+
+        if (Game::Mission) {
+            // Check the unpacked mission data folder and mission file for music
+            auto base = std::filesystem::path(song).stem();
+            std::array extensions = { ".ogg", ".mp3", ".flac" };
+
+            for (auto& ext : extensions) {
+                auto unpacked = Game::Mission->Path.parent_path() / Game::Mission->Path.stem() / base;
+                unpacked.replace_extension(ext);
+                if (filesystem::exists(unpacked)) {
+                    Sound::PlayMusic(File::ReadAllBytes(unpacked), loop);
+                    return;
                 }
             }
 
-            // Try finding replacement music for the game's midi tracks
-            // Assumes the user only provided one type of file in the data directories
-            std::filesystem::path path(song);
-
-            path.replace_extension(".ogg");
-            if (Resources::FileExists(path.string()))
-                Sound::PlayMusic(path.string());
-
-            path.replace_extension(".mp3");
-            if (Resources::FileExists(path.string()))
-                Sound::PlayMusic(path.string());
-
-            path.replace_extension(".flac");
-            if (Resources::FileExists(path.string()))
-                Sound::PlayMusic(path.string());
-
-            // todo: play the original midi if no replacement music
+            for (auto& ext : extensions) {
+                base.replace_extension(ext);
+                auto entry = Game::Mission->TryReadEntry(base.string());
+                if (!entry.empty()) {
+                    Sound::PlayMusic(std::move(entry), loop);
+                    return;
+                }
+            }
         }
-        else {
-            Sound::PlayMusic(song);
-        }
+
+        // Check the file system for music. Priority is arbitrary.
+        filesystem::path path(song);
+
+        path.replace_extension(".ogg");
+        if (Resources::FileExists(path.string()))
+            Sound::PlayMusic(path.string(), loop);
+
+        path.replace_extension(".mp3");
+        if (Resources::FileExists(path.string()))
+            Sound::PlayMusic(path.string(), loop);
+
+        path.replace_extension(".flac");
+        if (Resources::FileExists(path.string()))
+            Sound::PlayMusic(path.string(), loop);
+
+        // todo: play the original midi if no replacement music
     }
 }

@@ -111,12 +111,12 @@ namespace Inferno::Editor {
         };
 
         Command CameraRollLeft{
-            .Action = [] { Editor::EditorCamera.Roll(Clock.GetFrameTimeSeconds()); },
+            .Action = [] { Editor::EditorCamera.Roll(Clock.GetFrameTimeSeconds() * 2); },
             .Name = "Camera: Roll Left"
         };
 
         Command CameraRollRight{
-            .Action = [] { Editor::EditorCamera.Roll(-Clock.GetFrameTimeSeconds()); },
+            .Action = [] { Editor::EditorCamera.Roll(-Clock.GetFrameTimeSeconds() * 2); },
             .Name = "Camera: Roll Right"
         };
 

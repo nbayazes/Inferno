@@ -84,26 +84,27 @@ namespace Inferno::Render {
         return Vector3::DistanceSquared(camera.Position, pos);
     }
 
+    struct BillboardInfo {
+        float Ratio;
+        float Radius;
+        Color Color;
+        bool Additive = false;
+        float Rotation = 0;
+        const Vector3* Up = nullptr;
+        bool Terrain = false;
+    };
+
     void DrawBillboard(GraphicsContext& ctx,
-                       float ratio,
                        D3D12_GPU_DESCRIPTOR_HANDLE texture,
                        D3D12_GPU_VIRTUAL_ADDRESS frameConstants,
                        Inferno::Camera& camera,
                        const Vector3& position,
-                       float radius,
-                       const Color& color,
-                       bool additive,
-                       float rotation,
-                       const Vector3* up);
+                       BillboardInfo& info);
 
     void DrawBillboard(GraphicsContext& ctx,
                        TexID tid,
                        const Vector3& position,
-                       float radius,
-                       const Color& color,
-                       bool additive,
-                       float rotation,
-                       const Vector3* up);
+                       BillboardInfo& info);
 
     // Call ApplyEffect and SetConstantBuffer first
     void DrawDepthBillboard(GraphicsContext& ctx,

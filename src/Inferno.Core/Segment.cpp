@@ -4,7 +4,6 @@
 #include <spdlog/spdlog.h>
 
 #include "Level.h"
-#include "Face.h"
 
 namespace Inferno {
     void Segment::RemoveObject(ObjID id) {
@@ -28,6 +27,9 @@ namespace Inferno {
 
             return false; // open side with no wall
         }
+
+        if (GetConnection(side) == SegID::Exit) 
+            return false; // Exit counts as open
 
         return true; // no connection or wall
     }

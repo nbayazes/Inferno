@@ -152,7 +152,7 @@ namespace Inferno::Sound {
                         LevelHit hit;
                         RayQuery query{ .MaxDistance = dist, .Start = Info.Segment };
 
-                        if (Intersect.RayLevel(ray, query, hit)) {
+                        if (Info.Segment != SegID::Terrain && Intersect.RayLevel(ray, query, hit)) {
                             auto hitDist = (listener - hit.Point).Length();
                             // we hit a wall, muffle it based on the distance from the source
                             // a sound coming immediately around the corner shouldn't get muffled much
@@ -685,6 +685,7 @@ namespace Inferno::Sound {
             }
 
             _musicStream.reset();
+            _engine->Reset();
 
             SPDLOG_INFO("Stopping audio mixer thread");
             CoUninitialize();
@@ -973,8 +974,8 @@ namespace Inferno::Sound {
     }
 
 
-    bool PlayMusic(const string& file, bool loop) {
-        SoundThread->PlayMusic({ file, {}, loop });
+    bool PlayMusic(string_view file, bool loop) {
+        SoundThread->PlayMusic({ string(file), {}, loop });
         return true;
     }
 

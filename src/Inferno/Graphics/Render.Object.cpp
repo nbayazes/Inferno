@@ -44,12 +44,14 @@ namespace Inferno::Render {
 
             // Randomize sprite animation
             auto tid = vclip.GetFrame(Game::Time + GetTimeOffset(object));
-            DrawBillboard(ctx, tid, pos, object.Radius, color, additive, object.Render.Rotation, up);
+            BillboardInfo info = { .Radius = object.Radius, .Color = color, .Additive = additive, .Rotation = object.Render.Rotation, .Up = up, .Terrain = object.Segment == SegID::Terrain };
+            DrawBillboard(ctx, tid, pos, info);
         }
         else if (object.Render.Type == RenderType::Laser) {
             // "laser" is used for still-image "blobs" like spreadfire
             auto& weapon = Resources::GetWeapon((WeaponID)object.ID);
-            DrawBillboard(ctx, weapon.BlobBitmap, pos, object.Radius, color, additive, object.Render.Rotation, up);
+            BillboardInfo info = { .Radius = object.Radius, .Color = color, .Additive = additive, .Rotation = object.Render.Rotation, .Up = up, .Terrain = object.Segment == SegID::Terrain };
+            DrawBillboard(ctx, weapon.BlobBitmap, pos, info);
         }
         else {
             DrawObjectOutline(object, ctx.Camera);
@@ -104,7 +106,7 @@ namespace Inferno::Render {
 
     void ModelDepthPrepass(GraphicsContext& ctx, const Object& object, ModelID modelId) {
         auto cmdList = ctx.GetCommandList();
-        auto& effect = Effects->DepthObject;
+        auto& effect = Game::OnTerrain && object.IsPlayer() ? Effects->TerrainDepthObject : Effects->DepthObject;
 
         if (ctx.ApplyEffect(effect)) {
             ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
@@ -502,7 +504,7 @@ namespace Inferno::Render {
             return;
         }
 
-        auto& effect = Effects->Object;
+        auto& effect = Game::OnTerrain && object.IsPlayer() ? Effects->TerrainObject : Effects->Object;
         auto cmdList = ctx.GetCommandList();
 
         auto& model = Resources::GetModel(modelId);
@@ -593,7 +595,7 @@ namespace Inferno::Render {
                     if (material.Additive)
                         ctx.ApplyEffect(Effects->ObjectGlow); // Additive blend
                     else
-                        ctx.ApplyEffect(Effects->Object); // Alpha blend
+                        ctx.ApplyEffect(Game::OnTerrain && object.IsPlayer() ? Effects->TerrainObject : Effects->Object); // Alpha blend
                 }
                 else {
                     ctx.ApplyEffect(effect);

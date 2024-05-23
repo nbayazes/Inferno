@@ -105,8 +105,13 @@ namespace Inferno::Game {
     inline void UnloadMission() { Mission = {}; }
 
     void CheckLoadLevel();
-    void PlayMusic();
 
+    // Plays music for the level based on its number
+    void PlayLevelMusic();
+
+    // Plays a specific music file. Extension is optional.
+    // Non-level songs include: briefing, credits, descent, endgame, endlevel
+    void PlayMusic(string_view song, bool loop = true);
 
     // Tries to read the mission file (msn / mn2) for the loaded mission
     Option<MissionInfo> TryReadMissionInfo();
@@ -203,7 +208,7 @@ namespace Inferno::Game {
     inline int CountdownSeconds = -1; // seconds before the reactor goes critical. Used for HUD value and audio.
     inline int TotalCountdown = -1; // the starting countdown time
     inline float GlobalDimming = 1; // Amount of global fade to apply to 'mine' light sources
-
+    inline bool OnTerrain = false; // True when the player or camera is on the terrain
 
     void SetState(GameState);
     GameState GetState();

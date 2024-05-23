@@ -675,12 +675,10 @@ namespace Inferno::Editor {
         }
 
         void GoToExit() {
-            if (auto tid = Seq::findIndex(Game::Level.Triggers, [](const Trigger& trigger) { return IsExit(Game::Level, trigger); })) {
-                if (auto wall = Game::Level.TryGetWall((TriggerID)*tid)) {
-                    Selection.SetSelection(wall->Tag);
-                    FocusSegment();
-                    return;
-                }
+            if (auto exit = FindExit(Game::Level)) {
+                Selection.SetSelection(exit);
+                FocusSegment();
+                return;
             }
 
             SetStatusMessageWarn("No exit in level");

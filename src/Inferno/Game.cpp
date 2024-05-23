@@ -217,6 +217,11 @@ namespace Inferno::Game {
                 }
             }
         }
+
+        for (auto& objId : Level.Terrain.Objects) {
+            if (auto obj = Level.TryGetObject(objId))
+                FixedUpdateObject(dt, objId, *obj);
+        }
     }
 
     void DecayScreenFlash(float dt) {
@@ -312,13 +317,9 @@ namespace Inferno::Game {
     }
 
     void UpdateExitSequence() {
+        return;
+
         // todo: escape sequence
-        // for first 5? seconds move camera to player
-        //MoveCameraToObject(Render::Camera, Level.Objects[0], LerpAmount);
-        // otherwise shift camera in front of player by 20? units
-
-        // use a smoothed path between segment centers
-
         // escape cancels sequence?
 
         // restore default exposure in case the reactor started going critical.
@@ -543,6 +544,7 @@ namespace Inferno::Game {
         }
 
         Graphics::BeginFrame(); // enable debug calls during updates
+
         UpdateGameState();
 
         g_ImGuiBatch->BeginFrame();
@@ -551,8 +553,10 @@ namespace Inferno::Game {
                 LerpAmount = GameUpdate(dt);
             //UpdateCommsMessage();
             //DrawBriefing();
-                SetActiveCamera(Game::GameCamera);
-                Game::GameCamera.SetFov(Settings::Graphics.FieldOfView);
+                if (!UpdateEscapeSequence(dt)) {
+                    SetActiveCamera(Game::GameCamera);
+                    Game::GameCamera.SetFov(Settings::Graphics.FieldOfView);
+                }
 
                 if (!Level.Objects.empty()) {
                     if (Player.IsDead)
@@ -584,8 +588,12 @@ namespace Inferno::Game {
                 }
 
                 Editor::Update();
-                SetActiveCamera(Editor::EditorCamera);
-                Editor::EditorCamera.SetFov(Settings::Editor.FieldOfView);
+                if (!UpdateEscapeSequence(dt)) {
+                    SetActiveCamera(Editor::EditorCamera);
+                    Editor::EditorCamera.SetFov(Settings::Editor.FieldOfView);
+                } else {
+                    UpdateEscapeCamera(dt);
+                }
 
                 if (!Settings::Inferno.ScreenshotMode) {
                     if (!EditorUI) EditorUI = make_unique<Inferno::Editor::EditorUI>();
@@ -761,7 +769,7 @@ namespace Inferno::Game {
         InitializeMatcens(Level);
         LoadHUDTextures();
         PreloadTextures();
-        PlayMusic();
+        PlayLevelMusic();
 
         Editor::SetPlayerStartIDs(Level);
         // Default the gravity direction to the player start

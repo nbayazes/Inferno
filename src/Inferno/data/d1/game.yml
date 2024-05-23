@@ -1136,6 +1136,36 @@ Effects:
       Instances: 1
       UseParentVertices: 1
 
+    - Name: tunnel chase fireball
+      FadeTime: 0.25
+      Color: 1, .8, .8, 3.5
+      Radius: [ 11, 15 ]
+      Delay: [ 0.1, 0.25 ]
+      Clip: 58
+      # Sound: 31 # Exploding wall
+      Instances: 3
+      Variance: 10
+
+    - Name: mine collapse fireball
+      FadeTime: 0.25
+      Color: 1, .8, .8, 3.5
+      Radius: [ 30, 40 ]
+      Delay: .05
+      Clip: 58
+      Sound: 11
+      Instances: 6
+      Variance: 10
+      Volume: 2
+
+    - Name: mine collapse huge fireball
+      FadeTime: 0.125
+      Color: 1, .8, .8, 3.5
+      Radius: 40
+      Delay: .70
+      Clip: 58
+      Sound: 11
+      Volume: 3
+
     - Name: boss small fireball
       FadeTime: 0.25
       Radius: [ 4, 6 ]

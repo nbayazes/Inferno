@@ -211,7 +211,7 @@ namespace Inferno {
 
     enum class ObjID : int16 { None = -1 }; // Object ID
     enum class ObjSig : uint16 { None = 0 }; // Object signature
-    enum class SegID : int16 { None = -1, Exit = -2 }; // Segment ID
+    enum class SegID : int16 { None = -1, Exit = -2, Terrain = 32767 }; // Segment ID
     enum class RoomID : int16 { None = -1 }; // Room ID
     enum class TexID : int16 { None = -1, Invalid = 0 }; // Texture ID (Pig)
     enum class EffectID : int16 { None = -1 }; // Effect ID for visual effects

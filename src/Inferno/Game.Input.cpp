@@ -149,7 +149,7 @@ namespace Inferno {
 
     void HandleInput() {
         if (Input::IsKeyPressed(Keys::Back) && Input::IsKeyDown(Keys::LeftAlt))
-            Game::SelfDestructMine();
+            Game::BeginSelfDestruct();
 
         if (Input::IsKeyPressed(Keys::OemTilde) && Input::IsKeyDown(Keys::LeftAlt))
             Game::SetState(Game::GetState() == GameState::Paused ? GameState::Game : GameState::Paused);

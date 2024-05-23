@@ -8,6 +8,7 @@
 #include "Resources.h"
 #include "Settings.h"
 #include "SoundSystem.h"
+#include "logging.h"
 
 namespace Inferno {
     void ChangeLight(Level& level, const LightDeltaIndex& index, float multiplier = 1.0f) {
@@ -86,12 +87,12 @@ namespace Inferno {
     }
 
 
-    Array<float, 6> GetSideDistances(const Level& level, SegID id, const Vector3& point) {
+    Array<float, 6> GetSideDistances(const Level& level, const Segment& seg, const Vector3& point) {
         Array<float, 6> distances{};
 
         for (auto& sideId : SIDE_IDS) {
             auto& dist = distances[(int)sideId];
-            auto face = ConstFace::FromSide(level, Tag{ id, sideId });
+            auto face = ConstFace::FromSide(level, seg, sideId);
 
             if (face.Side.Type == SideSplitType::Tri02) {
                 Plane p0(face[1], face.Side.Normals[0]);
@@ -133,10 +134,11 @@ namespace Inferno {
     }
 
     // Returns true if a point is inside of a segment
-    bool PointInSegment(const Level& level, SegID id, const Vector3& point) {
-        if (!level.SegmentExists(id)) return false;
+    bool SegmentContainsPoint(const Level& level, SegID id, const Vector3& point) {
+        auto seg = level.TryGetSegment(id);
+        if (!seg) return false;
 
-        auto distances = GetSideDistances(level, id, point);
+        auto distances = GetSideDistances(level, *seg, point);
         return ranges::all_of(distances, [](float d) { return d >= 0; });
 
         //for (auto& d : distances) {
@@ -193,7 +195,13 @@ namespace Inferno {
             return start;
         }
 
-        auto distances = GetSideDistances(level, start, point);
+        auto startSeg = level.TryGetSegment(start);
+        if (!startSeg) {
+            SPDLOG_ERROR("Trace start seg does not exist");
+            return start;
+        }
+
+        auto distances = GetSideDistances(level, *startSeg, point);
         if (ranges::all_of(distances, [](float d) { return d >= -0.001f; }))
             return start;
 
@@ -291,7 +299,7 @@ namespace Inferno {
             auto& seg = level.GetSegment((SegID)id);
             if (Vector3::Distance(seg.Center, point) > 200) continue;
 
-            if (PointInSegment(level, (SegID)id, point))
+            if (SegmentContainsPoint(level, (SegID)id, point))
                 return (SegID)id;
         }
 
@@ -679,5 +687,15 @@ namespace Inferno {
         }
 
         return false;
+    }
+
+    Tag FindExit(Level& level) {
+        if (auto tid = Seq::findIndex(level.Triggers, [&level](const Trigger& trigger) { return IsExit(level, trigger); })) {
+            if (auto wall = level.TryGetWall((TriggerID)*tid)) {
+                return wall->Tag;
+            }
+        }
+
+        return {};
     }
 }

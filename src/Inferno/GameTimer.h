@@ -21,10 +21,10 @@ namespace Inferno {
         void operator +=(float value) { _timestamp += value; }
         void operator -=(float value) { _timestamp -= value; }
 
-        bool operator < (float value) const;
-        bool operator <= (float value) const;
-        bool operator > (float value) const;
-        bool operator >= (float value) const;
+        bool operator <(float value) const;
+        bool operator <=(float value) const;
+        bool operator >(float value) const;
+        bool operator >=(float value) const;
 
         auto operator<=>(const GameTimer&) const = default;
     };

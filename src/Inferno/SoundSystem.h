@@ -44,7 +44,7 @@ namespace Inferno::Sound {
     bool PlayMusic(const List<byte>&& data, bool loop);
 
     // Plays a music file. Returns true if playback started.
-    bool PlayMusic(const string& file, bool loop = true);
+    bool PlayMusic(string_view file, bool loop = true);
 
     // Stops the currently playing music
     void StopMusic();

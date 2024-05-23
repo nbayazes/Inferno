@@ -109,4 +109,7 @@ namespace Inferno {
     AnimationState StartAnimation(const Object& object, const AnimationAngles& currentAngles, Animation anim, float time, float moveMult, float delay);
 
     void UpdateAnimation(AnimationAngles& angles, const Object& robot, AnimationState& state, float dt);
+
+    // Teleports an object to a new segment
+    void TeleportObject(Object& obj, SegID segid, const Vector3* position = nullptr, const Matrix3x3* rotation = nullptr, bool resetPhysics = true);
 }

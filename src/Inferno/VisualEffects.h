@@ -197,7 +197,7 @@ namespace Inferno {
     void AttachSparkEmitter(const SparkEmitterInfo&, ObjRef parent, const Vector3& offset = Vector3::Zero);
 
     EffectID AddLight(const LightEffectInfo& info, const Vector3& position, float duration, SegID segment);
-    EffectID AttachLight(const LightEffectInfo& info, ObjRef parent, SubmodelRef submodel);
+    EffectID AttachLight(const LightEffectInfo& info, ObjRef parent, SubmodelRef submodel = {});
 
     void AddDebris(const DebrisInfo& info, const Matrix& transform, SegID seg, const Vector3& velocity, const Vector3& angularVelocity, float duration);
 

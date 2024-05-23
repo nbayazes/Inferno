@@ -737,7 +737,7 @@ namespace Inferno::Resources {
         }
     }
 
-    bool FileExists(const string& name) {
+    bool FileExists(string_view name) {
         // current HOG file
         if (Game::Mission) {
             // Check unpacked data folder for mission
@@ -759,7 +759,7 @@ namespace Inferno::Resources {
                 auto& filePath = file.path();
                 if (String::ToLower(filePath.extension().string()) == ".dxa") {
                     if (auto zip = zip_open(filePath.string().c_str(), 0, 'r')) {
-                        if (zip_entry_open(zip, name.c_str()) == 0) {
+                        if (zip_entry_open(zip, name.data()) == 0) {
                             found = true;
                             zip_entry_close(zip);
                         }
@@ -773,12 +773,12 @@ namespace Inferno::Resources {
         }
 
         // game specific data folder
-        auto path = GetGameDataFolder(Game::Level) + name;
+        auto path = filesystem::path(GetGameDataFolder(Game::Level)) / name;
         if (filesystem::exists(path))
             return true;
 
         // Common data folder
-        path = "data/" + name;
+        path = filesystem::path("data") / name;
         if (filesystem::exists(path))
             return true;
 

@@ -7,11 +7,13 @@
 #include "Game.h"
 #include "Game.Reactor.h"
 #include "Game.Segment.h"
+#include "Game.Object.h"
 #include "Physics.h"
 #include "Random.h"
 #include "Resources.h"
 #include "Settings.h"
 #include "SoundSystem.h"
+#include "logging.h"
 
 namespace Inferno::Game {
     namespace {
@@ -184,14 +186,10 @@ namespace Inferno::Game {
         }
 
         if (!target) {
-            SPDLOG_WARN("Boss was unable to find a new segment to warp to");
+            SPDLOG_WARN("Boss was unable to find a new segment to teleport to");
         }
         else {
-            boss.Position = boss.PrevPosition = target->Position;
-            boss.Physics.PrevVelocity = boss.Physics.Velocity = Vector3();
-            boss.Physics.Thrust = Vector3();
-            SPDLOG_INFO("Teleporting boss to segment {}", target->Segment);
-            RelinkObject(Game::Level, boss, target->Segment);
+            TeleportObject(boss, target->Segment);
         }
 
         // Face towards player after teleporting
@@ -221,7 +219,7 @@ namespace Inferno::Game {
             bool explode = DeathRoll(boss, BOSS_DEATH_DURATION, BossDyingElapsed, info.DeathRollSound,
                                      BossDyingSoundPlaying, BOSS_DEATH_SOUND_VOLUME, dt);
             if (explode) {
-                SelfDestructMine();
+                BeginSelfDestruct();
                 ExplodeObject(boss);
                 BossDying = false; // safeguard
                 Sound3D sound(info.ExplosionSound2);

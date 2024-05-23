@@ -3,7 +3,9 @@
 #include "Object.h"
 
 namespace Inferno::Game {
-    void SelfDestructMine();
+    void BeginSelfDestruct();
+
+    void StopSelfDestruct();
 
     // returns true if the reactor was destroyed. False if already destroyed.
     bool DestroyReactor(Object& obj);

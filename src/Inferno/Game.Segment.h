@@ -6,7 +6,7 @@ namespace Inferno {
     void AddLight(Level& level, Tag light, Segment& seg);
     void ToggleLight(Level& level, Tag light);
     void UpdateFlickeringLights(Level& level, float t, float dt);
-    bool PointInSegment(const Level& level, SegID id, const Vector3& point);
+    bool SegmentContainsPoint(const Level& level, SegID id, const Vector3& point);
     SegID TraceSegment(const Level& level, SegID start, const Vector3& point);
     bool IsSecretExit(const Level& level, const Trigger& trigger);
     bool IsExit(const Level& level, const Trigger& trigger);
@@ -28,4 +28,5 @@ namespace Inferno {
     Vector3 RandomPointInSegment(const Level& level, const Segment& seg);
     // Returns true if a new object at the given position and radius would intersect with an existing object
     bool NewObjectIntersects(const Level& level, const Segment& seg, const Vector3& position, float radius, ObjectMask mask);
+    Tag FindExit(Level& level);
 }
