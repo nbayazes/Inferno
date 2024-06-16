@@ -63,6 +63,7 @@
     <Rule Id="C26800" Action="Warning" />
     <Rule Id="C26810" Action="Warning" />
     <Rule Id="C26811" Action="Warning" />
+    <Rule Id="C26813" Action="Warning" />
     <Rule Id="C26814" Action="Warning" />
     <Rule Id="C26815" Action="Warning" />
     <Rule Id="C26816" Action="Warning" />

@@ -33,6 +33,7 @@ namespace Inferno::Render {
     inline Ptr<StructuredBuffer> MaterialInfoBuffer;
     inline Ptr<StructuredBuffer> VClipBuffer;
 
+    inline bool TerrainChanged = false;
     inline bool DebugEmissive = false;
     inline Ptr<TextureCache> NewTextureCache;
 

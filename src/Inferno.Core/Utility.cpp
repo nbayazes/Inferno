@@ -4,7 +4,7 @@
 
 namespace Inferno {
     namespace {
-        constexpr int RANDOM_MAX = 0x7FFFFFFFUL;
+        constexpr int RANDOM_MAX = std::numeric_limits<int>::max();
         std::mt19937 gen; //seed for rd(Mersenne twister)
         std::uniform_int_distribution randomRange(0, RANDOM_MAX);
     }
@@ -16,7 +16,6 @@ namespace Inferno {
     }
 
     float Random() {
-        //return (float)rand() / RAND_MAX;
         return (float)randomRange(gen) / (float)RANDOM_MAX;
     }
 

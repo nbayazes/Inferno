@@ -161,6 +161,7 @@
     <ClCompile Include="Audio\WAVFileReader.cpp" />
     <ClCompile Include="Game.Cinematics.cpp" />
     <ClCompile Include="DebugOverlay.cpp" />
+    <ClCompile Include="Game.Terrain.cpp" />
     <ClCompile Include="Graphics.Debug.cpp" />
     <ClCompile Include="VisualEffects.cpp" />
     <ClCompile Include="Formats\BBM.cpp" />
@@ -269,6 +270,7 @@
     <ClInclude Include="Audio\SoundCommon.h" />
     <ClInclude Include="Audio\WAVFileReader.h" />
     <ClInclude Include="BitmapCache.h" />
+    <ClInclude Include="Editor\UI\TerrainEditor.h" />
     <ClInclude Include="Game.Cinematics.h" />
     <ClInclude Include="CustomTextureLibrary.h" />
     <ClInclude Include="Debug.h" />
@@ -280,6 +282,7 @@
     <ClInclude Include="Editor\UI\BriefingEditor.h" />
     <ClInclude Include="Editor\UI\DiagnosticWindow.h" />
     <ClInclude Include="Effect.h" />
+    <ClInclude Include="Game.Terrain.h" />
     <ClInclude Include="Graphics.Debug.h" />
     <ClInclude Include="VisualEffects.h" />
     <ClInclude Include="Formats\BBM.h" />

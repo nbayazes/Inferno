@@ -439,11 +439,9 @@ namespace Inferno {
         return C.Length();
     }
 
-    inline float PointToPlaneDistance(const Vector3& point, const Vector3& planeOrigin, Vector3 planeNormal) {
+    inline float PointToPlaneDistance(const Vector3& point, const Vector3& planeOrigin, const Vector3& planeNormal) {
         assert(IsNormalized(planeNormal));
-        auto w = point - planeOrigin;
-        auto v = planeNormal;
-        return v.Dot(w) / v.Length();
+        return planeNormal.Dot(point - planeOrigin);
     }
 
     // v0 and v1 must be normalized. Returns [-PI, PI]

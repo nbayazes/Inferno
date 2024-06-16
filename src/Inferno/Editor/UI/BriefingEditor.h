@@ -19,7 +19,6 @@ namespace Inferno::Editor {
             _buffer.resize(BUFFER_SIZE);
         }
 
-
     protected:
         
         void OnUpdate() override {

@@ -304,7 +304,7 @@ namespace Inferno {
 
         // Don't let robots collide with robot-placed mines. Mine laying robots will blow themselves up otherwise.
         if (ObjectIsMine(target) || ObjectIsMine(src)) {
-            if (target.Faction == Faction::Robot && src.Faction == Faction::Robot)
+            if (HasFlag(target.Faction, Faction::Robot) && HasFlag(src.Faction, Faction::Robot))
                 return CollisionType::None;
         }
 

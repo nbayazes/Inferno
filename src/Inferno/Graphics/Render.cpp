@@ -14,6 +14,7 @@
 #include "Render.Particles.h"
 #include "Game.Text.h"
 #include "Editor/UI/BriefingEditor.h"
+#include "Graphics.h"
 #include "HUD.h"
 #include "ScopedTimer.h"
 #include "LegitProfiler.h"
@@ -756,6 +757,12 @@ namespace Inferno::Render {
 
             CopyMaterialData(cmdList);
             LoadVClips(cmdList); // todo: only load on initial level load
+        }
+
+        if (TerrainChanged) {
+            Adapter->WaitForGpu();
+            Graphics::LoadTerrain(Game::Terrain);
+            TerrainChanged = false;
         }
 
         if (Game::BriefingVisible)

@@ -342,6 +342,7 @@ namespace Inferno::Editor {
                 ImGui::MenuItem("Tunnel Builder", nullptr, &Settings::Editor.Windows.TunnelBuilder);
                 ImGui::MenuItem("Scale", nullptr, &Settings::Editor.Windows.Scale);
                 ImGui::MenuItem("Material Editor", nullptr, &Settings::Editor.Windows.MaterialEditor);
+                ImGui::MenuItem("Terrain", nullptr, &Settings::Editor.Windows.TerrainEditor);
 
 #ifdef _DEBUG
                 ImGui::MenuItem("Briefing Editor", nullptr, &Settings::Editor.Windows.BriefingEditor);
@@ -482,7 +483,7 @@ namespace Inferno::Editor {
         }
 
         {
-            static const std::array insertModes = { "Normal", "Extrude", "Mirror" };
+            static constexpr std::array insertModes = { "Normal", "Extrude", "Mirror" };
 
             ImGui::AlignTextToFramePadding();
             ImGui::Text("Insert");
@@ -598,7 +599,7 @@ namespace Inferno::Editor {
             // Coordinate system settings
             ImGui::SetNextItemWidth(150 * Shell::DpiScale);
 
-            static const std::array csysModes = { "Local", "Global", "User Defined (UCS)" };
+            static constexpr std::array csysModes = { "Local", "Global", "User Defined (UCS)" };
             const ImVec2 csysBtnSize = { 150 * Shell::DpiScale, 0 };
 
             if (ImGui::BeginCombo("##csys-dropdown", csysModes[(int)Settings::Editor.CoordinateSystem], ImGuiComboFlags_HeightLarge)) {
@@ -920,20 +921,8 @@ namespace Inferno::Editor {
         for (auto& dialog : _dialogs | views::values)
             dialog->Update();
 
-        _reactorEditor.Update();
-        _debugWindow.Update();
-        _bloomWindow.Update();
-        _noise.Update();
-        _lightingWindow.Update();
-        _textureBrowser.Update();
-        _textureEditor.Update();
-        _propertyEditor.Update();
-        _tunnelBuilder.Update();
-        _sounds.Update();
-        _diagnosticWindow.Update();
-        _briefingEditor.Update();
-        _scaleWindow.Update();
-        _materialEditor.Update();
+        for (auto& window : _windows)
+            window->Update();
 
         if (Editor::Gizmo.State == GizmoState::Dragging) {
             DrawGizmoTooltip();

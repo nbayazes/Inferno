@@ -20,6 +20,7 @@
 #include "ScaleWindow.h"
 #include "TextureEditor.h"
 #include "MaterialEditor.h"
+#include "TerrainEditor.h"
 
 namespace Inferno::Editor {
 
@@ -103,15 +104,26 @@ namespace Inferno::Editor {
         BriefingEditor _briefingEditor;
         ScaleWindow _scaleWindow;
         MaterialEditor _materialEditor;
+        TerrainEditor _terrainEditor;
         bool _showImguiDemo = false;
 
         Dictionary<DialogType, Ptr<ModalWindowBase>> _dialogs;
+        List<Ptr<WindowBase>> _windows;
         float _mainMenuHeight = 30;
 
         template<class TModal>
         void RegisterDialog(DialogType type) {
             _dialogs[type] = MakePtr<TModal>();
         }
+
+        template<class TWindow>
+        TWindow* RegisterWindow() {
+            auto window = make_unique<TWindow>();
+            auto ptr = window.get();
+            _windows.push_back(std::move(window));
+            return ptr;
+        }
+
     public:
         EditorUI() {
             RegisterDialog<GotoSegmentDialog>(DialogType::GotoSegment);
@@ -123,6 +135,23 @@ namespace Inferno::Editor {
             RegisterDialog<SettingsDialog>(DialogType::Settings);
             RegisterDialog<HelpDialog>(DialogType::Help);
             RegisterDialog<AboutDialog>(DialogType::About);
+
+            RegisterWindow<ReactorEditor>();
+            RegisterWindow<NoiseWindow>();
+            RegisterWindow<TunnelBuilderWindow>();
+            RegisterWindow<SoundBrowser>();
+            RegisterWindow<BloomWindow>();
+            RegisterWindow<DebugWindow>();
+            RegisterWindow<LightingWindow>();
+            RegisterWindow<PropertyEditor>();
+            RegisterWindow<TextureBrowserUI>();
+            RegisterWindow<TextureEditor>();
+            RegisterWindow<DiagnosticWindow>();
+            RegisterWindow<BriefingEditor>();
+            RegisterWindow<ScaleWindow>();
+            //RegisterWindow<ProjectToPlaneWindow>();
+            //RegisterWindow<InsetFacesWindow>();
+            RegisterWindow<TerrainEditor>();
 
             Events::ShowDialog += [this](DialogType type) {
                 // Don't show another dialog if one is already open as it will confuse imgui state

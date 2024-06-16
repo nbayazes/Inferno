@@ -4,7 +4,7 @@
 #include "logging.h"
 #include "OutrageModel.h"
 #include "Polymodel.h"
-#include "ShaderLibrary.h"
+#include "VertexTypes.h"
 
 namespace Inferno::Render {
     constexpr int VCLIP_RANGE = 10000; // Mesh TexIDs past this range are treated as vclips

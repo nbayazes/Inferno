@@ -29,8 +29,8 @@ namespace Inferno {
 
     struct RobotInfo {
         ModelID Model;
-        Vector3 GunPoints[MAX_GUNS]; // where each gun model is
-        uint8 GunSubmodels[MAX_GUNS];   // which submodel each gun is attached to
+        Array<Vector3, MAX_GUNS> GunPoints{}; // where each gun model is
+        Array<uint8, MAX_GUNS> GunSubmodels{};   // which submodel each gun is attached to
 
         VClipID ExplosionClip1, ExplosionClip2;
 
@@ -84,7 +84,7 @@ namespace Inferno {
         ubyte Multishot = 1; // Number of projectiles to fire at once if possible
 
         // Joint lookup for each gun and animation state
-        JointLookup Joints[MAX_GUNS + 1][N_ANIM_STATES];
+        JointLookup Joints[MAX_GUNS + 1][N_ANIM_STATES]{};
 
         float AlertRadius = 80; // Increases awareness of robots in this radius while the player is visible
         float AlertAwareness = 0.5f; // Amount of awareness each second to give nearby robots

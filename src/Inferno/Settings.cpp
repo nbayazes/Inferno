@@ -67,6 +67,7 @@ namespace Inferno {
         node["BriefingEditor"] << w.BriefingEditor;
         node["TextureEditor"] << w.TextureEditor;
         node["MaterialEditor"] << w.MaterialEditor;
+        node["TerrainEditor"] << w.TerrainEditor;
         node["Scale"] << w.Scale;
         node["Debug"] << w.Debug;
     }
@@ -85,6 +86,7 @@ namespace Inferno {
         ReadValue(node["BriefingEditor"], w.BriefingEditor);
         ReadValue(node["TextureEditor"], w.TextureEditor);
         ReadValue(node["MaterialEditor"], w.MaterialEditor);
+        ReadValue(node["TerrainEditor"], w.TerrainEditor);
         ReadValue(node["Scale"], w.Scale);
         ReadValue(node["Debug"], w.Debug);
         return w;

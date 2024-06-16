@@ -33,9 +33,9 @@ namespace Inferno::Resources {
         constexpr VClip DEFAULT_VCLIP{};
         const Model DEFAULT_MODEL{};
         const LevelTexture DEFAULT_TEXTURE{};
-        Powerup DEFAULT_POWERUP{};
-        DoorClip DEFAULT_DOOR_CLIP{};
-        RobotInfo DEFAULT_ROBOT{};
+        const Powerup DEFAULT_POWERUP{};
+        const DoorClip DEFAULT_DOOR_CLIP{};
+        const RobotInfo DEFAULT_ROBOT{};
 
         struct ModelEntry {
             string Name;

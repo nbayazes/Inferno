@@ -135,6 +135,7 @@ namespace Inferno {
             bool Diagnostics = false;
             bool BriefingEditor = false;
             bool TextureEditor = false;
+            bool TerrainEditor = false;
             bool Scale = false;
             bool MaterialEditor = false;
             bool Debug = false;

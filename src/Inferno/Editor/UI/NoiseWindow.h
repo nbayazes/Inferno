@@ -1,7 +1,6 @@
 #pragma once
 
 #include "WindowBase.h"
-#include "Graphics/Render.h"
 #include "../Editor.Geometry.h"
 
 namespace Inferno::Editor {

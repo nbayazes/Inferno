@@ -90,9 +90,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
     const float radius = 1.7;
     float3 rd = normalize((p.x * right + p.y * -Frame.EyeUp) * radius + Frame.EyeDir); // ray direction
     rd = normalize(rd);
-    //if (rd.x < 0.0) { rd.x = 0.0; }
-    //if (rd.y < 0.0) { rd.y = 0.0; }
-    //if (rd.z < 0.0) { rd.z = 0.0; }
     
     float3 origin = float3(0., 15, 0); // position of scattering
     float3 rdScatter = rd;
