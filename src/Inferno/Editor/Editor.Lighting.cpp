@@ -434,7 +434,7 @@ namespace Inferno::Editor {
 
     void LightSegments(Level& level,
                        const SideLighting& lightColors,
-                       Set<SegID> segmentsToLight,
+                       const Set<SegID>& segmentsToLight,
                        Tag src,
                        bool bouncePass, // is this a bounce light pass?
                        LightRayCast& cast,
@@ -1038,6 +1038,9 @@ namespace Inferno::Editor {
                 dest.Sides[side].Light = src.Sides[side].Light;
             }
         }
+
+        level.LightDeltas = LightLevelResults->LightDeltas;
+        level.LightDeltaIndices = LightLevelResults->LightDeltaIndices;
 
         LightLevelResults = {}; // Clear for next run
         Editor::History.SnapshotLevel("Light Level");
