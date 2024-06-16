@@ -868,7 +868,10 @@ namespace Inferno::Editor {
                         flagCheckbox("Opened", WallFlag::DoorOpened, wall);
                         flagCheckbox("Locked", WallFlag::DoorLocked, wall);
                         flagCheckbox("Auto Close", WallFlag::DoorAuto, wall);
-                        flagCheckbox("Buddy Proof", WallFlag::BuddyProof, wall);
+
+                        if (!level.IsDescent1())
+                            flagCheckbox("Buddy Proof", WallFlag::BuddyProof, wall);
+
                         break;
                     }
 

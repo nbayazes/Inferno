@@ -125,9 +125,6 @@ namespace Inferno {
 
         static constexpr int MaxNameLength = 35; // +1 for null terminator
 
-        int32 StaticLights = 0;
-        int32 DynamicLights = 0;
-
         List<LightDeltaIndex> LightDeltaIndices; // Index into LightDeltas
         List<LightDelta> LightDeltas; // For breakable or flickering lights
 
