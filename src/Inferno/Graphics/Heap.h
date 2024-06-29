@@ -17,8 +17,8 @@ namespace Inferno {
         DescriptorHandle(D3D12_CPU_DESCRIPTOR_HANDLE cpu, D3D12_GPU_DESCRIPTOR_HANDLE gpu)
             : _cpuHandle(cpu), _gpuHandle(gpu) {}
 
-        bool IsShaderVisible() const { return _gpuHandle.ptr; }
-        explicit operator bool() const { return _cpuHandle.ptr; }
+        bool IsShaderVisible() const { return _gpuHandle.ptr != 0; }
+        explicit operator bool() const { return _cpuHandle.ptr != 0; }
         //const CD3DX12_CPU_DESCRIPTOR_HANDLE* operator&() const { return &_cpuHandle; }
 
         D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle() const { return _cpuHandle; }

@@ -75,6 +75,7 @@ namespace Inferno {
         else if (header.Compression == CompressionType::RLE) {
             return data;
 
+            // todo: some custom levels use compressed BBMs
             // NOTE: this code is not tested. No descent BBMs appear to be compressed.
             for (int count = width, plane = 0; count < offset + chunkLen && offset < data.size();) {
                 ASSERT(stream.Position() < endPosition);

@@ -279,7 +279,7 @@ namespace Inferno::Outrage {
                         face.Normal = r.ReadVector3();
                         face.Vertices.resize(r.ReadInt32Checked(100, "bad nverts"));
 
-                        bool textured = r.ReadInt32();
+                        bool textured = (bool)r.ReadInt32();
                         if (textured)
                             face.TexNum = (short)r.ReadInt32();
                         else

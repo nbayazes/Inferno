@@ -45,7 +45,7 @@ namespace Yaml {
         if (!node.valid()) return false;
         int val = 0;
         node >> val;
-        value = val;
+        value = (bool)val;
         return true;
     }
 

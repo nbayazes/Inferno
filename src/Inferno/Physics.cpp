@@ -966,7 +966,7 @@ namespace Inferno {
                     auto objDir = obj.PrevPosition - side.Centers[tri];
                     objDir.Normalize();
 
-                    bool triFacesObj = objDir.Dot(side.Normals[tri]);
+                    bool triFacesObj = objDir.Dot(side.Normals[tri]) > 0;
 
                     float hitDistance = FLT_MAX;
                     Vector3 hitPoint, hitNormal;

@@ -208,9 +208,9 @@ namespace Inferno {
             else Flags[4] &= ~0x02;
         }
 
-        bool SmartMineFlag() const { return Flags[4] & 0x02; }
+        bool SmartMineFlag() const { return bool(Flags[4] & 0x02); }
 
-        bool IsCloaked() const { return Flags[6]; }
+        bool IsCloaked() const { return (bool)Flags[6]; }
     };
 
     struct WeaponData {

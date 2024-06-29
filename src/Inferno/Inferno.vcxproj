@@ -78,7 +78,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)src\Inferno.Core;$(SolutionDir)src\vendor;$(SolutionDir)src\Imgui;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalOptions>/Zc:__cplusplus /we4715 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Zc:__cplusplus /we4715 /w34800 %(AdditionalOptions)</AdditionalOptions>
       <EnableModules>
       </EnableModules>
       <SupportJustMyCode>false</SupportJustMyCode>
@@ -117,7 +117,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)src\Inferno.Core;$(SolutionDir)src\vendor;$(SolutionDir)src\Imgui;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalOptions>/Zc:__cplusplus /we4715 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Zc:__cplusplus /we4715 /w34800 %(AdditionalOptions)</AdditionalOptions>
       <EnableModules>
       </EnableModules>
       <RuntimeTypeInfo>

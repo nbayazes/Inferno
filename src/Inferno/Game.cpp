@@ -310,7 +310,7 @@ namespace Inferno::Game {
     }
 
     void ResetGlobalLighting() {
-        // todo: this should blend back to normal instead of being instant
+        // todo: this should lerp back to normal instead of being instant
         Render::ToneMapping->ToneMap.BloomStrength = .35f;
         Render::ToneMapping->ToneMap.Exposure = 1;
         Game::GlobalDimming = 1; // Clear dimming

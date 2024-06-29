@@ -57,9 +57,9 @@ namespace Inferno::Editor {
                 ImGui::BeginChild("##available", ImVec2(-1, 400 * Shell::DpiScale), true);
 
                 for (uint i = 0; i < maxRobots; i++) {
-                    bool flagged = i < 32
+                    bool flagged = bool(i < 32
                         ? _robots & (1 << (i % 32))
-                        : _robots2 & (1 << (i % 32));
+                        : _robots2 & (1 << (i % 32)));
 
                     if (!flagged) {
                         if (ImGui::Selectable(Resources::GetRobotName(i).c_str(), selectedAddRobot == (int)i,
@@ -80,9 +80,9 @@ namespace Inferno::Editor {
                 ImGui::BeginChild("##active", ImVec2(-1, 400 * Shell::DpiScale), true);
 
                 for (uint i = 0; i < maxRobots; i++) {
-                    bool flagged = i < 32
+                    bool flagged = bool(i < 32
                         ? _robots & (1 << (i % 32))
-                        : _robots2 & (1 << (i % 32));
+                        : _robots2 & (1 << (i % 32)));
 
                     if (flagged) {
                         if (ImGui::Selectable(Resources::GetRobotName(i).c_str(), selectedDelRobot == (int)i,

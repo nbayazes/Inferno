@@ -128,7 +128,7 @@ namespace Inferno {
         ri.Cloaking = (CloakType)r.ReadByte();
         ri.Attack = (AttackType)r.ReadByte();
 
-        ri.IsBoss = r.ReadByte();
+        ri.IsBoss = (bool)r.ReadByte();
 
         ri.SeeSound = (SoundID)r.ReadByte();
         ri.AttackSound = (SoundID)r.ReadByte();
@@ -202,13 +202,13 @@ namespace Inferno {
         ri.ClawSound = (SoundID)r.ReadByte();
         ri.TauntSound = (SoundID)r.ReadByte();
 
-        ri.IsBoss = r.ReadByte();
-        ri.IsCompanion = r.ReadByte();
+        ri.IsBoss = (bool)r.ReadByte();
+        ri.IsCompanion = (bool)r.ReadByte();
         ri.smart_blobs = r.ReadByte();
         ri.energy_blobs = r.ReadByte();
 
-        ri.IsThief = r.ReadByte();
-        ri.Pursues = r.ReadByte();
+        ri.IsThief = (bool)r.ReadByte();
+        ri.Pursues = (bool)r.ReadByte();
         ri.LightCast = r.ReadByte();
         ri.DeathRoll = r.ReadByte();
 
@@ -247,7 +247,7 @@ namespace Inferno {
     Weapon ReadWeapon(StreamReader& r) {
         Weapon w{};
         w.RenderType = (WeaponRenderType)r.ReadByte();
-        w.Piercing = r.ReadByte();
+        w.Piercing = (bool)r.ReadByte();
         w.Model = (ModelID)r.ReadInt16();
         w.ModelInner = (ModelID)r.ReadInt16();
 
@@ -263,10 +263,10 @@ namespace Inferno {
         w.WeaponVClip = (VClipID)r.ReadByte();
         w.WallHitSound = (SoundID)r.ReadInt16();
 
-        w.IsDestroyable = r.ReadByte();
-        w.IsMatter = r.ReadByte();
+        w.IsDestroyable = (bool)r.ReadByte();
+        w.IsMatter = (bool)r.ReadByte();
         w.Bounce = r.ReadByte();
-        w.IsHoming = r.ReadByte();
+        w.IsHoming = (bool)r.ReadByte();
 
         w.SpeedVariance = r.ReadByte() / 128.0f;
         w.Flags = (WeaponFlag)r.ReadByte();
@@ -607,7 +607,7 @@ namespace Inferno {
         w.RenderType = (WeaponRenderType)r.ReadByte();
         w.Model = (ModelID)r.ReadByte();
         w.ModelInner = (ModelID)r.ReadByte();
-        w.Piercing = r.ReadByte();
+        w.Piercing = (bool)r.ReadByte();
 
         w.FlashVClip = (VClipID)r.ReadByte();
         w.FlashSound = (SoundID)r.ReadInt16();
@@ -622,10 +622,10 @@ namespace Inferno {
         w.AmmoUsage = r.ReadByte();
         w.WeaponVClip = (VClipID)r.ReadByte();
 
-        w.IsDestroyable = r.ReadByte();
-        w.IsMatter = r.ReadByte();
+        w.IsDestroyable = (bool)r.ReadByte();
+        w.IsMatter = (bool)r.ReadByte();
         w.Bounce = r.ReadByte();
-        w.IsHoming = r.ReadByte();
+        w.IsHoming = (bool)r.ReadByte();
 
         r.SeekForward(3); // padding
 

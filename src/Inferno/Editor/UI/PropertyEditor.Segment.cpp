@@ -322,9 +322,9 @@ namespace Inferno::Editor {
 
         const uint maxRobots = level.IsDescent1() ? 25 : 64;
         for (uint i = 0; i < maxRobots; i++) {
-            bool flagged = i < 32
+            bool flagged = bool(i < 32
                 ? matcen.Robots & (1 << (i % 32))
-                : matcen.Robots2 & (1 << (i % 32));
+                : matcen.Robots2 & (1 << (i % 32)));
 
             if (flagged)
                 label += (label.empty() ? "" : ", ") + Resources::GetRobotName(i);
