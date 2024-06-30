@@ -33,11 +33,6 @@ namespace Inferno::Game {
         PendingLoad = LoadLevelInfo{ .Path = path, .LevelName = level, .AddToRecent = addToRecent };
     }
 
-    //void LoadLevel2(const filesystem::path& path, const string& level, bool addToRecent) {
-    //    if (!Game::Mission) return;
-    //    PendingLoad = LoadLevelInfo{ .Path = Game::Mission->Path, .LevelName = level, .AddToRecent = addToRecent };
-    //}
-
     void NewLevel(Editor::NewLevelInfo& info) {
         PendingLoad = { .NewLevel = info };
     }
@@ -145,7 +140,6 @@ namespace Inferno::Game {
         }
     }
 
-    // Loads all level assets and prepares the game state
     void InitLevel(Inferno::Level&& level) {
         Inferno::Level backup = Level;
 
@@ -456,7 +450,7 @@ namespace Inferno::Game {
         Inferno::Level level;
 
         if (info.NewLevel) {
-            level = Editor::NewLevel(*info.NewLevel);
+            level = Editor::CreateNewLevel(*info.NewLevel);
         }
         else {
             if (!filesystem::exists(info.Path)) {
@@ -493,7 +487,7 @@ namespace Inferno::Game {
                     auto name = LevelNameByIndex(1);
                     // no levels in mission, create an empty level
                     if (name.empty())
-                        level = Editor::NewLevel(*info.NewLevel);
+                        level = Editor::CreateNewLevel(*info.NewLevel);
                     else
                         level = LoadLevelFromMission(name);
                 }

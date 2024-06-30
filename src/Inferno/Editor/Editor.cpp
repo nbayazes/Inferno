@@ -620,7 +620,7 @@ namespace Inferno::Editor {
             int16 version = 7; // Default to D2 levels
             if (Resources::FoundDescent1() && !Resources::FoundDescent2()) version = 1; // User only has D1 and not D2
             NewLevelInfo info = { .Title = "new level", .FileName = "new", .Version = version, .AddToHog = false };
-            NewLevel(info);
+            Game::NewLevel(info);
         }
     }
 

@@ -12,7 +12,7 @@ namespace Inferno::Editor {
         bool AddToHog = false;
     };
 
-    Level NewLevel(const NewLevelInfo& info);
+    [[nodiscard]] Level CreateNewLevel(const NewLevelInfo& info);
 
     // Creates a backup of a file using the provided extension
     void BackupFile(const filesystem::path& path, string_view ext = ".bak");

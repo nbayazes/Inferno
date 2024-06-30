@@ -203,7 +203,7 @@ namespace Inferno::Editor {
         fmt::print("\n");
     }
 
-    Level NewLevel(const NewLevelInfo& info) {
+    Level CreateNewLevel(const NewLevelInfo& info) {
         if (!info.AddToHog)
             Game::UnloadMission();
 
