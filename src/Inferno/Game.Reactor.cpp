@@ -42,6 +42,10 @@ namespace Inferno::Game {
         if (Level.BaseReactorCountdown != DEFAULT_REACTOR_COUNTDOWN) {
             return Level.BaseReactorCountdown + Level.BaseReactorCountdown * (5 - Difficulty - 1) / 2;
         }
+        else if (Level.IsDescent1()) {
+            constexpr std::array DefaultCountdownTimes = { 50, 45, 40, 35, 30 };
+            return DefaultCountdownTimes[Difficulty];
+        }
         else {
             constexpr std::array DefaultCountdownTimes = { 90, 60, 45, 35, 30 };
             return DefaultCountdownTimes[Difficulty];
@@ -75,8 +79,8 @@ namespace Inferno::Game {
         auto& player = Game::GetPlayerObject();
         auto signX = RandomInt(1) ? 1 : -1;
         auto signY = RandomInt(1) ? 1 : -1;
-        //player.Physics.AngularVelocity.z += signX * .35f;
-        //player.Physics.AngularVelocity.x += signY * .5f;
+        player.Physics.AngularVelocity.z += signX * .35f;
+        player.Physics.AngularVelocity.x += signY * .5f;
     }
 
     void StopSelfDestruct() {
@@ -334,9 +338,9 @@ namespace Inferno::Game {
             reactor.HitPoints = (float)level.ReactorStrength;
         }
         else {
-            // Scale reactor health scales with number
+            // Scale reactor health with level number
             if (Game::LevelNumber >= 0) {
-                reactor.HitPoints = 200.0f + 200.0f / 4 * Game::LevelNumber;
+                reactor.HitPoints = 200.0f + 50.0f * Game::LevelNumber;
             }
             else {
                 // Secret levels
