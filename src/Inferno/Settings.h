@@ -165,6 +165,7 @@ namespace Inferno {
         // Debugging
 
         bool OutlineVisibleRooms = false;
+        bool DrawGunpoints = false;
     };
 
     struct InfernoSettings {

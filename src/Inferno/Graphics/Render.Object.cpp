@@ -8,6 +8,7 @@
 #include "Resources.h"
 #include "Render.Object.h"
 #include "OpenSimplex2.h"
+#include "Render.Debug.h"
 
 //#define DEBUG_DISSOLVE
 
@@ -461,7 +462,6 @@ namespace Inferno::Render {
         auto& meshHandle = GetMeshHandle(modelId);
 
         for (int submodel = 0; submodel < model.Submodels.size(); submodel++) {
-
             // get the mesh associated with the submodel
             auto& subMesh = meshHandle.Meshes[submodel];
 
@@ -499,6 +499,39 @@ namespace Inferno::Render {
                    ModelID modelId,
                    RenderPass pass,
                    const UploadBuffer<FrameConstants>& frameConstants) {
+        if (Settings::Graphics.DrawGunpoints) {
+            if (object.IsRobot()) {
+                auto& robot = Resources::GetRobotInfo(object);
+                auto forward = object.GetRotation(Game::LerpAmount).Forward();
+
+                for (size_t i = 0; i < robot.Guns; i++) {
+                    auto pos = GetGunpointWorldPosition(object, i);
+                    Debug::DrawLine(pos, pos + forward * 2, Color(0, 1, 0), Color(0, 1, 0, 0));
+                }
+            }
+            else if (object.IsReactor()) {
+                if (auto info = Seq::tryItem(Resources::GameData.Reactors, object.ID)) {
+                    for (uint8 gun = 0; gun < info->Guns; gun++) {
+                        auto gunSubmodel = GetGunpointSubmodelOffset(object, gun);
+                        auto objOffset = GetSubmodelOffset(object, gunSubmodel);
+                        auto gunPoint = Vector3::Transform(objOffset, object.GetTransform());
+                        auto gunDir = Vector3::Transform(info->GunDirs[gun], object.Rotation);
+                        Debug::DrawLine(gunPoint, gunPoint + gunDir * 2, Color(0, 1, 0), Color(0, 1, 0, 0));
+                    }
+                }
+            }
+            else if (object.IsPlayer()) {
+                for (uint8 gun = 0; gun < Resources::GameData.PlayerShip.GunPoints.size(); gun++) {
+                    auto gunSubmodel = GetGunpointSubmodelOffset(object, gun);
+                    auto objOffset = GetSubmodelOffset(object, gunSubmodel);
+                    auto gunPoint = Vector3::Transform(objOffset, object.GetTransform());
+                    auto forward = object.GetRotation(Game::LerpAmount).Forward();
+                    if (gun == 7) forward *= -1; // Flip bomb gunpoint
+                    Debug::DrawLine(gunPoint, gunPoint + forward * 2, Color(0, 1, 0), Color(0, 1, 0, 0));
+                }
+            }
+        }
+
         if (object.IsCloaked() && Game::GetState() != GameState::Editor) {
             DrawCloakedModel(ctx, object, modelId, pass);
             return;

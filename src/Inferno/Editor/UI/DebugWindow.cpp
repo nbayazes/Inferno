@@ -167,6 +167,7 @@ namespace Inferno::Editor {
             ImGui::Checkbox("Draw Portals", &Settings::Editor.ShowPortals);
             ImGui::Checkbox("Outline visible rooms", &Settings::Graphics.OutlineVisibleRooms);
             ImGui::Checkbox("Outline boss teleport segs", &Settings::Editor.OutlineBossTeleportSegments);
+            ImGui::Checkbox("Draw gunpoints", &Settings::Graphics.DrawGunpoints);
         }
 
         {
