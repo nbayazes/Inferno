@@ -19,6 +19,7 @@ namespace Inferno {
         Glow = 8
     };
 
+    // Applies cube texture mapping to a face
     Array<Vector2, 3> CubeMap(const Array<Vector3, 3>& face, float scale) {
         Array<Vector2, 3> uvs;
 
@@ -332,11 +333,6 @@ namespace Inferno {
             auto& submodel = model.Submodels[i];
             readChunk(submodel.Pointer, submodel);
         }
-
-
-        // Flip x axis of models, they are stored mirrored for some reason
-        for (auto& vert : model.Vertices)
-            vert.x *= -1;
 
         // Generate normals. We do this here rather than inline because some custom models reference points before they are loaded.
         for (int smIndex = 0; smIndex < model.Submodels.size(); smIndex++) {

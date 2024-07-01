@@ -391,7 +391,6 @@ namespace Inferno {
 
                     for (auto& angles : model.Angles) {
                         angles = _reader.ReadAngleVec();
-                        std::swap(angles.y, angles.z); // Swap yaw and roll so they match the create matrix function
                     }
 
                     model.subobj_flags = _reader.ReadInt32();

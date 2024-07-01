@@ -344,19 +344,6 @@ namespace Inferno::Resources {
         throw Exception(msg);
     }
 
-    // Models are mirrored on the X axis for some reason
-    void FixModelMirroring(HamFile& ham) {
-        for (auto& model : ham.Models) {
-            for (auto& submodel : model.Submodels) {
-                submodel.Offset.x *= -1;
-            }
-        }
-
-        for (auto& joint : ham.RobotJoints) {
-            joint.Angle.z *= -1;
-        }
-    }
-
     void LoadDescent2Resources(Level& level) {
         std::scoped_lock lock(PigMutex);
         SPDLOG_INFO("Loading Descent 2 level: '{}'\r\n Version: {} Segments: {} Vertices: {}", level.Name, level.Version, level.Segments.size(), level.Vertices.size());
@@ -953,7 +940,6 @@ namespace Inferno::Resources {
 
             Materials = { Render::MATERIAL_COUNT };
 
-            FixModelMirroring(GameData);
             LoadDataTables(level);
             LoadStringTable();
             UpdateAverageTextureColor();

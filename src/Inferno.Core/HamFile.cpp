@@ -86,7 +86,7 @@ namespace Inferno {
 
         for (auto& gp : ri.GunPoints) {
             gp = r.ReadVector();
-            gp.z *= -1; // flip lh/rh
+            gp.z *= -1; // flip z axis
         }
 
         for (auto& gs : ri.GunSubmodels)
@@ -152,8 +152,10 @@ namespace Inferno {
         RobotInfo ri{};
 
         ri.Model = (ModelID)r.ReadInt32();
-        for (auto& gp : ri.GunPoints)
+        for (auto& gp : ri.GunPoints) {
             gp = r.ReadVector();
+            gp.z *= -1; // flip z axis
+        }
 
         for (auto& gs : ri.GunSubmodels)
             gs = r.ReadByte();
@@ -240,7 +242,6 @@ namespace Inferno {
         j.ID = r.ReadInt16();
         auto angles = r.ReadAngleVec();
         j.Angle = Vector3(-angles.x, angles.z, angles.y);
-        //std::swap(j.Angle.y, j.Angle.z); // Match create matrix from angles function
         return j;
     }
 

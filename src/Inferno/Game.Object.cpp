@@ -112,7 +112,7 @@ namespace Inferno {
 
         if (obj.Type == ObjectType::Robot) {
             auto& robot = Resources::GetRobotInfo(obj.ID);
-            auto gunpoint = robot.GunPoints[gun];
+            auto& gunpoint = robot.GunPoints[gun];
 
 #ifdef _DEBUG
             auto& model = Resources::GetModel(obj);
@@ -142,7 +142,7 @@ namespace Inferno {
         if (obj.Type == ObjectType::Robot) {
             auto& robot = Resources::GetRobotInfo(obj.ID);
             auto& model = Resources::GetModel(robot.Model);
-            auto gunpoint = robot.GunPoints[gun];
+            Vector3 gunpoint = robot.GunPoints[gun];
             auto submodel = robot.GunSubmodels[gun];
 
             while (submodel != ROOT_SUBMODEL) {
