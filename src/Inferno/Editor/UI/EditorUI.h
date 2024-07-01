@@ -152,6 +152,7 @@ namespace Inferno::Editor {
             //RegisterWindow<ProjectToPlaneWindow>();
             //RegisterWindow<InsetFacesWindow>();
             RegisterWindow<TerrainEditor>();
+            RegisterWindow<MaterialEditor>();
 
             Events::ShowDialog += [this](DialogType type) {
                 // Don't show another dialog if one is already open as it will confuse imgui state

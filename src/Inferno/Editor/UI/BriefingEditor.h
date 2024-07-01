@@ -118,7 +118,7 @@ namespace Inferno::Editor {
                 pyroPage.Model = Resources::GameData.PlayerShip.Model;
                 pyroPage.Text = R"($C1Pyro-GX
 multi-purpose fighter
-Size:			12 meters
+Size:			6 meters
 Est. Armament:	2 Argon Lasers
 				Concussion Missiles
 
@@ -144,7 +144,7 @@ outperform newer models.)";
                 reactorPage.Model = Resources::GameData.Reactors.empty() ? ModelID::None : Resources::GameData.Reactors[0].Model;
                 reactorPage.Text = R"($C1Reactor Core
 PTMC fusion power source
-Size:			20 meters
+Size:			10 meters
 Est. Armament:	Pulse defense system
 Threat:			Moderate
 
