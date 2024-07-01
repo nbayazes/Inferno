@@ -181,6 +181,10 @@ namespace Inferno::Render::Debug {
         Resources->LineBatch.DrawLine({ v0, color }, { v1, color });
     }
 
+    void DrawLine(const Vector3& v0, const Vector3& v1, const Color& color0, const Color& color1) {
+        Resources->LineBatch.DrawLine({ v0, color0 }, { v1, color1 });
+    }
+
     void DrawLines(span<FlatVertex> verts) {
         Resources->LineBatch.DrawLines(verts);
     }

@@ -18,6 +18,7 @@ namespace Inferno::Render::Debug {
     // Queues a line to be drawn at the end of frame
     void DrawLine(const FlatVertex& v0, const FlatVertex& v1);
     void DrawLine(const Vector3& v0, const Vector3& v1, const Color& color);
+    void DrawLine(const Vector3& v0, const Vector3& v1, const Color& color0, const Color& color1);
     void DrawLines(span<FlatVertex> verts);
     void DrawCross(const Vector3& p, const Color& color);
     void DrawPoint(const Vector3& p, const Color& color, const Camera& camera);
