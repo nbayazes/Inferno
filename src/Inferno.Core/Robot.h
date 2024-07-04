@@ -100,7 +100,9 @@ namespace Inferno {
         string Script; // Custom behavior script
         bool OpenKeyDoors = false; // Can open key doors
         bool AngerBehavior = false; // Gets angry when alone
-        float AimAngle = 50.0f; // Field of view of a robot's guns in degrees
+        float AimAngle = 30.0f; // Field of view of a robot's guns in degrees
         bool GetBehind = false; // Robot tries to get behind the target by strafing
+
+        float BurstDelay = 1 / 8.0f; // Delay between burst shots (shots fired per FireDelay). D1 and D2 used 0.125.
     };
 }

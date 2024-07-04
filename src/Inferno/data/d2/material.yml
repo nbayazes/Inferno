@@ -10,6 +10,7 @@ Materials:
     EmissiveStrength: 15
   - Name: rbot012
     NormalStrength: 0.168
+    SpecularStrength: 2
     Metalness: 1
     Roughness: 0.615
   - Name: rbot006
@@ -161,15 +162,13 @@ Materials:
     Metalness: 0.947
     Roughness: 0.604
   - Name: rbot045
-    NormalStrength: 0.259
-    SpecularStrength: 0
-    Metalness: 0.947
-    Roughness: 0.604
+    NormalStrength: 0.24
+    Metalness: 1
+    Roughness: 0.401
   - Name: rbot044
     NormalStrength: 0.259
-    SpecularStrength: 0
-    Metalness: 0.947
-    Roughness: 0.604
+    Metalness: 1
+    Roughness: 0.435
   - Name: missiles
     NormalStrength: 0.259
     Metalness: 0.954

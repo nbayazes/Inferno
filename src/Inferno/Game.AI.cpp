@@ -848,9 +848,8 @@ namespace Inferno {
 
         // multishot: consume as many projectiles as possible based on burst count
         // A multishot of 1 and a burst of 3 would fire 2 projectiles then 1 projectile
-        // Multishot incurs extra fire delay per projectile
-        auto burstDelay = std::min(1 / 8.0f, Difficulty(robotInfo).FireDelay / 2);
-        if (ai.Angry) burstDelay *= AI_ANGER_SPEED;
+        auto burstDelay = robotInfo.BurstDelay;
+        if (ai.Angry) burstDelay *= AI_ANGER_SPEED; // Use a lower burst delay when angry
 
         auto shouldLead = RollShouldLead(); // only roll once per fire
 
@@ -859,19 +858,20 @@ namespace Inferno {
             shouldLead = false;
 
         for (int i = 0; i < robotInfo.Multishot; i++) {
-            // Use an even lower burst delay when angry
-            ai.FireDelay += burstDelay;
-
             FireRobotWeapon(robot, ai, robotInfo, target, true, blind, shouldLead);
             ai.BurstShots++;
+
             if (ai.BurstShots >= Difficulty(robotInfo).ShotCount) {
                 ai.BurstShots = 0;
                 auto fireDelay = Difficulty(robotInfo).FireDelay;
-                ai.FireDelay += ai.Angry ? fireDelay * AI_ANGER_SPEED : fireDelay;
-                ai.FireDelay -= burstDelay; // undo burst delay if this was the last shot
+                ai.FireDelay = ai.Angry ? fireDelay * AI_ANGER_SPEED : fireDelay;
                 break; // Ran out of shots
             }
+            else {
+                ai.FireDelay = burstDelay;
+            }
         }
+
 
         PlayRobotAnimation(robot, Animation::Recoil, 0.25f);
     }
@@ -1035,7 +1035,7 @@ namespace Inferno {
                 auto aimDir = ai.TargetPosition->Position - robot.Position;
                 aimDir.Normalize();
 
-                if (AngleBetweenVectors(aimDir, robot.Rotation.Forward()) <= robotInfo.AimAngle * DegToRad * 0.5f) {
+                if (AngleBetweenVectors(aimDir, robot.Rotation.Forward()) <= robotInfo.AimAngle * DegToRad) {
                     // Target is within the cone of the weapon, start firing
                     PlayRobotAnimation(robot, Animation::Fire, ai.FireDelay.Remaining() * 0.8f);
                 }
@@ -1521,7 +1521,8 @@ namespace Inferno {
             MoveToCircleDistance(Game::Level, robot, ai, robotInfo);
 
         auto& target = *pTarget;
-        auto targetDir = GetDirection(target.Position, robot.Position);
+        auto targetPos = target.Position + target.Physics.Velocity * 0.25F; // lead target
+        auto targetDir = GetDirection(targetPos, robot.Position);
         auto hasLos = HasLineOfSight(robot, target.Position);
 
         // Use the last known position as the target dir if target is obscured

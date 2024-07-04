@@ -149,7 +149,7 @@ namespace Inferno {
         GameTimer FleeTimer; // Finds help when this triggers
         GameTimer ChaseTimer; // Delay for chase attempts
 
-        bool Angry = false;
+        bool Angry = false; // Causes robot to fire faster
         SoundUID AmbientSound = SoundUID::None;
 
         double LastCollision{}; // Last time this robot collided with another object

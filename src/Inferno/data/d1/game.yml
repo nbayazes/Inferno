@@ -287,7 +287,7 @@ Weapons:
     ExplosionColor: 1, 0.25, 0.0, 10
     FlashColor: 1, 0.25, 0.0, 2
     Size: 1 # was 1.5
-    HomingFov: 45
+    HomingFov: 40 # Slightly easier to evade than 45
     HomingDistance: 300
     Damage: [ 10, 15, 20, 25, 30 ] # Changed to match D2 values. Original game deals 49 damage on insane.
     SoundRadius: 350 # Large radius so player hears them coming
@@ -437,14 +437,15 @@ Weapons:
   - id: 26
     Name: robot plasma
     Decal: scorchB
-    Glow: 1, 1, 1, 10
     Size: 1.5
     ExplosionSound: PlasmaHit1
     ExplosionTexture: PlasmaRing
     ExplosionSize: 2.3
     ExplosionTime: 0.4
-    LightColor: 0.1, 1, 0.1
-    FlashColor: 1, 1, 1, 1
+    LightRadius: 16
+    LightColor: 0.1, 1, 0.1, 1
+    FlashColor: 1, 1, 1, .5
+    Glow: 1, 1, 1, 10
 
   - id: 27
     Name: spider fireball # spider fireballs are signficantly more damaging than expected. Make them look angry.
@@ -548,11 +549,15 @@ Robots:
   - id: 0 # Medium hulk
     CircleDistance: 80 # Prefer staying away and lobbing missiles
     Mass: 6.5
-    Multishot: 1
+    Multishot: 2
     ChaseChance: 0
     SuppressChance: 0.75
     Curiosity: 0.1 # Very rarely move to investigate sounds
-    AimAngle: 25 # Unfair to lead much and looks odd
+    AimAngle: 15 # Unfair to lead much and looks odd
+    Shots: [ 2, 2, 2, 4, 4 ] # Was 1, 1, 2, 3, 3
+    BurstDelay: 0.75
+    FireDelay: [ 5, 4, 3, 2.5, 1.5 ] # Was 5, 4, 3, 2, 1
+    Aim: 120
   - id: 1 # Medium lifter
     CircleDistance: 12
     Mass: 8
@@ -565,6 +570,7 @@ Robots:
     CircleDistance: 80
     Mass: 5.5
     Radius: 4.5 # Default radius is too large and causes problems in level 10 tunnels
+    BurstDelay: 0.15
   - id: 3 # Class 1 drone
     CircleDistance: 60
     # Speed: [ 40, 40, 45, 50, 60 ] # Speed boosted at lower difficulty 30, 30, 35, 40, 60
@@ -602,6 +608,11 @@ Robots:
     SuppressChance: .25
     Score: 800 # Was 700
     Curiosity: 0.05 # Very rarely move to investigate sounds
+    AimAngle: 15 # Unfair to lead much and looks odd
+    Shots: [ 2, 2, 2, 4, 4 ] # Was 1, 1, 2, 3, 4
+    BurstDelay: 0.75
+    FireDelay: [ 7, 5, 3, 1.5, 1 ] # Was 7, 5, 3, 1, 1
+    Aim: 120
   - id: 7 # Supervisor
     Mass: 3.25
     AlertRadius: 250 # Alert all nearby robots!
@@ -618,9 +629,11 @@ Robots:
     Radius: 5.0
     Curiosity: 0.95 # Scout
     GetBehind: 1
+    AimAngle: 35
   - id: 9 # Heavy driller
     CircleDistance: 40
     Multishot: 2
+    BurstDelay: 0.2 # Increase from 1/8 due to multishot
     Mass: 6
     Drag: 0.03
     ChaseChance: .75
@@ -656,13 +669,17 @@ Robots:
     AimAngle: 20 # Looks odd to lead much
   - id: 13 # Pod
   - id: 14 # Baby spider
-    CircleDistance: 12.5
+    CircleDistance: 15
     Mass: 1.9
     Drag: 0.025
     ChaseChance: 1
     Curiosity: 1
     SuppressChance: 0
     GetBehind: 1
+    AimAngle: 25
+    Aim: 25 # Inaccurate
+    BurstDelay: 0.15
+    TurnTime: 0.15
   - id: 15 # Fusion hulk
     FireDelay: [ 2, 1.25, 1.5, 1, .5 ] # Reduced by 1 second due to charge time
     Shots: [ 1, 1, 2, 2, 2 ]
@@ -683,7 +700,9 @@ Robots:
     ChaseChance: 0
     Curiosity: 0.05 # Very rarely move to investigate sounds
     SuppressChance: .35
+    BurstDelay: 0.4
     SeeSound: 177
+    # HitPoints: 270 # Was 325
   - id: 17 # Level 7 boss
     Mass: 40
     Multishot: 2
@@ -716,16 +735,18 @@ Robots:
     AimAngle: 20 # Don't let drillers lead very much for balance reasons
     Aim: 200 # Make slightly inaccurate
     GetBehind: 1
-  - id: 20 # Green hulk / Small hulk
-    CircleDistance: 40
+  - id: 20 # Green hulk / Small hulk / Light hulk
+    CircleDistance: 80
     Mass: 6.5
     FireDelay: [ 3, 2, 1, 0.5, 0.5 ]
     Shots: [ 2, 2, 4, 4, 6 ] # Shots fire in pairs
     Multishot: 2
+    BurstDelay: 0.3
     Drag: 0.03
     ChaseChance: 0
     SuppressChance: 1
     Curiosity: 0.2 # Rarely move to investigate sounds. Has slow move speed.
+    HitPoints: 90 # Increased from 70 to better fill the 'hulk' role. Brown hulks have 100 health.
   - id: 21 # Advanced lifter
     CircleDistance: 12
     Mass: 9
@@ -738,9 +759,10 @@ Robots:
   - id: 22 # PTMC Defense Prototype
     CircleDistance: 40
     Aim: 190 # 255 is perfect aim
+    AimAngle: 25
     Multishot: 2
     Shots: 2
-    FireDelay: [ 0.3, 0.25, 0.15, 0.125, 0.1 ]
+    FireDelay: [ 0.5, 0.4, 0.3, 0.25, 0.2 ]
     Drag: 0.03
     SuppressChance: 1
     HitPoints: 110 # Increased from 70 to not explode from one homing missile and to be tougher in general
