@@ -946,7 +946,12 @@ namespace Inferno {
             case PowerupID::ShieldBoost:
             {
                 if (Shields < MAX_SHIELDS) {
-                    Shields += 3 + 3 * (5 - Game::Difficulty);
+                    auto amount = 3 + 3 * (5 - Game::Difficulty); // 18, 15, 12, 9, 6
+
+                    if (Game::Level.IsDescent2() && Game::Difficulty == 0) 
+                        amount = 27; // D2 gives 27 shields on trainee
+
+                    Shields += amount;
                     if (Shields > MAX_SHIELDS) Shields = MAX_SHIELDS;
 
                     AddScreenFlash(FLASH_BLUE);
