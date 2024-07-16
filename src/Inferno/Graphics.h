@@ -50,4 +50,6 @@ namespace Inferno::Graphics {
     void PruneTextures();
 
     void NotifyLevelChanged();
+
+    void UpdateAutomap();
 }

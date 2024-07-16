@@ -135,11 +135,9 @@ namespace Inferno {
         // create vertices for this face
         for (int i = 0; i < 6; i++) {
             auto& pos = verts[indices[i]];
-            //auto normal = &side.NormalForEdge(indices[i]);
-            //auto& normal = side.AverageNormal;
-
             auto normal = i < 3 ? &side.Normals[0] : &side.Normals[1];
 
+            // Using average normal looks better on split sides
             if (side.Type == SideSplitType::Tri02 && (indices[i] == 0 || indices[i] == 2))
                 normal = &side.AverageNormal;
             else if (side.Type == SideSplitType::Tri13 && (indices[i] == 1 || indices[i] == 3))

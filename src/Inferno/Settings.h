@@ -159,7 +159,7 @@ namespace Inferno {
         bool NewLightMode = true;
         int ToneMapper = 1;
         TextureFilterMode FilterMode = TextureFilterMode::EnhancedPoint;
-        float FieldOfView = 65;
+        float FieldOfView = 65; // FOV in degrees
         float RenderScale = 1; // Scale of 3D render target
 
         // Debugging

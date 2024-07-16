@@ -21,6 +21,7 @@ namespace Inferno {
         ExitSequence, // exit tunnel sequence
         Cutscene, // In-game cutscene, waits for input to cancel
         ScoreScreen,
+        Automap,
         Briefing,
         MainMenu,
         GameMenu,
@@ -83,8 +84,7 @@ namespace Inferno::Game {
     // Only single player for now
     inline class Player Player = {};
     inline ObjRef DeathCamera = {};
-    inline Camera GameCamera;
-
+    inline Camera PlayerCamera, AutomapCamera;
 
     // Sets the primary camera for the main view. Used for sound, rendering and mouse selection.
     void SetActiveCamera(Camera& camera);
@@ -147,6 +147,8 @@ namespace Inferno::Game {
     void ExplodeWeapon(struct Level& level, const Object&);
 
     void MoveCameraToObject(Camera& camera, const Object& obj, float lerp);
+
+    void ResetAutomapCamera();
 
     void Update(float dt);
 
@@ -213,7 +215,7 @@ namespace Inferno::Game {
     void SetState(GameState);
     GameState GetState();
 
-    inline bool InGame() { return GetState() == GameState::Game; }
+    //inline bool InGame() { return GetState() == GameState::Game; }
     inline NavigationNetwork Navigation;
 
     inline BriefingState Briefing;
@@ -258,4 +260,9 @@ namespace Inferno::Game {
     }
 
     inline Inferno::TerrainInfo Terrain;
+
+    enum class AutomapState { Hidden, Visible, FullMap };
+
+    // Marks level segment automap state
+    inline List<AutomapState> AutomapSegments;
 }

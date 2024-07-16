@@ -504,7 +504,7 @@ namespace Inferno::Render {
                 auto& robot = Resources::GetRobotInfo(object);
                 auto forward = object.GetRotation(Game::LerpAmount).Forward();
 
-                for (size_t i = 0; i < robot.Guns; i++) {
+                for (uint8 i = 0; i < robot.Guns; i++) {
                     auto pos = GetGunpointWorldPosition(object, i);
                     Debug::DrawLine(pos, pos + forward * 2, Color(0, 1, 0), Color(0, 1, 0, 0));
                 }

@@ -306,5 +306,6 @@
     <None Include="shaders\Sun.hlsl" />
     <None Include="gsl\assert" />
     <None Include="gsl\pointers" />
+    <None Include="shaders\Automap.hlsl" />
   </ItemGroup>
 </Project>

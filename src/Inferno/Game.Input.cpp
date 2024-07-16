@@ -93,6 +93,59 @@ namespace Inferno {
             Game::Player.FireSecondary();
     }
 
+    void HandleAutomapInput() {
+        auto dt = Clock.GetFrameTimeSeconds();
+
+        auto& camera = Game::AutomapCamera;
+        constexpr float speed = 150;
+
+        if (Game::Bindings.Pressed(GameAction::FirePrimary))
+            camera.Zoom(dt * speed);
+
+        if (Game::Bindings.Pressed(GameAction::FireSecondary))
+            camera.Zoom(dt * -speed);
+
+        if (Input::IsMouseButtonPressed(Input::MouseButtons::WheelUp))
+            camera.ZoomIn();
+
+        if (Input::IsMouseButtonPressed(Input::MouseButtons::WheelDown))
+            camera.ZoomOut();
+
+        if (Game::Bindings.Pressed(GameAction::Forward))
+            camera.MoveForward(dt * speed);
+
+        if (Game::Bindings.Pressed(GameAction::Reverse))
+            camera.MoveBack(dt * speed);
+
+        if (Game::Bindings.Pressed(GameAction::SlideLeft))
+            camera.MoveLeft(dt * speed);
+
+        if (Game::Bindings.Pressed(GameAction::SlideRight))
+            camera.MoveRight(dt * speed);
+
+        if (Game::Bindings.Pressed(GameAction::SlideDown))
+            camera.MoveDown(dt * speed);
+
+        if (Game::Bindings.Pressed(GameAction::SlideUp))
+            camera.MoveUp(dt * speed);
+
+        if (Game::Bindings.Pressed(GameAction::RollLeft))
+            camera.Roll(dt * 2);
+
+        if (Game::Bindings.Pressed(GameAction::RollRight))
+            camera.Roll(dt * -2);
+
+        if (Game::Bindings.Pressed(GameAction::Afterburner))
+            Game::ResetAutomapCamera();
+
+        //int inv = Settings::Editor.InvertOrbitY ? -1 : 1;
+        auto& delta = Input::MouseDelta;
+        //camera.Orbit(-delta.x * Settings::Editor.MouselookSensitivity, -delta.y * Settings::Editor.MouselookSensitivity);
+        int yInv = Settings::Inferno.InvertY ? 1 : -1;
+
+        camera.Rotate(delta.x * Settings::Editor.MouselookSensitivity, delta.y * yInv * Settings::Editor.MouselookSensitivity);
+    }
+
     void HandleWeaponKeys() {
         if (!Input::HasFocus || Game::Player.IsDead)
             return; // No player input without focus or while dead
@@ -148,6 +201,11 @@ namespace Inferno {
     }
 
     void HandleInput() {
+        if (Game::GetState() == GameState::Automap) {
+            HandleAutomapInput();
+            return;
+        }
+    
         if (Input::IsKeyPressed(Keys::Back) && Input::IsKeyDown(Keys::LeftAlt))
             Game::BeginSelfDestruct();
 

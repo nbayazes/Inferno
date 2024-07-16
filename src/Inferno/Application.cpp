@@ -118,7 +118,7 @@ bool Inferno::Application::OnClose() {
 // Message handlers
 void Application::OnActivated() {
     Input::HasFocus = true;
-    if (Game::GetState() == GameState::Game)
+    if (Game::GetState() == GameState::Game || Game::GetState() == GameState::Automap)
         Input::SetMouseMode(Input::MouseMode::Mouselook);
 
     Input::ResetState();

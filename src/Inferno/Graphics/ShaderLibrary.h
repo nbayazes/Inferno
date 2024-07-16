@@ -78,6 +78,19 @@ namespace Inferno {
         }
     };
 
+    class AutomapShader : public IShader {
+        enum RootParameterIndex : uint {
+            FrameConstants,
+            Depth,
+            RootParameterCount
+        };
+
+    public:
+        AutomapShader(const ShaderInfo& info) : IShader(info) {
+            InputLayout = AutomapVertex::Layout;
+        }
+    };
+
     class DepthShader : public IShader {
         enum RootParameterIndex : uint {
             FrameConstants,
@@ -592,6 +605,7 @@ namespace Inferno {
         ObjectDistortionShader ObjectDistortion = ShaderInfo{ L"shaders/Cloak.hlsl" };
         StarShader Stars = ShaderInfo{ L"shaders/stars.hlsl" };
         SpriteShader Sun = ShaderInfo{ L"shaders/Sun.hlsl" };
+        AutomapShader Automap = ShaderInfo{ L"shaders/Automap.hlsl" };
     };
 
     class EffectResources {
@@ -605,6 +619,8 @@ namespace Inferno {
         Effect<LevelShader> LevelWallAdditive = { &_shaders->Level, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
         Effect<FlatLevelShader> LevelFlat = { &_shaders->LevelFlat, { BlendMode::Opaque, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
         Effect<FlatLevelShader> LevelWallFlat = { &_shaders->LevelFlat, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
+
+        Effect<AutomapShader> Automap = { &_shaders->Automap, { BlendMode::Opaque, CullMode::CounterClockwise, DepthMode::ReadWrite } };
 
         Effect<DepthShader> Depth = { &_shaders->Depth, { .Blend = BlendMode::Opaque, .Stencil = StencilMode::PortalRead } };
         Effect<DepthCutoutShader> DepthCutout = { &_shaders->DepthCutout, { .Blend = BlendMode::Opaque, .Stencil = StencilMode::PortalRead } };
@@ -639,7 +655,7 @@ namespace Inferno {
         Effect<TerrainShader> Terrain = { &_shaders->Terrain, { .Depth = DepthMode::ReadWrite, .Stencil = StencilMode::PortalReadNeq } };
         Effect<DepthShader> TerrainPortal = { &_shaders->Depth, { .Depth = DepthMode::Read, .Stencil = StencilMode::PortalWrite } };
         Effect<ObjectShader> TerrainObject = { &_shaders->Object, { .Blend = BlendMode::Alpha, .Culling = CullMode::None, .Depth = DepthMode::Read } };
-        Effect<ObjectDepthShader> TerrainDepthObject = { &_shaders->DepthObject, {.Blend = BlendMode::Opaque, .Culling = CullMode::None} };
+        Effect<ObjectDepthShader> TerrainDepthObject = { &_shaders->DepthObject, { .Blend = BlendMode::Opaque, .Culling = CullMode::None } };
 
         void Compile(ID3D12Device* device, uint msaaSamples) {
             CompileShader(&_shaders->Flat);
@@ -658,6 +674,7 @@ namespace Inferno {
             CompileShader(&_shaders->Terrain);
             CompileShader(&_shaders->Stars);
             CompileShader(&_shaders->Sun);
+            CompileShader(&_shaders->Automap);
 
             auto compile = [&](auto& effect, bool useStencil = true, uint renderTargets = 1) {
                 try {
@@ -680,6 +697,7 @@ namespace Inferno {
 
             compile(LevelFlat);
             compile(LevelWallFlat);
+            compile(Automap);
 
             compile(Terrain);
             compile(TerrainPortal);

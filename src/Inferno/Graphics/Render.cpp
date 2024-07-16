@@ -92,8 +92,8 @@ namespace Inferno::Render {
         auto cmdList = ctx.GetCommandList();
 
         auto& effect = info.Terrain
-        ? (info.Additive ? Effects->SpriteAdditiveTerrain : Effects->SpriteTerrain)
-        : (info.Additive ? Effects->SpriteAdditive : Effects->Sprite);
+            ? (info.Additive ? Effects->SpriteAdditiveTerrain : Effects->SpriteTerrain)
+            : (info.Additive ? Effects->SpriteAdditive : Effects->Sprite);
 
         ctx.ApplyEffect(effect);
         ctx.SetConstantBuffer(0, frameConstants);
@@ -266,7 +266,7 @@ namespace Inferno::Render {
 
         CreateWindowSizeDependentResources(width, height);
         Editor::EditorCamera.SetViewport(Vector2((float)width, (float)height));
-        Game::GameCamera.SetViewport(Vector2((float)width, (float)height));
+        Game::PlayerCamera.SetViewport(Vector2((float)width, (float)height));
 
         Editor::Events::LevelChanged += [] { LevelChanged = true; };
         Editor::Events::TexturesChanged += [] {
@@ -325,7 +325,7 @@ namespace Inferno::Render {
 
         CreateWindowSizeDependentResources(width, height);
         Editor::EditorCamera.SetViewport(Vector2((float)width, (float)height));
-        Game::GameCamera.SetViewport(Vector2((float)width, (float)height));
+        Game::PlayerCamera.SetViewport(Vector2((float)width, (float)height));
         //pCam->SetViewport((float)width, (float)height);
         // Reset frame upload buffers, otherwise they run out of memory.
         // For some reason resizing does not increment the adapter frame index, causing the same buffer to be used.
@@ -727,6 +727,173 @@ namespace Inferno::Render {
         }
     }
 
+    void DrawAutomap(GraphicsContext& ctx) {
+        if (!LevelResources.AutomapMeshes) return;
+
+        auto cmdList = ctx.GetCommandList();
+        auto& target = Adapter->GetRenderTarget();
+        auto& depthBuffer = Adapter->GetDepthBuffer();
+
+        // Clear depth and color buffers
+        ctx.ClearColor(target);
+        ctx.SetViewportAndScissor(UINT(target.GetWidth() * Settings::Graphics.RenderScale), UINT(target.GetHeight() * Settings::Graphics.RenderScale));
+        target.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+        ctx.ClearDepth(depthBuffer);
+        ctx.ClearStencil(Adapter->GetDepthBuffer(), 0);
+
+        ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        ctx.SetRenderTarget(target.GetRTV(), depthBuffer.GetDSV());
+
+        // Depth prepass ?
+
+
+        // Bind effect
+        ctx.ApplyEffect(Effects->Automap);
+        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+
+        depthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+
+        LevelResources.AutomapMeshes->Fullmap.Draw(cmdList);
+        LevelResources.AutomapMeshes->SolidWalls.Draw(cmdList);
+        LevelResources.AutomapMeshes->Doors.Draw(cmdList);
+        LevelResources.AutomapMeshes->Connections.Draw(cmdList);
+
+        depthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
+    }
+
+    void DrawAutomapText() {
+        const float scale = Render::Canvas->GetScale();
+        const float margin = 20.0f;
+
+        Render::DrawTextInfo title;
+        title.Position = Vector2(0, 10);
+        title.HorizontalAlign = AlignH::Center;
+        title.VerticalAlign = AlignV::Top;
+        title.Font = FontSize::Big;
+        title.Scale = 0.5;
+        Canvas->DrawGameText(Game::Level.Name, title);
+
+        Color helpColor(0.3f, 1.0f, 0.3f);
+        constexpr float lineHeight = 15;
+
+        {
+            Render::DrawTextInfo info;
+            info.Position = Vector2(margin, margin + 30);
+            info.HorizontalAlign = AlignH::Left;
+            info.VerticalAlign = AlignV::Top;
+            info.Font = FontSize::Small;
+            //info.Scale = 1 / scale * 2;
+            info.Scale = 1;
+            info.Color = helpColor;
+            info.TabStop = 20;
+            Canvas->DrawGameText("Navigation", info);
+            info.Position.y += lineHeight;
+            Canvas->DrawGameText("1.\tEnergy center", info);
+            info.Position.y += lineHeight;
+            Canvas->DrawGameText("2.\tReactor", info);
+            info.Position.y += lineHeight;
+            Canvas->DrawGameText("3.\tExit", info);
+
+            //auto drawItem = [&info, &cursor, lineHeight](string_view label, string_view text) {
+            //    cursor.y += lineHeight;
+            //    info.Position = cursor;
+            //    Canvas->DrawGameText(label, info);
+
+            //    info.Position.x += 40;
+            //    Canvas->DrawGameText(text, info);
+            //};
+
+            //Canvas->DrawGameText("Navigation", info);
+            //drawItem("1.", "Energy center");
+            //drawItem("2.", "Reactor");
+            //drawItem("3.", "Exit");
+        }
+
+        {
+            //Vector2 cursor(margin, -margin - lineHeight * 3);
+
+            Render::DrawTextInfo info;
+            info.HorizontalAlign = AlignH::Left;
+            info.VerticalAlign = AlignV::Bottom;
+            info.Font = FontSize::Small;
+            //info.Scale = 1 / Render::Canvas->GetScale() * 2;
+            info.Color = helpColor;
+            info.Position = Vector2(margin, -margin - lineHeight * 2);
+            info.TabStop = 130;
+
+            Canvas->DrawGameText("flight:\tMove view", info);
+            info.Position.y += lineHeight;
+            Canvas->DrawGameText("afterburner:\tmove faster", info);
+            info.Position.y += lineHeight;
+            Canvas->DrawGameText("primary fire:\tcenter on ship", info);
+
+            //auto drawItem = [&info, &cursor, lineHeight](string_view label, string_view text) {
+            //    info.Position = cursor;
+            //    Canvas->DrawGameText(label, info);
+
+            //    info.Position.x += 260;
+            //    Canvas->DrawGameText(text, info);
+            //    cursor.y += lineHeight;
+            //};
+
+            //drawItem("Turn:", "rotate view");
+            //drawItem("flight:", "move");
+            //drawItem("afterburner:", "move faster");
+            //drawItem("primary fire:", "center on ship");
+
+            //cursor.y -= lineHeight;
+            //info.Position = cursor;
+            //Canvas->DrawGameText("Primary fire:", info);
+            //info.Position.x = column2;
+            //Canvas->DrawGameText("center on ship", info);
+
+            //cursor.y -= lineHeight;
+            //info.Position = cursor;
+            //Canvas->DrawGameText("flight:", info);
+            //info.Position.x = column2;
+            //Canvas->DrawGameText("move", info);
+
+            //cursor.y -= ySpacing;
+            //info.Position = cursor;
+            //Canvas->DrawGameText("Primary fire:   zoom in", info);
+
+            //cursor.y -= ySpacing;
+            //info.Position = cursor;
+            //Canvas->DrawGameText("Secondary fire: zoom out", info);
+
+            //cursor.y -= lineHeight;
+            //info.Position = cursor;
+            ////Canvas->DrawGameText("Afterburner:    center on ship", info);
+            //Canvas->DrawGameText("Afterburner: ", info);
+            //info.Position.x = column2;
+            //Canvas->DrawGameText("move faster", info);
+        }
+
+        {
+            //const float xOffset = -40 - margin;
+            Render::DrawTextInfo info;
+            info.HorizontalAlign = AlignH::Right;
+            info.VerticalAlign = AlignV::Bottom;
+            info.Font = FontSize::Small;
+            //info.Scale = 1 / Render::Canvas->GetScale() * 2;
+            info.Color = helpColor;
+            info.Position = Vector2(-margin - 20, -margin - lineHeight * 3);
+
+            //info.Position = Vector2(xOffset, -lineHeight * 1);
+            Canvas->DrawGameText("Unexplored area", info);
+
+            info.Position.y += lineHeight;
+            Canvas->DrawGameText("Energy center", info);
+
+            info.Position.y += lineHeight;
+            Canvas->DrawGameText("Locked door", info);
+
+            info.Position.y += lineHeight;
+            Canvas->DrawGameText("Door", info);
+        }
+    }
+
     void Present(const Camera& camera) {
         ScopedTimer presentTimer(&Metrics::Present);
         Stats::DrawCalls = 0;
@@ -780,7 +947,39 @@ namespace Inferno::Render {
         UpdateFrameConstants(terrainCamera, Adapter->GetTerrainConstants(), Settings::Graphics.RenderScale);
         UpdateFrameConstants(ctx.Camera, Adapter->GetFrameConstants(), Settings::Graphics.RenderScale);
 
-        DrawLevel(ctx, Game::Level);
+        if (Game::GetState() == GameState::Automap) {
+            DrawAutomap(ctx);
+        }
+        else {
+            DrawLevel(ctx, Game::Level);
+        }
+
+        Canvas->SetSize(Adapter->GetWidth(), Adapter->GetHeight());
+        if (!Settings::Inferno.ScreenshotMode && Game::GetState() == GameState::Editor) {
+            PIXScopedEvent(cmdList, PIX_COLOR_INDEX(6), "Editor");
+            LegitProfiler::ProfilerTask editor("Draw editor", LegitProfiler::Colors::CLOUDS);
+            DrawEditor(ctx, Game::Level);
+            DrawLevelDebug(Game::Level, ctx.Camera);
+            LegitProfiler::AddCpuTask(std::move(editor));
+        }
+        else {
+            //Canvas->DrawGameText(level.Name, 0, 20 * Shell::DpiScale, FontSize::Big, { 1, 1, 1 }, 0.5f, AlignH::Center, AlignV::Top);
+            if (Game::GetState() == GameState::Automap) {
+                DrawAutomapText();
+            }
+            else {
+                Render::DrawTextInfo info;
+                info.Position = Vector2(-10 * Shell::DpiScale, -10 * Shell::DpiScale);
+                info.HorizontalAlign = AlignH::Right;
+                info.VerticalAlign = AlignV::Bottom;
+                info.Font = FontSize::MediumGold;
+                info.Scale = 0.5f;
+                Canvas->DrawGameText("Inferno\nEngine", info);
+            }
+        }
+
+        EndUpdateEffects();
+
         Debug::EndFrame(ctx);
 
         if ((Game::GetState() == GameState::Game || Game::GetState() == GameState::GameMenu) && !Game::Player.IsDead)

@@ -524,8 +524,7 @@ namespace Inferno::Render {
             info.HorizontalAlign = AlignH::Center;
             info.VerticalAlign = AlignV::Top;
             info.Font = FontSize::Big;
-            info.Scale = 1 / Render::Canvas->GetScale();
-            Render::Canvas->DrawGameText(level.Name, info);
+            Render::Canvas->DrawGameTextUnscaled(level.Name, info);
         }
         //{
         //    auto tag = Editor::Selection.PointTag();

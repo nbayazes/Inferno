@@ -456,7 +456,7 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawDebug(const Level& level, const Camera& camera) {
+    void DrawLevelDebug(const Level& level, const Camera& camera) {
         //Debug::DrawPoint(Inferno::Debug::ClosestPoint, Color(1, 0, 0));
         if (Settings::Editor.EnablePhysics) {
             for (auto& point : Inferno::Debug::ClosestPoints) {
@@ -622,7 +622,7 @@ namespace Inferno::Render {
                                 Debug::DrawLine(light.pos - light.right + light.up, light.pos + light.right + light.up, lineColor); // top
                             }
                             else {
-                                Debug::DrawPoint(light.pos, lineColor, Game::GameCamera);
+                                //Debug::DrawPoint(light.pos, lineColor, Game::PlayerCamera);
                                 //Debug::DrawLine(light.pos, light.pos + light.normal * light.radius/2, color);
                                 if (light.normal != Vector3::Zero) {
                                     auto transform = Matrix(VectorToRotation(light.normal));
@@ -665,13 +665,11 @@ namespace Inferno::Render {
             LegitProfiler::ProfilerTask queue("Execute queues", LegitProfiler::Colors::AMETHYST);
 
             auto& depthBuffer = Adapter->GetDepthBuffer();
-
             auto& target = Adapter->GetRenderTarget();
             target.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
             ctx.SetRenderTarget(target.GetRTV(), depthBuffer.GetDSV());
             ctx.SetViewportAndScissor(UINT(target.GetWidth() * Settings::Graphics.RenderScale), UINT(target.GetHeight() * Settings::Graphics.RenderScale));
             LightGrid->SetLightConstants(UINT(target.GetWidth() * Settings::Graphics.RenderScale), UINT(target.GetHeight() * Settings::Graphics.RenderScale));
-
 
             // todo: OR game show terrain
             if (Settings::Editor.ShowTerrain) {
@@ -760,26 +758,6 @@ namespace Inferno::Render {
             //    _levelResources->Volumes.Draw(cmdList);
         }
 
-        Canvas->SetSize(Adapter->GetWidth(), Adapter->GetHeight());
-        if (!Settings::Inferno.ScreenshotMode && Game::GetState() == GameState::Editor) {
-            PIXScopedEvent(cmdList, PIX_COLOR_INDEX(6), "Editor");
-            LegitProfiler::ProfilerTask editor("Draw editor", LegitProfiler::Colors::CLOUDS);
-            DrawEditor(ctx, level);
-            DrawDebug(level, ctx.Camera);
-            LegitProfiler::AddCpuTask(std::move(editor));
-        }
-        else {
-            //Canvas->DrawGameText(level.Name, 0, 20 * Shell::DpiScale, FontSize::Big, { 1, 1, 1 }, 0.5f, AlignH::Center, AlignV::Top);
-            Render::DrawTextInfo info;
-            info.Position = Vector2(-10 * Shell::DpiScale, -10 * Shell::DpiScale);
-            info.HorizontalAlign = AlignH::Right;
-            info.VerticalAlign = AlignV::Bottom;
-            info.Font = FontSize::MediumGold;
-            info.Scale = 0.5f;
-            Canvas->DrawGameText("Inferno\nEngine", info);
-        }
-
-        EndUpdateEffects();
     }
 
     int GetTransparentQueueSize() {

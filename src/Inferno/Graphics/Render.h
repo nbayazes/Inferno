@@ -119,10 +119,30 @@ namespace Inferno::Render {
     //PackedBuffer* GetLevelMeshBuffer();
     //const TerrainMesh* GetTerrainMesh();
 
+    struct PackedMesh {
+        D3D12_VERTEX_BUFFER_VIEW VertexBuffer;
+        D3D12_INDEX_BUFFER_VIEW IndexBuffer;
+        uint IndexCount;
+
+        void Draw(ID3D12GraphicsCommandList* cmdList) const {
+            if (!VertexBuffer.BufferLocation || !IndexBuffer.BufferLocation || IndexCount == 0) return;
+            cmdList->IASetVertexBuffers(0, 1, &VertexBuffer);
+            cmdList->IASetIndexBuffer(&IndexBuffer);
+            cmdList->DrawIndexedInstanced(IndexCount, 1, 0, 0, 0);
+            //Render::Stats::DrawCalls++;
+        }
+    };
+
+    struct AutomapMeshes {
+        PackedBuffer Buffer;
+        PackedMesh SolidWalls, Connections, Doors, Fullmap;
+    };
+
     struct LevelGpuResources {
         Ptr<TerrainMesh> TerrainMesh;
         Ptr<PackedBuffer> LevelMeshes;
         Ptr<MeshBuffer> ObjectMeshes;
+        Ptr<AutomapMeshes> AutomapMeshes;
     };
 
     inline LevelGpuResources LevelResources;

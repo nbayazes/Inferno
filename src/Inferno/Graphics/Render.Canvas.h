@@ -179,6 +179,7 @@ namespace Inferno::Render {
         // Draws text using Descent fonts at 1:1 scaling of the original pixels.
         void DrawGameTextUnscaled(string_view str, DrawTextInfo info) {
             info.Scale /= _scale;
+            info.Position /= _scale;
             DrawGameText(str, info);
         }
 
@@ -207,6 +208,7 @@ namespace Inferno::Render {
 
             auto color = info.Color;
             auto background = color * 0.1f;
+            background.w = 1.0f;
 
             auto scale = info.Scale * _scale * font->Scale;
             auto strSize = MeasureString(str, info.Font) * scale;
@@ -229,7 +231,7 @@ namespace Inferno::Render {
                 }
 
                 if (c == '\t') {
-                    xOffset = info.TabStop;
+                    xOffset = info.TabStop * scale;
                     continue;
                 }
 
@@ -244,12 +246,12 @@ namespace Inferno::Render {
                 }
 
                 auto& ci = Atlas.GetCharacter(c, info.Font);
-                auto x0 = alignment.x + xOffset + info.Position.x;
-                auto y0 = alignment.y + yOffset + info.Position.y;
+                auto x0 = alignment.x + xOffset + info.Position.x * _scale;
+                auto y0 = alignment.y + yOffset + info.Position.y * _scale;
 
                 Vector2 charSize = Vector2(font->GetWidth(c), font->Height) * scale;
                 CanvasBitmapInfo cbi;
-                cbi.Position = Vector2{ x0, y0 };
+                cbi.Position = Vector2{ x0 - 1 * scale, y0 + 1 * scale };
                 cbi.Size = charSize;
                 cbi.UV0 = Vector2{ ci.X0, ci.Y0 };
                 cbi.UV1 = Vector2{ ci.X1, ci.Y1 };
@@ -258,7 +260,8 @@ namespace Inferno::Render {
                 DrawBitmap(cbi, layer); // Shadow
 
                 cbi.Color = color;
-                cbi.Position.x += 1;
+                cbi.Position = Vector2{ x0, y0 };
+
                 DrawBitmap(cbi, layer + 1); // Foreground
 
                 auto kerning = Atlas.GetKerning(c, next, info.Font) * scale;
@@ -289,6 +292,7 @@ namespace Inferno::Render {
 
             auto color = info.Color;
             Color background = color * 0.1f;
+            background.w = 1.0f;
 
             auto scale = info.Scale * _scale * font->Scale;
             auto strSize = MeasureString(str, info.Font) * scale;

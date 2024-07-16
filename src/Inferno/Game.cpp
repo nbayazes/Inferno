@@ -36,7 +36,7 @@ namespace Inferno::Game {
         constexpr size_t OBJECT_BUFFER_SIZE = 100; // How many new objects to keep in reserve
         int MenuIndex = 0;
         Ptr<Editor::EditorUI> EditorUI;
-        gsl::not_null ActiveCamera = &GameCamera;
+        gsl::not_null ActiveCamera = &PlayerCamera;
         LerpedValue LerpedTimeScale(1);
     }
 
@@ -200,6 +200,18 @@ namespace Inferno::Game {
         // Merge the nearby rooms with the visible rooms
         for (auto& id : Graphics::GetVisibleRooms()) {
             if (!Seq::contains(ActiveRooms, id)) ActiveRooms.push_back(id);
+
+            // Mark visible segments
+            if (auto room = Level.GetRoom(id)) {
+                for (auto& segId : room->Segments) {
+                    if (Seq::inRange(AutomapSegments, (int)segId)) {
+                        if (AutomapSegments[(int)segId] != AutomapState::Visible) {
+                            SPDLOG_INFO("Marking seg {} as visible", segId);
+                            AutomapSegments[(int)segId] = AutomapState::Visible;
+                        }
+                    }
+                }
+            }
         }
 
         for (auto& roomId : ActiveRooms) {
@@ -337,6 +349,17 @@ namespace Inferno::Game {
         // respawn
     }
 
+    void ResetAutomapCamera() {
+        auto& player = Game::GetPlayerObject();
+        auto position = player.Position + player.Rotation.Backward() * 100 + player.Rotation.Up() * 60;
+        auto dir = player.Position - position;
+        dir.Normalize();
+        auto right = dir.Cross(player.Rotation.Up());
+        auto up = right.Cross(dir);
+        AutomapCamera.MoveTo(position, player.Position, up);
+    }
+
+    // Changes the game state if a new one is requested
     void UpdateGameState() {
         if (State == RequestedState) return;
         Input::ResetState(); // Clear input when switching game states
@@ -355,6 +378,15 @@ namespace Inferno::Game {
                 ResetGlobalLighting();
                 break;
 
+            case GameState::Automap:
+            {
+                Graphics::UpdateAutomap();
+                State = GameState::Automap;
+                Input::SetMouseMode(Input::MouseMode::Mouselook);
+                ResetAutomapCamera();
+                break;
+            }
+
             case GameState::Game:
                 if (State == GameState::GameMenu) {
                     Input::SetMouseMode(Input::MouseMode::Mouselook);
@@ -362,6 +394,10 @@ namespace Inferno::Game {
                 else if (State == GameState::Paused) {
                     GetPlayerObject().Render.Type = RenderType::None; // Make player invisible
                     Input::SetMouseMode(Input::MouseMode::Mouselook);
+                }
+                else if (State == GameState::Automap) {
+                    Input::SetMouseMode(Input::MouseMode::Mouselook);
+                    // Switch camera?
                 }
                 else {
                     if (!StartLevel()) {
@@ -378,7 +414,7 @@ namespace Inferno::Game {
             case GameState::Paused:
                 if (State != GameState::Game && State != GameState::ExitSequence) return;
                 State = GameState::Paused;
-                MoveCameraToObject(Game::GameCamera, GetPlayerObject(), LerpAmount);
+                MoveCameraToObject(Game::PlayerCamera, GetPlayerObject(), LerpAmount);
                 GetPlayerObject().Render.Type = RenderType::Model; // Make player visible
                 Input::SetMouseMode(Input::MouseMode::Mouselook);
                 break;
@@ -402,7 +438,7 @@ namespace Inferno::Game {
         if (Input::IsKeyPressed(Input::Keys::Up))
             MenuIndex--;
 
-        MenuIndex = MenuIndex % 2;
+        MenuIndex = Mod(MenuIndex, 2);
 
         if (Input::IsKeyPressed(Input::Keys::Escape))
             Game::SetState(GameState::Game);
@@ -453,6 +489,7 @@ namespace Inferno::Game {
         }
     }
 
+    // Test code for showing a message from an NPC
     void UpdateCommsMessage() {
         auto scale = Render::Canvas->GetScale();
         constexpr float PORTRAIT_SIZE = 48;
@@ -549,24 +586,37 @@ namespace Inferno::Game {
 
         g_ImGuiBatch->BeginFrame();
         switch (State) {
+            case GameState::Automap:
+                SetActiveCamera(Game::AutomapCamera);
+                Game::AutomapCamera.SetFov(Settings::Graphics.FieldOfView);
+
+                if (Input::IsKeyPressed(Input::Keys::Tab) || Input::IsKeyPressed(Input::Keys::Escape))
+                    Game::SetState(GameState::Game);
+
+                break;
+
             case GameState::Game:
                 LerpAmount = GameUpdate(dt);
             //UpdateCommsMessage();
             //DrawBriefing();
                 if (!UpdateEscapeSequence(dt)) {
-                    SetActiveCamera(Game::GameCamera);
-                    Game::GameCamera.SetFov(Settings::Graphics.FieldOfView);
+                    SetActiveCamera(Game::PlayerCamera);
+                    Game::PlayerCamera.SetFov(Settings::Graphics.FieldOfView);
                 }
 
                 if (!Level.Objects.empty()) {
                     if (Player.IsDead)
                         UpdateDeathSequence(dt);
                     else if (!Level.Objects.empty())
-                        MoveCameraToObject(Game::GameCamera, Level.Objects[0], LerpAmount);
+                        MoveCameraToObject(Game::PlayerCamera, Level.Objects[0], LerpAmount);
                 }
 
-                if (Input::IsKeyPressed(Input::Keys::Escape))
+                if (Input::IsKeyPressed(Input::Keys::Escape)) {
                     Game::SetState(GameState::GameMenu);
+                }
+                else if (Input::IsKeyPressed(Input::Keys::Tab)) {
+                    Game::SetState(GameState::Automap);
+                }
 
                 break;
 
@@ -591,7 +641,8 @@ namespace Inferno::Game {
                 if (!UpdateEscapeSequence(dt)) {
                     SetActiveCamera(Editor::EditorCamera);
                     Editor::EditorCamera.SetFov(Settings::Editor.FieldOfView);
-                } else {
+                }
+                else {
                     UpdateEscapeCamera(dt);
                 }
 
@@ -606,6 +657,7 @@ namespace Inferno::Game {
                 break;
 
             case GameState::Paused:
+                // Special detached camera mode
                 if (Input::IsKeyPressed(Input::Keys::OemTilde) && Input::IsKeyDown(Input::Keys::LeftAlt))
                     Game::SetState(Game::GetState() == GameState::Paused ? GameState::Game : GameState::Paused);
 
@@ -770,6 +822,9 @@ namespace Inferno::Game {
         LoadHUDTextures();
         PreloadTextures();
         PlayLevelMusic();
+
+        AutomapSegments.resize(Level.Segments.size());
+        ranges::fill(AutomapSegments, AutomapState::Hidden);
 
         Editor::SetPlayerStartIDs(Level);
         // Default the gravity direction to the player start
