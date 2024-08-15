@@ -287,10 +287,12 @@ namespace Inferno::Editor {
             if (tmap2.Lighting > 0)
                 color += Resources::GetTextureInfo(side.TMap2).AverageColor;
 
-            return color * luminosity;
+            color *= luminosity;
+            color.w = 1;
+            return color;
         }
         else {
-            return { luminosity, luminosity, luminosity };
+            return { luminosity, luminosity, luminosity, 1 };
         }
     }
 
@@ -874,8 +876,10 @@ namespace Inferno::Editor {
 
             SetAmbientLight(level, settings.Ambient);
 
+            // Limit the min bucket size, otherwise multithreaded bucketing can fail.
+            // One segment can have 6 lights.
             auto lights = GatherLightSources(level, settings);
-            auto bucketSize = (int)std::max(lights.size() / availThreads, size_t(1));
+            auto bucketSize = (int)std::max(lights.size() / availThreads, size_t(6));
 
             if (settings.CheckCoplanar)
                 ReduceCoplanarBrightness(level, lights);
