@@ -38,6 +38,7 @@ namespace Inferno::Game {
         Ptr<Editor::EditorUI> EditorUI;
         gsl::not_null ActiveCamera = &PlayerCamera;
         LerpedValue LerpedTimeScale(1);
+        Object NULL_PLAYER{ .Type = ObjectType::Player };
     }
 
     void SetTimeScale(float scale, float transitionSpeed) {
@@ -152,6 +153,13 @@ namespace Inferno::Game {
 
     constexpr bool ShouldAlwaysUpdate(const Object& obj) {
         return obj.Type == ObjectType::Weapon || HasFlag(obj.Flags, ObjectFlag::AlwaysUpdate);
+    }
+
+    Object& GetPlayerObject() {
+        if (!Seq::inRange(Level.Objects, (int)Player.Reference.Id))
+            return NULL_PLAYER;
+
+        return Level.Objects[(int)Player.Reference.Id];
     }
 
     // Updates on each game tick
@@ -289,6 +297,9 @@ namespace Inferno::Game {
                 obj.Render.VClip.DirectLight = Color();
             }
         }
+
+        if (Game::ActiveCamera)
+            TraverseSegments(*Game::ActiveCamera, GetPlayerObject().Segment, TraversalFlag::None);
 
         static double accumulator = 0;
         accumulator += dt;

@@ -763,7 +763,7 @@ namespace Inferno::Render {
     }
 
     void DrawAutomapText() {
-        const float scale = Render::Canvas->GetScale();
+        //const float scale = Render::Canvas->GetScale();
         const float margin = 20.0f;
 
         Render::DrawTextInfo title;
@@ -955,6 +955,8 @@ namespace Inferno::Render {
         }
 
         Canvas->SetSize(Adapter->GetWidth(), Adapter->GetHeight());
+        DebugCanvas->SetSize(Adapter->GetWidth(), Adapter->GetHeight());
+
         if (!Settings::Inferno.ScreenshotMode && Game::GetState() == GameState::Editor) {
             PIXScopedEvent(cmdList, PIX_COLOR_INDEX(6), "Editor");
             LegitProfiler::ProfilerTask editor("Draw editor", LegitProfiler::Colors::CLOUDS);

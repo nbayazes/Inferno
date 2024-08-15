@@ -461,6 +461,32 @@ namespace Inferno::Render::Debug {
         Render::Debug::DrawLine(corners[7], corners[4], color);
     }
 
+    void DrawCanvasBox(float left, float right, float top, float bottom, const Color& color) {
+        Vector2 pixels[4]{};
+        auto size = Render::Adapter->GetOutputSize();
+
+        pixels[0].x = (left + 1) * size.x * 0.5f;
+        pixels[0].y = (1 - bottom) * size.y * 0.5f;
+
+        pixels[1].x = (right + 1) * size.x * 0.5f;
+        pixels[1].y = (1 - bottom) * size.y * 0.5f;
+
+        pixels[2].x = (right + 1) * size.x * 0.5f;
+        pixels[2].y = (1 - top) * size.y * 0.5f;
+
+        pixels[3].x = (left + 1) * size.x * 0.5f;
+        pixels[3].y = (1 - top) * size.y * 0.5f;
+
+        CanvasPayload payload{};
+        payload.Texture = Render::Materials->White().Handle();
+        auto hex = color.RGBA().v;
+        payload.V0 = CanvasVertex(pixels[0], {}, hex);
+        payload.V1 = CanvasVertex(pixels[1], {}, hex);
+        payload.V2 = CanvasVertex(pixels[2], {}, hex);
+        payload.V3 = CanvasVertex(pixels[3], {}, hex);
+        DebugCanvas->Draw(payload);
+    }
+
     void OutlineSegment(const Level& level, Segment& seg, const Color& color, const Color* fill) {
         auto vs = seg.GetVertices(level);
 

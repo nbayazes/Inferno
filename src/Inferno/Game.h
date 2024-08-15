@@ -220,9 +220,7 @@ namespace Inferno::Game {
 
     inline BriefingState Briefing;
 
-    inline Object& GetPlayerObject() {
-        return Level.Objects[(int)Player.Reference.Id];
-    }
+    Object& GetPlayerObject();
 
     //bool ObjectIsInFOV(const Ray& ray, const Object& obj, float fov);
 

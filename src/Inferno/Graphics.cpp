@@ -335,7 +335,7 @@ namespace Inferno::Graphics {
         const auto pack = [&meshes](const AutomapMesh& mesh, Render::PackedMesh& dest) {
             dest.VertexBuffer = meshes->Buffer.PackVertices(span{ mesh.Vertices });
             dest.IndexBuffer = meshes->Buffer.PackIndices(span{ mesh.Indices });
-            dest.IndexCount = mesh.Indices.size();
+            dest.IndexCount = (uint)mesh.Indices.size();
         };
 
         //meshes.Buffer.ResetIndex();

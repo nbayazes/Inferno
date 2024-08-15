@@ -815,8 +815,8 @@ float3 ApplyRectLight2(
     //return nDotL * lightColor * (diffuseColor + specularFactor * specularColor);
 }
 
-static const float METAL_DIFFUSE_FACTOR = .5; // Direct lighting contribution on metal. Setting this too low makes robots look odd.
-static const float METAL_SPECULAR_EXP = 1.5; // increase this to get sharper metal highlights
+static const float METAL_DIFFUSE_FACTOR = 1; // Direct lighting contribution on metal. Setting this too low makes robots look odd.
+static const float METAL_SPECULAR_EXP = 2; // increase this to get sharper metal highlights
 
 float3 GetMetalDiffuse(float3 diffuse) {
     float3 intensity = dot(diffuse, float3(0.299, 0.587, 0.114));

@@ -27,6 +27,14 @@ namespace Inferno::Render {
             return Min.x == Max.x || Min.y == Max.y;
         }
 
+        void Expand(const Vector2& point) {
+            if (point.x < Min.x) Min.x = point.x;
+            if (point.x > Max.x) Max.x = point.x;
+
+            if (point.y < Min.y) Min.y = point.y;
+            if (point.y < Min.y) Max.y = point.y;
+        }
+
         static Bounds2D FromPoints(const Array<Vector3, 4>& points) {
             Vector2 min(FLT_MAX, FLT_MAX), max(-FLT_MAX, -FLT_MAX);
             bool crossesPlane = false;

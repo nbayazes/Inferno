@@ -53,7 +53,7 @@ namespace Inferno::Render::Debug {
     void DrawPlane(const Vector3& pos, const Vector3& right, const Vector3& up, const Color& color, float size);
 
     void DrawBoundingBox(const DirectX::BoundingOrientedBox&, const Color&);
-
+    void DrawCanvasBox(float left, float right, float top, float bottom, const Color& color);
     void OutlineSegment(const Level& level, Segment& seg, const Color& color, const Color* fill = nullptr);
     void OutlineRoom(Level& level, const Room& room, const Color& color);
 

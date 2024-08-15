@@ -94,7 +94,6 @@ namespace Inferno::Render {
         }
 
         void DrawBitmap(TexID id, const Vector2& pos, const Vector2& size, const Color& color = { 1, 1, 1 }) {
-            //auto material = &Materials->Get(id);
             auto handle = Materials->Get(id).Handles[Material2D::Diffuse];
             if (!handle.ptr)
                 handle = Materials->White().Handles[Material2D::Diffuse];
@@ -152,7 +151,6 @@ namespace Inferno::Render {
         }
 
         void Render(GraphicsContext& ctx) {
-            // draw batched text
             auto orthoProj = Matrix::CreateOrthographicOffCenter(0, _size.x, _size.y, 0.0, 0.0, -2.0f);
 
             auto cmdList = ctx.GetCommandList();
