@@ -4,7 +4,6 @@
 #include "Game.Room.h"
 #include "OpenSimplex2.h"
 #include "Resources.h"
-#include "Editor/Editor.h"
 #include "Settings.h"
 #include "Editor/Bindings.h"
 #include "Graphics/Compiler.h"
@@ -209,30 +208,41 @@ errno_t CreateConsoleWindow() {
 //    __declspec(dllexport) extern const char8_t* D3D12SDKPath = u8".\\D3D12\\";
 //}
 
+void ConfigureLogging(const string& logName) {
+    string logPath = logName;
+
+    // use the executable directory for log output
+    TCHAR szFileName[MAX_PATH];
+    if (SUCCEEDED(GetModuleFileName(nullptr, szFileName, MAX_PATH))) {
+        filesystem::path path(szFileName);
+        logPath = path.parent_path().append(logName).string();
+    }
+
+    filesystem::remove(logPath); // Erase old log file
+
+    auto logger = std::make_shared<spdlog::logger>(
+        "loggers",
+        spdlog::sinks_init_list{
+            std::make_shared<spdlog::sinks::wincolor_stdout_sink_mt>(),
+            std::make_shared<spdlog::sinks::basic_file_sink_mt>(logPath)
+        }
+    );
+
+    spdlog::register_logger(logger);
+    spdlog::set_default_logger(logger);
+
+    // https://github.com/gabime/spdlog/wiki/3.-Custom-formatting#pattern-flags
+    spdlog::set_pattern("[%M:%S.%e] [%^%l%$] [TID:%t] [%s:%#] %v");
+
+}
+
 int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
                      _In_opt_ HINSTANCE /*hPrevInstance*/,
                      _In_ LPSTR /*lpCmdLine*/,
                      _In_ int /*nCmdShow*/) {
     try {
         CreateConsoleWindow();
-
-        filesystem::remove("inferno.log"); // Erase old log file
-        std::vector<spdlog::sink_ptr> sinks;
-        sinks.push_back(std::make_shared<spdlog::sinks::wincolor_stdout_sink_mt>());
-        sinks.push_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>("inferno.log"));
-        //sinks.push_back(spdlog::basic_logger_mt("file logger", "inferno.log"));
-
-        auto logger = std::make_shared<spdlog::logger>("loggers", begin(sinks), end(sinks));
-        //register it if you need to access it globally
-        spdlog::register_logger(logger);
-        spdlog::set_default_logger(logger);
-
-        //spdlog::register_logger(std::make_shared<spdlog::sinks::wincolor_stdout_sink_st>());
-        //spdlog::basic_logger_mt("file logger", "inferno.log");
-        //spdlog::register_logger();
-
-        // https://github.com/gabime/spdlog/wiki/3.-Custom-formatting#pattern-flags
-        spdlog::set_pattern("[%M:%S.%e] [%^%l%$] [TID:%t] [%s:%#] %v");
+        ConfigureLogging("inferno.log");
 
         //std::srand((uint)std::time(nullptr)); // seed c-random
         InitRandom();
