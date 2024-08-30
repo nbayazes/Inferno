@@ -285,7 +285,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
             discard; // Don't draw opaque pixels under overlay
     }
 
-    if (diffuse.a <= 0)
+    if (diffuse.a <= 0.1) // comparing to 0 causes flickering on transparent edges
         discard; // discard transparent areas
 
     // align normals

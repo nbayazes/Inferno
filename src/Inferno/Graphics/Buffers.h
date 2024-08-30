@@ -55,6 +55,7 @@ namespace Inferno {
 
         void ResetIndex() { _index =  0; }
 
+        // Adds vertices to the buffer and returns a view at the start of the data
         template <class TVertex>
         D3D12_VERTEX_BUFFER_VIEW PackVertices(span<TVertex> data) {
             constexpr auto stride = sizeof(TVertex);
@@ -73,6 +74,7 @@ namespace Inferno {
             return vbv;
         }
 
+        // Adds indices to the buffer and returns a view at the start of the data
         template <class TIndex = uint16>
         D3D12_INDEX_BUFFER_VIEW PackIndices(span<TIndex> data) {
             constexpr auto stride = sizeof(TIndex);

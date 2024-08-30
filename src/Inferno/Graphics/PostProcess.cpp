@@ -139,6 +139,9 @@ namespace Inferno::PostFx {
             HlslBool EnableBloom;
         };
 
+        // Disable tone mapping and lighting in automap
+        bool enableLighting = Game::GetState() == GameState::Automap ? false : Settings::Graphics.NewLightMode;
+
         ToneMapConstants constants = {
             { 1.0f / (float)colorDest.GetWidth(), 1.0f / (float)colorDest.GetHeight() },
             BloomStrength * Settings::Graphics.RenderScale, // Lower resolution blurs more, so reduce the intensity

@@ -161,6 +161,10 @@
     <ClCompile Include="DebugOverlay.cpp" />
     <ClCompile Include="Game.Terrain.cpp" />
     <ClCompile Include="Graphics.Debug.cpp" />
+    <None Include="shaders\AutomapOutline.hlsl">
+      <DeploymentContent>true</DeploymentContent>
+      <FileType>Document</FileType>
+    </None>
     <ClCompile Include="VisualEffects.cpp" />
     <ClCompile Include="Formats\BBM.cpp" />
     <ClCompile Include="CustomTextureLibrary.cpp" />

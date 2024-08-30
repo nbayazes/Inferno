@@ -751,15 +751,80 @@ namespace Inferno::Render {
         // Bind effect
         ctx.ApplyEffect(Effects->Automap);
         ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+        auto& shader = Effects->Automap.Shader;
+        shader->SetDepth(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
+        shader->SetDiffuse1(cmdList, Materials->White().Handle());
+        shader->SetDiffuse2(cmdList, Materials->White().Handle());
+        shader->SetMask(cmdList, Materials->White().Handle());
+        shader->SetSampler(cmdList, GetWrappedTextureSampler());
 
         depthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
         LevelResources.AutomapMeshes->Fullmap.Draw(cmdList);
-        LevelResources.AutomapMeshes->SolidWalls.Draw(cmdList);
+        //LevelResources.AutomapMeshes->SolidWalls.Draw(cmdList);
         LevelResources.AutomapMeshes->Doors.Draw(cmdList);
         LevelResources.AutomapMeshes->Connections.Draw(cmdList);
 
+        auto animation = (sin(Clock.GetTotalTimeSeconds() * 4) + 1) * 0.5f + 0.5f;
+
+        AutomapShader::Constants constants;
+
+        for (auto& wall : LevelResources.AutomapMeshes->Walls) {
+            auto& texture = Materials->Get(wall.Texture);
+            auto& decal = Materials->Get(wall.Decal);
+
+            constants.Color = [&wall, animation] {
+                switch (wall.Type) {
+                    default:
+                    case AutomapType::Wall: return Color(0.2f, 0.75f, 0.2f); // Colors::AutomapWall
+                    case AutomapType::Door: return Colors::Door * animation;
+                    case AutomapType::GoldDoor: return Colors::DoorGold * animation;
+                    case AutomapType::RedDoor: return Colors::DoorRed * animation;
+                    case AutomapType::BlueDoor: return Colors::DoorBlue * animation;
+                    case AutomapType::FullMap: return Colors::Revealed;
+                    case AutomapType::Fuelcen: return Colors::Fuelcen;
+                    case AutomapType::Reactor: return Colors::Reactor;
+                    case AutomapType::Unrevealed: return Color(1, 1, 1) * animation;
+                    case AutomapType::Matcen: return Colors::Matcen;
+                }
+            }();
+
+            constants.Flat = [&wall] {
+                switch (wall.Type) {
+                    case AutomapType::Unrevealed:
+                    case AutomapType::GoldDoor:
+                    case AutomapType::RedDoor:
+                    case AutomapType::BlueDoor:
+                    case AutomapType::Door:
+                        return true;
+                    default:
+                        return false;
+                }
+            }();
+
+            constants.HasOverlay = wall.Decal > TexID::None;
+
+            shader->SetConstants(cmdList, constants);
+            shader->SetDiffuse1(cmdList, texture.Handle());
+            shader->SetDiffuse2(cmdList, decal.Handle());
+            shader->SetMask(cmdList, decal.Handles[Material2D::SuperTransparency]);
+
+            if (!wall.Mesh.IsValid()) continue;
+            cmdList->IASetVertexBuffers(0, 1, &wall.Mesh.VertexBuffer);
+            cmdList->IASetIndexBuffer(&wall.Mesh.IndexBuffer);
+            cmdList->DrawIndexedInstanced(wall.Mesh.IndexCount, 1, 0, 0, 0);
+        }
+
         depthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
+
+        // todo: outline pass
+
+        //ctx.ApplyEffect(Effects->AutomapOutline);
+        //ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+        //Effects->AutomapOutline.Shader->SetDepth(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
+        //cmdList->DrawInstanced(3, 1, 0, 0);
+
+        // todo: additive pass?
     }
 
     void DrawAutomapText() {

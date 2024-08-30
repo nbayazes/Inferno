@@ -123,8 +123,12 @@ namespace Inferno::Render {
         D3D12_INDEX_BUFFER_VIEW IndexBuffer;
         uint IndexCount;
 
+        bool IsValid() const {
+            return VertexBuffer.BufferLocation && IndexBuffer.BufferLocation && IndexCount > 0;
+        }
+
         void Draw(ID3D12GraphicsCommandList* cmdList) const {
-            if (!VertexBuffer.BufferLocation || !IndexBuffer.BufferLocation || IndexCount == 0) return;
+            if (!IsValid()) return;
             cmdList->IASetVertexBuffers(0, 1, &VertexBuffer);
             cmdList->IASetIndexBuffer(&IndexBuffer);
             cmdList->DrawIndexedInstanced(IndexCount, 1, 0, 0, 0);
@@ -132,9 +136,31 @@ namespace Inferno::Render {
         }
     };
 
+    enum class AutomapType {
+        Wall,
+        Unrevealed,
+        FullMap,
+        Door,
+        BlueDoor,
+        GoldDoor,
+        RedDoor,
+        Fuelcen,
+        Matcen,
+        Reactor,
+    };
+
+    struct AutomapMeshInstance {
+        TexID Texture = TexID::None, Decal = TexID::None;
+        PackedMesh Mesh;
+        AutomapType Type = AutomapType::Wall;
+    };
+
     struct AutomapMeshes {
         PackedBuffer Buffer;
-        PackedMesh SolidWalls, Connections, Doors, Fullmap;
+        PackedMesh Connections, Doors, Fullmap;
+
+        List<AutomapMeshInstance> Walls;
+        //AutomapMeshInstance SolidWalls;
     };
 
     struct LevelGpuResources {

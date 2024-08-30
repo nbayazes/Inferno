@@ -81,13 +81,62 @@ namespace Inferno {
     class AutomapShader : public IShader {
         enum RootParameterIndex : uint {
             FrameConstants,
+            InstanceConstants,
+            Diffuse1,
+            Diffuse2,
+            Mask,
             Depth,
+            Sampler,
             RootParameterCount
         };
 
     public:
+        struct Constants {
+            Color Color;
+            HlslBool Flat = false;
+            HlslBool HasOverlay = false;
+        };
+
         AutomapShader(const ShaderInfo& info) : IShader(info) {
             InputLayout = AutomapVertex::Layout;
+        }
+
+        static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& constants) {
+            commandList->SetGraphicsRoot32BitConstants(InstanceConstants, sizeof(constants) / 4, &constants, 0);
+        }
+
+        static void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
+            commandList->SetGraphicsRootDescriptorTable(Sampler, sampler);
+        }
+
+        static void SetDiffuse1(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
+            commandList->SetGraphicsRootDescriptorTable(Diffuse1, handle);
+        }
+
+        static void SetDiffuse2(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
+            commandList->SetGraphicsRootDescriptorTable(Diffuse2, handle);
+        }
+
+        static void SetMask(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
+            commandList->SetGraphicsRootDescriptorTable(Mask, handle);
+        }
+
+        static void SetDepth(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
+            commandList->SetGraphicsRootDescriptorTable(Depth, handle);
+        }
+    };
+
+    class AutomapOutlineShader : public IShader {
+        enum RootParameterIndex : uint {
+            FrameConstants,
+            Depth
+        };
+
+    public:
+        AutomapOutlineShader(const ShaderInfo& info) : IShader(info) {}
+
+        static void SetDepth(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
+            commandList->SetGraphicsRootDescriptorTable(Depth, handle);
         }
     };
 
@@ -606,6 +655,7 @@ namespace Inferno {
         StarShader Stars = ShaderInfo{ L"shaders/stars.hlsl" };
         SpriteShader Sun = ShaderInfo{ L"shaders/Sun.hlsl" };
         AutomapShader Automap = ShaderInfo{ L"shaders/Automap.hlsl" };
+        AutomapOutlineShader AutomapOutline = ShaderInfo{ L"shaders/AutomapOutline.hlsl" };
     };
 
     class EffectResources {
@@ -621,6 +671,7 @@ namespace Inferno {
         Effect<FlatLevelShader> LevelWallFlat = { &_shaders->LevelFlat, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
 
         Effect<AutomapShader> Automap = { &_shaders->Automap, { BlendMode::Opaque, CullMode::CounterClockwise, DepthMode::ReadWrite } };
+        Effect<AutomapOutlineShader> AutomapOutline = { &_shaders->AutomapOutline, { BlendMode::Alpha, CullMode::None, DepthMode::None } };
 
         Effect<DepthShader> Depth = { &_shaders->Depth, { .Blend = BlendMode::Opaque, .Stencil = StencilMode::PortalRead } };
         Effect<DepthCutoutShader> DepthCutout = { &_shaders->DepthCutout, { .Blend = BlendMode::Opaque, .Stencil = StencilMode::PortalRead } };
@@ -675,6 +726,7 @@ namespace Inferno {
             CompileShader(&_shaders->Stars);
             CompileShader(&_shaders->Sun);
             CompileShader(&_shaders->Automap);
+            CompileShader(&_shaders->AutomapOutline);
 
             auto compile = [&](auto& effect, bool useStencil = true, uint renderTargets = 1) {
                 try {
@@ -698,6 +750,7 @@ namespace Inferno {
             compile(LevelFlat);
             compile(LevelWallFlat);
             compile(Automap);
+            compile(AutomapOutline);
 
             compile(Terrain);
             compile(TerrainPortal);

@@ -97,7 +97,7 @@ namespace Inferno {
         auto dt = Clock.GetFrameTimeSeconds();
 
         auto& camera = Game::AutomapCamera;
-        constexpr float speed = 150;
+        constexpr float speed = 200;
 
         if (Game::Bindings.Pressed(GameAction::FirePrimary))
             camera.Zoom(dt * speed);

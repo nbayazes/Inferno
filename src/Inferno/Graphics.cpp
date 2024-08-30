@@ -7,6 +7,10 @@
 #include "Graphics/Render.Level.h"
 #include "Resources.h"
 
+namespace Inferno {
+    Vector2 ApplyOverlayRotation(const SegmentSide& side, Vector2 uv);
+}
+
 namespace Inferno::Graphics {
     void LoadLevel(const Level& level) {
         Render::LoadLevel(level);
@@ -210,7 +214,7 @@ namespace Inferno::Graphics {
         List<AutomapVertex> Vertices;
         List<uint32> Indices;
 
-        void AddQuad(const Array<Vector3, 4>& verts, const Color& color, const Vector3& normal) {
+        int32 AddQuad(const Array<Vector3, 4>& verts, const Array<Color, 4>& color, const Vector3& normal) {
             auto startIndex = (int32)Vertices.size();
 
             Indices.push_back(startIndex);
@@ -221,22 +225,66 @@ namespace Inferno::Graphics {
             Indices.push_back(startIndex + 2);
             Indices.push_back(startIndex + 3);
 
-            Vertices.push_back({ verts[0], color, normal });
-            Vertices.push_back({ verts[1], color, normal });
-            Vertices.push_back({ verts[2], color, normal });
-            Vertices.push_back({ verts[3], color, normal });
+            Vertices.push_back({ verts[0], color[0], normal });
+            Vertices.push_back({ verts[1], color[1], normal });
+            Vertices.push_back({ verts[2], color[2], normal });
+            Vertices.push_back({ verts[3], color[3], normal });
+
+            return startIndex;
+        }
+
+        int32 AddSide(const Level& level, Segment& seg, SideID sideId) {
+            auto startIndex = (int32)Vertices.size();
+            auto& side = seg.GetSide(sideId);
+            auto& uv = side.UVs;
+
+            Indices.push_back(startIndex);
+            Indices.push_back(startIndex + 1);
+            Indices.push_back(startIndex + 2);
+
+            Indices.push_back(startIndex + 0);
+            Indices.push_back(startIndex + 2);
+            Indices.push_back(startIndex + 3);
+
+            auto& sideVerts = SIDE_INDICES[(int)sideId];
+
+            for (int i = 0; i < 4; i++) {
+                auto& vert = level.Vertices[seg.Indices[sideVerts[i]]];
+                Vector2 uv2 = side.HasOverlay() ? ApplyOverlayRotation(side, uv[i]) : Vector2();
+                Vertices.push_back({ vert, side.Light[i], side.AverageNormal, uv[i], uv2 });
+            }
+
+            return startIndex;
         }
     };
 
 
     void UpdateAutomap() {
+        using Render::AutomapType;
+
         AutomapMesh solidWalls;
         AutomapMesh connections; // non-visited connections
-        //AutomapMesh transparentWalls;
-        AutomapMesh doors;
+        AutomapMesh wallMesh;
         AutomapMesh fullmap;
 
         auto& level = Game::Level;
+
+        Render::LevelResources.AutomapMeshes = make_unique<Render::AutomapMeshes>();
+        auto meshes = Render::LevelResources.AutomapMeshes.get();
+
+        const auto packMesh = [&meshes](const AutomapMesh& mesh, Render::PackedMesh& dest) {
+            dest.VertexBuffer = meshes->Buffer.PackVertices(span{ mesh.Vertices });
+            dest.IndexBuffer = meshes->Buffer.PackIndices(span{ mesh.Indices });
+            dest.IndexCount = (uint)mesh.Indices.size();
+        };
+
+        const auto packMesh2 = [&meshes](const AutomapMesh& mesh) {
+            return Render::PackedMesh{
+                .VertexBuffer = meshes->Buffer.PackVertices(span{ mesh.Vertices }),
+                .IndexBuffer = meshes->Buffer.PackIndices(span{ mesh.Indices }),
+                .IndexCount = (uint)mesh.Indices.size()
+            };
+        };
 
         for (size_t segIndex = 0; segIndex < Game::AutomapSegments.size(); segIndex++) {
             auto state = Game::AutomapSegments[segIndex];
@@ -245,103 +293,98 @@ namespace Inferno::Graphics {
             if (auto seg = level.TryGetSegment((SegID)segIndex)) {
                 for (auto& sideId : SIDE_IDS) {
                     bool unrevealed = false; // does this touch an unrevealed side?
-
-                    //auto connId = seg->GetConnection(sideId);
+                    auto type = AutomapType::Wall;
 
                     if (auto connState = Seq::tryItem(Game::AutomapSegments, (int)seg->GetConnection(sideId))) {
                         unrevealed = *connState != Game::AutomapState::Visible;
                     }
 
                     auto& side = seg->GetSide(sideId);
-                    //auto& sideIndices = side.GetRenderIndices();
-
-                    //auto color = Render::Colors::AutomapWall;
-
-                    // Determine color of side
-                    auto color = Color(0, 1, 0);
 
                     if (seg->Type == SegmentType::Energy)
-                        color = Render::Colors::Fuelcen;
+                        type = AutomapType::Fuelcen;
                     else if (seg->Type == SegmentType::Matcen)
-                        color = Render::Colors::Matcen;
+                        type = AutomapType::Matcen;
                     else if (seg->Type == SegmentType::Reactor)
-                        color = Render::Colors::Reactor;
+                        type = AutomapType::Reactor;
 
                     auto wall = level.TryGetWall(side.Wall);
+                    bool isDoor = false;
+                    bool isSecretDoor = false;
 
-                    if (wall && !unrevealed) {
+                    if (wall) {
                         if (wall->Type == WallType::Door) {
+                            isDoor = true;
+                            isSecretDoor = HasFlag(Resources::GetDoorClip(wall->Clip).Flags, DoorClipFlag::Secret);
+
                             if (HasFlag(wall->Keys, WallKey::Blue))
-                                color = Render::Colors::DoorBlue;
+                                type = AutomapType::BlueDoor;
                             else if (HasFlag(wall->Keys, WallKey::Gold))
-                                color = Render::Colors::DoorGold;
+                                type = AutomapType::GoldDoor;
                             else if (HasFlag(wall->Keys, WallKey::Red))
-                                color = Render::Colors::DoorRed;
+                                type = AutomapType::RedDoor;
+                            else if (isSecretDoor)
+                                type = AutomapType::Wall;
                             else
-                                color = Render::Colors::Door;
+                                type = AutomapType::Door;
                         }
                     }
 
                     // Add verts to a mesh
-                    auto verts = Face::FromSide(level, *seg, sideId).CopyPoints();
-                    auto& normal = side.AverageNormal;
+                    if (unrevealed && !isDoor && !isSecretDoor) {
+                        connections.AddSide(level, *seg, sideId);
+                    }
+                    else if (wall) {
+                        if (wall->Type == WallType::Door || wall->Type == WallType::Closed || wall->Type == WallType::Destroyable) {
+                            AutomapMesh mesh;
+                            mesh.AddSide(level, *seg, sideId);
 
-                    if (unrevealed && !wall) {
-                        color = Color(1, 1, 1);
-                        connections.AddQuad(verts, color, normal);
+                            Render::AutomapMeshInstance instance{
+                                .Texture = Resources::LookupTexID(side.TMap),
+                                .Decal = side.TMap2 > LevelTexID::Unset ? Resources::LookupTexID(side.TMap2) : TexID::None,
+                                .Mesh = packMesh2(mesh),
+                                .Type = type
+                            };
+
+                            meshes->Walls.push_back(instance);
+                            //doors.AddQuad(verts, color, normal);
+                        }
                     }
                     else if (seg->SideIsSolid(sideId, level)) {
                         if (state == Game::AutomapState::Visible)
-                            solidWalls.AddQuad(verts, color, normal);
+                            solidWalls.AddSide(level, *seg, sideId);
                         else if (state == Game::AutomapState::FullMap)
-                            fullmap.AddQuad(verts, color, normal);
+                            fullmap.AddSide(level, *seg, sideId);
                     }
-                    else if (wall) {
-                        if (wall->Type == WallType::Door || wall->Type == WallType::Closed) {
-                            doors.AddQuad(verts, color, normal);
-                        }
-                    }
-
-                    // create vertices for this face
-                    //FlatVertex vertex{ .Position = pos, .Color = color };
-                    //auto& pos = level.Vertices[sideIndices[i]];
-
-                    //for (int i = 0; i < 6; i++) {
-                    //    auto& pos = level.Vertices[sideIndices[i]];
-                    //    FlatVertex vertex{ .Position = pos, .Color = color };
-
-                    //    if (unrevealed && !wall) {
-                    //        connections.AddQuad(verts, color);
-                    //    }
-                    //    else if (seg->SideIsSolid(sideId, level)) {
-                    //        if (state == Game::AutomapState::Visible)
-                    //            solidWalls.AddQuad(verts, color);
-                    //        else if (state == Game::AutomapState::FullMap)
-                    //            fullmapWalls.AddQuad(verts, color);
-                    //    }
-                    //    else if (wall) {
-                    //        if (wall->Type == WallType::Door || wall->Type == WallType::Closed) {
-                    //            doors.AddQuad(verts, color);
-                    //        }
-                    //    }
-                    //}
                 }
             }
         }
 
-        Render::LevelResources.AutomapMeshes = make_unique<Render::AutomapMeshes>();
-        auto meshes = Render::LevelResources.AutomapMeshes.get();
-
-        const auto pack = [&meshes](const AutomapMesh& mesh, Render::PackedMesh& dest) {
-            dest.VertexBuffer = meshes->Buffer.PackVertices(span{ mesh.Vertices });
-            dest.IndexBuffer = meshes->Buffer.PackIndices(span{ mesh.Indices });
-            dest.IndexCount = (uint)mesh.Indices.size();
-        };
-
         //meshes.Buffer.ResetIndex();
-        pack(solidWalls, meshes->SolidWalls);
-        pack(fullmap, meshes->Fullmap);
-        pack(doors, meshes->Doors);
-        pack(connections, meshes->Connections);
+        {
+            // add solid walls a single mesh
+            Render::AutomapMeshInstance instance{
+                .Texture = TexID::None,
+                .Decal = TexID::None,
+                .Mesh = packMesh2(solidWalls),
+                .Type = AutomapType::Wall
+            };
+
+            meshes->Walls.push_back(instance);
+        }
+
+        {
+            // add connections as a single mesh
+            Render::AutomapMeshInstance instance{
+                .Texture = TexID::None,
+                .Decal = TexID::None,
+                .Mesh = packMesh2(connections),
+                .Type = AutomapType::Unrevealed
+            };
+
+            meshes->Walls.push_back(instance);
+        }
+
+        packMesh(fullmap, meshes->Fullmap);
     }
 }

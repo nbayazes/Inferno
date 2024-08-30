@@ -70,7 +70,7 @@ float psmain(PS_INPUT input) : SV_Target {
     //float alpha = Sample2D(GetTexture(input.Tex1, MAT_DIFF), input.uv, Sampler, Frame.FilterMode).a;
     float alpha = Sample2D(Diffuse, input.uv, Sampler, Frame.FilterMode).a;
 
-    if (Args.HasOverlay > 0) {
+    if (Args.HasOverlay) {
         float mask = 1 - Sample2D(StMask, input.uv2, Sampler, Frame.FilterMode).r;
         alpha *= mask;
 
