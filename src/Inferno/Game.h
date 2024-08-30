@@ -255,6 +255,7 @@ namespace Inferno::Game {
     namespace Debug {
         inline uint LiveObjects = 0;
         inline int ActiveRobots = 0;
+        inline uint VisibleSegments = 0;
     }
 
     inline Inferno::TerrainInfo Terrain;

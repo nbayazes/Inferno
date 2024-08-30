@@ -141,9 +141,9 @@ namespace Inferno {
         //int inv = Settings::Editor.InvertOrbitY ? -1 : 1;
         auto& delta = Input::MouseDelta;
         //camera.Orbit(-delta.x * Settings::Editor.MouselookSensitivity, -delta.y * Settings::Editor.MouselookSensitivity);
-        int yInv = Settings::Inferno.InvertY ? 1 : -1;
+        float yInvert = Settings::Inferno.InvertY ? -1.0f : 1.0f;
 
-        camera.Rotate(delta.x * Settings::Editor.MouselookSensitivity, delta.y * yInv * Settings::Editor.MouselookSensitivity);
+        camera.Rotate(delta.x * Settings::Editor.MouselookSensitivity, delta.y * yInvert * Settings::Editor.MouselookSensitivity);
     }
 
     void HandleWeaponKeys() {

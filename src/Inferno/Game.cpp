@@ -208,18 +208,6 @@ namespace Inferno::Game {
         // Merge the nearby rooms with the visible rooms
         for (auto& id : Graphics::GetVisibleRooms()) {
             if (!Seq::contains(ActiveRooms, id)) ActiveRooms.push_back(id);
-
-            // Mark visible segments
-            if (auto room = Level.GetRoom(id)) {
-                for (auto& segId : room->Segments) {
-                    if (Seq::inRange(AutomapSegments, (int)segId)) {
-                        if (AutomapSegments[(int)segId] != AutomapState::Visible) {
-                            SPDLOG_INFO("Marking seg {} as visible", segId);
-                            AutomapSegments[(int)segId] = AutomapState::Visible;
-                        }
-                    }
-                }
-            }
         }
 
         for (auto& roomId : ActiveRooms) {
@@ -346,16 +334,16 @@ namespace Inferno::Game {
         // escape cancels sequence?
 
         // restore default exposure in case the reactor started going critical.
-        ResetGlobalLighting();
+        //ResetGlobalLighting();
 
-        auto nextLevel = LevelNameByIndex(LevelNumber + 1);
-        if (nextLevel.empty()) {
-            SetState(GameState::Editor);
-        }
-        else {
-            LoadLevel(Level.Path, nextLevel);
-            SetState(GameState::Game);
-        }
+        //auto nextLevel = LevelNameByIndex(LevelNumber + 1);
+        //if (nextLevel.empty()) {
+        //    SetState(GameState::Editor);
+        //}
+        //else {
+        //    LoadLevel(Level.Path, nextLevel);
+        //    SetState(GameState::Game);
+        //}
         // reset level game state. countdown etc
         // respawn
     }
@@ -594,8 +582,8 @@ namespace Inferno::Game {
         Graphics::BeginFrame(); // enable debug calls during updates
 
         UpdateGameState();
-
         g_ImGuiBatch->BeginFrame();
+
         switch (State) {
             case GameState::Automap:
                 SetActiveCamera(Game::AutomapCamera);

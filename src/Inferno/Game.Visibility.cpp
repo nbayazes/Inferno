@@ -2,61 +2,67 @@
 #include "Game.Visibility.h"
 #include "Game.h"
 #include "Graphics/Render.Debug.h"
-#include "Graphics/Render.Queue.h"
+#include "Graphics/Render.h"
 #include "logging.h"
 
 namespace Inferno {
     struct Window {
-        float Left = -1, Right = 1, Top = 1, Bottom = -1;
-        //bool CrossesPlane = false;
+        float Left = 0, Right = 0, Top = 0, Bottom = 0;
 
-        // Note: this isn't implemented robustly and order of operations matters
-        //Window Intersection(const Window& bounds) const {
-        //    auto min = Vector2::Max(bounds.Min, Min);
-        //    auto max = Vector2::Min(bounds.Max, Max);
-        //    if (max.x <= min.x || max.y <= min.y)
-        //        return {}; // no intersection
-
-        //    return { min, max, CrossesPlane };
-        //}
-
-        //constexpr bool Empty() const {
-        //    return Left == Right || Top == Bottom;
-        //}
-
-        void Expand(const Vector2& point) {
-            if (point.x < Left) Left = point.x;
-            if (point.x > Right) Right = point.x;
-
-            if (point.y > Top) Top = point.y;
-            if (point.y < Bottom) Bottom = point.y;
+        // Clips this window by another window. Returns true if visible.
+        bool Clip(const Window& window) {
+            if (!Intersects(window)) return false;
+            Left = std::max(window.Left, Left);
+            Top = std::min(window.Top, Top);
+            Right = std::min(window.Right, Right);
+            Bottom = std::max(window.Bottom, Bottom);
+            return true;
         }
 
+        bool Intersects(const Window& window) const {
+            if (Left > window.Right || Top < window.Bottom ||
+                Right < window.Left || Bottom > window.Top)
+                return false;
 
-        //static Bounds2D FromPoints(const Array<Vector3, 4>& points) {
-        //    Vector2 min(FLT_MAX, FLT_MAX), max(-FLT_MAX, -FLT_MAX);
-        //    bool crossesPlane = false;
+            return true;
+        }
 
-        //    for (auto& p : points) {
-        //        if (p.x < min.x)
-        //            min.x = p.x;
-        //        if (p.y < min.y)
-        //            min.y = p.y;
-        //        if (p.x > max.x)
-        //            max.x = p.x;
-        //        if (p.y > max.y)
-        //            max.y = p.y;
+        // Expands this window to another window. Returns true if changed.
+        bool Expand(const Window& window) {
+            if (window.Left < Left || window.Right > Right ||
+                window.Top > Top || window.Bottom < Bottom) {
+                Left = std::min(window.Left, Left);
+                Top = std::max(window.Top, Top);
+                Right = std::max(window.Right, Right);
+                Bottom = std::min(window.Bottom, Bottom);
+                return true;
+            }
 
-        //        if (p.z < 0)
-        //            crossesPlane = true;
-        //    }
+            return false;
+        }
 
-        //    return { min, max, crossesPlane };
-        //}
+        void Expand(const Vector2& point) {
+            Left = std::min(point.x, Left);
+            Top = std::max(point.y, Top);
+            Right = std::max(point.x, Right);
+            Bottom = std::min(point.y, Bottom);
+        }
+
+        bool IsEmpty() const { return Left == Right && Top == Bottom; }
     };
 
     constexpr auto EMPTY_WINDOW = Window{ -1, -1, -1, -1 };
 
+    Window ToScreenWindow(const Window& src) {
+        Window window;
+
+        auto size = Render::Adapter->GetOutputSize();
+        window.Left = (src.Left + 1) * size.x * 0.5f;
+        window.Right = (src.Right + 1) * size.x * 0.5f;
+        window.Top = (1 - src.Top) * size.y * 0.5f;
+        window.Bottom = (1 - src.Top) * size.y * 0.5f;
+        return window;
+    }
 
     List<RoomID> GetRoomsByDepth(span<Room> rooms, RoomID startRoom, float maxDistance, TraversalFlag flags) {
         ASSERT_STA();
@@ -139,59 +145,21 @@ namespace Inferno {
         auto& level = Game::Level;
 
         struct SegmentInfo {
-            SegID id;
-            //Window window = {};
-            Window window = { 0, 0, 0, 0};
-            Window trimmedWindow = {};
-            short depth = -1;
+            Window window;
             bool visited = false;
             bool processed = false;
-            short position = -1; // order to draw in? position in render list
-            bool overlap = false;
         };
 
-        static List<SegID> stack;
-        //static List<RoomID> results;
-
-        stack.clear();
-        //results.clear();
-
-
         static List<SegmentInfo> segInfo;
+        static List<SegID> renderList;
         segInfo.resize(level.Segments.size());
+        renderList.clear();
+        renderList.reserve(500);
+        ranges::fill(renderList, SegID::None);
         ranges::fill(segInfo, SegmentInfo{});
+        Window screenWindow = { -1, 1, 1, -1 };
 
-        //static List<SegID> renderList;
-        //static Queue<SegID> segQueue;
-        //static List<short> renderPos;
-
-        //constexpr auto MAX_RENDER_SEGS = 500;
-        //renderList.resize(MAX_RENDER_SEGS);
-        //renderPos.resize(level.Segments.size());
-
-        //ranges::fill(renderPos, -1);
-
-        //segInfo[(int)startSeg].visited = true;
-
-        //renderList[0] = startSeg;
-        //int listIndex = 1;
-        //int ecnt = listIndex;
-
-        //constexpr int RENDER_DEPTH = 40;
-        //int segid = 0;
-
-        //segQueue.push(startSeg);
-
-        //short depth = 0;
-
-        //stack.push_back(SegmentInfo{.id = startSeg, .visited = true});
-        stack.push_back(startSeg);
-        segInfo[(int)startSeg].depth = 0;
-        uint stackIndex = 0;
-
-        const auto getBounds = [&camera, &level](const Segment& seg, SideID side) {
-            Vector2 prx[4];
-            int i = 0;
+        const auto calcWindow = [&camera, &level](const Segment& seg, SideID side, const Window& parentWindow) {
             auto indices = seg.GetVertexIndices(side);
             int behindCount = 0;
             Window bounds = { FLT_MAX, -FLT_MAX, -FLT_MAX, FLT_MAX };
@@ -201,214 +169,91 @@ namespace Inferno {
                 auto& p = level.Vertices[index];
                 auto clip = Vector4::Transform(Vector4(p.x, p.y, p.z, 1), camera.ViewProjection);
 
-                // point is behind camera plane
-                if (clip.w < 0) {
-                    behindCount++;
-                    //bounds.Min = Vector2(-1, -1);
-                    //bounds.Max = Vector2(1, 1);
-                    //bounds = {};
-                    //break;
-                }
+                if (clip.w < 0)
+                    behindCount++; // point is behind camera plane
 
                 auto projected = Vector2{ clip / abs(clip.w) };
-                prx[i++] = projected;
                 bounds.Expand(projected);
             }
 
-            const auto cross = (prx[1] - prx[0]).Cross(prx[3] - prx[1]);
+            bool onScreen = bounds.Clip(parentWindow);
 
-            if (behindCount == 4) bounds = EMPTY_WINDOW; // portal is behind camera
-            if (behindCount > 0) bounds = {}; // a portal crosses view plane, use the whole screen
-            if (cross.x > 0) bounds = EMPTY_WINDOW; // portal faces away from camera
+            if (behindCount == 4 || !onScreen)
+                bounds = EMPTY_WINDOW; // portal is behind camera or offscreen
+            else if (behindCount > 0)
+                bounds = parentWindow; // a portal crosses view plane, use fallback
+
             return bounds;
         };
 
-        while (stackIndex < stack.size()) {
-            auto segid = stack[stackIndex++];
-            auto& info = segInfo[(int)segid];
-            if (info.processed) continue;
+        const auto processSegment = [&](SegID segid, const Window& parentWindow) {
+            const auto& adjSeg = level.GetSegment(segid);
 
-            info.processed = true;
-            //info.depth = depth;
-            //auto segnum = renderList[(int)segid];
+            for (auto& sideid : SIDE_IDS) {
+                auto connid = adjSeg.Connections[(int)sideid];
+                if (connid < SegID(0))
+                    continue;
 
-            //if(depth == 0) {
-            //    info.window = {};
-            //}
+                auto sideWindow = calcWindow(adjSeg, sideid, parentWindow);
 
-            const auto& window = info.window;
-            const auto& seg = level.GetSegment(segid);
+                if (sideWindow.IsEmpty())
+                    continue; // Side isn't visible from portal
 
-            // Determine open and visible connections
-            SideID visibleSides[6];
-            ranges::fill(visibleSides, SideID::None);
+                if (!SideIsTransparent(level, { segid, sideid }))
+                    continue; // Opaque wall or no connection
 
-            for (auto& side : SIDE_IDS) {
-                Tag tag{ segid, side };
-                auto conn = seg.GetConnection(side);
+                auto& conn = segInfo[(int)connid];
 
-                if (conn < SegID(0) /*|| segInfo[(int)conn].visited */ || !SideIsTransparent(level, tag))
-                    continue; // skip opaque and visited sides
+                if (conn.visited) {
+                    if (conn.window.Expand(sideWindow))
+                        conn.processed = false; // force reprocess due to window changing
 
-                visibleSides[(int)side] = side;
-            }
-
-            // skip sorting, we have a depth buffer
-
-            //auto basePoints = Render::GetNdc(face, camera.ViewProjection);
-            // Expand the viewport to contain all open sides
-            //Vector2 min(FLT_MAX, FLT_MAX), max(-FLT_MAX, -FLT_MAX);
-            
-            Window bounds = { FLT_MAX, -FLT_MAX, -FLT_MAX, FLT_MAX };
-
-            for (auto& side : visibleSides) {
-                if (side == SideID::None) continue;
-                auto conn = seg.GetConnection(side);
-
-                //auto conn = seg.GetConnection(side);
-                //Tag tag{ segnum, side };
-                //auto face = ConstFace::FromSide(level, tag);
-                auto indices = seg.GetVertexIndices(side);
-                int behindCount = 0;
-                //auto& ri = seg.GetSide(side).GetRenderIndices();
-                Vector2 prx[4];
-                int i = 0;
-
-                for (auto& index : indices) {
-                    // project point
-                    auto& p = level.Vertices[index];
-                    auto clip = Vector4::Transform(Vector4(p.x, p.y, p.z, 1), camera.ViewProjection);
-
-                    // point is behind camera plane
-                    if (clip.w < 0) {
-                        behindCount++;
-                        //bounds.Min = Vector2(-1, -1);
-                        //bounds.Max = Vector2(1, 1);
-                        //bounds = {};
-                        //break;
-                    }
-
-                    auto projected = Vector2{ clip / abs(clip.w) };
-                    prx[i++] = projected;
-                    //bounds.Expand(Vector2(projected.x, projected.y));
-                    bounds.Expand(projected);
+                    continue; // Already visited, don't add it to the render list again
+                }
+                else {
+                    conn.window = sideWindow;
                 }
 
-                auto a = prx[1] - prx[0];
-                auto b = prx[2] - prx[0];
-                const auto cross = Vector3(a.x, a.y, 0).Cross(Vector3(b.x, b.y, 0));
+                conn.visited = true;
+                Render::Debug::OutlineSegment(level, level.GetSegment(connid), Color(1, 1, 1));
+                renderList.push_back(connid);
+            }
+        };
 
-                if (behindCount == 4) continue; // portal is behind camera
+        // Add the first seg to populate the stack
+        segInfo[(int)startSeg].window = screenWindow;
+        segInfo[(int)startSeg].visited = true;
+        renderList.push_back(startSeg);
 
-                //if (behindCount > 0) bounds = {}; // a portal crosses view plane, use the whole screen
-                if (cross.z > 0) {
-                    Render::Debug::DrawCanvasBox(bounds.Left, bounds.Right, bounds.Top, bounds.Bottom, Color(1, 0, 0, 0.25f));
-                    auto& segside = seg.GetSide(side);
-                    Render::Debug::DrawArrow(segside.Center, segside.Center + segside.AverageNormal * 4, Color(1,0,0, 1), camera);
-                    continue; // portal faces away from camera
-                }
+        uint renderIndex = 0;
 
-                info.window = bounds;
+        Render::Debug::OutlineSegment(level, level.GetSegment(startSeg), Color(1, 1, 1));
 
-                auto& connInfo = segInfo[(int)conn];
-                auto& connWindow = connInfo.window;
+        while (renderIndex++ < renderList.size()) {
+            auto renderListSize = renderList.size();
 
-                if (connInfo.depth == -1)
-                    connInfo.depth = info.depth + 1;
+            // iterate each segment in the render list for each pass in case the window changes
+            // due to adjacent segments
+            for (size_t i = 0; i < renderListSize; i++) {
+                auto segid = renderList[i];
+                if (segid == SegID::None) continue;
+                Game::AutomapSegments[(int)segid] = Game::AutomapState::Visible;
+                auto& info = segInfo[(int)segid];
+                if (info.processed) continue;
 
-                //auto updateConnectionBounds = [&connWindow](const Window& a, const Window& b) {
-                //    connWindow.Left = std::max(a.Left, b.Left); // trim inwards
-                //    connWindow.Right = std::min(a.Right, b.Right);
-                //    connWindow.Top = std::min(a.Top, b.Top);
-                //    connWindow.Bottom = std::max(a.Bottom, b.Bottom);
-
-                //    //if(connWindow.Left > connWindow.Right) connWindow.Left = connWindow.Right;
-                //    //connWindow.Left = std::min(connWindow.Left, connWindow.Right);
-                //    //connWindow.Right = std::max(connWindow.Left, connWindow.Right);
-                //    //connWindow.Top = std::min(connWindow.Top, connWindow.Bottom);
-                //    //connWindow.Bottom = std::max(connWindow.Top, connWindow.Bottom);
-                //};
-
-                //bool overlap =
-                //    connWindow.Left < bounds.Right && connWindow.Right > bounds.Left &&
-                //    connWindow.Top > bounds.Bottom && connWindow.Bottom < bounds.Top;
-
-
-                //if (overlap) {
-                //    info.overlap = true;
-                //    //updateConnectionBounds(window, bounds);
-
-                //    if (connInfo.visited) {
-                //        // Expanding existing window if seg was already visited
-                //        if (connWindow.Left < bounds.Left ||
-                //            connWindow.Top > bounds.Top ||
-                //            connWindow.Right > bounds.Right ||
-                //            connWindow.Bottom < bounds.Bottom) {
-                //            //connWindow.Left = std::min(connWindow.Left, bounds.Left);
-                //            //connWindow.Right = std::max(connWindow.Right, bounds.Right);
-                //            //connWindow.Top = std::max(connWindow.Top, bounds.Top);
-                //            //connWindow.Bottom = std::min(connWindow.Bottom, bounds.Bottom);
-                //            //updateConnectionBounds(connWindow, bounds);
-                //        }
-                //    }
-                //    else {
-                //        //updateConnectionBounds(window, bounds);
-                //        // Trim child window to the segment window
-                //        connWindow.Left = std::max(window.Left, bounds.Left);
-                //        connWindow.Right = std::min(window.Right, bounds.Right);
-                //        connWindow.Top = std::min(window.Top, bounds.Top);
-                //        connWindow.Bottom = std::max(window.Bottom, bounds.Bottom);
-                //    }
-                //}
-
-                //info.window = bounds;
-
-                //int renderPos = segInfo[(int)conn].position;
-
-                // Expanding existing window if seg was already visited
-                //if (connInfo.visited) {
-                //    //auto& win = segInfo[connInfo.position].window;
-                //    //auto& win = connInfo.window;
-
-                //    if (connWindow.Left < bounds.Left ||
-                //        connWindow.Top > bounds.Top ||
-                //        connWindow.Right > bounds.Right ||
-                //        connWindow.Bottom < bounds.Bottom) {
-                //        updateWindowBounds(connWindow, bounds);
-                //        //updateWindowBounds(connWindow, win);
-                //    }
-                //}
-                //else {
-                //    //if (overlap)
-                //    //    Render::Debug::DrawCanvasBox(newWindow.Left, newWindow.Right, newWindow.Top, newWindow.Bottom, Color(0, 1, 0, 0.25f));
-                //    //connInfo.position = listIndex;
-                //    connInfo.visited = true;
-                //    //renderList[listIndex] = conn;
-                //    info.depth = depth;
-                //    //listIndex++;
-                //}
-
-                info.visited = true;
-
-                //if (!connInfo.visited)
-                //if (overlap)
-                stack.push_back(conn);
+                info.processed = true;
+                //Render::Debug::DrawCanvasBox(info.window.Left, info.window.Right, info.window.Top, info.window.Bottom, Color(0, 1, 0, 0.25f));
+                processSegment(segid, info.window);
             }
 
-            //depth++;
-            //if (dbglcnt < windows.size()) {
-            //    auto& newWindow = windows[dbglcnt];
-            //    Render::Debug::DrawCanvasBox(newWindow.Left, newWindow.Right, newWindow.Top, newWindow.Bottom, Color(1, 0, 0, 0.5f));
-            //}
-        }
-
-        for (auto& seg : segInfo) {
-            //if (!seg.overlap /*|| seg.depth == 0*/) continue;
-            if (seg.depth == 1) {
-                auto& win = seg.window;
-                //Render::Debug::DrawCanvasBox(win.Left, win.Right, win.Top, win.Bottom, Color(0, 1, 0, 0.25f));
+            if (renderIndex > 1000) {
+                SPDLOG_WARN("Maximum segment render count exceeded");
+                __debugbreak();
+                break;
             }
         }
+
+        Game::Debug::VisibleSegments = renderList.size();
     }
 
     void TraverseSegmentsOld(const Camera& camera, SegID startSeg, TraversalFlag flags) {
@@ -446,7 +291,6 @@ namespace Inferno {
         int ecnt = lcnt;
 
         constexpr int RENDER_DEPTH = 40;
-        auto forward = camera.GetForward();
         int scnt = 0;
 
         for (short depth = 0; depth < RENDER_DEPTH; depth++) {
@@ -479,9 +323,6 @@ namespace Inferno {
                 //Vector2 min(FLT_MAX, FLT_MAX), max(-FLT_MAX, -FLT_MAX);
                 Window bounds = { FLT_MAX, -FLT_MAX, -FLT_MAX, FLT_MAX };
 
-                bool crossesViewPlane = false;
-                int dbglcnt = lcnt;
-
                 for (auto& side : visibleSides) {
                     if (side == SideID::None) continue;
                     auto conn = seg.GetConnection(side);
@@ -501,7 +342,6 @@ namespace Inferno {
 
                         // point is behind camera plane
                         if (clip.w < 0) {
-                            crossesViewPlane = true;
                             behindCount++;
                             //bounds.Min = Vector2(-1, -1);
                             //bounds.Max = Vector2(1, 1);

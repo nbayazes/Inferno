@@ -281,7 +281,7 @@ namespace Inferno {
         return (k %= n) < 0 ? k + n : k;
     }
 
-    // Returns 1 for positive numbers, -1 for negative numbers
+    // Returns 1 for positive numbers, -1 for negative numbers, 0 for 0
     template <typename T>
     constexpr int Sign(T val) {
         return (T(0) < val) - (val < T(0));

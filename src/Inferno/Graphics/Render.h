@@ -161,7 +161,6 @@ namespace Inferno::Render {
     //void SetCamera(Camera& camera);
 
     namespace Stats {
-        inline uint16 VisitedSegments = 0;
         inline uint16 DrawCalls = 0;
         inline uint16 PolygonCount = 0;
     }

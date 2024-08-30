@@ -14,7 +14,7 @@ namespace Inferno {
         inline Vector3 ClosestPoint;
         inline List<Vector3> ClosestPoints;
         inline int SegmentsChecked = 0;
-    };
+    }
 
     // Explosion that can cause damage or knockback
     struct GameExplosion {
