@@ -141,6 +141,7 @@ namespace Inferno::Render {
         Unrevealed,
         FullMap,
         Door,
+        LockedDoor,
         BlueDoor,
         GoldDoor,
         RedDoor,

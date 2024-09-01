@@ -83,7 +83,7 @@ namespace Inferno {
                 OutputDebugStringA("WARNING: Direct3D Debug Device is not available\n");
             }
             //}
-
+            
             ComPtr<IDXGIInfoQueue> dxgiInfoQueue;
             if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(dxgiInfoQueue.GetAddressOf())))) {
                 m_dxgiFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
@@ -141,7 +141,8 @@ namespace Inferno {
             D3D12_MESSAGE_ID hide[] = {
                 D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,
                 D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,
-                D3D12_MESSAGE_ID_EXECUTECOMMANDLISTS_WRONGSWAPCHAINBUFFERREFERENCE
+                D3D12_MESSAGE_ID_EXECUTECOMMANDLISTS_WRONGSWAPCHAINBUFFERREFERENCE,
+                D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE // Ignore perf warning about mismatched clear colors. The alternative fixes are worse.
             };
             D3D12_INFO_QUEUE_FILTER filter = {};
             filter.DenyList.NumIDs = _countof(hide);

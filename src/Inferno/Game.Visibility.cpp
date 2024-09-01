@@ -257,7 +257,7 @@ namespace Inferno {
             }
         }
 
-        Game::Debug::VisibleSegments = renderList.size();
+        Game::Debug::VisibleSegments = (uint)renderList.size();
 
         for (auto& seg : Game::AutomapSegments) {
             seg = Game::AutomapState::Visible;

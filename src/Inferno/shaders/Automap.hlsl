@@ -31,6 +31,7 @@ struct InstanceConstants {
     bool Flat; // Disable shading
     bool HasOverlay;
 };
+
 //    float2 Scroll, Scroll2; // base and decal scrolling
 //    float LightingScale; // for unlit mode
 //    bool Distort;
@@ -45,12 +46,13 @@ struct InstanceConstants {
 ConstantBuffer<FrameConstants> Frame : register(b0);
 ConstantBuffer<InstanceConstants> Args : register(b1);
 
-struct Vertex {
+struct LevelVertex {
     float3 pos : POSITION;
     float4 color : COLOR0;
-    float3 normal : NORMAL;
     float2 uv : TEXCOORD0;
     float2 uv2 : TEXCOORD1;
+    float3 normal : NORMAL;
+    float3 lightdir: LIGHTDIR;
 };
 
 struct PS_INPUT {
@@ -62,8 +64,12 @@ struct PS_INPUT {
     float3 world : TEXCOORD2;
 };
 
+float Luminance(float3 v) {
+    return dot(v, float3(0.2126f, 0.7152f, 0.0722f));
+}
+
 [RootSignature(RS)]
-PS_INPUT vsmain(Vertex input) {
+PS_INPUT vsmain(LevelVertex input) {
     PS_INPUT output;
     output.pos = mul(Frame.ViewProjectionMatrix, float4(input.pos, 1));
     //output.col = float4(input.col.rgb, 1);
@@ -82,9 +88,9 @@ float4 psmain(PS_INPUT input) : SV_Target {
     // 'automap' shader?
     float dfwidth = Depth.Sample(LinearSampler, (input.pos.xy + 0.5) / Frame.Size).x;
     float d = Depth.Sample(LinearSampler, (input.pos.xy) / Frame.Size).x;
-    float depth = pow(saturate(0.8 - saturate(d) * Frame.FarClip / 500), 2) + 0.025;
-    float2 fw2 = fwidth(dfwidth);
+    float depth = pow(saturate(0.8 - d * Frame.FarClip / 2000), 2) + 0.025;
     float highlight = pow(saturate(dot(input.normal, -viewDir)), 1.5);
+    highlight = max(highlight, 0.1);
 
     float alpha = Sample2D(Diffuse1, input.uv, Sampler, Frame.FilterMode).a;
 
@@ -112,17 +118,23 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
     //float3 automap = float3(fw2.x + fw2.y, 0, 0);
     //return float4(fw2.x + fw2.y, 0, 0, 1);
-    float outline = saturate(fw2.x + fw2.y) * 2;
     float fill = Args.Flat ? 1 : highlight * 1;
+
     //float intensity = outline + fill * (1 + abs(scanline * scanline * 0.20));
     //return float4(1,1,1,1);
     float4 color = Args.Color;
     //color.rgb = pow(Args.Flat ? color.rgb : max(input.color.rgb, 0), 2.2);
     color.rgb = pow(color.rgb, 2.2);
-    
-    return color * fill;
-    return (input.color + float4(0.15, 0.15, 0.15, 0)) * fill + outline;
-    return input.color * (outline + fill * (1 + abs(scanline * scanline * 0.05)));
+
+    if (!Args.Flat) {
+        color.rgb *= 0.4;
+        color.g += saturate(Luminance(input.color.rgb)) * .7;
+        color.rgb *= depth;
+        //color.g += (input.color.r + input.color.g + input.color.b) / 3 * 0.6;
+    }
+    //color.rgb = pow(saturate(color.rgb + float3(-.5, 1, -.5)) + max(input.color.rgb * 0.0, 0), 2.2);
+
+    return color * fill /** scanline*/;
 
     //float2 fw = fwidth(d);
     //float fwd = pow(1 + (fw.x * fw.x + fw.y * fw.y), 0.4) - 1;

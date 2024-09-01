@@ -86,7 +86,7 @@ namespace Inferno {
 
         // Both MSAA and normal render targets are necessary when using MSAA.
         // The MSAA buffers are resolved to normal sources before being drawn
-        Inferno::ColorBuffer MsaaLinearizedDepthBuffer;
+        Inferno::ColorBuffer MsaaLinearizedDepthBuffer, LinearizedDepthBuffer;
         Inferno::ColorBuffer /*MsaaDistortionBuffer,*/ DistortionBuffer; // Color buffers for distortion effects
         Inferno::RenderTarget BriefingRobot, BriefingRobotMsaa;
         Inferno::DepthBuffer BriefingRobotDepth, BriefingRobotDepthMsaa;
@@ -101,7 +101,6 @@ namespace Inferno {
 
         Inferno::RenderTarget SceneColorBuffer, SceneColorBufferMsaa;
         Inferno::DepthBuffer SceneDepthBuffer, SceneDepthBufferMsaa;
-        Inferno::ColorBuffer LinearizedDepthBuffer;
 
         Inferno::RenderTarget BriefingColorBuffer;
         Inferno::RenderTarget BriefingScanlineBuffer;

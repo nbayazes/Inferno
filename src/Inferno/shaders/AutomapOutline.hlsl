@@ -38,10 +38,39 @@ PS_INPUT vsmain(in uint VertID : SV_VertexID) {
 
 float4 psmain(PS_INPUT input) : SV_Target {
     float2 uv = input.pos.xy / Frame.Size;
-    float2 p = uv - 0.5;
-    p.x *= Frame.Size.x / Frame.Size.y;
-    return Depth.Sample(Sampler, p);
+    float2 pixel = 1 / Frame.Size / 2;
 
-    return float4(1,0,0,0.5);
+    float d0 = Depth.Sample(Sampler, uv).x;
+    float d1 = Depth.Sample(Sampler, uv + pixel.x + pixel.y).x;
+    float d2 = Depth.Sample(Sampler, uv - pixel.x + pixel.y).x;
+    float d4 = Depth.Sample(Sampler, uv - pixel.x - pixel.y).x;
+    float d3 = Depth.Sample(Sampler, uv + pixel.x - pixel.y).x;
+    //float d1 = Depth.Sample(Sampler, uv + pixel.x).x;
+    //float d2 = Depth.Sample(Sampler, uv - pixel.x).x;
+    //float d4 = Depth.Sample(Sampler, uv - pixel.y).x;
+    //float d3 = Depth.Sample(Sampler, uv + pixel.y).x;
+
+    //float davg = (d0 + d1 * .4 + d2 * .4 + d3 * .4 + d4 * .4) / 3;
+    float wt = .5;
+    //float davg = (d0 + d1 * wt + d2 * wt + d3 * wt + d4 * wt) / 5;
+    float dmax = max(d0, max(d1, max(d2, max(d3, d4)))) / 1000;
+    if(dmax <= 0) dmax = 1;
+    float depthMult = pow(saturate(1 - dmax * Frame.FarClip / 1000 + 0.0), 2);
+
+    const float fwt = 0.5;
+    float alpha = fwidth(d0)
+        + fwidth(d1) * fwt + fwidth(d2) * fwt
+        + fwidth(d3) * fwt + fwidth(d4) * fwt;
+
+    //return float4(d0, 0, 0, 1);
+
+    //return float4(1 - dmax * 3000, 0, 0, 1);
+    //alpha *= depthMult;
+    //alpha *= 4.5;
+    alpha = saturate(alpha * 2);
+
+    //alpha = saturate(min(alpha, (1 - dmax * 4000) ));
+
+    return float4(0, alpha, 0, alpha);
+    //return float4(alpha * .5, alpha * 4, alpha * .5, 1);
 }
-

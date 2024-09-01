@@ -211,27 +211,8 @@ namespace Inferno::Graphics {
     }
 
     struct AutomapMesh {
-        List<AutomapVertex> Vertices;
+        List<LevelVertex> Vertices;
         List<uint32> Indices;
-
-        int32 AddQuad(const Array<Vector3, 4>& verts, const Array<Color, 4>& color, const Vector3& normal) {
-            auto startIndex = (int32)Vertices.size();
-
-            Indices.push_back(startIndex);
-            Indices.push_back(startIndex + 1);
-            Indices.push_back(startIndex + 2);
-
-            Indices.push_back(startIndex + 0);
-            Indices.push_back(startIndex + 2);
-            Indices.push_back(startIndex + 3);
-
-            Vertices.push_back({ verts[0], color[0], normal });
-            Vertices.push_back({ verts[1], color[1], normal });
-            Vertices.push_back({ verts[2], color[2], normal });
-            Vertices.push_back({ verts[3], color[3], normal });
-
-            return startIndex;
-        }
 
         int32 AddSide(const Level& level, Segment& seg, SideID sideId) {
             auto startIndex = (int32)Vertices.size();
@@ -251,7 +232,7 @@ namespace Inferno::Graphics {
             for (int i = 0; i < 4; i++) {
                 auto& vert = level.Vertices[seg.Indices[sideVerts[i]]];
                 Vector2 uv2 = side.HasOverlay() ? ApplyOverlayRotation(side, uv[i]) : Vector2();
-                Vertices.push_back({ vert, side.Light[i], side.AverageNormal, uv[i], uv2 });
+                Vertices.push_back({ vert, uv[i], side.Light[i], uv2, side.AverageNormal });
             }
 
             return startIndex;
@@ -325,6 +306,8 @@ namespace Inferno::Graphics {
                                 type = AutomapType::RedDoor;
                             else if (isSecretDoor)
                                 type = AutomapType::Wall;
+                            else if (HasFlag(wall->Flags, WallFlag::DoorLocked))
+                                type = AutomapType::LockedDoor;
                             else
                                 type = AutomapType::Door;
                         }

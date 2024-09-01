@@ -735,7 +735,6 @@ namespace Inferno::Render {
         auto& depthBuffer = Adapter->GetDepthBuffer();
 
         // Clear depth and color buffers
-        ctx.ClearColor(target);
         ctx.SetViewportAndScissor(UINT(target.GetWidth() * Settings::Graphics.RenderScale), UINT(target.GetHeight() * Settings::Graphics.RenderScale));
         target.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
@@ -743,12 +742,53 @@ namespace Inferno::Render {
         ctx.ClearStencil(Adapter->GetDepthBuffer(), 0);
 
         ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        // Depth prepass
+
+        {
+            ClearDepthPrepass(ctx);
+
+            auto& effect = Effects->DepthCutout;
+            ctx.ApplyEffect(effect);
+            ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+            auto& shader = effect.Shader;
+
+            shader->SetSampler(cmdList, GetWrappedTextureSampler());
+            effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
+
+            for (auto& wall : LevelResources.AutomapMeshes->Walls) {
+                if (!wall.Mesh.IsValid()) continue;
+
+                auto& texture = Materials->Get(wall.Texture);
+                auto& decal = Materials->Get(wall.Decal);
+
+                DepthCutoutShader::Constants constants{};
+                constants.Threshold = 0.01f;
+                constants.HasOverlay = wall.Decal > TexID::None;
+
+                effect.Shader->SetConstants(cmdList, constants);
+                shader->SetDiffuse1(cmdList, texture.Handle());
+                shader->SetDiffuse2(cmdList, decal.Handle());
+                shader->SetSuperTransparent(cmdList, decal);
+
+                cmdList->IASetVertexBuffers(0, 1, &wall.Mesh.VertexBuffer);
+                cmdList->IASetIndexBuffer(&wall.Mesh.IndexBuffer);
+                cmdList->DrawIndexedInstanced(wall.Mesh.IndexCount, 1, 0, 0, 0);
+            }
+
+            if (Settings::Graphics.MsaaSamples > 1) {
+                // must resolve MS target to allow shader sampling
+                Adapter->LinearizedDepthBuffer.ResolveFromMultisample(cmdList, Adapter->MsaaLinearizedDepthBuffer);
+                Adapter->MsaaLinearizedDepthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            }
+
+            Adapter->LinearizedDepthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        }
+
+        // Draw geometry
         ctx.SetRenderTarget(target.GetRTV(), depthBuffer.GetDSV());
+        ctx.ClearColor(target, nullptr, &Colors::AutomapBackground);
 
-        // Depth prepass ?
-
-
-        // Bind effect
         ctx.ApplyEffect(Effects->Automap);
         ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
         auto& shader = Effects->Automap.Shader;
@@ -760,12 +800,12 @@ namespace Inferno::Render {
 
         depthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
-        LevelResources.AutomapMeshes->Fullmap.Draw(cmdList);
+        //LevelResources.AutomapMeshes->Fullmap.Draw(cmdList);
         //LevelResources.AutomapMeshes->SolidWalls.Draw(cmdList);
-        LevelResources.AutomapMeshes->Doors.Draw(cmdList);
-        LevelResources.AutomapMeshes->Connections.Draw(cmdList);
+        //LevelResources.AutomapMeshes->Doors.Draw(cmdList);
+        //LevelResources.AutomapMeshes->Connections.Draw(cmdList);
 
-        auto animation = (sin(Clock.GetTotalTimeSeconds() * 4) + 1) * 0.5f + 0.5f;
+        auto animation = float((sin(Clock.GetTotalTimeSeconds() * 4) + 1) * 0.5f + 0.5f);
 
         AutomapShader::Constants constants;
 
@@ -776,8 +816,9 @@ namespace Inferno::Render {
             constants.Color = [&wall, animation] {
                 switch (wall.Type) {
                     default:
-                    case AutomapType::Wall: return Color(0.2f, 0.75f, 0.2f); // Colors::AutomapWall
+                    case AutomapType::Wall: return Color(0.1f, 0.6f, 0.1f);
                     case AutomapType::Door: return Colors::Door * animation;
+                    case AutomapType::LockedDoor: return Color(0.9f, 0.6f, 0.01f) * animation;
                     case AutomapType::GoldDoor: return Colors::DoorGold * animation;
                     case AutomapType::RedDoor: return Colors::DoorRed * animation;
                     case AutomapType::BlueDoor: return Colors::DoorBlue * animation;
@@ -796,6 +837,7 @@ namespace Inferno::Render {
                     case AutomapType::RedDoor:
                     case AutomapType::BlueDoor:
                     case AutomapType::Door:
+                    case AutomapType::LockedDoor:
                         return true;
                     default:
                         return false;
@@ -817,34 +859,37 @@ namespace Inferno::Render {
 
         depthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
 
-        // todo: outline pass
+        // outline pass
+        ctx.ApplyEffect(Effects->AutomapOutline);
+        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+        Effects->AutomapOutline.Shader->SetDepth(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
+        cmdList->DrawInstanced(3, 1, 0, 0);
 
-        //ctx.ApplyEffect(Effects->AutomapOutline);
-        //ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-        //Effects->AutomapOutline.Shader->SetDepth(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
-        //cmdList->DrawInstanced(3, 1, 0, 0);
-
-        // todo: additive pass?
+        // todo: additive pass? (energy center, reactor and matcen boundaries
     }
 
     void DrawAutomapText() {
         //const float scale = Render::Canvas->GetScale();
-        const float margin = 20.0f;
-
-        Render::DrawTextInfo title;
-        title.Position = Vector2(0, 10);
-        title.HorizontalAlign = AlignH::Center;
-        title.VerticalAlign = AlignV::Top;
-        title.Font = FontSize::Big;
-        title.Scale = 0.5;
-        Canvas->DrawGameText(Game::Level.Name, title);
+        constexpr float margin = 15;
+        constexpr float lineHeight = 15;
 
         Color helpColor(0.3f, 1.0f, 0.3f);
-        constexpr float lineHeight = 15;
+
+        Render::DrawTextInfo title;
+        title.Position = Vector2(-margin, margin);
+        title.HorizontalAlign = AlignH::Right;
+        title.VerticalAlign = AlignV::Top;
+        title.Font = FontSize::Small;
+        //title.Scale = 0.75;
+        title.Color = helpColor;
+        Canvas->DrawGameText(Game::Level.Name, title);
+
+        title.Position.y += lineHeight;
+        Canvas->DrawGameText(fmt::format("Level {}", Game::LevelNumber), title);
 
         {
             Render::DrawTextInfo info;
-            info.Position = Vector2(margin, margin + 30);
+            info.Position = Vector2(margin, margin);
             info.HorizontalAlign = AlignH::Left;
             info.VerticalAlign = AlignV::Top;
             info.Font = FontSize::Small;
@@ -852,7 +897,7 @@ namespace Inferno::Render {
             info.Scale = 1;
             info.Color = helpColor;
             info.TabStop = 20;
-            Canvas->DrawGameText("Navigation", info);
+            Canvas->DrawGameText("Navigation:", info);
             info.Position.y += lineHeight;
             Canvas->DrawGameText("1.\tEnergy center", info);
             info.Position.y += lineHeight;

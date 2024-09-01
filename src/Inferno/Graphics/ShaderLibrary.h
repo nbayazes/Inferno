@@ -98,7 +98,7 @@ namespace Inferno {
         };
 
         AutomapShader(const ShaderInfo& info) : IShader(info) {
-            InputLayout = AutomapVertex::Layout;
+            InputLayout = LevelVertex::Layout;
         }
 
         static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& constants) {
@@ -670,7 +670,7 @@ namespace Inferno {
         Effect<FlatLevelShader> LevelFlat = { &_shaders->LevelFlat, { BlendMode::Opaque, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
         Effect<FlatLevelShader> LevelWallFlat = { &_shaders->LevelFlat, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
 
-        Effect<AutomapShader> Automap = { &_shaders->Automap, { BlendMode::Opaque, CullMode::CounterClockwise, DepthMode::ReadWrite } };
+        Effect<AutomapShader> Automap = { &_shaders->Automap, { BlendMode::Opaque, CullMode::CounterClockwise, DepthMode::Read } };
         Effect<AutomapOutlineShader> AutomapOutline = { &_shaders->AutomapOutline, { BlendMode::Alpha, CullMode::None, DepthMode::None } };
 
         Effect<DepthShader> Depth = { &_shaders->Depth, { .Blend = BlendMode::Opaque, .Stencil = StencilMode::PortalRead } };

@@ -47,23 +47,6 @@ namespace Inferno {
         static constexpr D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
     };
 
-    struct AutomapVertex {
-        Vector3 Position;
-        Color Color;
-        Vector3 Normal;
-        Vector2 UV, UV2;
-
-        static constexpr D3D12_INPUT_ELEMENT_DESC Description[] = {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD", 1, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        };
-
-        static constexpr D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
-    };
-
     // this should match imgui shader
     struct CanvasVertex {
         Vector2 Position;

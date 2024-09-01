@@ -81,9 +81,10 @@ namespace Inferno {
             _cmdList->IASetPrimitiveTopology(topology);
         }
 
-        void ClearColor(RenderTarget& target, const D3D12_RECT* rect = nullptr) {
+        void ClearColor(RenderTarget& target, const D3D12_RECT* rect = nullptr, const Color* color = nullptr) {
+            auto clearColor = color ? color : &target.ClearColor;
             target.Transition(_cmdList.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET);
-            _cmdList->ClearRenderTargetView(target.GetRTV(), target.ClearColor, (rect == nullptr) ? 0 : 1, rect);
+            _cmdList->ClearRenderTargetView(target.GetRTV(), *clearColor, (rect == nullptr) ? 0 : 1, rect);
             _activeEffect = 0;
         }
 

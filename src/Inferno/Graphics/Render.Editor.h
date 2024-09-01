@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 #include "Camera.h"
 #include "CameraContext.h"
 #include "DirectX.h"
@@ -16,7 +16,7 @@ namespace Inferno::Render {
         constexpr Color Wall = { 0.8f, 0.8f, 0.8f };
         constexpr Color Trigger = { 0.0f, 1.0f, 1.0f };
         constexpr Color TriggerArrow = { 1.0f, 1.0f, 0.8f, 0.9f };
-        constexpr Color ReactorTriggerArrow = { 1.0f, 0.1f, 0.1f, 0.9f }; 
+        constexpr Color ReactorTriggerArrow = { 1.0f, 0.1f, 0.1f, 0.9f };
 
         constexpr Color SelectionOutline = { 1, 1, 1, 1 };
         constexpr Color SelectionPrimary = { 1, 0.2f, 0, 1 };
@@ -48,6 +48,7 @@ namespace Inferno::Render {
         constexpr Color GlobalOrientation = { 0.4f, 0.4f, 0.4f };
 
         // Automap colors
+        constexpr Color AutomapBackground = { 0, 0, 0 };
         constexpr Color Door = { 0.1612903f, 0.8709677f, 0.1612903f };
         constexpr Color DoorBlue = { 0.0f, 0.0f, 1.0f };
         constexpr Color DoorGold = { 1.0f, 1.0f, 0.0f };
@@ -85,6 +86,5 @@ namespace Inferno::Render {
                 default: return { Colors::MarkedSegment, Colors::MarkedSegmentFill };
             }
         }
-
     }
 }

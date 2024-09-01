@@ -145,6 +145,7 @@ namespace Inferno::Render {
         mesh.Draw(cmdList);
     }
 
+    // Clears and binds depth buffers as the render target
     void ClearDepthPrepass(GraphicsContext& ctx) {
         auto& depthBuffer = Adapter->GetDepthBuffer();
         auto& linearDepthBuffer = Adapter->GetLinearDepthBuffer();
