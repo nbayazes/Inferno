@@ -53,11 +53,15 @@ namespace Inferno::Render {
         constexpr Color DoorBlue = { 0.0f, 0.0f, 1.0f };
         constexpr Color DoorGold = { 1.0f, 1.0f, 0.0f };
         constexpr Color DoorRed = { 1.0f, 0.0f, 0.0f };
+        constexpr Color LockedDoor = { 0.1f, 0.9f, 0.9f };
         constexpr Color Revealed = { 0, 0, 0.8064516f }; // Full map revealed
         constexpr Color AutomapWall = { 0.9354839f, 0.9354839f, 0.9354839f };
         constexpr Color Hostage = { 0, 1.0f, 0 };
         constexpr Color Font = { 0.6451613f, 0.6451613f, 0.6451613f };
-        constexpr Color Fuelcen = { 0.9354839f, 0.8709677f, 0.43f };
+        constexpr Color Unexplored = { 1.25f, 1.25f, 1.25f };
+
+        //constexpr Color Fuelcen = { 0.9354839f, 0.8709677f, 0.43f };
+        constexpr Color Fuelcen = { 1.0f, 0.7f, 0.2f };
         constexpr Color Reactor = { 0.9354839f, 0, 0 };
         constexpr Color Matcen = { 0.9354839f, 0, 1 };
 

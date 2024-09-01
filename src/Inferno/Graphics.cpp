@@ -247,19 +247,15 @@ namespace Inferno::Graphics {
         AutomapMesh connections; // non-visited connections
         AutomapMesh wallMesh;
         AutomapMesh fullmap;
+        AutomapMesh fuelcen, matcen, reactor;
+        AutomapMesh transparent;
 
         auto& level = Game::Level;
 
         Render::LevelResources.AutomapMeshes = make_unique<Render::AutomapMeshes>();
         auto meshes = Render::LevelResources.AutomapMeshes.get();
 
-        const auto packMesh = [&meshes](const AutomapMesh& mesh, Render::PackedMesh& dest) {
-            dest.VertexBuffer = meshes->Buffer.PackVertices(span{ mesh.Vertices });
-            dest.IndexBuffer = meshes->Buffer.PackIndices(span{ mesh.Indices });
-            dest.IndexCount = (uint)mesh.Indices.size();
-        };
-
-        const auto packMesh2 = [&meshes](const AutomapMesh& mesh) {
+        const auto packMesh = [&meshes](const AutomapMesh& mesh) {
             return Render::PackedMesh{
                 .VertexBuffer = meshes->Buffer.PackVertices(span{ mesh.Vertices }),
                 .IndexBuffer = meshes->Buffer.PackIndices(span{ mesh.Indices }),
@@ -272,23 +268,23 @@ namespace Inferno::Graphics {
             if (state == Game::AutomapState::Hidden) continue;
 
             if (auto seg = level.TryGetSegment((SegID)segIndex)) {
+                auto type = AutomapType::Wall;
+
+                if (seg->Type == SegmentType::Energy)
+                    type = AutomapType::Fuelcen;
+                else if (seg->Type == SegmentType::Matcen)
+                    type = AutomapType::Matcen;
+                else if (seg->Type == SegmentType::Reactor)
+                    type = AutomapType::Reactor;
+
                 for (auto& sideId : SIDE_IDS) {
                     bool unrevealed = false; // does this touch an unrevealed side?
-                    auto type = AutomapType::Wall;
 
                     if (auto connState = Seq::tryItem(Game::AutomapSegments, (int)seg->GetConnection(sideId))) {
                         unrevealed = *connState != Game::AutomapState::Visible;
                     }
 
                     auto& side = seg->GetSide(sideId);
-
-                    if (seg->Type == SegmentType::Energy)
-                        type = AutomapType::Fuelcen;
-                    else if (seg->Type == SegmentType::Matcen)
-                        type = AutomapType::Matcen;
-                    else if (seg->Type == SegmentType::Reactor)
-                        type = AutomapType::Reactor;
-
                     auto wall = level.TryGetWall(side.Wall);
                     bool isDoor = false;
                     bool isSecretDoor = false;
@@ -325,49 +321,91 @@ namespace Inferno::Graphics {
                             Render::AutomapMeshInstance instance{
                                 .Texture = Resources::LookupTexID(side.TMap),
                                 .Decal = side.TMap2 > LevelTexID::Unset ? Resources::LookupTexID(side.TMap2) : TexID::None,
-                                .Mesh = packMesh2(mesh),
+                                .Mesh = packMesh(mesh),
                                 .Type = type
                             };
 
                             meshes->Walls.push_back(instance);
-                            //doors.AddQuad(verts, color, normal);
                         }
                     }
                     else if (seg->SideIsSolid(sideId, level)) {
-                        if (state == Game::AutomapState::Visible)
-                            solidWalls.AddSide(level, *seg, sideId);
-                        else if (state == Game::AutomapState::FullMap)
+                        if (state == Game::AutomapState::Visible) {
+                            if (seg->Type == SegmentType::Energy)
+                                fuelcen.AddSide(level, *seg, sideId);
+                            else if (seg->Type == SegmentType::Matcen)
+                                matcen.AddSide(level, *seg, sideId);
+                            else if (seg->Type == SegmentType::Reactor)
+                                reactor.AddSide(level, *seg, sideId);
+                            else
+                                solidWalls.AddSide(level, *seg, sideId);
+                        }
+                        else if (state == Game::AutomapState::FullMap) {
                             fullmap.AddSide(level, *seg, sideId);
+                        }
+                    }
+
+                    if (auto conn = level.TryGetSegment(seg->GetConnection(sideId))) {
+                        const auto addTransparent = [&](AutomapType connType) {
+                            AutomapMesh mesh;
+                            mesh.AddSide(level, *seg, sideId);
+
+                            Render::AutomapMeshInstance instance{
+                                .Texture = Resources::LookupTexID(side.TMap),
+                                .Decal = side.TMap2 > LevelTexID::Unset ? Resources::LookupTexID(side.TMap2) : TexID::None,
+                                .Mesh = packMesh(mesh),
+                                .Type = connType
+                            };
+
+                            meshes->TransparentWalls.push_back(instance);
+                        };
+
+                        if (conn->Type != seg->Type) {
+                            // Segment type changing
+                            if (seg->Type == SegmentType::Energy)
+                                addTransparent(AutomapType::Fuelcen);
+                            else if (seg->Type == SegmentType::Reactor)
+                                addTransparent(AutomapType::Reactor);
+                            else if (seg->Type == SegmentType::Matcen)
+                                addTransparent(AutomapType::Matcen);
+                            else if (seg->Type == SegmentType::None) {
+                                // Normal segment facing a special type
+                                if (conn->Type == SegmentType::Energy)
+                                    addTransparent(AutomapType::Fuelcen);
+                                else if (conn->Type == SegmentType::Reactor)
+                                    addTransparent(AutomapType::Reactor);
+                                else if (conn->Type == SegmentType::Matcen)
+                                    addTransparent(AutomapType::Matcen);
+                            }
+                        }
                     }
                 }
             }
         }
 
-        //meshes.Buffer.ResetIndex();
-        {
-            // add solid walls a single mesh
-            Render::AutomapMeshInstance instance{
-                .Texture = TexID::None,
-                .Decal = TexID::None,
-                .Mesh = packMesh2(solidWalls),
-                .Type = AutomapType::Wall
-            };
+        // add solid walls as a single mesh
+        meshes->Walls.push_back({
+            .Mesh = packMesh(solidWalls),
+            .Type = AutomapType::Wall
+        });
 
-            meshes->Walls.push_back(instance);
-        }
+        meshes->Walls.push_back({
+            .Mesh = packMesh(fuelcen),
+            .Type = AutomapType::Fuelcen
+        });
 
-        {
-            // add connections as a single mesh
-            Render::AutomapMeshInstance instance{
-                .Texture = TexID::None,
-                .Decal = TexID::None,
-                .Mesh = packMesh2(connections),
-                .Type = AutomapType::Unrevealed
-            };
+        meshes->Walls.push_back({
+            .Mesh = packMesh(matcen),
+            .Type = AutomapType::Matcen
+        });
 
-            meshes->Walls.push_back(instance);
-        }
+        meshes->Walls.push_back({
+            .Mesh = packMesh(reactor),
+            .Type = AutomapType::Reactor
+        });
 
-        packMesh(fullmap, meshes->Fullmap);
+        meshes->Walls.push_back({
+            .Mesh = packMesh(connections),
+            .Type = AutomapType::Unrevealed
+        });
     }
 }

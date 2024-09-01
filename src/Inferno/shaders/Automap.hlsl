@@ -89,8 +89,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float dfwidth = Depth.Sample(LinearSampler, (input.pos.xy + 0.5) / Frame.Size).x;
     float d = Depth.Sample(LinearSampler, (input.pos.xy) / Frame.Size).x;
     float depth = pow(saturate(0.8 - d * Frame.FarClip / 2000), 2) + 0.025;
-    float highlight = pow(saturate(dot(input.normal, -viewDir)), 1.5);
-    highlight = max(highlight, 0.1);
 
     float alpha = Sample2D(Diffuse1, input.uv, Sampler, Frame.FilterMode).a;
 
@@ -105,36 +103,47 @@ float4 psmain(PS_INPUT input) : SV_Target {
     if ((Frame.FilterMode == FILTER_SMOOTH && alpha <= 0) || (Frame.FilterMode != FILTER_SMOOTH && alpha < 1))
         discard;
 
-    //color.rgb += saturate(color.rgb - 0.5) * 2; // boost highlights
-    //color.a = saturate(color.a);
-    float2 screenUv = (input.pos.xy) / Frame.Size;
-    float ratio = Frame.Size.y / Frame.Size.x;
-    float scanline = 1 + saturate(sin(screenUv.y * 1000 * ratio) - .5);
-
-    float scanline2 = 1 + saturate(sin(screenUv.x * 3000 * ratio) - .5);
-    scanline += scanline2 * 0.15;
-    scanline *= 1 + saturate(1 + cos(Frame.Time * 2 + screenUv.x * 50 + screenUv.y * -3)) * 0.3;
-    //scanline += 0.5 * scanline2 * (1 + saturate(1 + cos(Frame.Time * 2 + screenUv.y * 50 + screenUv.x * -3)) * 0.3);
-
-    //float3 automap = float3(fw2.x + fw2.y, 0, 0);
-    //return float4(fw2.x + fw2.y, 0, 0, 1);
-    float fill = Args.Flat ? 1 : highlight * 1;
-
-    //float intensity = outline + fill * (1 + abs(scanline * scanline * 0.20));
-    //return float4(1,1,1,1);
     float4 color = Args.Color;
-    //color.rgb = pow(Args.Flat ? color.rgb : max(input.color.rgb, 0), 2.2);
     color.rgb = pow(color.rgb, 2.2);
 
-    if (!Args.Flat) {
+    float highlight = pow(saturate(dot(input.normal, -viewDir)), 1.5);
+
+    if (Args.Flat) {
+        highlight = highlight * 0.5 + 0.5;
+    }
+    else {
+        highlight = max(highlight, 0.1);
+        //highlight = pow(saturate(dot(input.normal, -viewDir)), 1.5);
         color.rgb *= 0.4;
         color.g += saturate(Luminance(input.color.rgb)) * .7;
         color.rgb *= depth;
         //color.g += (input.color.r + input.color.g + input.color.b) / 3 * 0.6;
     }
-    //color.rgb = pow(saturate(color.rgb + float3(-.5, 1, -.5)) + max(input.color.rgb * 0.0, 0), 2.2);
 
-    return color * fill /** scanline*/;
+    // world space grid
+    //const float spacing = 4;
+    //const float intensity = 5;
+    //float scanline =
+    //    saturate(sin(input.world.x / spacing/* + Frame.Time*/) - 0.98) * 20 +
+    //    saturate(sin(input.world.y / spacing/* + Frame.Time*/) - 0.98) * 20 +
+    //    saturate(sin(input.world.z / spacing/* + Frame.Time*/) - 0.98) * 20;
+    //scanline = saturate(scanline) ;
+    //highlight += scanline * .25;
+
+    //color.rgb += saturate(color.rgb - 0.5) * 2; // boost highlights
+    //color.a = saturate(color.a);
+    float2 screenUv = (input.pos.xy) / Frame.Size;
+    float ratio = Frame.Size.y / Frame.Size.x;
+    float scanline = 1 + saturate(abs(sin(screenUv.y * Frame.Size.y / 2))) * .1;
+    float scanline2 = 1 + saturate(sin(screenUv.x * 3000 * ratio) - .5);
+    //scanline += scanline2 * 0.15;
+    // horizontal scan
+    scanline *= 1 + saturate(1 + cos(Frame.Time * 2 + screenUv.x * 50 + screenUv.y * -2)) * 0.05;
+    highlight *= scanline;
+    //scanline += 0.5 * scanline2 * (1 + saturate(1 + cos(Frame.Time * 2 + screenUv.y * 50 + screenUv.x * -3)) * 0.3);
+
+
+    return color * highlight;
 
     //float2 fw = fwidth(d);
     //float fwd = pow(1 + (fw.x * fw.x + fw.y * fw.y), 0.4) - 1;

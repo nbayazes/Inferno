@@ -671,6 +671,7 @@ namespace Inferno {
         Effect<FlatLevelShader> LevelWallFlat = { &_shaders->LevelFlat, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
 
         Effect<AutomapShader> Automap = { &_shaders->Automap, { BlendMode::Opaque, CullMode::CounterClockwise, DepthMode::Read } };
+        Effect<AutomapShader> AutomapTransparent = { &_shaders->Automap, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
         Effect<AutomapOutlineShader> AutomapOutline = { &_shaders->AutomapOutline, { BlendMode::Alpha, CullMode::None, DepthMode::None } };
 
         Effect<DepthShader> Depth = { &_shaders->Depth, { .Blend = BlendMode::Opaque, .Stencil = StencilMode::PortalRead } };
@@ -750,6 +751,7 @@ namespace Inferno {
             compile(LevelFlat);
             compile(LevelWallFlat);
             compile(Automap);
+            compile(AutomapTransparent);
             compile(AutomapOutline);
 
             compile(Terrain);

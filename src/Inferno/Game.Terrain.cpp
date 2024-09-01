@@ -172,7 +172,6 @@ namespace Inferno {
     }
 
     void GenerateTerrain(TerrainInfo& info, const TerrainGenerationInfo& args) {
-        List<uint8> terrain;
         auto& vertices = info.Vertices;
         auto& indices = info.Indices;
 
@@ -288,7 +287,6 @@ namespace Inferno {
     }
 
     void LoadTerrain(const Bitmap2D& bitmap, TerrainInfo& info, uint cellDensity, float heightScale, float gridScale) {
-        List<uint8> terrain;
         auto& vertices = info.Vertices;
         auto& indices = info.Indices;
 

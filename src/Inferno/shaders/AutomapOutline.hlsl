@@ -69,6 +69,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //alpha *= 4.5;
     alpha = saturate(alpha * 2);
 
+    float scanline = saturate(abs(sin(uv.y * Frame.Size.y / 2))) + 0.25;
+    //alpha *= scanline;
     //alpha = saturate(min(alpha, (1 - dmax * 4000) ));
 
     return float4(0, alpha, 0, alpha);

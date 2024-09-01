@@ -727,6 +727,10 @@ namespace Inferno::Render {
         }
     }
 
+    float GetAutomapAnimation() {
+        return float((sin(Clock.GetTotalTimeSeconds() * 4) + 1) * 0.5f + 0.65f);
+    }
+
     void DrawAutomap(GraphicsContext& ctx) {
         if (!LevelResources.AutomapMeshes) return;
 
@@ -805,11 +809,13 @@ namespace Inferno::Render {
         //LevelResources.AutomapMeshes->Doors.Draw(cmdList);
         //LevelResources.AutomapMeshes->Connections.Draw(cmdList);
 
-        auto animation = float((sin(Clock.GetTotalTimeSeconds() * 4) + 1) * 0.5f + 0.5f);
+        auto animation = GetAutomapAnimation();
 
         AutomapShader::Constants constants;
 
-        for (auto& wall : LevelResources.AutomapMeshes->Walls) {
+        auto drawMesh = [&](AutomapMeshInstance& wall) {
+            if (!wall.Mesh.IsValid()) return;
+
             auto& texture = Materials->Get(wall.Texture);
             auto& decal = Materials->Get(wall.Decal);
 
@@ -818,15 +824,15 @@ namespace Inferno::Render {
                     default:
                     case AutomapType::Wall: return Color(0.1f, 0.6f, 0.1f);
                     case AutomapType::Door: return Colors::Door * animation;
-                    case AutomapType::LockedDoor: return Color(0.9f, 0.6f, 0.01f) * animation;
+                    case AutomapType::LockedDoor: return Colors::LockedDoor * animation;
                     case AutomapType::GoldDoor: return Colors::DoorGold * animation;
                     case AutomapType::RedDoor: return Colors::DoorRed * animation;
                     case AutomapType::BlueDoor: return Colors::DoorBlue * animation;
                     case AutomapType::FullMap: return Colors::Revealed;
-                    case AutomapType::Fuelcen: return Colors::Fuelcen;
-                    case AutomapType::Reactor: return Colors::Reactor;
-                    case AutomapType::Unrevealed: return Color(1, 1, 1) * animation;
-                    case AutomapType::Matcen: return Colors::Matcen;
+                    case AutomapType::Fuelcen: return Colors::Fuelcen * 1.25f * animation;
+                    case AutomapType::Reactor: return Colors::Reactor * animation;
+                    case AutomapType::Unrevealed: return Colors::Unexplored * animation;
+                    case AutomapType::Matcen: return Colors::Matcen * animation;
                 }
             }();
 
@@ -838,6 +844,9 @@ namespace Inferno::Render {
                     case AutomapType::BlueDoor:
                     case AutomapType::Door:
                     case AutomapType::LockedDoor:
+                    case AutomapType::Fuelcen:
+                    case AutomapType::Reactor:
+                    case AutomapType::Matcen:
                         return true;
                     default:
                         return false;
@@ -847,14 +856,30 @@ namespace Inferno::Render {
             constants.HasOverlay = wall.Decal > TexID::None;
 
             shader->SetConstants(cmdList, constants);
-            shader->SetDiffuse1(cmdList, texture.Handle());
-            shader->SetDiffuse2(cmdList, decal.Handle());
-            shader->SetMask(cmdList, decal.Handles[Material2D::SuperTransparency]);
+            if (wall.Type == AutomapType::Fuelcen || wall.Type == AutomapType::Reactor || wall.Type == AutomapType::Matcen) {
+                shader->SetDiffuse1(cmdList, Materials->White().Handle());
+                shader->SetDiffuse2(cmdList, Materials->White().Handle());
+                shader->SetMask(cmdList, Materials->White().Handle());
+            }
+            else {
+                shader->SetDiffuse1(cmdList, texture.Handle());
+                shader->SetDiffuse2(cmdList, decal.Handle());
+                shader->SetMask(cmdList, decal.Handles[Material2D::SuperTransparency]);
+            }
 
-            if (!wall.Mesh.IsValid()) continue;
             cmdList->IASetVertexBuffers(0, 1, &wall.Mesh.VertexBuffer);
             cmdList->IASetIndexBuffer(&wall.Mesh.IndexBuffer);
             cmdList->DrawIndexedInstanced(wall.Mesh.IndexCount, 1, 0, 0, 0);
+        };
+
+        for (auto& wall : LevelResources.AutomapMeshes->Walls) {
+            drawMesh(wall);
+        }
+
+        ctx.ApplyEffect(Effects->AutomapTransparent);
+
+        for (auto& wall : LevelResources.AutomapMeshes->TransparentWalls) {
+            drawMesh(wall);
         }
 
         depthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
@@ -866,6 +891,10 @@ namespace Inferno::Render {
         cmdList->DrawInstanced(3, 1, 0, 0);
 
         // todo: additive pass? (energy center, reactor and matcen boundaries
+    }
+
+    Color ApplyGamma(const Color& color, float gamma = 2.2f) {
+        return { pow(color.x, gamma), pow(color.y, gamma), pow(color.z, gamma), color.w };
     }
 
     void DrawAutomapText() {
@@ -886,6 +915,8 @@ namespace Inferno::Render {
 
         title.Position.y += lineHeight;
         Canvas->DrawGameText(fmt::format("Level {}", Game::LevelNumber), title);
+
+        auto animation = GetAutomapAnimation();
 
         {
             Render::DrawTextInfo info;
@@ -929,55 +960,17 @@ namespace Inferno::Render {
             info.Font = FontSize::Small;
             //info.Scale = 1 / Render::Canvas->GetScale() * 2;
             info.Color = helpColor;
-            info.Position = Vector2(margin, -margin - lineHeight * 2);
+            info.Position = Vector2(margin, -margin - lineHeight * 3);
             info.TabStop = 130;
 
+            // todo: change help text based on automap control mode (orbit or flight)
             Canvas->DrawGameText("flight:\tMove view", info);
             info.Position.y += lineHeight;
-            Canvas->DrawGameText("afterburner:\tmove faster", info);
+            Canvas->DrawGameText("afterburner:\tcenter on ship", info);
             info.Position.y += lineHeight;
-            Canvas->DrawGameText("primary fire:\tcenter on ship", info);
-
-            //auto drawItem = [&info, &cursor, lineHeight](string_view label, string_view text) {
-            //    info.Position = cursor;
-            //    Canvas->DrawGameText(label, info);
-
-            //    info.Position.x += 260;
-            //    Canvas->DrawGameText(text, info);
-            //    cursor.y += lineHeight;
-            //};
-
-            //drawItem("Turn:", "rotate view");
-            //drawItem("flight:", "move");
-            //drawItem("afterburner:", "move faster");
-            //drawItem("primary fire:", "center on ship");
-
-            //cursor.y -= lineHeight;
-            //info.Position = cursor;
-            //Canvas->DrawGameText("Primary fire:", info);
-            //info.Position.x = column2;
-            //Canvas->DrawGameText("center on ship", info);
-
-            //cursor.y -= lineHeight;
-            //info.Position = cursor;
-            //Canvas->DrawGameText("flight:", info);
-            //info.Position.x = column2;
-            //Canvas->DrawGameText("move", info);
-
-            //cursor.y -= ySpacing;
-            //info.Position = cursor;
-            //Canvas->DrawGameText("Primary fire:   zoom in", info);
-
-            //cursor.y -= ySpacing;
-            //info.Position = cursor;
-            //Canvas->DrawGameText("Secondary fire: zoom out", info);
-
-            //cursor.y -= lineHeight;
-            //info.Position = cursor;
-            ////Canvas->DrawGameText("Afterburner:    center on ship", info);
-            //Canvas->DrawGameText("Afterburner: ", info);
-            //info.Position.x = column2;
-            //Canvas->DrawGameText("move faster", info);
+            Canvas->DrawGameText("primary fire:\tzoom in", info);
+            info.Position.y += lineHeight;
+            Canvas->DrawGameText("secondary fire:\tzoom out", info);
         }
 
         {
@@ -988,19 +981,26 @@ namespace Inferno::Render {
             info.Font = FontSize::Small;
             //info.Scale = 1 / Render::Canvas->GetScale() * 2;
             info.Color = helpColor;
-            info.Position = Vector2(-margin - 20, -margin - lineHeight * 3);
+            info.Position = Vector2(-margin - 20, -margin - lineHeight * 5);
 
-            //info.Position = Vector2(xOffset, -lineHeight * 1);
-            Canvas->DrawGameText("Unexplored area", info);
+            Vector2 rectSz{ 4, 4 };
+            rectSz *= Render::Canvas->GetScale();
 
-            info.Position.y += lineHeight;
-            Canvas->DrawGameText("Energy center", info);
+            auto rectX = -margin - rectSz.x;
+            auto rectY = -7;
 
-            info.Position.y += lineHeight;
-            Canvas->DrawGameText("Locked door", info);
+            auto addHelp = [&](string_view str, const Color& color) {
+                Canvas->DrawGameText(str, info);
+                Canvas->DrawRectangleScaled({ rectX, info.Position.y + rectY }, rectSz, ApplyGamma(color) * animation, AlignH::Right, AlignV::Bottom);
+                info.Position.y += lineHeight;
+            };
 
-            info.Position.y += lineHeight;
-            Canvas->DrawGameText("Door", info);
+            addHelp("Unexplored", Colors::Unexplored);
+            addHelp("Door", Colors::Door);
+            addHelp("Locked door", Colors::LockedDoor);
+            addHelp("Energy center", Colors::Fuelcen);
+            addHelp("Matcen", Colors::Matcen);
+            addHelp("Reactor", Colors::Reactor);
         }
     }
 
@@ -1044,7 +1044,6 @@ namespace Inferno::Render {
 
         if (Game::BriefingVisible)
             DrawBriefing(ctx, Adapter->BriefingColorBuffer, Game::Briefing);
-
 
         // Create a terrain camera at the origin and orient it with the terrain
         // Always positioning it at the origin prevents any parallax effects on the planets

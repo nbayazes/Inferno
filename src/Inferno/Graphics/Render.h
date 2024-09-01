@@ -158,10 +158,9 @@ namespace Inferno::Render {
 
     struct AutomapMeshes {
         PackedBuffer Buffer;
-        PackedMesh Connections, Doors, Fullmap;
 
         List<AutomapMeshInstance> Walls;
-        //AutomapMeshInstance SolidWalls;
+        List<AutomapMeshInstance> TransparentWalls;
     };
 
     struct LevelGpuResources {
