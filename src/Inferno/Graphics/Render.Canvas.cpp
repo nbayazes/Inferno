@@ -105,6 +105,7 @@ namespace Inferno::Render {
 
         auto color = info.Color;
         Color background = color * 0.1f;
+        background.w = 1;
 
         auto scale = info.Scale * _scale * font->Scale;
         auto strSize = MeasureString(str, info.Font) * scale;
@@ -167,11 +168,11 @@ namespace Inferno::Render {
             cbi.UV1 = Vector2{ ci.X1, ci.Y1 };
             cbi.Color = background;
             cbi.Texture = Render::StaticTextures->Font.GetSRV();
-            cbi.Scanline = info.Scanline;
             DrawBitmap(cbi); // Shadow
 
             cbi.Color = color;
-            cbi.Position.x += 1;
+            cbi.Position = Vector2{ x0, y0 };
+            cbi.Scanline = info.Scanline;
             DrawBitmap(cbi); // Foreground
 
             auto kerning = Atlas.GetKerning(c, next, info.Font) * scale;

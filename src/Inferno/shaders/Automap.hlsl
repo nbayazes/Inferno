@@ -115,7 +115,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         highlight = max(highlight, 0.1);
         //highlight = pow(saturate(dot(input.normal, -viewDir)), 1.5);
         color.rgb *= 0.4;
-        color.g += saturate(Luminance(input.color.rgb)) * .7;
+        color.g += saturate(Luminance(input.color.rgb)) * .5; // Text becomes unreadable if map is too bright
         color.rgb *= depth;
         //color.g += (input.color.r + input.color.g + input.color.b) / 3 * 0.6;
     }

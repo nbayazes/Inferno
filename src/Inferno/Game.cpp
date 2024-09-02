@@ -350,7 +350,7 @@ namespace Inferno::Game {
 
     void ResetAutomapCamera() {
         auto& player = Game::GetPlayerObject();
-        auto position = player.Position + player.Rotation.Backward() * 100 + player.Rotation.Up() * 60;
+        auto position = player.Position + player.Rotation.Backward() * 20 + player.Rotation.Up() * 7.5f;
         auto dir = player.Position - position;
         dir.Normalize();
         auto right = dir.Cross(player.Rotation.Up());
@@ -831,6 +831,7 @@ namespace Inferno::Game {
 
         Navigation = NavigationNetwork(Level);
         Level.Rooms = CreateRooms(Level);
+        Level.HasBoss = false;
         Render::LevelChanged = true; // regenerate level meshes
 
         // init objects
@@ -872,6 +873,9 @@ namespace Inferno::Game {
 
             if (obj.IsWeapon() && obj.ID == (int)WeaponID::LevelMine)
                 obj.Faction = Faction::Robot;
+
+            if (IsBossRobot(obj))
+                Level.HasBoss = true;
 
             FixObjectPosition(obj);
         }

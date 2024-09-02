@@ -21,6 +21,7 @@
 #include "MaterialLibrary.h"
 #include "Procedural.h"
 #include "Render.Level.h"
+#include "Render.Object.h"
 #include "Resources.h"
 
 using namespace DirectX;
@@ -793,31 +794,16 @@ namespace Inferno::Render {
         ctx.SetRenderTarget(target.GetRTV(), depthBuffer.GetDSV());
         ctx.ClearColor(target, nullptr, &Colors::AutomapBackground);
 
-        ctx.ApplyEffect(Effects->Automap);
-        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-        auto& shader = Effects->Automap.Shader;
-        shader->SetDepth(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
-        shader->SetDiffuse1(cmdList, Materials->White().Handle());
-        shader->SetDiffuse2(cmdList, Materials->White().Handle());
-        shader->SetMask(cmdList, Materials->White().Handle());
-        shader->SetSampler(cmdList, GetWrappedTextureSampler());
-
         depthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
-        //LevelResources.AutomapMeshes->Fullmap.Draw(cmdList);
-        //LevelResources.AutomapMeshes->SolidWalls.Draw(cmdList);
-        //LevelResources.AutomapMeshes->Doors.Draw(cmdList);
-        //LevelResources.AutomapMeshes->Connections.Draw(cmdList);
-
         auto animation = GetAutomapAnimation();
-
-        AutomapShader::Constants constants;
 
         auto drawMesh = [&](AutomapMeshInstance& wall) {
             if (!wall.Mesh.IsValid()) return;
 
             auto& texture = Materials->Get(wall.Texture);
             auto& decal = Materials->Get(wall.Decal);
+            AutomapShader::Constants constants;
 
             constants.Color = [&wall, animation] {
                 switch (wall.Type) {
@@ -854,17 +840,25 @@ namespace Inferno::Render {
             }();
 
             constants.HasOverlay = wall.Decal > TexID::None;
+            constants.Color.w = 1;
 
-            shader->SetConstants(cmdList, constants);
+            auto& shader = Shaders->Automap;
+            shader.SetDepth(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
+            shader.SetDiffuse1(cmdList, Materials->White().Handle());
+            shader.SetDiffuse2(cmdList, Materials->White().Handle());
+            shader.SetMask(cmdList, Materials->White().Handle());
+            shader.SetSampler(cmdList, GetWrappedTextureSampler());
+
+            shader.SetConstants(cmdList, constants);
             if (wall.Type == AutomapType::Fuelcen || wall.Type == AutomapType::Reactor || wall.Type == AutomapType::Matcen) {
-                shader->SetDiffuse1(cmdList, Materials->White().Handle());
-                shader->SetDiffuse2(cmdList, Materials->White().Handle());
-                shader->SetMask(cmdList, Materials->White().Handle());
+                shader.SetDiffuse1(cmdList, Materials->White().Handle());
+                shader.SetDiffuse2(cmdList, Materials->White().Handle());
+                shader.SetMask(cmdList, Materials->White().Handle());
             }
             else {
-                shader->SetDiffuse1(cmdList, texture.Handle());
-                shader->SetDiffuse2(cmdList, decal.Handle());
-                shader->SetMask(cmdList, decal.Handles[Material2D::SuperTransparency]);
+                shader.SetDiffuse1(cmdList, texture.Handle());
+                shader.SetDiffuse2(cmdList, decal.Handle());
+                shader.SetMask(cmdList, decal.Handles[Material2D::SuperTransparency]);
             }
 
             cmdList->IASetVertexBuffers(0, 1, &wall.Mesh.VertexBuffer);
@@ -872,15 +866,38 @@ namespace Inferno::Render {
             cmdList->DrawIndexedInstanced(wall.Mesh.IndexCount, 1, 0, 0, 0);
         };
 
+        ctx.ApplyEffect(Effects->Automap);
+        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+
         for (auto& wall : LevelResources.AutomapMeshes->Walls) {
             drawMesh(wall);
         }
 
+        for (auto& obj : Game::Level.Objects) {
+            if (obj.Type == ObjectType::Hostage) {
+                auto color = Colors::Hostage * animation;
+                color.w = 1;
+                Debug::DrawSolidCircle(obj.Position, 6, color, Game::GetActiveCamera(), 32);
+            }
+            else if (obj.Type == ObjectType::Reactor && !Game::Level.HasBoss) {
+                auto color = Colors::Reactor * animation;
+                color.w = 1;
+                DrawAutomapModel(ctx, obj, obj.Render.Model.ID, color, Adapter->GetFrameConstants());
+            }
+            else if (obj.Type == ObjectType::Player && obj.ID == 0) {
+                auto color = Colors::Player * animation;
+                color.w = 1;
+                DrawAutomapModel(ctx, obj, obj.Render.Model.ID, color, Adapter->GetFrameConstants());
+            }
+        }
+
         ctx.ApplyEffect(Effects->AutomapTransparent);
+        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
 
         for (auto& wall : LevelResources.AutomapMeshes->TransparentWalls) {
             drawMesh(wall);
         }
+        
 
         depthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
 
@@ -905,10 +922,38 @@ namespace Inferno::Render {
         HudCanvas->SetSize(width, height);
 
         //const float scale = Render::Canvas->GetScale();
-        constexpr float margin = 15;
+        constexpr float margin = 10;
         constexpr float lineHeight = 15;
 
-        Color helpColor(0.3f, 1.0f, 0.3f);
+        Color textColor(0.2f, 1.5f, 0.2f);
+
+        //{
+        //    // Draw backgrounds
+        //    auto black = Materials->Black().Handle();
+        //    Color background(1, 1, 1, 0.6f);
+        //    CanvasBitmapInfo rect({ 0, 0 }, { 100, 50 }, black, background);
+
+        //    rect.HorizontalAlign = AlignH::Left;
+        //    rect.VerticalAlign = AlignV::Top;
+        //    rect.Size = Vector2(200, margin * 2 + lineHeight * 4);
+        //    canvas->DrawBitmapScaled(rect);
+
+        //    rect.HorizontalAlign = AlignH::Right;
+        //    rect.VerticalAlign = AlignV::Top;
+        //    rect.Size.x = MeasureString(Game::Level.Name, FontSize::Small).x + margin * 2;
+        //    rect.Size.y = margin * 2 + lineHeight * 2;
+        //    canvas->DrawBitmapScaled(rect);
+
+        //    rect.HorizontalAlign = AlignH::Left;
+        //    rect.VerticalAlign = AlignV::Bottom;
+        //    rect.Size = Vector2(300, margin * 2 + lineHeight * 4);
+        //    canvas->DrawBitmapScaled(rect);
+
+        //    rect.HorizontalAlign = AlignH::Right;
+        //    rect.VerticalAlign = AlignV::Bottom;
+        //    rect.Size = Vector2(180, margin * 2 + lineHeight * 6);
+        //    canvas->DrawBitmapScaled(rect);
+        //}
 
         Render::DrawTextInfo title;
         title.Position = Vector2(-margin, margin);
@@ -916,14 +961,14 @@ namespace Inferno::Render {
         title.VerticalAlign = AlignV::Top;
         title.Font = FontSize::Small;
         //title.Scale = 0.75;
-        title.Color = helpColor;
+        title.Color = textColor;
         canvas->DrawGameText(Game::Level.Name, title);
 
         title.Position.y += lineHeight;
         canvas->DrawGameText(fmt::format("Level {}", Game::LevelNumber), title);
 
         auto animation = GetAutomapAnimation();
-        constexpr float scanline = 0.4f;
+        constexpr float scanline = 0.5f;
 
         {
             Render::DrawTextInfo info;
@@ -933,7 +978,7 @@ namespace Inferno::Render {
             info.Font = FontSize::Small;
             //info.Scale = 1 / scale * 2;
             info.Scale = 1;
-            info.Color = helpColor;
+            info.Color = textColor;
             info.TabStop = 20;
             info.Scanline = scanline;
             canvas->DrawGameText("Navigation:", info);
@@ -942,7 +987,7 @@ namespace Inferno::Render {
             info.Position.y += lineHeight;
             canvas->DrawGameText("2.\tReactor", info);
             info.Position.y += lineHeight;
-            canvas->DrawGameText("3.\tExit", info);
+            canvas->DrawGameText("3.\tEmergency Exit", info);
 
             //auto drawItem = [&info, &cursor, lineHeight](string_view label, string_view text) {
             //    cursor.y += lineHeight;
@@ -964,7 +1009,7 @@ namespace Inferno::Render {
             info.HorizontalAlign = AlignH::Left;
             info.VerticalAlign = AlignV::Bottom;
             info.Font = FontSize::Small;
-            info.Color = helpColor;
+            info.Color = textColor;
             info.Position = Vector2(margin, -margin - lineHeight * 3);
             info.TabStop = 150;
             info.Scanline = scanline;
@@ -986,14 +1031,14 @@ namespace Inferno::Render {
             info.HorizontalAlign = AlignH::Right;
             info.VerticalAlign = AlignV::Bottom;
             info.Font = FontSize::Small;
-            info.Color = helpColor;
+            info.Color = textColor;
             info.Scanline = scanline;
             info.Position = Vector2(-margin - rectSz.x - 2, -margin - lineHeight * 5);
 
             auto addHelp = [&](string_view str, const Color& color) {
                 canvas->DrawGameText(str, info);
                 auto white = Materials->White().Handles[Material2D::Diffuse];
-                CanvasBitmapInfo rect({ -margin, info.Position.y  + 1}, rectSz, white, color * animation, AlignH::Right, AlignV::Bottom);
+                CanvasBitmapInfo rect({ -margin, info.Position.y + 1 }, rectSz, white, color * animation, AlignH::Right, AlignV::Bottom);
                 rect.Scanline = 0.15f;
                 canvas->DrawBitmapScaled(rect);
                 info.Position.y += lineHeight;
@@ -1008,6 +1053,7 @@ namespace Inferno::Render {
         }
 
         HudCanvas->Render(ctx);
+        HudGlowCanvas->Render(ctx);
     }
 
     void Present(const Camera& camera) {

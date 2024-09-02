@@ -648,6 +648,7 @@ namespace Inferno {
         HudShader Hud = ShaderInfo{ L"shaders/HUD.hlsl" };
         SpriteShader Sprite = ShaderInfo{ L"shaders/sprite.hlsl" };
         ObjectShader Object = ShaderInfo{ L"shaders/object.hlsl" };
+        ObjectShader AutomapObject = ShaderInfo{ L"shaders/AutomapObject.hlsl" };
         ObjectShader BriefingObject = ShaderInfo{ L"shaders/BriefingObject.hlsl" };
         TerrainShader Terrain = ShaderInfo{ L"shaders/Terrain.hlsl" };
         ObjectDistortionShader ObjectDistortion = ShaderInfo{ L"shaders/Cloak.hlsl" };
@@ -682,6 +683,7 @@ namespace Inferno {
         Effect<ObjectShader> ObjectGlow = { &_shaders->Object, { .Blend = BlendMode::Additive, .Culling = CullMode::None, .Depth = DepthMode::Read, .Stencil = StencilMode::PortalRead } };
         Effect<ObjectDistortionShader> ObjectDistortion{ &_shaders->ObjectDistortion, { .Blend = BlendMode::Alpha, .Culling = CullMode::CounterClockwise, .Depth = DepthMode::Read, .Stencil = StencilMode::PortalRead } };
         Effect<ObjectShader> BriefingObject = { &_shaders->BriefingObject, { BlendMode::Alpha, CullMode::None, DepthMode::ReadWrite } };
+        Effect<ObjectShader> AutomapObject = { &_shaders->AutomapObject, {.Blend = BlendMode::Alpha, .Culling = CullMode::None, .Depth = DepthMode::ReadWrite } };
 
         Effect<UIShader> UserInterface = { &_shaders->UserInterface, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, StencilMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, false } };
         Effect<BriefingShader> Briefing = { &_shaders->Briefing, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, StencilMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, false } };
@@ -726,6 +728,7 @@ namespace Inferno {
             CompileShader(&_shaders->Stars);
             CompileShader(&_shaders->Sun);
             CompileShader(&_shaders->Automap);
+            CompileShader(&_shaders->AutomapObject);
             CompileShader(&_shaders->AutomapOutline);
 
             auto compile = [&](auto& effect, bool useStencil = true, uint renderTargets = 1) {
@@ -751,6 +754,7 @@ namespace Inferno {
             compile(LevelWallFlat);
             compile(Automap);
             compile(AutomapTransparent);
+            compile(AutomapObject);
             compile(AutomapOutline);
 
             compile(Terrain);

@@ -306,15 +306,14 @@ namespace Inferno::Render::Debug {
     }
 
     // Draws a solid circle that always faces the camera
-    void DrawSolidCircle(const Vector3& position, float radius, const Color& color, const Camera& camera) {
+    void DrawSolidCircle(const Vector3& position, float radius, const Color& color, const Camera& camera, uint steps) {
         auto transform = Matrix::CreateBillboard(position, camera.Position, camera.Up);
         Vector3 p0 = Vector3::Transform({ radius, 0, 0 }, transform);
 
-        constexpr int Steps = 16;
-        for (int i = 0; i <= Steps; i++) {
+        for (int i = 0; i <= steps; i++) {
             Vector3 p;
-            p.x = std::cos(XM_2PI * (i / (float)Steps)) * radius;
-            p.y = std::sin(XM_2PI * (i / (float)Steps)) * radius;
+            p.x = std::cos(XM_2PI * (i / (float)steps)) * radius;
+            p.y = std::sin(XM_2PI * (i / (float)steps)) * radius;
             p = Vector3::Transform(p, transform);
             DrawTriangle(p0, p, position, color);
             p0 = p;

@@ -13,7 +13,7 @@ namespace Inferno {
         constexpr float WEAPON_TEXT_AMMO_Y_OFFSET = WEAPON_TEXT_Y_OFFSET + +FONT_LINE_SPACING * 2 + 20;
         constexpr float WEAPON_BMP_Y_OFFSET = -20;
         constexpr float WEAPON_BMP_X_OFFSET = -135;
-        constexpr Color GREEN_TEXT = { 0, 0.7f, 0 };
+        constexpr Color GREEN_TEXT = { 0, 1.0f, 0 };
         constexpr Color RED_TEXT = { 0.7f, 0, 0 };
         constexpr Color GOLD_TEXT = { 0.78f, 0.56f, 0.18f };
         constexpr float MONITOR_BRIGHTNESS = 1.20f;
@@ -151,8 +151,9 @@ namespace Inferno {
         auto& material = Render::Materials->Get(id);
 
         Inferno::Render::CanvasBitmapInfo info;
-        info.Position = offset;
+        info.Position = offset * scale;
         info.Size = Vector2{ (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
+        info.Size *= scale;
         info.Texture = material.Handles[Material2D::Diffuse];
         info.HorizontalAlign = AlignH::Center;
         info.VerticalAlign = AlignV::CenterTop;
@@ -660,6 +661,7 @@ namespace Inferno {
                     info.HorizontalAlign = AlignH::Left;
                     info.VerticalAlign = AlignV::Top;
                     info.Scanline = TEXT_SCANLINE;
+                    info.Color = Color(1.5f, 1.5f, 1.5f);
                     Render::HudCanvas->DrawBitmapScaled(info);
                 }
             }

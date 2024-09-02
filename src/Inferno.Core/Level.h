@@ -159,6 +159,7 @@ namespace Inferno {
 
         DataPool<ActiveDoor> ActiveDoors{ &ActiveDoor::IsAlive, 20 };
 
+        bool HasBoss = false;
 
 #pragma region EditorProperties
         string FileName; // Name in hog or on filesystem

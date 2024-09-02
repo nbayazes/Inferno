@@ -334,7 +334,7 @@ namespace Inferno::Graphics {
                                 fuelcen.AddSide(level, *seg, sideId);
                             else if (seg->Type == SegmentType::Matcen)
                                 matcen.AddSide(level, *seg, sideId);
-                            else if (seg->Type == SegmentType::Reactor)
+                            else if (seg->Type == SegmentType::Reactor && !level.HasBoss)
                                 reactor.AddSide(level, *seg, sideId);
                             else
                                 solidWalls.AddSide(level, *seg, sideId);
@@ -363,7 +363,7 @@ namespace Inferno::Graphics {
                             // Segment type changing
                             if (seg->Type == SegmentType::Energy)
                                 addTransparent(AutomapType::Fuelcen);
-                            else if (seg->Type == SegmentType::Reactor)
+                            else if (seg->Type == SegmentType::Reactor && !level.HasBoss)
                                 addTransparent(AutomapType::Reactor);
                             else if (seg->Type == SegmentType::Matcen)
                                 addTransparent(AutomapType::Matcen);
@@ -371,7 +371,7 @@ namespace Inferno::Graphics {
                                 // Normal segment facing a special type
                                 if (conn->Type == SegmentType::Energy)
                                     addTransparent(AutomapType::Fuelcen);
-                                else if (conn->Type == SegmentType::Reactor)
+                                else if (conn->Type == SegmentType::Reactor && !level.HasBoss)
                                     addTransparent(AutomapType::Reactor);
                                 else if (conn->Type == SegmentType::Matcen)
                                     addTransparent(AutomapType::Matcen);

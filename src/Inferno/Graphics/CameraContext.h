@@ -128,8 +128,8 @@ namespace Inferno {
         }
 
         template <class T>
-        bool ApplyEffect(const Effect<T>& effect) {
-            if (_activeEffect == (uintptr_t)&effect) return false;
+        bool ApplyEffect(const Effect<T>& effect, bool force = false) {
+            if (_activeEffect == (uintptr_t)&effect && !force) return false;
             _activeEffect = (uintptr_t)&effect;
             assert(effect.PipelineState);
             _cmdList->SetPipelineState(effect.PipelineState.Get());
