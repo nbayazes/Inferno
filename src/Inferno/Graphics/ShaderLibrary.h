@@ -604,18 +604,17 @@ namespace Inferno {
 
     class HudShader : public IShader {
         enum RootParameterIndex : uint {
+            FrameConstants,
             RootConstants,
             Diffuse,
             Sampler,
-            RootParameterCount
         };
 
     public:
         struct Constants {
             Matrix Transform = Matrix::Identity;
             Color Tint = { 1, 1, 1 };
-            float ScanlinePitch = 0;
-            float ScanelineIntensity = 0;
+            float Scanline = 0;
         };
 
         HudShader(const ShaderInfo& info) : IShader(info) {

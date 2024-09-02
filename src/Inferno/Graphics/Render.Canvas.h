@@ -93,22 +93,6 @@ namespace Inferno::Render {
             Draw(payload);
         }
 
-        void DrawRectangleScaled(const Vector2& pos, const Vector2& size, const Color& color, AlignH hAlign = AlignH::Left, AlignV vAlign = AlignV::Top, int layer = 0) {
-            CanvasPayload payload{};
-            auto hex = color.RGBA().v;
-
-            auto alignment = GetAlignment(size, hAlign, vAlign, _size);
-
-            payload.V0 = { Vector2{ pos.x, pos.y + size.y } * _scale + alignment, { 0, 1 }, hex }; // bottom left
-            payload.V1 = { Vector2{ pos.x + size.x, pos.y + size.y } *_scale + alignment, { 1, 1}, hex }; // bottom right
-            payload.V2 = { Vector2{ pos.x + size.x, pos.y } *_scale + alignment, { 1, 0 }, hex }; // top right
-            payload.V3 = { Vector2{ pos.x, pos.y } *_scale + alignment, { 0, 0 }, hex }; // top left
-
-            payload.Texture = Materials->White().Handles[Material2D::Diffuse];
-            payload.Layer = layer;
-            Draw(payload);
-        }
-
         void DrawBitmap(TexID id, const Vector2& pos, const Vector2& size, const Color& color = { 1, 1, 1 }) {
             auto handle = Materials->Get(id).Handles[Material2D::Diffuse];
             if (!handle.ptr)
@@ -193,7 +177,7 @@ namespace Inferno::Render {
         // Draws text using Descent fonts at 1:1 scaling of the original pixels.
         void DrawGameTextUnscaled(string_view str, DrawTextInfo info) {
             info.Scale /= _scale;
-            info.Position /= _scale;
+            //info.Position /= _scale;
             DrawGameText(str, info);
         }
 
@@ -260,8 +244,8 @@ namespace Inferno::Render {
                 }
 
                 auto& ci = Atlas.GetCharacter(c, info.Font);
-                auto x0 = alignment.x + xOffset + info.Position.x * _scale;
-                auto y0 = alignment.y + yOffset + info.Position.y * _scale;
+                auto x0 = alignment.x + xOffset + info.Position.x * scale;
+                auto y0 = alignment.y + yOffset + info.Position.y * scale;
 
                 Vector2 charSize = Vector2(font->GetWidth(c), font->Height) * scale;
                 CanvasBitmapInfo cbi;
@@ -410,9 +394,8 @@ namespace Inferno::Render {
         const Vector2& GetSize() const { return _size; }
 
         void DrawBitmap(const CanvasBitmapInfo& info);
-
+        void DrawBitmapScaled(const CanvasBitmapInfo& info);
         void Render(GraphicsContext& ctx);
-
         void DrawGameText(string_view str, const DrawTextInfo& info);
 
         void Draw(const HudCanvasPayload& payload) {

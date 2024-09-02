@@ -1,5 +1,8 @@
+#include "Common.hlsli"
+
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
-    "CBV(b0), "\
+    "CBV(b0),"\
+    "CBV(b1),"\
     "DescriptorTable(SRV(t0), visibility=SHADER_VISIBILITY_PIXEL), " \
     "StaticSampler(s0," \
         "filter = FILTER_MIN_MAG_MIP_POINT,"\
@@ -11,10 +14,11 @@
 struct Arguments {
     float4x4 ProjectionMatrix;
     float4 Color;
-    float ScanlinePitch, ScanlineIntensity;
+    float Scanline;
 };
 
-ConstantBuffer<Arguments> Args : register(b0);
+ConstantBuffer<FrameConstants> Frame : register(b0);
+ConstantBuffer<Arguments> Args : register(b1);
 SamplerState Sampler : register(s0);
 Texture2D Diffuse : register(t0);
 
@@ -23,14 +27,14 @@ struct VS_INPUT {
     float4 col : COLOR0;
     float2 uv : TEXCOORD0;
 };
-            
+
 struct PS_INPUT {
     float4 pos : SV_POSITION;
     float4 col : COLOR0;
     float2 uv : TEXCOORD0;
     float2 uvScreen : TEXCOORD1;
 };
-            
+
 [RootSignature(RS)]
 PS_INPUT vsmain(VS_INPUT input) {
     PS_INPUT output;
@@ -40,7 +44,7 @@ PS_INPUT vsmain(VS_INPUT input) {
     output.uvScreen = (input.pos.xy) /* * float2(1 / 64.0, 1 / 64.0)*/; // todo from screen res
     return output;
 }
-            
+
 float4 psmain(PS_INPUT input) : SV_Target {
     float2 uv = float2(0, 0);
     float4 color = Diffuse.SampleLevel(Sampler, input.uv + uv, 0);
@@ -49,30 +53,18 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
     //if(length(color) > 1.0002)
     //    color.rgb *= 1 + input.col.rgb;
-        //color.rgb = float3(1, 0, 0);
-    
-    if (Args.ScanlinePitch > 0.1) {
+    //color.rgb = float3(1, 0, 0);
 
-        //dc *= dc;
-        // warp the fragment coordinates
-        //float2 dc = abs(0.5 - input.uvScreen);
-        //float warp = 0.0;
-        //uv.x -= 0.1;
-        //uv.x *= 1.0 + (dc.y/* * (0.3 * warp)*/);
-        //uv.x += 0.1;
-        //uv.y -= 0.1;
-        //uv.y *= 1.0 + (dc.x * (0.4 * warp));
-        //uv.y += 0.1;
-        //const float offset = 0.0005;
-        //const float ins = 0.5;
-        //color += Diffuse.SampleLevel(Sampler, input.uv + float2(offset, 0.00), 0) * float4(0.5, 0.5, 0.5, 0.01);
-        //color += Diffuse.SampleLevel(Sampler, input.uv + float2(-offset, -0.00), 0) * float4(0.5, 0.5, 0.5, 0.01);
-        color.rgb += saturate(color.rgb - 0.5) * 2; // boost highlights
-        float apply = abs(sin(input.uvScreen.y * Args.ScanlinePitch * 1.2));
+    if (Args.Scanline > 0.1) {
+        float2 screenUv = (input.pos.xy) / Frame.Size;
+        float scanline = saturate(abs(sin(screenUv.y * Frame.Size.y / 2)));
+        //float scanline = 1 - saturate(saturate(abs(sin(screenUv.y * Frame.Size.y / 2)) * -2) - .5) * Args.Scanline * 2;
+        color.rgb *= (1 - scanline * Args.Scanline);
+        //color.rgb += saturate(color.rgb - 0.5) * 2 * scanline; // boost highlights
         color.a = saturate(color.a);
-        color = lerp(float4(0, 0, 0, 0), color * 1.05, 1 - apply * 0.3);
-        //color.rgb *= 0.6;
-    } else {
+        //color.rgb = scanline;
+    }
+    else {
         //color.rgb = color;
     }
     //float4 color = lerp(Diffuse.SampleLevel(Sampler, input.uv + uv, 0), float4(0, 0, 0, 0), apply);
@@ -81,7 +73,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //color += Diffuse.SampleLevel(Sampler, input.uv + float2(0.02, 0.02), 0)  * float4(0.5, 0.5, 0.5, 0.01);
     //color += Diffuse.SampleLevel(Sampler, input.uv + float2(-0.02, -0.02), 0) * float4(0.5, 0.5, 0.5, 0.01);
     //color.rgb += lerp(saturate(color.rgb - 0.8) * 1, float3(0, 0, 0), apply);
-    
+
     return color;
     //return input.col * Diffuse.Sample(Sampler, input.uv) * 2;
 }

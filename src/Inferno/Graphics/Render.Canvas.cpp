@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Render.Canvas.h"
 #include "MaterialLibrary.h"
+#include "Render.h"
 
 namespace Inferno::Render {
     Vector2 GetAlignment(const Vector2& size, AlignH alignH, AlignV alignV, const Vector2& screenSize) {
@@ -51,12 +52,32 @@ namespace Inferno::Render {
         Draw(payload);
     }
 
+    void HudCanvas2D::DrawBitmapScaled(const CanvasBitmapInfo& info) {
+        HudCanvasPayload payload{};
+        auto pos = info.Position * _scale;
+        auto size = info.Size * _scale;
+        auto alignment = GetAlignment(size, info.HorizontalAlign, info.VerticalAlign, _size);
+        auto uv0 = info.UV0;
+        auto uv1 = info.UV1;
+        if (info.MirrorX) std::swap(uv0.x, uv1.x);
+
+        payload.V0 = { Vector2{ pos.x, pos.y + size.y } + alignment, { uv0.x, uv1.y }, info.Color }; // bottom left
+        payload.V1 = { Vector2{ pos.x + size.x, pos.y + size.y } + alignment, uv1, info.Color }; // bottom right
+        payload.V2 = { Vector2{ pos.x + size.x, pos.y } + alignment, { uv1.x, uv0.y }, info.Color }; // top right
+        payload.V3 = { Vector2{ pos.x, pos.y } + alignment, uv0, info.Color }; // top left
+        payload.Texture = info.Texture;
+        payload.Scanline = info.Scanline;
+        Draw(payload);
+    }
+
     void HudCanvas2D::Render(GraphicsContext& ctx) {
         // draw batched text
         //auto orthoProj = Matrix::CreateOrthographicOffCenter(0, _size.x, _size.y, 0.0, 0.0, -2.0f);
 
         auto cmdList = ctx.GetCommandList();
         ctx.ApplyEffect(*_effect);
+
+        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
 
         HudShader::Constants constants;
         constants.Transform = Matrix::CreateOrthographicOffCenter(0, _size.x, _size.y, 0.0, 0.0, -2.0f);
@@ -65,7 +86,7 @@ namespace Inferno::Render {
             _effect->Shader->SetDiffuse(cmdList, group.front().Texture);
             _batch.Begin(cmdList);
             for (auto& g : group) {
-                constants.ScanlinePitch = g.Scanline;
+                constants.Scanline = g.Scanline;
                 _effect->Shader->SetConstants(ctx.GetCommandList(), constants);
                 _batch.DrawQuad(g.V0, g.V1, g.V2, g.V3);
             }
@@ -105,6 +126,11 @@ namespace Inferno::Render {
                 continue;
             }
 
+            if (c == '\t') {
+                xOffset = info.TabStop * scale;
+                continue;
+            }
+
             if (inToken) {
                 if (c == 'C') {
                     if (next == '1') {
@@ -127,14 +153,15 @@ namespace Inferno::Render {
             }
 
             auto& ci = Atlas.GetCharacter(c, info.Font);
-            auto x0 = alignment.x + xOffset + info.Position.x;
-            auto y0 = alignment.y + yOffset + info.Position.y;
+            auto x0 = alignment.x + xOffset + info.Position.x * scale;
+            auto y0 = alignment.y + yOffset + info.Position.y * scale;
 
             //auto fontTex = Render::StaticTextures->Font.GetSRV();
             Vector2 charSize = Vector2((float)font->GetWidth(c), (float)font->Height) * scale;
             //Vector2 uvMin = { ci.X0, ci.Y0 }, uvMax = { ci.X1, ci.Y1 };
             CanvasBitmapInfo cbi;
-            cbi.Position = Vector2{ x0, y0 };
+            //cbi.Position = Vector2{ x0, y0 };
+            cbi.Position = Vector2{ x0 - 1 * scale, y0 + 1 * scale };
             cbi.Size = charSize;
             cbi.UV0 = Vector2{ ci.X0, ci.Y0 };
             cbi.UV1 = Vector2{ ci.X1, ci.Y1 };

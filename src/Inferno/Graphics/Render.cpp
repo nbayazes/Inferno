@@ -897,7 +897,13 @@ namespace Inferno::Render {
         return { pow(color.x, gamma), pow(color.y, gamma), pow(color.z, gamma), color.w };
     }
 
-    void DrawAutomapText() {
+    void DrawAutomapText(GraphicsContext& ctx) {
+        // Reuse the HUD canvas for the automap
+        auto canvas = HudCanvas.get();
+        auto width = Adapter->GetWidth();
+        auto height = Adapter->GetHeight();
+        HudCanvas->SetSize(width, height);
+
         //const float scale = Render::Canvas->GetScale();
         constexpr float margin = 15;
         constexpr float lineHeight = 15;
@@ -911,12 +917,13 @@ namespace Inferno::Render {
         title.Font = FontSize::Small;
         //title.Scale = 0.75;
         title.Color = helpColor;
-        Canvas->DrawGameText(Game::Level.Name, title);
+        canvas->DrawGameText(Game::Level.Name, title);
 
         title.Position.y += lineHeight;
-        Canvas->DrawGameText(fmt::format("Level {}", Game::LevelNumber), title);
+        canvas->DrawGameText(fmt::format("Level {}", Game::LevelNumber), title);
 
         auto animation = GetAutomapAnimation();
+        constexpr float scanline = 0.4f;
 
         {
             Render::DrawTextInfo info;
@@ -928,70 +935,67 @@ namespace Inferno::Render {
             info.Scale = 1;
             info.Color = helpColor;
             info.TabStop = 20;
-            Canvas->DrawGameText("Navigation:", info);
+            info.Scanline = scanline;
+            canvas->DrawGameText("Navigation:", info);
             info.Position.y += lineHeight;
-            Canvas->DrawGameText("1.\tEnergy center", info);
+            canvas->DrawGameText("1.\tEnergy center", info);
             info.Position.y += lineHeight;
-            Canvas->DrawGameText("2.\tReactor", info);
+            canvas->DrawGameText("2.\tReactor", info);
             info.Position.y += lineHeight;
-            Canvas->DrawGameText("3.\tExit", info);
+            canvas->DrawGameText("3.\tExit", info);
 
             //auto drawItem = [&info, &cursor, lineHeight](string_view label, string_view text) {
             //    cursor.y += lineHeight;
             //    info.Position = cursor;
-            //    Canvas->DrawGameText(label, info);
+            //    canvas->DrawGameText(label, info);
 
             //    info.Position.x += 40;
-            //    Canvas->DrawGameText(text, info);
+            //    canvas->DrawGameText(text, info);
             //};
 
-            //Canvas->DrawGameText("Navigation", info);
+            //canvas->DrawGameText("Navigation", info);
             //drawItem("1.", "Energy center");
             //drawItem("2.", "Reactor");
             //drawItem("3.", "Exit");
         }
 
         {
-            //Vector2 cursor(margin, -margin - lineHeight * 3);
-
             Render::DrawTextInfo info;
             info.HorizontalAlign = AlignH::Left;
             info.VerticalAlign = AlignV::Bottom;
             info.Font = FontSize::Small;
-            //info.Scale = 1 / Render::Canvas->GetScale() * 2;
             info.Color = helpColor;
             info.Position = Vector2(margin, -margin - lineHeight * 3);
-            info.TabStop = 130;
+            info.TabStop = 150;
+            info.Scanline = scanline;
 
             // todo: change help text based on automap control mode (orbit or flight)
-            Canvas->DrawGameText("flight:\tMove view", info);
+            canvas->DrawGameText("flight:\tMove view", info);
             info.Position.y += lineHeight;
-            Canvas->DrawGameText("afterburner:\tcenter on ship", info);
+            canvas->DrawGameText("afterburner:\tcenter on ship", info);
             info.Position.y += lineHeight;
-            Canvas->DrawGameText("primary fire:\tzoom in", info);
+            canvas->DrawGameText("primary fire:\tzoom in", info);
             info.Position.y += lineHeight;
-            Canvas->DrawGameText("secondary fire:\tzoom out", info);
+            canvas->DrawGameText("secondary fire:\tzoom out", info);
         }
 
         {
-            //const float xOffset = -40 - margin;
+            Vector2 rectSz{ 11, 11 };
+
             Render::DrawTextInfo info;
             info.HorizontalAlign = AlignH::Right;
             info.VerticalAlign = AlignV::Bottom;
             info.Font = FontSize::Small;
-            //info.Scale = 1 / Render::Canvas->GetScale() * 2;
             info.Color = helpColor;
-            info.Position = Vector2(-margin - 20, -margin - lineHeight * 5);
-
-            Vector2 rectSz{ 4, 4 };
-            rectSz *= Render::Canvas->GetScale();
-
-            auto rectX = -margin - rectSz.x;
-            auto rectY = -7;
+            info.Scanline = scanline;
+            info.Position = Vector2(-margin - rectSz.x - 2, -margin - lineHeight * 5);
 
             auto addHelp = [&](string_view str, const Color& color) {
-                Canvas->DrawGameText(str, info);
-                Canvas->DrawRectangleScaled({ rectX, info.Position.y + rectY }, rectSz, ApplyGamma(color) * animation, AlignH::Right, AlignV::Bottom);
+                canvas->DrawGameText(str, info);
+                auto white = Materials->White().Handles[Material2D::Diffuse];
+                CanvasBitmapInfo rect({ -margin, info.Position.y  + 1}, rectSz, white, color * animation, AlignH::Right, AlignV::Bottom);
+                rect.Scanline = 0.15f;
+                canvas->DrawBitmapScaled(rect);
                 info.Position.y += lineHeight;
             };
 
@@ -1002,6 +1006,8 @@ namespace Inferno::Render {
             addHelp("Matcen", Colors::Matcen);
             addHelp("Reactor", Colors::Reactor);
         }
+
+        HudCanvas->Render(ctx);
     }
 
     void Present(const Camera& camera) {
@@ -1076,7 +1082,7 @@ namespace Inferno::Render {
         else {
             //Canvas->DrawGameText(level.Name, 0, 20 * Shell::DpiScale, FontSize::Big, { 1, 1, 1 }, 0.5f, AlignH::Center, AlignV::Top);
             if (Game::GetState() == GameState::Automap) {
-                DrawAutomapText();
+                DrawAutomapText(ctx);
             }
             else {
                 Render::DrawTextInfo info;

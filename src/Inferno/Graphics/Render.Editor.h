@@ -58,7 +58,7 @@ namespace Inferno::Render {
         constexpr Color AutomapWall = { 0.9354839f, 0.9354839f, 0.9354839f };
         constexpr Color Hostage = { 0, 1.0f, 0 };
         constexpr Color Font = { 0.6451613f, 0.6451613f, 0.6451613f };
-        constexpr Color Unexplored = { 1.25f, 1.25f, 1.25f };
+        constexpr Color Unexplored = { 1.0f, 1.0f, 1.0f };
 
         //constexpr Color Fuelcen = { 0.9354839f, 0.8709677f, 0.43f };
         constexpr Color Fuelcen = { 1.0f, 0.7f, 0.2f };
