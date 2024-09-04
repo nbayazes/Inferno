@@ -165,6 +165,7 @@
       <DeploymentContent>true</DeploymentContent>
       <FileType>Document</FileType>
     </None>
+    <ClCompile Include="Graphics\Render.Automap.cpp" />
     <ClCompile Include="VisualEffects.cpp" />
     <ClCompile Include="Formats\BBM.cpp" />
     <ClCompile Include="CustomTextureLibrary.cpp" />
@@ -272,6 +273,7 @@
     <ClInclude Include="Audio\SoundCommon.h" />
     <ClInclude Include="Audio\WAVFileReader.h" />
     <ClInclude Include="BitmapCache.h" />
+    <ClInclude Include="Colors.h" />
     <ClInclude Include="Editor\UI\TerrainEditor.h" />
     <ClInclude Include="Game.Cinematics.h" />
     <ClInclude Include="CustomTextureLibrary.h" />
@@ -286,6 +288,7 @@
     <ClInclude Include="Effect.h" />
     <ClInclude Include="Game.Terrain.h" />
     <ClInclude Include="Graphics.Debug.h" />
+    <ClInclude Include="Graphics\Render.Automap.h" />
     <ClInclude Include="VisualEffects.h" />
     <ClInclude Include="Formats\BBM.h" />
     <ClInclude Include="Game.AI.h" />

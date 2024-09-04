@@ -4,26 +4,9 @@
 #include <DirectXMath.h>
 #include "Editor/Gizmo.h"
 #include "CameraContext.h"
+#include "Colors.h"
 
 namespace Inferno::Render {
-    namespace Colors {
-        // Blender colors. Need to be thicker to be visible
-        //constexpr Color GizmoX = ColorFromRGB(217, 100, 111);
-        //constexpr Color GizmoXHighlight = ColorFromRGB(255, 54, 83);
-        //constexpr Color GizmoY = ColorFromRGB(121, 180, 57);
-        //constexpr Color GizmoYHighlight = ColorFromRGB(138, 219, 0);
-        //constexpr Color GizmoZ = ColorFromRGB(66, 124, 207);
-        //constexpr Color GizmoZHighlight = ColorFromRGB(44, 143, 255);
-
-        constexpr Color GizmoX = ColorFromRGB(244, 100, 111);
-        constexpr Color GizmoXHighlight = ColorFromRGB(255, 200, 180);
-        constexpr Color GizmoY = ColorFromRGB(121, 220, 57);
-        constexpr Color GizmoYHighlight = ColorFromRGB(200, 255, 100);
-        constexpr Color GizmoZ = ColorFromRGB(66, 124, 240);
-        constexpr Color GizmoZHighlight = ColorFromRGB(140, 200, 255);
-
-        constexpr Color Disabled = Color(0.5f, 0.5f, 0.5f);
-    }
 
     inline Color GetColor(Editor::GizmoAxis axis, const Editor::TransformGizmo& gizmo, Editor::TransformMode mode) {
         if (Input::GetMouseMode() != Input::MouseMode::Normal) return Colors::Disabled;

@@ -1248,6 +1248,7 @@ namespace Inferno {
             obj.Lifespan = -1;
             Game::AddPointsToScore(Game::HOSTAGE_SCORE);
             HostagesOnShip++;
+            HostagesRescued++;
             PrintHudMessage("hostage rescued!");
             AddScreenFlash({ 0, 0, MAX_FLASH });
             Sound::Play2D({ SoundID::RescueHostage });

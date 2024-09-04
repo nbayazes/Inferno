@@ -74,8 +74,8 @@ float psmain(PS_INPUT input) : SV_Target {
         float mask = 1 - Sample2D(StMask, input.uv2, Sampler, Frame.FilterMode).r;
         alpha *= mask;
 
-        float4 src = Sample2D(Overlay, input.uv2, Sampler, Frame.FilterMode);
-        alpha = src.a + alpha * (1 - src.a); // Add overlay texture
+        float src = Sample2D(Overlay, input.uv2, Sampler, Frame.FilterMode).a;
+        alpha = src + alpha * (1 - src); // Add overlay texture
     }
 
     // Smooth filtering must discard <= 0 because otherwise the semi-transparent pixels will cull incorrectly

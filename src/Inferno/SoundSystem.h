@@ -51,6 +51,10 @@ namespace Inferno::Sound {
 
     void SetMusicVolume(float volume);
 
+    void PauseSounds();
+
+    void ResumeSounds();
+
     // Resets any cached sounds after loading a level
     void StopAllSounds();
 

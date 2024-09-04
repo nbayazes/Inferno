@@ -96,7 +96,7 @@ namespace Inferno {
         Matrix3x3 GetOrientation() const { return Matrix3x3(GetForward(), Up); }
 
         void MoveTo(const Vector3& position, const Vector3& target, const Vector3& up) {
-            if(position == Position && target == Target && up == Up) return;
+            if (position == Position && target == Target && up == Up) return;
             Position = position;
             Target = target;
             Up = up;
@@ -127,7 +127,7 @@ namespace Inferno {
             Vector3 offset = Position - Target;
             auto qyaw = Quaternion::CreateFromAxisAngle(Up, yaw);
             auto qpitch = Quaternion::CreateFromAxisAngle(Up.Cross(offset), -pitch);
-            
+
             Position = Vector3::Transform(offset, qyaw * qpitch) + Target;
             Up = Vector3::Transform(Up, qpitch);
             Up.Normalize();
@@ -158,6 +158,7 @@ namespace Inferno {
             auto step = GetForward() * frameTime;
             Position += step;
             Target += step;
+            CancelLerp();
         }
 
         void MoveBack(float frameTime) {
@@ -165,6 +166,7 @@ namespace Inferno {
             auto step = -GetForward() * frameTime;
             Position += step;
             Target += step;
+            CancelLerp();
         }
 
         void MoveLeft(float frameTime) {
@@ -172,6 +174,7 @@ namespace Inferno {
             auto step = GetRight() * frameTime;
             Position += step;
             Target += step;
+            CancelLerp();
         }
 
         void MoveRight(float frameTime) {
@@ -179,6 +182,7 @@ namespace Inferno {
             auto step = -GetRight() * frameTime;
             Position += step;
             Target += step;
+            CancelLerp();
         }
 
         void MoveUp(float frameTime) {
@@ -186,6 +190,7 @@ namespace Inferno {
             auto step = Up * frameTime;
             Position += step;
             Target += step;
+            CancelLerp();
         }
 
         void MoveDown(float frameTime) {
@@ -193,6 +198,7 @@ namespace Inferno {
             auto step = -Up * frameTime;
             Position += step;
             Target += step;
+            CancelLerp();
         }
 
         void Zoom(const float& value) {
@@ -263,6 +269,10 @@ namespace Inferno {
             _changed = true;
         }
 
+        void CancelLerp() {
+            _lerpTime = _lerpDuration = 0;
+        }
+
         void Update(float dt) {
             float shake = _pendingShake * dt * 4;
             _pendingShake -= shake;
@@ -275,7 +285,7 @@ namespace Inferno {
             if (_lerpTime < _lerpDuration) {
                 _lerpTime += dt;
                 auto t = _lerpTime / _lerpDuration;
-                auto lerp = Vector3::Lerp(_lerpStart, _lerpEnd, t);
+                auto lerp = Vector3::Lerp(_lerpStart, _lerpEnd, std::clamp(t, 0.0f, 1.0f));
                 MoveTo(lerp);
             }
         }

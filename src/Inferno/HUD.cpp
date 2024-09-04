@@ -656,7 +656,7 @@ namespace Inferno {
                     info.Position = Vector2(5, 5);
                     auto& material = Render::Materials->Get(GetGaugeTexID(Gauges::Lives));
                     info.Size = Vector2{ (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
-                    info.Size *= info.Size.x <= 8 ? 2 : 1; // Fix for low-res graphics
+                    info.Size *= info.Size.x <= 8.0f ? 2.0f : 1.0f; // Fix for low-res graphics
                     info.Texture = material.Handle();
                     info.HorizontalAlign = AlignH::Left;
                     info.VerticalAlign = AlignV::Top;

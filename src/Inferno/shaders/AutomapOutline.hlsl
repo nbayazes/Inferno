@@ -36,6 +36,12 @@ PS_INPUT vsmain(in uint VertID : SV_VertexID) {
     return output;
 }
 
+float Vignette(float2 uv) {
+    uv *= 1.0 - uv;
+    float vig = uv.x * uv.y * 500.0;
+    return saturate(vig);
+}
+
 float4 psmain(PS_INPUT input) : SV_Target {
     float2 uv = input.pos.xy / Frame.Size;
     float2 pixel = 1 / Frame.Size / 2;
@@ -68,8 +74,9 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //alpha *= depthMult;
     //alpha *= 4.5;
     alpha = saturate(alpha * 2);
+    alpha *= Vignette(uv);
 
-    float scanline = saturate(abs(sin(uv.y * Frame.Size.y / 2))) + 0.25;
+    //float scanline = saturate(abs(sin(uv.y * Frame.Size.y / 2))) + 0.25;
     //alpha *= scanline;
     //alpha = saturate(min(alpha, (1 - dmax * 4000) ));
 

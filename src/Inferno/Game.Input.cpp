@@ -7,6 +7,8 @@
 #include "Settings.h"
 #include "Editor/Events.h"
 #include "Graphics.h"
+#include "HUD.h"
+#include "SoundSystem.h"
 
 namespace Inferno {
     using Keys = Input::Keys;
@@ -138,7 +140,16 @@ namespace Inferno {
             camera.Roll(dt * -2);
 
         if (Game::Bindings.Pressed(GameAction::Afterburner))
-            Game::ResetAutomapCamera();
+            Game::ResetAutomapCamera(false);
+
+        if (Input::IsKeyPressed(Keys::D1))
+            Game::NavigateToEnergy();
+
+        if (Input::IsKeyPressed(Keys::D2))
+            Game::NavigateToReactor();
+
+        if (Input::IsKeyPressed(Keys::D3))
+            Game::NavigateToExit();
 
         //int inv = Settings::Editor.InvertOrbitY ? -1 : 1;
         auto& delta = Input::MouseDelta;
@@ -202,29 +213,44 @@ namespace Inferno {
         return Input::IsKeyPressed(Input::Keys::Space) || Game::Bindings.Pressed(GameAction::FirePrimary) || Game::Bindings.Pressed(GameAction::FireSecondary);
     }
 
+    // Keys that should only be enabled in debug builds
+    void HandleDebugKeys() {
+        auto state = Game::GetState();
+
+        // Pause / screenshot mode
+        if (Input::IsKeyPressed(Keys::OemTilde) && Input::AltDown && (state == GameState::Game || state == GameState::Paused))
+            Game::SetState(state == GameState::Paused ? GameState::Game : GameState::Paused);
+
+        if (state == GameState::Game) {
+            if (Input::IsKeyPressed(Keys::Back) && Input::AltDown)
+                Game::BeginSelfDestruct();
+
+            if (Input::IsKeyPressed(Keys::M) && Input::AltDown) {
+                Game::Automap.RevealFullMap();
+                PrintHudMessage("full map!");
+                Inferno::Sound::Play2D({ SoundID::Cheater });
+            }
+
+            if (Input::IsKeyPressed(Keys::R)) {
+                static bool toggle = false;
+
+                if (toggle)
+                    Game::SetTimeScale(1, 1.0f);
+                else
+                    Game::SetTimeScale(0.5f, 0.75f);
+
+                toggle = !toggle;
+            }
+        }
+    }
+
     void HandleInput() {
         if (Game::GetState() == GameState::Automap) {
             HandleAutomapInput();
             return;
         }
-    
-        if (Input::IsKeyPressed(Keys::Back) && Input::IsKeyDown(Keys::LeftAlt))
-            Game::BeginSelfDestruct();
 
-        if (Input::IsKeyPressed(Keys::OemTilde) && Input::IsKeyDown(Keys::LeftAlt))
-            Game::SetState(Game::GetState() == GameState::Paused ? GameState::Game : GameState::Paused);
-
-        if (Input::IsKeyPressed(Keys::R)) {
-            static bool toggle = false;
-
-            if (toggle)
-                Game::SetTimeScale(1, 1.0f);
-            else
-                Game::SetTimeScale(0.5f, 0.75f);
-
-            toggle = !toggle;
-        }
-
+        HandleDebugKeys();
         HandleWeaponKeys();
     }
 

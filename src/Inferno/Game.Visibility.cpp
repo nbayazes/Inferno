@@ -143,7 +143,9 @@ namespace Inferno {
         return { Vector3(clip) / abs(clip.w) };
     }
 
-    void TraverseSegments(const Camera& camera, SegID startSeg, TraversalFlag flags) {
+    void TraverseSegments(const Camera& camera, SegID startSeg, TraversalFlag /*flags*/) {
+        if (startSeg == SegID::Terrain) return;
+
         ASSERT_STA();
 
         auto& level = Game::Level;
@@ -241,7 +243,7 @@ namespace Inferno {
             for (size_t i = 0; i < renderListSize; i++) {
                 auto segid = renderList[i];
                 if (segid == SegID::None) continue;
-                Game::AutomapSegments[(int)segid] = Game::AutomapState::Visible;
+                Game::Automap.Segments[(int)segid] = Game::AutomapState::Visible;
                 auto& info = segInfo[(int)segid];
                 if (info.processed) continue;
 
@@ -259,8 +261,6 @@ namespace Inferno {
 
         Game::Debug::VisibleSegments = (uint)renderList.size();
 
-        for (auto& seg : Game::AutomapSegments) {
-            seg = Game::AutomapState::Visible;
-        }
+
     }
 }

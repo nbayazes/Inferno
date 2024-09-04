@@ -644,69 +644,6 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawAutomapModel(GraphicsContext& ctx,
-                          const Object& object,
-                          ModelID modelId,
-                          const Color& color,
-                          const UploadBuffer<FrameConstants>& frameConstants) {
-        auto& effect = Effects->AutomapObject;
-        auto cmdList = ctx.GetCommandList();
-
-        auto& model = Resources::GetModel(modelId);
-        if (model.DataSize == 0) {
-            DrawObjectOutline(object, ctx.Camera);
-            return;
-        }
-
-        // Most of these do nothing with the automap shader, but it's simpler to match the existing object shader input
-        if (ctx.ApplyEffect(effect)) {
-            ctx.SetConstantBuffer(0, frameConstants.GetGPUVirtualAddress());
-            effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
-            effect.Shader->SetNormalSampler(cmdList, GetNormalSampler());
-            effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
-            effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
-            effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());
-            effect.Shader->SetLightGrid(cmdList, *Render::LightGrid);
-            auto cubeSrv = Render::Materials->EnvironmentCube.GetCubeSRV().GetGpuHandle();
-            if (!cubeSrv.ptr)cubeSrv = Render::Adapter->NullCube.GetGpuHandle();
-            effect.Shader->SetEnvironmentCube(cmdList, cubeSrv);
-            effect.Shader->SetDissolveTexture(cmdList, Render::Materials->White().Handle());
-        }
-
-        ObjectShader::Constants constants = {};
-
-        // Ambient reused as the object color
-        constants.Ambient = color;
-        constants.EmissiveLight = Color(0, 0, 0);
-
-        constants.TimeOffset = GetTimeOffset(object);
-
-        Matrix transform = Matrix::CreateScale(object.Scale) * object.GetTransform(Game::LerpAmount);
-        constants.TexIdOverride = (int)TexID::None;
-
-        auto& meshHandle = GetMeshHandle(modelId);
-
-        for (int submodel = 0; submodel < model.Submodels.size(); submodel++) {
-            auto world = GetSubmodelTransform(object, model, submodel) * transform;
-            constants.World = world;
-
-            // get the mesh associated with the submodel
-            auto& subMesh = meshHandle.Meshes[submodel];
-
-            for (int i = 0; i < subMesh.size(); i++) {
-                auto mesh = subMesh[i];
-                if (!mesh) continue;
-
-                effect.Shader->SetConstants(cmdList, constants);
-                cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
-                cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
-                cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
-                Stats::DrawCalls++;
-            }
-        }
-    }
-
-
     void DrawObject(GraphicsContext& ctx, const Object& object, RenderPass pass) {
         auto& frameConstants = Adapter->GetFrameConstants();
 

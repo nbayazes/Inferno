@@ -310,7 +310,7 @@ namespace Inferno::Render::Debug {
         auto transform = Matrix::CreateBillboard(position, camera.Position, camera.Up);
         Vector3 p0 = Vector3::Transform({ radius, 0, 0 }, transform);
 
-        for (int i = 0; i <= steps; i++) {
+        for (uint i = 0; i <= steps; i++) {
             Vector3 p;
             p.x = std::cos(XM_2PI * (i / (float)steps)) * radius;
             p.y = std::sin(XM_2PI * (i / (float)steps)) * radius;

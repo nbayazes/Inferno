@@ -244,7 +244,7 @@ namespace Inferno::Sound {
         std::stop_token _stopToken;
         milliseconds _pollRate;
         Ptr<MusicStream> _musicStream;
-        std::atomic<bool> _requestStopSounds = false, _requestStopMusic = false;
+        std::atomic<bool> _requestStopSounds = false, _requestStopMusic = false, _requestPauseSounds = false, _requestResumeSounds = false;
 
         List<Tag> _stopSoundTags;
         List<SoundUID> _stopSoundUIDs;
@@ -321,7 +321,7 @@ namespace Inferno::Sound {
             std::unique_lock lock(_threadMutex);
 
             if (Game::TimeScale != 1.0f)
-                sound.Sound.Pitch -=  (1 - Game::TimeScale) * 0.6f;
+                sound.Sound.Pitch -= (1 - Game::TimeScale) * 0.6f;
 
             sound.ID = GetSoundUID();
             //SPDLOG_INFO("Submit sound {}", (int)sound.ID);
@@ -348,6 +348,15 @@ namespace Inferno::Sound {
 
         void Stop3DSounds() {}
         void Stop2DSounds() {}
+
+        void PauseSounds() {
+            _requestPauseSounds = true;
+        }
+
+        void ResumeSounds() {
+            _requestPauseSounds = false;
+            _requestResumeSounds = true;
+        }
 
         void StopMusic() {
             SPDLOG_INFO("Stopping music");
@@ -582,7 +591,8 @@ namespace Inferno::Sound {
                     continue;
                 }
 
-                if (!instance.Alive || !instance.Effect) continue;
+                if (!instance.Alive || !instance.Effect || instance.Effect->GetState() == SoundState::PAUSED)
+                    continue;
 
                 instance.UpdateEmitter(camera.Position, dt);
 
@@ -635,6 +645,21 @@ namespace Inferno::Sound {
 
             if (_requestStopMusic) OnStopMusic();
             if (_requestStopSounds) OnStopAllSounds();
+
+            if (_requestPauseSounds) {
+                for (auto& instance : _soundInstances) {
+                    instance.Effect->Pause(); // todo: check if instance is music
+                }
+            }
+
+            if (_requestResumeSounds) {
+                for (auto& instance : _soundInstances) {
+                    instance.Effect->Resume();
+                }
+            }
+
+            _requestPauseSounds = false;
+            _requestResumeSounds = false;
 
             _stopSoundUIDs.clear();
             _stopSoundSources.clear();
@@ -870,6 +895,14 @@ namespace Inferno::Sound {
         Settings::Inferno.MusicVolume = volume;
         if (SoundThread)
             SoundThread->SetMusicVolume(volume);
+    }
+
+    void PauseSounds() {
+        if (SoundThread) SoundThread->PauseSounds();
+    }
+
+    void ResumeSounds() {
+        if (SoundThread) SoundThread->ResumeSounds();
     }
 
     void Stop3DSounds() {

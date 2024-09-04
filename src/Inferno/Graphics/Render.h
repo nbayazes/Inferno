@@ -137,7 +137,7 @@ namespace Inferno::Render {
     };
 
     enum class AutomapType {
-        Wall,
+        Normal,
         Unrevealed,
         FullMap,
         Door,
@@ -153,13 +153,14 @@ namespace Inferno::Render {
     struct AutomapMeshInstance {
         TexID Texture = TexID::None, Decal = TexID::None;
         PackedMesh Mesh;
-        AutomapType Type = AutomapType::Wall;
+        AutomapType Type = AutomapType::Normal;
     };
 
     struct AutomapMeshes {
         PackedBuffer Buffer;
 
         List<AutomapMeshInstance> Walls;
+        List<AutomapMeshInstance> FullmapWalls;
         List<AutomapMeshInstance> TransparentWalls;
     };
 

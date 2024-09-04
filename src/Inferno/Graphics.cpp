@@ -214,7 +214,7 @@ namespace Inferno::Graphics {
         List<LevelVertex> Vertices;
         List<uint32> Indices;
 
-        int32 AddSide(const Level& level, Segment& seg, SideID sideId) {
+        int32 AddSide(const Level& level, Segment& seg, SideID sideId, bool addOffset = false) {
             auto startIndex = (int32)Vertices.size();
             auto& side = seg.GetSide(sideId);
             auto& uv = side.UVs;
@@ -229,29 +229,23 @@ namespace Inferno::Graphics {
 
             auto& sideVerts = SIDE_INDICES[(int)sideId];
 
+            auto offset = addOffset ? side.AverageNormal * 0.5f : Vector3::Zero;
+
             for (int i = 0; i < 4; i++) {
                 auto& vert = level.Vertices[seg.Indices[sideVerts[i]]];
                 Vector2 uv2 = side.HasOverlay() ? ApplyOverlayRotation(side, uv[i]) : Vector2();
-                Vertices.push_back({ vert, uv[i], side.Light[i], uv2, side.AverageNormal });
+                Vertices.push_back({ vert + offset, uv[i], side.Light[i], uv2, side.AverageNormal });
             }
 
             return startIndex;
         }
     };
 
-
     void UpdateAutomap() {
         using Render::AutomapType;
 
-        AutomapMesh solidWalls;
-        AutomapMesh connections; // non-visited connections
-        AutomapMesh wallMesh;
-        AutomapMesh fullmap;
-        AutomapMesh fuelcen, matcen, reactor;
-        AutomapMesh transparent;
-
+        AutomapMesh unrevealed; // non-visited connections
         auto& level = Game::Level;
-
         Render::LevelResources.AutomapMeshes = make_unique<Render::AutomapMeshes>();
         auto meshes = Render::LevelResources.AutomapMeshes.get();
 
@@ -263,12 +257,23 @@ namespace Inferno::Graphics {
             };
         };
 
-        for (size_t segIndex = 0; segIndex < Game::AutomapSegments.size(); segIndex++) {
-            auto state = Game::AutomapSegments[segIndex];
-            if (state == Game::AutomapState::Hidden) continue;
+        struct Meshes {
+            AutomapMesh walls, solidWalls, fuelcen, matcen, reactor;
+            List<Render::AutomapMeshInstance>* mesh;
+            AutomapType type = AutomapType::Normal;
+        };
+
+        Meshes fullMap, revealed;
+        fullMap.mesh = &meshes->FullmapWalls;
+        fullMap.type = AutomapType::FullMap;
+        revealed.mesh = &meshes->Walls;
+
+        for (size_t segIndex = 0; segIndex < Game::Automap.Segments.size(); segIndex++) {
+            auto state = Game::Automap.Segments[segIndex];
+            auto& destMesh = state == Game::AutomapState::Visible ? revealed : fullMap;
 
             if (auto seg = level.TryGetSegment((SegID)segIndex)) {
-                auto type = AutomapType::Wall;
+                auto type = AutomapType::Normal;
 
                 if (seg->Type == SegmentType::Energy)
                     type = AutomapType::Fuelcen;
@@ -278,10 +283,13 @@ namespace Inferno::Graphics {
                     type = AutomapType::Reactor;
 
                 for (auto& sideId : SIDE_IDS) {
-                    bool unrevealed = false; // does this touch an unrevealed side?
+                    bool unrevealedBoundary = false; // does this touch an unrevealed side?
 
-                    if (auto connState = Seq::tryItem(Game::AutomapSegments, (int)seg->GetConnection(sideId))) {
-                        unrevealed = *connState != Game::AutomapState::Visible;
+                    if (auto connState = Seq::tryItem(Game::Automap.Segments, (int)seg->GetConnection(sideId))) {
+                        // Check if on unrevealed boundary
+                        unrevealedBoundary =
+                            (*connState != Game::AutomapState::Visible && state == Game::AutomapState::Visible) ||
+                            (state != Game::AutomapState::Visible && *connState == Game::AutomapState::Visible);
                     }
 
                     auto& side = seg->GetSide(sideId);
@@ -292,6 +300,7 @@ namespace Inferno::Graphics {
                     if (wall) {
                         if (wall->Type == WallType::Door) {
                             isDoor = true;
+                            // Only hide secret doors when they are closed. A trap can cause them to open while off-screen.
                             isSecretDoor = HasFlag(Resources::GetDoorClip(wall->Clip).Flags, DoorClipFlag::Secret);
 
                             if (HasFlag(wall->Keys, WallKey::Blue))
@@ -301,20 +310,40 @@ namespace Inferno::Graphics {
                             else if (HasFlag(wall->Keys, WallKey::Red))
                                 type = AutomapType::RedDoor;
                             else if (isSecretDoor)
-                                type = AutomapType::Wall;
+                                if (wall->HasFlag(WallFlag::DoorOpened) && unrevealedBoundary)
+                                    type = AutomapType::Unrevealed; // Mark opened secret doors as unrevealed (for example from a trap)
+                                else
+                                    type = AutomapType::Normal; // Hide secret doors
                             else if (HasFlag(wall->Flags, WallFlag::DoorLocked))
                                 type = AutomapType::LockedDoor;
-                            else
-                                type = AutomapType::Door;
+                            else if (isDoor && !isSecretDoor)
+                                type = AutomapType::Door; // Don't mark secret doors
+                        }
+                        else if (wall->Type == WallType::Destroyable) {
+                            type = AutomapType::Door;
+                        }
+                        else {
+                            // Not a door
+                            if (SideIsTransparent(level, { (SegID)segIndex, sideId }) && unrevealedBoundary) {
+                                type = AutomapType::Unrevealed; // Mark transparent walls as unrevealed
+                            }
                         }
                     }
+                    else if (unrevealedBoundary) {
+                        type = AutomapType::Unrevealed;
+                    }
+
+                    if (state == Game::AutomapState::Hidden && !unrevealedBoundary)
+                        continue; // Skip hidden, non-boundary sides
 
                     // Add verts to a mesh
-                    if (unrevealed && !isDoor && !isSecretDoor) {
-                        connections.AddSide(level, *seg, sideId);
+                    if (type == AutomapType::Unrevealed && unrevealedBoundary/* && !isDoor && !isSecretDoor*/) {
+                        unrevealed.AddSide(level, *seg, sideId);
                     }
                     else if (wall) {
-                        if (wall->Type == WallType::Door || wall->Type == WallType::Closed || wall->Type == WallType::Destroyable) {
+                        if (wall->Type == WallType::Door ||
+                            wall->Type == WallType::Closed ||
+                            wall->Type == WallType::Destroyable) {
                             AutomapMesh mesh;
                             mesh.AddSide(level, *seg, sideId);
 
@@ -325,22 +354,33 @@ namespace Inferno::Graphics {
                                 .Type = type
                             };
 
-                            meshes->Walls.push_back(instance);
+                            // Remove textures from doors. It can look cool to show their textures when open, but it looks weird sometimes.
+                            // Also it requires additional checks for open secret doors
+                            //if(wall->Type == WallType::Door) {
+                            //    instance.Texture = instance.Decal = TexID::None;
+                            //}
+
+                            if (state == Game::AutomapState::FullMap) {
+                                if (type == AutomapType::Normal)
+                                    instance.Type = AutomapType::FullMap; // Draw walls as blue
+                            }
+
+                            //if (wall->Type == WallType::Door)
+                            //    meshes->TransparentWalls.push_back(instance); // transparent doors?
+                            //else
+                            destMesh.mesh->push_back(instance);
                         }
                     }
                     else if (seg->SideIsSolid(sideId, level)) {
-                        if (state == Game::AutomapState::Visible) {
+                        if (state == Game::AutomapState::Visible || state == Game::AutomapState::FullMap) {
                             if (seg->Type == SegmentType::Energy)
-                                fuelcen.AddSide(level, *seg, sideId);
+                                destMesh.fuelcen.AddSide(level, *seg, sideId);
                             else if (seg->Type == SegmentType::Matcen)
-                                matcen.AddSide(level, *seg, sideId);
+                                destMesh.matcen.AddSide(level, *seg, sideId);
                             else if (seg->Type == SegmentType::Reactor && !level.HasBoss)
-                                reactor.AddSide(level, *seg, sideId);
+                                destMesh.reactor.AddSide(level, *seg, sideId);
                             else
-                                solidWalls.AddSide(level, *seg, sideId);
-                        }
-                        else if (state == Game::AutomapState::FullMap) {
-                            fullmap.AddSide(level, *seg, sideId);
+                                destMesh.solidWalls.AddSide(level, *seg, sideId);
                         }
                     }
 
@@ -360,7 +400,6 @@ namespace Inferno::Graphics {
                         };
 
                         if (conn->Type != seg->Type) {
-                            // Segment type changing
                             if (seg->Type == SegmentType::Energy)
                                 addTransparent(AutomapType::Fuelcen);
                             else if (seg->Type == SegmentType::Reactor && !level.HasBoss)
@@ -382,30 +421,18 @@ namespace Inferno::Graphics {
             }
         }
 
-        // add solid walls as a single mesh
-        meshes->Walls.push_back({
-            .Mesh = packMesh(solidWalls),
-            .Type = AutomapType::Wall
-        });
+        auto submitMeshes = [&packMesh](const Meshes& src) {
+            // add solid walls as a single mesh
+            src.mesh->push_back({ .Mesh = packMesh(src.solidWalls), .Type = src.type });
+            src.mesh->push_back({ .Mesh = packMesh(src.fuelcen), .Type = AutomapType::Fuelcen });
+            src.mesh->push_back({ .Mesh = packMesh(src.matcen), .Type = AutomapType::Matcen });
+            src.mesh->push_back({ .Mesh = packMesh(src.reactor), .Type = AutomapType::Reactor });
+        };
 
-        meshes->Walls.push_back({
-            .Mesh = packMesh(fuelcen),
-            .Type = AutomapType::Fuelcen
-        });
+        submitMeshes(revealed);
+        submitMeshes(fullMap);
 
-        meshes->Walls.push_back({
-            .Mesh = packMesh(matcen),
-            .Type = AutomapType::Matcen
-        });
-
-        meshes->Walls.push_back({
-            .Mesh = packMesh(reactor),
-            .Type = AutomapType::Reactor
-        });
-
-        meshes->Walls.push_back({
-            .Mesh = packMesh(connections),
-            .Type = AutomapType::Unrevealed
-        });
+        // Glowing unrevealed portals
+        meshes->TransparentWalls.push_back({ .Mesh = packMesh(unrevealed), .Type = AutomapType::Unrevealed });
     }
 }

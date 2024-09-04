@@ -148,7 +148,13 @@ namespace Inferno::Game {
 
     void MoveCameraToObject(Camera& camera, const Object& obj, float lerp);
 
-    void ResetAutomapCamera();
+    void ResetAutomapCamera(bool instant);
+
+    void NavigateToEnergy();
+
+    void NavigateToReactor();
+
+    void NavigateToExit();
 
     void Update(float dt);
 
@@ -262,6 +268,35 @@ namespace Inferno::Game {
 
     enum class AutomapState { Hidden, Visible, FullMap };
 
-    // Marks level segment automap state
-    inline List<AutomapState> AutomapSegments;
+    enum class ThreatLevel { None, Minimal, Moderate, High, Extreme };
+
+    struct AutomapInfo {
+        List<AutomapState> Segments;
+        string Threat;
+        string LevelNumber;
+        string HostageText;
+        int RobotScore = 0;
+
+        void Update(const Inferno::Level& level);
+
+        void Initialize(const Inferno::Level& level) {
+            Segments.resize(level.Segments.size());
+            ranges::fill(Segments, AutomapState::Hidden);
+        }
+
+        // Reveal the 'full map' powerup
+        void RevealFullMap() {
+            for (auto& seg : Segments) {
+                if (seg == AutomapState::Hidden)
+                    seg = AutomapState::FullMap;
+            }
+        }
+
+        // Reveals the entire map
+        void RevealAll() {
+            ranges::fill(Segments, AutomapState::Visible);
+        }
+    };
+
+    inline AutomapInfo Automap;
 }

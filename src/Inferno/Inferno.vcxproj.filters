@@ -106,6 +106,7 @@
     <ClCompile Include="Graphics.Debug.cpp" />
     <ClCompile Include="Game.Cinematics.cpp" />
     <ClCompile Include="Game.Terrain.cpp" />
+    <ClCompile Include="Graphics\Render.Automap.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\Audio.h" />
@@ -255,6 +256,8 @@
     <ClInclude Include="Game.Cinematics.h" />
     <ClInclude Include="Editor\UI\TerrainEditor.h" />
     <ClInclude Include="Game.Terrain.h" />
+    <ClInclude Include="Colors.h" />
+    <ClInclude Include="Graphics\Render.Automap.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />

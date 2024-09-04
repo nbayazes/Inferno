@@ -68,6 +68,22 @@ float Luminance(float3 v) {
     return dot(v, float3(0.2126f, 0.7152f, 0.0722f));
 }
 
+float Vignette(float2 uv) {
+    uv *= 1.0 - uv;
+    float vig = uv.x * uv.y * 400.0;
+    return saturate(vig);
+    //return saturate(pow(vig, 0.9));
+}
+
+//float Vignette(float2 uv, float size = 500) {
+//    uv = abs(uv * 2.0 - 1.0);
+//    float2 u = size / Frame.Size;
+//    float2 ux = smoothstep(0, u, 1 - uv);
+//    float vig = ux.x * ux.y;
+//    return saturate(vig * .5 + .5);
+//    return saturate(pow(vig, 0.5) + 0.1);
+//}
+
 [RootSignature(RS)]
 PS_INPUT vsmain(LevelVertex input) {
     PS_INPUT output;
@@ -84,8 +100,6 @@ PS_INPUT vsmain(LevelVertex input) {
 
 float4 psmain(PS_INPUT input) : SV_Target {
     float3 viewDir = normalize(input.world - Frame.Eye);
-
-    // 'automap' shader?
     float dfwidth = Depth.Sample(LinearSampler, (input.pos.xy + 0.5) / Frame.Size).x;
     float d = Depth.Sample(LinearSampler, (input.pos.xy) / Frame.Size).x;
     float depth = pow(saturate(0.8 - d * Frame.FarClip / 2000), 2) + 0.025;
@@ -100,7 +114,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         alpha = src.a + alpha * (1 - src.a); // Add overlay texture
     }
 
-    if ((Frame.FilterMode == FILTER_SMOOTH && alpha <= 0) || (Frame.FilterMode != FILTER_SMOOTH && alpha < 1))
+    if ((Frame.FilterMode == FILTER_SMOOTH && alpha <= 0) || (Frame.FilterMode != FILTER_SMOOTH && alpha < 0.5))
         discard;
 
     float4 color = Args.Color;
@@ -114,8 +128,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
     else {
         highlight = max(highlight, 0.1);
         //highlight = pow(saturate(dot(input.normal, -viewDir)), 1.5);
-        color.rgb *= 0.4;
-        color.g += saturate(Luminance(input.color.rgb)) * .5; // Text becomes unreadable if map is too bright
+        color.rgb *= 0.9;
+        color.rgb += saturate(Luminance(input.color.rgb) * color.rgb) * .5; // Text becomes unreadable if map is too bright
         color.rgb *= depth;
         //color.g += (input.color.r + input.color.g + input.color.b) / 3 * 0.6;
     }
@@ -132,18 +146,18 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
     //color.rgb += saturate(color.rgb - 0.5) * 2; // boost highlights
     //color.a = saturate(color.a);
-    float2 screenUv = (input.pos.xy) / Frame.Size;
+    float2 uv = (input.pos.xy) / Frame.Size;
     float ratio = Frame.Size.y / Frame.Size.x;
-    float scanline = 1 + saturate(abs(sin(screenUv.y * Frame.Size.y / 2))) * .1;
-    float scanline2 = 1 + saturate(sin(screenUv.x * 3000 * ratio) - .5);
+    float scanline = 1 + saturate(abs(sin(uv.y * Frame.Size.y / 2))) * .05;
+    float scanline2 = 1 + saturate(sin(uv.x * 3000 * ratio) - .5);
     //scanline += scanline2 * 0.15;
     // horizontal scan
-    scanline *= 1 + saturate(1 + cos(Frame.Time * 2 + screenUv.x * 50 + screenUv.y * -2)) * 0.05;
+    scanline *= 1 + saturate(1 + cos(Frame.Time * 2 + uv.x * 20 + uv.y * -2)) * 0.04;
     highlight *= scanline;
     //scanline += 0.5 * scanline2 * (1 + saturate(1 + cos(Frame.Time * 2 + screenUv.y * 50 + screenUv.x * -3)) * 0.3);
 
-
-    return color * highlight;
+    //return float4(Vignette(uv).xxx, 1);
+    return color * highlight * Vignette(uv);
 
     //float2 fw = fwidth(d);
     //float fwd = pow(1 + (fw.x * fw.x + fw.y * fw.y), 0.4) - 1;

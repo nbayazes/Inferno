@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Render.Editor.h"
-
+#include "Colors.h"
 #include "Debug.h"
 #include "Editor/Bindings.h"
 #include "Editor/Editor.h"

@@ -263,7 +263,10 @@ Weapons:
     LightColor: 1, .5, .25, 2
     ExplosionColor: 1, 0.25, 0.0, 2
     FlashColor: 1, .5, .25, 1.5
+    Damage: [ 8, 12, 18, 23, 30 ] # Changed to D2 values
+    # Damage: [ 10, 15, 20, 30, 50 ] # D1 values
     Size: 1 # was 1.5
+    SplashRadius: 30 # Was 40
     SoundRadius: 350 # Large radius so player hears them coming
 
   - id: 15
@@ -289,7 +292,9 @@ Weapons:
     Size: 1 # was 1.5
     HomingFov: 40 # Slightly easier to evade than 45
     HomingDistance: 300
-    Damage: [ 10, 15, 20, 25, 30 ] # Changed to match D2 values. Original game deals 49 damage on insane.
+    Damage: [ 10, 15, 20, 25, 30 ] # Changed to D2 values
+    # Damage: [ 15, 15, 20, 30, 49 ] # D1 values
+    SplashRadius: 30 # Was 40
     SoundRadius: 350 # Large radius so player hears them coming
 
   - id: 16
@@ -554,6 +559,7 @@ Robots:
     SuppressChance: 0.75
     Curiosity: 0.1 # Very rarely move to investigate sounds
     AimAngle: 15 # Unfair to lead much and looks odd
+    Score: 600 # Was 500
     Shots: [ 2, 2, 2, 4, 4 ] # Was 1, 1, 2, 3, 3
     BurstDelay: 0.75
     FireDelay: [ 5, 4, 3, 2.5, 1.5 ] # Was 5, 4, 3, 2, 1
