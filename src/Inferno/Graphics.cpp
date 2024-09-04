@@ -284,10 +284,9 @@ namespace Inferno::Graphics {
                     type = AutomapType::Reactor;
 
                 for (auto& sideId : SIDE_IDS) {
-                    bool unrevealedBoundary = false; // does this touch an unrevealed side?
+                    bool unrevealedBoundary = false; // does this touch an unrevealed segment?
 
                     if (auto connState = Seq::tryItem(Game::Automap.Segments, (int)seg->GetConnection(sideId))) {
-                        // Check if on unrevealed boundary
                         unrevealedBoundary =
                             (*connState != Game::AutomapState::Visible && state == Game::AutomapState::Visible) ||
                             (state != Game::AutomapState::Visible && *connState == Game::AutomapState::Visible);
@@ -296,13 +295,13 @@ namespace Inferno::Graphics {
                     auto& side = seg->GetSide(sideId);
                     auto wall = level.TryGetWall(side.Wall);
                     bool isSecretDoor = false;
-                    bool openDoor = false;
+                    bool isOpenDoor = false;
 
                     if (wall) {
                         if (wall->Type == WallType::Door) {
                             isSecretDoor = HasFlag(Resources::GetDoorClip(wall->Clip).Flags, DoorClipFlag::Secret);
                             type = AutomapType::Door;
-                            openDoor = wall->HasFlag(WallFlag::DoorOpened) || wall->State == WallState::DoorOpening || wall->State == WallState::DoorClosing;
+                            isOpenDoor = wall->HasFlag(WallFlag::DoorOpened) || wall->State == WallState::DoorOpening || wall->State == WallState::DoorClosing;
 
                             // Use special door colors if possible
                             if (HasFlag(wall->Keys, WallKey::Blue))
@@ -312,7 +311,7 @@ namespace Inferno::Graphics {
                             else if (HasFlag(wall->Keys, WallKey::Red))
                                 type = AutomapType::RedDoor;
                             else if (isSecretDoor) {
-                                if (openDoor) {
+                                if (isOpenDoor) {
                                     // Secret door is open but not revealed, keep it hidden
                                     type = unrevealedBoundary ? AutomapType::Normal : AutomapType::Door;
                                 }
@@ -341,6 +340,9 @@ namespace Inferno::Graphics {
                     if (state == Game::AutomapState::Hidden && (!unrevealedBoundary || isSecretDoor))
                         continue; // Skip hidden, non-boundary sides and the backs of secret doors
 
+                    if (isOpenDoor && isSecretDoor && !unrevealedBoundary)
+                        continue; // Skip open secret doors
+
                     if (type == AutomapType::Unrevealed && unrevealedBoundary) {
                         unrevealed.AddSide(level, *seg, sideId);
                     }
@@ -359,15 +361,15 @@ namespace Inferno::Graphics {
                                 .Type = type
                             };
 
-                            // Remove textures from doors leading to unexplored areas
-                            if (wall->Type == WallType::Door && unrevealedBoundary)
+                            // Remove textures from open doors
+                            if (wall->Type == WallType::Door && isOpenDoor)
                                 instance.Texture = instance.Decal = TexID::None;
 
                             if (state == Game::AutomapState::FullMap && type == AutomapType::Normal)
                                 instance.Type = AutomapType::FullMap; // Draw walls as blue
 
                             // Make doors transparent when open, the outline shader looks odd on them
-                            if (openDoor && !unrevealedBoundary)
+                            if (isOpenDoor && !unrevealedBoundary)
                                 meshes->TransparentWalls.push_back(instance);
                             else
                                 destMesh.mesh->push_back(instance);

@@ -70,7 +70,7 @@ float Luminance(float3 v) {
 
 float Vignette(float2 uv) {
     uv *= 1.0 - uv;
-    float vig = uv.x * uv.y * 400.0;
+    float vig = uv.x * uv.y * 300.0;
     return saturate(vig);
     //return saturate(pow(vig, 0.9));
 }
