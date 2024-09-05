@@ -244,6 +244,12 @@ int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
         CreateConsoleWindow();
         ConfigureLogging("inferno.log");
 
+        TCHAR directory[MAX_PATH];
+        if(SUCCEEDED(GetCurrentDirectory(MAX_PATH, directory))) {
+            filesystem::path path(directory);
+            SPDLOG_INFO("Working directory: {}", path.string());
+        }
+
         //std::srand((uint)std::time(nullptr)); // seed c-random
         InitRandom();
         OpenSimplex2::Init();

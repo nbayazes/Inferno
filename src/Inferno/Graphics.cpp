@@ -241,10 +241,61 @@ namespace Inferno::Graphics {
         }
     };
 
+    using Render::AutomapType;
+
+    AutomapType GetAutomapSegmentType(const Segment& seg) {
+        if (seg.Type == SegmentType::Energy)
+            return AutomapType::Fuelcen;
+        else if (seg.Type == SegmentType::Matcen)
+            return AutomapType::Matcen;
+        else if (seg.Type == SegmentType::Reactor)
+            return AutomapType::Reactor;
+        else
+            return AutomapType::Normal;
+    }
+
+    AutomapType GetAutomapWallType(const Level& level, bool unrevealedBoundary, Tag tag, const Wall* wall, bool& isSecretDoor, bool& isOpenDoor) {
+        if (wall->Type == WallType::Door) {
+            isSecretDoor = HasFlag(Resources::GetDoorClip(wall->Clip).Flags, DoorClipFlag::Secret);
+            isOpenDoor = wall->HasFlag(WallFlag::DoorOpened) || wall->State == WallState::DoorOpening || wall->State == WallState::DoorClosing;
+
+            // Use special door colors if possible
+            if (HasFlag(wall->Keys, WallKey::Blue))
+                return AutomapType::BlueDoor;
+            else if (HasFlag(wall->Keys, WallKey::Gold))
+                return AutomapType::GoldDoor;
+            else if (HasFlag(wall->Keys, WallKey::Red))
+                return AutomapType::RedDoor;
+            else if (isSecretDoor) {
+                if (isOpenDoor) {
+                    // Secret door is open but not revealed, keep it hidden
+                    return unrevealedBoundary ? AutomapType::Normal : AutomapType::Door;
+                }
+                else {
+                    return AutomapType::Normal; // Hide closed secret doors
+                }
+            }
+            else if (HasFlag(wall->Flags, WallFlag::DoorLocked))
+                return AutomapType::LockedDoor;
+            else
+                return AutomapType::Door;
+        }
+        else if (wall->Type == WallType::Destroyable) {
+            // Destroyable walls are also doors, mark them if they are transparent
+            if (SideIsTransparent(level, tag))
+                return AutomapType::Door;
+        }
+        else {
+            // Not a door
+            if (SideIsTransparent(level, tag) && unrevealedBoundary)
+                return AutomapType::Unrevealed; // Mark transparent walls as unrevealed
+        }
+
+        return AutomapType::Normal;
+    }
+
     // Transforms level state into meshes to draw the automap
     void UpdateAutomap() {
-        using Render::AutomapType;
-
         AutomapMesh unrevealed; // non-visited connections
         auto& level = Game::Level;
         Render::LevelResources.AutomapMeshes = make_unique<Render::AutomapMeshes>();
@@ -273,155 +324,115 @@ namespace Inferno::Graphics {
             auto state = Game::Automap.Segments[segIndex];
             auto& destMesh = state == Game::AutomapState::Visible ? revealed : fullMap;
 
-            if (auto seg = level.TryGetSegment((SegID)segIndex)) {
-                auto type = AutomapType::Normal;
+            auto seg = level.TryGetSegment((SegID)segIndex);
+            if (!seg) continue;
+            auto type = GetAutomapSegmentType(*seg);
 
-                if (seg->Type == SegmentType::Energy)
-                    type = AutomapType::Fuelcen;
-                else if (seg->Type == SegmentType::Matcen)
-                    type = AutomapType::Matcen;
-                else if (seg->Type == SegmentType::Reactor)
-                    type = AutomapType::Reactor;
+            for (auto& sideId : SIDE_IDS) {
+                bool unrevealedBoundary = false; // does this touch an unrevealed segment?
 
-                for (auto& sideId : SIDE_IDS) {
-                    bool unrevealedBoundary = false; // does this touch an unrevealed segment?
+                if (auto connState = Seq::tryItem(Game::Automap.Segments, (int)seg->GetConnection(sideId))) {
+                    unrevealedBoundary =
+                        (*connState != Game::AutomapState::Visible && state == Game::AutomapState::Visible) ||
+                        (state != Game::AutomapState::Visible && *connState == Game::AutomapState::Visible);
+                }
 
-                    if (auto connState = Seq::tryItem(Game::Automap.Segments, (int)seg->GetConnection(sideId))) {
-                        unrevealedBoundary =
-                            (*connState != Game::AutomapState::Visible && state == Game::AutomapState::Visible) ||
-                            (state != Game::AutomapState::Visible && *connState == Game::AutomapState::Visible);
-                    }
+                auto& side = seg->GetSide(sideId);
+                auto wall = level.TryGetWall(side.Wall);
+                bool isSecretDoor = false;
+                bool isOpenDoor = false;
 
-                    auto& side = seg->GetSide(sideId);
-                    auto wall = level.TryGetWall(side.Wall);
-                    bool isSecretDoor = false;
-                    bool isOpenDoor = false;
+                if (wall) {
+                    type = GetAutomapWallType(level, unrevealedBoundary, { (SegID)segIndex, sideId }, wall, isSecretDoor, isOpenDoor);
+                }
+                else if (unrevealedBoundary) {
+                    type = AutomapType::Unrevealed;
+                }
 
-                    if (wall) {
-                        if (wall->Type == WallType::Door) {
-                            isSecretDoor = HasFlag(Resources::GetDoorClip(wall->Clip).Flags, DoorClipFlag::Secret);
-                            type = AutomapType::Door;
-                            isOpenDoor = wall->HasFlag(WallFlag::DoorOpened) || wall->State == WallState::DoorOpening || wall->State == WallState::DoorClosing;
+                if (state == Game::AutomapState::Hidden && (!unrevealedBoundary || isSecretDoor))
+                    continue; // Skip hidden, non-boundary sides and the backs of secret doors
 
-                            // Use special door colors if possible
-                            if (HasFlag(wall->Keys, WallKey::Blue))
-                                type = AutomapType::BlueDoor;
-                            else if (HasFlag(wall->Keys, WallKey::Gold))
-                                type = AutomapType::GoldDoor;
-                            else if (HasFlag(wall->Keys, WallKey::Red))
-                                type = AutomapType::RedDoor;
-                            else if (isSecretDoor) {
-                                if (isOpenDoor) {
-                                    // Secret door is open but not revealed, keep it hidden
-                                    type = unrevealedBoundary ? AutomapType::Normal : AutomapType::Door;
-                                }
-                                else {
-                                    type = AutomapType::Normal; // Hide closed secret doors
-                                }
-                            }
-                            else if (HasFlag(wall->Flags, WallFlag::DoorLocked))
-                                type = AutomapType::LockedDoor;
-                        }
-                        else if (wall->Type == WallType::Destroyable) {
-                            // Destroyable walls are also doors, mark them if they are transparent
-                            if (SideIsTransparent(level, { (SegID)segIndex, sideId }))
-                                type = AutomapType::Door;
-                        }
-                        else {
-                            // Not a door
-                            if (SideIsTransparent(level, { (SegID)segIndex, sideId }) && unrevealedBoundary)
-                                type = AutomapType::Unrevealed; // Mark transparent walls as unrevealed
-                        }
-                    }
-                    else if (unrevealedBoundary) {
-                        type = AutomapType::Unrevealed;
-                    }
+                if (isOpenDoor && isSecretDoor && !unrevealedBoundary)
+                    continue; // Skip open secret doors
 
-                    if (state == Game::AutomapState::Hidden && (!unrevealedBoundary || isSecretDoor))
-                        continue; // Skip hidden, non-boundary sides and the backs of secret doors
+                if (type == AutomapType::Unrevealed && unrevealedBoundary) {
+                    unrevealed.AddSide(level, *seg, sideId);
+                }
+                else if (wall) {
+                    // Add 'walls' as individual sides
+                    if (wall->Type == WallType::Door ||
+                        wall->Type == WallType::Closed ||
+                        wall->Type == WallType::Destroyable) {
+                        AutomapMesh mesh;
+                        mesh.AddSide(level, *seg, sideId);
 
-                    if (isOpenDoor && isSecretDoor && !unrevealedBoundary)
-                        continue; // Skip open secret doors
-
-                    if (type == AutomapType::Unrevealed && unrevealedBoundary) {
-                        unrevealed.AddSide(level, *seg, sideId);
-                    }
-                    else if (wall) {
-                        // Add 'walls' as individual sides
-                        if (wall->Type == WallType::Door ||
-                            wall->Type == WallType::Closed ||
-                            wall->Type == WallType::Destroyable) {
-                            AutomapMesh mesh;
-                            mesh.AddSide(level, *seg, sideId);
-
-                            Render::AutomapMeshInstance instance{
-                                .Texture = Resources::LookupTexID(side.TMap),
-                                .Decal = side.TMap2 > LevelTexID::Unset ? Resources::LookupTexID(side.TMap2) : TexID::None,
-                                .Mesh = packMesh(mesh),
-                                .Type = type
-                            };
-
-                            // Remove textures from open doors
-                            if (wall->Type == WallType::Door && isOpenDoor)
-                                instance.Texture = instance.Decal = TexID::None;
-
-                            if (state == Game::AutomapState::FullMap && type == AutomapType::Normal)
-                                instance.Type = AutomapType::FullMap; // Draw walls as blue
-
-                            // Make doors transparent when open, the outline shader looks odd on them
-                            if (isOpenDoor && !unrevealedBoundary)
-                                meshes->TransparentWalls.push_back(instance);
-                            else
-                                destMesh.mesh->push_back(instance);
-                        }
-                    }
-                    else if (seg->SideIsSolid(sideId, level)) {
-                        // Add solid walls as their special types if possible
-                        if (state == Game::AutomapState::Visible || state == Game::AutomapState::FullMap) {
-                            if (seg->Type == SegmentType::Energy)
-                                destMesh.fuelcen.AddSide(level, *seg, sideId);
-                            else if (seg->Type == SegmentType::Matcen)
-                                destMesh.matcen.AddSide(level, *seg, sideId);
-                            else if (seg->Type == SegmentType::Reactor && !level.HasBoss)
-                                destMesh.reactor.AddSide(level, *seg, sideId);
-                            else
-                                destMesh.solidWalls.AddSide(level, *seg, sideId);
-                        }
-                    }
-
-                    // Add boundary faces between normal and special segments
-                    if (auto conn = level.TryGetSegment(seg->GetConnection(sideId))) {
-                        const auto addTransparent = [&](AutomapType connType) {
-                            AutomapMesh mesh;
-                            mesh.AddSide(level, *seg, sideId);
-
-                            Render::AutomapMeshInstance instance{
-                                .Texture = Resources::LookupTexID(side.TMap),
-                                .Decal = side.TMap2 > LevelTexID::Unset ? Resources::LookupTexID(side.TMap2) : TexID::None,
-                                .Mesh = packMesh(mesh),
-                                .Type = connType
-                            };
-
-                            meshes->TransparentWalls.push_back(instance);
+                        Render::AutomapMeshInstance instance{
+                            .Texture = Resources::LookupTexID(side.TMap),
+                            .Decal = side.TMap2 > LevelTexID::Unset ? Resources::LookupTexID(side.TMap2) : TexID::None,
+                            .Mesh = packMesh(mesh),
+                            .Type = type
                         };
 
-                        if (conn->Type != seg->Type) {
-                            // Special segment facing a normal segment
-                            if (seg->Type == SegmentType::Energy)
+                        // Remove textures from open doors
+                        if (wall->Type == WallType::Door && isOpenDoor)
+                            instance.Texture = instance.Decal = TexID::None;
+
+                        if (state == Game::AutomapState::FullMap && type == AutomapType::Normal)
+                            instance.Type = AutomapType::FullMap; // Draw walls as blue
+
+                        // Make doors transparent when open, the outline shader looks odd on them
+                        if (isOpenDoor && !unrevealedBoundary)
+                            meshes->TransparentWalls.push_back(instance);
+                        else
+                            destMesh.mesh->push_back(instance);
+                    }
+                }
+                else if (seg->SideIsSolid(sideId, level)) {
+                    // Add solid walls as their special types if possible
+                    if (state == Game::AutomapState::Visible || state == Game::AutomapState::FullMap) {
+                        if (seg->Type == SegmentType::Energy)
+                            destMesh.fuelcen.AddSide(level, *seg, sideId);
+                        else if (seg->Type == SegmentType::Matcen)
+                            destMesh.matcen.AddSide(level, *seg, sideId);
+                        else if (seg->Type == SegmentType::Reactor && !level.HasBoss)
+                            destMesh.reactor.AddSide(level, *seg, sideId);
+                        else
+                            destMesh.solidWalls.AddSide(level, *seg, sideId);
+                    }
+                }
+
+                // Add boundary faces between normal and special segments
+                if (auto conn = level.TryGetSegment(seg->GetConnection(sideId))) {
+                    const auto addTransparent = [&](AutomapType connType) {
+                        AutomapMesh mesh;
+                        mesh.AddSide(level, *seg, sideId);
+
+                        Render::AutomapMeshInstance instance{
+                            .Texture = Resources::LookupTexID(side.TMap),
+                            .Decal = side.TMap2 > LevelTexID::Unset ? Resources::LookupTexID(side.TMap2) : TexID::None,
+                            .Mesh = packMesh(mesh),
+                            .Type = connType
+                        };
+
+                        meshes->TransparentWalls.push_back(instance);
+                    };
+
+                    if (conn->Type != seg->Type) {
+                        // Special segment facing a normal segment
+                        if (seg->Type == SegmentType::Energy)
+                            addTransparent(AutomapType::Fuelcen);
+                        else if (seg->Type == SegmentType::Reactor && !level.HasBoss)
+                            addTransparent(AutomapType::Reactor);
+                        else if (seg->Type == SegmentType::Matcen)
+                            addTransparent(AutomapType::Matcen);
+                        else if (seg->Type == SegmentType::None) {
+                            // Normal segment facing a special segment
+                            if (conn->Type == SegmentType::Energy)
                                 addTransparent(AutomapType::Fuelcen);
-                            else if (seg->Type == SegmentType::Reactor && !level.HasBoss)
+                            else if (conn->Type == SegmentType::Reactor && !level.HasBoss)
                                 addTransparent(AutomapType::Reactor);
-                            else if (seg->Type == SegmentType::Matcen)
+                            else if (conn->Type == SegmentType::Matcen)
                                 addTransparent(AutomapType::Matcen);
-                            else if (seg->Type == SegmentType::None) {
-                                // Normal segment facing a special segment
-                                if (conn->Type == SegmentType::Energy)
-                                    addTransparent(AutomapType::Fuelcen);
-                                else if (conn->Type == SegmentType::Reactor && !level.HasBoss)
-                                    addTransparent(AutomapType::Reactor);
-                                else if (conn->Type == SegmentType::Matcen)
-                                    addTransparent(AutomapType::Matcen);
-                            }
                         }
                     }
                 }
