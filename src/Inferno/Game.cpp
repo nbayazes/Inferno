@@ -501,12 +501,15 @@ namespace Inferno::Game {
         Graphics::UpdateAutomap();
 
         Sound::PauseSounds();
+        Sound::GetVolume();
+        Sound::SetMusicVolume(Settings::Inferno.MusicVolume * 0.15f);
         Input::SetMouseMode(Input::MouseMode::Mouselook);
         ResetAutomapCamera(true);
     }
 
     void CloseAutomap() {
         Sound::ResumeSounds();
+        Sound::SetMusicVolume(Settings::Inferno.MusicVolume);
         Input::SetMouseMode(Input::MouseMode::Mouselook);
     }
 

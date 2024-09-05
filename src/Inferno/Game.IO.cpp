@@ -584,8 +584,8 @@ namespace Inferno::Game {
 
         //PlayMusic("endlevel.hmp");
 
-        // Try playing the given file name if it exists
-        if (Resources::FileExists(song)) {
+        // Try playing the given file name if it exists (ignore hmp / midi for now)
+        if (!song.ends_with(".hmp") && Resources::FileExists(song)) {
             Sound::PlayMusic(song);
             return;
         }

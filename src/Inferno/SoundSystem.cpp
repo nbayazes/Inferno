@@ -892,7 +892,6 @@ namespace Inferno::Sound {
     }
 
     void SetMusicVolume(float volume) {
-        Settings::Inferno.MusicVolume = volume;
         if (SoundThread)
             SoundThread->SetMusicVolume(volume);
     }
