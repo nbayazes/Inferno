@@ -251,7 +251,7 @@ namespace Inferno::Render {
                 drawCircle(obj, 6, Colors::Hostage);
             }
 
-            if (!segInfo || *segInfo == Game::AutomapState::Hidden)
+            if (!segInfo || *segInfo == Game::AutomapVisibility::Hidden)
                 continue; // Only hostages are drawn if unrevealed
 
             if (obj.Type == ObjectType::Powerup) {

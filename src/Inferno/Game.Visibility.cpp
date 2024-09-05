@@ -243,7 +243,7 @@ namespace Inferno {
             for (size_t i = 0; i < renderListSize; i++) {
                 auto segid = renderList[i];
                 if (segid == SegID::None) continue;
-                Game::Automap.Segments[(int)segid] = Game::AutomapState::Visible;
+                Game::Automap.Segments[(int)segid] = Game::AutomapVisibility::Visible;
                 auto& info = segInfo[(int)segid];
                 if (info.processed) continue;
 

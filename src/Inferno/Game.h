@@ -266,12 +266,12 @@ namespace Inferno::Game {
 
     inline Inferno::TerrainInfo Terrain;
 
-    enum class AutomapState { Hidden, Visible, FullMap };
+    enum class AutomapVisibility { Hidden, Visible, FullMap };
 
     enum class ThreatLevel { None, Minimal, Moderate, High, Extreme };
 
     struct AutomapInfo {
-        List<AutomapState> Segments;
+        List<AutomapVisibility> Segments;
         string Threat;
         string LevelNumber;
         string HostageText;
@@ -281,20 +281,20 @@ namespace Inferno::Game {
 
         void Initialize(const Inferno::Level& level) {
             Segments.resize(level.Segments.size());
-            ranges::fill(Segments, AutomapState::Hidden);
+            ranges::fill(Segments, AutomapVisibility::Hidden);
         }
 
         // Reveal the 'full map' powerup
         void RevealFullMap() {
             for (auto& seg : Segments) {
-                if (seg == AutomapState::Hidden)
-                    seg = AutomapState::FullMap;
+                if (seg == AutomapVisibility::Hidden)
+                    seg = AutomapVisibility::FullMap;
             }
         }
 
         // Reveals the entire map
         void RevealAll() {
-            ranges::fill(Segments, AutomapState::Visible);
+            ranges::fill(Segments, AutomapVisibility::Visible);
         }
     };
 

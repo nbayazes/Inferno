@@ -242,6 +242,7 @@ namespace Inferno::Graphics {
     };
 
     using Render::AutomapType;
+    using Game::AutomapVisibility;
 
     AutomapType GetAutomapSegmentType(const Segment& seg) {
         if (seg.Type == SegmentType::Energy)
@@ -254,10 +255,24 @@ namespace Inferno::Graphics {
             return AutomapType::Normal;
     }
 
-    AutomapType GetAutomapWallType(const Level& level, bool unrevealedBoundary, Tag tag, const Wall* wall, bool& isSecretDoor, bool& isOpenDoor) {
+    struct AutomapSideInfo {
+        AutomapType Type = AutomapType::Unrevealed;
+        AutomapVisibility Visibility = AutomapVisibility::Hidden;
+        Tag Tag;
+        bool IsSecretDoor = false;
+        bool IsDoor = false;
+        bool IsOpenDoor = false;
+        bool IsTransparent = false;
+        Wall* Wall = nullptr;
+        bool UnrevealedBoundary = false;
+    };
+
+    AutomapType GetAutomapWallType(const Level& level, AutomapSideInfo& info) {
+        auto wall = info.Wall;
+
         if (wall->Type == WallType::Door) {
-            isSecretDoor = HasFlag(Resources::GetDoorClip(wall->Clip).Flags, DoorClipFlag::Secret);
-            isOpenDoor = wall->HasFlag(WallFlag::DoorOpened) || wall->State == WallState::DoorOpening || wall->State == WallState::DoorClosing;
+            info.IsSecretDoor = HasFlag(Resources::GetDoorClip(wall->Clip).Flags, DoorClipFlag::Secret);
+            info.IsOpenDoor = wall->HasFlag(WallFlag::DoorOpened) || wall->State == WallState::DoorOpening || wall->State == WallState::DoorClosing;
 
             // Use special door colors if possible
             if (HasFlag(wall->Keys, WallKey::Blue))
@@ -266,10 +281,10 @@ namespace Inferno::Graphics {
                 return AutomapType::GoldDoor;
             else if (HasFlag(wall->Keys, WallKey::Red))
                 return AutomapType::RedDoor;
-            else if (isSecretDoor) {
-                if (isOpenDoor) {
+            else if (info.IsSecretDoor) {
+                if (info.IsOpenDoor) {
                     // Secret door is open but not revealed, keep it hidden
-                    return unrevealedBoundary ? AutomapType::Normal : AutomapType::Door;
+                    return info.UnrevealedBoundary ? AutomapType::Normal : AutomapType::Door;
                 }
                 else {
                     return AutomapType::Normal; // Hide closed secret doors
@@ -282,12 +297,12 @@ namespace Inferno::Graphics {
         }
         else if (wall->Type == WallType::Destroyable) {
             // Destroyable walls are also doors, mark them if they are transparent
-            if (SideIsTransparent(level, tag))
+            if (info.IsTransparent)
                 return AutomapType::Door;
         }
         else {
             // Not a door
-            if (SideIsTransparent(level, tag) && unrevealedBoundary)
+            if (info.IsTransparent && info.UnrevealedBoundary)
                 return AutomapType::Unrevealed; // Mark transparent walls as unrevealed
         }
 
@@ -322,47 +337,58 @@ namespace Inferno::Graphics {
 
         for (size_t segIndex = 0; segIndex < Game::Automap.Segments.size(); segIndex++) {
             auto state = Game::Automap.Segments[segIndex];
-            auto& destMesh = state == Game::AutomapState::Visible ? revealed : fullMap;
+            auto& destMesh = state == AutomapVisibility::Visible ? revealed : fullMap;
 
             auto seg = level.TryGetSegment((SegID)segIndex);
             if (!seg) continue;
-            auto type = GetAutomapSegmentType(*seg);
 
             for (auto& sideId : SIDE_IDS) {
-                bool unrevealedBoundary = false; // does this touch an unrevealed segment?
+                AutomapSideInfo info;
+                info.Tag = { (SegID)segIndex, sideId };
+                info.Wall = level.TryGetWall(info.Tag);
+                info.Type = GetAutomapSegmentType(*seg);
+                info.Visibility = state;
+                info.IsTransparent = SideIsTransparent(level, info.Tag);
 
                 if (auto connState = Seq::tryItem(Game::Automap.Segments, (int)seg->GetConnection(sideId))) {
-                    unrevealedBoundary =
-                        (*connState != Game::AutomapState::Visible && state == Game::AutomapState::Visible) ||
-                        (state != Game::AutomapState::Visible && *connState == Game::AutomapState::Visible);
+                    info.UnrevealedBoundary =
+                        (*connState != AutomapVisibility::Visible && state == AutomapVisibility::Visible) ||
+                        (state != AutomapVisibility::Visible && *connState == AutomapVisibility::Visible);
                 }
 
-                auto& side = seg->GetSide(sideId);
-                auto wall = level.TryGetWall(side.Wall);
-                bool isSecretDoor = false;
-                bool isOpenDoor = false;
+                if (info.Wall) {
+                    if (info.Wall->Type == WallType::Illusion) {
+                        if (info.Visibility == AutomapVisibility::Hidden && !info.IsTransparent)
+                            continue; // Skip the back of unrevealed, opaque illusionary walls
+                        else if (!info.UnrevealedBoundary && info.Visibility != AutomapVisibility::Hidden && info.IsTransparent)
+                            continue; // Skip revealed, transparent illusionary walls
+                    }
 
-                if (wall) {
-                    type = GetAutomapWallType(level, unrevealedBoundary, { (SegID)segIndex, sideId }, wall, isSecretDoor, isOpenDoor);
+                    info.Type = GetAutomapWallType(level, info);
                 }
-                else if (unrevealedBoundary) {
-                    type = AutomapType::Unrevealed;
+                else if (info.UnrevealedBoundary) {
+                    info.Type = AutomapType::Unrevealed;
                 }
 
-                if (state == Game::AutomapState::Hidden && (!unrevealedBoundary || isSecretDoor))
+                if (state == AutomapVisibility::Hidden && (!info.UnrevealedBoundary || info.IsSecretDoor))
                     continue; // Skip hidden, non-boundary sides and the backs of secret doors
 
-                if (isOpenDoor && isSecretDoor && !unrevealedBoundary)
+                if (info.IsOpenDoor && info.IsSecretDoor && !info.UnrevealedBoundary)
                     continue; // Skip open secret doors
 
-                if (type == AutomapType::Unrevealed && unrevealedBoundary) {
+                auto& side = seg->GetSide(sideId);
+
+                if (info.Type == AutomapType::Unrevealed && info.UnrevealedBoundary) {
                     unrevealed.AddSide(level, *seg, sideId);
                 }
-                else if (wall) {
+                else if (info.Wall) {
+                    auto wallType = info.Wall->Type;
+
                     // Add 'walls' as individual sides
-                    if (wall->Type == WallType::Door ||
-                        wall->Type == WallType::Closed ||
-                        wall->Type == WallType::Destroyable) {
+                    if (wallType == WallType::Door ||
+                        wallType == WallType::Closed ||
+                        wallType == WallType::Destroyable ||
+                        wallType == WallType::Illusion) {
                         AutomapMesh mesh;
                         mesh.AddSide(level, *seg, sideId);
 
@@ -370,18 +396,18 @@ namespace Inferno::Graphics {
                             .Texture = Resources::LookupTexID(side.TMap),
                             .Decal = side.TMap2 > LevelTexID::Unset ? Resources::LookupTexID(side.TMap2) : TexID::None,
                             .Mesh = packMesh(mesh),
-                            .Type = type
+                            .Type = info.Type
                         };
 
                         // Remove textures from open doors
-                        if (wall->Type == WallType::Door && isOpenDoor)
+                        if (wallType == WallType::Door && info.IsOpenDoor)
                             instance.Texture = instance.Decal = TexID::None;
 
-                        if (state == Game::AutomapState::FullMap && type == AutomapType::Normal)
+                        if (state == Game::AutomapVisibility::FullMap && info.Type == AutomapType::Normal)
                             instance.Type = AutomapType::FullMap; // Draw walls as blue
 
                         // Make doors transparent when open, the outline shader looks odd on them
-                        if (isOpenDoor && !unrevealedBoundary)
+                        if (info.IsOpenDoor && !info.UnrevealedBoundary)
                             meshes->TransparentWalls.push_back(instance);
                         else
                             destMesh.mesh->push_back(instance);
@@ -389,7 +415,7 @@ namespace Inferno::Graphics {
                 }
                 else if (seg->SideIsSolid(sideId, level)) {
                     // Add solid walls as their special types if possible
-                    if (state == Game::AutomapState::Visible || state == Game::AutomapState::FullMap) {
+                    if (state == Game::AutomapVisibility::Visible || state == Game::AutomapVisibility::FullMap) {
                         if (seg->Type == SegmentType::Energy)
                             destMesh.fuelcen.AddSide(level, *seg, sideId);
                         else if (seg->Type == SegmentType::Matcen)
@@ -400,9 +426,8 @@ namespace Inferno::Graphics {
                             destMesh.solidWalls.AddSide(level, *seg, sideId);
                     }
                 }
-
-                // Add boundary faces between normal and special segments
-                if (auto conn = level.TryGetSegment(seg->GetConnection(sideId))) {
+                else if (auto conn = level.TryGetSegment(seg->GetConnection(sideId))) {
+                    // Add boundary faces between normal and special segments
                     const auto addTransparent = [&](AutomapType connType) {
                         AutomapMesh mesh;
                         mesh.AddSide(level, *seg, sideId);
