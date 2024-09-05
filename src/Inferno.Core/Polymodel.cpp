@@ -343,7 +343,7 @@ namespace Inferno {
                     Vector3 p0 = model.Vertices[indices[i + 0]];
                     Vector3 p1 = model.Vertices[indices[i + 1]];
                     Vector3 p2 = model.Vertices[indices[i + 2]];
-                    auto normal = (p1 - p0).Cross(p2 - p0);
+                    auto normal = (p2 - p0).Cross(p1 - p0);
                     normal.Normalize();
                     normals.push_back(normal);
                 }

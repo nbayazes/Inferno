@@ -501,7 +501,7 @@ namespace Inferno {
 
                         ApplyForce(target, forceVec);
 
-                        if (source && source->Faction == Faction::Robot && ObjectIsMine(*source))
+                        if (source && HasFlag(source->Faction, Faction::Robot) && ObjectIsMine(*source))
                             damage = 0; // Don't apply explosion damage from mines to robots, otherwise mine layers cause too much friendly fire
 
                         //if (parent && parent->IsRobot() && target.IsRobot())
@@ -706,6 +706,10 @@ namespace Inferno {
                     Vector3 p2 = Vector3::Transform(model.Vertices[indices[i + 2]], smTransform);
                     Vector3 normal = normals[normalIndex++];
 
+                    // Normal debug
+                    //auto center = (p0 + p1 + p2) / 3;
+                    //drawTriangleEdge(center, center + normal * 2, { 1, 0, 0 });
+
                     bool triFacesObj = localDir.Dot(normal) <= 0;
                     auto offset = normal * sphereSource.Radius; // offset triangle by radius to account for object size
                     Vector3 faceLocalPos = localPos;
@@ -725,7 +729,7 @@ namespace Inferno {
                         }
                     }
 
-                    Plane plane(p0 + offset, p1 + offset, p2 + offset);
+                    Plane plane(p2 + offset, p1 + offset, p0 + offset);
                     auto planeDist = plane.DotCoordinate(faceLocalPos);
                     if (planeDist > 0 || planeDist < -sphereSource.Radius)
                         continue; // Object isn't close enough to the triangle plane
