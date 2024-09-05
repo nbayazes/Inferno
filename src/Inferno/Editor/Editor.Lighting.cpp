@@ -910,7 +910,7 @@ namespace Inferno::Editor {
             SetAmbientLight(level, settings.Ambient);
 
             auto lights = GatherLightSources(level, settings);
-            auto bucketSize = (int)std::max(lights.size() / availThreads, size_t(1));
+            auto bucketSize = (int)std::max(lights.size() / availThreads, size_t(6));
 
             if (settings.CheckCoplanar)
                 ReduceCoplanarBrightness(level, lights);
