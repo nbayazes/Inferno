@@ -166,6 +166,7 @@
       <FileType>Document</FileType>
     </None>
     <ClCompile Include="Graphics\Render.Automap.cpp" />
+    <ClCompile Include="Icosphere.cpp" />
     <ClCompile Include="VisualEffects.cpp" />
     <ClCompile Include="Formats\BBM.cpp" />
     <ClCompile Include="CustomTextureLibrary.cpp" />
@@ -289,6 +290,7 @@
     <ClInclude Include="Game.Terrain.h" />
     <ClInclude Include="Graphics.Debug.h" />
     <ClInclude Include="Graphics\Render.Automap.h" />
+    <ClInclude Include="Icosphere.h" />
     <ClInclude Include="VisualEffects.h" />
     <ClInclude Include="Formats\BBM.h" />
     <ClInclude Include="Game.AI.h" />
