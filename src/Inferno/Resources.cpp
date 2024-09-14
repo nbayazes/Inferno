@@ -794,42 +794,40 @@ namespace Inferno::Resources {
             }
         }
 
-        {
-            // Check for addon (dxa) data
-            for (auto& file : filesystem::directory_iterator(GetGameDataFolder(Game::Level))) {
-                if (!file.is_regular_file()) continue;
+        // Check for addon (dxa) data
+        for (auto& file : filesystem::directory_iterator(GetGameDataFolder(Game::Level))) {
+            if (!file.is_regular_file()) continue;
 
-                auto& filePath = file.path();
-                if (String::ToLower(filePath.extension().string()) == ".dxa") {
-                    List<byte> data;
-                    if (auto zip = zip_open(filePath.string().c_str(), 0, 'r')) {
-                        if (zip_entry_open(zip, name.c_str()) == 0) {
-                            void* buffer;
-                            size_t bufferSize;
-                            auto readBytes = zip_entry_read(zip, &buffer, &bufferSize);
-                            if (readBytes > 0) {
-                                SPDLOG_INFO("Read addon data: {}:{}", filePath.string(), name);
-                                data.assign((byte*)buffer, (byte*)buffer + bufferSize);
-                            }
-
-                            zip_entry_close(zip);
+            auto& filePath = file.path();
+            if (String::ToLower(filePath.extension().string()) == ".dxa") {
+                List<byte> data;
+                if (auto zip = zip_open(filePath.string().c_str(), 0, 'r')) {
+                    if (zip_entry_open(zip, name.c_str()) == 0) {
+                        void* buffer;
+                        size_t bufferSize;
+                        auto readBytes = zip_entry_read(zip, &buffer, &bufferSize);
+                        if (readBytes > 0) {
+                            SPDLOG_INFO("Read addon data: {}:{}", filePath.string(), name);
+                            data.assign((byte*)buffer, (byte*)buffer + bufferSize);
                         }
 
-                        zip_close(zip);
+                        zip_entry_close(zip);
                     }
 
-                    if (!data.empty())
-                        return data;
-
-                    /*auto totalEntries = zip_entries_total(zip);
-
-                    for (size_t i = 0; i < totalEntries; i++) {
-                        zip_entry_openbyindex(zip, i);
-                        auto entry = zip_entry_name(zip);
-                        SPDLOG_INFO("{}", entry);
-                        zip_entry_close(zip);
-                    }*/
+                    zip_close(zip);
                 }
+
+                if (!data.empty())
+                    return data;
+
+                /*auto totalEntries = zip_entries_total(zip);
+
+                for (size_t i = 0; i < totalEntries; i++) {
+                    zip_entry_openbyindex(zip, i);
+                    auto entry = zip_entry_name(zip);
+                    SPDLOG_INFO("{}", entry);
+                    zip_entry_close(zip);
+                }*/
             }
         }
 

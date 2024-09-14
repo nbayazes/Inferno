@@ -604,12 +604,21 @@ namespace Inferno::Editor {
         }
     }
 
-    void Initialize() {
-        Events::SelectTexture += OnSelectTexture;
-        Events::LevelLoaded += [] { Editor::Gizmo.UpdatePosition(); };
-        Events::SelectObject += [] { Editor::Gizmo.UpdatePosition(); };
-        Events::SelectSegment += [] { Editor::Gizmo.UpdatePosition(); };
-        Events::LevelChanged += [] { Editor::Gizmo.UpdatePosition(); };
+    void StartEditor() {
+        Game::SetState(GameState::Editor);
+
+        static bool started = false;
+        if (!started) {
+            started = true;
+            Events::SelectTexture += OnSelectTexture;
+            Events::LevelLoaded += [] { Editor::Gizmo.UpdatePosition(); };
+            Events::SelectObject += [] { Editor::Gizmo.UpdatePosition(); };
+            Events::SelectSegment += [] { Editor::Gizmo.UpdatePosition(); };
+            Events::LevelChanged += [] { Editor::Gizmo.UpdatePosition(); };
+        }
+
+        // Set color picker to use wheel and HDR by default
+        ImGui::SetColorEditOptions(ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_PickerHueWheel);
 
         if (Settings::Editor.ReopenLastLevel &&
             !Settings::Editor.RecentFiles.empty() &&

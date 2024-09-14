@@ -1,4 +1,5 @@
 #include "Common.hlsli"
+#include "ObjectVertex.hlsli"
 
 #define RS \
     "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
@@ -21,16 +22,6 @@ Texture2D DissolveTexture : register(t0);
 SamplerState Sampler : register(s0);
 Texture2D TextureTable[] : register(t0, space1);
 StructuredBuffer<VClip> VClips : register(t1);
-
-struct ObjectVertex {
-    float3 pos : POSITION;
-    float2 uv : TEXCOORD0;
-    float4 col : COLOR0;
-    float3 normal : NORMAL;
-    float3 tangent : TANGENT;
-    float3 bitangent : BITANGENT;
-    nointerpolation int texid : TEXID;
-};
 
 struct PS_INPUT {
     centroid float4 pos : SV_Position;

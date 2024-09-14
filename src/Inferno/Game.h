@@ -84,7 +84,7 @@ namespace Inferno::Game {
     // Only single player for now
     inline class Player Player = {};
     inline ObjRef DeathCamera = {};
-    inline Camera PlayerCamera, AutomapCamera;
+    inline Camera MainCamera, AutomapCamera;
 
     // Sets the primary camera for the main view. Used for sound, rendering and mouse selection.
     void SetActiveCamera(Camera& camera);

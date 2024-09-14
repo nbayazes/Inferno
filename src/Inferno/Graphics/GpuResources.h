@@ -375,6 +375,8 @@ namespace Inferno {
                   bool enableMips = true,
                   DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
             assert(data);
+            if (!data) return;
+
             auto mips = enableMips && width == 64 && height == 64 ? 7u : 1u; // enable mips on standard level textures
             SetDesc(width, height, (uint16)mips, format);
 

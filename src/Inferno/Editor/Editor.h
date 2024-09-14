@@ -56,7 +56,7 @@ namespace Inferno::Editor {
         StatusText = Convert::ToString(str);
     }
 
-    void Initialize();
+    void StartEditor();
 
     // Origin is used by rotation and scale transforms
     void SetOrigin(Vector3);

@@ -20,6 +20,7 @@
 #include "Game.Wall.h"
 #include "Graphics.Debug.h"
 #include "Graphics.h"
+#include "Graphics/Render.MainMenu.h"
 #include "HUD.h"
 #include "imgui_local.h"
 #include "Input.h"
@@ -31,12 +32,12 @@ using namespace DirectX;
 
 namespace Inferno::Game {
     namespace {
-        auto State = GameState::Editor;
-        auto RequestedState = GameState::Editor;
+        auto State = GameState::MainMenu;
+        auto RequestedState = GameState::MainMenu;
         constexpr size_t OBJECT_BUFFER_SIZE = 100; // How many new objects to keep in reserve
         int MenuIndex = 0;
         Ptr<Editor::EditorUI> EditorUI;
-        gsl::not_null ActiveCamera = &PlayerCamera;
+        gsl::not_null ActiveCamera = &MainCamera;
         LerpedValue LerpedTimeScale(1);
         Object NULL_PLAYER{ .Type = ObjectType::Player };
     }
@@ -115,7 +116,7 @@ namespace Inferno::Game {
     }
 
     void AutomapInfo::Update(const Inferno::Level& level) {
-        if(Game::LevelNumber < 0)
+        if (Game::LevelNumber < 0)
             LevelNumber = fmt::format("Secret Level {}", -Game::LevelNumber);
         else
             LevelNumber = fmt::format("Level {}", Game::LevelNumber);
@@ -564,7 +565,7 @@ namespace Inferno::Game {
             case GameState::Paused:
                 if (State != GameState::Game && State != GameState::ExitSequence) return;
                 State = GameState::Paused;
-                MoveCameraToObject(Game::PlayerCamera, GetPlayerObject(), LerpAmount);
+                MoveCameraToObject(Game::MainCamera, GetPlayerObject(), LerpAmount);
                 GetPlayerObject().Render.Type = RenderType::Model; // Make player visible
                 Input::SetMouseMode(Input::MouseMode::Mouselook);
                 break;
@@ -713,6 +714,7 @@ namespace Inferno::Game {
 
     void Update(float dt) {
         LegitProfiler::ProfilerTask update("Update game", LegitProfiler::Colors::CARROT);
+        LegitProfiler::AddCpuTask(std::move(update));
 
         CheckLoadLevel();
 
@@ -736,6 +738,19 @@ namespace Inferno::Game {
         g_ImGuiBatch->BeginFrame();
 
         switch (State) {
+            case GameState::MainMenu:
+                SetActiveCamera(Game::MainCamera);
+                Game::MainCamera.SetFov(50);
+
+                //Game::MainCamera.Up = Vector3::UnitY;
+                //Game::MainCamera.Position = MenuCameraPosition;
+                //Game::MainCamera.Target = MenuCameraTarget;
+                //Game::MainCamera.UpdatePerspectiveMatrices();
+
+                //Input::SetMouseMode(Input::MouseMode::Mouselook);
+                //GenericCameraController(MainCamera, 300);
+                break;
+
             case GameState::Automap:
                 SetActiveCamera(Game::AutomapCamera);
                 Game::AutomapCamera.SetFov(Settings::Graphics.FieldOfView);
@@ -750,15 +765,15 @@ namespace Inferno::Game {
             //UpdateCommsMessage();
             //DrawBriefing();
                 if (!UpdateEscapeSequence(dt)) {
-                    SetActiveCamera(Game::PlayerCamera);
-                    Game::PlayerCamera.SetFov(Settings::Graphics.FieldOfView);
+                    SetActiveCamera(Game::MainCamera);
+                    Game::MainCamera.SetFov(Settings::Graphics.FieldOfView);
                 }
 
                 if (!Level.Objects.empty()) {
                     if (Player.IsDead)
                         UpdateDeathSequence(dt);
                     else if (!Level.Objects.empty())
-                        MoveCameraToObject(Game::PlayerCamera, Level.Objects[0], LerpAmount);
+                        MoveCameraToObject(Game::MainCamera, Level.Objects[0], LerpAmount);
                 }
 
                 if (Input::IsKeyPressed(Input::Keys::Escape)) {
@@ -816,7 +831,6 @@ namespace Inferno::Game {
                 break;
         }
 
-        LegitProfiler::AddCpuTask(std::move(update));
         //LegitProfiler::Profiler.Render();
 
         // Reset direct light as rendering effects sets it

@@ -201,7 +201,7 @@ namespace Inferno {
             //    }
             //}
 
-            Game::MoveCameraToObject(Game::PlayerCamera, *camera, Game::LerpAmount);
+            Game::MoveCameraToObject(Game::MainCamera, *camera, Game::LerpAmount);
         }
     }
 

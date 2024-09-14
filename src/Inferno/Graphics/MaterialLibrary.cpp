@@ -410,12 +410,12 @@ namespace Inferno::Render {
 
         bool genMaps = (Resources::IsLevelTexture(material.ID) || Resources::IsObjectTexture(material.ID)) && Settings::Inferno.GenerateMaps;
 
-        if (!material.Textures[Material2D::Specular] && genMaps) {
+        if (!material.Textures[Material2D::Specular] && genMaps && !upload.Bitmap->Data.empty()) {
             auto specular = CreateSpecularMap(*upload.Bitmap);
             material.Textures[Material2D::Specular].Load(batch, specular.data(), width, height, Convert::ToWideString(material.Name), true, DXGI_FORMAT_R8_UNORM);
         }
 
-        if (!material.Textures[Material2D::Normal] && genMaps) {
+        if (!material.Textures[Material2D::Normal] && genMaps && !upload.Bitmap->Data.empty()) {
             auto normal = CreateNormalMap(*upload.Bitmap);
             material.Textures[Material2D::Normal].Load(batch, normal.data(), width, height, Convert::ToWideString(material.Name), true, DXGI_FORMAT_R8G8B8A8_UNORM);
         }
@@ -530,7 +530,7 @@ namespace Inferno::Render {
 
             List<Material2D> uploads;
             for (auto& upload : queuedUploads) {
-                if (!upload.Bitmap || upload.Bitmap->Info.Width == 0 || upload.Bitmap->Info.Height == 0)
+                if (!upload.Bitmap || upload.Bitmap->Info.Width == 0 || upload.Bitmap->Info.Height == 0 || upload.Bitmap->Data.empty())
                     continue;
 
                 if (auto material = UploadMaterial(batch, upload))

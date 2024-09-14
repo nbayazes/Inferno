@@ -31,7 +31,6 @@ namespace Inferno {
             6, 1, 10, 9, 0, 11, 9, 11, 2, 9, 2, 5, 7, 2, 11,
         };
 
-
         using Lookup = ankerl::unordered_dense::map<uint64, uint32>;
         auto vertexForEdge = [&](Lookup& lookup, std::vector<ObjectVertex>& verts, uint32 first, uint32 second) {
             uint64 key = first < second
@@ -86,36 +85,36 @@ namespace Inferno {
         // UV map the sphere
         // https://observablehq.com/@mourner/uv-mapping-an-icosphere
         for (auto& v : vertices) {
-            v.UV = Vector2(
-                (std::atan2(v.Position.z, v.Position.x) / (2.f * DirectX::XM_PI)) + 0.5f,
-                (std::asin(v.Position.y) / DirectX::XM_PI)) + Vector2(0.5f, 0.5f);
+            v.UV.x = std::atan2(v.Position.z, v.Position.x) / (2.f * DirectX::XM_PI) + 0.5f;
+            v.UV.y = std::asin(v.Position.y) / DirectX::XM_PI + 0.5f;
         }
 
-        //auto scaleMatrix = Matrix::CreateScale(radius);
-        ////auto scaleMatrix = Matrix::CreateScale(radius, radius * 2, radius * 1.5f);
-        //for (auto& v : vertices) {
-        //    v.Position = Vector3::Transform(v.Position, scaleMatrix);
-        //}
+        // Fix the seam
+        for (int32 idx = 0; idx < indices.size(); idx += 3) {
+            ObjectVertex v0 = vertices[indices[idx + 0]];
+            ObjectVertex v1 = vertices[indices[idx + 1]];
+            ObjectVertex v2 = vertices[indices[idx + 2]];
 
-        //for (auto& v : vertices) {
-        //    v.Position = Vector3::Transform(v.Position, scaleMatrix);
-        //    auto s = 50.0f; // scale
-        //    Vector3 strength = { 1.0f, 1.0f, 1.0f };
-        //    strength *= 15;
-        //    auto seed = 0;
+            auto wrapVertex = [&](int32 localIdx) {
+                auto newIdx = int32(vertices.size());
+                auto& oldV = vertices[indices[idx + localIdx]];
+                auto& v = vertices.emplace_back(oldV);
+                v.UV.x += 1.f;
 
-        //    auto& p = v.Position;
-        //    //p += v.Normal * OpenSimplex2::Noise3(seed, p.x * s, p.y * s, p.z * s) * 20;
-        //    auto ps = p / s;
-        //    auto x = OpenSimplex2::Noise3(seed, 0, ps.y, ps.z) * strength.x;
-        //    auto y = OpenSimplex2::Noise3(seed, ps.x, 0, ps.z) * strength.y;
-        //    auto z = OpenSimplex2::Noise3(seed, ps.x, ps.y, 0) * strength.z;
-        //    p += Vector3{ x, y, z };
+                switch (localIdx) {
+                    default: case 0: v0 = v; break;
+                    case 1: v1 = v; break;
+                    case 2: v2 = v; break;
+                }
 
-        //    //s = 1.0f;
-        //    //v.Position += v.Normal * OpenSimplex2::Noise3(0, v.Position.x * s, v.Position.y * s, v.Position.z * s) * 5;
-        //    v.Color = Color(1, 1, 1);
-        //}
+                indices[idx + localIdx] = newIdx;
+            };
+
+            float tolerance = 0.9f;
+            if (std::abs(v1.UV.x - v0.UV.x) > tolerance) wrapVertex(v1.UV.x > v0.UV.x ? 0 : 1);
+            if (std::abs(v2.UV.x - v0.UV.x) > tolerance) wrapVertex(v2.UV.x > v0.UV.x ? 0 : 2);
+            if (std::abs(v2.UV.x - v1.UV.x) > tolerance) wrapVertex(v2.UV.x > v1.UV.x ? 1 : 2);
+        }
 
         ASSERT(vertices.size() < USHORT_MAX);
         return { vertices, indices };

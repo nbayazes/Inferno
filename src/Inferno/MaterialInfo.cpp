@@ -244,6 +244,8 @@ namespace Inferno {
 
     void LoadMaterialTable(const string& yaml, span<MaterialInfo> materials) {
         try {
+            if (materials.empty()) return;
+
             ryml::Tree doc = ryml::parse_in_arena(ryml::to_csubstr(yaml));
             ryml::NodeRef root = doc.rootref();
             int count = 0;
@@ -259,12 +261,15 @@ namespace Inferno {
             }
 
             // Hard code special flat material
-            auto& flat = materials[(int)Render::SHINY_FLAT_MATERIAL];
-            flat.ID = (int)Render::SHINY_FLAT_MATERIAL;
-            flat.Metalness = 0.97f;
-            flat.Roughness = 0.375f;
-            flat.LightReceived = 0.5f;
-            flat.SpecularStrength = .20f;
+            if (materials.size() >= (int)Render::SHINY_FLAT_MATERIAL) {
+                auto& flat = materials[(int)Render::SHINY_FLAT_MATERIAL];
+                flat.ID = (int)Render::SHINY_FLAT_MATERIAL;
+                flat.Metalness = 0.97f;
+                flat.Roughness = 0.375f;
+                flat.LightReceived = 0.5f;
+                flat.SpecularStrength = .20f;
+            }
+
             SPDLOG_INFO("Loaded {} material definitions", count);
         }
         catch (const std::exception& e) {

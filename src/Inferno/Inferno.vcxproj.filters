@@ -107,6 +107,9 @@
     <ClCompile Include="Game.Cinematics.cpp" />
     <ClCompile Include="Game.Terrain.cpp" />
     <ClCompile Include="Graphics\Render.Automap.cpp" />
+    <ClCompile Include="Game.UI.cpp" />
+    <ClCompile Include="Icosphere.cpp" />
+    <ClCompile Include="Graphics\Render.MainMenu.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\Audio.h" />
@@ -258,6 +261,8 @@
     <ClInclude Include="Game.Terrain.h" />
     <ClInclude Include="Colors.h" />
     <ClInclude Include="Graphics\Render.Automap.h" />
+    <ClInclude Include="Icosphere.h" />
+    <ClInclude Include="Graphics\Render.MainMenu.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />
@@ -312,5 +317,8 @@
     <None Include="shaders\Automap.hlsl" />
     <None Include="shaders\AutomapOutline.hlsl" />
     <None Include="shaders\AutomapObject.hlsl" />
+    <None Include="shaders\Asteroid.hlsl" />
+    <None Include="shaders\ObjectVertex.hlsli" />
+    <None Include="shaders\MenuSun.hlsl" />
   </ItemGroup>
 </Project>

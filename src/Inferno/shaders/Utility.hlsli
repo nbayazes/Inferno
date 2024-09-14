@@ -29,4 +29,26 @@ uint Pack_R11G11B10_FLOAT(float3 rgb) {
     return r | g | b;
 }
 
+
+uint PcgHash(uint seed) {
+    uint state = seed * 747796405u + 2891336453u;
+    uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    return (word >> 22u) ^ word;
+}
+
+// Used to advance the PCG state.
+uint PcgRandU32(inout uint rngState) {
+    uint state = rngState;
+    rngState = rngState * 747796405u + 2891336453u;
+    uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    return (word >> 22u) ^ word;
+}
+
+// Advances the prng state and returns the corresponding random float.
+float PcgRandFloat(inout uint state, float min, float max) {
+    state = PcgRandU32(state);
+    float f = float(state) / asfloat(0x2f800004u); // 0xFFFFFFFF; // uint max //  asfloat(0x2f800004u)
+    return f * (max - min) + min;
+}
+
 #endif // __UTILITY_HLSLI__

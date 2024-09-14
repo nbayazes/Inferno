@@ -97,7 +97,7 @@ namespace Inferno::Render {
         // Depth prepass
 
         {
-            ClearDepthPrepass(ctx);
+            BeginDepthPrepass(ctx);
 
             auto& effect = Effects->DepthCutout;
             ctx.ApplyEffect(effect);

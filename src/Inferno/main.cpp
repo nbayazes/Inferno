@@ -6,6 +6,7 @@
 #include "Resources.h"
 #include "Settings.h"
 #include "Editor/Bindings.h"
+#include "Game.h"
 #include "Graphics/Compiler.h"
 #include "ryml/ryml.hpp"
 #include "logging.h"
@@ -233,7 +234,25 @@ void ConfigureLogging(const string& logName) {
 
     // https://github.com/gabime/spdlog/wiki/3.-Custom-formatting#pattern-flags
     spdlog::set_pattern("[%M:%S.%e] [%^%l%$] [TID:%t] [%s:%#] %v");
+}
 
+void ParseCommandLine() {
+    int nArgs;
+    auto args = CommandLineToArgvW(GetCommandLine(), &nArgs);
+    if (!args) return;
+
+    // Skip the first arg, it is the executable path
+    for (int i = 1; i < nArgs; i++) {
+        printf("%d: %ws\n", i, args[i]);
+
+        wstring arg(args[i]);
+
+        if (arg == L"-editor") {
+            Game::SetState(GameState::Editor);
+        }
+    }
+
+    LocalFree((LPWSTR)args);
 }
 
 int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
@@ -245,7 +264,7 @@ int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
         ConfigureLogging("inferno.log");
 
         TCHAR directory[MAX_PATH];
-        if(SUCCEEDED(GetCurrentDirectory(MAX_PATH, directory))) {
+        if (SUCCEEDED(GetCurrentDirectory(MAX_PATH, directory))) {
             filesystem::path path(directory);
             SPDLOG_INFO("Working directory: {}", path.string());
         }
@@ -261,6 +280,8 @@ int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
         SetWindowsTimePeriod timePeriod;
         Inferno::Shell shell;
         //CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+
+        ParseCommandLine();
 
         Editor::Bindings::LoadDefaults();
         Settings::Load();

@@ -122,6 +122,20 @@ namespace Inferno {
         return Vector3(0.2126f, 0.7152f, 0.0722f).Dot(v);
     }
 
+    inline float GetFraction(float f) {
+        float discard;
+        return std::modf(f, &discard);
+    }
+
+    // Returns a stable random value between 0 and uint max for a given input.
+    constexpr float PcgRandomFloat(uint input) {
+        // https://www.reedbeta.com/blog/hash-functions-for-gpu-rendering/
+        uint state = input * 747796405u + 2891336453u;
+        uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+        uint pcgHash = (word >> 22u) ^ word;
+        return (float)pcgHash / UINT_MAX;
+    }
+
     // Returns a random unit vector. Optionally scaled by a value.
     inline Vector3 RandomVector(float scale = 1) {
         if (scale == 0) return Vector3::Zero;

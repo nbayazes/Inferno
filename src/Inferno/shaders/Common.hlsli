@@ -1,3 +1,6 @@
+#ifndef __COMMON_H__
+#define __COMMON_H__
+
 #define MATERIAL_COUNT 4000
 
 // Must match the Material enum
@@ -88,4 +91,5 @@ float3 SampleNormal(Texture2D tex, float2 uv, SamplerState texSampler, int filte
 //     tex.Sample(texSampler, uv + dx + dy).rgb + // bottom left
 //     tex.Sample(texSampler, uv + dx + dy).rgb) * 0.25; // bottom right
 //return clamp(color * 2 - 1, -1, 1);
-    
+
+#endif

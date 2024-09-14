@@ -8,6 +8,7 @@
 #include "Editor/Editor.h"
 #include "SystemClock.h"
 #include "Graphics/Render.h"
+#include "Graphics/Render.MainMenu.h"
 
 using namespace Inferno;
 using namespace Inferno::Editor;
@@ -62,12 +63,14 @@ void Application::Initialize(int width, int height) {
     if (Settings::Inferno.Descent3Enhanced)
         Resources::MountDescent3();
 
-    Editor::Initialize();
+    if (Game::GetState() == GameState::Editor)
+        Editor::StartEditor();
 
     OnActivated();
 
-    // Set color picker to use wheel and HDR by default
-    ImGui::SetColorEditOptions(ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_PickerHueWheel);
+    Game::MainCamera.Up = Vector3::UnitY;
+    Game::MainCamera.Position = MenuCameraPosition;
+    Game::MainCamera.Target = MenuCameraTarget;
 
     Events::SettingsChanged += [this] {
         UpdateFpsLimit();

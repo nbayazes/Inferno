@@ -9,6 +9,7 @@ namespace Inferno::Render::Debug {
 
     class LineBatch {
         UploadBuffer<FlatVertex> _vertices;
+
     public:
         LineBatch(int vertexCapacity) : _vertices(vertexCapacity, L"Line batch") {}
 
@@ -17,9 +18,10 @@ namespace Inferno::Render::Debug {
         }
 
         void End(const GraphicsContext& ctx, auto effect) {
-            auto cmdList = ctx.GetCommandList();
             _vertices.End();
-
+            if (_vertices.GetElementCount() == 0) return;
+            auto cmdList = ctx.GetCommandList();
+             
             D3D12_VERTEX_BUFFER_VIEW vbv{};
             vbv.BufferLocation = _vertices.GetGPUVirtualAddress();
             vbv.SizeInBytes = _vertices.GetSizeInBytes();
@@ -48,6 +50,7 @@ namespace Inferno::Render::Debug {
     class PolygonBatch {
         UploadBuffer<FlatVertex> _vertices;
         uint16 _elementCount = 0;
+
     public:
         PolygonBatch(int vertexCapacity) : _vertices(vertexCapacity, L"Polygon batch") {}
 
@@ -56,8 +59,9 @@ namespace Inferno::Render::Debug {
         }
 
         void End(const GraphicsContext& ctx, auto effect) {
-            auto cmdList = ctx.GetCommandList();
             _vertices.End();
+            if (_elementCount == 0) return;
+            auto cmdList = ctx.GetCommandList();
 
             D3D12_VERTEX_BUFFER_VIEW vbv{};
             vbv.BufferLocation = _vertices.GetGPUVirtualAddress();
@@ -98,6 +102,7 @@ namespace Inferno::Render::Debug {
     class GizmoArrow {
         List<FlatVertex> _vertices;
         List<uint16> _indices;
+
     public:
         GizmoArrow(float size, float length, Color color = { 1, 1, 1, 1 }) {
             int tesselation = 8;
@@ -143,6 +148,7 @@ namespace Inferno::Render::Debug {
     class Cube {
         List<FlatVertex> _vertices;
         List<uint16> _indices;
+
     public:
         Cube(float size, Color color = { 1, 1, 1, 1 }) {
             List<GeometricPrimitive::VertexType> vertices;
@@ -292,7 +298,7 @@ namespace Inferno::Render::Debug {
     }
 
     void DrawCircle(float radius, const Matrix& transform, const Color& color) {
-        Vector3 p0 = Vector3::Transform({ radius, 0 , 0 }, transform);
+        Vector3 p0 = Vector3::Transform({ radius, 0, 0 }, transform);
         constexpr int Steps = 32;
 
         for (int i = 0; i <= Steps; i++) {
@@ -338,8 +344,8 @@ namespace Inferno::Render::Debug {
 
     void DrawRing(float radius, float thickness, const Matrix& transform, const Color& color) {
         float radius2 = std::max(radius - thickness, 0.0f);
-        Vector3 v0 = Vector3::Transform({ radius, 0 , 0 }, transform);
-        Vector3 v2 = Vector3::Transform({ radius2, 0 , 0 }, transform);
+        Vector3 v0 = Vector3::Transform({ radius, 0, 0 }, transform);
+        Vector3 v2 = Vector3::Transform({ radius2, 0, 0 }, transform);
 
         constexpr int Steps = 32;
         for (int i = 0; i <= Steps; i++) {

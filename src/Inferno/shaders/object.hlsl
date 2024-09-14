@@ -1,5 +1,6 @@
 #include "Lighting.hlsli"
 #include "Common.hlsli"
+#include "ObjectVertex.hlsli"
 
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0),"\
@@ -40,24 +41,14 @@ TextureCube Environment : register(t8);
 
 Texture2D TextureTable[] : register(t0, space1);
 
-struct ObjectVertex {
-    float3 pos : POSITION;
-    float2 uv : TEXCOORD0;
-    float4 col : COLOR0;
-    float3 normal : NORMAL;
-    float3 tangent : TANGENT;
-    float3 bitangent : BITANGENT;
-    nointerpolation int texid : TEXID;
-};
-
 struct PS_INPUT {
     float4 pos : SV_Position;
     float2 uv : TEXCOORD0;
     centroid float4 col : COLOR0;
-    float3 normal : NORMAL;
-    float3 tangent : TANGENT;
-    float3 bitangent : BITANGENT;
-    float3 world : TEXCOORD1;
+    centroid float3 normal : NORMAL;
+    centroid float3 tangent : TANGENT;
+    centroid float3 bitangent : BITANGENT;
+    centroid float3 world : TEXCOORD1;
     nointerpolation int texid: TEXID;
 };
 
@@ -70,7 +61,6 @@ PS_INPUT vsmain(ObjectVertex input) {
     output.uv = input.uv;
 
     // transform from object space to world space
-    //input.normal.z *= -1;
     output.normal = normalize(mul((float3x3)Object.WorldMatrix, input.normal));
     output.tangent = normalize(mul((float3x3)Object.WorldMatrix, input.tangent));
     output.bitangent = normalize(mul((float3x3)Object.WorldMatrix, input.bitangent));

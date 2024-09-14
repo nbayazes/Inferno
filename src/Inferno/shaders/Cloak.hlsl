@@ -1,4 +1,6 @@
 #include "Common.hlsli"
+#include "ObjectVertex.hlsli"
+
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0),"\
     "CBV(b1), "\
@@ -17,24 +19,11 @@ Texture2D FrameTexture : register(t0);
 //Texture2D NormalTexture : register(t1);
 SamplerState LinearBorder : register(s0);
 
-struct ObjectVertex {
-    float3 pos : POSITION;
-    float2 uv : TEXCOORD0;
-    float4 col : COLOR0;
-    float3 normal : NORMAL;
-    float3 tangent : TANGENT;
-    float3 bitangent : BITANGENT;
-    nointerpolation int texid : TEXID;
-};
-
 struct PS_INPUT {
     float4 pos : SV_POSITION;
     float2 uv : TEXCOORD0;
     centroid float4 col : COLOR0;
-    float3 normal : NORMAL;
-    //float3 tangent : TANGENT;
-    //float3 bitangent : BITANGENT;
-    //float3 world : TEXCOORD1;
+    centroid float3 normal : NORMAL;
 };
 
 [RootSignature(RS)]
@@ -44,7 +33,6 @@ PS_INPUT vsmain(ObjectVertex input) {
     output.pos = mul(wvp, float4(input.pos, 1));
     output.col = input.col;
     output.uv = input.uv;
-
 
     // transform from object space to world space
     output.normal = normalize(mul((float3x3)Instance.WorldMatrix, input.normal));

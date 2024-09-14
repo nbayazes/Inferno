@@ -1,5 +1,6 @@
 #include "Lighting.hlsli"
 #include "Common.hlsli"
+#include "ObjectVertex.hlsli"
 
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0), "\
@@ -12,7 +13,6 @@
     "DescriptorTable(SRV(t12), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t13), visibility=SHADER_VISIBILITY_PIXEL), " \
     "CBV(b2)"
-
 
 // should match object.hlsl
 struct Constants {
@@ -33,23 +33,13 @@ Texture2D Emissive : register(t2);
 Texture2D Specular1 : register(t3);
 Texture2D Normal1 : register(t4);
 
-struct ObjectVertex {
-    float3 pos : POSITION;
-    float2 uv : TEXCOORD0;
-    float4 col : COLOR0;
-    float3 normal : NORMAL;
-    float3 tangent : TANGENT;
-    float3 bitangent : BITANGENT;
-    nointerpolation int texid : TEXID;
-};
-
 struct PS_INPUT {
     float4 pos : SV_Position;
     float2 uv : TEXCOORD0;
     centroid float4 col : COLOR0;
-    float3 normal : NORMAL;
-    float3 tangent : TANGENT;
-    float3 bitangent : BITANGENT;
+    centroid float3 normal : NORMAL;
+    centroid float3 tangent : TANGENT;
+    centroid float3 bitangent : BITANGENT;
     float3 world : TEXCOORD1;
 };
 

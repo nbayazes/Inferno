@@ -164,6 +164,7 @@ namespace Inferno::Render {
         List<AutomapMeshInstance> TransparentWalls;
     };
 
+
     struct LevelGpuResources {
         Ptr<TerrainMesh> TerrainMesh;
         Ptr<PackedBuffer> LevelMeshes;
@@ -171,7 +172,29 @@ namespace Inferno::Render {
         Ptr<AutomapMeshes> AutomapMeshes;
     };
 
+    struct ModelMesh {
+        List<ObjectVertex> Vertices;
+        List<uint16> Indices;
+    };
+
+    struct GenericMeshes {
+        PackedBuffer Buffer{ 5 * 1024 * 1024 };
+        List<PackedMesh> Meshes;
+
+        uint AddMesh(ModelMesh& mesh) {
+            auto packed = Render::PackedMesh{
+                .VertexBuffer = Buffer.PackVertices(span{ mesh.Vertices }),
+                .IndexBuffer = Buffer.PackIndices(span{ mesh.Indices }),
+                .IndexCount = (uint)mesh.Indices.size()
+            };
+
+            Meshes.push_back(packed);
+            return uint(Meshes.size() - 1);
+        }
+    };
+
     inline LevelGpuResources LevelResources;
+    inline Ptr<GenericMeshes> GlobalMeshes; // Globally loaded object meshes. e.g. for the main menu or cutscenes.
 
     //const string TEST_MODEL = "robottesttube(orbot).OOF"; // mixed transparency test
     const string TEST_MODEL = "gyro.OOF";

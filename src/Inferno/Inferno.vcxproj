@@ -160,12 +160,14 @@
     <ClCompile Include="Game.Cinematics.cpp" />
     <ClCompile Include="DebugOverlay.cpp" />
     <ClCompile Include="Game.Terrain.cpp" />
+    <ClCompile Include="Game.UI.cpp" />
     <ClCompile Include="Graphics.Debug.cpp" />
     <None Include="shaders\AutomapOutline.hlsl">
       <DeploymentContent>true</DeploymentContent>
       <FileType>Document</FileType>
     </None>
     <ClCompile Include="Graphics\Render.Automap.cpp" />
+    <ClCompile Include="Graphics\Render.MainMenu.cpp" />
     <ClCompile Include="Icosphere.cpp" />
     <ClCompile Include="VisualEffects.cpp" />
     <ClCompile Include="Formats\BBM.cpp" />
@@ -290,7 +292,13 @@
     <ClInclude Include="Game.Terrain.h" />
     <ClInclude Include="Graphics.Debug.h" />
     <ClInclude Include="Graphics\Render.Automap.h" />
+    <ClInclude Include="Graphics\Render.MainMenu.h" />
     <ClInclude Include="Icosphere.h" />
+    <None Include="shaders\MenuSun.hlsl">
+      <FileType>Document</FileType>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+    </None>
     <ClInclude Include="VisualEffects.h" />
     <ClInclude Include="Formats\BBM.h" />
     <ClInclude Include="Game.AI.h" />
@@ -368,6 +376,7 @@
     <ClInclude Include="Game.Briefing.h" />
     <None Include="gsl\assert" />
     <None Include="gsl\pointers" />
+    <None Include="shaders\ObjectVertex.hlsli" />
     <None Include="shaders\Terrain.hlsl">
       <DeploymentContent>true</DeploymentContent>
       <FileType>HLSL</FileType>
@@ -731,6 +740,13 @@
     <None Include="shaders\AutomapObject.hlsl">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
       <FileType>Document</FileType>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\Asteroid.hlsl">
+      <FileType>Document</FileType>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
     </None>
   </ItemGroup>

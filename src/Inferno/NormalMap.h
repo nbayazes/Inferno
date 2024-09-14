@@ -17,6 +17,7 @@ namespace Inferno {
 
     inline List<uint8> CreateSpecularMap(const PigBitmap& image, float brightness = 0.5f, float contrast = 1.0f, bool invert = false) {
         List<uint8> specularMap(image.Data.size());
+        if (image.Data.empty()) return specularMap;
 
         //uint8 min = 255, max = 0;
 
@@ -56,6 +57,7 @@ namespace Inferno {
     // Creates a normal map using a Sobel kernel
     inline List<Palette::Color> CreateNormalMap(const PigBitmap& image, const NormalMapOptions& options = {}) {
         List<Palette::Color> normalMap(image.Data.size());
+        if (image.Data.empty()) return normalMap;
 
         const auto width = image.Info.Width;
         const auto height = image.Info.Height;

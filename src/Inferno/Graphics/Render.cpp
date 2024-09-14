@@ -16,13 +16,15 @@
 #include "Editor/UI/BriefingEditor.h"
 #include "Graphics.h"
 #include "HUD.h"
+#include "Icosphere.h"
 #include "ScopedTimer.h"
 #include "LegitProfiler.h"
 #include "MaterialLibrary.h"
+#include "OpenSimplex2.h"
 #include "Procedural.h"
 #include "Render.Automap.h"
 #include "Render.Level.h"
-#include "Render.Object.h"
+#include "Render.MainMenu.h"
 #include "Resources.h"
 
 using namespace DirectX;
@@ -266,9 +268,11 @@ namespace Inferno::Render {
         CreateDeviceDependentResources();
         Adapter->ReloadResources();
 
+        GlobalMeshes = make_unique<GenericMeshes>();
+        CreateMainMenuResources();
         CreateWindowSizeDependentResources(width, height);
         Editor::EditorCamera.SetViewport(Vector2((float)width, (float)height));
-        Game::PlayerCamera.SetViewport(Vector2((float)width, (float)height));
+        Game::MainCamera.SetViewport(Vector2((float)width, (float)height));
 
         Editor::Events::LevelChanged += [] { LevelChanged = true; };
         Editor::Events::TexturesChanged += [] {
@@ -303,6 +307,8 @@ namespace Inferno::Render {
         MaterialInfoUploadBuffer.reset();
         VClipUploadBuffer.reset();
         VClipBuffer.reset();
+        GlobalMeshes.reset();
+
         for (auto& buffer : FrameUploadBuffers)
             buffer.reset();
 
@@ -327,7 +333,7 @@ namespace Inferno::Render {
 
         CreateWindowSizeDependentResources(width, height);
         Editor::EditorCamera.SetViewport(Vector2((float)width, (float)height));
-        Game::PlayerCamera.SetViewport(Vector2((float)width, (float)height));
+        Game::MainCamera.SetViewport(Vector2((float)width, (float)height));
         //pCam->SetViewport((float)width, (float)height);
         // Reset frame upload buffers, otherwise they run out of memory.
         // For some reason resizing does not increment the adapter frame index, causing the same buffer to be used.
@@ -418,7 +424,7 @@ namespace Inferno::Render {
         _postBatch->End();
     }
 
-    void DrawUI(GraphicsContext& ctx) {
+    void DrawImguiBatch(GraphicsContext& ctx) {
         PIXScopedEvent(ctx.GetCommandList(), PIX_COLOR_INDEX(9), "UI");
         ScopedTimer imguiTimer(&Metrics::ImGui);
         Canvas->Render(ctx);
@@ -427,8 +433,6 @@ namespace Inferno::Render {
     }
 
     void UpdateFrameConstants(const Inferno::Camera& camera, UploadBuffer<FrameConstants>& dest, float renderScale = 1) {
-        //camera.Update(FrameTime);
-        //camera.UpdatePerspective();
         auto size = camera.GetViewportSize();
 
         FrameConstants frameConstants{};
@@ -733,6 +737,43 @@ namespace Inferno::Render {
         return { pow(color.x, gamma), pow(color.y, gamma), pow(color.z, gamma), color.w };
     }
 
+
+    void BeginScene(GraphicsContext& ctx) {
+        auto cmdList = ctx.GetCommandList();
+        auto& target = Adapter->GetRenderTarget();
+        auto& depthBuffer = Adapter->GetDepthBuffer();
+
+        // Clear depth and color buffers
+        ctx.SetViewportAndScissor(UINT(target.GetWidth() * Settings::Graphics.RenderScale), UINT(target.GetHeight() * Settings::Graphics.RenderScale));
+        target.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+        ctx.ClearColor(target);
+        ctx.ClearDepth(depthBuffer);
+        ctx.ClearStencil(Adapter->GetDepthBuffer(), 0);
+        ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        ctx.SetRenderTarget(target.GetRTV(), depthBuffer.GetDSV());
+    }
+
+    // Clears and binds depth buffers as the render target
+    void BeginDepthPrepass(GraphicsContext& ctx) {
+        auto& depthBuffer = Adapter->GetDepthBuffer();
+        auto& linearDepthBuffer = Adapter->GetLinearDepthBuffer();
+        ctx.ClearDepth(depthBuffer);
+        ctx.ClearColor(linearDepthBuffer);
+        ctx.ClearStencil(Adapter->GetDepthBuffer(), 0);
+        ctx.GetCommandList()->OMSetStencilRef(0);
+
+        linearDepthBuffer.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+        ctx.SetRenderTarget(linearDepthBuffer.GetRTV(), depthBuffer.GetDSV());
+        ctx.SetViewportAndScissor(UINT(linearDepthBuffer.GetWidth() * Settings::Graphics.RenderScale), UINT(linearDepthBuffer.GetHeight() * Settings::Graphics.RenderScale));
+
+        ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        //auto& target = Adapter->GetRenderTarget();
+        //ctx.ClearColor(target);
+        //ctx.SetViewportAndScissor(UINT(target.GetWidth() * Settings::Graphics.RenderScale), UINT(target.GetHeight() * Settings::Graphics.RenderScale));
+    }
+
     void Present(const Camera& camera) {
         ScopedTimer presentTimer(&Metrics::Present);
         Stats::DrawCalls = 0;
@@ -746,50 +787,57 @@ namespace Inferno::Render {
 
         auto cmdList = ctx.GetCommandList();
         Heaps->SetDescriptorHeaps(cmdList);
+        UpdateFrameConstants(ctx.Camera, Adapter->GetFrameConstants(), Settings::Graphics.RenderScale);
         //auto outputSize = Adapter->GetOutputSize();
 
-        if (LevelChanged) {
-            Adapter->WaitForGpu();
-            RebuildLevelResources(Game::Level);
-
-            if (Game::GetState() == GameState::Editor) {
-                ResetEffects(); // prevent crashes due to ids changing
-                // Reattach object lights
-                for (auto& obj : Game::Level.Objects) {
-                    auto ref = Game::GetObjectRef(obj);
-                    Game::AttachLight(obj, ref);
-                }
-            }
-
-            CopyMaterialData(cmdList);
-            LoadVClips(cmdList); // todo: only load on initial level load
-        }
-
-        if (TerrainChanged) {
-            Adapter->WaitForGpu();
-            Graphics::LoadTerrain(Game::Terrain);
-            TerrainChanged = false;
-        }
+        BeginScene(ctx);
 
         if (Game::BriefingVisible)
             DrawBriefing(ctx, Adapter->BriefingColorBuffer, Game::Briefing);
 
-        // Create a terrain camera at the origin and orient it with the terrain
-        // Always positioning it at the origin prevents any parallax effects on the planets
-        Camera terrainCamera = ctx.Camera;
-        terrainCamera.SetClipPlanes(50, 30'000);
-        auto terrainInverse = ctx.Camera.GetOrientation() * Game::Terrain.InverseTransform;
-        terrainCamera.MoveTo(Vector3::Zero, terrainInverse.Forward(), terrainInverse.Up());
-        terrainCamera.UpdatePerspectiveMatrices();
-
-        UpdateFrameConstants(terrainCamera, Adapter->GetTerrainConstants(), Settings::Graphics.RenderScale);
-        UpdateFrameConstants(ctx.Camera, Adapter->GetFrameConstants(), Settings::Graphics.RenderScale);
-
-        if (Game::GetState() == GameState::Automap) {
-            DrawAutomap(ctx);
+        if (Game::GetState() == GameState::MainMenu) {
+            DrawMainMenuBackground(ctx);
         }
         else {
-            DrawLevel(ctx, Game::Level);
+            if (LevelChanged) {
+                Adapter->WaitForGpu();
+                RebuildLevelResources(Game::Level);
+
+                if (Game::GetState() == GameState::Editor) {
+                    ResetEffects(); // prevent crashes due to ids changing
+                    // Reattach object lights
+                    for (auto& obj : Game::Level.Objects) {
+                        auto ref = Game::GetObjectRef(obj);
+                        Game::AttachLight(obj, ref);
+                    }
+                }
+
+                CopyMaterialData(cmdList);
+                LoadVClips(cmdList); // todo: only load on initial level load
+            }
+
+            if (TerrainChanged) {
+                Adapter->WaitForGpu();
+                Graphics::LoadTerrain(Game::Terrain);
+                TerrainChanged = false;
+            }
+
+            // Create a terrain camera at the origin and orient it with the terrain
+            // Always positioning it at the origin prevents any parallax effects on the planets
+            Camera terrainCamera = ctx.Camera;
+            terrainCamera.SetClipPlanes(50, 30'000);
+            auto terrainInverse = ctx.Camera.GetOrientation() * Game::Terrain.InverseTransform;
+            terrainCamera.MoveTo(Vector3::Zero, terrainInverse.Forward(), terrainInverse.Up());
+            terrainCamera.UpdatePerspectiveMatrices();
+
+            UpdateFrameConstants(terrainCamera, Adapter->GetTerrainConstants(), Settings::Graphics.RenderScale);
+
+            if (Game::GetState() == GameState::Automap) {
+                DrawAutomap(ctx);
+            }
+            else {
+                DrawLevel(ctx, Game::Level);
+            }
         }
 
         Canvas->SetSize(Adapter->GetWidth(), Adapter->GetHeight());
@@ -834,7 +882,7 @@ namespace Inferno::Render {
         PostProcess(ctx);
         LegitProfiler::AddCpuTask(std::move(postProcess));
         DebugCanvas->Render(ctx);
-        DrawUI(ctx);
+        DrawImguiBatch(ctx); // Also shared with some UI calls
 
         LegitProfiler::ProfilerTask present("Present", LegitProfiler::Colors::NEPHRITIS);
         Adapter->Present();

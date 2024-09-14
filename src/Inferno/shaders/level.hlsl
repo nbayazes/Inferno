@@ -75,9 +75,9 @@ struct PS_INPUT {
     centroid float4 col : COLOR0; // Ambient light color. Centroid fixes edge flickering artfiacts.
     float2 uv : TEXCOORD0;
     float2 uv2 : TEXCOORD1;
-    float3 normal : NORMAL;
-    float3 tangent : TANGENT;
-    float3 bitangent : BITANGENT;
+    centroid float3 normal : NORMAL;
+    centroid float3 tangent : TANGENT;
+    centroid float3 bitangent : BITANGENT;
     float3 world : TEXCOORD2;
     centroid float3 lightDir: LIGHTDIR; // Light direction for ambient
     //nointerpolation int Tex1 : BASE;
@@ -232,32 +232,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
     MaterialInfo mat1 = Materials[Args.Tex1];
     normal.xy *= mat1.NormalStrength;
     normal = normalize(normal);
-
-    // 'automap' shader?
-    //float dfwidth = Depth.Sample(Sampler, (input.pos.xy + 0.5) / Frame.Size).x;
-    //float d = Depth.Sample(Sampler, (input.pos.xy) / Frame.Size).x;
-    //float depth = pow(saturate(0.8 - saturate(d) * Frame.FarClip / 500), 2) + 0.025;
-    //float2 fw2 = fwidth(dfwidth);
-    //float highlight = pow(saturate(dot(input.normal, -viewDir)), 1.4);
-
-    ////color.rgb += saturate(color.rgb - 0.5) * 2; // boost highlights
-    ////color.a = saturate(color.a);
-    //float2 screenUv = (input.pos.xy) / Frame.Size;
-    //float4 scanline = 1 - abs(sin(screenUv.y * 600));
-    //scanline *= 1 + saturate(1 + cos(Frame.Time * 2 + screenUv.x * 50 + screenUv.y * -3)) * 0.3;
-
-    ////float3 automap = float3(fw2.x + fw2.y, 0, 0);
-    ////return float4(fw2.x + fw2.y, 0, 0, 1);
-    //float outline = saturate(fw2.x + fw2.y) * 2;
-    //float fill = depth * highlight * 1;
-    //return float4(0, outline + fill, 0, 1)  * (1 + abs(scanline * scanline * 0.20));
-
-    //float2 fw = fwidth(input.uv);
-    //float fwd = pow(1 + (fw.x * fw.x + fw.y * fw.y), 0.4) - 1;
-    //float fxy = fw.x + fw.y / 4;
-    //float gx = clamp(fwd * 100, 0.01, 4);
-    //return float4(0, gx * 1, 0, 1);
-    
 
     float specularMask = Sample2D(Specular1, uvs, Sampler, Frame.FilterMode).r;
     specularMask *= mat1.SpecularStrength;

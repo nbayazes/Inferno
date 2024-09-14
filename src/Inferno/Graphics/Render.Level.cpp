@@ -46,8 +46,8 @@ namespace Inferno::Render {
         return nullptr;
     }
 
-    void AnimateLight(SegmentLight::SideLighting& side, DynamicLightMode mode) {
-        const auto hash = ((float)side.Tag.Segment + (float)side.Tag.Side) * 0.1747f;
+    void AnimateLight(SegmentLight::SideLighting& side, DynamicLightMode mode, SegID segid) {
+        const auto hash = PcgRandomFloat((int)side.Tag.Segment + (int)side.Tag.Side + (int)segid);
 
         side.AnimatedColor = side.Color;
         side.AnimatedRadius = side.Radius;
@@ -145,29 +145,13 @@ namespace Inferno::Render {
         mesh.Draw(cmdList);
     }
 
-    // Clears and binds depth buffers as the render target
-    void ClearDepthPrepass(GraphicsContext& ctx) {
-        auto& depthBuffer = Adapter->GetDepthBuffer();
-        auto& linearDepthBuffer = Adapter->GetLinearDepthBuffer();
-        ctx.ClearDepth(depthBuffer);
-        ctx.ClearColor(linearDepthBuffer);
-        ctx.ClearStencil(Adapter->GetDepthBuffer(), 0);
-        ctx.GetCommandList()->OMSetStencilRef(0);
-
-        linearDepthBuffer.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_RENDER_TARGET);
-        ctx.SetRenderTarget(linearDepthBuffer.GetRTV(), depthBuffer.GetDSV());
-
-        auto& target = Adapter->GetRenderTarget();
-        ctx.ClearColor(target);
-        ctx.SetViewportAndScissor(UINT(target.GetWidth() * Settings::Graphics.RenderScale), UINT(target.GetHeight() * Settings::Graphics.RenderScale));
-    }
 
     void DepthPrepass(GraphicsContext& ctx) {
         auto cmdList = ctx.GetCommandList();
         PIXScopedEvent(cmdList, PIX_COLOR_DEFAULT, "Depth prepass");
 
         // Depth prepass
-        ClearDepthPrepass(ctx);
+        BeginDepthPrepass(ctx);
 
         if (!Game::Terrain.EscapePath.empty() && Settings::Editor.ShowTerrain) {
             StaticModelDepthPrepass(ctx, Game::Terrain.ExitModel, Game::Terrain.ExitTransform);
@@ -480,6 +464,8 @@ namespace Inferno::Render {
     }
 
     void RebuildLevelResources(Level& level) {
+        if (!LevelResources.LevelMeshes) return;
+
         _levelMeshBuilder.Update(level, *LevelResources.LevelMeshes.get());
 
         for (auto& room : level.Rooms) {
@@ -611,7 +597,7 @@ namespace Inferno::Render {
                             else if (lid % 2 == 0) mode = DynamicLightMode::StrongFlicker;
                         }
 
-                        AnimateLight(sideLights, mode);
+                        AnimateLight(sideLights, mode, segid);
                         Graphics::Lights.AddLight(light);
 
                         if (Settings::Editor.ShowLights) {
@@ -659,6 +645,7 @@ namespace Inferno::Render {
         LegitProfiler::AddCpuTask(std::move(depth));
 
         auto cmdList = ctx.GetCommandList();
+
         Graphics::Lights.Dispatch(ctx);
 
         {
@@ -758,7 +745,6 @@ namespace Inferno::Render {
             // Draw heat volumes
             //    _levelResources->Volumes.Draw(cmdList);
         }
-
     }
 
     int GetTransparentQueueSize() {

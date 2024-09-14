@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Game.Input.h"
+#include "Editor/Editor.h"
 #include "Game.Bindings.h"
 #include "Game.h"
 #include "Game.Reactor.h"
@@ -17,8 +18,15 @@ namespace Inferno {
         if (Input::IsKeyPressed(Keys::F1))
             Game::ShowDebugOverlay = !Game::ShowDebugOverlay;
 
-        if (Input::IsKeyPressed(Keys::F2))
-            Game::SetState(Game::GetState() == GameState::Game ? GameState::Editor : GameState::Game);
+        if (Input::IsKeyPressed(Keys::F2)) {
+            if (Game::GetState() == GameState::MainMenu) {
+                Editor::StartEditor();
+                Game::SetState(GameState::Editor);
+            }
+            else {
+                Game::SetState(Game::GetState() != GameState::Editor ? GameState::Editor : GameState::Game);
+            }
+        }
 
         if (Input::IsKeyPressed(Keys::F3))
             Settings::Inferno.ScreenshotMode = !Settings::Inferno.ScreenshotMode;
@@ -95,13 +103,8 @@ namespace Inferno {
             Game::Player.FireSecondary();
     }
 
-    void HandleAutomapInput() {
-        if (!Input::HasFocus) return;
-
+    void GenericCameraController(Camera& camera, float speed, bool orbit) {
         auto dt = Clock.GetFrameTimeSeconds();
-
-        auto& camera = Game::AutomapCamera;
-        constexpr float speed = 300;
 
         if (Game::Bindings.Pressed(GameAction::FirePrimary))
             camera.Zoom(dt * speed);
@@ -139,6 +142,23 @@ namespace Inferno {
         if (Game::Bindings.Pressed(GameAction::RollRight))
             camera.Roll(dt * -2);
 
+
+        auto& delta = Input::MouseDelta;
+        if (orbit) {
+            int inv = Settings::Editor.InvertOrbitY ? -1 : 1;
+            camera.Orbit(-delta.x * Settings::Editor.MouselookSensitivity, -delta.y * inv * Settings::Editor.MouselookSensitivity);
+        }
+        else {
+            float yInvert = Settings::Inferno.InvertY ? -1.0f : 1.0f;
+            camera.Rotate(delta.x * Settings::Editor.MouselookSensitivity, delta.y * yInvert * Settings::Editor.MouselookSensitivity);
+        }
+    }
+
+    void HandleAutomapInput() {
+        if (!Input::HasFocus) return;
+
+        GenericCameraController(Game::AutomapCamera, 300);
+
         if (Game::Bindings.Pressed(GameAction::Afterburner))
             Game::ResetAutomapCamera(false);
 
@@ -150,13 +170,6 @@ namespace Inferno {
 
         if (Input::IsKeyPressed(Keys::D3))
             Game::NavigateToExit();
-
-        //int inv = Settings::Editor.InvertOrbitY ? -1 : 1;
-        auto& delta = Input::MouseDelta;
-        //camera.Orbit(-delta.x * Settings::Editor.MouselookSensitivity, -delta.y * Settings::Editor.MouselookSensitivity);
-        float yInvert = Settings::Inferno.InvertY ? -1.0f : 1.0f;
-
-        camera.Rotate(delta.x * Settings::Editor.MouselookSensitivity, delta.y * yInvert * Settings::Editor.MouselookSensitivity);
     }
 
     void HandleWeaponKeys() {
@@ -255,7 +268,8 @@ namespace Inferno {
     }
 
     void HandleShipInput(float dt) {
-        if (dt <= 0) return;
+        if (dt <= 0 || Game::Level.Objects.empty())
+            return;
 
         auto& player = Game::Level.Objects[0];
         auto& physics = player.Physics;

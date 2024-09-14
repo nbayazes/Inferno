@@ -1,3 +1,6 @@
+#ifndef __LIGHTGRID_H__
+#define __LIGHTGRID_H__
+
 #include "LightGrid.hlsli"
 
 static const float SMOL_EPS = .000002;
@@ -915,3 +918,5 @@ void ShadeLights(inout float3 colorSum,
         //colorSum += float3(0.05, 0, 0);
     }
 }
+
+#endif

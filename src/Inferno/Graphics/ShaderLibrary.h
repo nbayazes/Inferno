@@ -406,6 +406,53 @@ namespace Inferno {
         }
     };
 
+    class AsteroidShader : public IShader {
+        enum RootParameterIndex : uint {
+            FrameConstants, // b0
+            RootConstants
+        };
+
+    public:
+        struct Constants {
+            Matrix World;
+            Vector4 Ambient;
+        };
+
+        AsteroidShader(const ShaderInfo& info) : IShader(info) {
+            InputLayout = ObjectVertex::Layout;
+        }
+
+        static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
+            Render::BindTempConstants(commandList, consts, RootConstants);
+        }
+    };
+
+    class MenuSunShader : public IShader {
+        enum RootParameterIndex : uint {
+            FrameConstants, // b0
+            RootConstants, // b1
+            Noise, // t0
+        };
+
+    public:
+        struct Constants {
+            Matrix World;
+            Vector4 Ambient;
+        };
+
+        MenuSunShader(const ShaderInfo& info) : IShader(info) {
+            InputLayout = ObjectVertex::Layout;
+        }
+
+        static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
+            Render::BindTempConstants(commandList, consts, RootConstants);
+        }
+
+        static void SetNoise(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
+            commandList->SetGraphicsRootDescriptorTable(Noise, handle);
+        }
+    };
+
     class ObjectShader : public IShader {
         enum RootParameterIndex : uint {
             FrameConstants, // b0
@@ -656,6 +703,8 @@ namespace Inferno {
         SpriteShader Sun = ShaderInfo{ L"shaders/Sun.hlsl" };
         AutomapShader Automap = ShaderInfo{ L"shaders/Automap.hlsl" };
         AutomapOutlineShader AutomapOutline = ShaderInfo{ L"shaders/AutomapOutline.hlsl" };
+        AsteroidShader Asteroid = ShaderInfo{ L"shaders/Asteroid.hlsl" };
+        MenuSunShader MenuSun = ShaderInfo{ L"shaders/MenuSun.hlsl" };
     };
 
     class EffectResources {
@@ -689,9 +738,9 @@ namespace Inferno {
         Effect<BriefingShader> Briefing = { &_shaders->Briefing, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, StencilMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, false } };
         Effect<HudShader> Hud = { &_shaders->Hud, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None } };
         Effect<HudShader> HudAdditive = { &_shaders->Hud, { BlendMode::Additive, CullMode::None, DepthMode::None } };
-        Effect<FlatShader> Flat = { &_shaders->Flat, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, StencilMode::PortalRead } };
-        Effect<FlatShader> FlatAdditive = { &_shaders->Flat, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
-        Effect<FlatShader> EditorSelection = { &_shaders->Flat, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, StencilMode::PortalRead } };
+        Effect<FlatShader> Flat = { &_shaders->Flat, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None/*, StencilMode::PortalRead*/ } };
+        Effect<FlatShader> FlatAdditive = { &_shaders->Flat, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read/*, StencilMode::PortalRead*/ } };
+        Effect<FlatShader> EditorSelection = { &_shaders->Flat, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None/*, StencilMode::PortalRead*/ } };
         Effect<FlatShader> Line = { &_shaders->Flat, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, StencilMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE } };
 
         Effect<SpriteShader> Sprite = { &_shaders->Sprite, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
@@ -704,6 +753,8 @@ namespace Inferno {
 
         Effect<SpriteShader> Sun = { &_shaders->Sun, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
         Effect<StarShader> Stars = { &_shaders->Stars, { BlendMode::Opaque, CullMode::None, DepthMode::None } };
+        Effect<AsteroidShader> Asteroid = { &_shaders->Asteroid, {.Blend = BlendMode::Alpha, .Culling = CullMode::Clockwise, .Depth = DepthMode::ReadWrite } };
+        Effect<MenuSunShader> MenuSun = { &_shaders->MenuSun, {.Blend = BlendMode::Alpha, .Culling = CullMode::Clockwise, .Depth = DepthMode::ReadWrite } };
 
         Effect<TerrainShader> Terrain = { &_shaders->Terrain, { .Depth = DepthMode::ReadWrite, .Stencil = StencilMode::PortalReadNeq } };
         Effect<DepthShader> TerrainPortal = { &_shaders->Depth, { .Depth = DepthMode::Read, .Stencil = StencilMode::PortalWrite } };
@@ -730,6 +781,8 @@ namespace Inferno {
             CompileShader(&_shaders->Automap);
             CompileShader(&_shaders->AutomapObject);
             CompileShader(&_shaders->AutomapOutline);
+            CompileShader(&_shaders->Asteroid);
+            CompileShader(&_shaders->MenuSun);
 
             auto compile = [&](auto& effect, bool useStencil = true, uint renderTargets = 1) {
                 try {
@@ -786,6 +839,8 @@ namespace Inferno {
 
             compile(Stars);
             compile(Sun);
+            compile(MenuSun);
+            compile(Asteroid);
         }
     };
 }

@@ -26,5 +26,5 @@ namespace Inferno::Render {
     void RebuildLevelResources(Level& level);
     int GetTransparentQueueSize();
     span<RoomID> GetVisibleRooms();
-    void ClearDepthPrepass(GraphicsContext& ctx);
+    void BeginDepthPrepass(GraphicsContext& ctx);
 }
