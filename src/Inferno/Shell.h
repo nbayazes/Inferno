@@ -25,5 +25,7 @@ namespace Inferno {
         inline static float DpiScale = 1;
         inline static bool HasFocus = true;
     };
+
+    void UpdateWindowTitle(string_view message = {});
 }
 

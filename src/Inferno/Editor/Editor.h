@@ -56,7 +56,7 @@ namespace Inferno::Editor {
         StatusText = Convert::ToString(str);
     }
 
-    void StartEditor();
+    void OpenRecentOrEmpty();
 
     // Origin is used by rotation and scale transforms
     void SetOrigin(Vector3);
@@ -64,8 +64,6 @@ namespace Inferno::Editor {
     void Update();
 
     void ExportBitmap(LevelTexID);
-
-    void UpdateWindowTitle();
 
     void OnLevelLoad(bool reload);
 
@@ -116,6 +114,7 @@ namespace Inferno::Editor {
     }
 
     void CleanLevel(Level&);
+    void InitEditor();
     void ResetFlickeringLightTimers(Level& level);
 
     namespace Commands {

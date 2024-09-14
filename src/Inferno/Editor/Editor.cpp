@@ -424,18 +424,6 @@ namespace Inferno::Editor {
         //lodepng::encode("st/" + bmp.Name + "_st.png", (ubyte*)bmp.Mask.data(), bmp.Width, bmp.Height);
     }
 
-    void UpdateWindowTitle() {
-        auto dirtyFlag = Editor::History.Dirty() ? "*" : "";
-        auto levelName = Game::Level.FileName == "" ? "untitled" : Game::Level.FileName + dirtyFlag;
-
-        string title =
-            Game::Mission
-            ? fmt::format("{} [{}] - {}", levelName, Game::Mission->Path.filename().string(), APP_TITLE)
-            : fmt::format("{} - {}", levelName, APP_TITLE);
-
-        SetWindowTextW(Shell::Hwnd, Convert::ToWideString(title).c_str());
-    }
-
     void AlignViewToFace(const Level& level, Camera& camera, Tag tag, int point);
 
     void ZoomExtents(const Level& level, Camera& camera);
@@ -604,22 +592,17 @@ namespace Inferno::Editor {
         }
     }
 
-    void StartEditor() {
-        Game::SetState(GameState::Editor);
+    void InitEditor() {
+        Events::SelectTexture += OnSelectTexture;
+        Events::LevelLoaded += [] { Editor::Gizmo.UpdatePosition(); };
+        Events::SelectObject += [] { Editor::Gizmo.UpdatePosition(); };
+        Events::SelectSegment += [] { Editor::Gizmo.UpdatePosition(); };
+        Events::LevelChanged += [] { Editor::Gizmo.UpdatePosition(); };
 
-        static bool started = false;
-        if (!started) {
-            started = true;
-            Events::SelectTexture += OnSelectTexture;
-            Events::LevelLoaded += [] { Editor::Gizmo.UpdatePosition(); };
-            Events::SelectObject += [] { Editor::Gizmo.UpdatePosition(); };
-            Events::SelectSegment += [] { Editor::Gizmo.UpdatePosition(); };
-            Events::LevelChanged += [] { Editor::Gizmo.UpdatePosition(); };
-        }
+        Editor::Bindings::LoadDefaults();
+    }
 
-        // Set color picker to use wheel and HDR by default
-        ImGui::SetColorEditOptions(ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_PickerHueWheel);
-
+    void OpenRecentOrEmpty() {
         if (Settings::Editor.ReopenLastLevel &&
             !Settings::Editor.RecentFiles.empty() &&
             filesystem::exists(Settings::Editor.RecentFiles.front())) {

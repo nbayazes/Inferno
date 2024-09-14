@@ -39,7 +39,7 @@ namespace Inferno::Editor {
                 // Replace the current level's path if it matches
                 if (Game::Level.FileName == renamed.Name) {
                     Game::Level.FileName = newName;
-                    Editor::UpdateWindowTitle();
+                    UpdateWindowTitle();
                 }
 
                 string originalName = renamed.NameWithoutExtension();

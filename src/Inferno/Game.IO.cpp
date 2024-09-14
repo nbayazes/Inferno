@@ -226,6 +226,8 @@ namespace Inferno::Game {
             Level = backup; // restore the old level if something went wrong
             throw;
         }
+
+        UpdateWindowTitle();
     }
 
     struct Level LoadLevel(span<byte> buffer, const filesystem::path& srcPath) {
@@ -530,9 +532,6 @@ namespace Inferno::Game {
         catch (const std::exception& e) {
             SPDLOG_ERROR("Unable to load level:\n{}", e.what());
         }
-        //Game::UnloadMission();
-        //Game::LoadLevel(level);
-        //SetStatusMessage("Loaded level {}", path.filename().string());
     }
 
     List<string> ParseSng(const string& sng) {

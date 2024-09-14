@@ -32,8 +32,8 @@ using namespace DirectX;
 
 namespace Inferno::Game {
     namespace {
-        auto State = GameState::MainMenu;
-        auto RequestedState = GameState::MainMenu;
+        auto State = GameState::Startup;
+        auto RequestedState = GameState::Startup;
         constexpr size_t OBJECT_BUFFER_SIZE = 100; // How many new objects to keep in reserve
         int MenuIndex = 0;
         Ptr<Editor::EditorUI> EditorUI;
@@ -55,6 +55,7 @@ namespace Inferno::Game {
     }
 
     bool StartLevel();
+
 
     void ResetCountdown() {
         ControlCenterDestroyed = false;
@@ -520,8 +521,22 @@ namespace Inferno::Game {
         Input::ResetState(); // Clear input when switching game states
 
         switch (RequestedState) {
+            case GameState::MainMenu:
+            {
+                State = GameState::MainMenu;
+                UpdateWindowTitle();
+                Game::Level = {};
+                Editor::History.Reset();
+                Game::MainCamera.Up = Vector3::UnitY;
+                Game::MainCamera.Position = MenuCameraPosition;
+                Game::MainCamera.Target = MenuCameraTarget;
+                break;
+            }
+
             case GameState::Editor:
-                // Activate editor mode
+                if (Level.Version == 0) // Null file
+                    Editor::OpenRecentOrEmpty();
+
                 Editor::History.Undo();
                 State = GameState::Editor;
                 ResetCountdown();
@@ -531,6 +546,7 @@ namespace Inferno::Game {
                 ResetEffects();
                 LerpAmount = 1;
                 ResetGlobalLighting();
+                UpdateWindowTitle("Loading editor");
                 break;
 
             case GameState::Automap:
@@ -557,9 +573,12 @@ namespace Inferno::Game {
                     }
                 }
 
+                State = RequestedState;
+                UpdateWindowTitle();
                 break;
 
             case GameState::ExitSequence:
+                UpdateWindowTitle("Escaping the mine!");
                 break;
 
             case GameState::Paused:
@@ -580,7 +599,6 @@ namespace Inferno::Game {
 
         State = RequestedState;
     }
-
 
     void UpdateMenu(float /*dt*/) {
         if (Input::IsKeyPressed(Input::Keys::Down))
@@ -742,13 +760,13 @@ namespace Inferno::Game {
                 SetActiveCamera(Game::MainCamera);
                 Game::MainCamera.SetFov(50);
 
-                //Game::MainCamera.Up = Vector3::UnitY;
-                //Game::MainCamera.Position = MenuCameraPosition;
-                //Game::MainCamera.Target = MenuCameraTarget;
-                //Game::MainCamera.UpdatePerspectiveMatrices();
+            //Game::MainCamera.Up = Vector3::UnitY;
+            //Game::MainCamera.Position = MenuCameraPosition;
+            //Game::MainCamera.Target = MenuCameraTarget;
+            //Game::MainCamera.UpdatePerspectiveMatrices();
 
-                //Input::SetMouseMode(Input::MouseMode::Mouselook);
-                //GenericCameraController(MainCamera, 300);
+            //Input::SetMouseMode(Input::MouseMode::Mouselook);
+            //GenericCameraController(MainCamera, 300);
                 break;
 
             case GameState::Automap:

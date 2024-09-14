@@ -16,6 +16,7 @@ namespace Inferno {
     struct LevelHit;
 
     enum class GameState {
+        Startup,
         Game, // In first person and running game logic
         Paused, // In game but paused or in a menu
         ExitSequence, // exit tunnel sequence

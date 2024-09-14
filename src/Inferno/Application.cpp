@@ -60,11 +60,11 @@ void Application::Initialize(int width, int height) {
     Render::Initialize(Shell::Hwnd, width, height);
     Sound::Init(Shell::Hwnd);
 
+    // Set color picker to use wheel and HDR by default
+    ImGui::SetColorEditOptions(ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_PickerHueWheel);
+
     if (Settings::Inferno.Descent3Enhanced)
         Resources::MountDescent3();
-
-    if (Game::GetState() == GameState::Editor)
-        Editor::StartEditor();
 
     OnActivated();
 
@@ -75,6 +75,9 @@ void Application::Initialize(int width, int height) {
     Events::SettingsChanged += [this] {
         UpdateFpsLimit();
     };
+
+    // todo: check for editor command line option
+    Game::SetState(GameState::MainMenu);
 }
 
 void Application::UpdateFpsLimit() {

@@ -20,7 +20,6 @@ namespace Inferno {
 
         if (Input::IsKeyPressed(Keys::F2)) {
             if (Game::GetState() == GameState::MainMenu) {
-                Editor::StartEditor();
                 Game::SetState(GameState::Editor);
             }
             else {

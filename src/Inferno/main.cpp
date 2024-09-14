@@ -6,6 +6,7 @@
 #include "Resources.h"
 #include "Settings.h"
 #include "Editor/Bindings.h"
+#include "Editor/Editor.h"
 #include "Game.h"
 #include "Graphics/Compiler.h"
 #include "ryml/ryml.hpp"
@@ -283,7 +284,7 @@ int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
 
         ParseCommandLine();
 
-        Editor::Bindings::LoadDefaults();
+        Inferno::Editor::InitEditor();
         Settings::Load();
         FileSystem::Init();
         Resources::Init();

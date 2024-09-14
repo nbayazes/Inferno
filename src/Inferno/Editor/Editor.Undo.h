@@ -8,7 +8,6 @@
 namespace Inferno::Editor {
     template<class...TArgs>
     void SetStatusMessage(string_view format, TArgs&&...args);
-    void UpdateWindowTitle();
 
     class EditorHistory {
         size_t _currentId = 0, _cleanId = 0;

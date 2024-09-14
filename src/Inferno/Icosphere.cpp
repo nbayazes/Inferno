@@ -107,7 +107,7 @@ namespace Inferno {
                     case 2: v2 = v; break;
                 }
 
-                indices[idx + localIdx] = newIdx;
+                indices[idx + localIdx] = (uint16)newIdx;
             };
 
             float tolerance = 0.9f;

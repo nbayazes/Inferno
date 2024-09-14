@@ -168,6 +168,13 @@ namespace Inferno::Editor {
                 }
 
                 ImGui::Separator();
+
+                if (ImGui::MenuItem("Main Menu")) {
+                    if (CanCloseCurrentFile()) {
+                        Game::SetState(GameState::MainMenu);
+                    }
+                }
+
                 if (ImGui::MenuItem("Exit", "Alt+F4"))
                     Commands::Exit();
 

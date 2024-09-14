@@ -8,6 +8,8 @@
 #include "Version.h"
 #include "logging.h"
 #include "Convert.h"
+#include "Editor/Editor.Undo.h"
+#include "Game.h"
 
 //#include <versionhelpers.h>
 
@@ -202,7 +204,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
         case WM_CHAR:
             if (wParam > 0 && wParam < 0x10000)
-                if (app) { }
+                if (app) {}
             break;
     }
 
@@ -278,4 +280,39 @@ int Inferno::Shell::Show(int width, int height, int nCmdShow) const {
     DestroyWindow(hwnd);
     DeleteObject(BackgroundBrush);
     return (int)msg.wParam;
+}
+
+void Inferno::UpdateWindowTitle(string_view message) {
+    if (!message.empty()) {
+        string title = fmt::format("{} - {}", message, APP_TITLE);
+        SetWindowTextW(Shell::Hwnd, Convert::ToWideString(title).c_str());
+        return;
+    }
+
+    auto state = Game::GetState();
+
+    if (state == GameState::Editor) {
+        auto dirtyFlag = Editor::History.Dirty() ? "*" : "";
+        auto levelName = Game::Level.FileName == "" ? "untitled" : Game::Level.FileName + dirtyFlag;
+
+        string title =
+            Game::Mission
+            ? fmt::format("{} [{}] - {}", levelName, Game::Mission->Path.filename().string(), APP_TITLE)
+            : fmt::format("{} - {}", levelName, APP_TITLE);
+
+        SetWindowTextW(Shell::Hwnd, Convert::ToWideString(title).c_str());
+    }
+    else if (state == GameState::MainMenu) {
+        SetWindowTextW(Shell::Hwnd, Convert::ToWideString(APP_TITLE).c_str());
+    }
+    else {
+        auto info = Game::TryReadMissionInfo();
+
+        string title =
+            info
+            ? fmt::format("{} [{}] - {}", String::ToUpper(Game::Level.Name), info->Name, APP_TITLE)
+            : fmt::format("{} - {}", String::ToUpper(Game::Level.Name), APP_TITLE);
+
+        SetWindowTextW(Shell::Hwnd, Convert::ToWideString(title).c_str());
+    }
 }
