@@ -585,7 +585,12 @@ namespace Inferno {
 
         ai.DodgeVelocity = dodgeDir * Difficulty(robotInfo).EvadeSpeed * 30;
         ai.DodgeDelay = (5 - Game::Difficulty) / 2.0f + 0.25f + Random() * 0.5f; // (2 to 0) + 0.25 + (0..0.5) delay
-        ai.DodgeTime = AI_DODGE_TIME * 0.5f + AI_DODGE_TIME * 0.5f * Random();
+        float dodgeTime = AI_DODGE_TIME * 0.5f + AI_DODGE_TIME * 0.5f * Random();
+        auto& weapon = Resources::GetWeapon((WeaponID)projectile.ID);
+        if (weapon.IsHoming)
+            dodgeTime += AI_DODGE_TIME; // homing weapons require a hard dodge to evade
+
+        ai.DodgeTime = dodgeTime;
 
         if (robotInfo.FleeThreshold > 0 && ai.State == AIState::Combat)
             ai.Fear += 0.4f; // Scared of being hit
