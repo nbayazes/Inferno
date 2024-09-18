@@ -154,8 +154,8 @@ namespace Inferno::Render {
             }
 
             auto& ci = Atlas.GetCharacter(c, info.Font);
-            auto x0 = alignment.x + xOffset + info.Position.x * scale;
-            auto y0 = alignment.y + yOffset + info.Position.y * scale;
+            auto x0 = alignment.x + xOffset + info.Position.x * _scale; // do not scale position by font scale
+            auto y0 = alignment.y + yOffset + info.Position.y * _scale; // do not scale position by font scale
 
             //auto fontTex = Render::StaticTextures->Font.GetSRV();
             Vector2 charSize = Vector2((float)font->GetWidth(c), (float)font->Height) * scale;

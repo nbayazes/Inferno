@@ -1,5 +1,7 @@
 #include "pch.h"
+#include "Game.UI.h"
 #include "Game.Text.h"
+#include "Graphics/Render.h"
 #include "Input.h"
 #include "Types.h"
 #include "Utility.h"
@@ -65,6 +67,23 @@ namespace Inferno::UI {
         }
     };
 
+    class Button : public ControlBase {
+    public:
+        string Text;
+
+        Button(string_view text) : Text(text) {
+        }
+
+        void OnDraw() override;
+    };
+
+    enum class PanelOrientation { Horizontal, Vertical };
+
+    class StackPanel : public ControlBase {
+    public:
+        PanelOrientation Orientation = PanelOrientation::Vertical;
+    };
+
     class ScreenBase {
     public:
         List<ControlBase> Controls;
@@ -114,12 +133,24 @@ namespace Inferno::UI {
 
     class MainMenu : public ScreenBase {
         MainMenu() {
-            Controls.push_back(Label("Start Game"));
-            Controls.push_back(Label("Load Game"));
-            Controls.push_back(Label("Options"));
-            Controls.push_back(Label("High Scores"));
-            Controls.push_back(Label("Credits"));
-            Controls.push_back(Label("Quit"));
+            StackPanel panel;
+            panel.Width = 0;
+            panel.Height = 0;
+            panel.Position = Vector2(55, 140);
+            panel.HorizontalAlignment = AlignH::Center;
+            panel.VerticalAlignment = AlignV::Top;
+            panel.Children = {
+                Button("Play Descent 1"),
+                Button("Play Descent 2"),
+                Button("Load Game"),
+                Button("Options"),
+                Button("Level Editor"),
+                Button("High Scores"),
+                Button("Credits"),
+                Button("Quit")
+            };
+
+            Controls = { panel };
         }
 
         void Update() {}
@@ -127,6 +158,121 @@ namespace Inferno::UI {
 
 
     void Update() {
+        //float margin = 60;
+        float titleX = 175;
+        float titleY = 50;
+        float menuX = 55;
+        float menuY = 140;
+        float titleScale = 1.25f;
+
+        {
+            Render::DrawTextInfo dti;
+            dti.Font = FontSize::Big;
+            dti.HorizontalAlign = AlignH::Center;
+            dti.VerticalAlign = AlignV::Top;
+            dti.Position = Vector2(titleX, titleY);
+
+            //float t = Frac(Clock.GetTotalTimeSeconds() / 2) * 2;
+            //float anim = 0;
+
+            //if (t < 1) {
+            //    anim = 1 - std::pow(1 - t, 4);
+            //}
+            //else {
+            //    t -= 1;
+            //    anim = 1 - t * t;
+            //}
+
+            //anim += 0.6f;
+
+            float anim = ((sin(Clock.GetTotalTimeSeconds()) + 1) * 0.5f * 0.25f) + 0.6f;
+            dti.Color = Color(1, .5f, .2f) * abs(anim) * 4;
+            dti.Scale = titleScale;
+            Render::HudCanvas->DrawGameText("inferno", dti);
+        }
+
+        auto logoHeight = MeasureString("inferno", FontSize::Big).y * titleScale;
+
+        {
+            Render::DrawTextInfo dti;
+            dti.Font = FontSize::Small;
+            dti.HorizontalAlign = AlignH::Center;
+            dti.VerticalAlign = AlignV::Top;
+            dti.Position = Vector2(titleX, titleY + logoHeight);
+            //dti.Color = Color(0.5f, 0.5f, 1);
+            //dti.Color = Color(0.5f, 0.5f, 1);
+            dti.Color = Color(1, 0.7f, 0.54f);
+
+            //Render::HudCanvas->DrawGameText("descent I", dti);
+            //dti.Position.y += 15;
+            //Render::HudCanvas->DrawGameText("descent II", dti);
+            //dti.Position.y += 15;
+            //Render::HudCanvas->DrawGameText("descent 3 enhancements enabled", dti);
+        }
+        //{
+
+        //    Render::DrawTextInfo dti;
+        //    dti.Font = FontSize::Small;
+        //    dti.HorizontalAlign = AlignH::Right;
+        //    dti.VerticalAlign = AlignV::Top;
+        //    dti.Position = Vector2(-margin, margin + logoHeight + 5);
+        //    dti.Color = Color(0.5f, 0.5f, 1);
+        //    Render::HudCanvas->DrawGameText("descent I - descent II - descent 3 enhanced", dti);
+        //}
+
+        {
+            Render::DrawTextInfo dti;
+            dti.Font = FontSize::MediumGold;
+            dti.HorizontalAlign = AlignH::CenterRight;
+            dti.VerticalAlign = AlignV::Top;
+            auto height = MeasureString("new game", FontSize::Medium).y + 2;
+
+            dti.Color = Color(1, .9f, 0.9f) * 1.7f;
+            dti.Position = Vector2(menuX, menuY);
+            Render::HudCanvas->DrawGameText("play descent 1", dti);
+
+            dti.Color = Color(1, 1, 1);
+            dti.Font = FontSize::Medium;
+
+            dti.Position.y += height;
+            Render::HudCanvas->DrawGameText("play descent 2", dti);
+
+            dti.Position.y += height;
+            Render::HudCanvas->DrawGameText("load game", dti);
+
+            dti.Position.y += height;
+            Render::HudCanvas->DrawGameText("options", dti);
+
+            dti.Position.y += height;
+            Render::HudCanvas->DrawGameText("level editor", dti);
+
+            dti.Position.y += height;
+            Render::HudCanvas->DrawGameText("high scores", dti);
+
+            dti.Position.y += height;
+            Render::HudCanvas->DrawGameText("credits", dti);
+
+            dti.Position.y += height;
+            Render::HudCanvas->DrawGameText("quit", dti);
+        }
+
+        {
+            Render::DrawTextInfo dti;
+            dti.Font = FontSize::Small;
+            dti.HorizontalAlign = AlignH::Right;
+            dti.VerticalAlign = AlignV::Bottom;
+            dti.Position = Vector2(-5, -5);
+            dti.Color = Color(0.25f, 0.25f, 0.25f);
+            //dti.Scale = 0.5f;
+            Render::HudCanvas->DrawGameText("inferno 0.2.0 alpha", dti);
+
+            dti.Position.y -= 14;
+            Render::HudCanvas->DrawGameText("software 1994, 1995, 1999", dti);
+
+            dti.Position.y -= 14;
+            Render::HudCanvas->DrawGameText("portions copyright(c) parallax", dti);
+        }
+
         if (Screens.empty()) return;
         auto& screen = Screens.back();
 

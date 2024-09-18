@@ -16,6 +16,7 @@
 #include "Game.Reactor.h"
 #include "Game.Room.h"
 #include "Game.Segment.h"
+#include "Game.UI.h"
 #include "Game.Visibility.h"
 #include "Game.Wall.h"
 #include "Graphics.Debug.h"
@@ -534,8 +535,13 @@ namespace Inferno::Game {
             }
 
             case GameState::Editor:
-                if (Level.Version == 0) // Null file
+                if (Level.Version == 0) {
+                    // Null file
+                    UpdateWindowTitle("Loading editor");
                     Editor::OpenRecentOrEmpty();
+                } else {
+                    UpdateWindowTitle();
+                }
 
                 Editor::History.Undo();
                 State = GameState::Editor;
@@ -546,7 +552,6 @@ namespace Inferno::Game {
                 ResetEffects();
                 LerpAmount = 1;
                 ResetGlobalLighting();
-                UpdateWindowTitle("Loading editor");
                 break;
 
             case GameState::Automap:
@@ -759,6 +764,7 @@ namespace Inferno::Game {
             case GameState::MainMenu:
                 SetActiveCamera(Game::MainCamera);
                 Game::MainCamera.SetFov(50);
+                Inferno::UI::Update();
 
             //Game::MainCamera.Up = Vector3::UnitY;
             //Game::MainCamera.Position = MenuCameraPosition;

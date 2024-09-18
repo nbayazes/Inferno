@@ -221,7 +221,7 @@ namespace Inferno {
                 }
 
                 conn.visited = true;
-                Render::Debug::OutlineSegment(level, level.GetSegment(connid), Color(1, 1, 1));
+                //Render::Debug::OutlineSegment(level, level.GetSegment(connid), Color(1, 1, 1));
                 renderList.push_back(connid);
             }
         };
@@ -233,7 +233,7 @@ namespace Inferno {
 
         uint renderIndex = 0;
 
-        Render::Debug::OutlineSegment(level, level.GetSegment(startSeg), Color(1, 1, 1));
+        //Render::Debug::OutlineSegment(level, level.GetSegment(startSeg), Color(1, 1, 1));
 
         while (renderIndex++ < renderList.size()) {
             auto renderListSize = renderList.size();

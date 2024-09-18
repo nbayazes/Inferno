@@ -852,6 +852,11 @@ namespace Inferno::Resources {
             return data;
         }
 
+        // Check data directories
+        //if (auto file = FileSystem::TryFindFile(name)) {
+        //    return File::ReadAllBytes(*file);
+        //}
+
         return {}; // Wasn't found
     }
 

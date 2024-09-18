@@ -855,7 +855,7 @@ namespace Inferno::Render {
             if (Game::GetState() == GameState::Automap) {
                 DrawAutomapText(ctx);
             }
-            else {
+            else if (Game::GetState() != GameState::MainMenu) {
                 Render::DrawTextInfo info;
                 info.Position = Vector2(-10 * Shell::DpiScale, -10 * Shell::DpiScale);
                 info.HorizontalAlign = AlignH::Right;
@@ -870,7 +870,8 @@ namespace Inferno::Render {
 
         Debug::EndFrame(ctx);
 
-        if ((Game::GetState() == GameState::Game || Game::GetState() == GameState::GameMenu) && !Game::Player.IsDead)
+        if (((Game::GetState() == GameState::Game || Game::GetState() == GameState::GameMenu) && !Game::Player.IsDead) ||
+            Game::GetState() == GameState::MainMenu)
             DrawHud(ctx);
 
         //LegitProfiler::ProfilerTask resolve("Resolve multisample", LegitProfiler::Colors::CLOUDS);

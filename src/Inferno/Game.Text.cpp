@@ -33,6 +33,18 @@ namespace Inferno {
     }
 
     void LoadFonts() {
+        // note: this does not search for loose font files
+        // also this uses D2 fonts even for D1 if D2 is present
+        auto hogPath = FileSystem::TryFindFile(L"descent2.hog");
+        if (!hogPath) hogPath = FileSystem::TryFindFile(L"descent.hog");
+
+        if (!hogPath) {
+            SPDLOG_WARN("No hog file found for font data");
+            return;
+        }
+
+        auto hog = HogFile::Read(*hogPath);
+
         Atlas = { 1024, 512 };
         List<Palette::Color> buffer(Atlas.Width() * Atlas.Height());
         ranges::fill(buffer, Palette::Color{ 0, 0, 0, 0 });
@@ -50,10 +62,11 @@ namespace Inferno {
             List<byte> data;
             float scale = 1;
 
-            data = Resources::ReadBinaryFile(name + "h.fnt");
+            // Prefer reading high res fonts first
+            data = hog.TryReadEntry(name + "h.fnt");
 
             if (data.empty()) {
-                data = Resources::ReadBinaryFile(name + ".fnt");
+                data = hog.TryReadEntry(name + ".fnt");
                 scale = 2;
             }
 

@@ -60,6 +60,8 @@ void Application::Initialize(int width, int height) {
     Render::Initialize(Shell::Hwnd, width, height);
     Sound::Init(Shell::Hwnd);
 
+    LoadFonts();
+
     // Set color picker to use wheel and HDR by default
     ImGui::SetColorEditOptions(ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_PickerHueWheel);
 

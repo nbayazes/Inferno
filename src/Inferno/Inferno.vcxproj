@@ -290,6 +290,7 @@
     <ClInclude Include="Editor\UI\DiagnosticWindow.h" />
     <ClInclude Include="Effect.h" />
     <ClInclude Include="Game.Terrain.h" />
+    <ClInclude Include="Game.UI.h" />
     <ClInclude Include="Graphics.Debug.h" />
     <ClInclude Include="Graphics\Render.Automap.h" />
     <ClInclude Include="Graphics\Render.MainMenu.h" />

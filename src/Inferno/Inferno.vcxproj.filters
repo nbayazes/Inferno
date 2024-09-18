@@ -263,6 +263,7 @@
     <ClInclude Include="Graphics\Render.Automap.h" />
     <ClInclude Include="Icosphere.h" />
     <ClInclude Include="Graphics\Render.MainMenu.h" />
+    <ClInclude Include="Game.UI.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />

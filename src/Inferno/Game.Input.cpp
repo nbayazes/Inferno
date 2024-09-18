@@ -172,7 +172,10 @@ namespace Inferno {
     }
 
     void HandleWeaponKeys() {
-        if (!Input::HasFocus || Game::Player.IsDead)
+        if (Game::GetState() != GameState::Game)
+            return; // Not in game
+
+        if (!Input::HasFocus || Game::Player.IsDead || Game::Level.Objects.empty())
             return; // No player input without focus or while dead
 
         if (Input::IsKeyPressed(Keys::D1))
