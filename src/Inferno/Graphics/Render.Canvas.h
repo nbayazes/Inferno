@@ -371,12 +371,14 @@ namespace Inferno::Render {
     struct HudCanvasPayload {
         HudVertex V0, V1, V2, V3;
         D3D12_GPU_DESCRIPTOR_HANDLE Texture{};
+        int Layer = 0;
         float Scanline = 0;
     };
 
     class HudCanvas2D {
+        // Layers -> Texture id -> commands
+        Array<Dictionary<uint64, List<HudCanvasPayload>>, 10> _commands;
         DirectX::PrimitiveBatch<HudVertex> _batch;
-        Dictionary<uint64, List<HudCanvasPayload>> _commands;
         Effect<HudShader>* _effect;
         Vector2 _size = { 1024, 1024 };
         float _scale = 1;
@@ -393,14 +395,15 @@ namespace Inferno::Render {
         float GetScale() const { return _scale; }
         const Vector2& GetSize() const { return _size; }
 
-        void DrawBitmap(const CanvasBitmapInfo& info);
-        void DrawBitmapScaled(const CanvasBitmapInfo& info);
+        void DrawBitmap(const CanvasBitmapInfo& info, int layer = 0);
+        void DrawBitmapScaled(const CanvasBitmapInfo& info, int layer = 0);
         void Render(GraphicsContext& ctx);
-        void DrawGameText(string_view str, const DrawTextInfo& info);
+        void DrawGameText(string_view str, const DrawTextInfo& info, int layer = 1);
 
         void Draw(const HudCanvasPayload& payload) {
             if (!payload.Texture.ptr) return;
-            _commands[payload.Texture.ptr].push_back(payload);
+            auto layer = std::clamp(payload.Layer, 0, (int)_commands.size() - 1);
+            _commands[layer][payload.Texture.ptr].push_back(payload);
         }
     };
 }

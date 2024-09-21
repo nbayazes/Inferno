@@ -21,8 +21,8 @@ namespace Inferno {
     //Vector3 MenuCameraTarget = { -300, 0, 0 };
 
     // Offset sun
-    Vector3 MenuCameraPosition = { -95, 0, 175 };
-    Vector3 MenuCameraTarget = { -95, 0, 0 };
+    Vector3 MenuCameraPosition = { -105, 0, 175 };
+    Vector3 MenuCameraTarget = { -105, 0, 0 };
 
     //Vector3 MenuCameraPosition = { 0, 0, 800 };
     //Vector3 MenuCameraTarget = { 0, 0, 0 };

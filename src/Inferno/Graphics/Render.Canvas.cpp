@@ -34,7 +34,7 @@ namespace Inferno::Render {
         return alignment;
     }
 
-    void HudCanvas2D::DrawBitmap(const CanvasBitmapInfo& info) {
+    void HudCanvas2D::DrawBitmap(const CanvasBitmapInfo& info, int layer) {
         HudCanvasPayload payload{};
         auto& pos = info.Position;
         auto size = info.Size;
@@ -49,10 +49,11 @@ namespace Inferno::Render {
         payload.V3 = { Vector2{ pos.x, pos.y } + alignment, uv0, info.Color }; // top left
         payload.Texture = info.Texture;
         payload.Scanline = info.Scanline;
+        payload.Layer = layer;
         Draw(payload);
     }
 
-    void HudCanvas2D::DrawBitmapScaled(const CanvasBitmapInfo& info) {
+    void HudCanvas2D::DrawBitmapScaled(const CanvasBitmapInfo& info, int layer) {
         HudCanvasPayload payload{};
         auto pos = info.Position * _scale;
         auto size = info.Size * _scale;
@@ -67,6 +68,7 @@ namespace Inferno::Render {
         payload.V3 = { Vector2{ pos.x, pos.y } + alignment, uv0, info.Color }; // top left
         payload.Texture = info.Texture;
         payload.Scanline = info.Scanline;
+        payload.Layer = layer;
         Draw(payload);
     }
 
@@ -82,23 +84,25 @@ namespace Inferno::Render {
         HudShader::Constants constants;
         constants.Transform = Matrix::CreateOrthographicOffCenter(0, _size.x, _size.y, 0.0, 0.0, -2.0f);
 
-        for (auto& group : _commands | views::values) {
-            _effect->Shader->SetDiffuse(cmdList, group.front().Texture);
-            _batch.Begin(cmdList);
-            for (auto& g : group) {
-                constants.Scanline = g.Scanline;
-                _effect->Shader->SetConstants(ctx.GetCommandList(), constants);
-                _batch.DrawQuad(g.V0, g.V1, g.V2, g.V3);
+        for (auto& layer : _commands) {
+            for (auto& group : layer | views::values) {
+                _effect->Shader->SetDiffuse(cmdList, group.front().Texture);
+                _batch.Begin(cmdList);
+                for (auto& g : group) {
+                    constants.Scanline = g.Scanline;
+                    _effect->Shader->SetConstants(ctx.GetCommandList(), constants);
+                    _batch.DrawQuad(g.V0, g.V1, g.V2, g.V3);
+                }
+
+                _batch.End();
+                group.clear();
             }
 
-            _batch.End();
-            group.clear();
+            layer.clear();
         }
-
-        _commands.clear();
     }
 
-    void HudCanvas2D::DrawGameText(string_view str, const DrawTextInfo& info) {
+    void HudCanvas2D::DrawGameText(string_view str, const DrawTextInfo& info, int layer) {
         float xOffset = 0, yOffset = 0;
         auto font = Atlas.GetFont(info.Font);
         if (!font) return;
@@ -168,12 +172,12 @@ namespace Inferno::Render {
             cbi.UV1 = Vector2{ ci.X1, ci.Y1 };
             cbi.Color = background;
             cbi.Texture = Render::StaticTextures->Font.GetSRV();
-            DrawBitmap(cbi); // Shadow
+            DrawBitmap(cbi, layer); // Shadow
 
             cbi.Color = color;
             cbi.Position = Vector2{ x0, y0 };
             cbi.Scanline = info.Scanline;
-            DrawBitmap(cbi); // Foreground
+            DrawBitmap(cbi, layer); // Foreground
 
             auto kerning = Atlas.GetKerning(c, next, info.Font) * scale;
             xOffset += charSize.x + kerning;

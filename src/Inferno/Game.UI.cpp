@@ -8,40 +8,354 @@
 
 namespace Inferno::UI {
     using Action = std::function<void()>;
+    using ClickHandler = std::function<void(const Vector2*)>;
+
+    const auto FOCUS_COLOR = Color(1, .9f, 0.9f) * 1.7f;
 
     // Controls are positioned at their top left corner
-    class ControlBase {
-    public:
-        bool Focused = false;
-        bool Hovered = false;
-        bool Enabled = true;
-        bool Focusable = true;
+    struct ControlBase {
+        ControlBase() = default;
+        ControlBase(const ControlBase&) = delete;
+        ControlBase(ControlBase&&) = default;
+        ControlBase& operator=(const ControlBase&) = delete;
+        ControlBase& operator=(ControlBase&&) = default;
+        virtual ~ControlBase() = default;
 
-        Vector2 Position;
-        Vector2 Offset; // Offset from anchor point
-        float Width, Height;
+        bool Focused = false;
+        //bool Hovered = false;
+        bool Enabled = true;
+        bool Selectable = true;
+
+        Vector2 Position; // Relative position from parent in canvas units
+        Vector2 Size; // Size of the control in canvas units
+
+        Vector2 ScreenPosition; // Scaled and transformed position in screen pixels
+        Vector2 ScreenSize; // Size of the control in screen pixels
+
+        Vector2 Margin = { 1, 1 }; // Margin to make things easier to click on
         AlignH HorizontalAlignment = AlignH::Left;
         AlignV VerticalAlignment = AlignV::Top;
 
-        bool Contains(const Vector2& point) const {
-            return point.x > Position.x && point.x < Position.x + Width &&
-                point.y > Position.y && point.y < Position.y + Height;
-        }
+        int Layer = 0;
 
-        virtual void OnUpdate() {
-            if (Focusable && Enabled) {
-                Hovered = Contains(Input::MousePosition);
+        virtual void OnUpdateLayout() {
+            // Arrange children relative to this control
+            for (auto& control : Children) {
+                control->UpdateScreenPosition(*this);
+
+                control->Layer = Layer + 1;
+                control->OnUpdateLayout();
             }
         }
 
-        Vector2 GetScreenPosition;
-        List<ControlBase> Children;
+        void UpdateScreenPosition(const ControlBase& parent) {
+            auto scale = Render::HudCanvas->GetScale();
+            ScreenPosition = Position * scale + parent.ScreenPosition;
+            ScreenSize = Size * scale;
 
-        virtual void OnDraw() {}
+            auto offset = Render::GetAlignment(Size * scale, HorizontalAlignment, VerticalAlignment, parent.ScreenSize);
+            ScreenPosition += offset;
+        }
+
+        bool Contains(const Vector2& point) const {
+            return
+                point.x > ScreenPosition.x && point.x < ScreenPosition.x + ScreenSize.x &&
+                point.y > ScreenPosition.y && point.y < ScreenPosition.y + ScreenSize.y;
+        }
+
+        ControlBase* HitTestCursor(const Vector2& position) {
+            if (!Enabled) return nullptr;
+
+            if (Selectable && Contains(position)) {
+                return this;
+            }
+
+            for (auto& child : Children) {
+                if (auto control = child->HitTestCursor(position))
+                    return control;
+            }
+
+            return nullptr;
+        }
+
+        void OnClick(const Vector2& position) const {
+            for (auto& control : Children) {
+                if (control->Enabled && control->Contains(position) && control->ClickAction) {
+                    control->ClickAction();
+                    return;
+                }
+
+                control->OnClick(position);
+            }
+        }
+
+        virtual void OnUpdate() {
+            if (!Enabled) return;
+
+            if (Selectable) {
+                auto pos = Input::MousePosition;
+                Focused = Contains(pos);
+            }
+
+            for (auto& child : Children) {
+                child->OnUpdate();
+            }
+        }
+
+        ControlBase* SelectFirst() const {
+            for (auto& child : Children) {
+                if (child->Selectable) {
+                    return child.get();
+                }
+                else if (auto control = child->SelectFirst()) {
+                    return control;
+                }
+            }
+
+            return nullptr;
+        }
+
+        ControlBase* SelectLast() const {
+            for (auto& child : Children | views::reverse) {
+                if (child->Selectable) {
+                    return child.get();
+                }
+                else if (auto control = child->SelectLast()) {
+                    return control;
+                }
+            }
+
+            return nullptr;
+        }
+
+        struct SelectionState {
+            ControlBase* Selection = nullptr;
+            bool SelectNext = false; // Select the next control
+            bool SelectPrev = false; // Select the previous control
+        };
+
+        SelectionState SelectPrevious(ControlBase* current) const {
+            int index = -1;
+
+            for (int i = 0; i < Children.size(); i++) {
+                if (Children[i].get() == current) {
+                    index = i;
+                    break;
+                }
+            }
+
+            if (index >= 0) {
+                // The current control a child of this control
+                index--;
+
+                // todo: iterate again if not focusable
+                //if(!Children[*index]->Focusable) {
+                //}
+
+                if (Seq::inRange(Children, index)) {
+                    // todo: what if this item has children?
+                    return { Children[index].get() };
+                }
+                else {
+                    return { .SelectPrev = true };
+                }
+            }
+            else {
+                // Check children
+                for (auto& child : Children/* | views::reverse*/) {
+                    // Previous iteration indicates this should be selected
+                    //if (state.SelectNext) {
+                    //    return { child->SelectFirst() };
+                    //}
+
+                    SelectionState state = child->SelectPrevious(current);
+                    // wrap around
+                    if (state.SelectPrev) {
+                        return { Children.back()->SelectLast() };
+                    }
+
+                    if (state.Selection)
+                        return state;
+                }
+            }
+
+            return { nullptr };
+        }
+
+        SelectionState SelectNext(ControlBase* current) const {
+            int index = -1;
+
+            for (size_t i = 0; i < Children.size(); i++) {
+                if (Children[i].get() == current) {
+                    index = i;
+                    break;
+                }
+            }
+
+            if (index >= 0) {
+                // The current control a child of this control
+                index++;
+
+                // todo: iterate again if not focusable
+                //if(!Children[*index]->Focusable) {
+                //}
+                if (Seq::inRange(Children, index)) {
+                    // todo: what if this item has children?
+                    return { Children[index].get() };
+                }
+                else {
+                    return { .SelectNext = true };
+                }
+            }
+            else {
+                SelectionState state;
+
+                // Check children
+                for (auto& child : Children) {
+                    // Previous iteration indicates this should be selected
+                    if (state.SelectNext) {
+                        return { child->SelectFirst() };
+                    }
+
+                    state = child->SelectNext(current);
+
+                    if (state.Selection)
+                        return state;
+                }
+
+                // wrap around
+                if (state.SelectNext) {
+                    return { Children.front()->SelectFirst() };
+                }
+            }
+
+            return { nullptr };
+        }
+
+        Vector2 GetScreenPosition;
+        List<Ptr<ControlBase>> Children;
+
+        template <class T, class... Args>
+        void AddChild(Args&&... args) {
+            auto control = make_unique<T>(std::forward<Args>(args)...);
+            //control->Parent = this;
+            Children.push_back(std::move(control));
+        }
+
+        void AddChild(Ptr<ControlBase> control) {
+            Children.push_back(std::move(control));
+        }
+
+        virtual void OnDraw() {
+            for (auto& child : Children) {
+                child->OnDraw();
+            }
+        }
+
+        //virtual void OnMeasure() {}
+
+        //    //float maxWidth = 0;
+        //    //float yOffset = anchor.y;
+
+        //    // Align children based on their anchor relative to the parent
+
+        //    for (auto& child : Children) {
+        //        auto anchor = Render::GetAlignment(child->Size, child->HorizontalAlignment, child->VerticalAlignment, Render::HudCanvas->GetSize() / Render::HudCanvas->GetScale());
+        //        child->Position.y = Position.y + yOffset;
+        //        child->Position.x = Position.x + anchor.x;
+        //        child->UpdateScreenPosition();
+
+        //        child->OnUpdateLayout();
+        //        if (child->Size.x > maxWidth)
+        //            maxWidth = child->Size.x;
+
+        //        yOffset += child->Size.y + Spacing;
+        //    }
+
+        //    // Expand children to max width to make clicking uniform
+        //    for (auto& child : Children)
+        //        child->Size.x = maxWidth;
+
+        //    Size = Vector2(maxWidth, yOffset);
+        //}
 
         // Called when the control is clicked via some input device
-        Action OnClick = nullptr;
-        virtual ~ControlBase() = default;
+        Action ClickAction;
+    };
+
+    class ScreenBase : public ControlBase {
+    public:
+        ScreenBase() {
+            Selectable = false;
+        }
+
+        int SelectionIndex = 0;
+
+        Vector2 LastCursorPosition;
+
+        ControlBase* Selection = nullptr;
+        ControlBase* LastGoodSelection = nullptr;
+
+        void OnUpdate() override {
+            if (LastCursorPosition != Input::MousePosition) {
+                LastCursorPosition = Input::MousePosition;
+                SetSelection(HitTestCursor(Input::MousePosition));
+            }
+        }
+
+        void OnConfirm() {
+            if (Seq::inRange(Children, SelectionIndex))
+                if (Children[SelectionIndex]->ClickAction)
+                    Children[SelectionIndex]->ClickAction();
+        }
+
+        void OnUpdateLayout() override {
+            //UpdateScreenPosition(parent);
+
+            auto scale = Render::HudCanvas->GetScale();
+            //auto anchor = Render::GetAlignment(Size, HorizontalAlignment, VerticalAlignment, parent.ScreenSize);
+
+            //ScreenPosition = Position * scale - Margin * scale + anchor * scale + parent.ScreenPosition;
+            //ScreenSize = Size * scale + Margin * 2 * scale;
+
+            // Fill the whole screen if the size is zero
+            auto& canvasSize = Render::HudCanvas->GetSize();
+            ScreenSize = Size == Vector2::Zero ? canvasSize : Size * scale;
+            ScreenPosition = Render::GetAlignment(ScreenSize, HorizontalAlignment, VerticalAlignment, canvasSize);
+            //screen->UpdateLayout(GetFullScreen());
+
+            ControlBase::OnUpdateLayout();
+        }
+
+        void SetSelection(ControlBase* control) {
+            if (Selection) Selection->Focused = false;
+            Selection = control;
+            if (control) control->Focused = true;
+
+            if (control) LastGoodSelection = Selection;
+        }
+
+        void SelectFirst() {
+            for (auto& control : Children) {
+                Selection = control->SelectFirst();
+                if (Selection) {
+                    SetSelection(Selection);
+                    break;
+                }
+            }
+        }
+
+        void OnUpArrow() {
+            auto prev = SelectPrevious(Selection).Selection;
+            if (!prev) prev = LastGoodSelection;
+            SetSelection(prev);
+        }
+
+        void OnDownArrow() {
+            auto next = SelectNext(Selection).Selection;
+            if (!next) next = LastGoodSelection;
+            SetSelection(next);
+        }
     };
 
     // Horizontal slider
@@ -59,59 +373,146 @@ namespace Inferno::UI {
     };
 
     class Label : public ControlBase {
-    public:
-        string Text;
+        string _text;
+        FontSize _size;
 
-        Label(string_view text) : Text(text) {
-            Focusable = false;
+    public:
+        Label(string_view text, FontSize size = FontSize::Medium) : _text(text), _size(size) {
+            Selectable = false;
+        }
+
+        void OnUpdateLayout() override {
+            Size = MeasureString(_text, _size);
+        }
+
+        void OnDraw() override {
+            Render::DrawTextInfo dti;
+            dti.Font = _size;
+            dti.Color = Color(1, 1, 1);
+            //dti.HorizontalAlign = HorizontalAlignment;
+            //dti.VerticalAlign = VerticalAlignment;
+            //dti.Position = Position;
+
+            dti.HorizontalAlign = AlignH::Left; // Disable alignment as the UI already applied it
+            dti.VerticalAlign = AlignV::Top;
+            dti.Position = ScreenPosition / Render::HudCanvas->GetScale();
+
+            Render::HudCanvas->DrawGameText(_text, dti, Layer + 1);
         }
     };
 
     class Button : public ControlBase {
-    public:
-        string Text;
+        string _text;
 
-        Button(string_view text) : Text(text) {
+    public:
+        Button(string_view text) : _text(text) {
+            Size = MeasureString(_text, FontSize::Medium);
+            Selectable = true;
         }
 
-        void OnDraw() override;
+        Button(string_view text, Action&& action) : _text(text) {
+            ClickAction = action;
+            Size = MeasureString(_text, FontSize::Medium);
+        }
+
+        void OnDraw() override {
+            Render::DrawTextInfo dti;
+            dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
+            dti.Color = Focused ? FOCUS_COLOR : Color(1, 1, 1);
+
+            //dti.HorizontalAlign = HorizontalAlignment;
+            //dti.VerticalAlign = VerticalAlignment;
+            //dti.Position = Position;
+
+            dti.HorizontalAlign = AlignH::Left; // Disable alignment as the UI already applied it
+            dti.VerticalAlign = AlignV::Top;
+            dti.Position = ScreenPosition / Render::HudCanvas->GetScale();
+            Render::HudCanvas->DrawGameText(_text, dti, Layer);
+        }
     };
 
     enum class PanelOrientation { Horizontal, Vertical };
 
     class StackPanel : public ControlBase {
     public:
+        StackPanel() { Selectable = false; }
+
         PanelOrientation Orientation = PanelOrientation::Vertical;
-    };
+        int Spacing = 2;
 
-    class ScreenBase {
-    public:
-        List<ControlBase> Controls;
+        void OnUpdateLayout() override {
+            auto anchor = Render::GetAlignment(Size, HorizontalAlignment, VerticalAlignment, Render::HudCanvas->GetSize() / Render::HudCanvas->GetScale());
 
-        Vector2 Size;
+            if (Orientation == PanelOrientation::Vertical) {
+                float maxWidth = 0;
+                float yOffset = anchor.y;
 
-        int SelectionIndex = 0;
+                for (auto& child : Children) {
+                    child->Position.y = yOffset;
+                    //child->Position.x = /* + anchor.x*/;
+                    child->UpdateScreenPosition(*this);
 
-        void OnClick(const Vector2& position) {
-            for (auto& control : Controls) {
-                if (control.Enabled && control.Contains(position) && control.OnClick) {
-                    control.OnClick();
+                    child->OnUpdateLayout();
+                    if (child->Size.x > maxWidth)
+                        maxWidth = child->Size.x;
+
+                    yOffset += child->Size.y + Spacing;
                 }
+
+                // Expand children to max width to make clicking uniform
+                for (auto& child : Children)
+                    child->Size.x = maxWidth;
+
+                Size = Vector2(maxWidth, yOffset);
+            }
+            else {
+                float maxHeight = 0;
+                float xOffset = anchor.x;
+
+                for (auto& child : Children) {
+                    child->Position.x = Position.x + anchor.x + xOffset;
+                    child->Position.y = Position.y + anchor.y;
+                    child->UpdateScreenPosition(*this);
+
+                    child->OnUpdateLayout();
+                    if (child->Size.y > maxHeight)
+                        maxHeight = child->Size.y;
+
+                    xOffset += child->Size.x + Spacing;
+                }
+
+                // Expand children to max height to make clicking uniform
+                for (auto& child : Children)
+                    child->Size.y = maxHeight;
+
+                Size = Vector2(xOffset, maxHeight);
             }
         }
-
-        void OnConfirm() {
-            if (Seq::inRange(Controls, SelectionIndex))
-                if (Controls[SelectionIndex].OnClick)
-                    Controls[SelectionIndex].OnClick();
-        }
     };
 
-    List<ScreenBase> Screens;
 
-    void ShowScreen(const ScreenBase& screen) {
-        Screens.push_back(screen);
+    List<Ptr<ScreenBase>> Screens;
+
+    ScreenBase GetFullScreen() {
+        ScreenBase fullScreen{};
+        fullScreen.ScreenSize = Render::HudCanvas->GetSize() / Render::HudCanvas->GetScale();
+        return fullScreen;
     }
+
+    void ShowScreen(Ptr<ScreenBase> screen) {
+        //screen->UpdateLayout(GetFullScreen());
+        //main.UpdateLayout();
+        //Screens.push_back(make_unique<MainMenu>(std::move(main)));
+        screen->Layer = (int)Screens.size();
+        Screens.push_back(std::move(screen));
+    }
+
+    //void ShowScreen(ScreenBase&& screen) {
+    //    screen.UpdateLayout();
+    //    //main.UpdateLayout();
+    //    //Screens.push_back(make_unique<MainMenu>(std::move(main)));
+    //    Screens.push_back(std::move(screen));
+    //}
 
     void CloseScreen() {
         if (Screens.size() == 1) return; // Can't close the last screen
@@ -124,91 +525,193 @@ namespace Inferno::UI {
     void Render() {
         DrawBackground();
 
-        if (Screens.empty()) return;
+        //if (Screens.empty()) return;
 
         // Draw the top screen
-        auto& screen = Screens.back();
+        //auto& screen = Screens.back();
         //screen.Draw();
     }
 
-    class MainMenu : public ScreenBase {
-        MainMenu() {
-            StackPanel panel;
-            panel.Width = 0;
-            panel.Height = 0;
-            panel.Position = Vector2(55, 140);
-            panel.HorizontalAlignment = AlignH::Center;
-            panel.VerticalAlignment = AlignV::Top;
-            panel.Children = {
-                Button("Play Descent 1"),
-                Button("Play Descent 2"),
-                Button("Load Game"),
-                Button("Options"),
-                Button("Level Editor"),
-                Button("High Scores"),
-                Button("Credits"),
-                Button("Quit")
-            };
+    class PlayD1Screen : public ScreenBase {
+    public:
+        PlayD1Screen() {
+            HorizontalAlignment = AlignH::Center;
+            VerticalAlignment = AlignV::Center;
+            Size = Vector2(620, 460);
 
-            Controls = { panel };
+            // todo: scan d1/missions folder for levels
+
+            Label title("Play mission", FontSize::Big);
+            title.VerticalAlignment = AlignV::Top;
+            title.HorizontalAlignment = AlignH::Center;
+            title.Position = Vector2(0, 20);
+            AddChild(make_unique<Label>(std::move(title)));
         }
 
-        void Update() {}
+        void OnDraw() override {
+            auto scale = Render::HudCanvas->GetScale();
+
+            Render::CanvasBitmapInfo cbi;
+            cbi.Position = ScreenPosition;
+            cbi.Size = ScreenSize;
+            cbi.Texture = Render::Materials->White().Handle();
+            cbi.Color = Color(0.1f, 0.1f, 0.1f, 1);
+            Render::HudCanvas->DrawBitmap(cbi, 1);
+
+            cbi.Color = Color(0.0f, 0.0f, 0.0f, 1);
+            cbi.Size -= Vector2(40, 100) * scale;
+            cbi.Position += Vector2(20, 75) * scale;
+            Render::HudCanvas->DrawBitmap(cbi, 1);
+
+            //auto title = make_unique<Label>("Play mission", FontSize::Big);
+            //AddChild(std::move(title));
+
+            //{
+            //    Render::DrawTextInfo dti;
+            //    dti.Font = FontSize::Big;
+            //    dti.HorizontalAlign = AlignH::Center;
+            //    dti.VerticalAlign = AlignV::Top;
+            //    dti.Position = Vector2(0, 20);
+            //    dti.Color = Color(1, 1, 1, 1);
+            //    Render::HudCanvas->DrawGameText("Play Mission", dti, 2);
+            //}
+
+            {
+                Render::DrawTextInfo dti;
+                dti.Font = FontSize::MediumGold;
+                dti.HorizontalAlign = AlignH::Left;
+                dti.VerticalAlign = AlignV::Top;
+                dti.Position = Vector2(50 * scale, 100);
+                dti.Color = Color(1, 1, 1, 1);
+                Render::HudCanvas->DrawGameText("Descent: First Strike", dti, 2);
+            }
+
+            ScreenBase::OnDraw();
+        }
     };
 
+    class MainMenu : public ScreenBase {
+    public:
+        MainMenu() {
+            StackPanel panel;
+            panel.Position = Vector2(45, 140);
+            panel.HorizontalAlignment = AlignH::CenterRight;
+            panel.VerticalAlignment = AlignV::Top;
+
+            panel.AddChild<Button>("Play Descent 1", [] {
+                ShowScreen(make_unique<PlayD1Screen>());
+            });
+            panel.AddChild<Button>("Play Descent 2");
+            panel.AddChild<Button>("Load Game");
+            panel.AddChild<Button>("Options");
+            panel.AddChild<Button>("Level Editor");
+            panel.AddChild<Button>("High Scores");
+            panel.AddChild<Button>("Credits");
+            panel.AddChild<Button>("Quit", [] {
+                PostMessage(Shell::Hwnd, WM_CLOSE, 0, 0);
+            });
+
+            Children.push_back(make_unique<StackPanel>(std::move(panel)));
+            SelectFirst();
+        }
+
+        void OnDraw() override {
+            ScreenBase::OnDraw();
+
+            float titleX = 167;
+            float titleY = 50;
+            float titleScale = 1.25f;
+            //auto logoHeight = MeasureString("inferno", FontSize::Big).y * titleScale;
+
+            {
+                //Render::DrawTextInfo dti;
+                //dti.Font = FontSize::Small;
+                //dti.HorizontalAlign = AlignH::Center;
+                //dti.VerticalAlign = AlignV::Top;
+                //dti.Position = Vector2(titleX, titleY + logoHeight);
+                ////dti.Color = Color(0.5f, 0.5f, 1);
+                ////dti.Color = Color(0.5f, 0.5f, 1);
+                //dti.Color = Color(1, 0.7f, 0.54f);
+
+                //Render::HudCanvas->DrawGameText("descent remastered", dti);
+                //dti.Position.y += 15;
+                //Render::HudCanvas->DrawGameText("descent II", dti);
+                //dti.Position.y += 15;
+                //Render::HudCanvas->DrawGameText("descent 3 enhancements enabled", dti);
+            }
+
+            {
+                Render::DrawTextInfo dti;
+                dti.Font = FontSize::Big;
+                dti.HorizontalAlign = AlignH::Center;
+                dti.VerticalAlign = AlignV::Top;
+                dti.Position = Vector2(titleX, titleY);
+
+                //float t = Frac(Clock.GetTotalTimeSeconds() / 2) * 2;
+                //float anim = 0;
+
+                //if (t < 1) {
+                //    anim = 1 - std::pow(1 - t, 4);
+                //}
+                //else {
+                //    t -= 1;
+                //    anim = 1 - t * t;
+                //}
+
+                //anim += 0.6f;
+
+                float anim = (((float)sin(Clock.GetTotalTimeSeconds()) + 1) * 0.5f * 0.25f) + 0.6f;
+                dti.Color = Color(1, .5f, .2f) * abs(anim) * 4;
+                dti.Scale = titleScale;
+                Render::HudCanvas->DrawGameText("inferno", dti);
+            }
+        }
+    };
+
+    void HandleInput() {
+        if (Screens.empty()) return;
+        auto& screen = Screens.back();
+
+        // todo: add controller dpad input
+        if (Input::IsKeyPressed(Input::Keys::Down))
+            screen->OnDownArrow();
+        //screen->SelectNext(screen->Selection);
+        //screen->SelectionIndex++;
+
+        if (Input::IsKeyPressed(Input::Keys::Up))
+            screen->OnUpArrow();
+
+        // Wrap selection
+        if (!screen->Children.empty())
+            screen->SelectionIndex = (int)Mod(screen->SelectionIndex, screen->Children.size());
+
+        if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick))
+            screen->OnClick(Input::MousePosition);
+
+        // todo: add controller input
+        if (Input::IsKeyPressed(Input::Keys::Enter) || Input::IsKeyPressed(Input::Keys::Space))
+            screen->OnConfirm();
+
+        if (Input::IsKeyPressed(Input::Keys::Escape)) {
+            CloseScreen();
+            return;
+        }
+
+        //if (screen.Controls.empty()) return;
+        //auto& control = screen.Controls[screen.SelectionIndex];
+
+        //if (Input::IsKeyPressed(Input::Keys::Enter)) {
+        //    control.OnClick();
+        //}
+    }
 
     void Update() {
         //float margin = 60;
-        float titleX = 175;
-        float titleY = 50;
-        float menuX = 55;
-        float menuY = 140;
-        float titleScale = 1.25f;
 
-        {
-            Render::DrawTextInfo dti;
-            dti.Font = FontSize::Big;
-            dti.HorizontalAlign = AlignH::Center;
-            dti.VerticalAlign = AlignV::Top;
-            dti.Position = Vector2(titleX, titleY);
+        //float menuX = 55;
+        //float menuY = 140;
 
-            //float t = Frac(Clock.GetTotalTimeSeconds() / 2) * 2;
-            //float anim = 0;
 
-            //if (t < 1) {
-            //    anim = 1 - std::pow(1 - t, 4);
-            //}
-            //else {
-            //    t -= 1;
-            //    anim = 1 - t * t;
-            //}
-
-            //anim += 0.6f;
-
-            float anim = ((sin(Clock.GetTotalTimeSeconds()) + 1) * 0.5f * 0.25f) + 0.6f;
-            dti.Color = Color(1, .5f, .2f) * abs(anim) * 4;
-            dti.Scale = titleScale;
-            Render::HudCanvas->DrawGameText("inferno", dti);
-        }
-
-        auto logoHeight = MeasureString("inferno", FontSize::Big).y * titleScale;
-
-        {
-            Render::DrawTextInfo dti;
-            dti.Font = FontSize::Small;
-            dti.HorizontalAlign = AlignH::Center;
-            dti.VerticalAlign = AlignV::Top;
-            dti.Position = Vector2(titleX, titleY + logoHeight);
-            //dti.Color = Color(0.5f, 0.5f, 1);
-            //dti.Color = Color(0.5f, 0.5f, 1);
-            dti.Color = Color(1, 0.7f, 0.54f);
-
-            //Render::HudCanvas->DrawGameText("descent I", dti);
-            //dti.Position.y += 15;
-            //Render::HudCanvas->DrawGameText("descent II", dti);
-            //dti.Position.y += 15;
-            //Render::HudCanvas->DrawGameText("descent 3 enhancements enabled", dti);
-        }
         //{
 
         //    Render::DrawTextInfo dti;
@@ -220,41 +723,16 @@ namespace Inferno::UI {
         //    Render::HudCanvas->DrawGameText("descent I - descent II - descent 3 enhanced", dti);
         //}
 
-        {
-            Render::DrawTextInfo dti;
-            dti.Font = FontSize::MediumGold;
-            dti.HorizontalAlign = AlignH::CenterRight;
-            dti.VerticalAlign = AlignV::Top;
-            auto height = MeasureString("new game", FontSize::Medium).y + 2;
+        //{
+        //    Render::DrawTextInfo dti;
+        //    dti.Font = FontSize::MediumGold;
+        //    dti.HorizontalAlign = AlignH::CenterRight;
+        //    dti.VerticalAlign = AlignV::Top;
+        //    auto height = MeasureString("new game", FontSize::Medium).y + 2;
 
-            dti.Color = Color(1, .9f, 0.9f) * 1.7f;
-            dti.Position = Vector2(menuX, menuY);
-            Render::HudCanvas->DrawGameText("play descent 1", dti);
-
-            dti.Color = Color(1, 1, 1);
-            dti.Font = FontSize::Medium;
-
-            dti.Position.y += height;
-            Render::HudCanvas->DrawGameText("play descent 2", dti);
-
-            dti.Position.y += height;
-            Render::HudCanvas->DrawGameText("load game", dti);
-
-            dti.Position.y += height;
-            Render::HudCanvas->DrawGameText("options", dti);
-
-            dti.Position.y += height;
-            Render::HudCanvas->DrawGameText("level editor", dti);
-
-            dti.Position.y += height;
-            Render::HudCanvas->DrawGameText("high scores", dti);
-
-            dti.Position.y += height;
-            Render::HudCanvas->DrawGameText("credits", dti);
-
-            dti.Position.y += height;
-            Render::HudCanvas->DrawGameText("quit", dti);
-        }
+        //    dti.Color = Color(1, .9f, 0.9f) * 1.7f;
+        //    dti.Position = Vector2(menuX, menuY);
+        //    Render::HudCanvas->DrawGameText("play descent 1", dti);
 
         {
             Render::DrawTextInfo dti;
@@ -270,49 +748,34 @@ namespace Inferno::UI {
             Render::HudCanvas->DrawGameText("software 1994, 1995, 1999", dti);
 
             dti.Position.y -= 14;
-            Render::HudCanvas->DrawGameText("portions copyright(c) parallax", dti);
+            Render::HudCanvas->DrawGameText("portions (c) parallax", dti);
         }
 
-        if (Screens.empty()) return;
+        if (Screens.empty()) {
+            ShowScreen(make_unique<MainMenu>());
+        }
+
+        HandleInput();
+
         auto& screen = Screens.back();
+        screen->OnUpdate();
+        screen->OnUpdateLayout();
 
-        for (auto& control : screen.Controls) {
-            control.OnUpdate();
-        }
-    }
+        screen->OnDraw();
 
-    void HandleInput() {
-        if (Screens.empty()) return;
-        auto& screen = Screens.back();
+        std::function<void(ControlBase&)> debugDraw = [&](const ControlBase& control) {
+            for (auto& child : control.Children) {
+                Render::CanvasBitmapInfo cbi;
+                cbi.Position = child->ScreenPosition;
+                cbi.Size = child->ScreenSize;
+                cbi.Texture = Render::Materials->White().Handle();
+                cbi.Color = Color(0.1f, 1.0f, 0.1f, 0.25f);
+                Render::HudCanvas->DrawBitmap(cbi, 9);
 
-        // todo: add controller dpad input
-        if (Input::IsKeyPressed(Input::Keys::Down))
-            screen.SelectionIndex++;
+                debugDraw(*child.get());
+            }
+        };
 
-        if (Input::IsKeyPressed(Input::Keys::Up))
-            screen.SelectionIndex--;
-
-        // Wrap selection
-        screen.SelectionIndex = Mod(screen.SelectionIndex, screen.Controls.size());
-
-        if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick))
-            screen.OnClick(Input::MousePosition);
-
-        // todo: add controller input
-        if (Input::IsKeyPressed(Input::Keys::Enter) || Input::IsKeyPressed(Input::Keys::Space))
-            screen.OnConfirm();
-
-        if (Input::IsKeyPressed(Input::Keys::Escape)) {
-            CloseScreen();
-            return;
-        }
-
-
-        //if (screen.Controls.empty()) return;
-        //auto& control = screen.Controls[screen.SelectionIndex];
-
-        //if (Input::IsKeyPressed(Input::Keys::Enter)) {
-        //    control.OnClick();
-        //}
+        debugDraw(*screen.get());
     }
 }
