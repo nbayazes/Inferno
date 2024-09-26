@@ -12,6 +12,10 @@ namespace Inferno::UI {
 
     const auto FOCUS_COLOR = Color(1, .9f, 0.9f) * 1.7f;
 
+    float GetScale() {
+        return Render::HudCanvas->GetScale();
+    }
+
     // Controls are positioned at their top left corner
     struct ControlBase {
         ControlBase() = default;
@@ -32,9 +36,14 @@ namespace Inferno::UI {
         Vector2 ScreenPosition; // Scaled and transformed position in screen pixels
         Vector2 ScreenSize; // Size of the control in screen pixels
 
-        Vector2 Margin = { 1, 1 }; // Margin to make things easier to click on
+        Vector2 Margin;
+        Vector2 Padding;
+
         AlignH HorizontalAlignment = AlignH::Left;
         AlignV VerticalAlignment = AlignV::Top;
+
+        float MeasureWidth() const { return Size.x + Margin.x * 2 + Padding.x * 2; }
+        float MeasureHeight() const { return Size.y + Margin.y * 2 + Padding.y * 2; }
 
         int Layer = 0;
 
@@ -42,7 +51,6 @@ namespace Inferno::UI {
             // Arrange children relative to this control
             for (auto& control : Children) {
                 control->UpdateScreenPosition(*this);
-
                 control->Layer = Layer + 1;
                 control->OnUpdateLayout();
             }
@@ -50,8 +58,8 @@ namespace Inferno::UI {
 
         void UpdateScreenPosition(const ControlBase& parent) {
             auto scale = Render::HudCanvas->GetScale();
-            ScreenPosition = Position * scale + parent.ScreenPosition;
-            ScreenSize = Size * scale;
+            ScreenPosition = Position * scale + parent.ScreenPosition + Margin * scale;
+            ScreenSize = Size * scale + Padding * 2 * scale;
 
             auto offset = Render::GetAlignment(Size * scale, HorizontalAlignment, VerticalAlignment, parent.ScreenSize);
             ScreenPosition += offset;
@@ -312,7 +320,7 @@ namespace Inferno::UI {
         void OnUpdateLayout() override {
             //UpdateScreenPosition(parent);
 
-            auto scale = Render::HudCanvas->GetScale();
+
             //auto anchor = Render::GetAlignment(Size, HorizontalAlignment, VerticalAlignment, parent.ScreenSize);
 
             //ScreenPosition = Position * scale - Margin * scale + anchor * scale + parent.ScreenPosition;
@@ -320,7 +328,7 @@ namespace Inferno::UI {
 
             // Fill the whole screen if the size is zero
             auto& canvasSize = Render::HudCanvas->GetSize();
-            ScreenSize = Size == Vector2::Zero ? canvasSize : Size * scale;
+            ScreenSize = Size == Vector2::Zero ? canvasSize : Size * GetScale();
             ScreenPosition = Render::GetAlignment(ScreenSize, HorizontalAlignment, VerticalAlignment, canvasSize);
             //screen->UpdateLayout(GetFullScreen());
 
@@ -389,14 +397,7 @@ namespace Inferno::UI {
             Render::DrawTextInfo dti;
             dti.Font = _size;
             dti.Color = Color(1, 1, 1);
-            //dti.HorizontalAlign = HorizontalAlignment;
-            //dti.VerticalAlign = VerticalAlignment;
-            //dti.Position = Position;
-
-            dti.HorizontalAlign = AlignH::Left; // Disable alignment as the UI already applied it
-            dti.VerticalAlign = AlignV::Top;
-            dti.Position = ScreenPosition / Render::HudCanvas->GetScale();
-
+            dti.Position = ScreenPosition / GetScale() + Margin;
             Render::HudCanvas->DrawGameText(_text, dti, Layer + 1);
         }
     };
@@ -408,25 +409,20 @@ namespace Inferno::UI {
         Button(string_view text) : _text(text) {
             Size = MeasureString(_text, FontSize::Medium);
             Selectable = true;
+            Padding = Vector2{ 2, 2 };
         }
 
         Button(string_view text, Action&& action) : _text(text) {
             ClickAction = action;
             Size = MeasureString(_text, FontSize::Medium);
+            Padding = Vector2{ 2, 2 };
         }
 
         void OnDraw() override {
             Render::DrawTextInfo dti;
             dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
             dti.Color = Focused ? FOCUS_COLOR : Color(1, 1, 1);
-
-            //dti.HorizontalAlign = HorizontalAlignment;
-            //dti.VerticalAlign = VerticalAlignment;
-            //dti.Position = Position;
-
-            dti.HorizontalAlign = AlignH::Left; // Disable alignment as the UI already applied it
-            dti.VerticalAlign = AlignV::Top;
-            dti.Position = ScreenPosition / Render::HudCanvas->GetScale();
+            dti.Position = ScreenPosition / GetScale() + Padding;
             Render::HudCanvas->DrawGameText(_text, dti, Layer);
         }
     };
@@ -438,35 +434,43 @@ namespace Inferno::UI {
         StackPanel() { Selectable = false; }
 
         PanelOrientation Orientation = PanelOrientation::Vertical;
-        int Spacing = 2;
+        //int Spacing = 2;
 
         void OnUpdateLayout() override {
             auto anchor = Render::GetAlignment(Size, HorizontalAlignment, VerticalAlignment, Render::HudCanvas->GetSize() / Render::HudCanvas->GetScale());
 
             if (Orientation == PanelOrientation::Vertical) {
                 float maxWidth = 0;
+                float maxLayoutWidth = 0;
                 float yOffset = anchor.y;
 
                 for (auto& child : Children) {
-                    child->Position.y = yOffset;
-                    //child->Position.x = /* + anchor.x*/;
+                    child->Position.y = child->Margin.y + yOffset;
+                    child->Position.x = child->Margin.x;
                     child->UpdateScreenPosition(*this);
 
                     child->OnUpdateLayout();
+
+                    auto width = child->MeasureWidth();
+                    if(maxLayoutWidth < width) maxLayoutWidth = width;
                     if (child->Size.x > maxWidth)
                         maxWidth = child->Size.x;
 
-                    yOffset += child->Size.y + Spacing;
+                    //if (child->Margin.x > maxMargin)
+                    //    maxMargin = child->Margin.x;
+
+                    yOffset += child->Size.y + child->Margin.y * 2 + child->Padding.y * 2/* + Spacing*/;
                 }
 
                 // Expand children to max width to make clicking uniform
                 for (auto& child : Children)
                     child->Size.x = maxWidth;
 
-                Size = Vector2(maxWidth, yOffset);
+                Size = Vector2(maxLayoutWidth/* + maxMargin * 2*/, yOffset);
             }
             else {
                 float maxHeight = 0;
+                float maxMargin = 0;
                 float xOffset = anchor.x;
 
                 for (auto& child : Children) {
@@ -478,7 +482,10 @@ namespace Inferno::UI {
                     if (child->Size.y > maxHeight)
                         maxHeight = child->Size.y;
 
-                    xOffset += child->Size.x + Spacing;
+                    if (child->Margin.x > maxMargin)
+                        maxMargin = child->Margin.x;
+
+                    xOffset += child->Size.x + child->Margin.x * 2 + child->Padding.x * 2/* + Spacing*/;
                 }
 
                 // Expand children to max height to make clicking uniform
@@ -504,6 +511,7 @@ namespace Inferno::UI {
         //main.UpdateLayout();
         //Screens.push_back(make_unique<MainMenu>(std::move(main)));
         screen->Layer = (int)Screens.size();
+        screen->OnUpdateLayout();
         Screens.push_back(std::move(screen));
     }
 
@@ -541,7 +549,7 @@ namespace Inferno::UI {
 
             // todo: scan d1/missions folder for levels
 
-            Label title("Play mission", FontSize::Big);
+            Label title("Select mission", FontSize::Big);
             title.VerticalAlignment = AlignV::Top;
             title.HorizontalAlignment = AlignH::Center;
             title.Position = Vector2(0, 20);
@@ -760,7 +768,6 @@ namespace Inferno::UI {
         auto& screen = Screens.back();
         screen->OnUpdate();
         screen->OnUpdateLayout();
-
         screen->OnDraw();
 
         std::function<void(ControlBase&)> debugDraw = [&](const ControlBase& control) {
@@ -769,13 +776,13 @@ namespace Inferno::UI {
                 cbi.Position = child->ScreenPosition;
                 cbi.Size = child->ScreenSize;
                 cbi.Texture = Render::Materials->White().Handle();
-                cbi.Color = Color(0.1f, 1.0f, 0.1f, 0.25f);
+                cbi.Color = Color(0.1f, 1.0f, 0.1f, 0.0225f);
                 Render::HudCanvas->DrawBitmap(cbi, 9);
 
                 debugDraw(*child.get());
             }
         };
 
-        debugDraw(*screen.get());
+        //debugDraw(*screen.get());
     }
 }
