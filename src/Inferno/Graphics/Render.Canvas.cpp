@@ -136,6 +136,10 @@ namespace Inferno::Render {
                 continue;
             }
 
+            if (c == ';') {
+                break; // skip comments
+            }
+
             if (inToken) {
                 if (c == 'C') {
                     if (next == '1') {
@@ -161,13 +165,17 @@ namespace Inferno::Render {
             auto x0 = alignment.x + xOffset + info.Position.x * _scale; // do not scale position by font scale
             auto y0 = alignment.y + yOffset + info.Position.y * _scale; // do not scale position by font scale
 
-            //auto fontTex = Render::StaticTextures->Font.GetSRV();
+            //if (info.IntegerScaling) 
+            //    scale = std::round(scale * 2) / 2;
+
             Vector2 charSize = Vector2((float)font->GetWidth(c), (float)font->Height) * scale;
-            //Vector2 uvMin = { ci.X0, ci.Y0 }, uvMax = { ci.X1, ci.Y1 };
             CanvasBitmapInfo cbi;
-            //cbi.Position = Vector2{ x0, y0 };
             cbi.Position = Vector2{ x0 - 1 * scale, y0 + 1 * scale };
+            //cbi.Position.x = std::round(cbi.Position.x);
+            //cbi.Position.y = std::round(cbi.Position.y);
             cbi.Size = charSize;
+            //cbi.Size.x = std::round(cbi.Size.x);
+            //cbi.Size.y = std::round(cbi.Size.y);
             cbi.UV0 = Vector2{ ci.X0, ci.Y0 };
             cbi.UV1 = Vector2{ ci.X1, ci.Y1 };
             cbi.Color = background;

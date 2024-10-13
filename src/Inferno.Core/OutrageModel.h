@@ -143,7 +143,7 @@ namespace Inferno::Outrage {
 
         List<WeaponBattery> WeaponBatteries;
 
-        void SetFlag(ModelFlag flag) { Flags &= flag; }
+        void SetFlag(ModelFlag flag) { Flags |= flag; }
         void ClearFlag(ModelFlag flag) { Flags &= ~flag; }
         bool HasFlag(ModelFlag flag) const { return (int)Flags & (int)flag; }
 

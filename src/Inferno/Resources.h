@@ -136,6 +136,8 @@ namespace Inferno::Resources {
     // Returns a previously loaded model by LoadOutrageModel()
     const Outrage::Model* GetOutrageModel(ModelID);
 
+    List<Inferno::MissionInfo> ReadMissionDirectory(const filesystem::path& directory);
+
     // Loads D1 and D2 sounds
     void LoadSounds();
 

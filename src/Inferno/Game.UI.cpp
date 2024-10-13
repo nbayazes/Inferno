@@ -5,6 +5,7 @@
 #include "Input.h"
 #include "Types.h"
 #include "Utility.h"
+#include "Resources.h"
 
 namespace Inferno::UI {
     using Action = std::function<void()>;
@@ -14,6 +15,13 @@ namespace Inferno::UI {
 
     float GetScale() {
         return Render::HudCanvas->GetScale();
+    }
+
+    // Returns true if a rectangle at a position and size contain a point
+    bool RectangleContains(const Vector2 position, const Vector2& size, const Vector2& point) {
+        return
+            point.x > position.x && point.x < position.x + size.x &&
+            point.y > position.y && point.y < position.y + size.y;
     }
 
     // Controls are positioned at their top left corner
@@ -195,7 +203,7 @@ namespace Inferno::UI {
 
             for (size_t i = 0; i < Children.size(); i++) {
                 if (Children[i].get() == current) {
-                    index = i;
+                    index = (int)i;
                     break;
                 }
             }
@@ -295,6 +303,7 @@ namespace Inferno::UI {
     public:
         ScreenBase() {
             Selectable = false;
+            Padding = Vector2(5, 5);
         }
 
         int SelectionIndex = 0;
@@ -309,6 +318,8 @@ namespace Inferno::UI {
                 LastCursorPosition = Input::MousePosition;
                 SetSelection(HitTestCursor(Input::MousePosition));
             }
+
+            ControlBase::OnUpdate(); // breaks main menu selection
         }
 
         void OnConfirm() {
@@ -380,11 +391,29 @@ namespace Inferno::UI {
         }
     };
 
+    class Rectangle : public ControlBase {
+    public:
+        Rectangle() {}
+
+        Color Fill;
+
+        void OnDraw() override {
+            Render::CanvasBitmapInfo cbi;
+            cbi.Position = ScreenPosition;
+            cbi.Size = ScreenSize;
+            cbi.Texture = Render::Materials->White().Handle();
+            cbi.Color = Fill;
+            Render::HudCanvas->DrawBitmap(cbi, Layer);
+        }
+    };
+
     class Label : public ControlBase {
         string _text;
         FontSize _size;
 
     public:
+        Color Color = { 1, 1, 1 };
+
         Label(string_view text, FontSize size = FontSize::Medium) : _text(text), _size(size) {
             Selectable = false;
         }
@@ -396,7 +425,7 @@ namespace Inferno::UI {
         void OnDraw() override {
             Render::DrawTextInfo dti;
             dti.Font = _size;
-            dti.Color = Color(1, 1, 1);
+            dti.Color = Color;
             dti.Position = ScreenPosition / GetScale() + Margin;
             Render::HudCanvas->DrawGameText(_text, dti, Layer + 1);
         }
@@ -448,11 +477,11 @@ namespace Inferno::UI {
                     child->Position.y = child->Margin.y + yOffset;
                     child->Position.x = child->Margin.x;
                     child->UpdateScreenPosition(*this);
-
+                    child->Layer = Layer + 1;
                     child->OnUpdateLayout();
 
                     auto width = child->MeasureWidth();
-                    if(maxLayoutWidth < width) maxLayoutWidth = width;
+                    if (maxLayoutWidth < width) maxLayoutWidth = width;
                     if (child->Size.x > maxWidth)
                         maxWidth = child->Size.x;
 
@@ -477,8 +506,9 @@ namespace Inferno::UI {
                     child->Position.x = Position.x + anchor.x + xOffset;
                     child->Position.y = Position.y + anchor.y;
                     child->UpdateScreenPosition(*this);
-
+                    child->Layer = Layer + 1;
                     child->OnUpdateLayout();
+
                     if (child->Size.y > maxHeight)
                         maxHeight = child->Size.y;
 
@@ -493,6 +523,120 @@ namespace Inferno::UI {
                     child->Size.y = maxHeight;
 
                 Size = Vector2(xOffset, maxHeight);
+            }
+        }
+    };
+
+    // A listbox contains a stack panel of items, but only a certain number are visible at once
+    class ListBox : public ControlBase {
+        //StackPanel* _list;
+        FontSize _font;
+        float _fontHeight = 0;
+        int _index = 0;
+        int _scrollIndex = 0; // top of the list
+
+        static constexpr float LINE_OFFSET = 1; // correction for line height
+    public:
+        int VisibleItems = 5;
+        float ItemSpacing = 2;
+
+        void SetIndex(int index) {
+            _index = index;
+        }
+
+        List<string> Items;
+
+        ListBox(int visibleItems) : VisibleItems(visibleItems) {
+            _fontHeight = MeasureString("Descent", FontSize::Medium).y;
+
+            Rectangle rect;
+            AddChild(make_unique<Rectangle>(std::move(rect)));
+            Padding = Vector2(2, 2);
+            //auto list = make_unique<StackPanel>();
+            //_list = list.get();
+            //AddChild(std::move(list));
+        }
+
+        //void AddItem(string_view item) const {
+        //    Label label(item, _font);
+        //    label.Margin = Vector2(Margin, Margin);
+        //    _list->AddChild(make_unique<Label>(std::move(label)));
+        //}
+
+        void OnUpdate() override {
+            // todo: check focus?
+
+            using Input::Keys;
+
+            if (Input::IsKeyPressed(Keys::PageDown, true)) {
+                _index += VisibleItems;
+                if (_scrollIndex + VisibleItems < Items.size())
+                    _scrollIndex += VisibleItems;
+            }
+
+            if (Input::IsKeyPressed(Keys::PageUp, true)) {
+                _index -= VisibleItems;
+                _scrollIndex -= VisibleItems;
+            }
+
+            auto wheelDelta = Input::GetWheelDelta();
+            _scrollIndex -= wheelDelta / 40;
+
+            if (Input::IsKeyPressed(Keys::Up, true)) {
+                _index--;
+                if (_index < _scrollIndex)
+                    _scrollIndex = _index;
+            }
+
+            if (Input::IsKeyPressed(Keys::Down, true)) {
+                _index++;
+                if (_index > _scrollIndex + VisibleItems - 1)
+                    _scrollIndex++;
+            }
+
+            // Hit test mouse
+            if (Input::MouseMoved() || wheelDelta) {
+                auto scale = GetScale();
+                const float rowHeight = (_fontHeight + ItemSpacing) * scale;
+
+                for (int i = _scrollIndex, j = 0; i < Items.size() && i < _scrollIndex + VisibleItems; i++, j++) {
+                    auto position = ScreenPosition;
+                    position.y += rowHeight * j;
+                    Vector2 size(ScreenSize.x, rowHeight);
+
+                    if (RectangleContains(position, size, Input::MousePosition)) {
+                        _index = i;
+                        break;
+                    }
+                }
+            }
+
+            _index = std::clamp(_index, 0, (int)Items.size() - 1);
+            _scrollIndex = std::clamp(_scrollIndex, 0, (int)Items.size() - 1);
+        }
+
+        void OnUpdateLayout() override {
+            Size.y = _fontHeight * VisibleItems + ItemSpacing * (VisibleItems - 1);
+            ControlBase::OnUpdateLayout();
+        }
+
+        void OnDraw() override {
+            Render::CanvasBitmapInfo cbi;
+            cbi.Position = ScreenPosition;
+            cbi.Size = ScreenSize;
+            cbi.Texture = Render::Materials->White().Handle();
+            cbi.Color = Color(0, 0, 0, 1);
+            Render::HudCanvas->DrawBitmap(cbi, Layer);
+
+            for (int i = _scrollIndex, j = 0; i < Items.size() && i < _scrollIndex + VisibleItems; i++, j++) {
+                auto& item = Items[i];
+
+                Render::DrawTextInfo dti;
+                dti.Font = _index == i ? FontSize::MediumGold : FontSize::Medium;
+                dti.Color = _index == i ? FOCUS_COLOR : Color(1, 1, 1);
+                dti.Position = ScreenPosition / GetScale() + Padding;
+                dti.Position.y += (_fontHeight + ItemSpacing) * j + LINE_OFFSET;
+                Render::HudCanvas->DrawGameText(item, dti, Layer + 1);
             }
         }
     };
@@ -545,20 +689,30 @@ namespace Inferno::UI {
         PlayD1Screen() {
             HorizontalAlignment = AlignH::Center;
             VerticalAlignment = AlignV::Center;
-            Size = Vector2(620, 460);
+            Size = Vector2(500, 460);
 
-            // todo: scan d1/missions folder for levels
+            auto missions = Resources::ReadMissionDirectory("./d1/missions");
 
-            Label title("Select mission", FontSize::Big);
+            Label title("select mission", FontSize::MediumBlue);
             title.VerticalAlignment = AlignV::Top;
             title.HorizontalAlignment = AlignH::Center;
             title.Position = Vector2(0, 20);
+            title.Color = Color(1.25f, 1.25f, 2.0f);
             AddChild(make_unique<Label>(std::move(title)));
+
+            ListBox missionList(14);
+
+            for (auto& mission : missions) {
+                missionList.Items.push_back(mission.Name);
+            }
+
+            missionList.Position = Vector2(30, 60);
+            missionList.Size.x = 425;
+            missionList.Padding = Vector2(10, 5);
+            AddChild(make_unique<ListBox>(std::move(missionList)));
         }
 
         void OnDraw() override {
-            auto scale = Render::HudCanvas->GetScale();
-
             Render::CanvasBitmapInfo cbi;
             cbi.Position = ScreenPosition;
             cbi.Size = ScreenSize;
@@ -566,10 +720,6 @@ namespace Inferno::UI {
             cbi.Color = Color(0.1f, 0.1f, 0.1f, 1);
             Render::HudCanvas->DrawBitmap(cbi, 1);
 
-            cbi.Color = Color(0.0f, 0.0f, 0.0f, 1);
-            cbi.Size -= Vector2(40, 100) * scale;
-            cbi.Position += Vector2(20, 75) * scale;
-            Render::HudCanvas->DrawBitmap(cbi, 1);
 
             //auto title = make_unique<Label>("Play mission", FontSize::Big);
             //AddChild(std::move(title));
@@ -584,15 +734,6 @@ namespace Inferno::UI {
             //    Render::HudCanvas->DrawGameText("Play Mission", dti, 2);
             //}
 
-            {
-                Render::DrawTextInfo dti;
-                dti.Font = FontSize::MediumGold;
-                dti.HorizontalAlign = AlignH::Left;
-                dti.VerticalAlign = AlignV::Top;
-                dti.Position = Vector2(50 * scale, 100);
-                dti.Color = Color(1, 1, 1, 1);
-                Render::HudCanvas->DrawGameText("Descent: First Strike", dti, 2);
-            }
 
             ScreenBase::OnDraw();
         }
@@ -612,7 +753,9 @@ namespace Inferno::UI {
             panel.AddChild<Button>("Play Descent 2");
             panel.AddChild<Button>("Load Game");
             panel.AddChild<Button>("Options");
-            panel.AddChild<Button>("Level Editor");
+            panel.AddChild<Button>("Level Editor", [] {
+                Game::SetState(GameState::Editor);
+            });
             panel.AddChild<Button>("High Scores");
             panel.AddChild<Button>("Credits");
             panel.AddChild<Button>("Quit", [] {

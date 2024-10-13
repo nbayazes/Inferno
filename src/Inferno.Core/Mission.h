@@ -143,18 +143,18 @@ namespace Inferno {
         }
 
     private:
-        void WriteProperty(std::ostream& stream, const string& name, const string& value) {
-            string str = value.data(); // trim nulls
+        static void WriteProperty(std::ostream& stream, const string& name, const string& value) {
+            string str = value; // trim nulls
             if (str == "") return;
             stream << name << " = " << str << '\n';
         }
 
-        void WriteProperty(std::ostream& stream, const string& name, bool value) {
+        static void WriteProperty(std::ostream& stream, const string& name, bool value) {
             if (!value) return;
             stream << name << " = " << (value ? "yes" : "no") << '\n';
         }
 
-        void WriteProperty(std::ostream& stream, const string& name, int value) {
+        static void WriteProperty(std::ostream& stream, const string& name, int value) {
             stream << name << " = " << std::to_string(value) << '\n';
         }
     };

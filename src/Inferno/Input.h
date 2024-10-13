@@ -36,8 +36,8 @@ namespace Inferno::Input {
     // Returns true while a key is held down
     bool IsKeyDown(Keys);
 
-    // Returns true when a key is first pressed
-    bool IsKeyPressed(Keys);
+    // Returns true when a key is first pressed or on OS repeat with a flag.
+    bool IsKeyPressed(Keys, bool onRepeat = false);
 
     // Returns true when a key is first released
     bool IsKeyReleased(Keys);
@@ -50,6 +50,8 @@ namespace Inferno::Input {
 
     // Returns true when a key is first released
     bool IsMouseButtonReleased(MouseButtons);
+
+    bool MouseMoved();
 
     void ResetState();
 
@@ -82,9 +84,11 @@ namespace Inferno::Input {
     enum class EventType {
         KeyPress,
         KeyRelease,
+        KeyRepeat,
         MouseBtnPress,
         MouseBtnRelease,
         MouseWheel,
+        MouseMoved,
         Reset
     };
 

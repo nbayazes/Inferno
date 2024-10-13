@@ -1083,6 +1083,30 @@ namespace Inferno::Resources {
         return nullptr;
     }
 
+    enum class MissionType { D1, D2 };
+
+    List<Inferno::MissionInfo> ReadMissionDirectory(const filesystem::path& directory) {
+        List<Inferno::MissionInfo> missions;
+
+        try {
+            for (auto& file : filesystem::directory_iterator(directory)) {
+                if (String::InvariantEquals(file.path().extension().string(), ".msn") ||
+                    String::InvariantEquals(file.path().extension().string(), ".mn2")) {
+                    MissionInfo mission{};
+                    std::ifstream missionFile(file.path());
+                    if (mission.Read(missionFile)) {
+                        missions.push_back(mission);
+                    }
+                }
+            }
+        }
+        catch (...) {
+            SPDLOG_WARN("Unable to read mission directory`{}`", directory.string());
+        }
+
+        return missions;
+    }
+
     //int ResolveVClip(string frameName) {
     //    for (int id = 0; id < Resources::VClips.size(); id++) {
     //        auto& vclip = Resources::VClips[id];

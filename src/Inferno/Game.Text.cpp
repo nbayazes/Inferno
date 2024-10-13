@@ -32,6 +32,24 @@ namespace Inferno {
         return { std::max(maxWidth, width), height };
     }
 
+    string_view TrimStringByLength(string_view str, FontSize size, int maxLength) {
+        float width = 0;
+        auto font = Atlas.GetFont(size);
+        if (!font) return {};
+
+        for (int i = 0; i < str.size(); i++) {
+            char next = i + 1 >= str.size() ? 0 : str[i + 1];
+            auto kerning = Atlas.GetKerning(str[i], next, size);
+            width += font->GetWidth(str[i]) + kerning;
+
+            if (width > maxLength) {
+                return i > 1 ? str.substr(0, i - 1) : string_view{};
+            }
+        }
+
+        return str;
+    }
+
     void LoadFonts() {
         // note: this does not search for loose font files
         // also this uses D2 fonts even for D1 if D2 is present

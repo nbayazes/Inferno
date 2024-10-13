@@ -50,10 +50,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float4 color = Diffuse.SampleLevel(Sampler, input.uv + uv, 0);
     color.rgb *= pow(input.col.rgb, 2.2);
     color.a *= input.col.a;
-
-    //if(length(color) > 1.0002)
-    //    color.rgb *= 1 + input.col.rgb;
-    //color.rgb = float3(1, 0, 0);
+    //color *= pow(input.col, 2.2);
 
     if (Args.Scanline > 0.1) {
         float2 screenUv = (input.pos.xy) / Frame.Size;
@@ -65,7 +62,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //color.rgb = scanline;
     }
     else {
-        //color.rgb = color;
+        //color.rgb = color.rgb;
     }
     //float4 color = lerp(Diffuse.SampleLevel(Sampler, input.uv + uv, 0), float4(0, 0, 0, 0), apply);
     //color += Diffuse.SampleLevel(Sampler, input.uv + float2(0.01, 0.01), 0)  * float4(0.5, 0.5, 0.5, 0.01);

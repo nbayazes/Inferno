@@ -28,8 +28,9 @@ namespace Inferno::Render {
         Color Color = { 1, 1, 1 };
         AlignH HorizontalAlign = AlignH::Left;
         AlignV VerticalAlign = AlignV::Top;
-        float Scanline = 0;
+        float Scanline = 0; // There is a bug that causes scanlines to not update per-draw
         float TabStop = 0;
+        bool IntegerScaling = false;
     };
 
     struct CanvasPayload {

@@ -6,7 +6,7 @@
 #include "VertexTypes.h"
 
 namespace Inferno {
-    Render::ModelMesh CreateIcosphere(float radius, uint subdivisions) {
+    Render::ModelMesh CreateIcosphere(float /*radius*/, uint subdivisions) {
         // https://schneide.blog/2016/07/15/generating-an-icosphere-in-c/
         // https://www.alexisgiard.com/icosahedron-sphere/
         constexpr float X = 0.525731112119133606f;

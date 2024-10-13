@@ -16,27 +16,32 @@ namespace Inferno::Input {
         Vector2 WindowCenter;
         HWND Hwnd;
         int RawX, RawY;
+        bool MouseRecentlyMoved = false;
 
         MouseMode ActualMouseMode{}, RequestedMouseMode{};
         int WheelDelta;
 
         template <size_t N>
         struct ButtonState {
-            std::bitset<N> pressed, released;
+            std::bitset<N> pressed, released, repeat;
             std::bitset<N> current, previous;
 
             void Reset() {
                 pressed.reset();
+                repeat.reset();
                 released.reset();
                 current.reset();
                 previous.reset();
+                MouseRecentlyMoved = false;
             }
 
             // Call this before handling a frame's input events
             void NextFrame() {
                 pressed.reset();
+                repeat.reset();
                 released.reset();
                 previous = current;
+                MouseRecentlyMoved = false;
             }
 
             // These functions assume that events will arrive in the correct order
@@ -45,6 +50,11 @@ namespace Inferno::Input {
                     return;
                 pressed[key] = true;
                 current[key] = true;
+                repeat[key] = true;
+            }
+
+            void Repeat(uint8_t key) {
+                repeat[key] = true;
             }
 
             void Release(uint8_t key) {
@@ -52,6 +62,7 @@ namespace Inferno::Input {
                     return;
                 released[key] = true;
                 current[key] = false;
+                repeat[key] = false;
             }
         };
 
@@ -69,6 +80,7 @@ namespace Inferno::Input {
         void HandleInputEvents() {
             for (auto& event : _inputEventQueue) {
                 switch (event.type) {
+                    case EventType::KeyRepeat:
                     case EventType::KeyPress:
                     case EventType::KeyRelease:
                         if (event.keyCode == VK_SHIFT || event.keyCode == VK_CONTROL || event.keyCode == VK_MENU) {
@@ -81,6 +93,8 @@ namespace Inferno::Input {
 
                         if (event.type == EventType::KeyPress)
                             _keyboard.Press(event.keyCode);
+                        else if (event.type == EventType::KeyRepeat)
+                            _keyboard.Repeat(event.keyCode);
                         else {
                             if (event.keyCode == VK_SHIFT) {
                                 // For some reason, if both Shift keys are held down, only the last of the
@@ -113,6 +127,10 @@ namespace Inferno::Input {
                     case EventType::Reset:
                         _keyboard.Reset();
                         _mouseButtons.Reset();
+                        break;
+
+                    case EventType::MouseMoved:
+                        MouseRecentlyMoved = true;
                         break;
                 }
             }
@@ -244,8 +262,8 @@ namespace Inferno::Input {
         return _keyboard.pressed[key] || _keyboard.previous[key];
     }
 
-    bool IsKeyPressed(Keys key) {
-        return _keyboard.pressed[key];
+    bool IsKeyPressed(Keys key, bool onRepeat) {
+        return onRepeat ? _keyboard.repeat[key] : _keyboard.pressed[key];
     }
 
     bool IsKeyReleased(Keys key) {
@@ -264,6 +282,10 @@ namespace Inferno::Input {
 
     bool IsMouseButtonReleased(MouseButtons button) {
         return _mouseButtons.released[(uint64)button];
+    }
+
+    bool MouseMoved() {
+        return MouseRecentlyMoved;
     }
 
     MouseMode GetMouseMode() { return ActualMouseMode; }
@@ -334,39 +356,39 @@ namespace Inferno::Input {
             }
 
             case WM_LBUTTONDOWN:
-                Input::QueueEvent(Input::EventType::MouseBtnPress, (WPARAM)Input::MouseButtons::LeftClick);
+                Input::QueueEvent(EventType::MouseBtnPress, (WPARAM)Input::MouseButtons::LeftClick);
                 break;
 
             case WM_LBUTTONUP:
-                Input::QueueEvent(Input::EventType::MouseBtnRelease, (WPARAM)Input::MouseButtons::LeftClick);
+                Input::QueueEvent(EventType::MouseBtnRelease, (WPARAM)Input::MouseButtons::LeftClick);
                 break;
 
             case WM_RBUTTONDOWN:
-                Input::QueueEvent(Input::EventType::MouseBtnPress, (WPARAM)Input::MouseButtons::RightClick);
+                Input::QueueEvent(EventType::MouseBtnPress, (WPARAM)Input::MouseButtons::RightClick);
                 break;
 
             case WM_RBUTTONUP:
-                Input::QueueEvent(Input::EventType::MouseBtnRelease, (WPARAM)Input::MouseButtons::RightClick);
+                Input::QueueEvent(EventType::MouseBtnRelease, (WPARAM)Input::MouseButtons::RightClick);
                 break;
 
             case WM_MBUTTONDOWN:
-                Input::QueueEvent(Input::EventType::MouseBtnPress, (WPARAM)Input::MouseButtons::MiddleClick);
+                Input::QueueEvent(EventType::MouseBtnPress, (WPARAM)Input::MouseButtons::MiddleClick);
                 break;
 
             case WM_MBUTTONUP:
-                Input::QueueEvent(Input::EventType::MouseBtnRelease, (WPARAM)Input::MouseButtons::MiddleClick);
+                Input::QueueEvent(EventType::MouseBtnRelease, (WPARAM)Input::MouseButtons::MiddleClick);
                 break;
 
             case WM_XBUTTONDOWN:
-                Input::QueueEvent(Input::EventType::MouseBtnPress, (WPARAM)Input::MouseButtons::X1 + GET_XBUTTON_WPARAM(wParam) - XBUTTON1);
+                Input::QueueEvent(EventType::MouseBtnPress, (WPARAM)Input::MouseButtons::X1 + GET_XBUTTON_WPARAM(wParam) - XBUTTON1);
                 break;
 
             case WM_XBUTTONUP:
-                Input::QueueEvent(Input::EventType::MouseBtnRelease, (WPARAM)Input::MouseButtons::X1 + GET_XBUTTON_WPARAM(wParam) - XBUTTON1);
+                Input::QueueEvent(EventType::MouseBtnRelease, (WPARAM)Input::MouseButtons::X1 + GET_XBUTTON_WPARAM(wParam) - XBUTTON1);
                 break;
 
             case WM_MOUSEWHEEL:
-                Input::QueueEvent(Input::EventType::MouseWheel, 0, GET_WHEEL_DELTA_WPARAM(wParam));
+                Input::QueueEvent(EventType::MouseWheel, 0, GET_WHEEL_DELTA_WPARAM(wParam));
                 return;
 
             case WM_MOUSEHOVER:
@@ -380,6 +402,7 @@ namespace Inferno::Input {
         // All mouse messages provide a new pointer position
         MousePosition.x = static_cast<short>(LOWORD(lParam)); // GET_X_LPARAM(lParam);
         MousePosition.y = static_cast<short>(HIWORD(lParam)); // GET_Y_LPARAM(lParam);
+        Input::QueueEvent(EventType::MouseMoved);
     }
 
     void ProcessMessage(UINT message, WPARAM wParam, LPARAM lParam) {
@@ -387,7 +410,7 @@ namespace Inferno::Input {
 
         switch (message) {
             case WM_SYSKEYDOWN:
-                Input::QueueEvent(Input::EventType::KeyPress, wParam, lParam);
+                Input::QueueEvent(EventType::KeyPress, wParam, lParam);
                 break;
 
             case WM_KEYDOWN:
@@ -396,22 +419,26 @@ namespace Inferno::Input {
                 WORD keyFlags = HIWORD(lParam);
                 auto wasKeyDown = (keyFlags & KF_REPEAT) == KF_REPEAT;
                 if (!wasKeyDown) {
-                    Input::QueueEvent(Input::EventType::KeyPress, wParam, lParam);
+                    Input::QueueEvent(EventType::KeyPress, wParam, lParam);
                 }
+                else {
+                    Input::QueueEvent(EventType::KeyRepeat, wParam, lParam);
+                }
+
                 break;
             }
 
             case WM_KEYUP:
             case WM_SYSKEYUP:
-                Input::QueueEvent(Input::EventType::KeyRelease, wParam, lParam);
+                Input::QueueEvent(EventType::KeyRelease, wParam, lParam);
                 break;
 
             case WM_ACTIVATE:
-                Input::QueueEvent(Input::EventType::Reset);
+                Input::QueueEvent(EventType::Reset);
                 break;
 
             case WM_ACTIVATEAPP:
-                Input::QueueEvent(Input::EventType::Reset);
+                Input::QueueEvent(EventType::Reset);
                 break;
         }
     }

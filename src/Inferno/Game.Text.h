@@ -12,6 +12,8 @@ namespace Inferno {
     enum class AlignH { Left, Center, CenterLeft, CenterRight, Right };
     enum class AlignV { Top, Center, CenterTop, CenterBottom, Bottom };
     Vector2 MeasureString(string_view str, FontSize size);
+
+    string_view TrimStringByLength(string_view str, FontSize size, int maxLength);
     
     void LoadFonts();
 }

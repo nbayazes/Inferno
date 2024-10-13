@@ -20,6 +20,7 @@ namespace Inferno::Editor {
 
         // todo: set enhancement based on contained HOG level versions
         MissionInfo _mission;
+
     public:
         MissionEditor() : ModalWindowBase("Mission Editor") {
             Width = 500 * Shell::DpiScale;
@@ -259,6 +260,7 @@ namespace Inferno::Editor {
         RenameHogFileDialog() : ModalWindowBase("Rename File") {};
 
         string Name;
+
     protected:
         void OnUpdate() override {
             char buffer[8 + 1 + 3 + 1]{};
@@ -275,11 +277,11 @@ namespace Inferno::Editor {
     };
 
     class RenameLevelDialog : public ModalWindowBase {
-
     public:
         RenameLevelDialog() : ModalWindowBase("Rename Level") {};
 
         string LevelName;
+
     protected:
         bool OnOpen() override {
             LevelName = Game::Level.Name;
