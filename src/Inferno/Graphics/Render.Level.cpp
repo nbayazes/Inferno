@@ -561,7 +561,13 @@ namespace Inferno::Render {
         ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         ctx.ApplyEffect(Effects->Stars);
         ctx.SetConstantBuffer(0, Adapter->GetTerrainConstants().GetGPUVirtualAddress());
-        Shaders->Stars.SetParameters(cmdList, { Game::Terrain.AtmosphereColor });
+
+        StarShader::Parameters parameters {
+            .AtmosphereColor = Game::Terrain.AtmosphereColor,
+            .SkyRadius = 1.7f
+        };
+
+        Shaders->Stars.SetParameters(cmdList, parameters);
         cmdList->DrawInstanced(3, 1, 0, 0);
     }
 

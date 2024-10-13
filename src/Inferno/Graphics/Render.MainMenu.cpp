@@ -127,8 +127,12 @@ namespace Inferno {
         ctx.ApplyEffect(Effects->Stars);
         //ctx.SetConstantBuffer(0, Adapter->GetTerrainConstants().GetGPUVirtualAddress());
         ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-        Color color;
-        Shaders->Stars.SetParameters(cmdList, { color });
+        StarShader::Parameters parameters{
+            .AtmosphereColor = Color(0, 0, 0),
+            .SkyRadius = 0.4f,
+            .Scale = 2.5f
+        };
+        Shaders->Stars.SetParameters(cmdList, parameters);
         cmdList->DrawInstanced(3, 1, 0, 0);
     }
 

@@ -252,6 +252,8 @@ namespace Inferno {
     public:
         struct Parameters {
             Color AtmosphereColor;
+            float SkyRadius = 1.7f;
+            float Scale = 1.0f;
         };
 
         StarShader(const ShaderInfo& info) : IShader(info) {}

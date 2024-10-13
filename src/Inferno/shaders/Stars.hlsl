@@ -2,10 +2,12 @@
 
 #include "Common.hlsli"
 
-#define RS "RootFlags(0), CBV(b0), RootConstants(b1, num32BitConstants = 4)"
+#define RS "RootFlags(0), CBV(b0), RootConstants(b1, num32BitConstants = 6)"
 
 struct Arguments {
     float4 AtmosphereColor;
+    float SkyRadius;
+    float Scale;
 };
 
 ConstantBuffer<Arguments> Args : register(b1);
@@ -49,7 +51,7 @@ float3 Starfield(in float3 p, float scale, float density) {
         c2 *= step(rn.x, .0005 * density + i * i * 0.001 * density);
         //c += c2 * (lerp(float3(0.5, 0.49, 0.1), float3(0.75, 0.9, 1.), rn.y) * 0.25 + 0.75);
         //c += c2 * (lerp(float3(0.5, 0.49 * i, 0.1) , float3(0.75, 0.9, 2.50) * i, rn.y) * 0.25 + 0.3);
-        c += c2 * (lerp(float3(0.25, 0.49 * i, 1.0) , float3(0.25, 0.9, 1.750) * i, rn.y) * 0.25 + 0.3);
+        c += c2 * (lerp(float3(0.25, 0.49 * i, 1.0), float3(0.25, 0.9, 1.750) * i, rn.y) * 0.25 + 0.3);
         p *= 1.5; // Increases density
     }
 
@@ -87,10 +89,9 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float3 right = cross(Frame.EyeUp, Frame.EyeDir);
 
     // scattering curvature
-    const float radius = 1.7;
-    float3 rd = normalize((p.x * right + p.y * -Frame.EyeUp) * radius + Frame.EyeDir); // ray direction
+    float3 rd = normalize((p.x * right + p.y * -Frame.EyeUp) * Args.SkyRadius + Frame.EyeDir); // ray direction
     rd = normalize(rd);
-    
+
     float3 origin = float3(0., 15, 0); // position of scattering
     float3 rdScatter = rd;
     // TODO: adjust due to FOV
@@ -99,9 +100,10 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
     // Scale starfield to same pixel density regardless of resolution
     // This does mean higher resolutions will have more stars, but they look odd when larger than a few pixels
-    float scale = 1440 / Frame.Size.y; 
-    float density = 0.25  / Frame.RenderScale; // Increase density at lower render scales to keep similar overall density
+    float scale = 1440 / Frame.Size.y * Args.Scale;
+    float density = 0.25 / Frame.RenderScale; // Increase density at lower render scales to keep similar overall density
     float3 starfield = Starfield(rd * Frame.RenderScale, scale, density) * Frame.RenderScale;
+    //float3 starfield = Starfield(rd * Frame.RenderScale, scale * 4, density) * Frame.RenderScale;
     float3 bg = starfield * (1 - saturate(dot(atmosphere.rgb, float3(1, 1, 1))));
     return float4(bg, 1) + atmosphere;
 }
