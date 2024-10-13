@@ -85,7 +85,7 @@ namespace Inferno::Game {
     // Only single player for now
     inline class Player Player = {};
     inline ObjRef DeathCamera = {};
-    inline Camera MainCamera, AutomapCamera;
+    inline Camera MainCamera;
 
     // Sets the primary camera for the main view. Used for sound, rendering and mouse selection.
     void SetActiveCamera(Camera& camera);
@@ -148,14 +148,6 @@ namespace Inferno::Game {
     void ExplodeWeapon(struct Level& level, const Object&);
 
     void MoveCameraToObject(Camera& camera, const Object& obj, float lerp);
-
-    void ResetAutomapCamera(bool instant);
-
-    void NavigateToEnergy();
-
-    void NavigateToReactor();
-
-    void NavigateToExit();
 
     void Update(float dt);
 
@@ -267,37 +259,5 @@ namespace Inferno::Game {
 
     inline Inferno::TerrainInfo Terrain;
 
-    enum class AutomapVisibility { Hidden, Visible, FullMap };
-
     enum class ThreatLevel { None, Minimal, Moderate, High, Extreme };
-
-    struct AutomapInfo {
-        List<AutomapVisibility> Segments;
-        string Threat;
-        string LevelNumber;
-        string HostageText;
-        int RobotScore = 0;
-
-        void Update(const Inferno::Level& level);
-
-        void Initialize(const Inferno::Level& level) {
-            Segments.resize(level.Segments.size());
-            ranges::fill(Segments, AutomapVisibility::Hidden);
-        }
-
-        // Reveal the 'full map' powerup
-        void RevealFullMap() {
-            for (auto& seg : Segments) {
-                if (seg == AutomapVisibility::Hidden)
-                    seg = AutomapVisibility::FullMap;
-            }
-        }
-
-        // Reveals the entire map
-        void RevealAll() {
-            ranges::fill(Segments, AutomapVisibility::Visible);
-        }
-    };
-
-    inline AutomapInfo Automap;
 }

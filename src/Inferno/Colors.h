@@ -44,7 +44,8 @@ namespace Inferno::Colors {
     constexpr Color DoorGold = { 1.0f, 1.0f, 0.0f };
     constexpr Color DoorRed = { 1.0f, 0.0f, 0.0f };
     constexpr Color LockedDoor = { 0.1f, 0.9f, 0.9f };
-    constexpr Color Revealed = { 0, 0, 0.8064516f }; // Full map revealed
+    //constexpr Color Revealed = { 0, 0, 0.8064516f }; // Full map revealed
+    constexpr Color Revealed = { 0.1f, 0.2f, .8f }; // Full map revealed
     constexpr Color AutomapWall = { 0.9354839f, 0.9354839f, 0.9354839f };
     constexpr Color Hostage = { 0, 1.0f, 0 };
     constexpr Color Font = { 0.6451613f, 0.6451613f, 0.6451613f };

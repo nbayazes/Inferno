@@ -157,6 +157,7 @@
     <ClCompile Include="Audio\SoundEffect.cpp" />
     <ClCompile Include="Audio\SoundEffectInstance.cpp" />
     <ClCompile Include="Audio\WAVFileReader.cpp" />
+    <ClCompile Include="Game.Automap.cpp" />
     <ClCompile Include="Game.Cinematics.cpp" />
     <ClCompile Include="DebugOverlay.cpp" />
     <ClCompile Include="Game.Terrain.cpp" />
@@ -278,6 +279,7 @@
     <ClInclude Include="BitmapCache.h" />
     <ClInclude Include="Colors.h" />
     <ClInclude Include="Editor\UI\TerrainEditor.h" />
+    <ClInclude Include="Game.Automap.h" />
     <ClInclude Include="Game.Cinematics.h" />
     <ClInclude Include="CustomTextureLibrary.h" />
     <ClInclude Include="Debug.h" />

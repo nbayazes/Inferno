@@ -7,6 +7,7 @@
 #include "Resources.h"
 #include "Settings.h"
 #include "Editor/Events.h"
+#include "Game.Automap.h"
 #include "Graphics.h"
 #include "HUD.h"
 #include "SoundSystem.h"
@@ -151,24 +152,6 @@ namespace Inferno {
             float yInvert = Settings::Inferno.InvertY ? -1.0f : 1.0f;
             camera.Rotate(delta.x * Settings::Editor.MouselookSensitivity, delta.y * yInvert * Settings::Editor.MouselookSensitivity);
         }
-    }
-
-    void HandleAutomapInput() {
-        if (!Input::HasFocus) return;
-
-        GenericCameraController(Game::AutomapCamera, 300);
-
-        if (Game::Bindings.Pressed(GameAction::Afterburner))
-            Game::ResetAutomapCamera(false);
-
-        if (Input::IsKeyPressed(Keys::D1))
-            Game::NavigateToEnergy();
-
-        if (Input::IsKeyPressed(Keys::D2))
-            Game::NavigateToReactor();
-
-        if (Input::IsKeyPressed(Keys::D3))
-            Game::NavigateToExit();
     }
 
     void HandleWeaponKeys() {

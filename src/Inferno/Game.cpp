@@ -9,6 +9,7 @@
 #include "Editor/UI/EditorUI.h"
 #include "VisualEffects.h"
 #include "Game.AI.h"
+#include "Game.Automap.h"
 #include "Game.Bindings.h"
 #include "Game.Cinematics.h"
 #include "Game.Input.h"
@@ -115,76 +116,6 @@ namespace Inferno::Game {
         auto& obj = Level.Objects[(int)ref.Id];
         if (obj.Signature != ref.Signature) return nullptr;
         return &obj;
-    }
-
-    void AutomapInfo::Update(const Inferno::Level& level) {
-        if (Game::LevelNumber < 0)
-            LevelNumber = fmt::format("Secret Level {}", -Game::LevelNumber);
-        else
-            LevelNumber = fmt::format("Level {}", Game::LevelNumber);
-
-        if (Game::Player.Stats.HostagesOnLevel > 0) {
-            auto hostagesLeft = Game::Player.Stats.HostagesOnLevel - Game::Player.HostagesRescued;
-            HostageText = hostagesLeft <= 0 ? "all hostages rescued" : hostagesLeft == 1 ? "1 hostage left" : fmt::format("{} hostages left", hostagesLeft);
-        }
-        else {
-            HostageText = {};
-        }
-
-        RobotScore = 0;
-        for (auto& obj : level.Objects) {
-            if (!obj.IsRobot()) continue;
-
-            auto& info = Resources::GetRobotInfo(obj);
-            RobotScore += info.Score;
-        }
-
-        for (auto& matcen : level.Matcens) {
-            auto matcenSum = 0;
-
-            auto robots = matcen.GetEnabledRobots();
-            for (auto& id : robots) {
-                auto& info = Resources::GetRobotInfo(id);
-                matcenSum += info.Score;
-            }
-
-            // Multiply matcen score by max spawns
-            int8 activations = 3;
-            if (Game::Difficulty == 3) activations = 4; // Ace
-            if (Game::Difficulty >= 4) activations = 5; // Insane or above
-            auto spawnCount = (int8)Game::Difficulty + 3;
-            matcenSum *= activations * spawnCount;
-
-            // Average the matcenValue
-            if (robots.size() > 0) {
-                matcenSum = int((float)matcenSum / robots.size());
-            }
-
-            RobotScore += matcenSum;
-        }
-
-        if (RobotScore > 80'000) {
-            Threat = "threat: extreme";
-        }
-        if (RobotScore > 60'000) {
-            Threat = "threat: high";
-        }
-        if (RobotScore > 40'000) {
-            Threat = "threat: moderate";
-        }
-        else if (RobotScore > 20'000) {
-            Threat = "threat: light";
-        }
-        else if (RobotScore > 0) {
-            Threat = "threat: minimal";
-        }
-        else {
-            Threat = "threat: none";
-        }
-
-#ifdef _DEBUG
-        Threat += " " + std::to_string(RobotScore);
-#endif
     }
 
     void UpdateEffects(Object& obj, float dt) {
@@ -359,7 +290,7 @@ namespace Inferno::Game {
             }
         }
 
-        if (Game::ActiveCamera)
+        if (Game::ActiveCamera && State == GameState::Game)
             TraverseSegments(*Game::ActiveCamera, GetPlayerObject().Segment, TraversalFlag::None);
 
         static double accumulator = 0;
@@ -421,101 +352,6 @@ namespace Inferno::Game {
         // respawn
     }
 
-    constexpr float NAVIGATE_SPEED = 800.0f;
-
-    void PanAutomapTo(const Vector3& target) {
-        auto distance = Vector3::Distance(target, AutomapCamera.Target);
-        if (distance > 1.0f) {
-            auto duration = distance / NAVIGATE_SPEED;
-            AutomapCamera.LerpTo(target, duration);
-        }
-    }
-
-    void ResetAutomapCamera(bool instant) {
-        auto& player = Game::GetPlayerObject();
-
-        // overload style camera positioned directly behind the player
-        //auto vOffset = player.Rotation.Up() * 5.0f;
-        //auto position = player.Position + player.Rotation.Backward() * 15.0f + vOffset;
-        //auto target = player.Position + vOffset + player.Rotation.Forward() * 25.0f;
-        //auto dir = target - position;
-
-        constexpr float hDistance = 120;
-        constexpr float vDistance = 100;
-        auto vOffset = player.Rotation.Up() * vDistance;
-        auto position = player.Position + player.Rotation.Backward() * hDistance + vOffset;
-        auto target = player.Position;
-        auto dir = target - position;
-
-        dir.Normalize();
-        auto right = dir.Cross(player.Rotation.Up());
-        auto up = right.Cross(dir);
-
-        if (instant) {
-            AutomapCamera.MoveTo(position, target, up);
-        }
-        else {
-            PanAutomapTo(target);
-        }
-    }
-
-    void NavigateToEnergy() {
-        static int index = -1;
-        List<Room*> energyRooms;
-
-        for (auto& room : Level.Rooms) {
-            if (room.Type != SegmentType::Energy) continue;
-            energyRooms.push_back(&room);
-        }
-
-        if (energyRooms.empty())
-            return;
-
-        index++;
-        if (index >= energyRooms.size())
-            index = 0;
-
-        PanAutomapTo(energyRooms[index]->Center);
-    }
-
-    void NavigateToReactor() {
-        Object* reactor = nullptr;
-
-        for (auto& obj : Level.Objects) {
-            if (obj.IsReactor()) {
-                reactor = &obj;
-                break;
-            }
-        }
-
-        if (!reactor) return;
-        PanAutomapTo(reactor->Position);
-    }
-
-    void NavigateToExit() {
-        auto exit = FindExit(Level);
-
-        if (auto side = Level.TryGetSide(exit))
-            PanAutomapTo(side->Center);
-    }
-
-    void OpenAutomap() {
-        Game::Automap.Update(Game::Level);
-        Graphics::UpdateAutomap();
-
-        Sound::PauseSounds();
-        Sound::GetVolume();
-        Sound::SetMusicVolume(Settings::Inferno.MusicVolume * 0.15f);
-        Input::SetMouseMode(Input::MouseMode::Mouselook);
-        ResetAutomapCamera(true);
-    }
-
-    void CloseAutomap() {
-        Sound::ResumeSounds();
-        Sound::SetMusicVolume(Settings::Inferno.MusicVolume);
-        Input::SetMouseMode(Input::MouseMode::Mouselook);
-    }
-
     // Changes the game state if a new one is requested
     void UpdateGameState() {
         if (State == RequestedState) return;
@@ -539,7 +375,8 @@ namespace Inferno::Game {
                     // Null file
                     UpdateWindowTitle("Loading editor");
                     Editor::OpenRecentOrEmpty();
-                } else {
+                }
+                else {
                     UpdateWindowTitle();
                 }
 
@@ -1018,7 +855,7 @@ namespace Inferno::Game {
         PreloadTextures();
         PlayLevelMusic();
 
-        Automap.Initialize(Level);
+        Automap = AutomapInfo(Level);
         Editor::SetPlayerStartIDs(Level);
         // Default the gravity direction to the player start
         Gravity = player->Rotation.Up() * -DEFAULT_GRAVITY;

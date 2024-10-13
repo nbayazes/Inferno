@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Game.Visibility.h"
+#include "Game.Automap.h"
 #include "Game.h"
 #include "Graphics/Render.Debug.h"
 #include "Graphics/Render.h"
@@ -144,7 +145,7 @@ namespace Inferno {
     }
 
     void TraverseSegments(const Camera& camera, SegID startSeg, TraversalFlag /*flags*/) {
-        if (startSeg == SegID::Terrain) return;
+        if (startSeg < SegID(0) || startSeg == SegID::Terrain) return;
 
         ASSERT_STA();
 
@@ -221,7 +222,10 @@ namespace Inferno {
                 }
 
                 conn.visited = true;
-                //Render::Debug::OutlineSegment(level, level.GetSegment(connid), Color(1, 1, 1));
+
+                if (Settings::Graphics.OutlineVisibleRooms)
+                    Render::Debug::OutlineSegment(level, level.GetSegment(connid), Color(1, 1, 1));
+
                 renderList.push_back(connid);
             }
         };
@@ -233,17 +237,18 @@ namespace Inferno {
 
         uint renderIndex = 0;
 
-        //Render::Debug::OutlineSegment(level, level.GetSegment(startSeg), Color(1, 1, 1));
+        if (Settings::Graphics.OutlineVisibleRooms)
+            Render::Debug::OutlineSegment(level, level.GetSegment(startSeg), Color(1, 1, 1));
 
         while (renderIndex++ < renderList.size()) {
             auto renderListSize = renderList.size();
 
             // iterate each segment in the render list for each pass in case the window changes
             // due to adjacent segments
-            for (size_t i = 0; i < renderListSize; i++) {
+            for (size_t i = 0; i < renderListSize && i < Game::Automap.Segments.size(); i++) {
                 auto segid = renderList[i];
                 if (segid == SegID::None) continue;
-                Game::Automap.Segments[(int)segid] = Game::AutomapVisibility::Visible;
+                Game::Automap.Segments[(int)segid] = AutomapVisibility::Visible;
                 auto& info = segInfo[(int)segid];
                 if (info.processed) continue;
 
@@ -260,7 +265,5 @@ namespace Inferno {
         }
 
         Game::Debug::VisibleSegments = (uint)renderList.size();
-
-
     }
 }

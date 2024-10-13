@@ -2,6 +2,7 @@
 #include "Render.Automap.h"
 #include "CameraContext.h"
 #include "Colors.h"
+#include "Game.Automap.h"
 #include "Render.h"
 #include "Render.Level.h"
 #include "SystemClock.h"
@@ -9,6 +10,12 @@
 #include "Resources.h"
 
 namespace Inferno::Render {
+    namespace {
+        constexpr Color TEXT_COLOR(0.2f, 1.25f, 0.2f);
+        //constexpr Color DISABLED_TEXT(0.4f, 0.4f, 0.4f);
+        constexpr Color DISABLED_TEXT(0.15f, 0.30f, 0.15f);
+    }
+
     void DrawAutomapModel(GraphicsContext& ctx,
                           const Object& object,
                           ModelID modelId,
@@ -251,7 +258,7 @@ namespace Inferno::Render {
                 drawCircle(obj, 6, Colors::Hostage);
             }
 
-            if (!segInfo || *segInfo == Game::AutomapVisibility::Hidden)
+            if (!segInfo || *segInfo == AutomapVisibility::Hidden)
                 continue; // Only hostages are drawn if unrevealed
 
             if (obj.Type == ObjectType::Powerup) {
@@ -305,7 +312,6 @@ namespace Inferno::Render {
         constexpr float margin = 20;
         constexpr float lineHeight = 15;
 
-        Color textColor(0.2f, 1.5f, 0.2f);
 
         //{
         //    // Draw backgrounds
@@ -342,7 +348,7 @@ namespace Inferno::Render {
             title.VerticalAlign = AlignV::Top;
             title.Font = FontSize::Small;
             //title.Scale = 0.75;
-            title.Color = textColor;
+            title.Color = TEXT_COLOR;
             canvas->DrawGameText(Game::Level.Name, title);
 
             title.Position.y += lineHeight;
@@ -358,7 +364,7 @@ namespace Inferno::Render {
         }
 
         auto animation = GetAutomapAnimation();
-        constexpr float scanline = 0.5f;
+        constexpr float scanline = 0.2f;
 
         {
             Render::DrawTextInfo info;
@@ -368,15 +374,18 @@ namespace Inferno::Render {
             info.Font = FontSize::Small;
             //info.Scale = 1 / scale * 2;
             info.Scale = 1;
-            info.Color = textColor;
+            info.Color = TEXT_COLOR;
             info.TabStop = 20;
             info.Scanline = scanline;
             canvas->DrawGameText("Navigation:", info);
             info.Position.y += lineHeight;
+            info.Color = Game::Automap.FoundEnergy ? TEXT_COLOR : DISABLED_TEXT;
             canvas->DrawGameText("1.\tEnergy center", info);
             info.Position.y += lineHeight;
+            info.Color = Game::Automap.FoundReactor ? TEXT_COLOR : DISABLED_TEXT;
             canvas->DrawGameText("2.\tReactor", info);
             info.Position.y += lineHeight;
+            info.Color = Game::Automap.FoundExit ? TEXT_COLOR : DISABLED_TEXT;
             canvas->DrawGameText("3.\tEmergency Exit", info);
 
             //auto drawItem = [&info, &cursor, lineHeight](string_view label, string_view text) {
@@ -399,7 +408,7 @@ namespace Inferno::Render {
             info.HorizontalAlign = AlignH::Left;
             info.VerticalAlign = AlignV::Bottom;
             info.Font = FontSize::Small;
-            info.Color = textColor;
+            info.Color = TEXT_COLOR;
             info.Position = Vector2(margin, -margin - lineHeight * 3);
             info.TabStop = 150;
             info.Scanline = scanline;
@@ -421,7 +430,7 @@ namespace Inferno::Render {
             info.HorizontalAlign = AlignH::Right;
             info.VerticalAlign = AlignV::Bottom;
             info.Font = FontSize::Small;
-            info.Color = textColor;
+            info.Color = TEXT_COLOR;
             info.Scanline = scanline;
             info.Position = Vector2(-margin - rectSz.x - 2, -margin - lineHeight * 5);
 
