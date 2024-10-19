@@ -25,6 +25,7 @@ namespace Inferno {
         string Comments;
         // Extra data not used by the game at runtime
         std::map<string, string> Metadata;
+        std::filesystem::path Path; // File the mission info was loaded from
 
         void SetBool(const string& key, bool value) {
             Metadata[key] = value ? "yes" : "no";

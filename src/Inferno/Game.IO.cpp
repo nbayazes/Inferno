@@ -264,8 +264,10 @@ namespace Inferno::Game {
 
             // Read mission from filesystem
             std::ifstream file(Mission->GetMissionPath());
-            if (mission.Read(file))
+            if (mission.Read(file)) {
+                mission.Path = Mission->GetMissionPath();
                 return mission;
+            }
 
             // Descent2 stores its mn2 in the hog file
             auto ext = Level.IsDescent1() ? "msn" : "mn2";

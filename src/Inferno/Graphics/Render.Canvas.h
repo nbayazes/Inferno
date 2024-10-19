@@ -8,7 +8,7 @@
 #include "MaterialLibrary.h"
 
 namespace Inferno::Render {
-    Vector2 GetAlignment(const Vector2& size, AlignH alignH, AlignV alignV, const Vector2& screenSize);
+    Vector2 GetAlignment(const Vector2& size, AlignH alignH, AlignV alignV, const Vector2& parentSize, const Vector2& margin = Vector2::Zero);
 
     struct StaticTextureDef {
         Texture2D Font;

@@ -1,33 +1,42 @@
 #include "pch.h"
 #include "Render.Canvas.h"
-#include "MaterialLibrary.h"
 #include "Render.h"
 
 namespace Inferno::Render {
-    Vector2 GetAlignment(const Vector2& size, AlignH alignH, AlignV alignV, const Vector2& screenSize) {
+    Vector2 GetAlignment(const Vector2& size, AlignH alignH, AlignV alignV, const Vector2& parentSize, const Vector2& margin) {
         Vector2 alignment;
 
         switch (alignH) {
-            case Inferno::AlignH::Left: break; // no change
-            case Inferno::AlignH::Center: alignment.x = screenSize.x / 2 - size.x / 2;
+            case Inferno::AlignH::Left: 
+                break; // no change
+            case Inferno::AlignH::Center: 
+                alignment.x = parentSize.x / 2 - size.x / 2;
                 break;
-            case Inferno::AlignH::CenterLeft: alignment.x = screenSize.x / 2 - size.x;
+            case Inferno::AlignH::CenterLeft: 
+                alignment.x = parentSize.x / 2 - size.x;
                 break;
-            case Inferno::AlignH::CenterRight: alignment.x = screenSize.x / 2;
+            case Inferno::AlignH::CenterRight: 
+                alignment.x = parentSize.x / 2;
                 break;
-            case Inferno::AlignH::Right: alignment.x = screenSize.x - size.x;
+            case Inferno::AlignH::Right:
+                alignment.x = parentSize.x - size.x - margin.x * 2;
                 break;
         }
 
         switch (alignV) {
-            case AlignV::Top: break; // no change
-            case AlignV::Center: alignment.y = screenSize.y / 2 - size.y / 2;
+            case AlignV::Top:
+                break; // no change
+            case AlignV::Center: 
+                alignment.y = parentSize.y / 2 - size.y / 2;
                 break;
-            case AlignV::CenterTop: alignment.y = screenSize.y / 2;
+            case AlignV::CenterTop: 
+                alignment.y = parentSize.y / 2;
                 break;
-            case AlignV::CenterBottom: alignment.y = screenSize.y / 2 - size.y;
+            case AlignV::CenterBottom: 
+                alignment.y = parentSize.y / 2 - size.y;
                 break;
-            case AlignV::Bottom: alignment.y = screenSize.y - size.y;
+            case AlignV::Bottom: 
+                alignment.y = parentSize.y - size.y - margin.y * 2;
                 break;
         }
 

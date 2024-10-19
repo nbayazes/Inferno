@@ -6,12 +6,24 @@
 #include "Types.h"
 #include "Utility.h"
 #include "Resources.h"
+#include "Version.h"
 
 namespace Inferno::UI {
-    using Action = std::function<void()>;
+    using Action = std::function<void(bool)>;
     using ClickHandler = std::function<void(const Vector2*)>;
 
-    const auto FOCUS_COLOR = Color(1, .9f, 0.9f) * 1.7f;
+    namespace {
+        constexpr Color HOVER_COLOR = { 1, .9f, 0.9f };
+        const auto FOCUS_COLOR = HOVER_COLOR * 1.7f;
+        constexpr Color ACCENT_COLOR = { 1, .75f, .2f };
+        const auto ACCENT_GLOW = ACCENT_COLOR * 2.0f;
+        constexpr Color BORDER_COLOR = { 0.25f, 0.25f, 0.25f };
+        constexpr Color IDLE_BUTTON = { 0.4f, 0.4f, 0.4f };
+        constexpr Color DIALOG_TITLE_COLOR = { 1.25f, 1.25f, 2.0f };
+        constexpr Color DIALOG_BACKGROUND = { 0.1f, 0.1f, 0.1f };
+
+        constexpr float DIALOG_MARGIN = 15;
+    }
 
     float GetScale() {
         return Render::HudCanvas->GetScale();
@@ -34,7 +46,7 @@ namespace Inferno::UI {
         virtual ~ControlBase() = default;
 
         bool Focused = false;
-        //bool Hovered = false;
+        bool Hovered = false;
         bool Enabled = true;
         bool Selectable = true;
 
@@ -69,7 +81,7 @@ namespace Inferno::UI {
             ScreenPosition = Position * scale + parent.ScreenPosition + Margin * scale;
             ScreenSize = Size * scale + Padding * 2 * scale;
 
-            auto offset = Render::GetAlignment(Size * scale, HorizontalAlignment, VerticalAlignment, parent.ScreenSize);
+            auto offset = Render::GetAlignment(Size * scale, HorizontalAlignment, VerticalAlignment, parent.ScreenSize, Margin * scale);
             ScreenPosition += offset;
         }
 
@@ -79,15 +91,15 @@ namespace Inferno::UI {
                 point.y > ScreenPosition.y && point.y < ScreenPosition.y + ScreenSize.y;
         }
 
-        ControlBase* HitTestCursor(const Vector2& position) {
+        virtual ControlBase* HitTestCursor() {
             if (!Enabled) return nullptr;
 
-            if (Selectable && Contains(position)) {
+            if (Selectable && Contains(Input::MousePosition)) {
                 return this;
             }
 
             for (auto& child : Children) {
-                if (auto control = child->HitTestCursor(position))
+                if (auto control = child->HitTestCursor())
                     return control;
             }
 
@@ -97,7 +109,7 @@ namespace Inferno::UI {
         void OnClick(const Vector2& position) const {
             for (auto& control : Children) {
                 if (control->Enabled && control->Contains(position) && control->ClickAction) {
-                    control->ClickAction();
+                    control->ClickAction(true);
                     return;
                 }
 
@@ -108,9 +120,9 @@ namespace Inferno::UI {
         virtual void OnUpdate() {
             if (!Enabled) return;
 
-            if (Selectable) {
-                auto pos = Input::MousePosition;
-                Focused = Contains(pos);
+            if (Selectable && Input::MouseMoved()) {
+                Focused = Contains(Input::MousePosition);
+                //Hovered = Contains(Input::MousePosition);
             }
 
             for (auto& child : Children) {
@@ -196,6 +208,16 @@ namespace Inferno::UI {
             }
 
             return { nullptr };
+        }
+
+        // Populates a list containing all keyboard selectable controls
+        void FlattenSelectionTree(List<ControlBase*>& controls) const {
+            for (auto& child : Children) {
+                if (child->Selectable)
+                    controls.push_back(child.get());
+
+                child->FlattenSelectionTree(controls);
+            }
         }
 
         SelectionState SelectNext(ControlBase* current) const {
@@ -306,26 +328,21 @@ namespace Inferno::UI {
             Padding = Vector2(5, 5);
         }
 
-        int SelectionIndex = 0;
-
-        Vector2 LastCursorPosition;
+        //int SelectionIndex = 0;
 
         ControlBase* Selection = nullptr;
         ControlBase* LastGoodSelection = nullptr;
 
         void OnUpdate() override {
-            if (LastCursorPosition != Input::MousePosition) {
-                LastCursorPosition = Input::MousePosition;
-                SetSelection(HitTestCursor(Input::MousePosition));
-            }
+            if (Input::MouseMoved())
+                SetSelection(HitTestCursor());
 
             ControlBase::OnUpdate(); // breaks main menu selection
         }
 
-        void OnConfirm() {
-            if (Seq::inRange(Children, SelectionIndex))
-                if (Children[SelectionIndex]->ClickAction)
-                    Children[SelectionIndex]->ClickAction();
+        void OnConfirm() const {
+            if (Selection && Selection->ClickAction)
+                Selection->ClickAction(false);
         }
 
         void OnUpdateLayout() override {
@@ -349,9 +366,11 @@ namespace Inferno::UI {
         void SetSelection(ControlBase* control) {
             if (Selection) Selection->Focused = false;
             Selection = control;
-            if (control) control->Focused = true;
 
-            if (control) LastGoodSelection = Selection;
+            if (control) {
+                control->Focused = true;
+                LastGoodSelection = Selection;
+            }
         }
 
         void SelectFirst() {
@@ -364,16 +383,42 @@ namespace Inferno::UI {
             }
         }
 
+        // Returns -1 if the selection is not found
+        int FindSelectionIndex(span<ControlBase*> tree) const {
+            for (int i = 0; i < (int)tree.size(); i++) {
+                if (Selection == tree[i])
+                    return i;
+            }
+
+            return -1;
+        }
+
         void OnUpArrow() {
-            auto prev = SelectPrevious(Selection).Selection;
-            if (!prev) prev = LastGoodSelection;
-            SetSelection(prev);
+            List<ControlBase*> tree;
+            FlattenSelectionTree(tree);
+            int index = FindSelectionIndex(tree);
+
+            if (index == -1)
+                return; // selection not found
+
+            if (index == 0)
+                SetSelection(tree.back()); // wrap
+            else
+                SetSelection(tree[index - 1]);
         }
 
         void OnDownArrow() {
-            auto next = SelectNext(Selection).Selection;
-            if (!next) next = LastGoodSelection;
-            SetSelection(next);
+            List<ControlBase*> tree;
+            FlattenSelectionTree(tree);
+            int index = FindSelectionIndex(tree);
+
+            if (index == -1)
+                return; // selection not found
+
+            if (index == tree.size() - 1)
+                SetSelection(tree.front()); // wrap
+            else
+                SetSelection(tree[index + 1]);
         }
     };
 
@@ -427,7 +472,7 @@ namespace Inferno::UI {
             dti.Font = _size;
             dti.Color = Color;
             dti.Position = ScreenPosition / GetScale() + Margin;
-            Render::HudCanvas->DrawGameText(_text, dti, Layer + 1);
+            Render::HudCanvas->DrawGameText(_text, dti, Layer);
         }
     };
 
@@ -435,6 +480,9 @@ namespace Inferno::UI {
         string _text;
 
     public:
+        Color TextColor = Color(1, 1, 1);
+        Color FocusColor = FOCUS_COLOR;
+
         Button(string_view text) : _text(text) {
             Size = MeasureString(_text, FontSize::Medium);
             Selectable = true;
@@ -450,9 +498,60 @@ namespace Inferno::UI {
         void OnDraw() override {
             Render::DrawTextInfo dti;
             dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
-            dti.Color = Focused ? FOCUS_COLOR : Color(1, 1, 1);
+            dti.Color = Focused || Hovered ? FocusColor : TextColor;
             dti.Position = ScreenPosition / GetScale() + Padding;
             Render::HudCanvas->DrawGameText(_text, dti, Layer);
+        }
+    };
+
+    class CloseButton : public ControlBase {
+    public:
+        CloseButton(Action&& action) {
+            ClickAction = action;
+            Size = Vector2(15, 15);
+            Selectable = false; // Disable keyboard navigation
+        }
+
+        float Thickness = 1.0f;
+
+        void OnDraw() override {
+            const float thickness = Thickness * GetScale();
+
+            Render::HudCanvasPayload payload;
+            payload.Texture = Render::Materials->White().Handle();
+            payload.Layer = Layer;
+            payload.V0.Color = payload.V1.Color = payload.V2.Color = payload.V3.Color = Focused ? ACCENT_GLOW : IDLE_BUTTON;
+
+            float size = ScreenSize.x;
+            auto position = ScreenPosition;
+
+            // tl to br
+            payload.V0.Position = position;
+            payload.V1.Position = Vector2(position.x + thickness, position.y);
+            payload.V2.Position = Vector2(position.x + size, position.y + size - thickness);
+            payload.V3.Position = Vector2(position.x + size, position.y + size);
+            Render::HudCanvas->Draw(payload);
+
+            payload.V0.Position = position;
+            payload.V1.Position = Vector2(position.x, position.y + thickness);
+            payload.V2.Position = Vector2(position.x + size - thickness, position.y + size);
+            payload.V3.Position = Vector2(position.x + size, position.y + size);
+            Render::HudCanvas->Draw(payload);
+
+            // tr to bl
+            payload.V0.Position = Vector2(position.x + size, position.y);
+            payload.V1.Position = Vector2(position.x + size - thickness, position.y);
+            payload.V2.Position = Vector2(position.x, position.y + size - thickness);
+            payload.V3.Position = Vector2(position.x, position.y + size);
+            payload.Layer = Layer;
+            Render::HudCanvas->Draw(payload);
+
+            payload.V0.Position = Vector2(position.x + size, position.y);
+            payload.V1.Position = Vector2(position.x + size, position.y + thickness);
+            payload.V2.Position = Vector2(position.x + thickness, position.y + size);
+            payload.V3.Position = Vector2(position.x, position.y + size);
+            payload.Layer = Layer;
+            Render::HudCanvas->Draw(payload);
         }
     };
 
@@ -546,6 +645,8 @@ namespace Inferno::UI {
 
         List<string> Items;
 
+        std::function<void(int, bool)> ClickItemAction;
+
         ListBox(int visibleItems) : VisibleItems(visibleItems) {
             _fontHeight = MeasureString("Descent", FontSize::Medium).y;
 
@@ -594,25 +695,46 @@ namespace Inferno::UI {
                     _scrollIndex++;
             }
 
-            // Hit test mouse
-            if (Input::MouseMoved() || wheelDelta) {
-                auto scale = GetScale();
-                const float rowHeight = (_fontHeight + ItemSpacing) * scale;
+            if (Items.size() <= VisibleItems) {
+                _scrollIndex = 0; // Reset scrolling if all items fit on screen
+            }
 
-                for (int i = _scrollIndex, j = 0; i < Items.size() && i < _scrollIndex + VisibleItems; i++, j++) {
-                    auto position = ScreenPosition;
-                    position.y += rowHeight * j;
-                    Vector2 size(ScreenSize.x, rowHeight);
+            bool clicked = Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick);
 
-                    if (RectangleContains(position, size, Input::MousePosition)) {
-                        _index = i;
-                        break;
-                    }
-                }
+            if (clicked && ClickItemAction && HitTestCursor()) {
+                ClickItemAction(_index, true);
             }
 
             _index = std::clamp(_index, 0, (int)Items.size() - 1);
-            _scrollIndex = std::clamp(_scrollIndex, 0, (int)Items.size() - 1);
+            _scrollIndex = std::clamp(_scrollIndex, 0, std::max((int)Items.size() - VisibleItems, 0));
+
+            if (wheelDelta != 0)
+                HitTestCursor(); // Update index when scrolling
+
+            if (Input::IsKeyPressed(Keys::Enter) && ClickItemAction) {
+                ClickItemAction(_index, false);
+            }
+        }
+
+        ControlBase* HitTestCursor() override {
+            auto scale = GetScale();
+            const float rowHeight = (_fontHeight + ItemSpacing) * scale;
+
+            for (int i = _scrollIndex, j = 0; i < Items.size() && i < _scrollIndex + VisibleItems; i++, j++) {
+                auto position = ScreenPosition;
+                position.y += rowHeight * j;
+                Vector2 size(ScreenSize.x, rowHeight);
+
+                if (RectangleContains(position, size, Input::MousePosition)) {
+                    _index = i;
+                    break;
+                }
+            }
+
+            if (RectangleContains(ScreenPosition, ScreenSize, Input::MousePosition))
+                return this;
+            else
+                return nullptr;
         }
 
         void OnUpdateLayout() override {
@@ -621,12 +743,14 @@ namespace Inferno::UI {
         }
 
         void OnDraw() override {
-            Render::CanvasBitmapInfo cbi;
-            cbi.Position = ScreenPosition;
-            cbi.Size = ScreenSize;
-            cbi.Texture = Render::Materials->White().Handle();
-            cbi.Color = Color(0, 0, 0, 1);
-            Render::HudCanvas->DrawBitmap(cbi, Layer);
+            {
+                Render::CanvasBitmapInfo cbi;
+                cbi.Position = ScreenPosition;
+                cbi.Size = ScreenSize;
+                cbi.Texture = Render::Materials->White().Handle();
+                cbi.Color = Color(0, 0, 0, 1);
+                Render::HudCanvas->DrawBitmap(cbi, Layer);
+            }
 
             for (int i = _scrollIndex, j = 0; i < Items.size() && i < _scrollIndex + VisibleItems; i++, j++) {
                 auto& item = Items[i];
@@ -637,6 +761,25 @@ namespace Inferno::UI {
                 dti.Position = ScreenPosition / GetScale() + Padding;
                 dti.Position.y += (_fontHeight + ItemSpacing) * j + LINE_OFFSET;
                 Render::HudCanvas->DrawGameText(item, dti, Layer + 1);
+            }
+
+
+            // Draw scrollbar
+            if (!Items.empty()) {
+                float percentVisible = (float)VisibleItems / Items.size();
+                if (percentVisible < 1) {
+                    const float scrollWidth = 3 * GetScale();
+                    const float scrollHeight = ScreenSize.y * percentVisible;
+                    float percent = (float)_scrollIndex / (Items.size() - VisibleItems);
+                    float offset = (ScreenSize.y - scrollHeight) * percent;
+
+                    Render::CanvasBitmapInfo cbi;
+                    cbi.Position = Vector2(ScreenPosition.x + ScreenSize.x - scrollWidth, ScreenPosition.y + offset);
+                    cbi.Size = Vector2(scrollWidth, scrollHeight);
+                    cbi.Texture = Render::Materials->White().Handle();
+                    cbi.Color = ACCENT_COLOR;
+                    Render::HudCanvas->DrawBitmap(cbi, Layer + 1);
+                }
             }
         }
     };
@@ -650,12 +793,19 @@ namespace Inferno::UI {
         return fullScreen;
     }
 
-    void ShowScreen(Ptr<ScreenBase> screen) {
-        //screen->UpdateLayout(GetFullScreen());
-        //main.UpdateLayout();
-        //Screens.push_back(make_unique<MainMenu>(std::move(main)));
-        screen->Layer = (int)Screens.size();
+    void ShowScreen(Ptr<ScreenBase> screen, bool mouseClick = true) {
+        Input::ResetState(); // Reset input to prevent clicking a control as soon as the screen appears
+        screen->Layer = (int)Screens.size() * 2;
         screen->OnUpdateLayout();
+        screen->OnUpdateLayout(); // Need to calculate layout twice due to sizing
+
+        // Set initial selection based on how the screen was shown
+        if (!mouseClick)
+            screen->SelectFirst();
+        else
+            screen->SetSelection(screen->HitTestCursor());
+
+        screen->OnUpdate();
         Screens.push_back(std::move(screen));
     }
 
@@ -670,55 +820,59 @@ namespace Inferno::UI {
         if (Screens.size() == 1) return; // Can't close the last screen
 
         Screens.pop_back();
+        Input::ResetState(); // Clear state so clicking doesn't immediately trigger another action
     }
 
-    void DrawBackground() {}
-
-    void Render() {
-        DrawBackground();
-
-        //if (Screens.empty()) return;
-
-        // Draw the top screen
-        //auto& screen = Screens.back();
-        //screen.Draw();
-    }
-
-    class PlayD1Screen : public ScreenBase {
+    class DialogBase : public ScreenBase {
     public:
-        PlayD1Screen() {
-            HorizontalAlignment = AlignH::Center;
-            VerticalAlignment = AlignV::Center;
-            Size = Vector2(500, 460);
+        DialogBase(string_view title = "") {
+            CloseButton close([](bool) { CloseScreen(); });
+            close.HorizontalAlignment = AlignH::Right;
+            close.Margin = Vector2(DIALOG_MARGIN, DIALOG_MARGIN);
+            AddChild(make_unique<CloseButton>(std::move(close)));
 
-            auto missions = Resources::ReadMissionDirectory("./d1/missions");
-
-            Label title("select mission", FontSize::MediumBlue);
-            title.VerticalAlignment = AlignV::Top;
-            title.HorizontalAlignment = AlignH::Center;
-            title.Position = Vector2(0, 20);
-            title.Color = Color(1.25f, 1.25f, 2.0f);
-            AddChild(make_unique<Label>(std::move(title)));
-
-            ListBox missionList(14);
-
-            for (auto& mission : missions) {
-                missionList.Items.push_back(mission.Name);
+            if (!title.empty()) {
+                Label titleLabel(title, FontSize::MediumBlue);
+                titleLabel.VerticalAlignment = AlignV::Top;
+                titleLabel.HorizontalAlignment = AlignH::Center;
+                titleLabel.Position = Vector2(0, DIALOG_MARGIN);
+                titleLabel.Color = DIALOG_TITLE_COLOR;
+                AddChild(make_unique<Label>(std::move(titleLabel)));
             }
-
-            missionList.Position = Vector2(30, 60);
-            missionList.Size.x = 425;
-            missionList.Padding = Vector2(10, 5);
-            AddChild(make_unique<ListBox>(std::move(missionList)));
         }
 
         void OnDraw() override {
-            Render::CanvasBitmapInfo cbi;
-            cbi.Position = ScreenPosition;
-            cbi.Size = ScreenSize;
-            cbi.Texture = Render::Materials->White().Handle();
-            cbi.Color = Color(0.1f, 0.1f, 0.1f, 1);
-            Render::HudCanvas->DrawBitmap(cbi, 1);
+            const auto border = Vector2(1, 1) * GetScale();
+
+            {
+                // Border
+                Render::CanvasBitmapInfo cbi;
+                cbi.Position = ScreenPosition;
+                cbi.Size = ScreenSize;
+                cbi.Texture = Render::Materials->White().Handle();
+                cbi.Color = BORDER_COLOR;
+                Render::HudCanvas->DrawBitmap(cbi, Layer);
+            }
+
+            {
+                // Background
+                Render::CanvasBitmapInfo cbi;
+                cbi.Position = ScreenPosition + border;
+                cbi.Size = ScreenSize - border * 2;
+                cbi.Texture = Render::Materials->White().Handle();
+                cbi.Color = DIALOG_BACKGROUND;
+                Render::HudCanvas->DrawBitmap(cbi, Layer);
+            }
+
+            //{
+            //    // Header
+            //    Render::CanvasBitmapInfo cbi;
+            //    cbi.Position = ScreenPosition + border;
+            //    cbi.Size = Vector2(ScreenSize.x - border.x * 2, 30 * GetScale());
+            //    cbi.Texture = Render::Materials->White().Handle();
+            //    cbi.Color = Color(0.02f, 0.02f, 0.02f, 1);
+            //    Render::HudCanvas->DrawBitmap(cbi, 1);
+            //}
 
 
             //auto title = make_unique<Label>("Play mission", FontSize::Big);
@@ -739,6 +893,112 @@ namespace Inferno::UI {
         }
     };
 
+    class LevelSelectDialog : public DialogBase {
+    public:
+        LevelSelectDialog() : DialogBase("Level select") {
+            // new level (blue)
+            // select starting level (blue)
+            // you may start on any level up to {n}
+            // [textbox] input, cursor. left arrow deletes
+            // check invalid input
+        }
+
+        void OnDraw() override {
+            //Render::CanvasBitmapInfo cbi;
+            //cbi.Position = ScreenPosition;
+            //cbi.Size = ScreenSize;
+            //cbi.Texture = Render::Materials->White().Handle();
+            //cbi.Color = Color(0.1f, 0.1f, 0.1f, 1);
+            //Render::HudCanvas->DrawBitmap(cbi, 1);
+        }
+    };
+
+    class DifficultyDialog : public DialogBase {
+    public:
+        DifficultyDialog() : DialogBase("Difficulty") {
+            // difficulty level (blue)
+            // five difficulties in list (same as main menu)
+
+            // immediately load briefing - no load screen
+            // after briefing -> load screen "prepare for descent"
+
+            HorizontalAlignment = AlignH::Center;
+            VerticalAlignment = AlignV::Center;
+
+            Size = Vector2(260, 220);
+
+            StackPanel panel;
+            panel.Position = Vector2(0, 60);
+            panel.HorizontalAlignment = AlignH::Center;
+            panel.VerticalAlignment = AlignV::Top;
+
+            panel.AddChild<Button>("Trainee");
+            panel.AddChild<Button>("Rookie");
+            panel.AddChild<Button>("Hotshot");
+            panel.AddChild<Button>("Ace");
+            Button insane("Insane");
+            insane.TextColor = Color(3.5f, 0.4f, 0.4f);
+            insane.FocusColor = Color(4.4f, 0.4f, 0.4f);
+            panel.AddChild<Button>(std::move(insane));
+
+            //Button lunacy("Lunacy");
+            //lunacy.TextColor = Color(4.0f, 0.4f, 0.4f);
+            //panel.AddChild<Button>(std::move(lunacy));
+
+            Children.push_back(make_unique<StackPanel>(std::move(panel)));
+        }
+    };
+
+    class PlayD1Dialog : public DialogBase {
+        List<MissionInfo> _missions;
+
+    public:
+        PlayD1Dialog() {
+            HorizontalAlignment = AlignH::Center;
+            VerticalAlignment = AlignV::Center;
+            Size = Vector2(500, 460);
+
+            _missions = Resources::ReadMissionDirectory("./d1/missions");
+            MissionInfo firstStrike{ .Name = "Descent: First Strike" };
+            firstStrike.Levels.resize(27);
+            _missions.insert(_missions.begin(), firstStrike);
+
+            Label title("select mission", FontSize::MediumBlue);
+            title.VerticalAlignment = AlignV::Top;
+            title.HorizontalAlignment = AlignH::Center;
+            title.Position = Vector2(0, DIALOG_MARGIN);
+            title.Color = DIALOG_TITLE_COLOR;
+            AddChild(make_unique<Label>(std::move(title)));
+
+            ListBox missionList(14);
+
+            for (auto& mission : _missions) {
+                missionList.Items.push_back(mission.Name);
+            }
+
+            missionList.ClickItemAction = [this](int index, bool mouseClick) {
+                if (auto mission = Seq::tryItem(_missions, index)) {
+                    SPDLOG_INFO("Mission: {}", mission->Path.string());
+                    ShowScreen(make_unique<DifficultyDialog>(), mouseClick);
+                    //ShowScreen(make_unique<PlayD1Dialog>());
+
+
+                    //if (mission->Levels.size() > 1) {
+                    //    ShowScreen(make_unique<LevelSelectDialog>());
+                    //}
+                    //else {
+                    //    ShowScreen(make_unique<DifficultyDialog>());
+                    //}
+                }
+            };
+
+            missionList.Position = Vector2(30, 60);
+            missionList.Size.x = 425;
+            missionList.Padding = Vector2(10, 5);
+            AddChild(make_unique<ListBox>(std::move(missionList)));
+        }
+    };
+
     class MainMenu : public ScreenBase {
     public:
         MainMenu() {
@@ -747,23 +1007,22 @@ namespace Inferno::UI {
             panel.HorizontalAlignment = AlignH::CenterRight;
             panel.VerticalAlignment = AlignV::Top;
 
-            panel.AddChild<Button>("Play Descent 1", [] {
-                ShowScreen(make_unique<PlayD1Screen>());
+            panel.AddChild<Button>("Play Descent 1", [](bool mouseClick) {
+                ShowScreen(make_unique<PlayD1Dialog>(), mouseClick);
             });
             panel.AddChild<Button>("Play Descent 2");
             panel.AddChild<Button>("Load Game");
             panel.AddChild<Button>("Options");
-            panel.AddChild<Button>("Level Editor", [] {
-                Game::SetState(GameState::Editor);
-            });
             panel.AddChild<Button>("High Scores");
             panel.AddChild<Button>("Credits");
-            panel.AddChild<Button>("Quit", [] {
+            panel.AddChild<Button>("Level Editor", [](bool) {
+                Game::SetState(GameState::Editor);
+            });
+            panel.AddChild<Button>("Quit", [](bool) {
                 PostMessage(Shell::Hwnd, WM_CLOSE, 0, 0);
             });
 
             Children.push_back(make_unique<StackPanel>(std::move(panel)));
-            SelectFirst();
         }
 
         void OnDraw() override {
@@ -824,17 +1083,15 @@ namespace Inferno::UI {
         auto& screen = Screens.back();
 
         // todo: add controller dpad input
-        if (Input::IsKeyPressed(Input::Keys::Down))
+        if (Input::IsKeyPressed(Input::Keys::Down, true))
             screen->OnDownArrow();
-        //screen->SelectNext(screen->Selection);
-        //screen->SelectionIndex++;
 
-        if (Input::IsKeyPressed(Input::Keys::Up))
+        if (Input::IsKeyPressed(Input::Keys::Up, true))
             screen->OnUpArrow();
 
         // Wrap selection
-        if (!screen->Children.empty())
-            screen->SelectionIndex = (int)Mod(screen->SelectionIndex, screen->Children.size());
+        //if (!screen->Children.empty())
+        //    screen->SelectionIndex = (int)Mod(screen->SelectionIndex, screen->Children.size());
 
         if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick))
             screen->OnClick(Input::MousePosition);
@@ -893,7 +1150,7 @@ namespace Inferno::UI {
             dti.Position = Vector2(-5, -5);
             dti.Color = Color(0.25f, 0.25f, 0.25f);
             //dti.Scale = 0.5f;
-            Render::HudCanvas->DrawGameText("inferno 0.2.0 alpha", dti);
+            Render::HudCanvas->DrawGameText(APP_TITLE, dti);
 
             dti.Position.y -= 14;
             Render::HudCanvas->DrawGameText("software 1994, 1995, 1999", dti);
@@ -903,15 +1160,24 @@ namespace Inferno::UI {
         }
 
         if (Screens.empty()) {
+            Screens.reserve(20);
             ShowScreen(make_unique<MainMenu>());
         }
 
         HandleInput();
 
-        auto& screen = Screens.back();
-        screen->OnUpdate();
-        screen->OnUpdateLayout();
-        screen->OnDraw();
+        if (Screens.empty()) return;
+
+        for (size_t i = 0; i < Screens.size(); i++) {
+            auto& screen = Screens[i];
+
+            if (i == Screens.size() - 1) {
+                screen->OnUpdate(); // only update input for topmost screen
+            }
+
+            screen->OnUpdateLayout();
+            screen->OnDraw();
+        }
 
         std::function<void(ControlBase&)> debugDraw = [&](const ControlBase& control) {
             for (auto& child : control.Children) {
@@ -926,6 +1192,7 @@ namespace Inferno::UI {
             }
         };
 
-        //debugDraw(*screen.get());
+        // debug outlines
+        //debugDraw(*Screens.back().get());
     }
 }

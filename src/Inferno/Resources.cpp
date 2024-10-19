@@ -1095,6 +1095,7 @@ namespace Inferno::Resources {
                     MissionInfo mission{};
                     std::ifstream missionFile(file.path());
                     if (mission.Read(missionFile)) {
+                        mission.Path = file.path();
                         missions.push_back(mission);
                     }
                 }
@@ -1103,6 +1104,11 @@ namespace Inferno::Resources {
         catch (...) {
             SPDLOG_WARN("Unable to read mission directory`{}`", directory.string());
         }
+
+        // Alphabetical sort
+        Seq::sortBy(missions, [](const Inferno::MissionInfo& a, const Inferno::MissionInfo& b) {
+            return lstrcmpiA(a.Name.c_str(), b.Name.c_str()) < 0;
+        });
 
         return missions;
     }

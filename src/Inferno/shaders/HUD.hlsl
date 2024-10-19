@@ -50,6 +50,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float4 color = Diffuse.SampleLevel(Sampler, input.uv + uv, 0);
     color.rgb *= pow(input.col.rgb, 2.2);
     color.a *= input.col.a;
+    color.a = saturate(color.a);
     //color *= pow(input.col, 2.2);
 
     if (Args.Scanline > 0.1) {
