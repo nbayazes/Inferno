@@ -398,10 +398,7 @@ namespace Inferno::UI {
             FlattenSelectionTree(tree);
             int index = FindSelectionIndex(tree);
 
-            if (index == -1)
-                return; // selection not found
-
-            if (index == 0)
+            if (index == 0 || index == -1)
                 SetSelection(tree.back()); // wrap
             else
                 SetSelection(tree[index - 1]);
@@ -412,10 +409,7 @@ namespace Inferno::UI {
             FlattenSelectionTree(tree);
             int index = FindSelectionIndex(tree);
 
-            if (index == -1)
-                return; // selection not found
-
-            if (index == tree.size() - 1)
+            if (index == tree.size() - 1 || index == -1)
                 SetSelection(tree.front()); // wrap
             else
                 SetSelection(tree[index + 1]);
@@ -423,18 +417,18 @@ namespace Inferno::UI {
     };
 
     // Horizontal slider
-    template <typename TValue>
-    class Slider : public ControlBase {
-    public:
-        float Width;
-        TValue Min, Max, Value;
+    //template <typename TValue>
+    //class Slider : public ControlBase {
+    //public:
+    //    float Width;
+    //    TValue Min, Max, Value;
 
-        void Clicked(const Vector2& position) {
-            if (!Contains(position)) return;
+    //    void Clicked(const Vector2& position) {
+    //        if (!Contains(position)) return;
 
-            // determine the location within the slider and set the value
-        }
-    };
+    //        // determine the location within the slider and set the value
+    //    }
+    //};
 
     class Rectangle : public ControlBase {
     public:
@@ -454,25 +448,120 @@ namespace Inferno::UI {
 
     class Label : public ControlBase {
         string _text;
-        FontSize _size;
+        FontSize _font;
 
     public:
         Color Color = { 1, 1, 1 };
 
-        Label(string_view text, FontSize size = FontSize::Medium) : _text(text), _size(size) {
+        Label(string_view text, FontSize font = FontSize::Medium) : _text(text), _font(font) {
             Selectable = false;
         }
 
         void OnUpdateLayout() override {
-            Size = MeasureString(_text, _size);
+            Size = MeasureString(_text, _font);
         }
 
         void OnDraw() override {
             Render::DrawTextInfo dti;
-            dti.Font = _size;
+            dti.Font = _font;
             dti.Color = Color;
             dti.Position = ScreenPosition / GetScale() + Margin;
             Render::HudCanvas->DrawGameText(_text, dti, Layer);
+        }
+    };
+
+    class TextBox : public ControlBase {
+        string _text;
+        FontSize _font;
+        float _cursorTimer = 0;
+
+    public:
+        bool NumericMode = false;
+        Color TextColor = Color(1, 1, 1);
+        Color FocusColor = FOCUS_COLOR;
+
+        TextBox(FontSize font = FontSize::Medium): _font(font) {}
+
+        void SetText(string_view text) {
+            _text = text;
+            Padding = Vector2(4, 4);
+        }
+
+        void OnUpdate() override {
+            if (!Focused) return;
+
+            using Input::Keys;
+            auto pressed = Input::GetPressedKeys();
+            auto repeated = Input::GetRepeatedKeys();
+
+            for (uchar i = 0; i < 255; i++) {
+                if (pressed[i] || repeated[i]) {
+                    bool isNumeric = i >= Keys::D0 && i <= Keys::D9;
+                    bool isNumpad = i >= Keys::NumPad0 && i <= Keys::NumPad9;
+                    bool isLetter = i >= Keys::A && i <= Keys::Z;
+
+                    if (i == Keys::Delete || i == Keys::Back /*|| i == Keys::Left*/) {
+                        if (!_text.empty())
+                            _text.pop_back();
+                    }
+                    else if (isNumpad) {
+                        constexpr uchar numpadOffset = Keys::NumPad0 - Keys::D0;
+                        _text += uchar(i - numpadOffset);
+                    }
+                    else if (isNumeric || isLetter || i == Keys::Space) {
+                        _text += i;
+                    }
+                }
+            }
+        }
+
+        void OnDraw() override {
+            {
+                // Border
+                Render::CanvasBitmapInfo cbi;
+                cbi.Position = ScreenPosition;
+                cbi.Size = ScreenSize;
+                cbi.Texture = Render::Materials->White().Handle();
+                cbi.Color = Focused ? ACCENT_COLOR : BORDER_COLOR;
+                Render::HudCanvas->DrawBitmap(cbi, Layer);
+            }
+
+            {
+                // Background
+                Render::CanvasBitmapInfo cbi;
+                //cbi.Position = ScreenPosition;
+                //cbi.Size = ScreenSize;
+                const auto border = Vector2(1, 1) * GetScale();
+                cbi.Position = ScreenPosition + border;
+                cbi.Size = ScreenSize - border * 2;
+                cbi.Texture = Render::Materials->White().Handle();
+                cbi.Color = Color(0, 0, 0, 1);
+                Render::HudCanvas->DrawBitmap(cbi, Layer);
+            }
+
+            {
+                Render::DrawTextInfo dti;
+                dti.Font = Focused ? FontSize::MediumGold : _font;
+                dti.Color = Focused || Hovered ? FocusColor : TextColor;
+                dti.Position = ScreenPosition / GetScale() + Margin + Padding;
+                Render::HudCanvas->DrawGameText(_text, dti, Layer);
+            }
+
+            if (!Focused) return;
+
+            _cursorTimer += Clock.GetFrameTimeSeconds();
+            while (_cursorTimer > 1) _cursorTimer -= 1;
+
+            if (_cursorTimer > 0.5f) {
+                auto offset = MeasureString(_text, _font);
+
+                Render::DrawTextInfo dti;
+                dti.Font = FontSize::MediumGold;
+                dti.Color = FocusColor;
+                dti.Position = ScreenPosition / GetScale() + Margin + Padding;
+                dti.Position.x += offset.x + 2;
+                Render::HudCanvas->DrawGameText("_", dti, Layer);
+            }
         }
     };
 
@@ -653,16 +742,7 @@ namespace Inferno::UI {
             Rectangle rect;
             AddChild(make_unique<Rectangle>(std::move(rect)));
             Padding = Vector2(2, 2);
-            //auto list = make_unique<StackPanel>();
-            //_list = list.get();
-            //AddChild(std::move(list));
         }
-
-        //void AddItem(string_view item) const {
-        //    Label label(item, _font);
-        //    label.Margin = Vector2(Margin, Margin);
-        //    _list->AddChild(make_unique<Label>(std::move(label)));
-        //}
 
         void OnUpdate() override {
             // todo: check focus?
@@ -1006,6 +1086,11 @@ namespace Inferno::UI {
             panel.Position = Vector2(45, 140);
             panel.HorizontalAlignment = AlignH::CenterRight;
             panel.VerticalAlignment = AlignV::Top;
+
+            TextBox tb;
+            tb.Size = Vector2{ 200, 20 };
+            tb.SetText("Hello");
+            panel.AddChild<TextBox>(std::move(tb));
 
             panel.AddChild<Button>("Play Descent 1", [](bool mouseClick) {
                 ShowScreen(make_unique<PlayD1Dialog>(), mouseClick);

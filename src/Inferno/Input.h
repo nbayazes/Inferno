@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bitset>
 #include <DirectXTK12/Keyboard.h>
 
 namespace Inferno::Input {
@@ -41,6 +42,9 @@ namespace Inferno::Input {
 
     // Returns true when a key is first released
     bool IsKeyReleased(Keys);
+
+    std::bitset<256> GetPressedKeys();
+    std::bitset<256> GetRepeatedKeys();
 
     // Returns true while a key is held down
     bool IsMouseButtonDown(MouseButtons);

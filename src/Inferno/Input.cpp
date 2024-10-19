@@ -270,6 +270,9 @@ namespace Inferno::Input {
         return _keyboard.released[key];
     }
 
+    std::bitset<256> GetPressedKeys() { return _keyboard.pressed; }
+    std::bitset<256> GetRepeatedKeys() { return _keyboard.repeat; }
+
     bool IsMouseButtonDown(MouseButtons button) {
         if (button == MouseButtons::None) return false;
         return _mouseButtons.pressed[(uint64)button] || _mouseButtons.previous[(uint64)button];
