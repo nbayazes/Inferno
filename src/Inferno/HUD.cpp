@@ -140,10 +140,10 @@ namespace Inferno {
         info.Color.y *= MONITOR_BRIGHTNESS;
         info.Color.z *= MONITOR_BRIGHTNESS;
 
-        Render::HudGlowCanvas->DrawGameText(text, info);
+        Render::HudGlowCanvas->DrawText(text, info);
         info.Color = Color{ 0, 0, 0, shadow };
         info.Scanline = 0.0f;
-        Render::HudCanvas->DrawGameText(text, info);
+        Render::HudCanvas->DrawText(text, info);
     }
 
     void DrawReticleBitmap(const Vector2& offset, Gauges gauge, int frame, float scale) {
@@ -647,7 +647,7 @@ namespace Inferno {
                     info.VerticalAlign = AlignV::Top;
                     info.Scanline = TEXT_SCANLINE;
                     auto lives = fmt::format("X {}", player.Lives - 1);
-                    Render::HudCanvas->DrawGameText(lives, info);
+                    Render::HudCanvas->DrawText(lives, info);
                 }
 
                 {
@@ -677,7 +677,7 @@ namespace Inferno {
                 info.Position = Vector2(-5, 5);
                 auto score = fmt::format("score: {:5}", player.Score);
                 UseWide1Char(score);
-                Render::HudCanvas->DrawGameText(score, info);
+                Render::HudCanvas->DrawText(score, info);
 
                 _scoreTime -= dt;
                 if (_scoreTime > 0) {
@@ -688,7 +688,7 @@ namespace Inferno {
                     info.Color.w = std::lerp(1.0f, 0.0f, t);
                     score = fmt::format("{:5}", _scoreAdded);
                     UseWide1Char(score);
-                    Render::HudCanvas->DrawGameText(score, info);
+                    Render::HudCanvas->DrawText(score, info);
                 }
                 else {
                     _scoreTime = 0;
@@ -707,7 +707,7 @@ namespace Inferno {
                 info.VerticalAlign = AlignV::CenterTop;
                 info.Scanline = TEXT_SCANLINE;
                 //DrawMonitorText("!LOCK!", info); // Enabling this causes points and lives to flicker for some reason?
-                Render::HudCanvas->DrawGameText("!LOCK!", info);
+                Render::HudCanvas->DrawText("!LOCK!", info);
             }
 
             if (Game::ControlCenterDestroyed && Game::CountdownSeconds >= 0) {
@@ -720,7 +720,7 @@ namespace Inferno {
                 info.VerticalAlign = AlignV::Top;
                 info.Scanline = TEXT_SCANLINE;
                 auto timer = fmt::format("T-{} s", Game::CountdownSeconds);
-                Render::HudCanvas->DrawGameText(timer, info);
+                Render::HudCanvas->DrawText(timer, info);
             }
 
             //DrawHighlights(false);
@@ -804,7 +804,7 @@ namespace Inferno {
 
             for (auto& msg : _messages) {
                 info.Position = Vector2(0, offset);
-                Render::HudCanvas->DrawGameText(msg, info);
+                Render::HudCanvas->DrawText(msg, info);
                 offset += 16;
             }
 

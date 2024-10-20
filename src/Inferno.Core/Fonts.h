@@ -62,7 +62,7 @@ namespace Inferno {
 
         const Character& GetCharacter(uchar c, FontSize font) const {
             c -= 32;
-            if (c > _lookup[(int)font].size()) c = 0; // default to space if character is out of range
+            if (c >= _lookup[(int)font].size()) c = 0; // default to space if character is out of range
             return _lookup[(int)font][c];
         }
 

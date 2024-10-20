@@ -30,7 +30,8 @@ namespace Inferno::Render {
         AlignV VerticalAlign = AlignV::Top;
         float Scanline = 0; // There is a bug that causes scanlines to not update per-draw
         float TabStop = 0;
-        bool IntegerScaling = false;
+        bool IntegerScaling = false; // not implemented
+        bool EnableTokenParsing = true; // Parses certain characters like tabs and $ as tokens
     };
 
     struct CanvasPayload {
@@ -399,7 +400,7 @@ namespace Inferno::Render {
         void DrawBitmap(const CanvasBitmapInfo& info, int layer = 0);
         void DrawBitmapScaled(const CanvasBitmapInfo& info, int layer = 0);
         void Render(GraphicsContext& ctx);
-        void DrawGameText(string_view str, const DrawTextInfo& info, int layer = 1);
+        void DrawText(string_view str, const DrawTextInfo& info, int layer = 1);
 
         void Draw(const HudCanvasPayload& payload) {
             if (!payload.Texture.ptr) return;

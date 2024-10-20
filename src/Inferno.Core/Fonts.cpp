@@ -85,7 +85,7 @@ namespace Inferno {
             auto& kernings = f.Kernings;
             for (auto& k : kernings) {
                 if (k.FirstChar == c && k.SecondChar == next)
-                    return k.NewWidth - f.Widths[c - 32];
+                    return k.NewWidth - f.Widths[c - f.MinChar];
             }
         }
 

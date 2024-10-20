@@ -215,7 +215,8 @@ namespace Inferno::Sound {
 
     SoundEffect CreateSoundEffectWav(AudioEngine& engine, span<ubyte> raw) {
         WAVData result{};
-        LoadWAVAudioInMemoryEx(raw.data(), raw.size(), result);
+        if (FAILED(LoadWAVAudioInMemoryEx(raw.data(), raw.size(), result)))
+            throw Exception("Error loading WAV");
 
         // create a buffer and store wfx at the beginning.
         auto wavData = MakePtr<uint8[]>(result.audioBytes + sizeof(WAVEFORMATEX));
@@ -737,24 +738,32 @@ namespace Inferno::Sound {
             return false;
         }
 
+        Ptr<SoundEffect> LoadWav(const string& path) const {
+            try {
+                if (filesystem::exists(path)) {
+                    auto data = File::ReadAllBytes(path);
+                    SPDLOG_INFO("Reading sound from `{}`", path);
+                    return make_unique<SoundEffect>(CreateSoundEffectWav(*_engine, data));
+                }
+            }
+            catch (...) {
+                SPDLOG_ERROR("Error loading WAV: {}", path);
+            }
+
+            return {};
+        }
+
         SoundEffect* LoadSoundD1(int id) {
             if (!Seq::inRange(_effectsD1, id)) return nullptr;
             if (_effectsD1[id]) return _effectsD1[int(id)].get();
 
             // Prioritize reading wavs from filesystem
             if (auto info = Seq::tryItem(_soundsD1.Sounds, id)) {
-                const auto paths = {
-                    fmt::format("data/d1/{}.wav", info->Name),
-                    fmt::format("data/{}.wav", info->Name)
-                };
+                if (auto data = LoadWav(fmt::format("d1/{}.wav", info->Name)))
+                    return (_effectsD1[int(id)] = std::move(data)).get();
 
-                for (auto& path : paths) {
-                    if (filesystem::exists(path)) {
-                        auto data = Inferno::File::ReadAllBytes(path);
-                        SPDLOG_INFO("Reading D1 sound {} from `{}`", id, path);
-                        return (_effectsD1[int(id)] = make_unique<SoundEffect>(CreateSoundEffectWav(*_engine, data))).get();
-                    }
-                }
+                if (auto data = LoadWav(fmt::format("data/{}.wav", info->Name)))
+                    return (_effectsD1[int(id)] = std::move(data)).get();
             }
 
             // Read sound from game data
@@ -780,18 +789,11 @@ namespace Inferno::Sound {
 
             // Prioritize reading wavs from filesystem
             if (auto info = Seq::tryItem(_soundsD2.Sounds, id)) {
-                const auto paths = {
-                    fmt::format("data/d2/{}.wav", info->Name),
-                    fmt::format("data/{}.wav", info->Name)
-                };
+                if (auto data = LoadWav(fmt::format("d2/{}.wav", info->Name)))
+                    return (_effectsD2[int(id)] = std::move(data)).get();
 
-                for (auto& path : paths) {
-                    if (filesystem::exists(path)) {
-                        auto data = Inferno::File::ReadAllBytes(path);
-                        SPDLOG_INFO("Reading D2 sound {} from `{}`", id, path);
-                        return (_effectsD2[int(id)] = make_unique<SoundEffect>(CreateSoundEffectWav(*_engine, data))).get();
-                    }
-                }
+                if (auto data = LoadWav(fmt::format("data/{}.wav", info->Name)))
+                    return (_effectsD2[int(id)] = std::move(data)).get();
             }
 
             // Read sound from game data
@@ -808,6 +810,10 @@ namespace Inferno::Sound {
         SoundEffect* LoadSoundD3(const string& fileName) {
             if (fileName.empty()) return nullptr;
             if (_soundsD3[fileName]) return _soundsD3[fileName].get();
+
+            // Check data folder first
+            if (auto data = LoadWav(fileName))
+                return (_soundsD3[fileName] = std::move(data)).get();
 
             auto info = Resources::ReadOutrageSoundInfo(fileName);
             if (!info) return nullptr;

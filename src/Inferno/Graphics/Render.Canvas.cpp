@@ -111,7 +111,7 @@ namespace Inferno::Render {
         }
     }
 
-    void HudCanvas2D::DrawGameText(string_view str, const DrawTextInfo& info, int layer) {
+    void HudCanvas2D::DrawText(string_view str, const DrawTextInfo& info, int layer) {
         float xOffset = 0, yOffset = 0;
         auto font = Atlas.GetFont(info.Font);
         if (!font) return;
@@ -135,39 +135,41 @@ namespace Inferno::Render {
 
             char next = i + 1 >= str.size() ? 0 : str[i + 1];
 
-            if (c == '$') {
-                inToken = true;
-                continue;
-            }
-
-            if (c == '\t') {
-                xOffset = info.TabStop * scale;
-                continue;
-            }
-
-            if (c == ';') {
-                break; // skip comments
-            }
-
-            if (inToken) {
-                if (c == 'C') {
-                    if (next == '1') {
-                        color = ColorFromRGB(0, 219, 0);
-                        background = ColorFromRGB(0, 75, 0);
-                    }
-                    else if (next == '2') {
-                        color = ColorFromRGB(163, 151, 147);
-                        background = ColorFromRGB(19, 19, 27);
-                    }
-                    else if (next == '3') {
-                        color = ColorFromRGB(100, 109, 117);
-                        background = ColorFromRGB(19, 19, 27);
-                    }
+            if (info.EnableTokenParsing) {
+                if (c == '$') {
+                    inToken = true;
+                    continue;
                 }
 
-                i++;
-                inToken = false;
-                continue;
+                if (c == '\t') {
+                    xOffset = info.TabStop * scale;
+                    continue;
+                }
+
+                if (c == ';') {
+                    break; // skip comments
+                }
+
+                if (inToken) {
+                    if (c == 'C') {
+                        if (next == '1') {
+                            color = ColorFromRGB(0, 219, 0);
+                            background = ColorFromRGB(0, 75, 0);
+                        }
+                        else if (next == '2') {
+                            color = ColorFromRGB(163, 151, 147);
+                            background = ColorFromRGB(19, 19, 27);
+                        }
+                        else if (next == '3') {
+                            color = ColorFromRGB(100, 109, 117);
+                            background = ColorFromRGB(19, 19, 27);
+                        }
+                    }
+
+                    i++;
+                    inToken = false;
+                    continue;
+                }
             }
 
             auto& ci = Atlas.GetCharacter(c, info.Font);

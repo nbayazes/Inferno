@@ -218,6 +218,7 @@ namespace Inferno {
         //CheckMsaaSupport(2, IntermediateFormat);
         //CheckMsaaSupport(4, IntermediateFormat);
         //CheckMsaaSupport(8, IntermediateFormat);
+        //CheckMsaaSupport(32, IntermediateFormat);
 
         Render::Heaps = MakePtr<DescriptorHeaps>(20, 300, 200, 500, Render::MATERIAL_COUNT * 5);
         Render::UploadHeap = MakePtr<UserDescriptorHeap>(Render::MATERIAL_COUNT * 5, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, false);
@@ -703,11 +704,12 @@ namespace Inferno {
     }
 
     // Note that 4x MSAA and 8x MSAA is required for Direct3D Feature Level 11.0 or better
+    bool DeviceResources::CheckMsaaSupport(uint samples, DXGI_FORMAT backBufferFormat) const {
+        SPDLOG_INFO("Checking MSAA Support");
+        bool supported = false;
 
-    bool Inferno::DeviceResources::CheckMsaaSupport(uint samples, DXGI_FORMAT backBufferFormat) const {
-        SPDLOG_INFO("Checking MSAA Support. Samples {}", samples);
         for (auto sampleCount = samples; sampleCount > 0; sampleCount--) {
-            if (sampleCount == 1) {
+            if (!supported && sampleCount == 1) {
                 SPDLOG_INFO("MSAA Is not supported");
                 return false;
             }
@@ -718,7 +720,7 @@ namespace Inferno {
 
             if (levels.NumQualityLevels > 0) {
                 SPDLOG_INFO("Samples: {} Quality: {}", levels.SampleCount, levels.NumQualityLevels);
-                return true;
+                supported = true;
             }
         }
 

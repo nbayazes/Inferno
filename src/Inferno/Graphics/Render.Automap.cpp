@@ -349,17 +349,17 @@ namespace Inferno::Render {
             title.Font = FontSize::Small;
             //title.Scale = 0.75;
             title.Color = TEXT_COLOR;
-            canvas->DrawGameText(Game::Level.Name, title);
+            canvas->DrawText(Game::Level.Name, title);
 
             title.Position.y += lineHeight;
-            canvas->DrawGameText(Game::Automap.LevelNumber, title);
+            canvas->DrawText(Game::Automap.LevelNumber, title);
 
             title.Position.y += lineHeight;
-            canvas->DrawGameText(Game::Automap.Threat, title);
+            canvas->DrawText(Game::Automap.Threat, title);
 
             if (!Game::Automap.HostageText.empty()) {
                 title.Position.y += lineHeight;
-                canvas->DrawGameText(Game::Automap.HostageText, title);
+                canvas->DrawText(Game::Automap.HostageText, title);
             }
         }
 
@@ -377,16 +377,16 @@ namespace Inferno::Render {
             info.Color = TEXT_COLOR;
             info.TabStop = 20;
             info.Scanline = scanline;
-            canvas->DrawGameText("Navigation:", info);
+            canvas->DrawText("Navigation:", info);
             info.Position.y += lineHeight;
             info.Color = Game::Automap.FoundEnergy ? TEXT_COLOR : DISABLED_TEXT;
-            canvas->DrawGameText("1.\tEnergy center", info);
+            canvas->DrawText("1.\tEnergy center", info);
             info.Position.y += lineHeight;
             info.Color = Game::Automap.FoundReactor ? TEXT_COLOR : DISABLED_TEXT;
-            canvas->DrawGameText("2.\tReactor", info);
+            canvas->DrawText("2.\tReactor", info);
             info.Position.y += lineHeight;
             info.Color = Game::Automap.FoundExit ? TEXT_COLOR : DISABLED_TEXT;
-            canvas->DrawGameText("3.\tEmergency Exit", info);
+            canvas->DrawText("3.\tEmergency Exit", info);
 
             //auto drawItem = [&info, &cursor, lineHeight](string_view label, string_view text) {
             //    cursor.y += lineHeight;
@@ -414,13 +414,13 @@ namespace Inferno::Render {
             info.Scanline = scanline;
 
             // todo: change help text based on automap control mode (orbit or flight)
-            canvas->DrawGameText("flight:\tMove view", info);
+            canvas->DrawText("flight:\tMove view", info);
             info.Position.y += lineHeight;
-            canvas->DrawGameText("afterburner:\tcenter on ship", info);
+            canvas->DrawText("afterburner:\tcenter on ship", info);
             info.Position.y += lineHeight;
-            canvas->DrawGameText("primary fire:\tzoom in", info);
+            canvas->DrawText("primary fire:\tzoom in", info);
             info.Position.y += lineHeight;
-            canvas->DrawGameText("secondary fire:\tzoom out", info);
+            canvas->DrawText("secondary fire:\tzoom out", info);
         }
 
         {
@@ -435,7 +435,7 @@ namespace Inferno::Render {
             info.Position = Vector2(-margin - rectSz.x - 2, -margin - lineHeight * 5);
 
             auto addHelp = [&](string_view str, const Color& color) {
-                canvas->DrawGameText(str, info);
+                canvas->DrawText(str, info);
                 auto white = Materials->White().Handles[Material2D::Diffuse];
                 CanvasBitmapInfo rect({ -margin, info.Position.y }, rectSz, white, color * animation, AlignH::Right, AlignV::Bottom);
                 rect.Scanline = 0.15f;

@@ -6,13 +6,17 @@
 #include "Types.h"
 #include "Utility.h"
 #include "Resources.h"
+#include "SoundSystem.h"
 #include "Version.h"
 
 namespace Inferno::UI {
     using Action = std::function<void(bool)>;
     using ClickHandler = std::function<void(const Vector2*)>;
+    using Inferno::Input::Keys;
 
     namespace {
+        constexpr auto MENU_SELECT_SOUND = "data/menu-select3.wav";
+        constexpr auto MENU_BACK_SOUND = "data/menu-back1.wav";
         constexpr Color HOVER_COLOR = { 1, .9f, 0.9f };
         const auto FOCUS_COLOR = HOVER_COLOR * 1.7f;
         constexpr Color ACCENT_COLOR = { 1, .75f, .2f };
@@ -30,10 +34,10 @@ namespace Inferno::UI {
     }
 
     // Returns true if a rectangle at a position and size contain a point
-    bool RectangleContains(const Vector2 position, const Vector2& size, const Vector2& point) {
+    bool RectangleContains(const Vector2 origin, const Vector2& size, const Vector2& point) {
         return
-            point.x > position.x && point.x < position.x + size.x &&
-            point.y > position.y && point.y < position.y + size.y;
+            point.x > origin.x && point.x < origin.x + size.x &&
+            point.y > origin.y && point.y < origin.y + size.y;
     }
 
     // Controls are positioned at their top left corner
@@ -109,6 +113,7 @@ namespace Inferno::UI {
         void OnClick(const Vector2& position) const {
             for (auto& control : Children) {
                 if (control->Enabled && control->Contains(position) && control->ClickAction) {
+                    Sound::Play2D(SoundResource{ control->ActionSound });
                     control->ClickAction(true);
                     return;
                 }
@@ -120,9 +125,11 @@ namespace Inferno::UI {
         virtual void OnUpdate() {
             if (!Enabled) return;
 
-            if (Selectable && Input::MouseMoved()) {
-                Focused = Contains(Input::MousePosition);
-                //Hovered = Contains(Input::MousePosition);
+            if (Input::MouseMoved()) {
+                if (Selectable)
+                    Focused = Contains(Input::MousePosition);
+
+                Hovered = Contains(Input::MousePosition);
             }
 
             for (auto& child : Children) {
@@ -276,7 +283,6 @@ namespace Inferno::UI {
         template <class T, class... Args>
         void AddChild(Args&&... args) {
             auto control = make_unique<T>(std::forward<Args>(args)...);
-            //control->Parent = this;
             Children.push_back(std::move(control));
         }
 
@@ -290,32 +296,7 @@ namespace Inferno::UI {
             }
         }
 
-        //virtual void OnMeasure() {}
-
-        //    //float maxWidth = 0;
-        //    //float yOffset = anchor.y;
-
-        //    // Align children based on their anchor relative to the parent
-
-        //    for (auto& child : Children) {
-        //        auto anchor = Render::GetAlignment(child->Size, child->HorizontalAlignment, child->VerticalAlignment, Render::HudCanvas->GetSize() / Render::HudCanvas->GetScale());
-        //        child->Position.y = Position.y + yOffset;
-        //        child->Position.x = Position.x + anchor.x;
-        //        child->UpdateScreenPosition();
-
-        //        child->OnUpdateLayout();
-        //        if (child->Size.x > maxWidth)
-        //            maxWidth = child->Size.x;
-
-        //        yOffset += child->Size.y + Spacing;
-        //    }
-
-        //    // Expand children to max width to make clicking uniform
-        //    for (auto& child : Children)
-        //        child->Size.x = maxWidth;
-
-        //    Size = Vector2(maxWidth, yOffset);
-        //}
+        string ActionSound = MENU_SELECT_SOUND;
 
         // Called when the control is clicked via some input device
         Action ClickAction;
@@ -341,8 +322,10 @@ namespace Inferno::UI {
         }
 
         void OnConfirm() const {
-            if (Selection && Selection->ClickAction)
+            if (Selection && Selection->ClickAction) {
+                Sound::Play2D(SoundResource{ ActionSound });
                 Selection->ClickAction(false);
+            }
         }
 
         void OnUpdateLayout() override {
@@ -466,21 +449,69 @@ namespace Inferno::UI {
             dti.Font = _font;
             dti.Color = Color;
             dti.Position = ScreenPosition / GetScale() + Margin;
-            Render::HudCanvas->DrawGameText(_text, dti, Layer);
+            Render::HudCanvas->DrawText(_text, dti, Layer);
         }
     };
+
+    // Translates an input keycode to an ASCII character
+    uchar TranslateSymbol(uchar keycode) {
+        switch (keycode) {
+            case Keys::OemSemicolon: return ';';
+            case Keys::OemPlus: return '=';
+            case Keys::OemComma: return ',';
+            case Keys::OemMinus: return '-';
+            case Keys::OemPeriod: return '.';
+            case Keys::OemQuestion: return '/';
+            case Keys::OemTilde: return '`';
+            case Keys::OemOpenBrackets: return '[';
+            case Keys::OemPipe: return '\\';
+            case Keys::OemCloseBrackets: return ']';
+            case Keys::OemQuotes: return '\'';
+            case Keys::OemBackslash: return '/';
+            default: return '\0';
+        }
+    };
+
+    // Shifts a character to its uppercase form
+    uchar ShiftSymbol(uchar symbol) {
+        switch (symbol) {
+            case ';': return ':';
+            case '=': return '+';
+            case ',': return '<';
+            case '.': return '>';
+            case '-': return '_';
+            case '/': return '?';
+            case '`': return '~';
+            case '[': return '{';
+            case '\\': return '|';
+            case ']': return '}';
+            case '\'': return '"';
+            default: return symbol;
+        }
+    };
+
+    // Lookup for numbers to uppercase
+    constexpr auto NUMERIC_SHIFT_TABLE = std::to_array<uchar>({ ')', '!', '@', '#', '$', '%', '^', '&', '*', '(' });
+
+    uchar ShiftNumber(uchar number) {
+        number -= Keys::D0;
+        if (!Seq::inRange(NUMERIC_SHIFT_TABLE, number)) return number;
+        return NUMERIC_SHIFT_TABLE[number];
+    }
 
     class TextBox : public ControlBase {
         string _text;
         FontSize _font;
         float _cursorTimer = 0;
+        size_t _maxLength;
 
     public:
         bool NumericMode = false;
+        bool EnableSymbols = false; // Enable non-numeric, non-alphabetical characters
         Color TextColor = Color(1, 1, 1);
         Color FocusColor = FOCUS_COLOR;
 
-        TextBox(FontSize font = FontSize::Medium): _font(font) {}
+        TextBox(size_t maxLength = 100, FontSize font = FontSize::Medium): _font(font), _maxLength(maxLength) {}
 
         void SetText(string_view text) {
             _text = text;
@@ -499,17 +530,40 @@ namespace Inferno::UI {
                     bool isNumeric = i >= Keys::D0 && i <= Keys::D9;
                     bool isNumpad = i >= Keys::NumPad0 && i <= Keys::NumPad9;
                     bool isLetter = i >= Keys::A && i <= Keys::Z;
+                    auto symbol = TranslateSymbol(i);
+                    auto isSymbol = symbol != '\0';
 
                     if (i == Keys::Delete || i == Keys::Back /*|| i == Keys::Left*/) {
-                        if (!_text.empty())
+                        if (!_text.empty()) {
                             _text.pop_back();
+                            break;
+                        }
                     }
-                    else if (isNumpad) {
+
+                    if (_text.size() >= _maxLength)
+                        break;
+
+                    if (isNumpad) {
                         constexpr uchar numpadOffset = Keys::NumPad0 - Keys::D0;
                         _text += uchar(i - numpadOffset);
                     }
-                    else if (isNumeric || isLetter || i == Keys::Space) {
-                        _text += i;
+                    if (isSymbol) {
+                        if (Input::ShiftDown)
+                            symbol = ShiftSymbol(symbol);
+
+                        _text += symbol;
+                    }
+                    else if (isNumeric || isLetter || isSymbol || i == Keys::Space) {
+                        if (isLetter && Input::ShiftDown) {
+                            constexpr uchar shift = 'a' - 'A';
+                            _text += uchar(i + shift);
+                        }
+                        else if (isNumeric && Input::ShiftDown) {
+                            _text += ShiftNumber(i);
+                        }
+                        else {
+                            _text += i;
+                        }
                     }
                 }
             }
@@ -542,25 +596,238 @@ namespace Inferno::UI {
             {
                 Render::DrawTextInfo dti;
                 dti.Font = Focused ? FontSize::MediumGold : _font;
-                dti.Color = Focused || Hovered ? FocusColor : TextColor;
+                dti.Color = Focused /*|| Hovered*/ ? FocusColor : TextColor;
                 dti.Position = ScreenPosition / GetScale() + Margin + Padding;
-                Render::HudCanvas->DrawGameText(_text, dti, Layer);
+                dti.EnableTokenParsing = false;
+                Render::HudCanvas->DrawText(_text, dti, Layer + 1);
             }
 
             if (!Focused) return;
 
+            // Draw cursor
             _cursorTimer += Clock.GetFrameTimeSeconds();
             while (_cursorTimer > 1) _cursorTimer -= 1;
 
             if (_cursorTimer > 0.5f) {
-                auto offset = MeasureString(_text, _font);
+                // NOTE: the plain Medium font appears to be missing kerning info
+                // for consecutive forward slashes `///`
+                auto offset = MeasureString(_text, FontSize::MediumGold);
 
                 Render::DrawTextInfo dti;
                 dti.Font = FontSize::MediumGold;
                 dti.Color = FocusColor;
                 dti.Position = ScreenPosition / GetScale() + Margin + Padding;
-                dti.Position.x += offset.x + 2;
-                Render::HudCanvas->DrawGameText("_", dti, Layer);
+                dti.Position.x += offset.x;
+                Render::HudCanvas->DrawText("_", dti, Layer + 1);
+            }
+        }
+    };
+
+    class Spinner : public ControlBase {
+        string _text;
+        int _value = 0;
+        int _min = 0, _max = 10;
+
+        bool _held = false;
+        float _holdTimer = 0;
+        static constexpr float REPEAT_SPEED = 0.075f; // how quickly the repeat happens
+        static constexpr float REPEAT_DELAY = 0.5f; // how long mouse must be held to repeat add 
+
+    public:
+        Color TextColor = Color(1, 1, 1);
+        Color FocusColor = FOCUS_COLOR;
+
+        Spinner(int min, int max) {
+            Size = Vector2(100, 20);
+            Padding = Vector2(4, 4);
+            SetRange(min, max);
+        }
+
+        void SetValue(int value) {
+            if (value == _value) return;
+            _value = std::clamp(value, _min, _max);
+            _text = std::to_string(_value);
+        }
+
+        void SetRange(int min, int max) {
+            if (min > max) std::swap(min, max);
+            _min = min;
+            _max = max;
+            SetValue(_value);
+        }
+
+        int GetValue() const { return _value; }
+
+        void OnUpdate() override {
+            if (!Focused) return;
+
+            int increment = 0;
+            int mult = Input::ShiftDown ? 10 : 1;
+
+            if (Input::IsKeyPressed(Input::Keys::Left, true))
+                increment = -1;
+
+            if (Input::IsKeyPressed(Input::Keys::Right, true))
+                increment = 1;
+
+            auto wheelDelta = Input::GetWheelDelta();
+            if (wheelDelta > 0) increment = 1;
+            if (wheelDelta < 0) increment = -1;
+
+            // if clicked or the mouse is held down
+            if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick) || Input::IsMouseButtonDown(Input::MouseButtons::LeftClick)) {
+                // This duplicates the rendering logic
+                auto scale = GetScale();
+                const float size = 15 * scale;
+                const float buttonPadding = (ScreenSize.y - size) / 2;
+
+                {
+                    // subtract
+                    auto position = ScreenPosition;
+                    position.x += buttonPadding;
+                    position.y += buttonPadding;
+
+                    if (RectangleContains(position, { size, size }, Input::MousePosition)) {
+                        if (!_held) {
+                            increment = -1; // first click
+                            _holdTimer = REPEAT_DELAY;
+                        }
+                        else {
+                            if (_holdTimer <= 0) {
+                                increment = -1;
+                                _holdTimer = REPEAT_SPEED;
+                            }
+                        }
+
+                        _held = true;
+                    }
+                }
+
+                {
+                    // add
+                    auto position = ScreenPosition;
+                    position.x += ScreenSize.x - buttonPadding - size;
+                    position.y += buttonPadding;
+
+                    if (RectangleContains(position, { size, size }, Input::MousePosition)) {
+                        if (!_held) {
+                            increment = 1; // first click
+                            _holdTimer = REPEAT_DELAY;
+                        }
+                        else {
+                            if (_holdTimer <= 0) {
+                                increment = 1;
+                                _holdTimer = REPEAT_SPEED;
+                            }
+                        }
+
+                        _held = true;
+                    }
+                }
+
+                if (Input::IsMouseButtonReleased(Input::MouseButtons::LeftClick)) {
+                    _held = false;
+                }
+
+                _holdTimer -= Inferno::Clock.GetFrameTimeSeconds();
+            }
+
+            if (increment != 0)
+                SetValue(_value + increment * mult);
+        }
+
+        void OnDraw() override {
+            auto scale = GetScale();
+
+            {
+                // Border
+                Render::CanvasBitmapInfo cbi;
+                cbi.Position = ScreenPosition;
+                cbi.Size = ScreenSize;
+                cbi.Texture = Render::Materials->White().Handle();
+                cbi.Color = Focused ? ACCENT_COLOR : BORDER_COLOR;
+                Render::HudCanvas->DrawBitmap(cbi, Layer);
+            }
+
+            {
+                // Background
+                Render::CanvasBitmapInfo cbi;
+                //cbi.Position = ScreenPosition;
+                //cbi.Size = ScreenSize;
+                const auto border = Vector2(1, 1) * scale;
+                cbi.Position = ScreenPosition + border;
+                cbi.Size = ScreenSize - border * 2;
+                cbi.Texture = Render::Materials->White().Handle();
+                cbi.Color = Color(0, 0, 0, 1);
+                Render::HudCanvas->DrawBitmap(cbi, Layer);
+            }
+
+            //const auto screenPadding = Padding * scale;
+            const float thickness = 1 * scale;
+            const float size = 15 * scale;
+            float half = size / 2;
+            const float buttonPadding = (ScreenSize.y - size) / 2;
+
+            // minus
+            {
+                Render::HudCanvasPayload payload;
+                payload.Texture = Render::Materials->White().Handle();
+                payload.Layer = Layer;
+
+                auto position = ScreenPosition;
+                position.x += buttonPadding;
+                position.y += buttonPadding;
+
+                auto color = RectangleContains(position, { size, size }, Input::MousePosition) ? ACCENT_GLOW : Focused ? ACCENT_COLOR : IDLE_BUTTON;
+                payload.V0.Color = payload.V1.Color = payload.V2.Color = payload.V3.Color = color;
+                //Focused || Hovered ? ACCENT_GLOW : IDLE_BUTTON
+
+                // left to right
+                payload.V0.Position = Vector2(position.x, position.y + half - thickness);
+                payload.V1.Position = Vector2(position.x, position.y + half + thickness);
+                payload.V2.Position = Vector2(position.x + size, position.y + half + thickness);
+                payload.V3.Position = Vector2(position.x + size, position.y + half - thickness);
+                Render::HudCanvas->Draw(payload);
+            }
+
+            {
+                // plus
+                Render::HudCanvasPayload payload;
+                payload.Texture = Render::Materials->White().Handle();
+                payload.Layer = Layer;
+
+                auto position = ScreenPosition;
+                position.x += ScreenSize.x - buttonPadding - size;
+                position.y += buttonPadding;
+
+                auto color = RectangleContains(position, { size, size }, Input::MousePosition) ? ACCENT_GLOW : Focused ? ACCENT_COLOR : IDLE_BUTTON;
+                payload.V0.Color = payload.V1.Color = payload.V2.Color = payload.V3.Color = color;
+
+                // left to right
+                payload.V0.Position = Vector2(position.x, position.y + half - thickness);
+                payload.V1.Position = Vector2(position.x, position.y + half + thickness);
+                payload.V2.Position = Vector2(position.x + size, position.y + half + thickness);
+                payload.V3.Position = Vector2(position.x + size, position.y + half - thickness);
+                Render::HudCanvas->Draw(payload);
+
+                // top to bottom
+                payload.V0.Position = Vector2(position.x + half - thickness, position.y);
+                payload.V1.Position = Vector2(position.x + half + thickness, position.y);
+                payload.V2.Position = Vector2(position.x + half + thickness, position.y + size);
+                payload.V3.Position = Vector2(position.x + half - thickness, position.y + size);
+                Render::HudCanvas->Draw(payload);
+            }
+
+            {
+                Render::DrawTextInfo dti;
+                dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
+                dti.Color = Focused /*|| Hovered*/ ? FocusColor : TextColor;
+                dti.Position = ScreenPosition / scale + Margin + Padding;
+                auto textLen = MeasureString(_text, FontSize::Medium).x;
+                dti.Position.x += ScreenSize.x / 2 / scale - textLen / 2 - Padding.x; // center justify text
+                //dti.Position.x += ScreenSize.x / scale - textLen - Padding.x - Margin.x - size * 1.75f / scale; // right justify text
+                //dti.HorizontalAlign = AlignH::Center;
+                Render::HudCanvas->DrawText(_text, dti, Layer + 1);
             }
         }
     };
@@ -587,9 +854,9 @@ namespace Inferno::UI {
         void OnDraw() override {
             Render::DrawTextInfo dti;
             dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
-            dti.Color = Focused || Hovered ? FocusColor : TextColor;
+            dti.Color = Focused /*|| Hovered*/ ? FocusColor : TextColor;
             dti.Position = ScreenPosition / GetScale() + Padding;
-            Render::HudCanvas->DrawGameText(_text, dti, Layer);
+            Render::HudCanvas->DrawText(_text, dti, Layer);
         }
     };
 
@@ -599,6 +866,7 @@ namespace Inferno::UI {
             ClickAction = action;
             Size = Vector2(15, 15);
             Selectable = false; // Disable keyboard navigation
+            ActionSound = MENU_BACK_SOUND;
         }
 
         float Thickness = 1.0f;
@@ -609,7 +877,7 @@ namespace Inferno::UI {
             Render::HudCanvasPayload payload;
             payload.Texture = Render::Materials->White().Handle();
             payload.Layer = Layer;
-            payload.V0.Color = payload.V1.Color = payload.V2.Color = payload.V3.Color = Focused ? ACCENT_GLOW : IDLE_BUTTON;
+            payload.V0.Color = payload.V1.Color = payload.V2.Color = payload.V3.Color = Focused || Hovered ? ACCENT_GLOW : IDLE_BUTTON;
 
             float size = ScreenSize.x;
             auto position = ScreenPosition;
@@ -665,7 +933,7 @@ namespace Inferno::UI {
                     child->Position.y = child->Margin.y + yOffset;
                     child->Position.x = child->Margin.x;
                     child->UpdateScreenPosition(*this);
-                    child->Layer = Layer + 1;
+                    child->Layer = Layer;
                     child->OnUpdateLayout();
 
                     auto width = child->MeasureWidth();
@@ -681,7 +949,8 @@ namespace Inferno::UI {
 
                 // Expand children to max width to make clicking uniform
                 for (auto& child : Children)
-                    child->Size.x = maxWidth;
+                    if (child->Size.x <= 0)
+                        child->Size.x = maxWidth;
 
                 Size = Vector2(maxLayoutWidth/* + maxMargin * 2*/, yOffset);
             }
@@ -694,7 +963,7 @@ namespace Inferno::UI {
                     child->Position.x = Position.x + anchor.x + xOffset;
                     child->Position.y = Position.y + anchor.y;
                     child->UpdateScreenPosition(*this);
-                    child->Layer = Layer + 1;
+                    child->Layer = Layer;
                     child->OnUpdateLayout();
 
                     if (child->Size.y > maxHeight)
@@ -840,7 +1109,7 @@ namespace Inferno::UI {
                 dti.Color = _index == i ? FOCUS_COLOR : Color(1, 1, 1);
                 dti.Position = ScreenPosition / GetScale() + Padding;
                 dti.Position.y += (_fontHeight + ItemSpacing) * j + LINE_OFFSET;
-                Render::HudCanvas->DrawGameText(item, dti, Layer + 1);
+                Render::HudCanvas->DrawText(item, dti, Layer);
             }
 
 
@@ -896,11 +1165,12 @@ namespace Inferno::UI {
     //    Screens.push_back(std::move(screen));
     //}
 
-    void CloseScreen() {
-        if (Screens.size() == 1) return; // Can't close the last screen
+    bool CloseScreen() {
+        if (Screens.size() == 1) return false; // Can't close the last screen
 
         Screens.pop_back();
         Input::ResetState(); // Clear state so clicking doesn't immediately trigger another action
+        return true;
     }
 
     class DialogBase : public ScreenBase {
@@ -1017,8 +1287,8 @@ namespace Inferno::UI {
             panel.AddChild<Button>("Hotshot");
             panel.AddChild<Button>("Ace");
             Button insane("Insane");
-            insane.TextColor = Color(3.5f, 0.4f, 0.4f);
-            insane.FocusColor = Color(4.4f, 0.4f, 0.4f);
+            insane.TextColor = Color(3.0f, 0.4f, 0.4f);
+            insane.FocusColor = Color(4.0f, 0.4f, 0.4f);
             panel.AddChild<Button>(std::move(insane));
 
             //Button lunacy("Lunacy");
@@ -1059,6 +1329,7 @@ namespace Inferno::UI {
             missionList.ClickItemAction = [this](int index, bool mouseClick) {
                 if (auto mission = Seq::tryItem(_missions, index)) {
                     SPDLOG_INFO("Mission: {}", mission->Path.string());
+                    Sound::Play2D(SoundResource{ ActionSound });
                     ShowScreen(make_unique<DifficultyDialog>(), mouseClick);
                     //ShowScreen(make_unique<PlayD1Dialog>());
 
@@ -1087,10 +1358,19 @@ namespace Inferno::UI {
             panel.HorizontalAlignment = AlignH::CenterRight;
             panel.VerticalAlignment = AlignV::Top;
 
+            //return;
+
             TextBox tb;
             tb.Size = Vector2{ 200, 20 };
+            tb.Margin = Vector2{ 2, 2 };
             tb.SetText("Hello");
             panel.AddChild<TextBox>(std::move(tb));
+
+
+            Spinner spinner(0, 33);
+            spinner.Margin = Vector2{ 2, 2 };
+            spinner.SetValue(10);
+            panel.AddChild<Spinner>(std::move(spinner));
 
             panel.AddChild<Button>("Play Descent 1", [](bool mouseClick) {
                 ShowScreen(make_unique<PlayD1Dialog>(), mouseClick);
@@ -1107,7 +1387,7 @@ namespace Inferno::UI {
                 PostMessage(Shell::Hwnd, WM_CLOSE, 0, 0);
             });
 
-            Children.push_back(make_unique<StackPanel>(std::move(panel)));
+            AddChild(make_unique<StackPanel>(std::move(panel)));
         }
 
         void OnDraw() override {
@@ -1158,7 +1438,23 @@ namespace Inferno::UI {
                 float anim = (((float)sin(Clock.GetTotalTimeSeconds()) + 1) * 0.5f * 0.25f) + 0.6f;
                 dti.Color = Color(1, .5f, .2f) * abs(anim) * 4;
                 dti.Scale = titleScale;
-                Render::HudCanvas->DrawGameText("inferno", dti);
+                Render::HudCanvas->DrawText("inferno", dti);
+            }
+
+            {
+                Render::DrawTextInfo dti;
+                dti.Font = FontSize::Small;
+                dti.HorizontalAlign = AlignH::Right;
+                dti.VerticalAlign = AlignV::Bottom;
+                dti.Position = Vector2(-5, -5);
+                dti.Color = Color(0.25f, 0.25f, 0.25f);
+                Render::HudCanvas->DrawText(APP_TITLE, dti);
+
+                dti.Position.y -= 14;
+                Render::HudCanvas->DrawText("software 1994, 1995, 1999", dti);
+
+                dti.Position.y -= 14;
+                Render::HudCanvas->DrawText("portions (c) parallax", dti);
             }
         }
     };
@@ -1186,7 +1482,9 @@ namespace Inferno::UI {
             screen->OnConfirm();
 
         if (Input::IsKeyPressed(Input::Keys::Escape)) {
-            CloseScreen();
+            if (CloseScreen())
+                Sound::Play2D(SoundResource{ MENU_BACK_SOUND });
+
             return;
         }
 
@@ -1198,51 +1496,31 @@ namespace Inferno::UI {
         //}
     }
 
-    void Update() {
-        //float margin = 60;
+    void DrawTestText(const Vector2& position, FontSize font, uchar lineLen = 32) {
+        Render::DrawTextInfo dti;
+        dti.Font = font;
 
-        //float menuX = 55;
-        //float menuY = 140;
+        auto drawRange = [&](uchar min, uchar max, float yOffset) {
+            string text;
+            for (uchar i = min; i < max; i++)
+                text += i;
 
+            dti.Position = position;
+            dti.Position.y += yOffset;
+            Render::HudCanvas->DrawText(text, dti);
+        };
 
-        //{
+        auto lineHeight = MeasureString("M", font).y;
 
-        //    Render::DrawTextInfo dti;
-        //    dti.Font = FontSize::Small;
-        //    dti.HorizontalAlign = AlignH::Right;
-        //    dti.VerticalAlign = AlignV::Top;
-        //    dti.Position = Vector2(-margin, margin + logoHeight + 5);
-        //    dti.Color = Color(0.5f, 0.5f, 1);
-        //    Render::HudCanvas->DrawGameText("descent I - descent II - descent 3 enhanced", dti);
-        //}
-
-        //{
-        //    Render::DrawTextInfo dti;
-        //    dti.Font = FontSize::MediumGold;
-        //    dti.HorizontalAlign = AlignH::CenterRight;
-        //    dti.VerticalAlign = AlignV::Top;
-        //    auto height = MeasureString("new game", FontSize::Medium).y + 2;
-
-        //    dti.Color = Color(1, .9f, 0.9f) * 1.7f;
-        //    dti.Position = Vector2(menuX, menuY);
-        //    Render::HudCanvas->DrawGameText("play descent 1", dti);
-
-        {
-            Render::DrawTextInfo dti;
-            dti.Font = FontSize::Small;
-            dti.HorizontalAlign = AlignH::Right;
-            dti.VerticalAlign = AlignV::Bottom;
-            dti.Position = Vector2(-5, -5);
-            dti.Color = Color(0.25f, 0.25f, 0.25f);
-            //dti.Scale = 0.5f;
-            Render::HudCanvas->DrawGameText(APP_TITLE, dti);
-
-            dti.Position.y -= 14;
-            Render::HudCanvas->DrawGameText("software 1994, 1995, 1999", dti);
-
-            dti.Position.y -= 14;
-            Render::HudCanvas->DrawGameText("portions (c) parallax", dti);
+        for (uchar i = 0; i < uchar(255) / lineLen; i++) {
+            drawRange(i * lineLen, (i + 1) * lineLen, float(i * (lineHeight + 2)));
         }
+    }
+
+    void Update() {
+        //DrawTestText({ 10, 0 }, FontSize::Medium);
+        //DrawTestText({ 10, 150 }, FontSize::Small);
+        //DrawTestText({ 10, 170 }, FontSize::Big, 24);
 
         if (Screens.empty()) {
             Screens.reserve(20);
