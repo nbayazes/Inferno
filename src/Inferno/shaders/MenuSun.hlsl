@@ -122,7 +122,7 @@ float SurfaceNoise(float2 uv, float2 speed) {
 
     {
         float2 uv2 = uv - frac(speed * float2(.4, -2) * Frame.Time);
-        noise += Noise.Sample(Sampler, uv2 * 7).r;
+        noise += Noise.Sample(Sampler, uv2 * float2(14, 6)).r;
     }
 
     {
@@ -132,7 +132,7 @@ float SurfaceNoise(float2 uv, float2 speed) {
                    uv.x * sin(theta) + uv.y * cos(theta));
 
         uv3 += frac(-speed * float2(.5, 1) * Frame.Time);
-        noise += saturate(Noise.Sample(Sampler, uv3 * float2(4, 10)).r - .1) * 1.2;
+        noise += saturate(Noise.Sample(Sampler, uv3 * float2(4, 8)).r - .1) * 1.2;
     }
 
     {
@@ -200,7 +200,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //float pole_noise = Noise.Sample(Sampler, uv * float2(3, 2)).r;
     //noise = pole_noise;
 
-    const float3 color1 = float3(1, .2, 0) * 6;
+    const float3 color1 = float3(.9, .25, 0.05) * 6;
     //const float3 color2 = float3(80, 35, 15) * .5;
     const float3 ringColor = float3(0.6, 0.5, .2) * 12;
 
