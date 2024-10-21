@@ -240,7 +240,7 @@ namespace Inferno {
         }
 
         // Have robots look at opened doors on Hotshot and above that they didn't open
-        if (Game::Difficulty > 1 && source == Faction::Player) {
+        if (Game::Difficulty >= DifficultyLevel::Hotshot && HasFlag(source, Faction::Player)) {
             // Alert both sides of the door (sound stops at closed doors)
             //AlertRobotsOfNoise({ tag.Segment, side.Center + side.AverageNormal }, AI_DOOR_AWARENESS_RADIUS, 2);
             //AlertRobotsOfNoise({ conn.Segment, side.Center - side.AverageNormal }, AI_DOOR_AWARENESS_RADIUS, 2);
@@ -594,7 +594,7 @@ namespace Inferno {
 
         if (wall.Type == WallType::Destroyable && isPlayerSource && src.Type == ObjectType::Weapon) {
             auto& weapon = Resources::GetWeapon((WeaponID)src.ID);
-            DamageWall(level, wall.Tag, weapon.Damage[Game::Difficulty]);
+            DamageWall(level, wall.Tag, GetDamage(weapon));
         }
         else if (wall.Type == WallType::Door) {
             if (pRobot && RobotCanOpenDoor(level, wall, *pRobot)) {
@@ -768,7 +768,7 @@ namespace Inferno {
         CheckDestroyableOverlay(level, hit.Point, hit.Tag, hit.Tri, isPlayer);
 
         auto& weapon = Resources::GetWeapon((WeaponID)obj.ID);
-        float damage = weapon.Damage[Game::Difficulty]; // Damage used when hitting lava
+        float damage = GetDamage(weapon); // Damage used when hitting lava
         float splashRadius = weapon.SplashRadius;
         float force = damage;
         float impactSize = weapon.ImpactSize;

@@ -338,8 +338,8 @@ namespace Inferno {
 
             // Multiply matcen score by max spawns
             int8 activations = 3;
-            if (Game::Difficulty == 3) activations = 4; // Ace
-            if (Game::Difficulty >= 4) activations = 5; // Insane or above
+            if (Game::Difficulty == DifficultyLevel::Ace) activations = 4;
+            if (Game::Difficulty >= DifficultyLevel::Insane) activations = 5;
             auto spawnCount = (int8)Game::Difficulty + 3;
             matcenSum *= activations * spawnCount;
 

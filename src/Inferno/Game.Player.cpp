@@ -40,7 +40,7 @@ namespace Inferno {
 
     float GetWeaponSoundRadius(const Weapon& weapon) {
         // Robots use half-linear falloff instead of inverse square because it doesn't require traversing nearly as far.
-        float mult = 0.5f + std::min(2, Game::Difficulty) * 0.25f; // hotshot, ace, insane = 1
+        float mult = 0.5f + std::min(2, (int)Game::Difficulty) * 0.25f; // hotshot, ace, insane = 1
         return weapon.Extended.SoundRadius * mult * 0.75f;
     }
 
@@ -752,7 +752,7 @@ namespace Inferno {
 
         // Give the player some free missiles
         auto& concussions = SecondaryAmmo[(int)SecondaryWeaponIndex::Concussion];
-        concussions = std::max(concussions, uint16(2 + (int)DifficultyLevel::Count - Game::Difficulty));
+        concussions = std::max(concussions, uint16(2 + (int)DifficultyLevel::Count - (int)Game::Difficulty));
 
         if (Settings::Cheats.Invulnerable)
             Game::MakeInvulnerable(player, -1, false);
@@ -834,7 +834,7 @@ namespace Inferno {
 
     bool Player::PickUpEnergy() {
         if (Energy < MAX_ENERGY) {
-            AddEnergy(float(3 + 3 * (5 - Game::Difficulty)));
+            AddEnergy(float(3 + 3 * (5 - (int)Game::Difficulty)));
 
             AddScreenFlash(FLASH_GOLD);
             auto msg = fmt::format("{} {} {}", Resources::GetString(GameString::Energy), Resources::GetString(GameString::BoostedTo), int(Energy));
@@ -946,9 +946,9 @@ namespace Inferno {
             case PowerupID::ShieldBoost:
             {
                 if (Shields < MAX_SHIELDS) {
-                    auto amount = 3 + 3 * (5 - Game::Difficulty); // 18, 15, 12, 9, 6
+                    auto amount = 3 + 3 * (5 - (int)Game::Difficulty); // 18, 15, 12, 9, 6
 
-                    if (Game::Level.IsDescent2() && Game::Difficulty == 0) 
+                    if (Game::Level.IsDescent2() && Game::Difficulty == DifficultyLevel::Trainee) 
                         amount = 27; // D2 gives 27 shields on trainee
 
                     Shields += amount;

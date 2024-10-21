@@ -77,8 +77,8 @@ namespace Inferno {
         return RuntimeState[(int)ref.Id];
     }
 
-    const RobotDifficultyInfo& Difficulty(const RobotInfo& info) {
-        return info.Difficulty[Game::Difficulty];
+    const RobotDifficultyInfo& DifficultyInfo(const RobotInfo& info) {
+        return info.Difficulty[(int)Game::Difficulty];
     }
 
     uint CountNearbyAllies(const Object& robot, float range, bool inCombat = false) {
@@ -375,7 +375,7 @@ namespace Inferno {
         auto dir = point - robot.Position;
         dir.Normalize();
         auto& info = Resources::GetRobotInfo(robot);
-        ai.Velocity += dir * Difficulty(info).Speed * scale;
+        ai.Velocity += dir * DifficultyInfo(info).Speed * scale;
     }
 
     constexpr float FAST_WEAPON_SPEED = 200;
@@ -406,13 +406,13 @@ namespace Inferno {
         if (target.Physics.Velocity.Length() < 20)
             return target.Position; // Don't lead slow targets
 
-        if (weapon.Speed[Game::Difficulty] > FAST_WEAPON_SPEED)
+        if (GetSpeed(weapon) > FAST_WEAPON_SPEED)
             return target.Position; // Don't lead with fast weapons (vulcan, gauss, drillers). Unfair to player.
 
         auto targetDist = Vector3::Distance(target.Position, robot.Position);
         Vector3 targetVelDir;
         target.Physics.Velocity.Normalize(targetVelDir);
-        float expectedTravelTime = targetDist / weapon.Speed[Game::Difficulty];
+        float expectedTravelTime = targetDist / GetSpeed(weapon);
         auto projectedTarget = target.Position;
 
         {
@@ -426,7 +426,7 @@ namespace Inferno {
                 // target will hit wall, aim at wall minus object radius
                 projectedTarget = hit.Point - targetVelDir * target.Radius;
                 targetDist = Vector3::Distance(projectedTarget, robot.Position);
-                expectedTravelTime = targetDist / weapon.Speed[Game::Difficulty];
+                expectedTravelTime = targetDist / GetSpeed(weapon);
             }
 
             projectedTarget = target.Position + target.Physics.Velocity * expectedTravelTime;
@@ -510,7 +510,7 @@ namespace Inferno {
         {
             // Randomize target based on aim. 255 -> 1, 0 -> 8
             auto aim = 8.0f - 7.0f * FixToFloat(robotInfo.Aim << 8);
-            aim += float(4 - Game::Difficulty) * 0.5f; // Add inaccuracy based on difficulty (2 to 0)
+            aim += float(4 - (int)Game::Difficulty) * 0.5f; // Add inaccuracy based on difficulty (2 to 0)
 
             // todo: seismic disturbance inaccuracy from earthshaker
 
@@ -553,8 +553,8 @@ namespace Inferno {
         auto transform = Matrix::CreateFromAxisAngle(robot.Rotation.Forward(), angle);
         auto dodgeDir = Vector3::Transform(robot.Rotation.Right(), transform);
 
-        ai.DodgeVelocity = dodgeDir * Difficulty(robotInfo).EvadeSpeed * 30;
-        ai.DodgeDelay = (5 - Game::Difficulty) / 2.0f + 0.25f + Random() * 0.5f; // (2 to 0) + 0.25 + (0..0.5) delay
+        ai.DodgeVelocity = dodgeDir * DifficultyInfo(robotInfo).EvadeSpeed * 30;
+        ai.DodgeDelay = (5 - (int)Game::Difficulty) / 2.0f + 0.25f + Random() * 0.5f; // (2 to 0) + 0.25 + (0..0.5) delay
         ai.DodgeTime = AI_DODGE_TIME * 0.5f + AI_DODGE_TIME * 0.5f * Random();
     }
 
@@ -565,7 +565,7 @@ namespace Inferno {
         // Looks weird to dodge distant projectiles. also they might hit another target
         // Consider increasing this for massive robots?
         if (projDist > AI_MAX_DODGE_DISTANCE) return;
-        if (!PointIsInFOV(robot.Rotation.Forward(), projDir, Difficulty(robotInfo).FieldOfView)) return;
+        if (!PointIsInFOV(robot.Rotation.Forward(), projDir, DifficultyInfo(robotInfo).FieldOfView)) return;
 
         Vector3 projTravelDir;
         projectile.Physics.Velocity.Normalize(projTravelDir);
@@ -583,8 +583,8 @@ namespace Inferno {
         //    dodgeDir.Normalize();
         //}
 
-        ai.DodgeVelocity = dodgeDir * Difficulty(robotInfo).EvadeSpeed * 30;
-        ai.DodgeDelay = (5 - Game::Difficulty) / 2.0f + 0.25f + Random() * 0.5f; // (2 to 0) + 0.25 + (0..0.5) delay
+        ai.DodgeVelocity = dodgeDir * DifficultyInfo(robotInfo).EvadeSpeed * 30;
+        ai.DodgeDelay = (5 - (int)Game::Difficulty) / 2.0f + 0.25f + Random() * 0.5f; // (2 to 0) + 0.25 + (0..0.5) delay
         float dodgeTime = AI_DODGE_TIME * 0.5f + AI_DODGE_TIME * 0.5f * Random();
         auto& weapon = Resources::GetWeapon((WeaponID)projectile.ID);
         if (weapon.IsHoming)
@@ -660,7 +660,7 @@ namespace Inferno {
     void MoveToCircleDistance(Level& level, const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo) {
         if (!ai.TargetPosition) return;
 
-        auto circleDistance = Difficulty(robotInfo).CircleDistance;
+        auto circleDistance = DifficultyInfo(robotInfo).CircleDistance;
         auto [dir, dist] = GetDirectionAndDistance(ai.TargetPosition->Position, robot.Position);
         auto minDist = std::min(circleDistance * 0.75f, circleDistance - 10);
         auto maxDist = std::max(circleDistance * 1.25f, circleDistance + 10);
@@ -842,9 +842,9 @@ namespace Inferno {
     //};
 
     bool RollShouldLead() {
-        auto leadChance = Game::Difficulty / 4.0f; // 50% on hotshot, 75% on ace, 100% on insane
+        auto leadChance = (int)Game::Difficulty / 4.0f; // 50% on hotshot, 75% on ace, 100% on insane
         bool shouldLead = Random() <= leadChance * 0.9f; // Don't always lead even on insane, keep the player guessing
-        if (Game::Difficulty < 2) shouldLead = false; // Don't lead on rookie and trainee, also weapons are too slow to meaningfully lead.
+        if (Game::Difficulty < DifficultyLevel::Hotshot) shouldLead = false; // Don't lead on rookie and trainee, also weapons are too slow to meaningfully lead.
         return shouldLead;
     }
 
@@ -866,9 +866,9 @@ namespace Inferno {
             FireRobotWeapon(robot, ai, robotInfo, target, true, blind, shouldLead);
             ai.BurstShots++;
 
-            if (ai.BurstShots >= Difficulty(robotInfo).ShotCount) {
+            if (ai.BurstShots >= DifficultyInfo(robotInfo).ShotCount) {
                 ai.BurstShots = 0;
-                auto fireDelay = Difficulty(robotInfo).FireDelay;
+                auto fireDelay = DifficultyInfo(robotInfo).FireDelay;
                 ai.FireDelay = ai.Angry ? fireDelay * AI_ANGER_SPEED : fireDelay;
                 break; // Ran out of shots
             }
@@ -950,7 +950,7 @@ namespace Inferno {
             }
         }
 
-        ai.Velocity += dir * Difficulty(robotInfo).Speed * .25f;
+        ai.Velocity += dir * DifficultyInfo(robotInfo).Speed * .25f;
     }
 
     // Tries to move behind the target, adjusting the direction every few seconds
@@ -999,7 +999,7 @@ namespace Inferno {
         }
 
         // todo: check if hits wall
-        ai.Velocity += ai.StrafeDir * Difficulty(robotInfo).Speed * 0.5f;
+        ai.Velocity += ai.StrafeDir * DifficultyInfo(robotInfo).Speed * 0.5f;
     }
 
     void UpdateRangedAI(Object& robot, const RobotInfo& robotInfo, AIRuntime& ai, float dt, bool blind) {
@@ -1016,7 +1016,7 @@ namespace Inferno {
 
             // Secondary weapons have no animations or wind up
             FireRobotWeapon(robot, ai, robotInfo, ai.TargetPosition->Position, false, blind, false);
-            ai.FireDelay2 = Difficulty(robotInfo).FireDelay2;
+            ai.FireDelay2 = DifficultyInfo(robotInfo).FireDelay2;
         }
         else {
             if (robotInfo.Guns == 0) return; // Can't shoot, I have no guns!
@@ -1084,7 +1084,7 @@ namespace Inferno {
                     // got stunned while charging weapon, reset swing
                     PlayRobotAnimation(robot, Animation::Alert, BACKSWING_TIME);
                     ai.ChargingWeapon = false;
-                    ai.FireDelay = Difficulty(robotInfo).FireDelay;
+                    ai.FireDelay = DifficultyInfo(robotInfo).FireDelay;
                 }
                 else if (ai.BurstShots > 0) {
                     // Alternate between fire and recoil when attacking multiple times
@@ -1104,7 +1104,7 @@ namespace Inferno {
                         // Player moved out of range for too long, give up
                         PlayRobotAnimation(robot, Animation::Alert, BACKSWING_TIME);
                         ai.ChargingWeapon = false;
-                        ai.FireDelay = Difficulty(robotInfo).FireDelay;
+                        ai.FireDelay = DifficultyInfo(robotInfo).FireDelay;
                     }
                 }
             }
@@ -1116,12 +1116,12 @@ namespace Inferno {
 
         if (ai.AnimationState == Animation::Recoil || ai.BurstShots > 0) {
             if (ai.ChargingWeapon && ai.MeleeHitDelay <= 0) {
-                if (ai.BurstShots + 1 < Difficulty(robotInfo).ShotCount) {
+                if (ai.BurstShots + 1 < DifficultyInfo(robotInfo).ShotCount) {
                     ai.MeleeHitDelay = 10; // Will recalculate above when picking animations
                     ai.BurstShots++;
                 }
                 else {
-                    ai.FireDelay = Difficulty(robotInfo).FireDelay;
+                    ai.FireDelay = DifficultyInfo(robotInfo).FireDelay;
                     ai.ChargingWeapon = false;
                     ai.BurstShots = 0;
                 }
@@ -1130,7 +1130,7 @@ namespace Inferno {
                 if (dist < robot.Radius + MELEE_RANGE && targetDir.Dot(robot.Rotation.Forward()) > 0) {
                     auto soundId = Game::Level.IsDescent1() ? (RandomInt(1) ? SoundID::TearD1_01 : SoundID::TearD1_02) : SoundID::TearD1_01;
                     Sound::Play(Sound3D(soundId), robot);
-                    Game::Player.ApplyDamage(Difficulty(robotInfo).MeleeDamage, false); // todo: make this generic. Damaging object should update the linked player
+                    Game::Player.ApplyDamage(DifficultyInfo(robotInfo).MeleeDamage, false); // todo: make this generic. Damaging object should update the linked player
 
                     target.Physics.Velocity += targetDir * 5; // shove the target backwards
                     ai.Awareness = 1; // Hit something, reset awareness (cloaked targets)
@@ -1160,11 +1160,11 @@ namespace Inferno {
     void MoveTowardsDir(Object& robot, const Vector3& dir, float dt, float scale) {
         scale = std::min(1.0f, scale);
         auto& aiInfo = Resources::GetRobotInfo(robot);
-        Vector3 idealVel = dir * Difficulty(aiInfo).Speed * scale;
+        Vector3 idealVel = dir * DifficultyInfo(aiInfo).Speed * scale;
         Vector3 deltaVel = idealVel - robot.Physics.Velocity;
         float deltaSpeed = deltaVel.Length();
         deltaVel.Normalize();
-        float maxDeltaVel = Difficulty(aiInfo).Speed; // todo: new field. this is between 0.5 and 2 of the base velocity
+        float maxDeltaVel = DifficultyInfo(aiInfo).Speed; // todo: new field. this is between 0.5 and 2 of the base velocity
         float maxDeltaSpeed = dt * maxDeltaVel * scale;
 
         if (deltaSpeed > maxDeltaSpeed)
@@ -1185,7 +1185,7 @@ namespace Inferno {
         // melee robots are slow resistant
         const auto maxSlow = robotInfo.Attack == AttackType::Melee && !robot.IsPhasing() ? MAX_SLOW_EFFECT / 3 : MAX_SLOW_EFFECT;
         float slowScale = slow > 0 ? 1 - maxSlow * slow / MAX_SLOW_TIME : 1;
-        float maxDeltaSpeed = dt * Difficulty(robotInfo).Speed * slowScale;
+        float maxDeltaSpeed = dt * DifficultyInfo(robotInfo).Speed * slowScale;
 
         if (deltaSpeed > maxDeltaSpeed)
             robot.Physics.Velocity += deltaVel * maxDeltaSpeed * 2; // x2 so max velocity is actually reached
@@ -1193,7 +1193,7 @@ namespace Inferno {
             robot.Physics.Velocity = idealVel;
 
         auto speed = robot.Physics.Velocity.Length();
-        auto maxSpeed = Difficulty(robotInfo).Speed;
+        auto maxSpeed = DifficultyInfo(robotInfo).Speed;
         if (ai.State == AIState::FindHelp) maxSpeed *= 1.5f;
 
         if (speed > maxSpeed)
@@ -1238,7 +1238,7 @@ namespace Inferno {
         if (target.IsCloakEffective() || hasLos == IntersectResult::HitWall)
             return false;
 
-        if (!PointIsInFOV(robot.Rotation.Forward(), targetDir, Difficulty(robotInfo).FieldOfView))
+        if (!PointIsInFOV(robot.Rotation.Forward(), targetDir, DifficultyInfo(robotInfo).FieldOfView))
             return false;
 
         float falloff = 1.0f;
@@ -1250,7 +1250,7 @@ namespace Inferno {
         if (targetDist > AI_VISION_FALLOFF_NEAR * .5f && !IsBossRobot(robot))
             falloff *= Game::Player.GetShipVisibility();
 
-        auto reactionTime = AI_REACTION_TIME * (5 - Game::Difficulty);
+        auto reactionTime = AI_REACTION_TIME * (5 - (int)Game::Difficulty);
         ai.Awareness += falloff * ai.GetDeltaTime() / reactionTime;
         ai.Awareness = Saturate(ai.Awareness);
 
@@ -1264,8 +1264,8 @@ namespace Inferno {
 
         if (ai.Awareness >= 1 && ai.Target) {
             // Delay weapons so robots don't shoot immediately on waking up
-            ai.FireDelay = Difficulty(robotInfo).FireDelay * .4f;
-            ai.FireDelay2 = Difficulty(robotInfo).FireDelay2 * .4f;
+            ai.FireDelay = DifficultyInfo(robotInfo).FireDelay * .4f;
+            ai.FireDelay2 = DifficultyInfo(robotInfo).FireDelay2 * .4f;
 
             // Time to fight!
             Chat(robot, "I see a bad guy!");
@@ -1458,8 +1458,8 @@ namespace Inferno {
 
     // Chooses how to react to the target going out of sight
     void OnLostLineOfSight(AIRuntime& ai, const Object& robot, const RobotInfo& robotInfo) {
-        if (Game::Difficulty < 2) {
-            ai.CombatState = AICombatState::Wait; // Just wait on trainee and rookie
+        if (Game::Difficulty < DifficultyLevel::Hotshot) {
+            ai.CombatState = AICombatState::Wait; // Wait on trainee and rookie
             Chat(robot, "Holding position");
             return;
         }
@@ -1499,14 +1499,14 @@ namespace Inferno {
     }
 
     void AlertNearby(AIRuntime& ai, const Object& robot, const RobotInfo& robotInfo) {
-        if (Game::Difficulty <= 0)
+        if (Game::Difficulty <= DifficultyLevel::Trainee)
             return; // Don't alert on trainee
 
         if (ai.AlertTimer > 0 || !ai.TargetPosition || robotInfo.AlertRadius <= 0)
             return;
 
         constexpr float ALERT_FREQUENCY = 0.2f; // Smooth out alerts
-        auto skillMult = Game::Difficulty == 4 ? 1.5f : 1;
+        auto skillMult = Game::Difficulty >= DifficultyLevel::Insane ? 1.5f : 1;
         auto amount = robotInfo.AlertAwareness * ALERT_FREQUENCY * skillMult;
         AlertRobotsOfTarget(robot, robotInfo.AlertRadius, *ai.TargetPosition, amount);
         ai.AlertTimer = ALERT_FREQUENCY;
@@ -1542,7 +1542,7 @@ namespace Inferno {
         }
 
         // Track the known target position, even without LOS. Causes AI to look more intelligent by pre-aiming.
-        TurnTowardsDirection(robot, targetDir, Difficulty(robotInfo).TurnTime);
+        TurnTowardsDirection(robot, targetDir, DifficultyInfo(robotInfo).TurnTime);
 
         // Update target location if it is in line of sight and not cloaked
         if ((hasLos && !target.IsCloaked()) || (hasLos && target.IsCloaked() && !target.IsCloakEffective())) {
@@ -1576,7 +1576,7 @@ namespace Inferno {
             if (ai.CombatState == AICombatState::Wait) {
                 // Get ready
                 if (ai.TargetPosition) {
-                    TurnTowardsPoint(robot, ai.TargetPosition->Position, Difficulty(robotInfo).TurnTime);
+                    TurnTowardsPoint(robot, ai.TargetPosition->Position, DifficultyInfo(robotInfo).TurnTime);
                 }
             }
             else if (ai.CombatState == AICombatState::Chase && ai.TargetPosition && ai.Fear < 1) {
@@ -1612,7 +1612,9 @@ namespace Inferno {
         }
 
         // Only robots that flee can find help. Limit to hotshot and above.
-        if (robotInfo.FleeThreshold > 0 && robot.Control.AI.Behavior != AIBehavior::Still && Game::Difficulty > 1) {
+        if (robotInfo.FleeThreshold > 0 && 
+            robot.Control.AI.Behavior != AIBehavior::Still &&
+            Game::Difficulty >= DifficultyLevel::Hotshot) {
             if (!ai.FleeTimer.IsSet()) {
                 ai.FleeTimer = 2 + Random() * 2; // Periodically think about fleeing
             }
@@ -1663,7 +1665,7 @@ namespace Inferno {
         }
 
         // Track the known target position, even without LOS. Causes AI to look more intelligent by pre-aiming.
-        TurnTowardsDirection(robot, targetDir, Difficulty(robotInfo).TurnTime);
+        TurnTowardsDirection(robot, targetDir, DifficultyInfo(robotInfo).TurnTime);
 
         // Update target location if it is in line of sight and not cloaked
         if ((hasLos && !target.IsCloaked()) || (hasLos && target.IsCloaked() && !target.IsCloakEffective())) {
@@ -1736,7 +1738,7 @@ namespace Inferno {
 
         // Turn towards point of interest if we have one
         if (ai.TargetPosition) {
-            TurnTowardsPoint(robot, ai.TargetPosition->Position, Difficulty(robotInfo).TurnTime);
+            TurnTowardsPoint(robot, ai.TargetPosition->Position, DifficultyInfo(robotInfo).TurnTime);
             bool validState = ai.CombatState == AICombatState::Normal || ai.CombatState == AICombatState::Chase;
 
             if (Settings::Cheats.ShowPathing)

@@ -536,7 +536,7 @@ namespace Inferno {
         node["ShipWiggle"] << (int)settings.ShipWiggle;
         node["InvertY"] << settings.InvertY;
         node["MouseSensitivity"] << settings.MouseSensitivity;
-        node["Difficulty"] << Game::Difficulty;
+        node["Difficulty"] << (int)Game::Difficulty;
         node["HalvePitchSpeed"] << Settings::Inferno.HalvePitchSpeed;
     }
 
@@ -548,7 +548,7 @@ namespace Inferno {
         ReadValue(node["MouseSensitivity"], settings.MouseSensitivity);
         ReadValue(node["Difficulty"], Game::Difficulty);
         ReadValue(node["HalvePitchSpeed"], settings.HalvePitchSpeed);
-        Game::Difficulty = std::clamp(Game::Difficulty, 0, 4);
+        Game::Difficulty = (DifficultyLevel)std::clamp((int)Game::Difficulty, 0, 4);
     }
 
     void Settings::Save(const filesystem::path& path) {

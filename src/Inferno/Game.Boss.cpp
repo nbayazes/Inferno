@@ -106,7 +106,7 @@ namespace Inferno::Game {
     }
 
     float GetGateInterval() {
-        return 4.0f - Game::Difficulty * 2.0f / 3.0f;
+        return 4.0f - (int)Game::Difficulty * 2.0f / 3.0f;
     }
 
     void GateInRobotD1(int8 id) {
@@ -125,7 +125,7 @@ namespace Inferno::Game {
                 count++;
         }
 
-        if (count > 2 * Game::Difficulty + 3) {
+        if (count > 2 * (int)Game::Difficulty + 3) {
             GateTimer = GateInterval * 0.75f;
             return;
         }
@@ -273,7 +273,7 @@ namespace Inferno::Game {
             // Always turn boss towards last known target location after teleporting
             if (ai.TargetPosition) {
                 auto targetDir = GetDirection(ai.TargetPosition->Position, boss.Position);
-                TurnTowardsDirection(boss, targetDir, info.Difficulty[Game::Difficulty].TurnTime);
+                TurnTowardsDirection(boss, targetDir, info.Difficulty[(int)Game::Difficulty].TurnTime);
             }
         }
 
@@ -326,7 +326,7 @@ namespace Inferno::Game {
         if (Game::Level.IsDescent1()) {
             for (auto& [seg, pos] : FindTeleportTargets(Game::Level, false))
                 GateSegments.push_back(seg);
-            GateInterval = 5.0f - Game::Difficulty / 2.0f;
+            GateInterval = 5.0f - (int)Game::Difficulty / 2.0f;
         }
 
         BossDying = false;

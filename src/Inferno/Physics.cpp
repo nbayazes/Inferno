@@ -135,7 +135,7 @@ namespace Inferno {
 
         // Cap the max speed of weapons with thrust
         if (HasFlag(obj.Physics.Flags, PhysicsFlag::UseThrust) && weapon && weapon->Thrust != 0) {
-            auto maxSpeed = weapon->Speed[Game::Difficulty];
+            auto maxSpeed = GetSpeed(*weapon);
             if (pd.Velocity.Length() > maxSpeed) {
                 Vector3 dir;
                 pd.Velocity.Normalize(dir);
@@ -544,7 +544,7 @@ namespace Inferno {
                         }
 
                         // Quarter damage explosions on trainee
-                        if (Game::Difficulty == 0) damage /= 4;
+                        if (Game::Difficulty == DifficultyLevel::Trainee) damage /= 4;
                         Game::Player.ApplyDamage(damage, false);
                         break;
                     }
@@ -582,6 +582,8 @@ namespace Inferno {
         }
     }
 
+
+
     void CollideObjects(const LevelHit& hit, const Object& obj, Object& target, float /*dt*/) {
         if (hit.Speed <= 0.1f) return;
 
@@ -618,7 +620,7 @@ namespace Inferno {
         if (obj.Type == ObjectType::Weapon) {
             auto& weapon = Resources::GetWeapon((WeaponID)obj.ID);
             if (weapon.SplashRadius > 0)
-                speed += weapon.Damage[Game::Difficulty] * 4; // Damage equals force
+                speed += GetDamage(weapon) * 4; // Damage equals force
 
             // Use projectile velocity as hit normal so torque is applied reliably
             obj.Physics.Velocity.Normalize(normal);
@@ -1235,7 +1237,9 @@ namespace Inferno {
                 // todo: ignite the object if D3 enhanced
                 auto damage = ti.Damage * dt;
                 if (obj.IsPlayer()) {
-                    if (Game::Difficulty == 0) damage *= 0.5f; // half damage on trainee
+                    if (Game::Difficulty == DifficultyLevel::Trainee)
+                        damage *= 0.5f; // half damage on trainee
+
                     Game::Player.ApplyDamage(damage, false);
                 }
                 else {

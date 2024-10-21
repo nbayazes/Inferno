@@ -205,7 +205,7 @@ namespace Inferno::Game {
         auto playerRoom = Level.GetRoomID(GetPlayerObject());
         auto flags = TraversalFlag::StopSecretDoor | TraversalFlag::PassTransparent;
         // Stop AI at doors on hotshot and below
-        if (Difficulty < 3) flags |= TraversalFlag::StopDoor;
+        if (Difficulty < DifficultyLevel::Hotshot) flags |= TraversalFlag::StopDoor;
 
         ActiveRooms = GetRoomsByDepth(Level.Rooms, playerRoom, NEARBY_PORTAL_DEPTH, flags);
 

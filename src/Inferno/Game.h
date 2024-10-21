@@ -39,10 +39,6 @@ namespace Inferno {
     };
 }
 
-namespace Inferno {
-    constexpr auto METADATA_EXTENSION = ".ied"; // inferno engine data
-}
-
 namespace Inferno::Game {
     constexpr float TICK_RATE = 1.0f / 64; // 64 ticks per second
     constexpr float HOMING_TICK_RATE = 1.0f / 32; // ticks per second for homing weapons
@@ -55,7 +51,7 @@ namespace Inferno::Game {
     constexpr float POWERUP_RADIUS_MULT = 2.00f; // Make powerups easier to pick up
     constexpr float NEARBY_PORTAL_DEPTH = 150.0f; // How far to search when determining 'nearby' rooms
 
-    inline int Difficulty = 2; // 0 to 4 for trainee to insane
+    inline auto Difficulty = DifficultyLevel::Hotshot; // 0 to 4 for trainee to insane
     inline int LevelNumber = 0; // Index of loaded level starting at 1. Secret levels are negative. 0 means no level loaded.
     inline bool NeedsResourceReload = false; // Indicates that resources should be reloaded, typically due to changes in graphics settings
 
@@ -260,4 +256,14 @@ namespace Inferno::Game {
     inline Inferno::TerrainInfo Terrain;
 
     enum class ThreatLevel { None, Minimal, Moderate, High, Extreme };
+}
+
+namespace Inferno {
+    constexpr float GetDamage(const Weapon& weapon) {
+        return weapon.Damage[(int)Game::Difficulty];
+    }
+
+    constexpr float GetSpeed(const Weapon& weapon) {
+        return weapon.Speed[(int)Game::Difficulty];
+    }
 }

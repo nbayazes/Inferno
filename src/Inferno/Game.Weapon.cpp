@@ -34,7 +34,7 @@ namespace Inferno::Game {
 
         if (weapon.SplashRadius > 0) {
             // Create explosion
-            float damage = weapon.Damage[Game::Difficulty];
+            float damage = GetDamage(weapon);
             float scale = 1;
 
             Sound::Play({ weapon.RobotHitSound }, obj.Position, obj.Segment);
@@ -161,7 +161,7 @@ namespace Inferno::Game {
         assert(hit.HitObj);
         assert(src.IsWeapon());
         const auto& weapon = Resources::GetWeapon(src);
-        float damage = weapon.Damage[Game::Difficulty] * src.Control.Weapon.Multiplier;
+        float damage = GetDamage(weapon) * src.Control.Weapon.Multiplier;
 
         auto& target = *hit.HitObj;
         src.LastHitObject = target.Signature;
@@ -329,10 +329,10 @@ namespace Inferno::Game {
         //auto speedvar = weapon.SpeedVariance != 1 ? 1 - weapon.SpeedVariance * Random() : 1;
         float speed = 0;
 
-        if (weapon.Extended.InitialSpeed[Game::Difficulty] != 0)
-            speed = weapon.Extended.InitialSpeed[Game::Difficulty];
+        if (weapon.Extended.InitialSpeed[(int)Game::Difficulty] != 0)
+            speed = weapon.Extended.InitialSpeed[(int)Game::Difficulty];
         else
-            speed = weapon.Speed[Game::Difficulty];
+            speed = GetSpeed(weapon);
 
         bullet.Physics.Velocity = direction * speed;
 
@@ -684,7 +684,7 @@ namespace Inferno::Game {
             auto beam2 = EffectLibrary.GetBeamInfo("omega_beam2");
             auto tracer = EffectLibrary.GetBeamInfo("omega_tracer");
 
-            auto damage = weapon.Damage[Difficulty];
+            auto damage = GetDamage(weapon);
 
             // Apply damage and visuals to each target
             for (auto& targetRef : targets) {
@@ -697,7 +697,7 @@ namespace Inferno::Game {
                     else if (target->IsRobot())
                         DamageRobot(playerObj, *target, damage, weapon.Extended.StunMult, pObj);
                     else
-                        target->ApplyDamage(weapon.Damage[Difficulty]);
+                        target->ApplyDamage(GetDamage(weapon));
                 }
 
                 // Beams between previous and next target

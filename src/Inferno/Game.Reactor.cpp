@@ -39,16 +39,20 @@ namespace Inferno::Game {
     }
 
     int GetCountdown() {
+        auto difficulty = std::clamp((int)Difficulty, 0, (int)DifficultyLevel::Count - 1);
+
         if (Level.BaseReactorCountdown != DEFAULT_REACTOR_COUNTDOWN) {
-            return Level.BaseReactorCountdown + Level.BaseReactorCountdown * (5 - Difficulty - 1) / 2;
+            return Level.BaseReactorCountdown + Level.BaseReactorCountdown * ((int)DifficultyLevel::Count - difficulty - 1) / 2;
         }
         else if (Level.IsDescent1()) {
             constexpr std::array DefaultCountdownTimes = { 50, 45, 40, 35, 30 };
-            return DefaultCountdownTimes[Difficulty];
+            static_assert(DefaultCountdownTimes.size() == (int)DifficultyLevel::Count);
+            return DefaultCountdownTimes[difficulty];
         }
         else {
             constexpr std::array DefaultCountdownTimes = { 90, 60, 45, 35, 30 };
-            return DefaultCountdownTimes[Difficulty];
+            static_assert(DefaultCountdownTimes.size() == (int)DifficultyLevel::Count);
+            return DefaultCountdownTimes[difficulty];
         }
     } 
 
@@ -156,7 +160,7 @@ namespace Inferno::Game {
         // Shake the player ship due to seismic disturbance
         auto& player = Game::GetPlayerObject();
         auto fc = std::min(CountdownSeconds, 16);
-        auto scale = Difficulty == 0 ? 0.25f : 1; // reduce shaking on trainee
+        auto scale = Difficulty == DifficultyLevel::Trainee ? 0.25f : 1; // reduce shaking on trainee
         player.Physics.AngularVelocity.z += RandomN11() * 0.25f * (3.0f / 16 + (16 - fc) / 32.0f) * scale;
         player.Physics.AngularVelocity.x += RandomN11() * 0.25f * (3.0f / 16 + (16 - fc) / 32.0f) * scale;
 
@@ -315,14 +319,14 @@ namespace Inferno::Game {
                 // Randomly fire more blobs based on level number and difficulty
                 auto chance = 1.0f / ((float)Game::LevelNumber / 4 + 2);
                 int count = 0;
-                while (count++ < Game::Difficulty && Random() > chance) {
+                while (count++ < (int)Game::Difficulty && Random() > chance) {
                     dir += RandomVector(1 / 6.0f);
                     dir.Normalize();
                     FireWeapon(reactor, WeaponID::ReactorBlob, (uint8)gun, &dir);
                 }
             }
 
-            Reactor.FireDelay = ((int)DifficultyLevel::Count - Game::Difficulty) / 4.0f;
+            Reactor.FireDelay = ((int)DifficultyLevel::Count - (int)Game::Difficulty) / 4.0f;
         }
     }
 

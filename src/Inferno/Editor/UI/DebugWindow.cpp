@@ -106,7 +106,7 @@ namespace Inferno::Editor {
 
         {
             ImGui::SeparatorText("Game");
-            ImGui::Combo("Difficulty", &Game::Difficulty, "Trainee\0Rookie\0Hotshot\0Ace\0Insane");
+            ImGui::Combo("Difficulty", (int*)&Game::Difficulty, "Trainee\0Rookie\0Hotshot\0Ace\0Insane");
             ImGui::SliderFloat("Sensitivity", &Settings::Inferno.MouseSensitivity, 0.001f, 0.050f);
             ImGui::Checkbox("Invert mouse pitch", &Settings::Inferno.InvertY);
             ImGui::Checkbox("Classic pitch speed", &Settings::Inferno.HalvePitchSpeed);

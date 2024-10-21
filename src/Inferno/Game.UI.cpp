@@ -1375,7 +1375,7 @@ namespace Inferno::UI {
         PlayD1Dialog() {
             Size = Vector2(500, 460);
 
-            // todo: load last difficulty from settings
+            _difficulty = Game::Difficulty;
             _missions = Resources::ReadMissionDirectory("./d1/missions");
             MissionInfo firstStrike{ .Name = "Descent: First Strike" };
             firstStrike.Levels.resize(27);
@@ -1425,7 +1425,14 @@ namespace Inferno::UI {
         }
 
         void ShowDifficultySelect() {
-            ShowScreen(make_unique<DifficultyDialog>(_difficulty));
+            auto screen = ShowScreen(make_unique<DifficultyDialog>(_difficulty));
+
+            screen->CloseCallback =[this](CloseState state) {
+                if(state == CloseState::Accept) {
+                    // todo: show briefing or loading screen
+                    Game::Difficulty = _difficulty;
+                }
+            };
         }
     };
 

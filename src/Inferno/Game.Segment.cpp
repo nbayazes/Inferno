@@ -472,7 +472,7 @@ namespace Inferno {
                     obj.Lifespan = 1; // Expire the light object
             }
 
-            if (matcen.Energy <= 0)
+            if (matcen.Activations <= 0)
                 StopEffect(matcen.Light); // Remove the ambient light if out of energy
 
             return;
@@ -492,7 +492,7 @@ namespace Inferno {
 
             // limit live created robots
             auto robots = GetLiveRobots(level, matcenId);
-            if (robots >= Game::Difficulty + 3) {
+            if (robots >= (int)Game::Difficulty + 3) {
                 SPDLOG_INFO("Matcen {} already has {} active robots", (int)matcenId, robots);
                 matcen.Timer /= 2;
             }
@@ -605,12 +605,12 @@ namespace Inferno {
             return;
         }
 
-        if (matcen->Energy <= 0 || matcen->Active)
-            return; // Already active or out of lives
+        if (matcen->Activations <= 0 || matcen->Active)
+            return; // Already active or out of activations
 
         auto matcenId = MatcenID(matcen - &level.Matcens[0]);
         auto robots = GetLiveRobots(level, matcenId);
-        if (GetLiveRobots(level, matcenId) >= Game::Difficulty + 3)
+        if (GetLiveRobots(level, matcenId) >= (int)Game::Difficulty + 3)
             return; // Maximum robots already alive
 
         SPDLOG_INFO("Triggering matcen {} Live robots {}", (int)matcenId, robots);
@@ -618,7 +618,7 @@ namespace Inferno {
         matcen->Timer = 0;
         matcen->Delay = 0;
         matcen->RobotCount = (int8)Game::Difficulty + 3; // 3 to 7
-        matcen->Energy--;
+        matcen->Activations--;
 
         if (auto tseg = level.TryGetSegment(triggerSeg)) {
             // Try to generate a path to the trigger, prefering to avoid key doors.
@@ -646,14 +646,14 @@ namespace Inferno {
     }
 
     void InitializeMatcens(Level& level) {
-        // Increase amount of energy on ace and insane.
+        // Increase number of activations on ace and insane.
         // Replaces the infinite spawns on insane that D2 added.
-        int8 energy = 3;
-        if (Game::Difficulty == 3) energy = 4; // Ace
-        if (Game::Difficulty >= 4) energy = 5; // Insane or above
+        int8 activations = 3;
+        if (Game::Difficulty == DifficultyLevel::Ace) activations = 4; // Ace
+        if (Game::Difficulty >= DifficultyLevel::Insane) activations = 5; // Insane or above
 
         for (auto& matcen : level.Matcens) {
-            matcen.Energy = energy;
+            matcen.Activations = activations;
             matcen.CreateRobotState = false;
             if (matcen.Light == EffectID::None) {
                 if (auto seg = level.TryGetSegment(matcen.Segment)) {

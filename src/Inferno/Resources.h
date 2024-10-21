@@ -12,6 +12,10 @@
 #include "Pig.h"
 #include "StringTable.h"
 
+namespace Inferno {
+    constexpr auto METADATA_EXTENSION = ".ied"; // inferno engine data
+}
+
 // Abstraction for game resources
 namespace Inferno::Resources {
     inline HamFile GameData = {};

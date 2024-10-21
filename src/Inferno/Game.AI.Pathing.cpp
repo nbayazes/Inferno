@@ -406,7 +406,7 @@ namespace Inferno {
         goalDir.Normalize();
 
         if (goalDir != Vector3::Zero) // Can be zero when object starts on top of the path
-            TurnTowardsDirection(robot, goalDir, robotInfo.Difficulty[Game::Difficulty].TurnTime);
+            TurnTowardsDirection(robot, goalDir, DifficultyInfo(robotInfo).TurnTime);
 
         // Move towards each path node until sufficiently close
         if (Vector3::Distance(robot.Position, node.Position) <= std::max(robot.Radius, 5.0f)) {
