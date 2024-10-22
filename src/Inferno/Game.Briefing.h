@@ -19,7 +19,7 @@ namespace Inferno {
     public:
         BriefingState() = default;
 
-        BriefingState(const Briefing& briefing, int level) {
+        BriefingState(const Briefing& briefing, int level, bool isDescent1) : IsDescent1(isDescent1) {
             bool foundLevel = false;
 
             for (auto& screen : briefing.Screens) {
@@ -33,6 +33,8 @@ namespace Inferno {
             }
         }
 
+        bool IsDescent1 = false; // Enables coordinate scaling for D1
+
         float GetElapsed() const { return _elapsed; }
 
         bool IsValid() const { return !_screens.empty(); }
@@ -42,6 +44,8 @@ namespace Inferno {
         void Back();
 
         void Update(float dt);
+
+        void LoadBackgrounds();
 
         // Returns the current screen, or null if past the end
         const Briefing::Screen* GetScreen() const {
@@ -68,4 +72,6 @@ namespace Inferno {
     private:
         void OnPageChanged();
     };
+
+    void HandleBriefingInput();
 }

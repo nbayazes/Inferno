@@ -624,8 +624,12 @@ namespace Inferno {
         DistortionBuffer.Create(L"Scene distortion buffer", width, height, IntermediateFormat, 1);
         DistortionBuffer.AddShaderResourceView();
         SceneDepthBuffer.Create(L"Scene depth buffer", width, height, m_depthBufferFormat, 1);
-        BriefingColorBuffer.Create(L"Briefing color buffer", 640, 480, DXGI_FORMAT_R8G8B8A8_UNORM, emptyColor);
-        BriefingScanlineBuffer.Create(L"Briefing scanline buffer", 640, 480, DXGI_FORMAT_R8G8B8A8_UNORM, emptyColor);
+
+        // Double the briefing resolution so that downsampling at low resolution looks better
+        uint briefingWidth = 640 * 2;
+        uint briefingHeight = 480 * 2;
+        BriefingColorBuffer.Create(L"Briefing color buffer", briefingWidth, briefingHeight, DXGI_FORMAT_R8G8B8A8_UNORM, emptyColor);
+        BriefingScanlineBuffer.Create(L"Briefing scanline buffer", briefingWidth, briefingHeight, DXGI_FORMAT_R8G8B8A8_UNORM, emptyColor);
         BriefingScanlineBuffer.AddUnorderedAccessView();
 
         constexpr uint BRIEFING_ROBOT_WIDTH = 166 * 2;

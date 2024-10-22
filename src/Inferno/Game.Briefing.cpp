@@ -2,6 +2,7 @@
 #include "Game.Briefing.h"
 #include "Game.h"
 #include "Input.h"
+#include "Resources.h"
 
 namespace Inferno {
     void BriefingState::Forward() {
@@ -90,6 +91,45 @@ namespace Inferno {
             }
 
             _object.Rotation = Matrix3x3(Matrix::CreateRotationY(-3.14f / 4)); // start facing left
+        }
+    }
+
+    void BriefingState::LoadBackgrounds() {
+        for (auto& screen : _screens) {
+            for (auto& page : screen.Pages) {
+                if (page.Image.empty()) continue;
+
+                if (String::Contains(page.Image, "#")) {
+                    if (auto tid = Resources::LookupLevelTexID(Resources::FindTexture(page.Image)); tid != LevelTexID::None) {
+                        page.Door = Resources::GetDoorClipID(tid);
+                        page.Image = {}; // Clear source image
+                    }
+                }
+                else if (!String::Contains(page.Image, ".")) {
+                    // todo: also search for PNG, PCX, DDS
+                    page.Image += ".bbm"; // Assume BBM for now
+                }
+            }
+        }
+    }
+
+
+    void HandleBriefingInput() {
+        using Input::Keys;
+
+        if (Input::IsMouseButtonPressed(Input::MouseButtons::RightClick) ||
+            Input::IsKeyPressed(Keys::Left))
+            Game::Briefing.Back();
+
+        if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick) ||
+            Input::IsKeyPressed(Keys::Space) ||
+            Input::IsKeyPressed(Keys::Right))
+            Game::Briefing.Forward();
+
+        if (Input::IsKeyPressed(Keys::Escape)) {
+            // todo: show loading screen and load level
+            Game::BriefingVisible = false;
+            Game::SetState(GameState::Game);
         }
     }
 }

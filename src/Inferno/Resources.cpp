@@ -902,6 +902,7 @@ namespace Inferno::Resources {
         auto& robotInfo = GetRobotInfo(robotId);
         ASSERT(gun <= robotInfo.Guns && gun >= 0);
         auto& animStates = robotInfo.Joints[gun][(int)state];
+        if (GameData.RobotJoints.empty()) return {};
         auto& joints = GameData.RobotJoints[animStates.Offset];
         return span{ &joints, (uint)animStates.Count };
     }

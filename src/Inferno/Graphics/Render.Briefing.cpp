@@ -8,7 +8,6 @@
 #include "ShaderLibrary.h"
 
 namespace Inferno::Render {
-
     Inferno::Camera BriefingCamera;
 
     void DrawBriefingModel(GraphicsContext& ctx,
@@ -85,26 +84,25 @@ namespace Inferno::Render {
         ctx.SetScissor(UINT(target.GetWidth()), UINT(target.GetHeight()));
 
         auto& model = Resources::GetModel(object.Render.Model.ID);
-        if (model.DataSize == 0) return;
+        if (model.DataSize != 0) {
+            // spin and animate
+            auto& frameConstants = Adapter->GetBriefingFrameConstants();
+            BriefingCamera.SetPosition(Vector3(0, model.Radius * .5f, -model.Radius * 3.0f));
+            BriefingCamera.SetFov(45);
+            BriefingCamera.SetViewport(size);
+            BriefingCamera.UpdatePerspectiveMatrices();
+            UpdateFrameConstants(BriefingCamera, frameConstants);
 
-        auto& frameConstants = Adapter->GetBriefingFrameConstants();
-        BriefingCamera.SetPosition(Vector3(0, model.Radius * .5f, -model.Radius * 3.0f));
-        BriefingCamera.SetFov(45);
-        BriefingCamera.SetViewport(size);
-        BriefingCamera.UpdatePerspectiveMatrices();
-        UpdateFrameConstants(BriefingCamera, frameConstants);
+            ctx.GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-        ctx.GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            Render::DrawBriefingModel(ctx, object, frameConstants);
 
-        Render::DrawBriefingModel(ctx, object, frameConstants);
-
-        if (Settings::Graphics.MsaaSamples > 1) {
-            Adapter->BriefingRobot.ResolveFromMultisample(ctx.GetCommandList(), Adapter->BriefingRobotMsaa);
+            if (Settings::Graphics.MsaaSamples > 1) {
+                Adapter->BriefingRobot.ResolveFromMultisample(ctx.GetCommandList(), Adapter->BriefingRobotMsaa);
+            }
         }
 
-        //target.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         Adapter->BriefingRobot.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-        // spin and animate
     }
 
     void DrawBriefing(GraphicsContext& ctx, RenderTarget& target, const BriefingState& briefing) {
@@ -114,7 +112,7 @@ namespace Inferno::Render {
         if (auto screen = briefing.GetScreen()) {
             if (auto page = briefing.GetPage()) {
                 Vector2 scale(1, 1);
-                if (Game::Level.IsDescent1()) {
+                if (briefing.IsDescent1) {
                     scale.x = 640.0f / 320;
                     scale.y = 480.0f / 200;
                 }
@@ -125,7 +123,7 @@ namespace Inferno::Render {
                 ctx.SetRenderTarget(target.GetRTV());
                 ctx.SetViewport(UINT(target.GetWidth()), UINT(target.GetHeight()));
                 ctx.SetScissor(UINT(target.GetWidth()), UINT(target.GetHeight()));
-                BriefingCanvas->SetSize((uint)target.GetWidth(), (uint)target.GetHeight());
+                BriefingCanvas->SetSize(640, 480); // Always use 640x480 regardless of actual resolution
 
                 if (screen->Background.empty()) {
                     BriefingCanvas->DrawRectangle({ 0, 0 }, { 640, 480 }, Color(0, 0, 0));
@@ -170,21 +168,19 @@ namespace Inferno::Render {
                 Render::DrawTextInfo info;
                 info.Position = Vector2((float)screen->x, (float)screen->y) * scale;
                 info.Font = FontSize::Small;
-                //info.Scale = 0.5f;
+                //info.Scale = 2;
                 info.Color = Color(0, 1, 0);
                 info.TabStop = screen->TabStop * scale.x;
                 BriefingCanvas->DrawFadingText(page->Text, info,
                                                Game::Briefing.GetElapsed(),
                                                BRIEFING_TEXT_SPEED, screen->Cursor);
 
-                BriefingCanvas->Render(ctx);
-
-                //Adapter->Scanline.Execute(ctx.GetCommandList(), target, Adapter->BriefingScanlineBuffer);
-                //Adapter->BriefingScanlineBuffer.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+                // interpolate when downsampling
+                auto sampler = Render::Adapter->GetHeight() < target.GetHeight() ? Heaps->States.LinearClamp() : Heaps->States.PointClamp();
+                BriefingCanvas->Render(ctx, sampler);
             }
         }
 
         target.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     }
-
 }

@@ -152,13 +152,13 @@ namespace Inferno::Render {
             Draw(payload);
         }
 
-        void Render(GraphicsContext& ctx) {
+        void Render(GraphicsContext& ctx, D3D12_GPU_DESCRIPTOR_HANDLE sampler = Heaps->States.PointClamp()) {
             auto orthoProj = Matrix::CreateOrthographicOffCenter(0, _size.x, _size.y, 0.0, 0.0, -2.0f);
 
             auto cmdList = ctx.GetCommandList();
             ctx.ApplyEffect(*_effect);
             _effect->Shader->SetWorldViewProjection(cmdList, orthoProj);
-            _effect->Shader->SetSampler(cmdList, Heaps->States.PointClamp());
+            _effect->Shader->SetSampler(cmdList, sampler);
 
             for (auto& layer : _commands) {
                 for (auto& group : layer | views::values) {

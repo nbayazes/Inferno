@@ -97,8 +97,8 @@ namespace Inferno::Game {
     void LoadLevel(const filesystem::path& path, const string& level = "", bool addToRecent = false);
     void NewLevel(Editor::NewLevelInfo& info);
 
-    // Reloads the mission info
-    void LoadMission(const filesystem::path& file);
+    // Loads a hog from a path. Returns false on error.
+    bool LoadMission(const filesystem::path& file);
     inline void UnloadMission() { Mission = {}; }
 
     void CheckLoadLevel();
@@ -209,6 +209,8 @@ namespace Inferno::Game {
 
     void SetState(GameState);
     GameState GetState();
+
+    void LoadBackgrounds(const HogFile& mission);
 
     //inline bool InGame() { return GetState() == GameState::Game; }
     inline NavigationNetwork Navigation;

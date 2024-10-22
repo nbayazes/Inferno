@@ -122,22 +122,26 @@ namespace Inferno::Game {
         Graphics::LoadTextures(customHudTextures);
 
         if (Game::Mission) {
-            List<string> bbms;
-
-            for (auto& entry : Game::Mission->Entries) {
-                if (entry.Extension() == ".bbm") {
-                    bbms.push_back(entry.Name);
-                }
-            }
-
-            for (auto& entry : Game::Mission->Entries) {
-                if (entry.Extension() == ".pcx") {
-                    bbms.push_back(entry.Name);
-                }
-            }
-
-            Graphics::LoadTextures(bbms);
+            LoadBackgrounds(*Game::Mission);
         }
+    }
+
+    void LoadBackgrounds(const HogFile& mission) {
+        List<string> bbms;
+
+        for (auto& entry : mission.Entries) {
+            if (entry.Extension() == ".bbm") {
+                bbms.push_back(entry.Name);
+            }
+        }
+
+        for (auto& entry : mission.Entries) {
+            if (entry.Extension() == ".pcx") {
+                bbms.push_back(entry.Name);
+            }
+        }
+
+        Graphics::LoadTextures(bbms);
     }
 
     void InitLevel(Inferno::Level&& level) {
@@ -252,8 +256,15 @@ namespace Inferno::Game {
         return level;
     }
 
-    void LoadMission(const filesystem::path& file) {
-        Mission = HogFile::Read(file);
+    bool LoadMission(const filesystem::path& file) {
+        try {
+            Mission = HogFile::Read(file);
+            return true;
+        }
+        catch (...) {
+            SPDLOG_ERROR("Unable to read HOG {}", file.string());
+            return false;
+        }
     }
 
     // Tries to read the mission file (msn / mn2) for the loaded mission
@@ -306,12 +317,12 @@ namespace Inferno::Game {
     Inferno::Level LoadLevelFromMission(const string& name) {
         ASSERT(Game::Mission);
 
-        //try {
-        //auto level = Resources::ReadLevelFromMission(name);
         auto data = Mission->ReadEntry(name);
 
         auto shareware = String::ToLower(name).ends_with(".sdl");
-        SPDLOG_INFO("Shareware level loaded! Certain functionality will be unavailable.");
+        if (shareware)
+            SPDLOG_INFO("Shareware level loaded! Certain functionality will be unavailable.");
+
         auto level = shareware ? Level::DeserializeD1Demo(data) : Level::Deserialize(data);
         level.FileName = name;
         level.Path = Mission->Path;
@@ -324,6 +335,7 @@ namespace Inferno::Game {
         if (metadata.empty()) {
             auto mission = String::ToLower(Game::Mission->Path.filename().string());
 
+            // todo: remove `data` from paths
             // Read IED from data directories for official missions
             if (mission == "descent.hog")
                 path = "data/d1/" + metadataFile;
@@ -342,11 +354,6 @@ namespace Inferno::Game {
         }
 
         return level;
-        //Game::LoadLevel(std::move(level));
-        //}
-        //catch (const std::exception& e) {
-        //    ShowErrorMessage(e);
-        //}
     }
 
     //void LoadLevelMetadata(Inferno::Level& level) {
