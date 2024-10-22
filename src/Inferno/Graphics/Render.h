@@ -69,6 +69,7 @@ namespace Inferno::Render {
 
     MeshIndex& GetMeshHandle(ModelID);
     MeshIndex& GetOutrageMeshHandle(ModelID);
+    void UpdateFrameConstants(const Inferno::Camera& camera, UploadBuffer<FrameConstants>& dest, float renderScale = 1);
 
     inline ID3D12Device* Device;
 

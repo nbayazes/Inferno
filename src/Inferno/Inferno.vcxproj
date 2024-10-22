@@ -168,6 +168,7 @@
       <FileType>Document</FileType>
     </None>
     <ClCompile Include="Graphics\Render.Automap.cpp" />
+    <ClCompile Include="Graphics\Render.Briefing.cpp" />
     <ClCompile Include="Graphics\Render.MainMenu.cpp" />
     <ClCompile Include="Icosphere.cpp" />
     <ClCompile Include="VisualEffects.cpp" />
@@ -295,6 +296,7 @@
     <ClInclude Include="Game.UI.h" />
     <ClInclude Include="Graphics.Debug.h" />
     <ClInclude Include="Graphics\Render.Automap.h" />
+    <ClInclude Include="Graphics\Render.Briefing.h" />
     <ClInclude Include="Graphics\Render.MainMenu.h" />
     <ClInclude Include="Icosphere.h" />
     <None Include="shaders\MenuSun.hlsl">

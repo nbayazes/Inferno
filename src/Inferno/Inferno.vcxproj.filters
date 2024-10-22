@@ -111,6 +111,7 @@
     <ClCompile Include="Icosphere.cpp" />
     <ClCompile Include="Graphics\Render.MainMenu.cpp" />
     <ClCompile Include="Game.Automap.cpp" />
+    <ClCompile Include="Graphics\Render.Briefing.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\Audio.h" />
@@ -266,6 +267,7 @@
     <ClInclude Include="Graphics\Render.MainMenu.h" />
     <ClInclude Include="Game.UI.h" />
     <ClInclude Include="Game.Automap.h" />
+    <ClInclude Include="Graphics\Render.Briefing.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />
