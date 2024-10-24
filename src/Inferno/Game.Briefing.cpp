@@ -94,8 +94,8 @@ namespace Inferno {
         }
     }
 
-    void BriefingState::LoadBackgrounds() {
-        for (auto& screen : _screens) {
+    void ResolveBriefingImages(Briefing& briefing) {
+        for (auto& screen : briefing.Screens) {
             for (auto& page : screen.Pages) {
                 if (page.Image.empty()) continue;
 
@@ -113,7 +113,6 @@ namespace Inferno {
         }
     }
 
-
     void HandleBriefingInput() {
         using Input::Keys;
 
@@ -121,15 +120,24 @@ namespace Inferno {
             Input::IsKeyPressed(Keys::Left))
             Game::Briefing.Back();
 
+        bool exitBriefing = false;
+
         if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick) ||
             Input::IsKeyPressed(Keys::Space) ||
-            Input::IsKeyPressed(Keys::Right))
+            Input::IsKeyPressed(Keys::Right)) {
             Game::Briefing.Forward();
+            if (!Game::Briefing.GetScreen())
+                exitBriefing = true;
+        }
 
         if (Input::IsKeyPressed(Keys::Escape)) {
             // todo: show loading screen and load level
+            exitBriefing = true;
+        }
+
+        if (exitBriefing) {
             Game::BriefingVisible = false;
-            Game::SetState(GameState::Game);
+            Game::SetState(GameState::LoadLevel);
         }
     }
 }

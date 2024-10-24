@@ -109,6 +109,10 @@ namespace Inferno::Render {
         PIXScopedEvent(ctx.GetCommandList(), PIX_COLOR_INDEX(10), "Briefing");
         ctx.ClearColor(target);
 
+        // Update the light grid in briefing mode, as the level won't do it for us
+        if (Game::GetState() == GameState::Briefing)
+            LightGrid->SetLightConstants(UINT(Adapter->BriefingRobot.GetWidth()), UINT(Adapter->BriefingRobot.GetHeight()));
+
         if (auto screen = briefing.GetScreen()) {
             if (auto page = briefing.GetPage()) {
                 Vector2 scale(1, 1);

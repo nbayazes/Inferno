@@ -248,6 +248,11 @@ namespace Inferno {
             return;
         }
 
+        if (Game::GetState() == GameState::Briefing) {
+            HandleBriefingInput();
+            return;
+        }
+
         HandleDebugKeys();
         HandleWeaponKeys();
     }

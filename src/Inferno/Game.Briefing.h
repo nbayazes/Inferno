@@ -45,8 +45,6 @@ namespace Inferno {
 
         void Update(float dt);
 
-        void LoadBackgrounds();
-
         // Returns the current screen, or null if past the end
         const Briefing::Screen* GetScreen() const {
             return Seq::tryItem(_screens, _screen);
@@ -73,5 +71,7 @@ namespace Inferno {
         void OnPageChanged();
     };
 
+    // Converts image names into resources
+    void ResolveBriefingImages(Briefing& briefing);
     void HandleBriefingInput();
 }

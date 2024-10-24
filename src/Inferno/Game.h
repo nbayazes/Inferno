@@ -21,6 +21,7 @@ namespace Inferno {
         Paused, // In game but paused or in a menu
         ExitSequence, // exit tunnel sequence
         Cutscene, // In-game cutscene, waits for input to cancel
+        LoadLevel, // Show a loading screen and load the currently pending level
         ScoreScreen,
         Automap,
         Briefing,
@@ -96,6 +97,8 @@ namespace Inferno::Game {
     // If levelName is provided, tries to load that level from the mission, otherwise the first level
     void LoadLevel(const filesystem::path& path, const string& level = "", bool addToRecent = false);
     void NewLevel(Editor::NewLevelInfo& info);
+
+    void InitLevel(Inferno::Level&& level);
 
     // Loads a hog from a path. Returns false on error.
     bool LoadMission(const filesystem::path& file);

@@ -314,20 +314,7 @@ namespace Inferno::Game {
         return -1;
     }
 
-    Inferno::Level LoadLevelFromMission(const string& name) {
-        ASSERT(Game::Mission);
-
-        auto data = Mission->ReadEntry(name);
-
-        auto shareware = String::ToLower(name).ends_with(".sdl");
-        if (shareware)
-            SPDLOG_INFO("Shareware level loaded! Certain functionality will be unavailable.");
-
-        auto level = shareware ? Level::DeserializeD1Demo(data) : Level::Deserialize(data);
-        level.FileName = name;
-        level.Path = Mission->Path;
-
-        // Load metadata
+    void LoadLevelMetadata(Inferno::Level& level) {
         auto metadataFile = String::NameWithoutExtension(level.FileName) + METADATA_EXTENSION;
         string path = metadataFile;
         auto metadata = Game::Mission->TryReadEntryAsString(metadataFile);
@@ -352,7 +339,22 @@ namespace Inferno::Game {
             SPDLOG_INFO("Reading level metadata from `{}`", path);
             LoadLevelMetadata(level, metadata, Editor::EditorLightSettings);
         }
+    }
 
+    Inferno::Level LoadLevelFromMission(const string& name) {
+        ASSERT(Game::Mission);
+
+        auto data = Game::Mission->ReadEntry(name);
+
+        auto shareware = String::ToLower(name).ends_with(".sdl");
+        if (shareware)
+            SPDLOG_INFO("Shareware level loaded! Certain functionality will be unavailable.");
+
+        auto level = shareware ? Level::DeserializeD1Demo(data) : Level::Deserialize(data);
+        level.FileName = name;
+        level.Path = Mission->Path;
+
+        LoadLevelMetadata(level);
         return level;
     }
 

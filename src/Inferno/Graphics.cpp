@@ -19,6 +19,10 @@ namespace Inferno::Graphics {
         Render::Materials->LoadTextures(names);
     }
 
+    void LoadTextures(span<TexID> ids) {
+        Render::Materials->LoadMaterials(ids);
+    }
+
     void LoadEnvironmentMap(string_view name) {
         if (auto path = FileSystem::TryFindFile(name)) {
             DirectX::ResourceUploadBatch batch(Render::Device);

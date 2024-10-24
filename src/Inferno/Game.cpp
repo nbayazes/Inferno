@@ -353,7 +353,7 @@ namespace Inferno::Game {
     }
 
     // Changes the game state if a new one is requested
-    void UpdateGameState() {
+    void CheckGameStateChange() {
         if (State == RequestedState) return;
         Input::ResetState(); // Clear input when switching game states
 
@@ -367,8 +367,19 @@ namespace Inferno::Game {
                 Game::MainCamera.Up = Vector3::UnitY;
                 Game::MainCamera.Position = MenuCameraPosition;
                 Game::MainCamera.Target = MenuCameraTarget;
+                Game::PlayMusic("d1/descent");
                 break;
             }
+
+            case GameState::Briefing:
+            {
+                if (!Game::Briefing.IsValid()) return;
+                State = GameState::Briefing;
+                break;
+            }
+
+            case GameState::LoadLevel:
+                break;
 
             case GameState::Editor:
                 if (Level.Version == 0) {
@@ -392,12 +403,13 @@ namespace Inferno::Game {
                 break;
 
             case GameState::Automap:
-            {
                 OpenAutomap();
                 break;
-            }
 
             case GameState::Game:
+                if (State == GameState::Briefing) {
+                    //Game::CheckLoadLevel();
+                }
                 if (State == GameState::GameMenu) {
                     Input::SetMouseMode(Input::MouseMode::Mouselook);
                 }
@@ -462,7 +474,7 @@ namespace Inferno::Game {
                     break;
 
                 case 1:
-                    Game::SetState(GameState::Editor);
+                    Game::SetState(GameState::MainMenu);
                     break;
             }
         }
@@ -562,7 +574,8 @@ namespace Inferno::Game {
     }
 
     void DrawBriefing() {
-        float scale = 1;
+        //float scale = std::floor(Render::Canvas->GetScale());
+        float scale = Render::Canvas->GetScale();
         Inferno::Render::CanvasBitmapInfo info;
         info.Size = Vector2{ 640, 480 } * scale;
         info.Texture = Render::Adapter->BriefingColorBuffer.GetSRV();
@@ -576,7 +589,8 @@ namespace Inferno::Game {
         LegitProfiler::ProfilerTask update("Update game", LegitProfiler::Colors::CARROT);
         LegitProfiler::AddCpuTask(std::move(update));
 
-        CheckLoadLevel();
+        if (State == GameState::Game || State == GameState::Editor)
+            CheckLoadLevel();
 
         Game::BriefingVisible = false;
         Inferno::Input::Update();
@@ -594,7 +608,7 @@ namespace Inferno::Game {
 
         Graphics::BeginFrame(); // enable debug calls during updates
 
-        UpdateGameState();
+        CheckGameStateChange();
         g_ImGuiBatch->BeginFrame();
 
         switch (State) {
@@ -611,6 +625,42 @@ namespace Inferno::Game {
             //Input::SetMouseMode(Input::MouseMode::Mouselook);
             //GenericCameraController(MainCamera, 300);
                 break;
+
+            case GameState::Briefing:
+                Game::BriefingVisible = true;
+                Game::Briefing.Update(dt);
+                DrawBriefing();
+                break;
+
+            case GameState::LoadLevel:
+            {
+                auto scale = Render::Canvas->GetScale();
+
+                //Vector2 bgSize = Vector2(200, lineHeight * 3.5f) * scale;
+                Render::Canvas->DrawRectangle({ 0, 0 }, Render::Canvas->GetSize(), Color(0, 0, 0, 1));
+
+                constexpr auto text = "prepare for descent";
+                const auto size = MeasureString(text, FontSize::Medium);
+
+                {
+                    auto borderSize = (size + Vector2(41, 41)) * scale;
+                    Vector2 alignment = Render::GetAlignment(borderSize, AlignH::Center, AlignV::Center, Render::Canvas->GetSize());
+                    Render::Canvas->DrawRectangle(alignment, borderSize, Color(0.25f, 0.25f, 0.25f, 1));
+                }
+
+                {
+                    auto fillSize = (size + Vector2(40, 40)) * scale;
+                    Vector2 alignment = Render::GetAlignment(fillSize, AlignH::Center, AlignV::Center, Render::Canvas->GetSize());
+                    Render::Canvas->DrawRectangle(alignment, fillSize, Color(0.1f, 0.1f, 0.1f, 1));
+                }
+                Render::DrawTextInfo info;
+                info.HorizontalAlign = AlignH::Center;
+                info.VerticalAlign = AlignV::Center;
+                info.Font = FontSize::Medium;
+                info.Position.y = 3;
+                Render::Canvas->DrawGameText(text, info);
+                break;
+            }
 
             case GameState::Automap:
                 SetActiveCamera(Game::AutomapCamera);
@@ -710,6 +760,11 @@ namespace Inferno::Game {
         LegitProfiler::GpuTasks.clear();
 
         Input::NextFrame();
+
+        if (State == GameState::LoadLevel) {
+            Game::CheckLoadLevel(); // block until done loading
+            SetState(GameState::Game);
+        }
     }
 
     SoundID GetSoundForSide(const SegmentSide& side) {
@@ -808,7 +863,7 @@ namespace Inferno::Game {
         auto player = Level.TryGetObject(ObjID(0));
 
         if (!player || !player->IsPlayer()) {
-            ShowErrorMessage(L"No player start at object 0!", L"Unable to playtest");
+            ShowErrorMessage(L"No player start at object 0!", L"Unable to load level");
             return false;
         }
 

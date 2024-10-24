@@ -32,7 +32,17 @@ namespace Inferno {
         }
 
         bool GetBool(const string& key) {
-            return Metadata[key] == "yes";
+            if (Metadata.contains(key))
+                return Metadata[key] == "yes";
+
+            return false;
+        }
+
+        string GetValue(const string& key) {
+            if (Metadata.contains(key))
+                return Metadata[key];
+
+            return "";
         }
 
         bool Read(std::istream& file) {
@@ -86,7 +96,8 @@ namespace Inferno {
                             }
                             break;
                         }
-                        default: Metadata[key] = value; break;
+                        default: Metadata[key] = value;
+                            break;
                     }
                 }
                 else if (line.starts_with(";")) {
@@ -127,7 +138,7 @@ namespace Inferno {
                     stream << level << '\n';
             }
 
-            
+
             for (const auto& [key, value] : Metadata) {
                 if (value == "") continue;
 

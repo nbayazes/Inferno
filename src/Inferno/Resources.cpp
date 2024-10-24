@@ -524,9 +524,35 @@ namespace Inferno::Resources {
         }
     }
 
+    void LoadDescent1Resources() {
+        std::scoped_lock lock(PigMutex);
+        auto hog = HogFile::Read(FileSystem::FindFile(L"descent.hog"));
+        auto paletteData = hog.ReadEntry("palette.256");
+        auto palette = ReadPalette(paletteData);
+
+        auto path = FileSystem::FindFile(L"descent.pig");
+        auto pigData = File::ReadAllBytes(path);
+
+        HamFile ham;
+        PigFile pig;
+        SoundFile sounds;
+        ReadDescent1GameData(pigData, palette, ham, pig, sounds);
+        pig.Path = path;
+        sounds.Path = path;
+
+        //ReadBitmap(pig, palette, TexID(61)); // cockpit
+        auto textures = ReadAllBitmaps(pig, palette);
+
+        // Everything loaded okay, set the internal data
+        Textures = std::move(textures);
+        LevelPalette = std::move(palette);
+        Pig = std::move(pig);
+        Hog = std::move(hog);
+        GameData = std::move(ham);
+    }
+
     void LoadDescent1Resources(Level& level) {
         std::scoped_lock lock(PigMutex);
-        SPDLOG_INFO("Loading Descent 1 level: '{}'\r\n Version: {} Segments: {} Vertices: {}", level.Name, level.Version, level.Segments.size(), level.Vertices.size());
         auto hog = HogFile::Read(FileSystem::FindFile(L"descent.hog"));
         auto paletteData = hog.ReadEntry("palette.256");
         auto palette = ReadPalette(paletteData);
@@ -563,7 +589,7 @@ namespace Inferno::Resources {
         GameData = std::move(ham);
     }
 
-    void LoadDescent1Shareware(Level& /*level*/) {
+    void LoadDescent1Shareware() {
         filesystem::path sharewarePath = "data/d1/demo";
         PigFile pig;
         auto pigData = File::ReadAllBytes(sharewarePath / "descent.pig");
@@ -766,7 +792,7 @@ namespace Inferno::Resources {
 
         // Common data folder
         path = filesystem::path("data") / name;
-        if (filesystem::exists(path))
+        if (filesystem::exists(path) || filesystem::exists(name))
             return true;
 
         // Base HOG file
@@ -843,6 +869,11 @@ namespace Inferno::Resources {
         if (filesystem::exists(path)) {
             SPDLOG_INFO("Reading {}", path);
             return File::ReadAllBytes(path);
+        }
+
+        if (filesystem::exists(name)) {
+            SPDLOG_INFO("Reading {}", name);
+            return File::ReadAllBytes(name);
         }
 
         // Base HOG file
@@ -924,8 +955,11 @@ namespace Inferno::Resources {
                 AvailablePalettes = FindAvailablePalettes();
             }
             else if (level.IsDescent1()) {
+                SPDLOG_INFO("Loading Descent 1 level: '{}'\r\n Version: {} Segments: {} Vertices: {}", 
+                            level.Name, level.Version, level.Segments.size(), level.Vertices.size());
+
                 if (String::ToLower(level.FileName).ends_with(".sdl"))
-                    LoadDescent1Shareware(level);
+                    LoadDescent1Shareware();
                 else
                     LoadDescent1Resources(level);
             }

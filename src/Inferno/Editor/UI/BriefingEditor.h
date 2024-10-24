@@ -164,26 +164,7 @@ vaporization of the facility.
                 reactorPage.VisibleCharacters = (int)reactorPage.Text.size() - 2;
                 briefing.Screens[2].Pages.insert(briefing.Screens[2].Pages.begin() + 1, reactorPage);
             }
-        }
-
-        static void ResolveImages(Briefing& briefing) {
-            for (auto& screen : briefing.Screens) {
-                for (auto& page : screen.Pages) {
-                    if (page.Image.empty()) continue;
-
-                    if (String::Contains(page.Image, "#")) {
-                        if (auto tid = Resources::LookupLevelTexID(Resources::FindTexture(page.Image)); tid != LevelTexID::None) {
-                            page.Door = Resources::GetDoorClipID(tid);
-                            page.Image = {}; // Clear source image
-                        }
-                    }
-                    else if (!String::Contains(page.Image, ".")) {
-                        // todo: also search for PNG, PCX, DDS
-                        page.Image += ".bbm"; // Assume BBM for now
-                    }
                 }
-            }
-        }
 
         void OpenBriefing(const HogEntry& entry) {
             auto data = Game::Mission->ReadEntry(entry);
@@ -199,9 +180,9 @@ vaporization of the facility.
                 }
             }
 
-            ResolveImages(_briefing);
             _buffer = _briefing.Raw;
-            Game::Briefing = BriefingState(_briefing, 0);
+            ResolveBriefingImages(_briefing);
+            Game::Briefing = BriefingState(_briefing, 0, Game::Level.IsDescent1());
         }
     };
 }

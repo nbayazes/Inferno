@@ -14,6 +14,7 @@ namespace Inferno::Graphics {
 
     void LoadLevelTextures(const Level& level, bool force = false);
     void LoadTextures(span<const string> names);
+    void LoadTextures(span<TexID> ids);
     void LoadEnvironmentMap(string_view name);
 
     // Rename to async
