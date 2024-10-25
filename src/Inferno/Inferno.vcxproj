@@ -380,8 +380,12 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="Audio\Music.h" />
     <ClInclude Include="Game.Briefing.h" />
-    <None Include="gsl\assert" />
-    <None Include="gsl\pointers" />
+    <None Include="gsl\assert.h">
+      <FileType>CppHeader</FileType>
+    </None>
+    <None Include="gsl\pointers.h">
+      <FileType>CppHeader</FileType>
+    </None>
     <None Include="shaders\ObjectVertex.hlsli" />
     <None Include="shaders\Terrain.hlsl">
       <DeploymentContent>true</DeploymentContent>

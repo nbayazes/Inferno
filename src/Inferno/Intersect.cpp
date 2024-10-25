@@ -352,11 +352,12 @@ namespace Inferno {
 
             ASSERT(segId != SegID::None);
             _visitedSegs.push_back(segId); // must track visited segs to prevent circular logic
-            auto& seg = _level->GetSegment(segId);
+            auto seg = _level->TryGetSegment(segId);
+            if (!seg) continue;
             //SPDLOG_INFO("RayLevel() seg: {}", segId);
 
             if (mask != ObjectMask::None) {
-                for (auto& objid : seg.Objects) {
+                for (auto& objid : seg->Objects) {
                     if (source == objid) continue;
                     if (auto obj = _level->TryGetObject(objid)) {
                         if (!obj->IsAlive()) continue;
@@ -373,7 +374,7 @@ namespace Inferno {
             bool anyIntersect = false;
 
             for (auto& side : SIDE_IDS) {
-                auto face = ConstFace::FromSide(*_level, seg, side);
+                auto face = ConstFace::FromSide(*_level, *seg, side);
                 float dist{};
                 auto tri = face.Intersects(ray, dist, false, tolerance);
 
@@ -393,7 +394,7 @@ namespace Inferno {
                     case RayQueryMode::Visibility:
                     {
                         intersects = !SideIsTransparent(*_level, tag); // also checks if side is open
-                        if (seg.SideIsSolid(tag.Side, *_level))
+                        if (seg->SideIsSolid(tag.Side, *_level))
                             throughWall = true;
                         break;
                     }
@@ -415,13 +416,13 @@ namespace Inferno {
                             }
                         }
                         else {
-                            intersects = !seg.SideHasConnection(side);
+                            intersects = !seg->SideHasConnection(side);
                         }
 
                         break;
                     }
                     case RayQueryMode::IgnoreWalls:
-                        intersects = !seg.SideHasConnection(side);
+                        intersects = !seg->SideHasConnection(side);
                         break;
                     default: ;
                 }
@@ -432,14 +433,14 @@ namespace Inferno {
                     hit.Normal = face.Side.Normals[tri];
                     hit.Tangent = face.Side.Tangents[tri];
                     hit.Point = intersectPoint;
-                    hit.EdgeDistance = FaceEdgeDistance(seg, side, face, hit.Point);
+                    hit.EdgeDistance = FaceEdgeDistance(*seg, side, face, hit.Point);
                     return IntersectResult::HitWall;
                 }
                 else {
-                    auto conn = seg.GetConnection(side);
+                    auto conn = seg->GetConnection(side);
                     if (!Seq::contains(_visitedSegs, conn)) {
                         next = conn;
-                        ray.position -= seg.GetSide(side).AverageNormal * 0.01f;
+                        ray.position -= seg->GetSide(side).AverageNormal * 0.01f;
                     }
                     break; // go to next segment
                 }

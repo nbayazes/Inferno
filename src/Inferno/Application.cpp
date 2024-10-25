@@ -100,9 +100,11 @@ void Application::Tick() const {
         return; // Skip first tick
 
 
-    if (Game::ResetDeltaTime) {
+    if (Game::ResetGameTime) {
+        SPDLOG_INFO("Reset game time");
         dt = 0;
-        Game::ResetDeltaTime = false;
+        Game::Time = 0;
+        Game::ResetGameTime = false;
     }
 
     if (dt > 2) {

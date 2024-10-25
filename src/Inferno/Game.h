@@ -118,7 +118,7 @@ namespace Inferno::Game {
 
     string LevelNameByIndex(int index);
 
-    inline bool ResetDeltaTime = false;
+    inline bool ResetGameTime = false;
     inline double Time = 0; // Elapsed game time since level start in seconds. Stops when paused.
     inline float FrameTime = 0; // Time of this frame in seconds. 0 when paused.
     inline float TimeScale = 1.0f; // Multiplier applied to elapsed game time

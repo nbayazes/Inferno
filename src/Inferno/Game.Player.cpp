@@ -734,8 +734,10 @@ namespace Inferno {
 
         if (died) {
             ResetInventory();
+        }
 
-            // Play respawn effect
+        {
+            // Play spawn effect
             ParticleInfo p{};
             p.Clip = VClipID::PlayerSpawn;
             p.Radius = player.Radius;

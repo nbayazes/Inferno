@@ -2,7 +2,7 @@
 #include "Types.h"
 #include "Game.Text.h"
 #include "Graphics/Render.h"
-#include "gsl/pointers"
+#include "gsl/pointers.h"
 #include "SoundSystem.h"
 #include "Input.h"
 
@@ -121,9 +121,6 @@ namespace Inferno {
             if (!Enabled) return;
 
             if (Input::MouseMoved()) {
-                if (Selectable)
-                    Focused = Contains(Input::MousePosition);
-
                 Hovered = Contains(Input::MousePosition);
             }
 
@@ -296,7 +293,9 @@ namespace Inferno {
 
     class Rectangle : public ControlBase {
     public:
-        Rectangle() {}
+        Rectangle() {
+            Selectable = false;
+        }
 
         Color Fill;
 
@@ -359,6 +358,9 @@ namespace Inferno {
             _fontHeight = MeasureString("Descent", FontSize::Medium).y;
             AddChild(make_unique<Rectangle>());
             Padding = Vector2(2, 2);
+            ClickAction = [this] {
+                if(ClickItemAction) ClickItemAction(_index);
+            };
         }
 
         void OnUpdate() override {
@@ -408,9 +410,9 @@ namespace Inferno {
             if (wheelDelta != 0)
                 HitTestCursor(); // Update index when scrolling
 
-            if (Input::IsKeyPressed(Keys::Enter) && ClickItemAction) {
-                ClickItemAction(_index);
-            }
+            //if (Input::IsKeyPressed(Keys::Enter) && ClickItemAction) {
+            //    ClickItemAction(_index);
+            //}
         }
 
         ControlBase* HitTestCursor() override {

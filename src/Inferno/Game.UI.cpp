@@ -4,7 +4,7 @@
 #include "Game.Text.h"
 #include "Graphics.h"
 #include "Graphics/Render.h"
-#include "gsl/pointers"
+#include "gsl/pointers.h"
 #include "Input.h"
 #include "Types.h"
 #include "Utility.h"
@@ -25,6 +25,7 @@ namespace Inferno::UI {
             Padding = Vector2(5, 5);
         }
 
+        bool CloseOnConfirm = true;
         CloseState State = CloseState::None;
 
         ControlBase* Selection = nullptr;
@@ -42,8 +43,14 @@ namespace Inferno::UI {
             if (Selection && Selection->ClickAction) {
                 Sound::Play2D(SoundResource{ ActionSound });
                 Selection->ClickAction();
-                State = CloseState::Accept;
+
+            } else if (CloseOnConfirm) {
+                // Play the default menu select sound when closing if there's no action
+                Sound::Play2D(SoundResource{ MENU_SELECT_SOUND });
             }
+
+            if (CloseOnConfirm)
+                State = CloseState::Accept;
         }
 
         void OnUpdateLayout() override {
@@ -337,35 +344,13 @@ namespace Inferno::UI {
         return (TScreen*)Screens.back().get();
     }
 
-    template <class TScreen>
-    TScreen* ShowScreenR(TScreen&& screen) {
-        screen.Layer = (int)Screens.size() * 2;
-        screen.OnUpdateLayout();
-        screen.OnUpdateLayout(); // Need to calculate layout twice due to sizing
-
-        // Set initial selection based on how the screen was shown
-        if (Input::IsMouseButtonDown(Input::MouseButtons::LeftClick))
-            screen.SetSelection(screen.HitTestCursor());
-        else
-            screen.SelectFirst();
-
-        Input::ResetState(); // Reset input to prevent clicking a control as soon as the screen appears
-        screen.OnUpdate();
-        //Screens.push_back(std::forward<TScreen>(screen));
-        //Screens.push_back( std::forward<TScreen>(screen));
-        Screens.push_back(make_unique<TScreen>(std::forward<TScreen>(screen)));
-        return (TScreen*)Screens.back().get();
-
-        //Screens.push_back(std::move(screen));
-    }
-
     bool CloseScreen() {
         if (Screens.size() == 1) return false; // Can't close the last screen
 
         auto& screen = Screens.back();
         SPDLOG_INFO("Closing screen {:x}", (int64)screen.get());
         if (screen->CloseCallback) screen->CloseCallback(screen->State);
-        Seq::remove(Screens, screen);
+        Seq::remove(Screens, screen); // Remove the  original screen because the callback might open a new one
         Input::ResetState(); // Clear state so clicking doesn't immediately trigger another action
         return true;
     }
@@ -376,18 +361,18 @@ namespace Inferno::UI {
             HorizontalAlignment = AlignH::Center;
             VerticalAlignment = AlignV::Center;
 
-            CloseButton close(CloseScreen);
-            close.HorizontalAlignment = AlignH::Right;
-            close.Margin = Vector2(DIALOG_MARGIN, DIALOG_MARGIN);
-            AddChild(make_unique<CloseButton>(std::move(close)));
+            auto close = make_unique<CloseButton>(CloseScreen);
+            close->HorizontalAlignment = AlignH::Right;
+            close->Margin = Vector2(DIALOG_MARGIN, DIALOG_MARGIN);
+            AddChild(std::move(close));
 
             if (!title.empty()) {
-                Label titleLabel(title, FontSize::MediumBlue);
-                titleLabel.VerticalAlignment = AlignV::Top;
-                titleLabel.HorizontalAlignment = AlignH::Center;
-                titleLabel.Position = Vector2(0, DIALOG_MARGIN);
-                titleLabel.Color = DIALOG_TITLE_COLOR;
-                AddChild(make_unique<Label>(std::move(titleLabel)));
+                auto titleLabel = make_unique<Label>(title, FontSize::MediumBlue);
+                titleLabel->VerticalAlignment = AlignV::Top;
+                titleLabel->HorizontalAlignment = AlignH::Center;
+                titleLabel->Position = Vector2(0, DIALOG_MARGIN);
+                titleLabel->Color = DIALOG_TITLE_COLOR;
+                AddChild(std::move(titleLabel));
             }
         }
 
@@ -446,30 +431,31 @@ namespace Inferno::UI {
         LevelSelectDialog(int levelCount, int& level) : DialogBase("select level"), _level(&level) {
             Size = Vector2(300, 170);
 
-            Label description(fmt::format("1 to {}", levelCount), FontSize::MediumBlue);
-            description.HorizontalAlignment = AlignH::Center;
-            description.Position.y = 50;
-            description.Color = DIALOG_TITLE_COLOR;
+            auto description = make_unique<Label>(fmt::format("1 to {}", levelCount), FontSize::MediumBlue);
+            description->HorizontalAlignment = AlignH::Center;
+            description->Position.y = 50;
+            description->Color = DIALOG_TITLE_COLOR;
 
-            Spinner levelSelect(1, levelCount, *_level);
-            levelSelect.Position.y = 85;
-            levelSelect.HorizontalAlignment = AlignH::Center;
+            auto levelSelect = make_unique<Spinner>(1, levelCount, *_level);
+            levelSelect->Position.y = 85;
+            levelSelect->HorizontalAlignment = AlignH::Center;
+            
+            AddChild(std::move(description));
+            AddChild(std::move(levelSelect));
 
-            AddChild(make_unique<Label>(std::move(description)));
-            AddChild(make_unique<Spinner>(std::move(levelSelect)));
-
-            Button closeButton("ok", [this] { State = CloseState::Accept; });
-            closeButton.HorizontalAlignment = AlignH::Center;
-            closeButton.VerticalAlignment = AlignV::Bottom;
-            closeButton.Margin = Vector2(0, DIALOG_MARGIN);
-            AddChild(make_unique<Button>(std::move(closeButton)));
+            auto closeButton = make_unique<Button>("ok", [this] {
+                State = CloseState::Accept;
+            });
+            closeButton->HorizontalAlignment = AlignH::Center;
+            closeButton->VerticalAlignment = AlignV::Bottom;
+            closeButton->Margin = Vector2(0, DIALOG_MARGIN);
+            AddChild(std::move(closeButton));
         }
 
         void OnUpdate() override {
             DialogBase::OnUpdate();
 
             if (Input::IsKeyPressed(Keys::Enter)) {
-                Sound::Play2D(SoundResource{ MENU_SELECT_SOUND });
                 State = CloseState::Accept;
             }
         }
@@ -487,25 +473,25 @@ namespace Inferno::UI {
 
             Size = Vector2(260, 220);
 
-            StackPanel panel;
-            panel.Position = Vector2(0, 60);
-            panel.HorizontalAlignment = AlignH::Center;
-            panel.VerticalAlignment = AlignV::Top;
+            auto panel = make_unique<StackPanel>();
+            panel->Position = Vector2(0, 60);
+            panel->HorizontalAlignment = AlignH::Center;
+            panel->VerticalAlignment = AlignV::Top;
 
-            panel.AddChild<Button>("Trainee", [this] { OnPick(DifficultyLevel::Trainee); });
-            panel.AddChild<Button>("Rookie", [this] { OnPick(DifficultyLevel::Rookie); });
-            panel.AddChild<Button>("Hotshot", [this] { OnPick(DifficultyLevel::Hotshot); });
-            panel.AddChild<Button>("Ace", [this] { OnPick(DifficultyLevel::Ace); });
+            panel->AddChild<Button>("Trainee", [this] { OnPick(DifficultyLevel::Trainee); });
+            panel->AddChild<Button>("Rookie", [this] { OnPick(DifficultyLevel::Rookie); });
+            panel->AddChild<Button>("Hotshot", [this] { OnPick(DifficultyLevel::Hotshot); });
+            panel->AddChild<Button>("Ace", [this] { OnPick(DifficultyLevel::Ace); });
             Button insane("Insane", [this] { OnPick(DifficultyLevel::Insane); });
             insane.TextColor = Color(3.0f, 0.4f, 0.4f);
             insane.FocusColor = Color(4.0f, 0.4f, 0.4f);
-            panel.AddChild<Button>(std::move(insane));
+            panel->AddChild<Button>(std::move(insane));
 
             //Button lunacy("Lunacy");
             //lunacy.TextColor = Color(4.0f, 0.4f, 0.4f);
             //panel.AddChild<Button>(std::move(lunacy));
 
-            Children.push_back(make_unique<StackPanel>(std::move(panel)));
+            Children.push_back(std::move(panel));
         }
 
         ControlBase* SelectFirst() override {
@@ -535,6 +521,7 @@ namespace Inferno::UI {
     public:
         PlayD1Dialog() {
             Size = Vector2(500, 460);
+            CloseOnConfirm = false;
 
             _difficulty = Game::Difficulty;
             _missions = Resources::ReadMissionDirectory("d1/missions");
@@ -549,23 +536,22 @@ namespace Inferno::UI {
             firstStrike.Metadata["ending"] = "ending.txb";
             _missions.insert(_missions.begin(), firstStrike);
 
-            Label title("select mission", FontSize::MediumBlue);
-            title.VerticalAlignment = AlignV::Top;
-            title.HorizontalAlignment = AlignH::Center;
-            title.Position = Vector2(0, DIALOG_MARGIN);
-            title.Color = DIALOG_TITLE_COLOR;
-            AddChild(make_unique<Label>(std::move(title)));
+            auto title = make_unique<Label>("select mission", FontSize::MediumBlue);
+            title->VerticalAlignment = AlignV::Top;
+            title->HorizontalAlignment = AlignH::Center;
+            title->Position = Vector2(0, DIALOG_MARGIN);
+            title->Color = DIALOG_TITLE_COLOR;
+            AddChild(std::move(title));
 
-            ListBox missionList(14);
+            auto missionList = std::make_unique<ListBox>(14);
 
             for (auto& mission : _missions) {
-                missionList.Items.push_back(mission.Name);
+                missionList->Items.push_back(mission.Name);
             }
 
-            missionList.ClickItemAction = [this](int index) {
+            missionList->ClickItemAction = [this](int index) {
                 if (auto mission = Seq::tryItem(_missions, index)) {
                     SPDLOG_INFO("Mission: {}", mission->Path.string());
-                    Sound::Play2D(SoundResource{ ActionSound });
                     _mission = mission;
 
                     if (mission->Levels.size() > 1) {
@@ -577,10 +563,10 @@ namespace Inferno::UI {
                 }
             };
 
-            missionList.Position = Vector2(30, 60);
-            missionList.Size.x = 425;
-            missionList.Padding = Vector2(10, 5);
-            AddChild(make_unique<ListBox>(std::move(missionList)));
+            missionList->Position = Vector2(30, 60);
+            missionList->Size.x = 425;
+            missionList->Padding = Vector2(10, 5);
+            AddChild(std::move(missionList));
         }
 
     private:
@@ -634,11 +620,9 @@ namespace Inferno::UI {
                             Resources::LoadLevel(level);
                             Graphics::LoadLevel(level);
 
-                            //Game::InitLevel(std::move(level));
-
                             // Queue load level
                             Game::LoadLevel(_mission->Path, _mission->Levels[_level]);
-                            
+
                             //Resources::LoadLevel(); // preferably this would only load the game resources
 
                             // todo: load exit door
@@ -684,38 +668,40 @@ namespace Inferno::UI {
 
     public:
         MainMenu() {
-            StackPanel panel;
-            panel.Position = Vector2(45, 140);
-            panel.HorizontalAlignment = AlignH::CenterRight;
-            panel.VerticalAlignment = AlignV::Top;
+            CloseOnConfirm = false;
+
+            auto panel = make_unique<StackPanel>();
+            panel->Position = Vector2(45, 140);
+            panel->HorizontalAlignment = AlignH::CenterRight;
+            panel->VerticalAlignment = AlignV::Top;
 
             //TextBox tb;
             //tb.Size = Vector2{ 200, 20 };
             //tb.Margin = Vector2{ 2, 2 };
             //tb.SetText("Hello");
-            //panel.AddChild<TextBox>(std::move(tb));
+            //panel->AddChild<TextBox>(std::move(tb));
 
             //Spinner spinner(0, 33, _spinnerValue);
             //spinner.Margin = Vector2{ 2, 2 };
             //spinner.SetValue(10);
-            //panel.AddChild<Spinner>(std::move(spinner));
+            //panel->AddChild<Spinner>(std::move(spinner));
 
-            panel.AddChild<Button>("Play Descent 1", [] {
+            panel->AddChild<Button>("Play Descent 1", [] {
                 ShowScreen(make_unique<PlayD1Dialog>());
             });
-            panel.AddChild<Button>("Play Descent 2");
-            panel.AddChild<Button>("Load Game");
-            panel.AddChild<Button>("Options");
-            panel.AddChild<Button>("High Scores");
-            panel.AddChild<Button>("Credits");
-            panel.AddChild<Button>("Level Editor", [] {
+            panel->AddChild<Button>("Play Descent 2");
+            panel->AddChild<Button>("Load Game");
+            panel->AddChild<Button>("Options");
+            panel->AddChild<Button>("High Scores");
+            panel->AddChild<Button>("Credits");
+            panel->AddChild<Button>("Level Editor", [] {
                 Game::SetState(GameState::Editor);
             });
-            panel.AddChild<Button>("Quit", [] {
+            panel->AddChild<Button>("Quit", [] {
                 PostMessage(Shell::Hwnd, WM_CLOSE, 0, 0);
             });
 
-            AddChild(make_unique<StackPanel>(std::move(panel)));
+            AddChild(std::move(panel));
         }
 
         void OnDraw() override {
@@ -883,6 +869,9 @@ namespace Inferno::UI {
 
         if (Screens.back()->State == CloseState::Accept) {
             CloseScreen();
+            /*string sound = Screens.back()->ActionSound;
+            if (CloseScreen())
+                Sound::Play2D(SoundResource{ sound });*/
         }
         else if (Screens.back()->State == CloseState::Cancel) {
             if (CloseScreen())

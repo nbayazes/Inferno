@@ -1,7 +1,7 @@
 #include "pch.h"
 #define NOMINMAX
 #include <numeric>
-#include <gsl/pointers>
+#include <gsl/pointers.h>
 #include "Game.h"
 #include "DebugOverlay.h"
 #include "Editor/Editor.h"
@@ -420,12 +420,6 @@ namespace Inferno::Game {
                 else if (State == GameState::Automap) {
                     CloseAutomap();
                 }
-                else {
-                    if (!StartLevel()) {
-                        RequestedState = State;
-                        return;
-                    }
-                }
 
                 State = RequestedState;
                 UpdateWindowTitle();
@@ -763,7 +757,15 @@ namespace Inferno::Game {
 
         if (State == GameState::LoadLevel) {
             Game::CheckLoadLevel(); // block until done loading
-            SetState(GameState::Game);
+
+            if (!StartLevel()) {
+                // something went wrong loading level
+                // todo: go back to editor if started from there
+                SetState(GameState::MainMenu); 
+            }
+            else {
+                SetState(GameState::Game);
+            }
         }
     }
 
@@ -859,13 +861,23 @@ namespace Inferno::Game {
 
     void PreloadTextures();
 
-    bool StartLevel() {
-        auto player = Level.TryGetObject(ObjID(0));
+    bool CheckForPlayerStart(Inferno::Level& level) {
+        auto player = level.TryGetObject(ObjID(0));
 
         if (!player || !player->IsPlayer()) {
             ShowErrorMessage(L"No player start at object 0!", L"Unable to load level");
             return false;
         }
+
+        return true;
+    }
+
+    bool StartLevel() {
+        SPDLOG_INFO("Starting level");
+        auto player = Level.TryGetObject(ObjID(0));
+
+        if(!CheckForPlayerStart(Level))
+            return false;
 
         if (Input::ControlDown && State == GameState::Editor) {
             // Move player to selected segment if control is held down
@@ -980,7 +992,7 @@ namespace Inferno::Game {
         Settings::Editor.RenderMode = RenderMode::Shaded;
         Input::SetMouseMode(Input::MouseMode::Mouselook);
         Player.Respawn(false);
-        ResetDeltaTime = true;
+        ResetGameTime = true; // Reset game time so objects don't move before fully loaded
         return true;
     }
 
