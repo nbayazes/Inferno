@@ -95,7 +95,7 @@ namespace Inferno {
         if (info.RandomRotation)
             p.Info.Rotation = Random() * DirectX::XM_2PI;
 
-        Graphics::LoadTextureDynamic(info.Clip);
+        Graphics::LoadTexture(info.Clip);
         AddEffect(make_unique<Particle>(p));
     }
 
@@ -117,7 +117,7 @@ namespace Inferno {
         if (info.RandomRotation)
             p.Info.Rotation = Random() * DirectX::XM_2PI;
 
-        Graphics::LoadTextureDynamic(info.Clip);
+        Graphics::LoadTexture(info.Clip);
         AddEffect(make_unique<Particle>(p));
     }
 

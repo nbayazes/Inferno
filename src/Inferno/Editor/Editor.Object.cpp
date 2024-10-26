@@ -179,7 +179,7 @@ namespace Inferno::Editor {
             marker.Position = seg->Center;
 
         level.Objects.push_back(marker);
-        Graphics::LoadModelDynamic(marker.Render.Model.ID);
+        Graphics::LoadModel(marker.Render.Model.ID);
     }
 
     void RemoveSecretLevelReturnMarker(Level& level) {

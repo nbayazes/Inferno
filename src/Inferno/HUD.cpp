@@ -207,7 +207,7 @@ namespace Inferno {
     //}
 
     void DrawWeaponBitmap(const Vector2& offset, AlignH align, TexID id, float sizeScale, float alpha) {
-        Graphics::LoadTextureDynamic(id);
+        Graphics::LoadTexture(id);
         auto& ti = Resources::GetTextureInfo(id);
 
         Render::CanvasBitmapInfo info;

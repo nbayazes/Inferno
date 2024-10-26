@@ -330,7 +330,7 @@ namespace Inferno {
         if (auto seg = Level.TryGetSegment(segId))
             powerup.Ambient.SetTarget(seg->VolumeLight, Game::Time, 0);
 
-        Graphics::LoadTextureDynamic(pinfo.VClip);
+        Graphics::LoadTexture(pinfo.VClip);
         return AddObject(powerup);
     }
 
@@ -1094,10 +1094,10 @@ namespace Inferno {
         obj.NextThinkTime = 0;
 
         if (obj.Render.Type == RenderType::Model)
-            Graphics::LoadModelDynamic(obj.Render.Model.ID);
+            Graphics::LoadModel(obj.Render.Model.ID);
 
         if (obj.Render.Type == RenderType::Hostage || obj.Render.Type == RenderType::Powerup)
-            Graphics::LoadTextureDynamic(obj.Render.VClip.ID);
+            Graphics::LoadTexture(obj.Render.VClip.ID);
     }
 
     Vector3 RandomLateralDirection(const Object& obj) {
@@ -1105,7 +1105,6 @@ namespace Inferno {
         auto transform = Matrix::CreateFromAxisAngle(obj.Rotation.Forward(), angle);
         return Vector3::Transform(obj.Rotation.Right(), transform);
     }
-
 
     // Returns the offset and submodel
     SubmodelRef GetRandomPointOnObject(const Object& obj) {

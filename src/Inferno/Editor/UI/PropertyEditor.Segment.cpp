@@ -911,7 +911,7 @@ namespace Inferno::Editor {
     void OnChangeDoorClip(Level& level, const Wall& wall) {
         SetTextureFromDoorClip(level, wall.Tag, wall.Clip);
         auto& clip = Resources::GetDoorClip(wall.Clip);
-        Graphics::LoadTextureDynamic(clip.Frames[0]);
+        Graphics::LoadTexture(clip.Frames[0]);
         Events::LevelChanged();
     }
 

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Game.Briefing.h"
 #include "Game.h"
+#include "Graphics.h"
 #include "Input.h"
 #include "Resources.h"
 
@@ -87,31 +88,126 @@ namespace Inferno {
 
             if (page->Model != ModelID::None) {
                 InitObject(_object, ObjectType::Player, 0, true);
+                Graphics::LoadModel(page->Model);
                 _object.Render.Model.ID = page->Model;
+            }
+
+            {
+                auto& doorClip = Resources::GetDoorClip(page->Door);
+                auto wids = Seq::map(doorClip.GetFrames(), Resources::LookupTexID);
+                Graphics::LoadTextures(wids);
             }
 
             _object.Rotation = Matrix3x3(Matrix::CreateRotationY(-3.14f / 4)); // start facing left
         }
     }
 
-    void ResolveBriefingImages(Briefing& briefing) {
+    void LoadBriefingResources(Briefing& briefing) {
+        List<ModelID> models;
+
         for (auto& screen : briefing.Screens) {
             for (auto& page : screen.Pages) {
-                if (page.Image.empty()) continue;
+                if (page.Model != ModelID::None)
+                    models.push_back(page.Model);
 
-                if (String::Contains(page.Image, "#")) {
-                    if (auto tid = Resources::LookupLevelTexID(Resources::FindTexture(page.Image)); tid != LevelTexID::None) {
-                        page.Door = Resources::GetDoorClipID(tid);
-                        page.Image = {}; // Clear source image
+                if (!page.Image.empty()) {
+                    if (String::Contains(page.Image, "#")) {
+                        if (auto tid = Resources::LookupLevelTexID(Resources::FindTexture(page.Image)); tid != LevelTexID::None) {
+                            page.Door = Resources::GetDoorClipID(tid);
+                            page.Image = {}; // Clear source image
+                        }
                     }
-                }
-                else if (!String::Contains(page.Image, ".")) {
-                    // todo: also search for PNG, PCX, DDS
-                    page.Image += ".bbm"; // Assume BBM for now
+                    else if (!String::Contains(page.Image, ".")) {
+                        // todo: also search for PNG, PCX, DDS
+                        page.Image += ".bbm"; // Assume BBM for now
+                    }
                 }
             }
         }
+
+        // Precache resources so switching pages doesn't cause hitches
+        List<TexID> ids;
+
+        for (auto& screen : briefing.Screens) {
+            for (auto& page : screen.Pages) {
+                auto& doorClip = Resources::GetDoorClip(page.Door);
+                auto wids = Seq::map(doorClip.GetFrames(), Resources::LookupTexID);
+                Seq::append(ids, wids);
+            }
+        }
+
+        Graphics::LoadTextures(ids);
+
+        for (auto& model : models) {
+            Graphics::LoadModel(model);
+        }
+
+        // Load backgrounds from mission.
+        // Technically this should only load the relevant images,
+        // but it doesn't take long to load them all anyway.
+        if (Game::Mission)
+            Game::LoadBackgrounds(*Game::Mission);
     }
+
+
+    void AddPyroAndReactorPages(Briefing& briefing) {
+        auto screen = Seq::tryItem(briefing.Screens, 2);
+        if (!screen) return;
+
+        {
+            Briefing::Page pyroPage;
+            pyroPage.Model = Resources::GameData.PlayerShip.Model;
+            pyroPage.Text = R"($C1Pyro-GX
+multi-purpose fighter
+Size:			6 meters
+Est. Armament:	2 Argon Lasers
+				Concussion Missiles
+
+fighter based on third generation anti-gravity tech.
+excels in close quarters combat and modified to 
+equip upgrades encountered in the field.
+
+Effectiveness depends entirely 
+on the pilot due to the lack
+of electronic assists.
+)";
+            /*
+             *elite pilots report that the
+             *pyro-gx's direct controls
+             *outperform newer models.
+             */
+
+            pyroPage.VisibleCharacters = (int)pyroPage.Text.size() - 2;
+            screen->Pages.insert(screen->Pages.begin(), pyroPage);
+        }
+
+        {
+            Briefing::Page reactorPage;
+            reactorPage.Model = Resources::GameData.Reactors.empty() ? ModelID::None : Resources::GameData.Reactors[0].Model;
+            reactorPage.Text = R"($C1Reactor Core
+PTMC fusion power source
+Size:			10 meters
+Est. Armament:	Pulse defense system
+Threat:			Moderate
+
+advances in fusion technology lead to the
+development of small modular reactors.
+these reactors have been pivotal to 
+PTMC's rapid expansion and success.
+
+significant damage will cause
+the fusion containment field
+to fail, resulting in
+self-destruction and complete 
+vaporization of the facility.
+)";
+            // these reactors are pivotal to PTMC's
+            // financial success and rapid expansion.
+            reactorPage.VisibleCharacters = (int)reactorPage.Text.size() - 2;
+            screen->Pages.insert(screen->Pages.begin() + 1, reactorPage);
+        }
+    }
+
 
     void HandleBriefingInput() {
         using Input::Keys;

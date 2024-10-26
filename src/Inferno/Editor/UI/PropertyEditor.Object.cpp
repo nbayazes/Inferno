@@ -146,7 +146,7 @@ namespace Inferno::Editor {
                 if (ImGui::Selectable(powerup.Name.c_str(), isSelected)) {
                     id = sorted[i].ID;
                     if (obj) {
-                        Graphics::LoadTextureDynamic(obj->Render.VClip.ID);
+                        Graphics::LoadTexture(obj->Render.VClip.ID);
                     }
                     changed = true;
                 }
@@ -352,7 +352,7 @@ namespace Inferno::Editor {
                 o.Physics.Drag = obj.Physics.Drag;
             });
 
-            Graphics::LoadModelDynamic(robot.Model);
+            Graphics::LoadModel(robot.Model);
             changed = true;
         }
 
@@ -485,7 +485,7 @@ namespace Inferno::Editor {
                 if (ImGui::Selectable(iStr.c_str(), isSelected)) {
                     obj.ID = i;
                     InitObject(obj, obj.Type, obj.ID);
-                    Graphics::LoadModelDynamic(obj.Render.Model.ID);
+                    Graphics::LoadModel(obj.Render.Model.ID);
                     changed = true;
                 }
 
@@ -728,7 +728,7 @@ namespace Inferno::Editor {
             ImGui::TableRowLabel("Texture override");
             ImGui::SetNextItemWidth(-1);
             if (LevelTextureDropdown("##Texture", obj.Render.Model.TextureOverride)) {
-                Graphics::LoadTextureDynamic(obj.Render.Model.TextureOverride);
+                Graphics::LoadTexture(obj.Render.Model.TextureOverride);
                 ForMarkedObjects([&obj](Object& o) {
                     if (o.Render.Type != obj.Render.Type) return;
                     o.Render.Model.TextureOverride = obj.Render.Model.TextureOverride;

@@ -43,8 +43,8 @@ namespace Inferno::UI {
             if (Selection && Selection->ClickAction) {
                 Sound::Play2D(SoundResource{ ActionSound });
                 Selection->ClickAction();
-
-            } else if (CloseOnConfirm) {
+            }
+            else if (CloseOnConfirm) {
                 // Play the default menu select sound when closing if there's no action
                 Sound::Play2D(SoundResource{ MENU_SELECT_SOUND });
             }
@@ -439,7 +439,7 @@ namespace Inferno::UI {
             auto levelSelect = make_unique<Spinner>(1, levelCount, *_level);
             levelSelect->Position.y = 85;
             levelSelect->HorizontalAlignment = AlignH::Center;
-            
+
             AddChild(std::move(description));
             AddChild(std::move(levelSelect));
 
@@ -512,6 +512,8 @@ namespace Inferno::UI {
         }
     };
 
+    constexpr auto FIRST_STRIKE_NAME = "Descent: First Strike";
+
     class PlayD1Dialog : public DialogBase {
         List<MissionInfo> _missions;
         DifficultyLevel _difficulty{};
@@ -525,7 +527,7 @@ namespace Inferno::UI {
 
             _difficulty = Game::Difficulty;
             _missions = Resources::ReadMissionDirectory("d1/missions");
-            MissionInfo firstStrike{ .Name = "Descent: First Strike", .Path = "d1/descent.hog" };
+            MissionInfo firstStrike{ .Name = FIRST_STRIKE_NAME, .Path = "d1/descent.hog" };
             firstStrike.Levels.resize(27);
             for (int i = 0; i < firstStrike.Levels.size(); i++) {
                 // todo: this could also be SDL
@@ -610,8 +612,6 @@ namespace Inferno::UI {
                             //    Resources::LoadDescent1Resources();
 
                             SetD1BriefingBackgrounds(briefing, isShareware);
-                            //auto level = Game::Mission->TryReadEntry(_mission->Levels[_level]));
-                            //if(!level.empty())
 
                             auto data = Game::Mission->ReadEntry(_mission->Levels[_level]);
                             auto level = isShareware ? Level::DeserializeD1Demo(data) : Level::Deserialize(data);
@@ -623,30 +623,12 @@ namespace Inferno::UI {
                             // Queue load level
                             Game::LoadLevel(_mission->Path, _mission->Levels[_level]);
 
-                            //Resources::LoadLevel(); // preferably this would only load the game resources
-
-                            // todo: load exit door
-                            // todo: load base models and textures
-
-                            //AddPyroAndReactorPages(_briefing);
-                            //OpenBriefing(entry);
-
-                            ResolveBriefingImages(briefing);
-                            Game::Briefing = BriefingState(briefing, 0, true);
-
-                            List<TexID> ids;
-
-                            for (auto& screen : briefing.Screens) {
-                                for (auto& page : screen.Pages) {
-                                    auto& doorClip = Resources::GetDoorClip(page.Door);
-                                    auto wids = Seq::map(doorClip.GetFrames(), Resources::LookupTexID);
-                                    Seq::append(ids, wids);
-                                }
+                            if (_mission->Name == FIRST_STRIKE_NAME) {
+                                AddPyroAndReactorPages(briefing);
                             }
 
-                            Game::LoadBackgrounds(*Game::Mission);
-                            Graphics::LoadTextures(ids);
-
+                            LoadBriefingResources(briefing);
+                            Game::Briefing = BriefingState(briefing, 0, true);
                             Game::PlayMusic("d1/briefing");
                             Game::SetState(GameState::Briefing);
                         }

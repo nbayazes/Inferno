@@ -17,11 +17,10 @@ namespace Inferno::Graphics {
     void LoadTextures(span<TexID> ids);
     void LoadEnvironmentMap(string_view name);
 
-    // Rename to async
-    void LoadModelDynamic(ModelID);
-    void LoadTextureDynamic(TexID);
-    void LoadTextureDynamic(LevelTexID);
-    void LoadTextureDynamic(VClipID);
+    void LoadModel(ModelID);
+    void LoadTexture(TexID);
+    void LoadTexture(LevelTexID);
+    void LoadTexture(VClipID);
     void LoadMaterials(span<const TexID> ids, bool forceLoad = false, bool keepLoaded = false);
     void LoadMaterialsAsync(span<const TexID> ids, bool forceLoad = false, bool keepLoaded = false);
 

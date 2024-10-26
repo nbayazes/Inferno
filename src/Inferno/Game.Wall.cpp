@@ -714,8 +714,8 @@ namespace Inferno {
                     destroyed.OneShotTag = tag;
                     destroyed.DestroyedTexture = eclip.DestroyedTexture;
                     usedEClip = true;
-                    Graphics::LoadTextureDynamic(eclip.DestroyedTexture);
-                    Graphics::LoadTextureDynamic(side.TMap2);
+                    Graphics::LoadTexture(eclip.DestroyedTexture);
+                    Graphics::LoadTexture(side.TMap2);
                 }
             }
         }
@@ -723,7 +723,7 @@ namespace Inferno {
         if (!usedEClip) {
             // Skip to the destroyed fully texture
             side.TMap2 = hasEClip ? eclip.DestroyedTexture : tmi.DestroyedTexture;
-            Graphics::LoadTextureDynamic(side.TMap2);
+            Graphics::LoadTexture(side.TMap2);
         }
 
         //Editor::Events::LevelChanged();

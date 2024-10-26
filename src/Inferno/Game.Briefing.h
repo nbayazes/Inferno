@@ -72,6 +72,9 @@ namespace Inferno {
     };
 
     // Converts image names into resources
-    void ResolveBriefingImages(Briefing& briefing);
+    void LoadBriefingResources(Briefing& briefing);
     void HandleBriefingInput();
+
+    // Adds pyro and reactor description pages to the D1 briefing
+    void AddPyroAndReactorPages(Briefing& briefing);
 }

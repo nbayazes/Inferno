@@ -98,7 +98,7 @@ namespace Inferno::Game {
 
         if (Seq::inRange(Resources::GameData.DeadModels, (int)obj.Render.Model.ID)) {
             obj.Render.Model.ID = Resources::GameData.DeadModels[(int)obj.Render.Model.ID];
-            Graphics::LoadModelDynamic(obj.Render.Model.ID);
+            Graphics::LoadModel(obj.Render.Model.ID);
         }
 
         AddPointsToScore(REACTOR_SCORE);

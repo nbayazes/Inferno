@@ -377,13 +377,13 @@ namespace Inferno::Game {
         if (weapon.RenderType == WeaponRenderType::Blob) {
             bullet.Render.Type = RenderType::Laser; // Blobs overload the laser render path
             bullet.Radius = weapon.Extended.Size >= 0 ? weapon.Extended.Size : weapon.BlobSize;
-            Graphics::LoadTextureDynamic(weapon.BlobBitmap);
+            Graphics::LoadTexture(weapon.BlobBitmap);
         }
         else if (weapon.RenderType == WeaponRenderType::VClip) {
             bullet.Render.Type = RenderType::WeaponVClip;
             bullet.Render.VClip.ID = weapon.WeaponVClip;
             bullet.Radius = weapon.Extended.Size >= 0 ? weapon.Extended.Size : weapon.BlobSize;
-            Graphics::LoadTextureDynamic(weapon.WeaponVClip);
+            Graphics::LoadTexture(weapon.WeaponVClip);
         }
         else if (weapon.RenderType == WeaponRenderType::Model) {
             bullet.Render.Type = RenderType::Model;
@@ -409,8 +409,8 @@ namespace Inferno::Game {
             bullet.PrevRotation = bullet.Rotation;
 
             //auto length = model.Radius * 2;
-            Graphics::LoadModelDynamic(weapon.Model);
-            Graphics::LoadModelDynamic(weapon.ModelInner);
+            Graphics::LoadModel(weapon.Model);
+            Graphics::LoadModel(weapon.ModelInner);
 
             if (bullet.Render.Model.ID == ModelID::None)
                 bullet.Render.Type = RenderType::None;

@@ -122,7 +122,7 @@ namespace Inferno::Graphics {
 
 
     // Loads a single model at runtime
-    void LoadModelDynamic(ModelID id) {
+    void LoadModel(ModelID id) {
         if (!Render::LevelResources.ObjectMeshes) return;
         Render::LevelResources.ObjectMeshes->LoadModel(id);
         Set<TexID> ids;
@@ -131,14 +131,14 @@ namespace Inferno::Graphics {
         Render::Materials->LoadMaterials(tids, false);
     }
 
-    void LoadTextureDynamic(LevelTexID id) {
+    void LoadTexture(LevelTexID id) {
         List list = { Resources::LookupTexID(id) };
         auto& eclip = Resources::GetEffectClip(id);
         Seq::append(list, eclip.VClip.GetFrames());
         Render::Materials->LoadMaterials(list, false);
     }
 
-    void LoadTextureDynamic(TexID id) {
+    void LoadTexture(TexID id) {
         if (id <= TexID::None) return;
         List list{ id };
         auto& eclip = Resources::GetEffectClip(id);
@@ -146,7 +146,7 @@ namespace Inferno::Graphics {
         Render::Materials->LoadMaterials(list, false);
     }
 
-    void LoadTextureDynamic(VClipID id) {
+    void LoadTexture(VClipID id) {
         auto& vclip = Resources::GetVideoClip(id);
         Render::Materials->LoadMaterials(vclip.GetFrames(), false);
     }

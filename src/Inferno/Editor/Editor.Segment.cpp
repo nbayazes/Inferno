@@ -430,10 +430,10 @@ namespace Inferno::Editor {
 
         seg.UpdateGeometricProps(level);
 
-        Graphics::LoadTextureDynamic(seg.Sides[0].TMap);
-        Graphics::LoadTextureDynamic(seg.Sides[1].TMap);
-        Graphics::LoadTextureDynamic(seg.Sides[3].TMap);
-        Graphics::LoadTextureDynamic(seg.Sides[4].TMap);
+        Graphics::LoadTexture(seg.Sides[0].TMap);
+        Graphics::LoadTexture(seg.Sides[1].TMap);
+        Graphics::LoadTexture(seg.Sides[3].TMap);
+        Graphics::LoadTexture(seg.Sides[4].TMap);
         level.Segments.push_back(std::move(seg));
         auto id = SegID(level.Segments.size() - 1);
         ResetSegmentUVs(level, std::array{ id }, 1, 0);
