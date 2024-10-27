@@ -33,8 +33,11 @@ namespace Inferno::UI {
         std::function<void(CloseState)> CloseCallback;
 
         void OnUpdate() override {
-            if (Input::MouseMoved())
-                SetSelection(HitTestCursor());
+            if (Input::MouseMoved()) {
+                // Update selection when cursor moves, but only if the control is valid
+                if (auto control = HitTestCursor())
+                    SetSelection(control);
+            }
 
             ControlBase::OnUpdate(); // breaks main menu selection
         }
@@ -623,12 +626,13 @@ namespace Inferno::UI {
                             // Queue load level
                             Game::LoadLevel(_mission->Path, _mission->Levels[_level]);
 
-                            if (_mission->Name == FIRST_STRIKE_NAME) {
+                            if (_mission->Name == FIRST_STRIKE_NAME && _level == 1) {
                                 AddPyroAndReactorPages(briefing);
                             }
 
-                            LoadBriefingResources(briefing);
-                            Game::Briefing = BriefingState(briefing, 0, true);
+                            //LoadBriefingResources(briefing);
+                            Game::Briefing = BriefingState(briefing, _level, true);
+                            Game::Briefing.LoadResources();
                             Game::PlayMusic("d1/briefing");
                             Game::SetState(GameState::Briefing);
                         }

@@ -76,6 +76,55 @@ namespace Inferno {
         }
     }
 
+    void BriefingState::LoadResources() {
+        List<ModelID> models;
+        List<TexID> ids;
+
+        // Precache resources so switching pages doesn't cause hitches
+        for (auto& screen : _screens) {
+            for (auto& page : screen.Pages) {
+                if (page.Model != ModelID::None)
+                    models.push_back(page.Model);
+
+                if (page.Robot != -1) {
+                    auto& info = Resources::GetRobotInfo(page.Robot);
+                    models.push_back(info.Model);
+                }
+
+                if (!page.Image.empty()) {
+                    if (String::Contains(page.Image, "#")) {
+                        if (auto tid = Resources::LookupLevelTexID(Resources::FindTexture(page.Image)); tid != LevelTexID::None) {
+                            page.Door = Resources::GetDoorClipID(tid);
+                            page.Image = {}; // Clear source image
+                        }
+                    }
+                    else if (!String::Contains(page.Image, ".")) {
+                        // todo: also search for PNG, PCX, DDS
+                        page.Image += ".bbm"; // Assume BBM for now
+                    }
+                }
+
+                auto& doorClip = Resources::GetDoorClip(page.Door);
+                auto wids = Seq::map(doorClip.GetFrames(), Resources::LookupTexID);
+                Seq::append(ids, wids);
+            }
+        }
+
+        Graphics::LoadTextures(ids);
+
+        for (auto& model : models) {
+            Graphics::LoadModel(model);
+        }
+
+        // Load backgrounds from mission.
+        // Technically this should only load the relevant images,
+        // but it doesn't take long to load them all anyway.
+        if (Game::Mission)
+            Game::LoadBackgrounds(*Game::Mission);
+
+        OnPageChanged(); // Setup animations
+    }
+
     void BriefingState::OnPageChanged() {
         _elapsed = 0;
         _animation = {};
@@ -102,6 +151,7 @@ namespace Inferno {
         }
     }
 
+
     void LoadBriefingResources(Briefing& briefing) {
         List<ModelID> models;
 
@@ -109,6 +159,11 @@ namespace Inferno {
             for (auto& page : screen.Pages) {
                 if (page.Model != ModelID::None)
                     models.push_back(page.Model);
+
+                if (page.Robot != -1) {
+                    auto& info = Resources::GetRobotInfo(page.Robot);
+                    models.push_back(info.Model);
+                }
 
                 if (!page.Image.empty()) {
                     if (String::Contains(page.Image, "#")) {

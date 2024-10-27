@@ -85,6 +85,11 @@ namespace Inferno::Render {
 
         auto& model = Resources::GetModel(object.Render.Model.ID);
         if (model.DataSize != 0) {
+            // Update barriers and light grid state, can't rely on the level to do it
+            MaterialInfoBuffer->Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            VClipBuffer->Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            Graphics::Lights.Dispatch(ctx);
+
             // spin and animate
             auto& frameConstants = Adapter->GetBriefingFrameConstants();
             BriefingCamera.SetPosition(Vector3(0, model.Radius * .5f, -model.Radius * 3.0f));

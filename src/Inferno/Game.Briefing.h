@@ -23,7 +23,12 @@ namespace Inferno {
             bool foundLevel = false;
 
             for (auto& screen : briefing.Screens) {
-                if (screen.Level == level) {
+                if (isDescent1 && level == 1 && (screen.Level == 0 || screen.Level == 1)) {
+                    // special case for D1 intro briefing show both level 0 and level 1
+                    _screens.push_back(screen);
+                    foundLevel = true;
+                }
+                else if (screen.Level == level) {
                     _screens.push_back(screen);
                     foundLevel = true;
                 }
@@ -66,6 +71,8 @@ namespace Inferno {
 
             return nullptr;
         }
+
+        void LoadResources();
 
     private:
         void OnPageChanged();
