@@ -79,9 +79,12 @@ namespace Inferno {
     void BriefingState::LoadResources() {
         List<ModelID> models;
         List<TexID> ids;
+        Set<string> backgrounds;
 
         // Precache resources so switching pages doesn't cause hitches
         for (auto& screen : _screens) {
+            backgrounds.insert(screen.Background);
+            
             for (auto& page : screen.Pages) {
                 if (page.Model != ModelID::None)
                     models.push_back(page.Model);
@@ -98,10 +101,11 @@ namespace Inferno {
                             page.Image = {}; // Clear source image
                         }
                     }
-                    else if (!String::Contains(page.Image, ".")) {
+                    else if (!String::HasExtension(page.Image)) {
                         // todo: also search for PNG, PCX, DDS
                         page.Image += ".bbm"; // Assume BBM for now
                     }
+
                 }
 
                 auto& doorClip = Resources::GetDoorClip(page.Door);
@@ -117,11 +121,8 @@ namespace Inferno {
         }
 
         // Load backgrounds from mission.
-        // Technically this should only load the relevant images,
-        // but it doesn't take long to load them all anyway.
-        if (Game::Mission)
-            Game::LoadBackgrounds(*Game::Mission);
-
+        // Force reload in case mission replaces the backgrounds.
+        Graphics::LoadTextures(Seq::ofSet(backgrounds), true);
         OnPageChanged(); // Setup animations
     }
 

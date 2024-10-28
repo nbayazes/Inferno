@@ -15,8 +15,8 @@ namespace Inferno::Graphics {
         Render::Materials->LoadLevelTextures(level, force);
     }
 
-    void LoadTextures(span<const string> names) {
-        Render::Materials->LoadTextures(names);
+    void LoadTextures(span<const string> names, bool force) {
+        Render::Materials->LoadTextures(names, force);
     }
 
     void LoadTextures(span<TexID> ids) {

@@ -679,6 +679,8 @@ namespace Inferno {
             return str.substr(i + 1);
         }
 
+        constexpr bool HasExtension(const string& str) { return !Extension(str).empty(); }
+
         const string Whitespace = " \n\r\t\f\v";
 
         // Remove whitespace from the beginning

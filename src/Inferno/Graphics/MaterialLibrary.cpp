@@ -667,7 +667,7 @@ namespace Inferno::Render {
         LoadMaterials(tids, force);
     }
 
-    void MaterialLibrary::LoadTextures(span<const string> names) {
+    void MaterialLibrary::LoadTextures(span<const string> names, bool force) {
         bool hasUnloaded = false;
         for (auto& name : names) {
             if (!name.empty() && !_namedMaterials.contains(name)) {
@@ -676,14 +676,14 @@ namespace Inferno::Render {
             }
         }
 
-        if (!hasUnloaded) return;
+        if (!hasUnloaded && !force) return;
         Render::Adapter->WaitForGpu();
 
         List<Material2D> uploads;
         auto batch = BeginTextureUpload();
 
         for (auto& name : names) {
-            if (_namedMaterials.contains(name)) continue; // skip loaded
+            if (_namedMaterials.contains(name) && !force) continue; // skip loaded
             Material2D material;
 
             if (FileSystem::TryFindFile(name + ".dds")) {

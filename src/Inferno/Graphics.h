@@ -13,7 +13,7 @@ namespace Inferno::Graphics {
     void LoadTerrain(const TerrainInfo& info);
 
     void LoadLevelTextures(const Level& level, bool force = false);
-    void LoadTextures(span<const string> names);
+    void LoadTextures(span<const string> names, bool force = false);
     void LoadTextures(span<TexID> ids);
     void LoadEnvironmentMap(string_view name);
 

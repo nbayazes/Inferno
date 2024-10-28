@@ -532,13 +532,13 @@ namespace Inferno::UI {
             _missions = Resources::ReadMissionDirectory("d1/missions");
             MissionInfo firstStrike{ .Name = FIRST_STRIKE_NAME, .Path = "d1/descent.hog" };
             firstStrike.Levels.resize(27);
-            for (int i = 0; i < firstStrike.Levels.size(); i++) {
+            for (int i = 1; i <= firstStrike.Levels.size(); i++) {
                 // todo: this could also be SDL
-                firstStrike.Levels[i] = fmt::format("level{:02}.rdl", i);
+                firstStrike.Levels[i - 1] = fmt::format("level{:02}.rdl", i);
             }
 
-            firstStrike.Metadata["briefing"] = "briefing.txb";
-            firstStrike.Metadata["ending"] = "ending.txb";
+            firstStrike.Metadata["briefing"] = "briefing";
+            firstStrike.Metadata["ending"] = "ending";
             _missions.insert(_missions.begin(), firstStrike);
 
             auto title = make_unique<Label>("select mission", FontSize::MediumBlue);
@@ -594,19 +594,36 @@ namespace Inferno::UI {
                         Game::Difficulty = _difficulty;
 
                         // open the hog and check for a briefing
-                        if (!Game::LoadMission(_mission->Path)) {
-                            ShowErrorMessage(Convert::ToWideString(
-                                std::format("Unable to load mission {}", _mission->Path.string())
-                            ));
+                        filesystem::path hogPath = _mission->Path;
+                        hogPath.replace_extension(".hog");
+
+                        if (!Game::LoadMission(hogPath)) {
+                            ShowErrorMessage(Convert::ToWideString(std::format("Unable to load mission {}", hogPath.string())));
                             return;
                         }
+
+                        auto isShareware = Game::Mission->ContainsFileType(".sdl");
+                        auto levelEntry = Seq::tryItem(_mission->Levels, _level - 1);
+                        if (!levelEntry) {
+                            ShowErrorMessage(Convert::ToWideString(std::format("Tried to load level {} but hog only contains {}", _level, _mission->Levels.size())));
+                            return;
+                        }
+
+                        auto data = Game::Mission->ReadEntry(*levelEntry);
+                        auto level = isShareware ? Level::DeserializeD1Demo(data) : Level::Deserialize(data);
+                        //Game::LoadLevelFromMission(_mission->Levels[_level]);
+                        Resources::LoadLevel(level);
+                        Graphics::LoadLevel(level);
+                        Game::LoadLevel(hogPath, *levelEntry);
 
                         auto briefingName = _mission->GetValue("briefing");
 
                         if (!briefingName.empty()) {
-                            auto entry = Game::Mission->ReadEntry(briefingName);
+                            if (String::Extension(briefingName).empty())
+                                briefingName += ".txb";
+
+                            auto entry = Game::Mission->TryReadEntry(briefingName);
                             auto briefing = Briefing::Read(entry);
-                            auto isShareware = Game::Mission->ContainsFileType(".sdl");
 
                             // mount the game data
                             //if (isShareware)
@@ -616,15 +633,7 @@ namespace Inferno::UI {
 
                             SetD1BriefingBackgrounds(briefing, isShareware);
 
-                            auto data = Game::Mission->ReadEntry(_mission->Levels[_level]);
-                            auto level = isShareware ? Level::DeserializeD1Demo(data) : Level::Deserialize(data);
-                            //Game::LoadLevelFromMission(_mission->Levels[_level]);
-                            //level.FileName = _mission->Levels[_level];
-                            Resources::LoadLevel(level);
-                            Graphics::LoadLevel(level);
-
                             // Queue load level
-                            Game::LoadLevel(_mission->Path, _mission->Levels[_level]);
 
                             if (_mission->Name == FIRST_STRIKE_NAME && _level == 1) {
                                 AddPyroAndReactorPages(briefing);
@@ -635,6 +644,9 @@ namespace Inferno::UI {
                             Game::Briefing.LoadResources();
                             Game::PlayMusic("d1/briefing");
                             Game::SetState(GameState::Briefing);
+                        }
+                        else {
+                            Game::SetState(GameState::LoadLevel);
                         }
                     }
                     catch (const std::exception& e) {
