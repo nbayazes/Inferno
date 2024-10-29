@@ -14,7 +14,7 @@ namespace Inferno {
         constexpr float WEAPON_BMP_Y_OFFSET = -20;
         constexpr float WEAPON_BMP_X_OFFSET = -135;
         constexpr Color GREEN_TEXT = { 0, 1.0f, 0 };
-        constexpr Color RED_TEXT = { 0.7f, 0, 0 };
+        constexpr Color RED_TEXT = { 0.80f, 0, 0 };
         constexpr Color GOLD_TEXT = { 0.78f, 0.56f, 0.18f };
         constexpr float MONITOR_BRIGHTNESS = 1.20f;
 

@@ -43,7 +43,7 @@ namespace details
     template <typename T>
     struct is_comparable_to_nullptr<
         T,
-        std::enable_if_t<std::is_convertible<decltype(std::declval<T>() != nullptr), bool>::value>>
+        std::enable_if_t<std::is_convertible_v<decltype(std::declval<T>() != nullptr), bool>>>
         : std::true_type
     {
     };
@@ -76,7 +76,7 @@ using std::unique_ptr;
 // T must be a pointer type
 // - disallow construction from any type other than pointer type
 //
-template <class T, class = std::enable_if_t<std::is_pointer<T>::value>>
+template <class T, class = std::enable_if_t<std::is_pointer_v<T>>>
 using owner = T;
 
 //
@@ -99,20 +99,20 @@ class not_null
 public:
     static_assert(details::is_comparable_to_nullptr<T>::value, "T cannot be compared to nullptr.");
 
-    template <typename U, typename = std::enable_if_t<std::is_convertible<U, T>::value>>
-    constexpr not_null(U&& u) noexcept(std::is_nothrow_move_constructible<T>::value) : ptr_(std::forward<U>(u))
+    template <typename U, typename = std::enable_if_t<std::is_convertible_v<U, T>>>
+    constexpr not_null(U&& u) noexcept(std::is_nothrow_move_constructible_v<T>) : ptr_(std::forward<U>(u))
     {
         Expects(ptr_ != nullptr);
     }
 
-    template <typename = std::enable_if_t<!std::is_same<std::nullptr_t, T>::value>>
-    constexpr not_null(T u) noexcept(std::is_nothrow_move_constructible<T>::value) : ptr_(std::move(u))
+    template <typename = std::enable_if_t<!std::is_same_v<std::nullptr_t, T>>>
+    constexpr not_null(T u) noexcept(std::is_nothrow_move_constructible_v<T>) : ptr_(std::move(u))
     {
         Expects(ptr_ != nullptr);
     }
 
-    template <typename U, typename = std::enable_if_t<std::is_convertible<U, T>::value>>
-    constexpr not_null(const not_null<U>& other) noexcept(std::is_nothrow_move_constructible<T>::value) : not_null(other.get())
+    template <typename U, typename = std::enable_if_t<std::is_convertible_v<U, T>>>
+    constexpr not_null(const not_null<U>& other) noexcept(std::is_nothrow_move_constructible_v<T>) : not_null(other.get())
     {}
 
     not_null(const not_null& other) = default;
@@ -267,25 +267,25 @@ template <class T>
 class strict_not_null : public not_null<T>
 {
 public:
-    template <typename U, typename = std::enable_if_t<std::is_convertible<U, T>::value>>
+    template <typename U, typename = std::enable_if_t<std::is_convertible_v<U, T>>>
     constexpr explicit strict_not_null(U&& u) : not_null<T>(std::forward<U>(u))
     {}
 
-    template <typename = std::enable_if_t<!std::is_same<std::nullptr_t, T>::value>>
+    template <typename = std::enable_if_t<!std::is_same_v<std::nullptr_t, T>>>
     constexpr explicit strict_not_null(T u) : not_null<T>(u)
     {}
 
-    template <typename U, typename = std::enable_if_t<std::is_convertible<U, T>::value>>
+    template <typename U, typename = std::enable_if_t<std::is_convertible_v<U, T>>>
     constexpr strict_not_null(const not_null<U>& other) : not_null<T>(other)
     {}
 
-    template <typename U, typename = std::enable_if_t<std::is_convertible<U, T>::value>>
+    template <typename U, typename = std::enable_if_t<std::is_convertible_v<U, T>>>
     constexpr strict_not_null(const strict_not_null<U>& other) : not_null<T>(other)
     {}
 
     // To avoid invalidating the "not null" invariant, the contained pointer is actually copied
     // instead of moved. If it is a custom pointer, its constructor could in theory throw exceptions.
-    strict_not_null(strict_not_null&& other) noexcept(std::is_nothrow_copy_constructible<T>::value) = default;
+    strict_not_null(strict_not_null&& other) noexcept(std::is_nothrow_copy_constructible_v<T>) = default;
     strict_not_null(const strict_not_null& other) = default;
     strict_not_null& operator=(const strict_not_null& other) = default;
     strict_not_null& operator=(const not_null<T>& other)

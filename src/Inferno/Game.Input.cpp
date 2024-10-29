@@ -215,9 +215,9 @@ namespace Inferno {
     void HandleDebugKeys() {
         auto state = Game::GetState();
 
-        // Pause / screenshot mode
-        if (Input::IsKeyPressed(Keys::OemTilde) && Input::AltDown && (state == GameState::Game || state == GameState::Paused))
-            Game::SetState(state == GameState::Paused ? GameState::Game : GameState::Paused);
+        // Photo mode
+        if (Input::IsKeyPressed(Keys::OemTilde) && Input::AltDown && (state == GameState::Game || state == GameState::PhotoMode))
+            Game::SetState(state == GameState::PhotoMode ? GameState::Game : GameState::PhotoMode);
 
         if (state == GameState::Game) {
             if (Input::IsKeyPressed(Keys::Back) && Input::AltDown)
@@ -250,6 +250,12 @@ namespace Inferno {
 
         if (Game::GetState() == GameState::Briefing) {
             HandleBriefingInput();
+            return;
+        }
+
+        if (Game::GetState() == GameState::PhotoMode) {
+            GenericCameraController(Game::MainCamera, 90);
+            HandleDebugKeys();
             return;
         }
 

@@ -113,11 +113,6 @@ void Application::Tick() const {
     }
 
     Render::FrameTime = dt;
-    Game::FrameTime = 0;
-
-
-    Game::Time += dt * Game::TimeScale;
-    Game::FrameTime = dt * Game::TimeScale;
     Game::Update(dt);
 }
 
@@ -128,7 +123,7 @@ bool Inferno::Application::OnClose() {
 // Message handlers
 void Application::OnActivated() {
     Input::HasFocus = true;
-    if (Game::GetState() == GameState::Game || Game::GetState() == GameState::Automap)
+    if (Game::GetState() == GameState::Game || Game::GetState() == GameState::Automap || Game::GetState() == GameState::PhotoMode)
         Input::SetMouseMode(Input::MouseMode::Mouselook);
 
     Input::ResetState();

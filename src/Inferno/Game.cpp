@@ -39,7 +39,7 @@ namespace Inferno::Game {
         constexpr size_t OBJECT_BUFFER_SIZE = 100; // How many new objects to keep in reserve
         int MenuIndex = 0;
         Ptr<Editor::EditorUI> EditorUI;
-        gsl::not_null ActiveCamera = &MainCamera;
+        auto ActiveCamera = gsl::strict_not_null(&MainCamera);
         LerpedValue LerpedTimeScale(1);
         Object NULL_PLAYER{ .Type = ObjectType::Player };
     }
@@ -250,7 +250,7 @@ namespace Inferno::Game {
 
     // Returns the lerp amount for the current tick. Executes every frame.
     float GameUpdate(float dt) {
-        if (Game::State == GameState::Paused)
+        if (Game::State == GameState::PhotoMode)
             return LerpAmount; // Don't update anything except camera while paused
 
         // Grow the object buffer ahead of time in case new objects are created
@@ -413,7 +413,7 @@ namespace Inferno::Game {
                 if (State == GameState::GameMenu) {
                     Input::SetMouseMode(Input::MouseMode::Mouselook);
                 }
-                else if (State == GameState::Paused) {
+                else if (State == GameState::PhotoMode) {
                     GetPlayerObject().Render.Type = RenderType::None; // Make player invisible
                     Input::SetMouseMode(Input::MouseMode::Mouselook);
                 }
@@ -429,9 +429,9 @@ namespace Inferno::Game {
                 UpdateWindowTitle("Escaping the mine!");
                 break;
 
-            case GameState::Paused:
+            case GameState::PhotoMode:
                 if (State != GameState::Game && State != GameState::ExitSequence) return;
-                State = GameState::Paused;
+                State = GameState::PhotoMode;
                 MoveCameraToObject(Game::MainCamera, GetPlayerObject(), LerpAmount);
                 GetPlayerObject().Render.Type = RenderType::Model; // Make player visible
                 Input::SetMouseMode(Input::MouseMode::Mouselook);
@@ -580,6 +580,14 @@ namespace Inferno::Game {
     }
 
     void Update(float dt) {
+        Game::FrameTime = 0;
+
+        // Stop time when not in game or in editor. Editor uses gametime to animate vclips.
+        if (Game::State == GameState::Game || Game::State == GameState::Editor) {
+            Game::Time += dt * Game::TimeScale;
+            Game::FrameTime = dt * Game::TimeScale;
+        }
+
         LegitProfiler::ProfilerTask update("Update game", LegitProfiler::Colors::CARROT);
         LegitProfiler::AddCpuTask(std::move(update));
 
@@ -726,13 +734,7 @@ namespace Inferno::Game {
                 UpdateMenu(dt);
                 break;
 
-            case GameState::Paused:
-                // Special detached camera mode
-                if (Input::IsKeyPressed(Input::Keys::OemTilde) && Input::IsKeyDown(Input::Keys::LeftAlt))
-                    Game::SetState(Game::GetState() == GameState::Paused ? GameState::Game : GameState::Paused);
-
-                Editor::Bindings::Update(); // Using editor camera bindings
-            //Editor::UpdateCamera(Editor::EditorCamera);
+            case GameState::PhotoMode:
                 break;
         }
 
@@ -936,8 +938,10 @@ namespace Inferno::Game {
         for (int id = 0; id < Level.Objects.size(); id++) {
             auto& obj = Level.Objects[id];
 
-            if ((obj.IsPlayer() && obj.ID != 0) || obj.IsCoop())
+            if ((obj.IsPlayer() && obj.ID != 0) || obj.IsCoop()) {
                 obj.Lifespan = -1; // Remove non-player 0 starts (no multiplayer)
+                obj.Render.Type = RenderType::None; // Make invisible
+            }
 
             if (obj.Type == ObjectType::Robot) {
                 auto& ri = Resources::GetRobotInfo(obj.ID);

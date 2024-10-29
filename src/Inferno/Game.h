@@ -18,15 +18,15 @@ namespace Inferno {
     enum class GameState {
         Startup,
         Game, // In first person and running game logic
-        Paused, // In game but paused or in a menu
+        PhotoMode, // In-game photo mode
         ExitSequence, // exit tunnel sequence
         Cutscene, // In-game cutscene, waits for input to cancel
         LoadLevel, // Show a loading screen and load the currently pending level
         ScoreScreen,
         Automap,
-        Briefing,
-        MainMenu,
-        GameMenu,
+        Briefing, // Showing a briefing before a level
+        MainMenu, // The title menu
+        GameMenu, // In-game menu
         Editor
     };
 
