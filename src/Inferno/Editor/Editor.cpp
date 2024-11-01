@@ -665,7 +665,7 @@ namespace Inferno::Editor {
 
         void GoToExit() {
             if (auto tid = Seq::findIndex(Game::Level.Triggers, IsExit)) {
-                if (auto wall = Game::Level.TryGetWall((TriggerID)*tid)) {
+                if (auto wall = Game::Level.Walls.TryGetWall((TriggerID)*tid)) {
                     Selection.SetSelection(wall->Tag);
                     FocusSegment();
                     return;
@@ -677,7 +677,7 @@ namespace Inferno::Editor {
 
         void GoToSecretExit() {
             if (auto tid = Seq::findIndex(Game::Level.Triggers, IsSecretExit)) {
-                if (auto wall = Game::Level.TryGetWall((TriggerID)*tid)) {
+                if (auto wall = Game::Level.Walls.TryGetWall((TriggerID)*tid)) {
                     Selection.SetSelection(wall->Tag);
                     FocusSegment();
                     return;

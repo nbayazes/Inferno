@@ -78,11 +78,11 @@ namespace Inferno {
     }
 
     void DoOpenDoor(Level& level, ActiveDoor& door, float dt) {
-        auto& wall = level.GetWall(door.Front);
+        auto& wall = level.Walls[door.Front];
         auto conn = level.GetConnectedSide(wall.Tag);
         auto& side = level.GetSide(wall.Tag);
         auto& cside = level.GetSide(conn);
-        auto& cwall = level.GetWall(cside.Wall);
+        auto& cwall = level.Walls[cside.Wall];
 
         // todo: remove objects stuck on door
 
@@ -117,10 +117,10 @@ namespace Inferno {
     }
 
     void DoCloseDoor(Level& level, ActiveDoor& door, float dt) {
-        auto& wall = level.GetWall(door.Front);
+        auto& wall = level.Walls[door.Front];
 
-        auto front = level.TryGetWall(door.Front);
-        auto back = level.TryGetWall(door.Back);
+        auto front = level.Walls.TryGetWall(door.Front);
+        auto back = level.Walls.TryGetWall(door.Back);
 
         auto conn = level.GetConnectedSide(wall.Tag);
         auto& side = level.GetSide(wall.Tag);
@@ -173,12 +173,12 @@ namespace Inferno {
     void OpenDoor(Level& level, Tag tag) {
         auto& seg = level.GetSegment(tag);
         auto& side = seg.GetSide(tag.Side);
-        auto wall = level.TryGetWall(side.Wall);
+        auto wall = level.Walls.TryGetWall(side.Wall);
         if (!wall) throw Exception("Tried to open door on side that has no wall");
 
         auto conn = level.GetConnectedSide(tag);
         auto cwallId = level.TryGetWallID(conn);
-        auto cwall = level.TryGetWall(cwallId);
+        auto cwall = level.Walls.TryGetWall(cwallId);
 
         if (wall->State == WallState::DoorOpening ||
             wall->State == WallState::DoorWaiting)
@@ -236,7 +236,7 @@ namespace Inferno {
 
     void UpdateDoors(Level& level, float dt) {
         for (auto& door : level.ActiveDoors) {
-            auto wall = level.TryGetWall(door.Front);
+            auto wall = level.Walls.TryGetWall(door.Front);
             if (!wall) continue;
 
             if (wall->State == WallState::DoorOpening) {

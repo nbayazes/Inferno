@@ -138,8 +138,8 @@ namespace Inferno {
     void SaveWallInfo(ryml::NodeRef node, const Level& level) {
         node |= ryml::SEQ;
 
-        for (int id = 0; id < level.Walls.size(); id++) {
-            auto& wall = level.Walls[id];
+        for (int id = 0; id < level.Walls.Size(); id++) {
+            auto& wall = level.Walls[static_cast<WallID>(id)];
             if (wall.BlocksLight) {
                 auto child = node.append_child();
                 child |= ryml::MAP;
@@ -156,7 +156,7 @@ namespace Inferno {
             auto id = WallID::None;
             ReadValue(child["ID"], (int16&)id);
 
-            if (auto wall = level.TryGetWall(id)) {
+            if (auto wall = level.Walls.TryGetWall(id)) {
                 bool blocksLight = false;
                 ReadValue(child["BlocksLight"], blocksLight);
                 wall->BlocksLight = blocksLight;

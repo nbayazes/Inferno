@@ -58,6 +58,7 @@ namespace Inferno {
         sbyte cloak_value = 0; // Fade percentage if this wall is cloaked
 
         Option<bool> BlocksLight; // Editor override
+        mutable WallID SerializationId{ WallID::None };
 
         bool IsValid() const {
             return Tag.Segment != SegID::None;
@@ -87,6 +88,11 @@ namespace Inferno {
             value = std::clamp(value, 0.0f, 1.0f);
             cloak_value = sbyte(value / CloakStep);
         }
+
+        bool IsSimplyClosed() const {
+            return Type == WallType::Closed && ControllingTrigger == TriggerID::None;
+        }
+
     };
 
     struct ActiveDoor {

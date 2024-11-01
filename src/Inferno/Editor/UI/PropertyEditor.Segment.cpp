@@ -82,7 +82,7 @@ namespace Inferno::Editor {
 
     bool TriggerPropertiesD1(Level& level, WallID wid) {
         bool snapshot = false;
-        auto wall = level.TryGetWall(wid);
+        auto wall = level.Walls.TryGetWall(wid);
         DisableControls disable(!wall);
 
         auto trigger = wall ? level.TryGetTrigger(wall->Trigger) : nullptr;
@@ -135,7 +135,7 @@ namespace Inferno::Editor {
 
     bool TriggerPropertiesD2(Level& level, WallID wallId) {
         bool snapshot = false;
-        auto wall = level.TryGetWall(wallId);
+        auto wall = level.Walls.TryGetWall(wallId);
         auto tid = level.GetTriggerID(wallId);
         auto trigger = level.TryGetTrigger(wallId);
         DisableControls disable(!wall);
@@ -741,9 +741,9 @@ namespace Inferno::Editor {
 
     // Returns true if any wall properties changed
     bool WallProperties(Level& level, WallID id) {
-        auto wall = level.TryGetWall(id);
+        auto wall = level.Walls.TryGetWall(id);
         auto tag = Editor::Selection.Tag();
-        auto other = level.TryGetWall(level.GetConnectedWall(tag));
+        auto other = level.Walls.TryGetWall(level.GetConnectedWall(tag));
         bool open = ImGui::TableBeginTreeNode("Wall type");
 
         auto wallType = wall ? wall->Type : WallType::None;
@@ -768,11 +768,11 @@ namespace Inferno::Editor {
                 }
 
                 for (auto& markedId : GetSelectedWalls()) {
-                    auto& markedWall = level.GetWall(markedId);
+                    auto& markedWall = level.Walls[markedId];
                     markedWall.Clip = wall->Clip;
                     OnChangeWallClip(level, markedWall);
 
-                    auto markedOther = level.TryGetWall(level.GetConnectedWall(markedId));
+                    auto markedOther = level.Walls.TryGetWall(level.GetConnectedWall(markedId));
                     if (Settings::Editor.EditBothWallSides && markedOther && markedOther->Type == markedWall.Type) {
                         markedOther->Clip = wall->Clip;
                         OnChangeWallClip(level, *markedOther);
@@ -797,10 +797,10 @@ namespace Inferno::Editor {
                             other->SetFlag(flag, w->HasFlag(flag));
 
                         for (auto& markedId : GetSelectedWalls()) {
-                            auto& markedWall = level.GetWall(markedId);
+                            auto& markedWall = level.Walls[markedId];
                             markedWall.SetFlag(flag, w->HasFlag(flag));
 
-                            auto markedOther = level.TryGetWall(level.GetConnectedWall(markedId));
+                            auto markedOther = level.Walls.TryGetWall(level.GetConnectedWall(markedId));
                             if (Settings::Editor.EditBothWallSides && markedOther && markedOther->Type == markedWall.Type)
                                 markedOther->SetFlag(flag, w->HasFlag(flag));
                         }
@@ -825,11 +825,11 @@ namespace Inferno::Editor {
                                 other->HitPoints = wall->HitPoints;
 
                             for (auto& markedId : GetSelectedWalls()) {
-                                auto markedWall = level.TryGetWall(markedId);
+                                auto markedWall = level.Walls.TryGetWall(markedId);
                                 if (markedWall && markedWall->Type == WallType::Destroyable)
                                     markedWall->HitPoints = wall->HitPoints;
 
-                                auto markedOther = level.TryGetWall(level.GetConnectedWall(markedId));
+                                auto markedOther = level.Walls.TryGetWall(level.GetConnectedWall(markedId));
                                 if (Settings::Editor.EditBothWallSides && markedOther && markedOther->Type == WallType::Destroyable)
                                     markedOther->HitPoints = wall->HitPoints;
                             }
@@ -855,11 +855,11 @@ namespace Inferno::Editor {
                                 other->Keys = wall->Keys;
 
                             for (auto& markedId : GetSelectedWalls()) {
-                                auto markedWall = level.TryGetWall(markedId);
+                                auto markedWall = level.Walls.TryGetWall(markedId);
                                 if (markedWall && markedWall->Type == WallType::Door)
                                     markedWall->Keys = wall->Keys;
 
-                                auto markedOther = level.TryGetWall(level.GetConnectedWall(markedId));
+                                auto markedOther = level.Walls.TryGetWall(level.GetConnectedWall(markedId));
                                 if (Settings::Editor.EditBothWallSides && markedOther && markedOther->Type == WallType::Door)
                                     markedOther->Keys = wall->Keys;
                             }
@@ -894,11 +894,11 @@ namespace Inferno::Editor {
                                 other->CloakValue(cloakValue / 100);
 
                             for (auto& markedId : GetSelectedWalls()) {
-                                auto markedWall = level.TryGetWall(markedId);
+                                auto markedWall = level.Walls.TryGetWall(markedId);
                                 if (markedWall && markedWall->Type == WallType::Cloaked)
                                     markedWall->CloakValue(cloakValue / 100);
 
-                                auto markedOther = level.TryGetWall(level.GetConnectedWall(markedId));
+                                auto markedOther = level.Walls.TryGetWall(level.GetConnectedWall(markedId));
                                 if (Settings::Editor.EditBothWallSides && markedOther && markedOther->Type == WallType::Cloaked)
                                     markedOther->CloakValue(cloakValue / 100);
                             }
@@ -914,7 +914,7 @@ namespace Inferno::Editor {
                 ImGui::TableRowLabel("Blocks Light");
                 if (WallLightDropdown(wall->BlocksLight)) {
                     for (auto& wid : GetSelectedWalls()) {
-                        if (auto w = level.TryGetWall(wid)) {
+                        if (auto w = level.Walls.TryGetWall(wid)) {
                             w->BlocksLight = wall->BlocksLight;
                             auto cw = level.GetConnectedWall(*w);
                             if (Settings::Editor.EditBothWallSides && cw)

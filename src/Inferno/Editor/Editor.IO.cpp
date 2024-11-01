@@ -15,7 +15,7 @@ namespace Inferno::Editor {
     constexpr auto METADATA_EXTENSION = "ied"; // inferno engine data
 
     size_t SaveLevel(Level& level, StreamWriter& writer) {
-        if (level.Walls.size() >= (int)WallID::Max)
+        if (level.Walls.ShrinkableSize() > (int)WallID::Max)
             throw Exception("Cannot save a level with more than 255 walls");
 
         DisableFlickeringLights(level);

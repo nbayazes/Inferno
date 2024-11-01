@@ -122,7 +122,7 @@ namespace Inferno::Editor {
                 ImGui::TableNextColumn();
                 ImGui::Text("Walls");
                 ImGui::TableNextColumn();
-                ImGui::Text("%i", level.Walls.size());
+                ImGui::Text("%i (%i)", level.Walls.Size(), level.Walls.ShrinkableSize());
 
                 ImGui::EndTable();
             }

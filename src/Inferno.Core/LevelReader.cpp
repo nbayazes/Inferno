@@ -42,6 +42,8 @@ namespace Inferno {
 
         GameDataHeader _deltaLights{}, _deltaLightIndices{};
 
+        std::unordered_map<WallID, std::vector<Tag>> wallIds_;
+
     public:
         LevelReader(span<ubyte> data) : _reader(data) {}
 
@@ -150,14 +152,16 @@ namespace Inferno {
                 seg.Connections[bit] = bitMask & (1 << bit) ? (SegID)_reader.ReadInt16() : SegID::None;
         }
 
-        void ReadSegmentWalls(Segment& seg) {
+        void ReadSegmentWalls(Segment& seg, SegID id) {
             auto mask = _reader.ReadByte();
 
             for (int i = 0; i < MAX_SIDES; i++) {
                 auto& side = seg.Sides[i];
 
-                if (mask & (1 << i))
+                if (mask & (1 << i)) {
                     side.Wall = WallID(_reader.ReadByte());
+                    wallIds_[side.Wall].emplace_back(id, static_cast<SideID>(i));
+                }
             }
         }
 
@@ -176,6 +180,7 @@ namespace Inferno {
             for (auto& v : level.Vertices)
                 v = _reader.ReadVector();
 
+            size_t segmentId = 0;
             for (auto& seg : level.Segments) {
                 auto bitMask = _reader.ReadByte();
                 bool hasSpecialData = bitMask & (1 << MAX_SIDES);
@@ -200,8 +205,9 @@ namespace Inferno {
                     seg.VolumeLight = Color(light, light, light);
                 }
 
-                ReadSegmentWalls(seg);
+                ReadSegmentWalls(seg, static_cast<SegID>(segmentId));
                 ReadSegmentTextures(seg);
+                ++segmentId;
             }
 
             // D2 retail location for segment special data
@@ -490,7 +496,7 @@ namespace Inferno {
             auto reactorTriggers = ReadHeader();
             auto matcens = ReadHeader();
 
-            level.Walls.resize(walls.Count);
+            //level.Walls.resize(walls.Count);
             level.Triggers.resize(triggers.Count);
             level.Objects.resize(objects.Count);
             level.Matcens.resize(matcens.Count);
@@ -520,8 +526,9 @@ namespace Inferno {
             // Walls
             if (walls.Offset != -1) {
                 _reader.Seek(walls.Offset);
-                for (auto& wall : level.Walls)
-                    wall = ReadWall();
+                for (size_t i=0; i<walls.Count; ++i)
+                    level.Walls.Append(ReadWall());
+                level.CreateClosed(wallIds_);
             }
 
             if (triggers.Offset != -1) {
@@ -529,6 +536,21 @@ namespace Inferno {
                 for (auto& t : level.Triggers)
                     t = ReadTrigger();
             }
+
+            //temporary!
+            for (auto& w : level.Walls) {
+                if ((int)w.ControllingTrigger >= level.Triggers.size())
+                    w.ControllingTrigger = TriggerID::None;
+            }
+            size_t counter = 0;
+            for (auto& t : level.Triggers)                 {
+                for (auto& tar : t.Targets)                     {
+                    if (auto w = level.TryGetWall(tar))
+                        w->ControllingTrigger = (TriggerID)counter;
+                }
+                ++counter;
+            }
+
 
             // Control center triggers
             if (reactorTriggers.Offset != -1) {

@@ -92,6 +92,9 @@
     <ClInclude Include="OutrageRoom.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="walls_container.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -140,6 +143,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="OutrageRoom.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="walls_container.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

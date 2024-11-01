@@ -27,6 +27,8 @@ namespace Inferno {
             WriteVersionSpecificLevelInfo(writer, level);
 
             auto mineDataOffset = (int32)writer.Position();
+
+            auto guard = level.Walls.PrepareSerialization();
             WriteMineData(writer, level);
 
             auto gameDataOffset = (int32)writer.Position();
@@ -173,7 +175,7 @@ namespace Inferno {
             }
         }
 
-        static void WriteWalls(StreamWriter& writer, const Segment& segment) {
+        static void WriteWalls(StreamWriter& writer, Level const& level, const Segment& segment) {
             ubyte mask = 0;
             for (short i = 0; i < MAX_SIDES; i++) {
                 if (segment.Sides[i].Wall != WallID::None)
@@ -183,9 +185,11 @@ namespace Inferno {
             writer.Write(mask);
 
             for (auto& side : segment.Sides) {
-                if (side.Wall == WallID::None) continue;
-                assert(side.Wall < WallID::Max);
-                writer.Write((ubyte)side.Wall);
+                if (side.Wall == WallID::None) 
+                    continue;
+                auto wall = level.Walls[side.Wall];
+                assert(wall.SerializationId <= WallID::Max);
+                writer.Write((ubyte)wall.SerializationId);
             }
         }
 
@@ -251,7 +255,7 @@ namespace Inferno {
                     auto l = Desaturate(segment.VolumeLight);
                     writer.Write((ushort)(FloatToFix(l * 2) >> 4));
                 }
-                WriteWalls(writer, segment);
+                WriteWalls(writer, level, segment);
                 WriteSegmentTextures(writer, segment);
             }
 
@@ -518,12 +522,14 @@ namespace Inferno {
             //AssertDataSize(writer, info.Objects); // object size varies based on type
 
             // Walls
-            info.Walls.Offset = (int32)(level.Walls.size() > 0 ? writer.Position() : -1);
-            info.Walls.Count = (int32)level.Walls.size();
+            auto& walls = level.Walls.SeralizableWalls();
+            info.Walls.Offset = (int32)(walls.size() > 0 ? writer.Position() : -1);
+            info.Walls.Count = (int32)walls.size();
             info.Walls.ElementSize = 24;
 
             // Wall triggers are written before object triggers, so we have to filter
-            for (auto& wall : level.Walls) {
+            for (auto pwall : walls) {
+                auto&& wall = *pwall;
                 writer.Write((int32)wall.Tag.Segment);
                 writer.Write((int32)wall.Tag.Side);
                 writer.WriteFix(wall.HitPoints);

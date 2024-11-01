@@ -129,6 +129,7 @@
     <ClInclude Include="Types.h" />
     <ClInclude Include="Utility.h" />
     <ClInclude Include="Wall.h" />
+    <ClInclude Include="walls_container.h" />
     <ClInclude Include="Weapon.h" />
   </ItemGroup>
   <ItemGroup>
@@ -151,6 +152,7 @@
     <ClCompile Include="Polymodel.cpp" />
     <ClCompile Include="Segment.cpp" />
     <ClCompile Include="Sound.cpp" />
+    <ClCompile Include="walls_container.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

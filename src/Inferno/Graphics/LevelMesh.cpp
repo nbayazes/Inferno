@@ -231,7 +231,7 @@ namespace Inferno {
                 if (seg.GetConnection(sideId) == SegID::Exit)
                     continue;
 
-                auto wall = level.TryGetWall(side.Wall);
+                auto wall = level.Walls.TryGetWall(side.Wall);
                 WallType wallType = wall ? wall->Type : WallType::None;
 
                 // Do not render fly-through walls

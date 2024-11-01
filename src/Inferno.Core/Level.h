@@ -7,6 +7,7 @@
 #include "Wall.h"
 #include "DataPool.h"
 #include "Segment.h"
+#include "walls_container.h"
 
 namespace Inferno {
     struct Matcen {
@@ -111,7 +112,7 @@ namespace Inferno {
         List<Segment> Segments;
         List<string> Pofs;
         List<Object> Objects;
-        List<Wall> Walls;
+        WallsContainer Walls;
         List<Trigger> Triggers;
         List<Matcen> Matcens;
         List<FlickeringLight> FlickeringLights; // Vertigo flickering lights
@@ -205,16 +206,15 @@ namespace Inferno {
             return count;
         }
 
-        constexpr const Wall& GetWall(WallID id) const { return Walls[(int)id]; }
-        constexpr Wall& GetWall(WallID id) { return Walls[(int)id]; }
+        //const Wall& GetWall(WallID id) const { return *TryGetWall(id); }
+        //Wall& GetWall(WallID id) { return *TryGetWall(id); }
 
         constexpr Wall* TryGetWall(Tag tag) {
             if (tag.Segment == SegID::None) return nullptr;
 
             if (auto seg = TryGetSegment(tag)) {
-                auto id = (int)seg->GetSide(tag.Side).Wall;
-                if (Seq::inRange(Walls, id))
-                    return &Walls[id];
+                auto id = seg->GetSide(tag.Side).Wall;
+                return Walls.TryGetWall(id);
             }
 
             return nullptr;
@@ -227,29 +227,6 @@ namespace Inferno {
 
             return WallID::None;
         }
-
-        constexpr Wall* TryGetWall(TriggerID trigger) {
-            if (trigger == TriggerID::None) return nullptr;
-
-            for (auto& wall : Walls) {
-                if (wall.Trigger == trigger)
-                    return &wall;
-            }
-
-            return nullptr;
-        }
-
-
-        const Wall* TryGetWall(WallID id) const {
-            if (id == WallID::None || (int)id >= Walls.size())
-                return nullptr;
-
-            // Check for invalid walls
-            if (Walls[(int)id].Tag.Segment == SegID::None) return nullptr;
-            return &Walls[(int)id];
-        }
-
-        Wall* TryGetWall(WallID id) { return (Wall*)std::as_const(*this).TryGetWall(id); }
 
         // Tries to get the side connecting the two segments
         SideID GetConnectedSide(SegID src, SegID dst) const {
@@ -289,7 +266,7 @@ namespace Inferno {
 
         // Gets the wall connected to the other side of a wall (if present)
         WallID GetConnectedWall(WallID wallId) {
-            auto wall = TryGetWall(wallId);
+            auto wall = Walls.TryGetWall(wallId);
             if (!wall) return WallID::None;
             auto other = GetConnectedSide(wall->Tag);
             return TryGetWallID(other);
@@ -371,7 +348,7 @@ namespace Inferno {
         }
 
         TriggerID GetTriggerID(WallID wid) const {
-            auto wall = TryGetWall(wid);
+            auto wall = Walls.TryGetWall(wid);
             if (!wall) return TriggerID::None;
             return wall->Trigger;
         }
@@ -383,7 +360,7 @@ namespace Inferno {
         }
 
         Trigger* TryGetTrigger(WallID wid) {
-            auto wall = TryGetWall(wid);
+            auto wall = Walls.TryGetWall(wid);
             if (!wall) return nullptr;
             return TryGetTrigger(wall->Trigger);
         }
@@ -445,5 +422,33 @@ namespace Inferno {
 
         size_t Serialize(StreamWriter& writer);
         static Level Deserialize(span<ubyte>);
+
+        bool CreateClosed(std::unordered_map<WallID, std::vector<Tag>> const& wallIdRefs) {
+            auto closedId = WallID::None;
+            for (auto&& [id, tags] : wallIdRefs) {
+                if (tags.size() == 1)
+                    continue;
+                if (closedId != WallID::None)
+                    return false; //bad map
+                assert(tags.size() > 1);
+                Wall* wall = Walls.TryGetWall(id);
+                if (!wall || !wall->IsSimplyClosed())
+                    return false;
+                closedId = id;
+                //don't break here as we have to check the whole map for consistency: only one id can be repeated
+            }
+            if (closedId == WallID::None)
+                return true;
+
+            auto&& v = wallIdRefs.at(closedId);
+            for (auto it = v.begin() + 1; it != v.end(); ++it) { //skip the first tag
+                Wall w;
+                w.Type = WallType::Closed;
+                w.Tag = *it;
+                auto id = Walls.Append(std::move(w));
+                GetSide(*it).Wall = id; //the side is guaranteed to exist by the way the wallIdRefs was filled
+            }
+            return true;
+        }
     };
 }
