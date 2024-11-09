@@ -664,9 +664,19 @@ namespace Inferno::Render {
     void SparkEmitter::CreateSpark() {
         Spark spark;
         spark.Life = Info.Duration.GetRandom();
-        auto position = Parent ? Vector3::Zero : Position;
+        auto position = Parent && Info.Relative ? Vector3::Zero : Position;
+
         if (Info.SpawnRadius > 0)
             position += RandomPointOnSphere() * Info.SpawnRadius;
+
+        if (Parent && Info.Relative) {
+            // Relative positioning directly links the particles to the parent transform
+            position += ParentSubmodel.Offset + Info.Offset;
+        }
+        else if (auto parent = Game::GetObject(Parent)) {
+            // Regular parenting creates particles at the parent position
+            position += Vector3::Transform(ParentSubmodel.Offset + Info.Offset, parent->Rotation);
+        }
 
         spark.Position = spark.PrevPosition = position;
         spark.Segment = Segment;
@@ -677,19 +687,11 @@ namespace Inferno::Render {
         else {
             auto spread = RandomPointOnHemisphere();
             auto right = Info.Direction.Cross(Info.Up);
-            //auto direction = Direction;
             Vector3 direction;
             direction += right * spread.x * Info.ConeRadius;
             direction += Info.Up * spread.y * Info.ConeRadius;
             direction += Info.Direction * spread.z;
             spark.Velocity = direction * Info.Velocity.GetRandom();
-        }
-
-        //if (auto parent = Game::GetObject(Parent)) {
-        if (Parent) {
-
-            //spark.Position += Vector3::Transform(ParentSubmodel.Offset + Info.Offset, parent->Rotation);
-            spark.Position += ParentSubmodel.Offset + Info.Offset;
         }
 
         _sparks.Add(spark);
