@@ -144,15 +144,36 @@ void CutoffLightValue(float lightRadius, float dist, float cutoff, inout float v
         value = saturate(lerp(value, 0, (dist - specCutoff) / (lightRadius - specCutoff)));
 }
 
-float Attenuate(float lightDistSq, float lightRadius) {
-    // https://google.github.io/filament/Filament.md.html#lighting/directlighting/punctuallights
-    lightDistSq = max(lightDistSq, 1); // prevent hotspots due to being directly on top of the source
-    float factor = lightDistSq / (lightRadius * lightRadius); // 0 to 1
-    //float smoothFactor = max(1 - factor, 0); // 0 to 1, original
-    float smoothFactor = max(1 - pow(factor, 0.5), 0); // 0 to 1
-    //return = (smoothFactor * smoothFactor) / max(lightDistSq, 1e-4); // original
-    return (smoothFactor * smoothFactor) / max(sqrt(lightDistSq), 1e-4);
-    //return (smoothFactor * smoothFactor) / max(pow(lightDistSq, 0.75), 1e-4);
+// Old attenuation, has distance issues causing most of the range to contribute very little
+//float Attenuate(float lightDistSq, float lightRadius) {
+//    // https://google.github.io/filament/Filament.md.html#lighting/directlighting/punctuallights
+//    lightDistSq = max(lightDistSq, 1); // prevent hotspots due to being directly on top of the source
+//    float factor = lightDistSq / (lightRadius * lightRadius); // 0 to 1
+//    //float smoothFactor = max(1 - factor, 0); // 0 to 1, original
+//    float smoothFactor = max(1 - pow(factor, 0.5), 0); // 0 to 1
+//    //return = (smoothFactor * smoothFactor) / max(lightDistSq, 1e-4); // original
+//    return (smoothFactor * smoothFactor) / max(sqrt(lightDistSq), 1e-4);
+//    //return (smoothFactor * smoothFactor) / max(pow(lightDistSq, 0.75), 1e-4);
+//}
+
+// Has highlight near D = 0
+float Attenuate(float lightDist, float lightRadius, float intensity) {
+    // https://lisyarus.github.io/blog/posts/point-light-attenuation.html
+    float s = lightDist / lightRadius;
+    if (s >= 1) return 0;
+    const float f = 1; // controls falloff curve
+    const float s2 = s * s;
+    return intensity * (1 - s2) * (1 - s2) / (1 + f * s2);
+}
+
+// Linear falloff from D = 0
+float AttenuateLinear(float lightDist, float lightRadius, float intensity) {
+    // https://lisyarus.github.io/blog/posts/point-light-attenuation.html
+    float s = lightDist / lightRadius;
+    if (s >= 1) return 0;
+    const float f = 1; // controls falloff curve
+    const float s2 = s * s;
+    return intensity * (1 - s2) * (1 - s2) / (1 + f * s);
 }
 
 // Applies ambient light to a metal texture as specular
@@ -189,15 +210,15 @@ float3 ApplyPointLight(
     // clip specular and diffuse behind the light plane for wall lights
     if (any(planeNormal)) {
         // Adjust multipliers to change plane position
-        planeFactor = -dot(planeNormal, (lightPos + normal * 1) - worldPos) * 1 ;
+        planeFactor = -dot(planeNormal, (lightPos + normal * 1) - worldPos) * 1;
         lightPos += planeNormal * 2.5;
     }
 
     float3 lightDir = lightPos - worldPos;
-    float lightDistSq = dot(lightDir, lightDir);
+    float lightDist = distance(lightPos, worldPos);
     lightDir = normalize(lightDir);
 
-    float falloff = Attenuate(lightDistSq, lightRadius);
+    float falloff = Attenuate(lightDist, lightRadius, 0.15);
 
     float3 halfVec = normalize(lightDir - viewDir);
     float nDotH = saturate(dot(halfVec, normal));
@@ -808,12 +829,11 @@ float3 ApplyRectLight2(
 
     float nDotL = Lambert(normal, normalize(closestDiffusePoint - worldPos));
 
-    float3 lightDir = closestDiffusePoint - worldPos;
-    float lightDistSq = dot(lightDir, lightDir);
+    //float3 lightDir = closestDiffusePoint - worldPos;
+    //float lightDistSq = dot(lightDir, lightDir);
+    float lightDist = distance(closestDiffusePoint, worldPos);
 
-    float minR = min(vHeight, vWidth);
-    float falloff = Attenuate(lightDistSq, lightRadius/* + minR*/);
-    //return max(0, falloff * specular);
+    float falloff = Attenuate(lightDist, lightRadius, 0.15);
     return max(0, falloff * nDotL * (lightColor * diffuse * diffCutoff + specular * specCutoff) * GLOBAL_LIGHT_MULT);
     //return nDotL * lightColor * (diffuseColor + specularFactor * specularColor);
 }
