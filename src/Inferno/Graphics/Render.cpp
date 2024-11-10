@@ -220,6 +220,7 @@ namespace Inferno::Render {
 
         HudCanvas = make_unique<HudCanvas2D>(Device, Effects->Hud);
         HudGlowCanvas = make_unique<HudCanvas2D>(Device, Effects->HudAdditive);
+        UICanvas = make_unique<HudCanvas2D>(Device, Effects->Hud);
         _graphicsMemory = make_unique<GraphicsMemory>(Device);
         LightGrid = make_unique<FillLightGridCS>();
         //LightGrid->Load(L"shaders/FillLightGridCS.hlsl");
@@ -301,6 +302,7 @@ namespace Inferno::Render {
         BriefingCanvas.reset();
         HudCanvas.reset();
         HudGlowCanvas.reset();
+        UICanvas.reset();
         _graphicsMemory.reset();
         g_SpriteBatch.reset();
         g_ImGuiBatch.reset();
@@ -612,6 +614,10 @@ namespace Inferno::Render {
         Heaps->SetDescriptorHeaps(cmdList);
         UpdateFrameConstants(ctx.Camera, Adapter->GetFrameConstants(), Settings::Graphics.RenderScale);
         //auto outputSize = Adapter->GetOutputSize();
+    
+        auto width = Adapter->GetWidth();
+        auto height = Adapter->GetHeight();
+        UICanvas->SetSize(width, height);
 
         BeginScene(ctx);
 
@@ -696,6 +702,8 @@ namespace Inferno::Render {
         if (((Game::GetState() == GameState::Game || Game::GetState() == GameState::GameMenu) && !Game::Player.IsDead) ||
             Game::GetState() == GameState::MainMenu)
             DrawHud(ctx);
+
+        UICanvas->Render(ctx);
 
         //LegitProfiler::ProfilerTask resolve("Resolve multisample", LegitProfiler::Colors::CLOUDS);
         if (Settings::Graphics.MsaaSamples > 1) {

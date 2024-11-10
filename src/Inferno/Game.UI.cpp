@@ -42,6 +42,9 @@ namespace Inferno::UI {
             ControlBase::OnUpdate(); // breaks main menu selection
         }
 
+        // Called when a top level screen is closed. Returns true if it should close.
+        virtual bool OnTryClose() { return false; }
+
         void OnConfirm() {
             if (Selection && Selection->ClickAction) {
                 Sound::Play2D(SoundResource{ ActionSound });
@@ -58,7 +61,7 @@ namespace Inferno::UI {
 
         void OnUpdateLayout() override {
             // Fill the whole screen if the size is zero
-            auto& canvasSize = Render::HudCanvas->GetSize();
+            auto& canvasSize = Render::UICanvas->GetSize();
             ScreenSize = Size == Vector2::Zero ? canvasSize : Size * GetScale();
             ScreenPosition = Render::GetAlignment(ScreenSize, HorizontalAlignment, VerticalAlignment, canvasSize);
             ControlBase::OnUpdateLayout();
@@ -257,7 +260,7 @@ namespace Inferno::UI {
                 cbi.Size = ScreenSize;
                 cbi.Texture = Render::Materials->White().Handle();
                 cbi.Color = Focused ? ACCENT_COLOR : BORDER_COLOR;
-                Render::HudCanvas->DrawBitmap(cbi, Layer);
+                Render::UICanvas->DrawBitmap(cbi, Layer);
             }
 
             {
@@ -270,7 +273,7 @@ namespace Inferno::UI {
                 cbi.Size = ScreenSize - border * 2;
                 cbi.Texture = Render::Materials->White().Handle();
                 cbi.Color = Color(0, 0, 0, 1);
-                Render::HudCanvas->DrawBitmap(cbi, Layer);
+                Render::UICanvas->DrawBitmap(cbi, Layer);
             }
 
             {
@@ -279,7 +282,7 @@ namespace Inferno::UI {
                 dti.Color = Focused /*|| Hovered*/ ? FocusColor : TextColor;
                 dti.Position = ScreenPosition / GetScale() + Margin + Padding;
                 dti.EnableTokenParsing = false;
-                Render::HudCanvas->DrawText(_text, dti, Layer + 1);
+                Render::UICanvas->DrawText(_text, dti, Layer + 1);
             }
 
             if (!Focused) return;
@@ -298,7 +301,7 @@ namespace Inferno::UI {
                 dti.Color = FocusColor;
                 dti.Position = ScreenPosition / GetScale() + Margin + Padding;
                 dti.Position.x += offset.x;
-                Render::HudCanvas->DrawText("_", dti, Layer + 1);
+                Render::UICanvas->DrawText("_", dti, Layer + 1);
             }
         }
     };
@@ -307,13 +310,13 @@ namespace Inferno::UI {
 
     ScreenBase GetFullScreen() {
         ScreenBase fullScreen{};
-        fullScreen.ScreenSize = Render::HudCanvas->GetSize() / Render::HudCanvas->GetScale();
+        fullScreen.ScreenSize = Render::UICanvas->GetSize() / Render::UICanvas->GetScale();
         return fullScreen;
     }
 
     // Returns a pointer to the screen
     ScreenBase* ShowScreen(Ptr<ScreenBase> screen) {
-        screen->Layer = (int)Screens.size() * 2;
+        if (screen->Layer == -1) screen->Layer = (int)Screens.size() * 2;
         screen->OnUpdateLayout();
         screen->OnUpdateLayout(); // Need to calculate layout twice due to sizing
 
@@ -348,7 +351,10 @@ namespace Inferno::UI {
     }
 
     bool CloseScreen() {
-        if (Screens.size() == 1) return false; // Can't close the last screen
+        if (Screens.size() == 1) {
+            if (!Screens.back()->OnTryClose())
+                return false; // Can't close the last screen
+        }
 
         auto& screen = Screens.back();
         SPDLOG_INFO("Closing screen {:x}", (int64)screen.get());
@@ -364,7 +370,7 @@ namespace Inferno::UI {
             HorizontalAlignment = AlignH::Center;
             VerticalAlignment = AlignV::Center;
 
-            auto close = make_unique<CloseButton>(CloseScreen);
+            auto close = make_unique<CloseButton>([this] { OnDialogClose(); });
             close->HorizontalAlignment = AlignH::Right;
             close->Margin = Vector2(DIALOG_MARGIN, DIALOG_MARGIN);
             AddChild(std::move(close));
@@ -379,6 +385,10 @@ namespace Inferno::UI {
             }
         }
 
+        virtual void OnDialogClose() {
+            CloseScreen();
+        }
+
         void OnDraw() override {
             const auto border = Vector2(1, 1) * GetScale();
 
@@ -389,7 +399,7 @@ namespace Inferno::UI {
                 cbi.Size = ScreenSize;
                 cbi.Texture = Render::Materials->White().Handle();
                 cbi.Color = BORDER_COLOR;
-                Render::HudCanvas->DrawBitmap(cbi, Layer);
+                Render::UICanvas->DrawBitmap(cbi, Layer);
             }
 
             {
@@ -399,7 +409,7 @@ namespace Inferno::UI {
                 cbi.Size = ScreenSize - border * 2;
                 cbi.Texture = Render::Materials->White().Handle();
                 cbi.Color = DIALOG_BACKGROUND;
-                Render::HudCanvas->DrawBitmap(cbi, Layer);
+                Render::UICanvas->DrawBitmap(cbi, Layer);
             }
 
             //{
@@ -409,7 +419,7 @@ namespace Inferno::UI {
             //    cbi.Size = Vector2(ScreenSize.x - border.x * 2, 30 * GetScale());
             //    cbi.Texture = Render::Materials->White().Handle();
             //    cbi.Color = Color(0.02f, 0.02f, 0.02f, 1);
-            //    Render::HudCanvas->DrawBitmap(cbi, 1);
+            //    Render::UICanvas->DrawBitmap(cbi, 1);
             //}
 
             //{
@@ -419,7 +429,7 @@ namespace Inferno::UI {
             //    dti.VerticalAlign = AlignV::Top;
             //    dti.Position = Vector2(0, 20);
             //    dti.Color = Color(1, 1, 1, 1);
-            //    Render::HudCanvas->DrawGameText("Header", dti, 2);
+            //    Render::UICanvas->DrawGameText("Header", dti, 2);
             //}
 
             ScreenBase::OnDraw();
@@ -662,8 +672,6 @@ namespace Inferno::UI {
     };
 
     class MainMenu : public ScreenBase {
-        //int _spinnerValue = 0;
-
     public:
         MainMenu() {
             CloseOnConfirm = false;
@@ -720,11 +728,11 @@ namespace Inferno::UI {
                 ////dti.Color = Color(0.5f, 0.5f, 1);
                 //dti.Color = Color(1, 0.7f, 0.54f);
 
-                //Render::HudCanvas->DrawGameText("descent remastered", dti);
+                //Render::UICanvas->DrawGameText("descent remastered", dti);
                 //dti.Position.y += 15;
-                //Render::HudCanvas->DrawGameText("descent II", dti);
+                //Render::UICanvas->DrawGameText("descent II", dti);
                 //dti.Position.y += 15;
-                //Render::HudCanvas->DrawGameText("descent 3 enhancements enabled", dti);
+                //Render::UICanvas->DrawGameText("descent 3 enhancements enabled", dti);
             }
 
             {
@@ -750,7 +758,7 @@ namespace Inferno::UI {
                 float anim = (((float)sin(Clock.GetTotalTimeSeconds()) + 1) * 0.5f * 0.25f) + 0.6f;
                 dti.Color = Color(1, .5f, .2f) * abs(anim) * 4;
                 dti.Scale = titleScale;
-                Render::HudCanvas->DrawText("inferno", dti);
+                Render::UICanvas->DrawText("inferno", dti);
             }
 
             {
@@ -760,10 +768,10 @@ namespace Inferno::UI {
                 dti.VerticalAlign = AlignV::Bottom;
                 dti.Position = Vector2(-5, -5);
                 dti.Color = Color(0.25f, 0.25f, 0.25f);
-                Render::HudCanvas->DrawText(APP_TITLE, dti);
+                Render::UICanvas->DrawText(APP_TITLE, dti);
 
                 dti.Position.y -= 14;
-                Render::HudCanvas->DrawText("software 1994, 1995, 1999", dti);
+                Render::UICanvas->DrawText("software 1994, 1995, 1999", dti);
 
                 dti.Position.y -= 14;
                 Render::HudCanvas->DrawText("portions (c) parallax", dti);
@@ -827,15 +835,72 @@ namespace Inferno::UI {
         }
     }
 
+    class ConfirmDialog : public DialogBase {
+    public:
+        ConfirmDialog() {}
+    };
+
+    class PauseDialog : public DialogBase {
+    public:
+        PauseDialog() {
+            CloseOnConfirm = false;
+
+            auto panel = make_unique<StackPanel>();
+            panel->Position = Vector2(0, 60);
+            panel->HorizontalAlignment = AlignH::Center;
+            panel->VerticalAlignment = AlignV::Top;
+
+            //panel->AddChild<Button>("Continue", [] {
+            //    Game::SetState(GameState::Game);
+            //});
+            panel->AddChild<Button>("Save Game");
+            panel->AddChild<Button>("Load Game");
+            panel->AddChild<Button>("Options");
+            panel->AddChild<Button>("Quit", [] {
+                Game::SetState(GameState::MainMenu);
+                // todo: show confirmation?
+            });
+
+            auto size = MeasureString("Load Game", FontSize::Medium);
+            Size = Vector2(size.x + 80, size.y * panel->Children.size() + 40 + panel->Position.y);
+
+            AddChild(std::move(panel));
+        }
+
+        bool OnTryClose() override {
+            Game::SetState(GameState::Game);
+            return true; // Allow closing this dialog with escape
+        }
+
+        void OnDialogClose() override {
+            Game::SetState(GameState::Game);
+            CloseScreen();
+        }
+    };
+
+    void ShowMainMenu() {
+        if (Screens.empty()) {
+            Screens.reserve(20);
+        }
+
+        Screens.clear();
+        ShowScreen(make_unique<MainMenu>());
+    }
+
+    void ShowPauseDialog() {
+        if (Screens.empty()) {
+            Screens.reserve(20);
+        }
+
+        Screens.clear();
+        ShowScreen(make_unique<PauseDialog>());
+    }
+
     void Update() {
         //DrawTestText({ 10, 0 }, FontSize::Medium);
         //DrawTestText({ 10, 150 }, FontSize::Small);
         //DrawTestText({ 10, 170 }, FontSize::Big, 24);
 
-        if (Screens.empty()) {
-            Screens.reserve(20);
-            ShowScreen(make_unique<MainMenu>());
-        }
 
         HandleInput();
 
@@ -852,19 +917,6 @@ namespace Inferno::UI {
             screen->OnDraw();
         }
 
-        std::function<void(ControlBase&)> debugDraw = [&](const ControlBase& control) {
-            for (auto& child : control.Children) {
-                Render::CanvasBitmapInfo cbi;
-                cbi.Position = child->ScreenPosition;
-                cbi.Size = child->ScreenSize;
-                cbi.Texture = Render::Materials->White().Handle();
-                cbi.Color = Color(0.1f, 1.0f, 0.1f, 0.0225f);
-                Render::HudCanvas->DrawBitmap(cbi, 9);
-
-                debugDraw(*child.get());
-            }
-        };
-
         if (Screens.back()->State == CloseState::Accept) {
             CloseScreen();
             /*string sound = Screens.back()->ActionSound;
@@ -875,6 +927,19 @@ namespace Inferno::UI {
             if (CloseScreen())
                 Sound::Play2D(SoundResource{ MENU_BACK_SOUND });
         }
+
+        std::function<void(ControlBase&)> debugDraw = [&](const ControlBase& control) {
+            for (auto& child : control.Children) {
+                Render::CanvasBitmapInfo cbi;
+                cbi.Position = child->ScreenPosition;
+                cbi.Size = child->ScreenSize;
+                cbi.Texture = Render::Materials->White().Handle();
+                cbi.Color = Color(0.1f, 1.0f, 0.1f, 0.0225f);
+                Render::UICanvas->DrawBitmap(cbi, 9);
+
+                debugDraw(*child.get());
+            }
+        };
 
         // debug outlines
         //debugDraw(*Screens.back().get());

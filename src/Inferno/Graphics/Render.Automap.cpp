@@ -303,10 +303,10 @@ namespace Inferno::Render {
 
     void DrawAutomapText(GraphicsContext& ctx) {
         // Reuse the HUD canvas for the automap
-        auto canvas = HudCanvas.get();
+        auto canvas = UICanvas.get();
         auto width = Adapter->GetWidth();
         auto height = Adapter->GetHeight();
-        HudCanvas->SetSize(width, height);
+        UICanvas->SetSize(width, height);
 
         //const float scale = Render::Canvas->GetScale();
         constexpr float margin = 20;

@@ -23,7 +23,7 @@ namespace Inferno {
     using Action = std::function<void()>;
 
     inline float GetScale() {
-        return Render::HudCanvas->GetScale();
+        return Render::UICanvas->GetScale();
     }
 
     // Returns true if a rectangle at a position and size contain a point
@@ -64,7 +64,7 @@ namespace Inferno {
         float MeasureWidth() const { return Size.x + Margin.x * 2 + Padding.x * 2; }
         float MeasureHeight() const { return Size.y + Margin.y * 2 + Padding.y * 2; }
 
-        int Layer = 0;
+        int Layer = -1;
 
         virtual void OnUpdateLayout() {
             // Arrange children relative to this control
@@ -76,7 +76,7 @@ namespace Inferno {
         }
 
         void UpdateScreenPosition(const ControlBase& parent) {
-            auto scale = Render::HudCanvas->GetScale();
+            auto scale = Render::UICanvas->GetScale();
             ScreenPosition = Position * scale + parent.ScreenPosition + Margin * scale;
             ScreenSize = Size * scale + Padding * 2 * scale;
 
@@ -305,7 +305,7 @@ namespace Inferno {
             cbi.Size = ScreenSize;
             cbi.Texture = Render::Materials->White().Handle();
             cbi.Color = Fill;
-            Render::HudCanvas->DrawBitmap(cbi, Layer);
+            Render::UICanvas->DrawBitmap(cbi, Layer);
         }
     };
 
@@ -329,7 +329,7 @@ namespace Inferno {
             dti.Font = _font;
             dti.Color = Color;
             dti.Position = ScreenPosition / GetScale() + Margin;
-            Render::HudCanvas->DrawText(_text, dti, Layer);
+            Render::UICanvas->DrawText(_text, dti, Layer);
         }
     };
 
@@ -448,7 +448,7 @@ namespace Inferno {
                 cbi.Size = ScreenSize;
                 cbi.Texture = Render::Materials->White().Handle();
                 cbi.Color = Color(0, 0, 0, 1);
-                Render::HudCanvas->DrawBitmap(cbi, Layer);
+                Render::UICanvas->DrawBitmap(cbi, Layer);
             }
 
             for (int i = _scrollIndex, j = 0; i < Items.size() && i < _scrollIndex + VisibleItems; i++, j++) {
@@ -459,7 +459,7 @@ namespace Inferno {
                 dti.Color = _index == i ? FOCUS_COLOR : Color(1, 1, 1);
                 dti.Position = ScreenPosition / GetScale() + Padding;
                 dti.Position.y += (_fontHeight + ItemSpacing) * j + LINE_OFFSET;
-                Render::HudCanvas->DrawText(item, dti, Layer);
+                Render::UICanvas->DrawText(item, dti, Layer);
             }
 
 
@@ -477,7 +477,7 @@ namespace Inferno {
                     cbi.Size = Vector2(scrollWidth, scrollHeight);
                     cbi.Texture = Render::Materials->White().Handle();
                     cbi.Color = ACCENT_COLOR;
-                    Render::HudCanvas->DrawBitmap(cbi, Layer + 1);
+                    Render::UICanvas->DrawBitmap(cbi, Layer + 1);
                 }
             }
         }
@@ -508,7 +508,7 @@ namespace Inferno {
             dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
             dti.Color = Focused /*|| Hovered*/ ? FocusColor : TextColor;
             dti.Position = ScreenPosition / GetScale() + Padding;
-            Render::HudCanvas->DrawText(_text, dti, Layer);
+            Render::UICanvas->DrawText(_text, dti, Layer);
         }
     };
 
@@ -539,13 +539,13 @@ namespace Inferno {
             payload.V1.Position = Vector2(position.x + thickness, position.y);
             payload.V2.Position = Vector2(position.x + size, position.y + size - thickness);
             payload.V3.Position = Vector2(position.x + size, position.y + size);
-            Render::HudCanvas->Draw(payload);
+            Render::UICanvas->Draw(payload);
 
             payload.V0.Position = position;
             payload.V1.Position = Vector2(position.x, position.y + thickness);
             payload.V2.Position = Vector2(position.x + size - thickness, position.y + size);
             payload.V3.Position = Vector2(position.x + size, position.y + size);
-            Render::HudCanvas->Draw(payload);
+            Render::UICanvas->Draw(payload);
 
             // tr to bl
             payload.V0.Position = Vector2(position.x + size, position.y);
@@ -553,14 +553,14 @@ namespace Inferno {
             payload.V2.Position = Vector2(position.x, position.y + size - thickness);
             payload.V3.Position = Vector2(position.x, position.y + size);
             payload.Layer = Layer;
-            Render::HudCanvas->Draw(payload);
+            Render::UICanvas->Draw(payload);
 
             payload.V0.Position = Vector2(position.x + size, position.y);
             payload.V1.Position = Vector2(position.x + size, position.y + thickness);
             payload.V2.Position = Vector2(position.x + thickness, position.y + size);
             payload.V3.Position = Vector2(position.x, position.y + size);
             payload.Layer = Layer;
-            Render::HudCanvas->Draw(payload);
+            Render::UICanvas->Draw(payload);
         }
     };
 
@@ -574,7 +574,7 @@ namespace Inferno {
         //int Spacing = 2;
 
         void OnUpdateLayout() override {
-            auto anchor = Render::GetAlignment(Size, HorizontalAlignment, VerticalAlignment, Render::HudCanvas->GetSize() / Render::HudCanvas->GetScale());
+            auto anchor = Render::GetAlignment(Size, HorizontalAlignment, VerticalAlignment, Render::UICanvas->GetSize() / Render::UICanvas->GetScale());
 
             if (Orientation == PanelOrientation::Vertical) {
                 float maxWidth = 0;
@@ -763,7 +763,7 @@ namespace Inferno {
                 cbi.Size = ScreenSize;
                 cbi.Texture = Render::Materials->White().Handle();
                 cbi.Color = Focused ? ACCENT_COLOR : BORDER_COLOR;
-                Render::HudCanvas->DrawBitmap(cbi, Layer);
+                Render::UICanvas->DrawBitmap(cbi, Layer);
             }
 
             {
@@ -776,7 +776,7 @@ namespace Inferno {
                 cbi.Size = ScreenSize - border * 2;
                 cbi.Texture = Render::Materials->White().Handle();
                 cbi.Color = Color(0, 0, 0, 1);
-                Render::HudCanvas->DrawBitmap(cbi, Layer);
+                Render::UICanvas->DrawBitmap(cbi, Layer);
             }
 
             //const auto screenPadding = Padding * scale;
@@ -803,7 +803,7 @@ namespace Inferno {
                 payload.V1.Position = Vector2(position.x, position.y + half + thickness);
                 payload.V2.Position = Vector2(position.x + size, position.y + half + thickness);
                 payload.V3.Position = Vector2(position.x + size, position.y + half - thickness);
-                Render::HudCanvas->Draw(payload);
+                Render::UICanvas->Draw(payload);
             }
 
             {
@@ -824,14 +824,14 @@ namespace Inferno {
                 payload.V1.Position = Vector2(position.x, position.y + half + thickness);
                 payload.V2.Position = Vector2(position.x + size, position.y + half + thickness);
                 payload.V3.Position = Vector2(position.x + size, position.y + half - thickness);
-                Render::HudCanvas->Draw(payload);
+                Render::UICanvas->Draw(payload);
 
                 // top to bottom
                 payload.V0.Position = Vector2(position.x + half - thickness, position.y);
                 payload.V1.Position = Vector2(position.x + half + thickness, position.y);
                 payload.V2.Position = Vector2(position.x + half + thickness, position.y + size);
                 payload.V3.Position = Vector2(position.x + half - thickness, position.y + size);
-                Render::HudCanvas->Draw(payload);
+                Render::UICanvas->Draw(payload);
             }
 
             {
@@ -844,7 +844,7 @@ namespace Inferno {
                 dti.Position.y += 1; // offset from top slightly
                 //dti.Position.x += ScreenSize.x / scale - textLen - Padding.x - Margin.x - size * 1.75f / scale; // right justify text
                 //dti.HorizontalAlign = AlignH::Center;
-                Render::HudCanvas->DrawText(_text, dti, Layer + 1);
+                Render::UICanvas->DrawText(_text, dti, Layer + 1);
             }
         }
     };

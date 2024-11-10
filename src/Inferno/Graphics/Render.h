@@ -26,7 +26,7 @@ namespace Inferno::Render {
     inline Ptr<Canvas2D<UIShader>> Canvas, DebugCanvas;
     inline Ptr<Canvas2D<BriefingShader>> BriefingCanvas;
 
-    inline Ptr<HudCanvas2D> HudCanvas, HudGlowCanvas;
+    inline Ptr<HudCanvas2D> HudCanvas, HudGlowCanvas, UICanvas;
     inline Ptr<Graphics::FillLightGridCS> LightGrid;
 
     inline Ptr<StructuredBuffer> MaterialInfoBuffer;

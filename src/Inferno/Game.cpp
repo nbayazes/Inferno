@@ -37,7 +37,6 @@ namespace Inferno::Game {
         auto State = GameState::Startup;
         auto RequestedState = GameState::Startup;
         constexpr size_t OBJECT_BUFFER_SIZE = 100; // How many new objects to keep in reserve
-        int MenuIndex = 0;
         Ptr<Editor::EditorUI> EditorUI;
         auto ActiveCamera = gsl::strict_not_null(&MainCamera);
         LerpedValue LerpedTimeScale(1);
@@ -368,6 +367,7 @@ namespace Inferno::Game {
                 Game::MainCamera.Position = MenuCameraPosition;
                 Game::MainCamera.Target = MenuCameraTarget;
                 Game::PlayMusic("d1/descent");
+                UI::ShowMainMenu();
                 break;
             }
 
@@ -439,71 +439,13 @@ namespace Inferno::Game {
 
             case GameState::GameMenu:
                 if (State == GameState::GameMenu) return;
-                MenuIndex = 0; // select the top
                 Input::SetMouseMode(Input::MouseMode::Normal);
                 State = GameState::GameMenu;
+                UI::ShowPauseDialog();
                 break;
         }
 
         State = RequestedState;
-    }
-
-    void UpdateMenu(float /*dt*/) {
-        if (Input::IsKeyPressed(Input::Keys::Down))
-            MenuIndex++;
-
-        if (Input::IsKeyPressed(Input::Keys::Up))
-            MenuIndex--;
-
-        MenuIndex = Mod(MenuIndex, 2);
-
-        if (Input::IsKeyPressed(Input::Keys::Escape))
-            Game::SetState(GameState::Game);
-
-        if (Input::IsKeyPressed(Input::Keys::Enter)) {
-            switch (MenuIndex) {
-                default:
-                case 0:
-                    Game::SetState(GameState::Game);
-                    break;
-
-                case 1:
-                    Game::SetState(GameState::MainMenu);
-                    break;
-            }
-        }
-
-        auto font = Inferno::Atlas.GetFont(FontSize::MediumBlue);
-        if (!font) return;
-        auto lineHeight = font->Height * FONT_LINE_SPACING * font->Scale;
-
-        auto scale = Render::Canvas->GetScale();
-
-        //Render::Canvas->DrawRectangle({ 0, 0 }, Render::Canvas->GetSize(), Color(0, 0, 0, 0.25f));
-
-        Vector2 bgSize = Vector2(200, lineHeight * 3.5f) * scale;
-        Vector2 alignment = Render::GetAlignment(bgSize, AlignH::Center, AlignV::Center, Render::Canvas->GetSize());
-        Render::Canvas->DrawRectangle(alignment, bgSize, Color(0, 0, 0, 0.65f));
-
-        float y = -lineHeight * 0.85f;
-
-        Render::DrawTextInfo info;
-        info.HorizontalAlign = AlignH::Center;
-        info.VerticalAlign = AlignV::CenterTop;
-
-        {
-            info.Font = MenuIndex == 0 ? FontSize::MediumGold : FontSize::Medium;
-            info.Position = Vector2(0, y * scale);
-            Render::Canvas->DrawGameText("continue", info);
-        }
-
-        y += lineHeight;
-
-        {
-            info.Font = MenuIndex == 1 ? FontSize::MediumGold : FontSize::Medium;
-            info.Position = Vector2(0, y * scale);
-            Render::Canvas->DrawGameText("quit", info);
-        }
     }
 
     // Test code for showing a message from an NPC
@@ -731,7 +673,7 @@ namespace Inferno::Game {
                 break;
 
             case GameState::GameMenu:
-                UpdateMenu(dt);
+                UI::Update();
                 break;
 
             case GameState::PhotoMode:
@@ -878,7 +820,7 @@ namespace Inferno::Game {
         SPDLOG_INFO("Starting level");
         auto player = Level.TryGetObject(ObjID(0));
 
-        if(!CheckForPlayerStart(Level))
+        if (!CheckForPlayerStart(Level))
             return false;
 
         if (Input::ControlDown && State == GameState::Editor) {
