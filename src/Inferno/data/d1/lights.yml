@@ -3,7 +3,7 @@ Lights:
     - ID: 212
       Type: 2
       Points: 0.5, 0.22
-      Radius: 40
+      Radius: 35
       Width: 0.04
       Wrap: 1
       Color: 0.376, 0.376, 1, 0.5 # cooler
@@ -13,7 +13,7 @@ Lights:
       Points: 0.70, 0.22
       Width: 0.14
       Height: 0.04
-      Radius: 40
+      Radius: 35
       Color: 0.376, 0.376, 1, 0.5 # cooler
   
     - ID: 214
@@ -21,7 +21,7 @@ Lights:
       Points: 0.30, 0.22
       Width: 0.14
       Height: 0.04
-      Radius: 40
+      Radius: 35
       Color: 0.376, 0.376, 1, 0.5 # cooler
   
     - ID: 221
@@ -29,7 +29,7 @@ Lights:
       Points: 0.75, 0.25
       Width: 0.25
       Height: 0.01
-      Radius: 40
+      Radius: 35
       Color: 0.376, 0.376, 1, 0.5 # cooler
   
     - ID: 222
@@ -37,7 +37,7 @@ Lights:
       Points: 0.25, 0.25
       Width: 0.25
       Height: 0.05
-      Radius: 60
+      Radius: 35
       Color: 0.376, 0.376, 1, 0.5 # cooler
   
     # Door strips
@@ -62,7 +62,7 @@ Lights:
       Points: 0.135, 0
       Wrap: 2
       Width: 0.06
-      Color: .05, .05, 1, 1.2 # Blue is quite dim compared to the others
+      Color: .05, .05, 1, 0.8
       Radius: 35
   
     - ID: 253 # yellow
@@ -79,16 +79,16 @@ Lights:
       Points: 0.5, 0.5
       Width: .2
       Height: .2
-      Radius: 30
+      Radius: 35
       Color: 1, .8, .5, .90
 
     - ID: 265
-      Radius: 40
+      Radius: 35
       Points: 0.5, 0.5
       Color: 1, .8, .5, 0.75
 
     - ID: 268 # small square
-      Radius: 40
+      Radius: 35
       Points: 0.5, 0.5
       Color: 1, .8, .5, 0.75
     
@@ -102,28 +102,28 @@ Lights:
       Color: 0.75, 0.75, 1, .75
 
     - ID: 282 # small round
-      Radius: 40
+      Radius: 35
       Points: 0.5, 0.5
       Color: 0.8, 0.8, 1, .6
 
     - ID: 283 # small square
-      Radius: 40
+      Radius: 35
       Points: 0.5, 0.5
       Color: 1, .88, .88, .6
 
     - ID: 284 # small square
-      Radius: 40
+      Radius: 35
       Points: 0.5, 0.5
       Color: 0.8, 0.8, 1, .6
 
     # misc lights
     - ID: 293 # small square
-      Radius: 40
+      Radius: 35
       Points: 0.5, 0.5
       Color: 1, .9, .9, .6
 
     - ID: 294 # rectangle
-      Radius: 40
+      Radius: 35
       Points: 0.5, 0.5
       Color: 1, .88, .88, .6
 
@@ -136,7 +136,7 @@ Lights:
       Width: .2
       Height: .1
       Color: 0.75, 0.833, 1, .5
-      Radius: 40
+      Radius: 35
 
     - ID: 286
       Type: 2

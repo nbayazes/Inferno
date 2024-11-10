@@ -3,11 +3,11 @@ Materials:
     NormalStrength: 0.404
     SpecularStrength: 2
     Metalness: 1
-    Roughness: 0.5
+    Roughness: 0.4
   - Name: rbot011
     NormalStrength: 0.25
     Metalness: 1
-    Roughness: 0.5
+    Roughness: 0.4
     EmissiveStrength: 10
   - Name: rbot012
     NormalStrength: 0.2
@@ -18,12 +18,12 @@ Materials:
     NormalStrength: 0.4
     SpecularStrength: 2
     Metalness: 1
-    Roughness: 0.45
+    Roughness: 0.4
   - Name: rbot008
     NormalStrength: 0.25
     SpecularStrength: 2
     Metalness: 1
-    Roughness: 0.51
+    Roughness: 0.4
     EmissiveStrength: 10
   - Name: rbot009
     NormalStrength: 0.25
@@ -34,41 +34,41 @@ Materials:
     NormalStrength: 0.25
     SpecularStrength: 2.5
     Metalness: 1
-    Roughness: 0.449
+    Roughness: 0.4
   - Name: rbot019
     NormalStrength: 0.25
     SpecularStrength: 2.5
     Metalness: 1
-    Roughness: 0.41
+    Roughness: 0.4
   - Name: rbot021
     NormalStrength: 0.25
     SpecularStrength: 2.5
     Metalness: 1
-    Roughness: 0.5
+    Roughness: 0.4
     EmissiveStrength: 8.017
   - Name: rbot031
     NormalStrength: 0.25
     SpecularStrength: 1.5
     Metalness: 1
-    Roughness: 0.5
+    Roughness: 0.4
   - Name: rbot032
     NormalStrength: 0.25
     SpecularStrength: 1.5
     Metalness: 1
-    Roughness: 0.5
+    Roughness: 0.4
     EmissiveStrength: 15
   - Name: rbot035
     NormalStrength: 0.3
     Metalness: 1
-    Roughness: 0.409
+    Roughness: 0.4
   - Name: rbot036
     NormalStrength: 0.3
     Metalness: 1
-    Roughness: 0.409
+    Roughness: 0.4
   - Name: rbot037
     NormalStrength: 0.3
     Metalness: 1
-    Roughness: 0.409
+    Roughness: 0.4
     EmissiveStrength: 7.009
   - Name: rbot054
     NormalStrength: 0.4
@@ -91,23 +91,52 @@ Materials:
     SpecularStrength: 2
     Metalness: 1
     Roughness: 0.4
-    LightReceived: 2
+  - Name: rbot042
+    NormalStrength: 0.301
+    SpecularStrength: 2
+    Metalness: 1
+    Roughness: 0.4
+  - Name: rbot018
+    NormalStrength: 0.301
+    SpecularStrength: 2
+    Metalness: 1
+    Roughness: 0.4
+  - Name: rbot058
+    NormalStrength: 0.25
+    SpecularStrength: 3
+    Metalness: 1
+    Roughness: 0.345
+  - Name: rbot059
+    NormalStrength: 0.25
+    SpecularStrength: 3
+    Metalness: 1
+    Roughness: 0.345
+  - Name: rbot060
+    NormalStrength: 0.25
+    SpecularStrength: 4
+    Metalness: 1
+    Roughness: 0.345
   - Name: glow04
     Roughness: 0.6
     EmissiveStrength: 15
     LightReceived: 0
   - Name: metl021
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
-    LightReceived: 0.5
+    LightReceived: 0.33
   - Name: metl016
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
-    LightReceived: 0.5
+    LightReceived: 0.33
+  - Name: rbot064
+    NormalStrength: 0.301
+    SpecularStrength: 2
+    Metalness: 1
+    Roughness: 0.5
   - Name: missile
     NormalStrength: 0.3
     SpecularStrength: 2
@@ -115,16 +144,15 @@ Materials:
     Roughness: 0.426
   - Name: rbot048
     NormalStrength: 0.3
-    SpecularStrength: 4
+    SpecularStrength: 2
     Metalness: 1
     Roughness: 0.45
   - Name: rbot049
-    NormalStrength: 0.25
+    NormalStrength: 0.3
     SpecularStrength: 2
     Metalness: 1
-    Roughness: 0.6
-    EmissiveStrength: 7.991
-    LightReceived: 2
+    Roughness: 0.45
+    EmissiveStrength: 9.003
   - Name: rbot051
     NormalStrength: 0.25
     SpecularStrength: 1.5
@@ -165,104 +193,123 @@ Materials:
     Roughness: 0.6
   - Name: 'ship1-1'
     NormalStrength: 0.165
+    SpecularStrength: 2
     Metalness: 1
     Roughness: 0.459
+    LightReceived: 0.33
   - Name: 'ship1-2'
     NormalStrength: 0.2
     Metalness: 1
     Roughness: 0.404
+    LightReceived: 0.33
   - Name: 'ship1-3'
     NormalStrength: 0.2
     Metalness: 1
     Roughness: 0.413
+    LightReceived: 0.33
   - Name: 'ship1-4'
     NormalStrength: 0.3
     Metalness: 0.95
     Roughness: 0.375
+    LightReceived: 0.5
   - Name: 'ship1-5'
     NormalStrength: 0.2
     Metalness: 1
     Roughness: 0.458
+    LightReceived: 0.33
   - Name: 'ship2-4'
-    NormalStrength: 0.486
-    Metalness: 0.858
-    Roughness: 0.568
+    NormalStrength: 0.3
+    Metalness: 0.95
+    Roughness: 0.375
+    LightReceived: 0.5
   - Name: 'ship2-5'
-    NormalStrength: 0.486
-    Metalness: 0.858
-    Roughness: 0.568
+    NormalStrength: 0.2
+    Metalness: 1
+    Roughness: 0.458
+    LightReceived: 0.33
   - Name: 'ship3-4'
-    NormalStrength: 0.486
-    Metalness: 0.858
-    Roughness: 0.568
+    NormalStrength: 0.3
+    Metalness: 0.95
+    Roughness: 0.375
+    LightReceived: 0.5
   - Name: 'ship3-5'
-    NormalStrength: 0.486
-    Metalness: 0.858
-    Roughness: 0.568
+    NormalStrength: 0.2
+    Metalness: 1
+    Roughness: 0.458
+    LightReceived: 0.33
   - Name: 'ship4-4'
-    NormalStrength: 0.486
-    Metalness: 0.858
-    Roughness: 0.568
+    NormalStrength: 0.3
+    Metalness: 0.95
+    Roughness: 0.375
+    LightReceived: 0.5
   - Name: 'ship4-5'
-    NormalStrength: 0.486
-    Metalness: 0.858
-    Roughness: 0.568
+    NormalStrength: 0.2
+    Metalness: 1
+    Roughness: 0.458
+    LightReceived: 0.33
   - Name: 'ship5-4'
-    NormalStrength: 0.486
-    Metalness: 0.858
-    Roughness: 0.568
+    NormalStrength: 0.3
+    Metalness: 0.95
+    Roughness: 0.375
+    LightReceived: 0.5
   - Name: 'ship5-5'
-    NormalStrength: 0.486
-    Metalness: 0.858
-    Roughness: 0.568
+    NormalStrength: 0.2
+    Metalness: 1
+    Roughness: 0.458
+    LightReceived: 0.33
   - Name: 'ship6-4'
-    NormalStrength: 0.486
-    Metalness: 0.858
-    Roughness: 0.568
+    NormalStrength: 0.3
+    Metalness: 0.95
+    Roughness: 0.375
+    LightReceived: 0.5
   - Name: 'ship6-5'
-    NormalStrength: 0.486
-    Metalness: 0.858
-    Roughness: 0.568
+    NormalStrength: 0.2
+    Metalness: 1
+    Roughness: 0.458
+    LightReceived: 0.33
   - Name: 'ship7-4'
-    NormalStrength: 0.486
-    Metalness: 0.858
-    Roughness: 0.568
+    NormalStrength: 0.3
+    Metalness: 0.95
+    Roughness: 0.375
+    LightReceived: 0.5
   - Name: 'ship7-5'
-    NormalStrength: 0.486
-    Metalness: 0.858
-    Roughness: 0.568
+    NormalStrength: 0.2
+    Metalness: 1
+    Roughness: 0.458
+    LightReceived: 0.33
   - Name: 'ship8-4'
-    NormalStrength: 0.486
-    Metalness: 0.858
-    Roughness: 0.568
+    NormalStrength: 0.3
+    Metalness: 0.95
+    Roughness: 0.375
+    LightReceived: 0.5
   - Name: 'ship8-5'
-    NormalStrength: 0.486
-    Metalness: 0.858
-    Roughness: 0.568
+    NormalStrength: 0.2
+    Metalness: 1
+    Roughness: 0.458
+    LightReceived: 0.33
   - Name: 'gauge01#0'
     NormalStrength: 0.364
     Roughness: 0.738
   - Name: rock001
     NormalStrength: 0.75
-    Roughness: 0.769
+    Roughness: 0.57
+    LightReceived: 0.75
   - Name: rock021
-    NormalStrength: 0.658
+    NormalStrength: 2
     Roughness: 0.7
   - Name: rock071
     NormalStrength: 0.4
-    SpecularStrength: 2
     Roughness: 0.57
   - Name: rock002
     NormalStrength: 0.6
     Roughness: 0.9
   - Name: rock004
-    NormalStrength: 0.25
-    Roughness: 0.617
+    NormalStrength: 0.5
+    Roughness: 0.603
   - Name: rock006
-    NormalStrength: 0.6
-    SpecularStrength: 2
-    Metalness: 0.9
-    Roughness: 0.4
+    NormalStrength: 0.75
+    Metalness: 0.25
+    Roughness: 0.6
   - Name: rock007
     NormalStrength: 0.6
     Metalness: 0.7
@@ -284,8 +331,8 @@ Materials:
     NormalStrength: 0.177
     SpecularStrength: 2
     Metalness: 0.958
-    Roughness: 0.438
-    LightReceived: 2
+    Roughness: 0.508
+    LightReceived: 1.1
   - Name: rock057
     NormalStrength: 1.1
     Roughness: 0.7
@@ -302,6 +349,27 @@ Materials:
   - Name: rock074
     NormalStrength: 0.41
     Roughness: 0.743
+  - Name: rock080
+    NormalStrength: 1.5
+    Metalness: 0.25
+    Roughness: 0.732
+  - Name: rock081
+    NormalStrength: -0.713
+    Roughness: 0.669
+  - Name: rock082
+    NormalStrength: 0.601
+    Metalness: 0.25
+    Roughness: 0.781
+  - Name: rock083
+    NormalStrength: -0.713
+    Roughness: 0.669
+  - Name: rock084
+    NormalStrength: 0.601
+    Metalness: 0.25
+    Roughness: 0.692
+  - Name: rock086
+    NormalStrength: 0.919
+    Roughness: 0.722
   - Name: rock095
     NormalStrength: 0.214
     SpecularStrength: 0
@@ -316,13 +384,19 @@ Materials:
       OscillateValue: 5
       Elements:
         - '{"Type": 1,"X1": 64,"Y1": 64,"Frequency": 40,"Size": 128,"Speed": -50}'
+  - Name: rock097
+    NormalStrength: -1
+    Roughness: 0.8
   - Name: rock098
     NormalStrength: 0.395
     Roughness: 0.551
   - Name: rock101
-    NormalStrength: 0.296
+    NormalStrength: 0.402
     SpecularStrength: 1.597
-    Roughness: 0.6
+    Roughness: 0.617
+  - Name: rock102
+    Metalness: 0.25
+    Roughness: 0.86
   - Name: rock106
     NormalStrength: 1.25
     Metalness: 0.25
@@ -345,6 +419,9 @@ Materials:
     Roughness: 0.85
   - Name: rock134
     Roughness: 0.728
+  - Name: rock141
+    NormalStrength: 0.8
+    Roughness: 0.75
   - Name: rock146
     NormalStrength: 1.25
     Roughness: 0.8
@@ -358,6 +435,10 @@ Materials:
     NormalStrength: 0.812
     SpecularStrength: 0.741
     Roughness: 0.6
+  - Name: rock155
+    NormalStrength: 0.445
+    SpecularStrength: 0.636
+    Roughness: 0.792
   - Name: rock159
     NormalStrength: 0.5
     Roughness: 0.9
@@ -381,16 +462,21 @@ Materials:
     NormalStrength: 0.828
     Metalness: 0.513
     Roughness: 0.838
+  - Name: rock172
+    NormalStrength: 0.315
+    Roughness: 0.635
   - Name: rock173
     NormalStrength: 0.4
     SpecularStrength: 0.6
     Roughness: 0.497
   - Name: rock174
-    NormalStrength: 0.504
-    Roughness: 0.7
+    NormalStrength: -0.788
+    Roughness: 0.62
   - Name: rock175
     NormalStrength: -0.355
     Roughness: 0.6
+  - Name: rock178
+    Roughness: 0.818
   - Name: rock179
     NormalStrength: 0.803
     Roughness: 0.671
@@ -401,7 +487,6 @@ Materials:
     SpecularStrength: 0.506
     Metalness: 0.5
     Roughness: 0.6
-    LightReceived: 0.901
   - Name: rock184
     NormalStrength: 1.1
     SpecularStrength: 0.313
@@ -416,23 +501,29 @@ Materials:
     NormalStrength: 1.4
     Metalness: 0.3
     Roughness: 0.8
+  - Name: rock190
+    NormalStrength: 0.327
+    Roughness: 0.829
   - Name: rock191
     NormalStrength: 0.5
-    SpecularStrength: 1.51
     Roughness: 1
   - Name: rock193
-    NormalStrength: 0.5
-    SpecularStrength: 1.602
+    NormalStrength: 0.251
     Roughness: 1
   - Name: rock194
     NormalStrength: 0.742
     Roughness: 0.85
+  - Name: rock196
+    NormalStrength: 0.806
+    Roughness: 0.697
   - Name: rock198
     Metalness: 0.3
     Roughness: 0.839
   - Name: rock203
     NormalStrength: 1.6
     Roughness: 0.9
+  - Name: rock206
+    Roughness: 0.639
   - Name: rock208
     NormalStrength: -0.802
     Roughness: 0.782
@@ -445,14 +536,24 @@ Materials:
   - Name: rock218
     NormalStrength: 0.7
     Roughness: 0.85
+  - Name: rock221
+    NormalStrength: 0.67
+    Roughness: 0.796
   - Name: rock223
-    NormalStrength: -0.4
-    SpecularStrength: 1.3
-    Roughness: 0.637
+    Roughness: 0.65
+  - Name: rock224
+    NormalStrength: 0.882
+    Roughness: 0.865
+  - Name: rock225
+    NormalStrength: 0.607
+    Roughness: 1
   - Name: rock226
     NormalStrength: -0.498
     SpecularStrength: 0.856
     Roughness: 0.536
+  - Name: rock227
+    NormalStrength: 0.346
+    Roughness: 0.755
   - Name: rock229
     NormalStrength: 0.468
     Roughness: 0.801
@@ -460,8 +561,7 @@ Materials:
     NormalStrength: 0.75
     Roughness: 0.75
   - Name: rock232
-    NormalStrength: 0.5
-    SpecularStrength: 0.854
+    NormalStrength: 0.749
     Roughness: 0.839
   - Name: rock233
     Roughness: 0.886
@@ -469,9 +569,13 @@ Materials:
     NormalStrength: 1.1
     Roughness: 0.75
   - Name: rock239
-    NormalStrength: 1.5
-    SpecularStrength: 0.296
-    Roughness: 0.566
+    NormalStrength: 1.4
+    Roughness: 0.832
+  - Name: rock245
+    NormalStrength: -1
+    SpecularStrength: 2
+    Metalness: 0.495
+    Roughness: 0.828
   - Name: rock251
     NormalStrength: 0.4
     Roughness: 0.95
@@ -503,38 +607,39 @@ Materials:
     SpecularStrength: 0.12
     Roughness: 0.45
   - Name: metl002
-    NormalStrength: 0.25
-    SpecularStrength: 3
+    NormalStrength: 0.15
     Metalness: 1
-    Roughness: 0.6
-    LightReceived: 4
+    Roughness: 0.583
+    LightReceived: 2
   - Name: metl003
-    NormalStrength: 0.25
-    SpecularStrength: 3
-    Metalness: 1
-    Roughness: 0.6
-    LightReceived: 4
-  - Name: metl004
-    NormalStrength: 0.1
+    NormalStrength: 0.15
     SpecularStrength: 2
     Metalness: 1
+    Roughness: 0.583
+    LightReceived: 2
+  - Name: metl004
+    NormalStrength: 0.1
+    SpecularStrength: 3
+    Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl006
     NormalStrength: 0.1
     SpecularStrength: 2
     Metalness: 1
     Roughness: 0.4
-    LightReceived: 2
   - Name: metl008
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl011
-    NormalStrength: -0.1
-    SpecularStrength: 2
+    NormalStrength: -0.2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl013
     NormalStrength: 0.1
     SpecularStrength: 2
@@ -549,191 +654,226 @@ Materials:
     LightReceived: 0.5
   - Name: metl015
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
-    LightReceived: 0.5
+    LightReceived: 0.33
   - Name: metl017
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl018
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl019
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl020
-    NormalStrength: -0.052
-    SpecularStrength: 2
+    NormalStrength: 0.1
+    SpecularStrength: 3
     Metalness: 1
-    Roughness: 0.45
+    Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl023
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl024
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl026
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl029
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl030
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl031
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl033
     NormalStrength: -0.4
     SpecularStrength: 2
     Metalness: 1
     Roughness: 0.5
+    LightReceived: 0.5
   - Name: metl035
     NormalStrength: -0.4
     SpecularStrength: 2
     Metalness: 1
     Roughness: 0.5
+    LightReceived: 0.5
   - Name: metl036
     NormalStrength: -0.4
     SpecularStrength: 2
     Metalness: 1
     Roughness: 0.5
+    LightReceived: 0.5
   - Name: metl039
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl040
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl041
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl042
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl043
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl045
-    NormalStrength: 0.25
-    SpecularStrength: 3
+    NormalStrength: 0.15
     Metalness: 1
-    Roughness: 0.6
-    LightReceived: 4
+    Roughness: 0.583
+    LightReceived: 2
   - Name: metl046
-    NormalStrength: 0.25
-    SpecularStrength: 3
+    NormalStrength: 0.15
+    SpecularStrength: 2
     Metalness: 1
-    Roughness: 0.6
-    LightReceived: 4
+    Roughness: 0.583
+    LightReceived: 2
   - Name: metl047
-    NormalStrength: 0.25
-    SpecularStrength: 3
+    NormalStrength: 0.15
     Metalness: 1
-    Roughness: 0.6
-    LightReceived: 4
+    Roughness: 0.583
+    LightReceived: 2
   - Name: metl048
-    NormalStrength: 0.25
-    SpecularStrength: 3
+    NormalStrength: 0.15
     Metalness: 1
-    Roughness: 0.6
-    LightReceived: 4
+    Roughness: 0.583
+    LightReceived: 2
   - Name: metl049
-    NormalStrength: 0.25
-    SpecularStrength: 3
+    NormalStrength: 0.15
     Metalness: 1
-    Roughness: 0.6
-    LightReceived: 4
+    Roughness: 0.583
+    LightReceived: 2
   - Name: metl050
     NormalStrength: 0.1
-    SpecularStrength: 2
-    Metalness: 1
-    Roughness: 0.4
-  - Name: metl053
-    NormalStrength: 0.1
-    SpecularStrength: 2
-    Metalness: 1
-    Roughness: 0.4
-  - Name: metl054
-    NormalStrength: 0.1
-    SpecularStrength: 2
-    Metalness: 1
-    Roughness: 0.4
-  - Name: metl055
-    NormalStrength: 0.1
-    SpecularStrength: 2
-    Metalness: 1
-    Roughness: 0.4
-  - Name: metl058
-    NormalStrength: 0.1
-    SpecularStrength: 2
-    Metalness: 1
-    Roughness: 0.4
-  - Name: metl059
-    NormalStrength: 0.1
-    SpecularStrength: 2
-    Metalness: 1
-    Roughness: 0.4
-  - Name: metl060
-    NormalStrength: 0.25
     SpecularStrength: 3
     Metalness: 1
-    Roughness: 0.603
-    LightReceived: 3
+    Roughness: 0.4
+    LightReceived: 0.33
+  - Name: metl053
+    NormalStrength: 0.1
+    SpecularStrength: 3
+    Metalness: 1
+    Roughness: 0.4
+    LightReceived: 0.33
+  - Name: metl054
+    NormalStrength: 0.1
+    SpecularStrength: 3
+    Metalness: 1
+    Roughness: 0.4
+    LightReceived: 0.33
+  - Name: metl055
+    NormalStrength: 0.1
+    SpecularStrength: 3
+    Metalness: 1
+    Roughness: 0.4
+    LightReceived: 0.33
+  - Name: metl058
+    NormalStrength: 0.1
+    SpecularStrength: 3
+    Metalness: 1
+    Roughness: 0.4
+    LightReceived: 0.33
+  - Name: metl059
+    NormalStrength: 0.1
+    SpecularStrength: 3
+    Metalness: 1
+    Roughness: 0.4
+    LightReceived: 0.33
+  - Name: metl060
+    NormalStrength: 0.15
+    Metalness: 1
+    Roughness: 0.583
   - Name: metl061
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
+  - Name: metl063
+    NormalStrength: 0.1
+    SpecularStrength: 3
+    Metalness: 1
+    Roughness: 0.4
+    LightReceived: 0.33
+  - Name: metl064
+    NormalStrength: 0.1
+    SpecularStrength: 3
+    Metalness: 1
+    Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl065
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl066
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl068
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl070
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl071
     NormalStrength: 0.1
     SpecularStrength: 2
@@ -748,186 +888,188 @@ Materials:
     LightReceived: 0.5
   - Name: metl076
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl077
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl012
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl028
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl057
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl078
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
     EmissiveStrength: 10
+    LightReceived: 0.33
   - Name: metl079
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
     EmissiveStrength: 10
+    LightReceived: 0.33
   - Name: metl080
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
     EmissiveStrength: 10
+    LightReceived: 0.33
   - Name: metl081
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl082
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl083
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl086
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl087
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
+    LightReceived: 0.33
   - Name: metl088
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
-    EmissiveStrength: 2
+    EmissiveStrength: 1.5
+    LightReceived: 0.33
   - Name: metl089
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
     EmissiveStrength: 10
+    LightReceived: 0.33
   - Name: metl090
     NormalStrength: 0.1
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.4
     EmissiveStrength: 10
+    LightReceived: 0.33
   - Name: metl095
     NormalStrength: 0.1
     SpecularStrength: 2
     Metalness: 1
     Roughness: 0.4
-    LightReceived: 2
   - Name: metl096
     NormalStrength: 0.1
     SpecularStrength: 2
     Metalness: 1
     Roughness: 0.4
-    LightReceived: 2
+    LightReceived: 0.5
   - Name: metl098
     NormalStrength: 0.31
-    SpecularStrength: 2
     Metalness: 0.97
     Roughness: 0.5
     LightReceived: 2
   - Name: metl099
     NormalStrength: 0.31
-    SpecularStrength: 2
     Metalness: 0.97
     Roughness: 0.5
     LightReceived: 2
   - Name: metl100
     NormalStrength: 0.31
-    SpecularStrength: 2
     Metalness: 0.97
     Roughness: 0.5
-    LightReceived: 4
+    LightReceived: 2
   - Name: metl103
     NormalStrength: 0.31
-    SpecularStrength: 2
     Metalness: 0.97
     Roughness: 0.5
-    LightReceived: 4
+    LightReceived: 2
   - Name: metl104
     NormalStrength: 0.31
-    SpecularStrength: 2
     Metalness: 0.97
     Roughness: 0.5
-    LightReceived: 4
+    LightReceived: 2
   - Name: metl105
     NormalStrength: 0.1
     SpecularStrength: 2
     Metalness: 1
     Roughness: 0.4
-    LightReceived: 2.5
   - Name: metl106
     NormalStrength: 0.1
     SpecularStrength: 2
     Metalness: 1
     Roughness: 0.4
-    LightReceived: 2.5
   - Name: metl109
     NormalStrength: 0.1
     SpecularStrength: 2
     Metalness: 1
     Roughness: 0.4
-    LightReceived: 2.5
   - Name: metl110
     NormalStrength: 0.1
     SpecularStrength: 2
     Metalness: 1
     Roughness: 0.4
-    LightReceived: 2.5
   - Name: metl111
     NormalStrength: 0.1
     SpecularStrength: 2
     Metalness: 1
     Roughness: 0.4
-    LightReceived: 2.5
   - Name: metl112
     NormalStrength: 0.1
     SpecularStrength: 2
     Metalness: 1
     Roughness: 0.4
-    LightReceived: 2.5
   - Name: metl113
     NormalStrength: 0.1
     SpecularStrength: 2
     Metalness: 1
     Roughness: 0.4
-    LightReceived: 2.5
   - Name: metl114
     NormalStrength: 0.1
     SpecularStrength: 2
     Metalness: 1
     Roughness: 0.4
-    LightReceived: 2.5
   - Name: metl116
     NormalStrength: 0.31
     SpecularStrength: 2
     Metalness: 1
-    Roughness: 0.5
-    LightReceived: 4
+    Roughness: 0.417
+    LightReceived: 2
   - Name: metl119
     NormalStrength: 0.4
     Metalness: 0.8
@@ -937,104 +1079,106 @@ Materials:
     SpecularStrength: 2
     Metalness: 1
     Roughness: 0.4
-    LightReceived: 2.5
   - Name: metl125
     NormalStrength: 0.31
-    SpecularStrength: 2
     Metalness: 1
-    Roughness: 0.5
-    LightReceived: 4
+    Roughness: 0.4
+    LightReceived: 1.5
   - Name: metl127
     NormalStrength: 0.15
-    SpecularStrength: 2
     Metalness: 1
-    Roughness: 0.5
+    Roughness: 0.461
+    LightReceived: 2
   - Name: metl128
     NormalStrength: 0.31
-    SpecularStrength: 2
     Metalness: 1
-    Roughness: 0.5
-    LightReceived: 4
+    Roughness: 0.4
+    LightReceived: 1.5
   - Name: metl129
     NormalStrength: 0.31
     SpecularStrength: 2
     Metalness: 1
     Roughness: 0.5
-    LightReceived: 4
+    LightReceived: 2
   - Name: metl130
-    NormalStrength: 0.31
-    SpecularStrength: 2
+    NormalStrength: 0.15
     Metalness: 1
-    Roughness: 0.5
-    LightReceived: 4
+    Roughness: 0.583
   - Name: metl126
-    NormalStrength: 0.5
-    Metalness: 0.8
-    Roughness: 0.5
-    EmissiveStrength: 2
+    NormalStrength: 0.15
+    Metalness: 0.95
+    Roughness: 0.35
+    EmissiveStrength: 3
   - Name: metl133
-    NormalStrength: 0.5
-    Metalness: 0.85
-    Roughness: 0.5
+    NormalStrength: 0.15
+    Metalness: 0.95
+    Roughness: 0.35
     EmissiveStrength: 3
   - Name: metl134
-    NormalStrength: 0.5
-    Metalness: 0.85
-    Roughness: 0.5
-    EmissiveStrength: 5
+    NormalStrength: 0.15
+    Metalness: 0.95
+    Roughness: 0.35
+    EmissiveStrength: 3
   - Name: metl135
-    NormalStrength: 0.5
-    Metalness: 0.85
-    Roughness: 0.5
-    EmissiveStrength: 7
+    NormalStrength: 0.15
+    Metalness: 0.95
+    Roughness: 0.35
+    EmissiveStrength: 3
   - Name: metl136
-    NormalStrength: 0.3
-    SpecularStrength: 3
+    NormalStrength: 0.1
     Metalness: 1
-    Roughness: 0.546
+    Roughness: 0.363
     LightReceived: 2
   - Name: metl139
     NormalStrength: 0.1
-    SpecularStrength: 2
     Metalness: 1
     Roughness: 0.45
-    LightReceived: 3
+    LightReceived: 2
   - Name: metl140
-    NormalStrength: 0.184
+    NormalStrength: 0.15
     SpecularStrength: 2
-    Metalness: 0.97
-    Roughness: 0.397
-    LightReceived: 4
+    Metalness: 1
+    Roughness: 0.4
+    LightReceived: 1.5
   - Name: brig001
     NormalStrength: 0.15
-    SpecularStrength: 1.5
+    SpecularStrength: 2
     Metalness: 0.96
     Roughness: 0.45
+    LightReceived: 0.5
   - Name: brig002
     NormalStrength: 0.15
-    SpecularStrength: 1.5
+    SpecularStrength: 2
     Metalness: 0.96
     Roughness: 0.45
+    LightReceived: 0.5
   - Name: brig003
     NormalStrength: 0.15
-    SpecularStrength: 1.5
+    SpecularStrength: 2
     Metalness: 0.96
     Roughness: 0.45
+    LightReceived: 0.5
   - Name: brig004
     NormalStrength: 0.15
-    SpecularStrength: 1.5
+    SpecularStrength: 2
     Metalness: 0.96
     Roughness: 0.45
+    LightReceived: 0.5
   - Name: exit01
     NormalStrength: 0.3
     SpecularStrength: 1.25
     Metalness: 1
-    Roughness: 0.452
+    Roughness: 0.332
     LightReceived: 1.5
   - Name: exit02
     NormalStrength: 0.431
     Roughness: 0.561
   - Name: ceil002
+    NormalStrength: 0.2
+    Metalness: 0.85
+    Roughness: 0.3
+    EmissiveStrength: 3
+  - Name: ceil003
     NormalStrength: 0.2
     Metalness: 0.85
     Roughness: 0.3
@@ -1053,7 +1197,9 @@ Materials:
     Metalness: 0.9
     Roughness: 0.3
   - Name: ceil014
-    Roughness: 0.552
+    NormalStrength: 0.657
+    Metalness: 0.402
+    Roughness: 0.493
   - Name: ceil015
     NormalStrength: 0.5
     SpecularStrength: 0.8
@@ -1075,6 +1221,7 @@ Materials:
     SpecularStrength: 1.653
     Roughness: 0.56
   - Name: ceil037
+    NormalStrength: 0.8
     Roughness: 0.55
   - Name: ceil020
     NormalStrength: 0.2
@@ -1088,9 +1235,9 @@ Materials:
     EmissiveStrength: 5
   - Name: ceil024
     NormalStrength: 0.2
-    Metalness: 0.85
+    Metalness: 0.95
     Roughness: 0.3
-    EmissiveStrength: 2
+    EmissiveStrength: 3
   - Name: ceil025
     NormalStrength: 0.1
     Metalness: 0.85
@@ -1100,17 +1247,17 @@ Materials:
     NormalStrength: 0.1
     Metalness: 0.8
     Roughness: 0.5
-    EmissiveStrength: 5
+    EmissiveStrength: 6.947
   - Name: ceil027
     NormalStrength: 0.1
     Metalness: 0.85
     Roughness: 0.3
-    EmissiveStrength: 5
+    EmissiveStrength: 3
   - Name: ceil028
     NormalStrength: 0.2
     Metalness: 0.85
     Roughness: 0.3
-    EmissiveStrength: 3
+    EmissiveStrength: 4
   - Name: ceil029
     NormalStrength: 0.2
     Metalness: 0.85
@@ -1125,7 +1272,10 @@ Materials:
     NormalStrength: 0.2
     Metalness: 0.85
     Roughness: 0.3
-    EmissiveStrength: 5
+    EmissiveStrength: 3
+  - Name: ceil034
+    Roughness: 0.6
+    EmissiveStrength: 3
   - Name: ceil035
     NormalStrength: 0.4
     Metalness: 0.8
@@ -1135,13 +1285,29 @@ Materials:
     NormalStrength: 0.2
     Roughness: 0.6
   - Name: misc001
+    NormalStrength: 0.487
+    SpecularStrength: 2
     Metalness: 1
-    Roughness: 0.484
-    LightReceived: 3
+    Roughness: 0.458
+    LightReceived: 2
   - Name: misc002
+    NormalStrength: 0.487
+    SpecularStrength: 1.5
+    Metalness: 1
+    Roughness: 0.458
+    LightReceived: 2
+  - Name: misc007
+    NormalStrength: 0.2
     Metalness: 1
     Roughness: 0.554
     LightReceived: 3
+  - Name: misc010
+    NormalStrength: 0.25
+    SpecularStrength: 3
+    Metalness: 1
+    Roughness: 0.5
+    EmissiveStrength: 3
+    LightReceived: 2
   - Name: misc011
     NormalStrength: 0.5
     SpecularStrength: 1.499
@@ -1155,19 +1321,43 @@ Materials:
   - Name: misc029
     NormalStrength: 0.1
     SpecularStrength: 1.499
-    Metalness: 0.9
+    Metalness: 1
+    Roughness: 0.5
+  - Name: misc030
+    NormalStrength: 0.1
+    Metalness: 1
+    Roughness: 0.5
+  - Name: misc032
+    NormalStrength: 0.1
+    Metalness: 0.95
     Roughness: 0.5
   - Name: misc033
     NormalStrength: 0.1
     Metalness: 0.95
     Roughness: 0.5
+  - Name: misc034
+    NormalStrength: 0.1
+    Metalness: 0.95
+    Roughness: 0.5
+  - Name: misc035
+    NormalStrength: 0.1
+    Metalness: 0.95
+    Roughness: 0.5
   - Name: misc036
     NormalStrength: 0.1
-    Metalness: 0.9
+    Metalness: 0.95
+    Roughness: 0.5
+  - Name: misc039
+    NormalStrength: 0.1
+    Metalness: 0.95
+    Roughness: 0.5
+  - Name: misc040
+    NormalStrength: 0.1
+    Metalness: 0.95
     Roughness: 0.5
   - Name: misc041
     NormalStrength: 0.1
-    Metalness: 0.9
+    Metalness: 0.95
     Roughness: 0.5
   - Name: misc042
     NormalStrength: 0.04
@@ -1176,6 +1366,7 @@ Materials:
     Roughness: 0.4
   - Name: misc043
     NormalStrength: 0.04
+    SpecularStrength: 0.508
     Metalness: 0.96
     Roughness: 0.4
   - Name: misc044
@@ -1184,18 +1375,29 @@ Materials:
     Roughness: 0.7
   - Name: misc045
     NormalStrength: 0.8
-    SpecularStrength: 2
+    SpecularStrength: 1.5
     Metalness: 0.97
     Roughness: 0.662
+  - Name: misc046
+    NormalStrength: 0.1
+    Metalness: 0.95
+    Roughness: 0.5
+  - Name: misc048
+    NormalStrength: 0.04
+    SpecularStrength: 1.5
+    Metalness: 0.96
+    Roughness: 0.4
   - Name: misc050
     NormalStrength: 0.1
-    Metalness: 0.9
+    Metalness: 0.95
     Roughness: 0.5
-    LightReceived: 0.5
+  - Name: misc055
+    NormalStrength: 0.1
+    Metalness: 0.95
+    Roughness: 0.5
   - Name: misc058
     NormalStrength: 0.1
-    SpecularStrength: 2
-    Metalness: 0.9
+    Metalness: 0.95
     Roughness: 0.5
   - Name: misc059
     NormalStrength: 0.298
@@ -1208,10 +1410,11 @@ Materials:
     Roughness: 0.65
     LightReceived: 0.75
   - Name: fram06
-    NormalStrength: 0.45
-    SpecularStrength: 1.25
+    NormalStrength: 0.1
+    SpecularStrength: 2
     Metalness: 1
-    Roughness: 0.6
+    Roughness: 0.321
+    LightReceived: 0.5
   - Name: 'arw01#0'
     NormalStrength: -0.25
     SpecularStrength: 2
@@ -1227,9 +1430,10 @@ Materials:
     Additive: 1
   - Name: 'fan01#0'
     NormalStrength: 0.1
-    SpecularStrength: 6
+    SpecularStrength: 1.5
     Metalness: 1
     Roughness: 0.507
+    LightReceived: 2
   - Name: 'misc11#0'
     Roughness: 0.8
     EmissiveStrength: 0.1
@@ -1253,30 +1457,24 @@ Materials:
         - '{"Type": 2,"X1": 15,"Y1": 60,"Frequency": 31,"Size": 18,"Speed": 155}'
   - Name: 'ctrl04#0'
     NormalStrength: 0.042
-    SpecularStrength: 2
     Metalness: 1
     Roughness: 0.4
-    EmissiveStrength: 0.6
-    LightReceived: 0.5
+    EmissiveStrength: 0.8
   - Name: 'ctrl01#0'
     NormalStrength: 0.042
-    SpecularStrength: 2
     Metalness: 1
     Roughness: 0.4
-    EmissiveStrength: 0.6
-    LightReceived: 0.5
+    EmissiveStrength: 0.8
   - Name: 'ctrl02#0'
-    NormalStrength: 0.1
+    NormalStrength: 0.042
     Metalness: 1
-    Roughness: 0.45
-    EmissiveStrength: 0.6
+    Roughness: 0.4
+    EmissiveStrength: 0.8
   - Name: 'ctrl03#0'
-    NormalStrength: 0.1
-    SpecularStrength: 2
+    NormalStrength: 0.042
     Metalness: 1
     Roughness: 0.4
     EmissiveStrength: 1
-    LightReceived: 0.5
   - Name: 'misc14#0'
     NormalStrength: 0.25
     Metalness: 0.4
@@ -1307,11 +1505,10 @@ Materials:
         - '{"Type": 2,"X1": 64,"Y1": 64,"Frequency": 60,"Size": 8,"Speed": -106}'
   - Name: 'misc060#0'
     NormalStrength: 0.25
-    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.5
-    EmissiveStrength: 3
-    LightReceived: 2
+    EmissiveStrength: 2
+    LightReceived: 1.5
   - Name: blown01
     NormalStrength: 0.25
     SpecularStrength: 3
@@ -1320,11 +1517,10 @@ Materials:
     LightReceived: 2
   - Name: 'misc061#0'
     NormalStrength: 0.25
-    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.5
-    EmissiveStrength: 3
-    LightReceived: 2
+    EmissiveStrength: 2
+    LightReceived: 1.5
   - Name: blown02
     NormalStrength: 0.25
     SpecularStrength: 3
@@ -1332,12 +1528,11 @@ Materials:
     Roughness: 0.5
     LightReceived: 2
   - Name: 'misc062#0'
-    NormalStrength: 0.25
-    SpecularStrength: 3
+    NormalStrength: 0.15
     Metalness: 1
     Roughness: 0.5
     EmissiveStrength: 3
-    LightReceived: 2
+    LightReceived: 1.5
   - Name: blown07
     NormalStrength: 0.25
     SpecularStrength: 3
@@ -1346,11 +1541,10 @@ Materials:
     LightReceived: 2
   - Name: 'misc065#0'
     NormalStrength: 0.25
-    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.5
-    EmissiveStrength: 3
-    LightReceived: 2
+    EmissiveStrength: 2
+    LightReceived: 1.5
   - Name: blown03
     NormalStrength: 0.25
     SpecularStrength: 3
@@ -1359,30 +1553,39 @@ Materials:
     LightReceived: 2
   - Name: 'misc066#0'
     NormalStrength: 0.25
-    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.5
-    EmissiveStrength: 3
-    LightReceived: 2
+    EmissiveStrength: 2
+    LightReceived: 1.5
   - Name: blown04
     NormalStrength: 0.25
     SpecularStrength: 3
     Metalness: 1
     Roughness: 0.5
     LightReceived: 2
-  - Name: 'misc068#0'
+  - Name: 'misc067#0'
     NormalStrength: 0.25
-    SpecularStrength: 3
+    Metalness: 1
+    Roughness: 0.5
+    EmissiveStrength: 3
+    LightReceived: 2
+  - Name: 'misc068#0'
+    NormalStrength: 0.15
     Metalness: 1
     Roughness: 0.5
     EmissiveStrength: 5
-    LightReceived: 2
+    LightReceived: 1.5
   - Name: blown05
     NormalStrength: 0.25
     SpecularStrength: 3
     Metalness: 1
     Roughness: 0.5
     LightReceived: 2
+  - Name: 'misc069#0'
+    NormalStrength: 0.25
+    Metalness: 1
+    Roughness: 0.5
+    EmissiveStrength: 5
   - Name: 'misc073#0'
     NormalStrength: 0.2
     SpecularStrength: 0
@@ -1534,15 +1737,15 @@ Materials:
     Roughness: 0.582
   - Name: 'door01#0'
     NormalStrength: 0.2
-    SpecularStrength: 2
+    SpecularStrength: 3
     Metalness: 1
-    Roughness: 0.46
-    LightReceived: 0.5
+    Roughness: 0.4
+    LightReceived: 0.25
   - Name: 'door04#0'
-    NormalStrength: 0.5
+    NormalStrength: 0.4
     Metalness: 1
-    Roughness: 0.55
-    LightReceived: 0.5
+    Roughness: 0.5
+    LightReceived: 0.33
   - Name: 'door04#11'
     NormalStrength: 1.072
     SpecularStrength: 0.14
@@ -1550,19 +1753,18 @@ Materials:
     Roughness: 0.539
   - Name: 'door05#0'
     NormalStrength: 0.225
+    SpecularStrength: 3
     Metalness: 1
     Roughness: 0.45
-    LightReceived: 0.75
+    LightReceived: 0.33
   - Name: 'door24#0'
-    NormalStrength: 0.2
-    SpecularStrength: 2
+    NormalStrength: 0.22
     Metalness: 0.96
-    Roughness: 0.453
-    LightReceived: 2
+    Roughness: 0.396
   - Name: 'door13#0'
     NormalStrength: 0.3
     Metalness: 1
-    Roughness: 0.478
+    Roughness: 0.349
   - Name: 'door13#8'
     NormalStrength: 0.629
     Roughness: 0.406
@@ -1573,17 +1775,22 @@ Materials:
     NormalStrength: 0.516
     Roughness: 0.541
   - Name: 'door12#0'
-    NormalStrength: 0.3
-    SpecularStrength: 1.11
+    NormalStrength: 0.15
+    SpecularStrength: 2
     Metalness: 1
     Roughness: 0.605
+    LightReceived: 0.5
   - Name: 'door12#11'
     NormalStrength: 0.245
     Metalness: 1
     Roughness: 0.701
   - Name: 'door17#0'
     NormalStrength: 0.75
-    Roughness: 0.769
+    Roughness: 0.6
+    LightReceived: 0.75
+  - Name: 'door18#0'
+    Metalness: 0.25
+    Roughness: 0.86
   - Name: 'door19#0'
     NormalStrength: 0.75
     Roughness: 0.75
@@ -1592,8 +1799,8 @@ Materials:
     SpecularStrength: 1.602
     Roughness: 1
   - Name: 'door22#0'
-    NormalStrength: 1.5
-    Roughness: 0.796
+    NormalStrength: 1.4
+    Roughness: 0.832
   - Name: 'door22#1'
     NormalStrength: 0.517
     Metalness: 0.791
@@ -1625,8 +1832,10 @@ Materials:
     NormalStrength: 0.179
     Metalness: 0.881
     Roughness: 0.8
+  - Name: 'door30#0'
+    Roughness: 0.65
   - Name: 'door31#0'
-    Metalness: 0.2
+    NormalStrength: 1.25
     Roughness: 0.8
   - Name: 'door31#1'
     NormalStrength: 0.225

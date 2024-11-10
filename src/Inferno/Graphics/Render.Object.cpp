@@ -581,8 +581,15 @@ namespace Inferno::Render {
             constants.EmissiveLight = object.Render.Emissive;
         }
         else {
-            constants.Ambient = object.Ambient.GetColor().ToVector4();
             constants.EmissiveLight = Color(0, 0, 0);
+
+            if (Game::GetState() == GameState::Editor) {
+                if (auto seg = Game::Level.TryGetSegment(object.Segment))
+                    constants.Ambient = seg->VolumeLight;
+            }
+            else {
+                constants.Ambient = object.Ambient.GetColor().ToVector4();
+            }
         }
 
         constants.TimeOffset = GetTimeOffset(object);

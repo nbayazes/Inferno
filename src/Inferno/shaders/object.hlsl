@@ -110,6 +110,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     }
 
     float3 ambient = Object.Ambient.rgb;
+    ambient.rgb = pow(ambient.rgb, 2.2); // sRGB to linear
 
     if (!Frame.NewLightMode) {
         float3 lightDir = float3(0, -1, 0);
@@ -147,22 +148,35 @@ float4 psmain(PS_INPUT input) : SV_Target {
             uint2 pixelPos = uint2(input.pos.xy);
             ambient *= Frame.GlobalDimming;
             specularMask *= material.SpecularStrength;
-            
+
+            // saturate metallic diffuse, it looks better. Causes yellow to look orange.
+            diffuse.rgb = pow(diffuse.rgb, 1 + material.Metalness * .3);
+
+            const float AMBIENT_MULT = 0.5;
             lighting += emissive * diffuse.rgb;
-            lighting += diffuse.rgb * ambient * 0.20 * material.LightReceived * (1 - material.Metalness * .20); // ambient
+            lighting += diffuse.rgb * ambient * AMBIENT_MULT * material.LightReceived * (1 - material.Metalness * .20); // ambient
+
             ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
             lighting += colorSum * material.LightReceived;
 
             {
                 // Add some fake specular highlights so objects without direct lighting aren't completely flat
                 float nDotH = HalfLambert(normal, -viewDir);
-                float gloss = RoughnessToGloss(material.Roughness) / 4;
-                //float gloss = 16;
-                float eyeTerm = pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
-                // saturate metallic diffuse. It looks better and removes white highlights. Causes yellow to look orange.
-                diffuse.rgb = pow(diffuse.rgb, 1 + material.Metalness);
-                float3 specularColor = diffuse.rgb * ambient * 3;
-                lighting += eyeTerm * specularColor /** specularMask*/ * input.col.rgb * material.SpecularStrength;
+                float gloss = RoughnessToGloss(material.Roughness);
+                ambient *= material.LightReceived;
+                float3 specularColor = diffuse.rgb * ambient /** input.col.rgb*/ * material.SpecularStrength;
+
+                {
+                    float eyeTerm = pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
+                    lighting += eyeTerm * specularColor * specularMask * 2;
+                }
+
+                // second layer of rough gloss based on environment to simulate indirect lighting
+                {
+                    gloss /= 16;
+                    float envGloss = pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
+                    lighting += envGloss * specularColor * 2;
+                }
                 //lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, ambient, diffuse.rgb, specularMask, .25) * nDotH;
             }
         }

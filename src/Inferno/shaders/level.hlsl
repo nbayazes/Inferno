@@ -229,17 +229,20 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float4 diffuse = Sample2D(Diffuse, uvs, Sampler, Frame.FilterMode);
     float3 normal = SampleNormal(Normal1, uvs, Sampler, Frame.FilterMode);
 
-    MaterialInfo mat1 = Materials[Args.Tex1];
-    normal.xy *= mat1.NormalStrength;
+    MaterialInfo material = Materials[Args.Tex1];
+    normal.xy *= material.NormalStrength;
     normal = normalize(normal);
 
-    float specularMask = Sample2D(Specular1, uvs, Sampler, Frame.FilterMode).r;
-    specularMask *= mat1.SpecularStrength;
+    //material.SpecularStrength *= 1 + material.Metalness * 2;
+    //material.LightReceived *= 1 - material.Metalness * 0.91;
 
-    float3 emissive = Sample2D(Emissive, uvs, Sampler, Frame.FilterMode).rrr * mat1.EmissiveStrength;
+    float specularMask = Sample2D(Specular1, uvs, Sampler, Frame.FilterMode).r;
+    specularMask *= material.SpecularStrength;
+
+    float emissiveMask = Sample2D(Emissive, uvs, Sampler, Frame.FilterMode).r;
+    float3 emissive = emissiveMask.rrr * material.EmissiveStrength;
     //float emissive = Sample2D(GetTexture(input.Tex1, MAT_EMIS), input.uv, Sampler, Frame.FilterMode).r * mat1.EmissiveStrength;
-    MaterialInfo material = mat1;
-    bool fullbright = any(emissive) && mat1.LightReceived == 0;
+    bool fullbright = any(emissive) && material.LightReceived == 0;
 
     if (fullbright) {
         emissive = emissive + 1; // make lava and forcefields full bright
@@ -286,7 +289,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         if (!fullbright) {
             // Dim lighting during self destruct
             emissive *= Frame.GlobalDimming;
-            ambient *= Frame.GlobalDimming; 
+            ambient *= Frame.GlobalDimming;
         }
 
         //ambient *= HalfLambert(normal, normalize(float3(1, 0, 0)));
@@ -294,12 +297,26 @@ float4 psmain(PS_INPUT input) : SV_Target {
             ambient *= pow(Lambert(normal, input.lightDir), 2); // Apply ambient light directions
         //return float4(ambient, 1);
 
+        // remove specular from emissive areas, as they are typically lights or screens and will oversaturate
+        if (material.EmissiveStrength > 0)
+            specularMask = lerp(specularMask, 0, emissiveMask * 0.9);
+
         ShadeLights(directLight, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
         lighting += directLight * material.LightReceived;
+
+        // boost specular ambient contribution from dynamic lighting, so the specular effect is still visible in range of lights
+        float3 specularAmbient = ambient + lighting * 100 /** saturate(1 - emissive)*/;
+        specularAmbient *= material.SpecularStrength * material.LightReceived;
+
+        const float AMBIENT_MULT = 0.5;
         lighting += emissive * diffuse.rgb; // emissive
-        //lighting += emissive * diffuse.rgb * ambient * material.LightReceived * .5; // also tint emissive by ambient
-        lighting += diffuse.rgb * ambient * .25 * material.LightReceived * (1 - material.Metalness * .95); // ambient
-        lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, ambient * .25, diffuse.rgb, specularMask, .4) * diffuse.a;
+        // also tint emissive by ambient, has the effect of making light glows stronger
+        lighting += emissive * diffuse.rgb * ambient * AMBIENT_MULT * material.LightReceived; 
+
+        // add ambient, but lower contribution to metallic surfaces to keep highlights stronger
+        lighting += diffuse.rgb * ambient * AMBIENT_MULT * material.LightReceived * (1 - material.Metalness * .90);
+
+        lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, specularAmbient, diffuse.rgb, .1) * diffuse.a;
         return float4(lighting, diffuse.a);
     }
 }

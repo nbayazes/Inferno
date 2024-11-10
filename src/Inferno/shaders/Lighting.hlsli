@@ -179,15 +179,15 @@ float AttenuateLinear(float lightDist, float lightRadius, float intensity) {
 // Applies ambient light to a metal texture as specular
 float3 ApplyAmbientSpecular(TextureCube environment, SamplerState envSampler, float3 viewDir, float3 normal,
                             MaterialInfo material, float3 ambient,
-                            float3 texDiffuse, float specularMask, float envPercent, float specAmount = 1) {
-    float envBias = lerp(0, 9, saturate(material.Roughness - .3)); // this causes extreme artifacts between pixel edges. find a different way to blur
+                            float3 texDiffuse, float envPercent) {
+    float envBias = lerp(0, 9, saturate(material.Roughness - .3)); // this causes artifacts between pixel edges. find a different way to blur
     float env = environment.SampleLevel(envSampler, normalize(reflect(viewDir, normal)), envBias).r;
-    env = 1 + lerp(0.0, saturate((env - .3) / 4), envPercent);
+    env = 1 + saturate((env - .25) / 4) * envPercent;
     float3 envTerm = pow(env, 2) - 1;
-    float3 diff = pow(texDiffuse + 1, 2) - 1; // boost bright areas
     float3 result = float3(0, 0, 0);
+    //float3 diff = pow(texDiffuse + 1, 2) - 1; // boost bright areas
     //result +=  ambient * diff;
-    result += ambient * diff * envTerm * material.LightReceived * material.SpecularStrength ;
+    result += ambient * texDiffuse * envTerm * material.LightReceived * material.SpecularStrength;
     return result * material.Metalness;
     //return ambient * diff * envTerm * material.Metalness * material.LightReceived * .5;
 }
@@ -848,13 +848,13 @@ float3 GetMetalDiffuse(float3 diffuse) {
 
 void GetLightColors(LightData light, MaterialInfo material, float3 diffuse, out float3 specularColor, out float3 lightColor) {
     const float3 lightRgb = light.color.rgb * light.color.a;
-    lightColor = lerp(lightRgb, lightRgb * diffuse * METAL_DIFFUSE_FACTOR, material.Metalness); // Allow some diffuse contribution even at max metal for visibility reasons 
+    lightColor = lerp(lightRgb, lightRgb * diffuse * METAL_DIFFUSE_FACTOR, material.Metalness); // Allow some diffuse contribution even at max metal for visibility reasons
     //float3 metalDiffuse = GetMetalDiffuse(diffuse);
 
     specularColor = lerp(lightColor, (pow(diffuse + 1, METAL_SPECULAR_EXP) - 1) * lightRgb, material.Metalness);
     //specularColor = lerp(lightColor, diffuse * lightRgb, material.Metalness) * material.SpecularStrength;
     //specularColor = clamp(specularColor, 0, 10); // clamp overly bright specular as it causes bloom flickering
-}
+}  
 
 void ShadeLights(inout float3 colorSum,
                  uint2 pixelPos,
