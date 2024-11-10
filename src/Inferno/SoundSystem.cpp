@@ -131,15 +131,20 @@ namespace Inferno::Sound {
 
             if (dist < sound.Radius) {
                 // only hit test if sound is actually within range
-                if (sound.Looped && !Effect->GetState() == SoundState::PLAYING) {
-                    //fmt::print("Starting looped sound\n");
-                    SoundLoopInfo info{
-                        .LoopBegin = sound.LoopStart,
-                        .LoopLength = sound.LoopEnd - sound.LoopStart,
-                        .LoopCount = sound.LoopCount <= 0 ? XAUDIO2_LOOP_INFINITE : std::clamp(sound.LoopCount, 1u, (uint)XAUDIO2_MAX_LOOP_COUNT)
-                    };
+                if (sound.Looped) {
+                    if (Effect->GetState() == SoundState::PAUSED) {
+                        Effect->Resume();
+                    }
+                    else if (Effect->GetState() == SoundState::STOPPED) {
+                        fmt::print("Starting looped sound with id {} in segment {}:{}\n", (int)Info.ID, Info.Segment, Info.Side);
+                        SoundLoopInfo info{
+                            .LoopBegin = sound.LoopStart,
+                            .LoopLength = sound.LoopEnd - sound.LoopStart,
+                            .LoopCount = sound.LoopCount <= 0 ? XAUDIO2_LOOP_INFINITE : std::clamp(sound.LoopCount, 1u, (uint)XAUDIO2_MAX_LOOP_COUNT)
+                        };
 
-                    Effect->Play(&info);
+                        Effect->Play(&info);
+                    }
                 }
 
                 if (sound.Occlusion) {
@@ -162,9 +167,9 @@ namespace Inferno::Sound {
                 }
             }
             else {
-                // stop looped sounds when going out of range
+                // pause looped sounds when going out of range
                 if (sound.Looped && Effect->GetState() == SoundState::PLAYING) {
-                    //fmt::print("Stopping out of range looped sound\n");
+                    //fmt::print("Pausing out of range looped sound\n");
                     Effect->Pause();
                 }
             }
@@ -592,10 +597,13 @@ namespace Inferno::Sound {
                     continue;
                 }
 
-                if (!instance.Alive || !instance.Effect || instance.Effect->GetState() == SoundState::PAUSED)
+                if (!instance.Alive || !instance.Effect)
                     continue;
 
                 instance.UpdateEmitter(camera.Position, dt);
+
+                if (instance.Effect->GetState() == SoundState::PAUSED)
+                    continue;
 
                 if (instance.PlayCount == 0) {
                     // Check if the source is dead before playing

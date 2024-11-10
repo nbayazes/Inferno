@@ -725,7 +725,7 @@ namespace Inferno::Game {
         return SoundID::None;
     }
 
-    // Adds sound sources from eclips such as lava and forcefields
+    // Adds sound sources from eclips such as fans, lava and forcefields
     void AddSoundSources() {
         for (int i = 0; i < Level.Segments.size(); i++) {
             auto segid = SegID(i);
@@ -745,8 +745,8 @@ namespace Inferno::Game {
 
                 Sound3D s(sound);
                 s.Looped = true;
-                s.Radius = 80;
-                s.Volume = 0.50f;
+                s.Radius = 200;
+                s.Volume = 0.60f;
                 //s.Occlusion = false;
                 Sound::Play(s, side.Center, segid, sid);
             }
