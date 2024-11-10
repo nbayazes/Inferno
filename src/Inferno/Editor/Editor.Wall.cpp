@@ -138,14 +138,12 @@ namespace Inferno::Editor {
 
     void AddTriggerTarget(Level& level, TriggerID id, Tag target) {
         auto wall = level.TryGetWall(target);
-        if (!wall) {
-            SPDLOG_WARN("Can not find wall for ({}, {})", target.Segment, target.Side);
-            return;
-        }
+        
         //if the wall was a Closed one and had no controlling trigger
         //it probably did not count against the max wall count
         //so we have to check if it is possible to add it back to the wall bookkeeping
-        if (wall->IsSimplyClosed() && !level.Walls.CanAdd(WallType::WallTrigger)) //WallTrigger is here just as something that is not Closed
+        if (wall && wall->IsSimplyClosed() 
+            && !level.Walls.CanAdd(WallType::WallTrigger)) //WallTrigger is here just as something that is not Closed
         {
             SPDLOG_WARN("Can not add wall as target: it will cause the wall amount to exceed {}", level.Limits.Walls);
             return;
@@ -155,9 +153,8 @@ namespace Inferno::Editor {
         if (!trigger) return;
         trigger->Targets.Add(target);
 
-        if (auto wall = level.TryGetWall(target)) {
+        if (wall)
             wall->ControllingTrigger = id;
-        }
     }
 
     bool RemoveWall(Level& level, WallID id) {
