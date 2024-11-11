@@ -54,25 +54,12 @@ namespace Inferno::Editor {
 
     namespace {
         WallID AddWall(Level& level, Tag tag) {
-            //assert(level.Walls.CanAddWall(type));
+            //!: assert(level.Walls.CanAddWall(type)); <- this should be checked in the calling code
+
             if (!level.SegmentExists(tag.Segment)) return WallID::None;
             auto [seg, side] = level.GetSegmentAndSide(tag);
 
-            //WallID wallId = [&] {
-            //    // Find an unused wall slot
-            //    for (int i = 0; i < level.Walls.size(); i++) {
-            //        auto& wall = level.GetWall(WallID(i));
-            //        if (wall.Tag.Segment == SegID::None)
-            //            return WallID(i);
-            //    }
-
-            //    // Allocate a new wall
-            //    level.Walls.emplace_back();
-            //    return WallID(level.Walls.size() - 1);
-            //}();
             Wall wall;
-
-            //        auto& wall = level.GetWall(wallId);
             wall.Tag = tag;
             auto id = level.Walls.Append(wall);
             side.Wall = id;
@@ -197,7 +184,7 @@ namespace Inferno::Editor {
         if (wall.Type == type) 
             return;
         if (wall.IsSimplyClosed())
-            if (!level.Walls.CanAdd(type))                 {
+            if (!level.Walls.CanAdd(type)) {
                 SPDLOG_WARN("Can not change the wall type: it will increase walls count over {}", level.Limits.Walls);
                 return;
             }

@@ -206,9 +206,6 @@ namespace Inferno {
             return count;
         }
 
-        //const Wall& GetWall(WallID id) const { return *TryGetWall(id); }
-        //Wall& GetWall(WallID id) { return *TryGetWall(id); }
-
         constexpr Wall* TryGetWall(Tag tag) {
             if (tag.Segment == SegID::None) return nullptr;
 
@@ -423,22 +420,25 @@ namespace Inferno {
         size_t Serialize(StreamWriter& writer);
         static Level Deserialize(span<ubyte>);
 
-        bool CreateClosed(std::unordered_map<WallID, std::vector<Tag>> const& wallIdRefs) {
+        //creates closed walls from a single shared one
+        //to be called from the LevelReader
+        size_t CreateClosed(std::unordered_map<WallID, std::vector<Tag>> const& wallIdRefs) {
+            //check consistency
             auto closedId = WallID::None;
             for (auto&& [id, tags] : wallIdRefs) {
                 if (tags.size() == 1)
                     continue;
                 if (closedId != WallID::None)
-                    return false; //bad map
+                    throw Exception("CreateClosed: bad map, multiple shared walls");
                 assert(tags.size() > 1);
                 Wall* wall = Walls.TryGetWall(id);
                 if (!wall || !wall->IsSimplyClosed())
-                    return false;
+                    throw Exception("CreateClosed: bad map, shared wall is not closed with no trigger");
                 closedId = id;
-                //don't break here as we have to check the whole map for consistency: only one id can be repeated
+                //don't break here, we want to check the whole map for consistency
             }
             if (closedId == WallID::None)
-                return true;
+                return 0;
 
             auto&& v = wallIdRefs.at(closedId);
             for (auto it = v.begin() + 1; it != v.end(); ++it) { //skip the first tag
@@ -448,7 +448,7 @@ namespace Inferno {
                 auto id = Walls.Append(std::move(w));
                 GetSide(*it).Wall = id; //the side is guaranteed to exist by the way the wallIdRefs was filled
             }
-            return true;
+            return v.size() - 1;
         }
     };
 }

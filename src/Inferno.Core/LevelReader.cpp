@@ -3,6 +3,7 @@
 #include "Streams.h"
 #include "Utility.h"
 #include "Pig.h"
+#include "spdlog/spdlog.h"
 
 namespace Inferno {
     void ReadLevelInfo(StreamReader& reader, Level& level) {
@@ -42,7 +43,13 @@ namespace Inferno {
 
         GameDataHeader _deltaLights{}, _deltaLightIndices{};
 
-        std::unordered_map<WallID, std::vector<Tag>> wallIds_;
+        // This map is filled while reading sides and maps wallId to all
+        // sides (Tags) that reference it.
+        // Normally this is one to one relation. Now though we
+        // allow all closed walls without a trigger to be one wall
+        // referenced by many sides to save WallID's that are limited by 255.
+        // While reading such a file we need to "unpack" such walls.
+        std::unordered_map<WallID, std::vector<Tag>> wallToTag_;
 
     public:
         LevelReader(span<ubyte> data) : _reader(data) {}
@@ -160,7 +167,8 @@ namespace Inferno {
 
                 if (mask & (1 << i)) {
                     side.Wall = WallID(_reader.ReadByte());
-                    wallIds_[side.Wall].emplace_back(id, static_cast<SideID>(i));
+                    ////see the comment for wallToTag_
+                    wallToTag_[side.Wall].emplace_back(id, static_cast<SideID>(i));
                 }
             }
         }
@@ -528,7 +536,14 @@ namespace Inferno {
                 _reader.Seek(walls.Offset);
                 for (size_t i=0; i<walls.Count; ++i)
                     level.Walls.Append(ReadWall());
-                level.CreateClosed(wallIds_);
+                try { //see the comment for wallToTag_
+                    if (auto n = level.CreateClosed(wallToTag_))
+                        SPDLOG_INFO(std::string("Found shared walls in the file, ") + std::to_string(n) + " re-created");
+                }
+                catch (Exception const& e) {
+                    SPDLOG_ERROR(e.what());
+                    //try to continue reading the file...
+                }
             }
 
             if (triggers.Offset != -1) {
@@ -537,19 +552,26 @@ namespace Inferno {
                     t = ReadTrigger();
             }
 
-            //temporary!
+            // temporary code to repair the trigger id bug: 
+            // TriggerID::None (255) has been decremented when removing a trigger
+            // leading to many walls having a non-none controlling trigger
+            // that does not exist. If deletion is repeated many times the non-existing
+            // trigger ids could even become existing ids potentially causing
+            // unexpected level behavior
             for (auto& w : level.Walls) {
                 if ((int)w.ControllingTrigger >= level.Triggers.size())
                     w.ControllingTrigger = TriggerID::None;
             }
+            //just in case: check all trigger targets
             size_t counter = 0;
-            for (auto& t : level.Triggers)                 {
-                for (auto& tar : t.Targets)                     {
+            for (auto& t : level.Triggers) {
+                for (auto& tar : t.Targets) {
                     if (auto w = level.TryGetWall(tar))
                         w->ControllingTrigger = (TriggerID)counter;
                 }
                 ++counter;
             }
+            //end of temporary repair
 
 
             // Control center triggers
