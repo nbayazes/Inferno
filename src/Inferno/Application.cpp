@@ -78,6 +78,8 @@ void Application::Initialize(int width, int height) {
         UpdateFpsLimit();
     };
 
+    BuildTextureMapCache();
+
     // todo: check for editor command line option
     Game::SetState(GameState::MainMenu);
 }

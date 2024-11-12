@@ -399,6 +399,48 @@ namespace Inferno {
                 batch.GenerateMips(resource);
         }
 
+        // Uploads a resource with mipmaps
+        void LoadMipped(DirectX::ResourceUploadBatch& batch,
+                  const void* data,
+                  uint width, uint height,
+                  wstring_view name,
+                  uint16 mips,
+                  DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
+            assert(data);
+            assert(mips >= 1);
+            if (!data) return;
+
+            SetDesc(width, height, mips, format);
+
+            uint64 bpp = format == DXGI_FORMAT_R8_UNORM ? 1 : 4;
+
+            List< D3D12_SUBRESOURCE_DATA> uploads;
+
+            LONG_PTR begin = 0;
+            uint mipWidth = width;
+            uint mipHeight = height;
+
+            for (uint16 i = 0; i < mips; i++) {
+                auto& upload = uploads.emplace_back();
+                upload.pData = (uint8*)data + begin;
+                upload.RowPitch =  mipWidth * bpp;
+                upload.SlicePitch = upload.RowPitch * mipHeight;
+
+                begin += upload.SlicePitch;
+                mipWidth /= 2;
+                mipHeight /= 2;
+            }
+
+            if (!_resource)
+                CreateOnDefaultHeap(name);
+
+            auto resource = _resource.Get();
+            batch.Transition(resource, _state, D3D12_RESOURCE_STATE_COPY_DEST);
+            batch.Upload(resource, 0, uploads.data(), mips);
+            batch.Transition(resource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+        }
+
         // Creates the texture on the default heap
         void Create(uint width, uint height, wstring_view name, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
             SetDesc(width, height, 1, format);

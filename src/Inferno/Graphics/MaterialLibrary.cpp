@@ -302,56 +302,9 @@ namespace Inferno::Render {
         }
     }
 
-    // Expands a supertransparent mask by 1 pixel. Fixes artifacts around supertransparent pixels.
-    void ExpandMask(const PigEntry& bmp, List<uint8>& data) {
-        auto getPixel = [&](int x, int y) -> uint8& {
-            if (x < 0) x += bmp.Width;
-            if (x > bmp.Width - 1) x -= bmp.Width;
-            if (y < 0) y += bmp.Height;
-            if (y > bmp.Height - 1) y -= bmp.Height;
-
-            int offset = bmp.Width * y + x;
-            return data[offset];
-        };
-
-        auto markMask = [](uint8& dst) { dst = 128; };
-
-        // row pass. starts at top left.
-        for (int y = 0; y < bmp.Height; y++) {
-            for (int x = 0; x < bmp.Width; x++) {
-                auto& px = data[bmp.Width * y + x];
-                auto& below = getPixel(x, y + 1);
-                auto& above = getPixel(x, y - 1);
-                // row below is masked and this one isn't
-                if (below == 255 && px != 255) markMask(px);
-
-                // row above is masked and this one isn't
-                if (above == 255 && px != 255) markMask(px);
-            }
-        }
-
-        // column pass. starts at top left.
-        for (int x = 0; x < bmp.Width; x++) {
-            for (int y = 0; y < bmp.Height; y++) {
-                auto& px = data[bmp.Width * y + x];
-                auto& left = getPixel(x - 1, y);
-                auto& right = getPixel(x + 1, y);
-                // column left is masked and this one isn't
-                if (left == 255 && px != 255) markMask(px);
-
-                // column right is masked and this one isn't
-                if (right == 255 && px != 255) markMask(px);
-            }
-        }
-
-        // Update the marked pixels to 255
-        for (auto& px : data) {
-            if (px > 0) px = 255;
-        }
-    }
-
     Option<Material2D> UploadMaterial(ResourceUploadBatch& batch,
-                                      const MaterialUpload& upload) {
+                                      const MaterialUpload& upload,
+                                      const TextureMapCache& cache) {
         if (upload.ID <= TexID::Invalid) return {};
         Material2D material;
         material.ID = upload.ID;
@@ -380,8 +333,13 @@ namespace Inferno::Render {
                     material.Textures[Material2D::SuperTransparency].LoadDDS(batch, *path);
         }
 
+        auto cached = cache.GetMaterial(upload.ID);
+
         if (!material.Textures[Material2D::Diffuse]) {
-            material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap->Data.data(), width, height, Convert::ToWideString(material.Name));
+            if(cached && !cached->Diffuse.empty())
+                material.Textures[Material2D::Diffuse].LoadMipped(batch, cached->Diffuse.data(), width, height, Convert::ToWideString(material.Name), cached->Mips);
+            else
+                material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap->Data.data(), width, height, Convert::ToWideString(material.Name));
             //if (upload.Bitmap->Info.Transparent) {
             //    List<Palette::Color> data = upload.Bitmap->Data; // copy mask, as modifying the original would affect collision
             //    //ExpandDiffuse(upload.Bitmap->Info, data);
@@ -393,13 +351,14 @@ namespace Inferno::Render {
         }
 
         if (!material.Textures[Material2D::SuperTransparency] && upload.SuperTransparent) {
-            List<uint8> mask;
-            mask.resize(upload.Bitmap->Mask.size());
-            for (size_t i = 0; i < upload.Bitmap->Mask.size(); i++)
-                mask[i] = upload.Bitmap->Mask[i].r;
-
-            ExpandMask(upload.Bitmap->Info, mask);
-            material.Textures[Material2D::SuperTransparency].Load(batch, mask.data(), width, height, Convert::ToWideString(material.Name), true, DXGI_FORMAT_R8_UNORM);
+            if (cached && !cached->Mask.empty()) {
+                material.Textures[Material2D::SuperTransparency].LoadMipped(batch, cached->Mask.data(), width, height, Convert::ToWideString(material.Name), cached->Mips, DXGI_FORMAT_R8_UNORM);
+            }
+            else {
+                List<uint8> mask = upload.Bitmap->Mask;
+                ExpandMask(upload.Bitmap->Info, mask);
+                material.Textures[Material2D::SuperTransparency].Load(batch, mask.data(), width, height, Convert::ToWideString(material.Name), true, DXGI_FORMAT_R8_UNORM);
+            }
         }
 
         if (auto path = FileSystem::TryFindFile(baseName + "_e.dds"))
@@ -408,16 +367,14 @@ namespace Inferno::Render {
         if (auto path = FileSystem::TryFindFile(baseName + "_s.dds"))
             material.Textures[Material2D::Specular].LoadDDS(batch, *path);
 
-        bool genMaps = (Resources::IsLevelTexture(material.ID) || Resources::IsObjectTexture(material.ID)) && Settings::Inferno.GenerateMaps;
-
-        if (!material.Textures[Material2D::Specular] && genMaps && !upload.Bitmap->Data.empty()) {
-            auto specular = CreateSpecularMap(*upload.Bitmap);
-            material.Textures[Material2D::Specular].Load(batch, specular.data(), width, height, Convert::ToWideString(material.Name), true, DXGI_FORMAT_R8_UNORM);
+        if (!material.Textures[Material2D::Specular] && !upload.Bitmap->Data.empty()) {
+            if (cached && !cached->Specular.empty())
+                material.Textures[Material2D::Specular].LoadMipped(batch, cached->Specular.data(), width, height, Convert::ToWideString(material.Name + "_s"), cached->Mips, DXGI_FORMAT_R8_UNORM);
         }
 
-        if (!material.Textures[Material2D::Normal] && genMaps && !upload.Bitmap->Data.empty()) {
-            auto normal = CreateNormalMap(*upload.Bitmap);
-            material.Textures[Material2D::Normal].Load(batch, normal.data(), width, height, Convert::ToWideString(material.Name), true, DXGI_FORMAT_R8G8B8A8_UNORM);
+        if (!material.Textures[Material2D::Normal] && !upload.Bitmap->Data.empty()) {
+            if (cached && !cached->Specular.empty())
+                material.Textures[Material2D::Normal].Load(batch, cached->Normal.data(), width, height, Convert::ToWideString(material.Name + "_n"), true, DXGI_FORMAT_R8G8B8A8_UNORM);
         }
 
         for (uint i = 0; i < std::size(material.Textures); i++) {
@@ -533,7 +490,7 @@ namespace Inferno::Render {
                 if (!upload.Bitmap || upload.Bitmap->Info.Width == 0 || upload.Bitmap->Info.Height == 0 || upload.Bitmap->Data.empty())
                     continue;
 
-                if (auto material = UploadMaterial(batch, upload))
+                if (auto material = UploadMaterial(batch, upload, TextureMapCache()))
                     uploads.emplace_back(std::move(material.value()));
             }
 
@@ -570,13 +527,23 @@ namespace Inferno::Render {
         // Pre-scan materials, as starting an upload batch causes a stall
         if (!forceLoad && !HasUnloadedTextures(tids)) return;
 
+        // Reload cache if it exists
+        auto path = Game::Level.IsDescent1() ? "cache/d1.cache" : "cache/d2.cache";
+
+        if (_cache.Path != path) {
+            if (std::filesystem::exists(path)) {
+                SPDLOG_INFO("Reading texture cache {}", path);
+                _cache = TextureMapCache::Read(path);
+            }
+        }
+
         Stopwatch time;
         List<Material2D> uploads;
         auto batch = BeginTextureUpload();
 
         for (auto& id : tids) {
             if (auto upload = PrepareUpload(id, forceLoad)) {
-                if (auto material = UploadMaterial(batch, *upload))
+                if (auto material = UploadMaterial(batch, *upload, _cache))
                     uploads.emplace_back(std::move(material.value()));
             }
 
@@ -728,6 +695,7 @@ namespace Inferno::Render {
 
     void MaterialLibrary::LoadGameTextures() {
         Render::Adapter->WaitForGpu();
+
         auto ids = GetGameplayTextures();
         auto tids = Seq::ofSet(ids);
         LoadMaterials(tids);

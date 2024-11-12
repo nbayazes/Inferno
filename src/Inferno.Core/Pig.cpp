@@ -242,7 +242,7 @@ namespace Inferno {
                 Data[i] = { 0, 0, 0, 0 }; // clear the source pixel
             }
             else {
-                Mask[i] = Palette::TRANSPARENT_MASK;
+                Mask[i] = 0; // Palette::TRANSPARENT_MASK;
             }
         }
     }

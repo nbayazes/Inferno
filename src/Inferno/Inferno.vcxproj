@@ -171,6 +171,7 @@
     <ClCompile Include="Graphics\Render.Briefing.cpp" />
     <ClCompile Include="Graphics\Render.MainMenu.cpp" />
     <ClCompile Include="Icosphere.cpp" />
+    <ClCompile Include="TextureCache.cpp" />
     <ClCompile Include="VisualEffects.cpp" />
     <ClCompile Include="Formats\BBM.cpp" />
     <ClCompile Include="CustomTextureLibrary.cpp" />
@@ -305,6 +306,7 @@
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
     </None>
+    <ClInclude Include="TextureCache.h" />
     <ClInclude Include="VisualEffects.h" />
     <ClInclude Include="Formats\BBM.h" />
     <ClInclude Include="Game.AI.h" />

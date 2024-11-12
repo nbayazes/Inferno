@@ -651,7 +651,8 @@ namespace Inferno::UI {
 
                             //LoadBriefingResources(briefing);
                             Game::Briefing = BriefingState(briefing, _level, true);
-                            Game::Briefing.LoadResources();
+                            Game::Level.Version = level.Version; // hack: due to LoadResources
+                            Game::Briefing.LoadResources(); // TODO: Load resources depends on the level being fully loaded to pick the right assets!
                             Game::PlayMusic("d1/briefing");
                             Game::SetState(GameState::Briefing);
                         }

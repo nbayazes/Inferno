@@ -3,8 +3,6 @@
 #pragma warning(push)
 #pragma warning(disable: ALL_CODE_ANALYSIS_WARNINGS)
 
-#define _CRT_SECURE_NO_WARNINGS
-
 // Standard libraries
 #include <assert.h>
 #include <string>

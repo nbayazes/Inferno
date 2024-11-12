@@ -4,6 +4,7 @@
 #include "Level.h"
 #include "Material2D.h"
 #include "OutrageBitmap.h"
+#include "TextureCache.h"
 
 namespace Inferno::Render {
 
@@ -32,6 +33,7 @@ namespace Inferno::Render {
 
         Ptr<WorkerThread> _worker;
         std::condition_variable _pruneCondition;
+        TextureMapCache _cache;
 
         friend class MaterialUploadWorker;
 

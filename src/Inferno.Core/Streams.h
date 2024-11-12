@@ -103,6 +103,14 @@ namespace Inferno {
             return b;
         }
 
+        // Reads contiguous structs into a vector
+        template<class T>
+        List<T> ReadStructs(size_t count) {
+            List<T> data(count);
+            _stream->read((char*)data.data(), count * sizeof(T));
+            return data;
+        }
+
         void ReadBytes(void* buffer, size_t length) {
             _stream->read((char*)buffer, length);
         }
@@ -235,7 +243,8 @@ namespace Inferno {
     // Specialized stream writer for Descent binary files
     class StreamWriter {
         std::ostream* _stream;
-        std::streampos _start;
+        std::streampos _start = std::streampos(0);
+        std::unique_ptr<std::ofstream> _fileStream;
 
     public:
         // Creates a stream writer over an output stream.
@@ -243,6 +252,16 @@ namespace Inferno {
         // is created, and not the absolute beginning.
         StreamWriter(std::ostream& stream, bool relative = false) : _stream(&stream) {
             _start = relative ? stream.tellp() : std::streampos(0);
+        }
+
+        // Creates a file writer at the given path
+        StreamWriter(std::filesystem::path file) {
+            _fileStream = std::make_unique<std::ofstream>(file, std::ios::binary);
+            if (_fileStream->bad())
+                throw Exception(fmt::format("Unable to open file stream: {}", file.string()));
+
+            _stream = _fileStream.get();
+            _start = _stream->tellp();
         }
 
         template<class T>
@@ -282,6 +301,10 @@ namespace Inferno {
 
         void WriteBytes(span<const ubyte> data) const {
             _stream->write((char*)data.data(), data.size());
+        }
+
+        void WriteRaw(void* data, size_t byteLen) const {
+            _stream->write((char*)data, byteLen);
         }
 
         void WriteNewlineTerminatedString(string s, size_t maxLen) const {

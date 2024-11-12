@@ -40,8 +40,8 @@ namespace Inferno {
         };
 
         // Value for supertransparent values in the mask
-        static constexpr Color SUPER_MASK = { 255, 255, 255, 255 };
-        static constexpr Color TRANSPARENT_MASK = { 0, 0, 0, 255 };
+        static constexpr uint8 SUPER_MASK = 255;
+        //static constexpr Color TRANSPARENT_MASK = { 0, 0, 0, 255 };
 
         Color SuperTransparent;
         List<ubyte> FadeTables;
@@ -193,7 +193,7 @@ namespace Inferno {
     };
 
     struct PigBitmap {
-        List<Palette::Color> Mask; // Supertransparent mask
+        List<uint8> Mask; // Supertransparent mask
         List<Palette::Color> Data; // Resolved color data
         List<ubyte> Indexed; // Raw index data
 
