@@ -87,7 +87,7 @@ namespace Inferno {
         int Segments; // Note that source ports allow thousands of segments
         int Matcens = 20;
         int Vertices;
-        int Walls;
+        size_t Walls;
         int WallSwitches = 50;
         int WallLinks = 100;
         int FuelCenters = 70;
@@ -104,6 +104,17 @@ namespace Inferno {
     constexpr auto MaxLightDeltas = 32000; // Rebirth limit. Original D2: 10000
 
     struct Level {
+        // 1: Descent 1
+        // 2 to 7: Descent 2
+        // 8: Vertigo Enhanced
+        // >8: D2X-XL, unsupported
+        int Version;
+        // 22 to 25: Descent 1
+        // 26 to 29: Descent 2
+        // >32: D2X-XL, unsupported
+        int16 GameVersion;
+
+        LevelLimits Limits;
         string Palette = "groupa.256";
         SegID SecretExitReturn = SegID(0);
         Matrix3x3 SecretReturnOrientation;
@@ -129,17 +140,7 @@ namespace Inferno {
         List<LightDeltaIndex> LightDeltaIndices; // Index into LightDeltas
         List<LightDelta> LightDeltas; // For breakable or flickering lights
 
-        // 22 to 25: Descent 1
-        // 26 to 29: Descent 2
-        // >32: D2X-XL, unsupported
-        int16 GameVersion{};
 
-        // 1: Descent 1
-        // 2 to 7: Descent 2
-        // 8: Vertigo Enhanced
-        // >8: D2X-XL, unsupported
-        int Version{};
-        LevelLimits Limits = { 1 };
 
         DataPool<ActiveDoor> ActiveDoors{ ActiveDoor::IsAlive, 20 };
 
@@ -154,6 +155,13 @@ namespace Inferno {
         Vector3 CameraTarget;
         Vector3 CameraUp;
 #pragma endregion
+
+        Level(int version, WallsSerialization serialization) 
+            : Version{ version }
+            , GameVersion{ version == 1 ? 25 : 32 }
+            , Limits{ Version }
+            , Walls{ Limits.Walls, serialization }
+        { }
 
         bool IsDescent1() const { return Version == 1; }
         // Includes vertigo and non-vertigo
@@ -418,7 +426,7 @@ namespace Inferno {
         bool CanAddMatcen() { return Matcens.size() < Limits.Matcens; }
 
         size_t Serialize(StreamWriter& writer);
-        static Level Deserialize(span<ubyte>);
+        static Level Deserialize(span<ubyte>, WallsSerialization);
 
         //creates closed walls from a single shared one
         //to be called from the LevelReader

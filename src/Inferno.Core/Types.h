@@ -197,6 +197,10 @@ namespace Inferno {
     enum class ModelID : int32 { None = -1 };
     enum class MatcenID : uint8 { None = 255 };
     enum class TriggerID : uint8 { None = 255 };
+    enum class WallsSerialization {
+        STANDARD,
+        SHARED_SIMPLE_WALLS,
+    };
 
     namespace Models {
         constexpr auto PlaceableMine = ModelID(159); // D2 editor placeable mine

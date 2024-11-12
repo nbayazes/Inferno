@@ -590,7 +590,10 @@ namespace Inferno::Resources {
             throw Exception("File not found");
         }
 
-        auto level = Level::Deserialize(data);
+        auto level = Level::Deserialize(data,
+                                        Settings::Editor.UseSharedClosedWalls
+                                        ? WallsSerialization::SHARED_SIMPLE_WALLS
+                                        : WallsSerialization::STANDARD);
         level.FileName = name;
         return level;
     }

@@ -100,7 +100,10 @@ namespace Inferno::Editor {
         if (!file.read((char*)buffer.data(), size))
             throw Exception("Error reading file");
 
-        auto level = Level::Deserialize(buffer);
+        auto level = Level::Deserialize(buffer, 
+                                        Settings::Editor.UseSharedClosedWalls 
+                                        ? WallsSerialization::SHARED_SIMPLE_WALLS 
+                                        : WallsSerialization::STANDARD);
         level.FileName = path.filename().string();
         level.Path = path;
 
@@ -304,14 +307,16 @@ namespace Inferno::Editor {
 
     void OnSave();
 
-    void NewLevel(string name, string fileName, int16 version, bool addToHog) {
+    void NewLevel(string name, string const& fileName, int16 version, bool addToHog) {
         if (!addToHog)
             Game::UnloadMission();
 
-        Level level;
-        level.Name = name;
-        level.Version = version;
-        level.GameVersion = version == 1 ? 25 : 32;
+        Level level(version, 
+                    Settings::Editor.UseSharedClosedWalls 
+                    ? WallsSerialization::SHARED_SIMPLE_WALLS 
+                    : WallsSerialization::STANDARD);;
+        level.Name = std::move(name); //don't use name afterwards
+
         auto ext = level.IsDescent1() ? ".rdl" : ".rl2";
         level.FileName = fileName.substr(0, 8) + ext;
 

@@ -45,16 +45,16 @@ namespace Inferno {
 
         // This map is filled while reading sides and maps wallId to all
         // sides (Tags) that reference it.
-        // Normally this is one to one relation. Now though we
+        // Normally this is one to one relation. Now we (may)
         // allow all closed walls without a trigger to be one wall
         // referenced by many sides to save WallID's that are limited by 255.
-        // While reading such a file we need to "unpack" such walls.
+        // While reading such a file we need to "unpack" shared walls.
         std::unordered_map<WallID, std::vector<Tag>> wallToTag_;
 
     public:
         LevelReader(span<ubyte> data) : _reader(data) {}
 
-        Level Read() {
+        Level Read(WallsSerialization wallsSerialization) {
             auto sig = (uint)_reader.ReadInt32();
             if (sig != MakeFourCC("LVLP"))
                 throw Exception("File is not a level (bad header)");
@@ -81,9 +81,8 @@ namespace Inferno {
                 _reader.ReadInt32();
             }
 
-            Level level;
-            level.Version = _levelVersion;
-            level.Limits = LevelLimits(_levelVersion);
+            Level level{ _levelVersion, wallsSerialization };
+
             ReadLevelInfo(_reader, level);
             ReadSegments(level);
             ReadGameData(level);
@@ -536,13 +535,17 @@ namespace Inferno {
                 _reader.Seek(walls.Offset);
                 for (size_t i=0; i<walls.Count; ++i)
                     level.Walls.Append(ReadWall());
-                try { //see the comment for wallToTag_
-                    if (auto n = level.CreateClosed(wallToTag_))
+                try { 
+                    //see the comment for wallToTag_
+                    if (auto n = level.CreateClosed(wallToTag_)) {
                         SPDLOG_INFO(std::string("Found shared walls in the file, ") + std::to_string(n) + " re-created");
+                        if (level.Walls.Overfilled())
+                            throw Exception("The file contains too many walls, try activating shared closed walls option");
+                    }
                 }
                 catch (Exception const& e) {
                     SPDLOG_ERROR(e.what());
-                    //try to continue reading the file...
+                    throw;
                 }
             }
 
@@ -586,8 +589,8 @@ namespace Inferno {
         }
     };
 
-    Level Level::Deserialize(span<ubyte> data) {
+    Level Level::Deserialize(span<ubyte> data, WallsSerialization serialization) {
         LevelReader reader(data);
-        return reader.Read();
+        return reader.Read(serialization);
     }
 }

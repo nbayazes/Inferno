@@ -1,8 +1,14 @@
 #include "pch.h"
 
 #include "walls_container.h"
+#include "Types.h"
 
 namespace Inferno {
+
+WallsContainer::WallsContainer(size_t maxSize, WallsSerialization option)
+    : max_{ maxSize }
+    , option_{ option }
+{ }
 
 WallsContainer::Iterator WallsContainer::begin() {
 	return walls_.begin();
@@ -20,21 +26,36 @@ WallsContainer::ConstIterator WallsContainer::end() const {
 
 WallsContainer::SerializationGuard WallsContainer::PrepareSerialization() const {
     serializableWalls_.emplace();
-    WallID firstClosed = WallID::None;
-    for (auto& wall : walls_) {
-        auto id = static_cast<WallID>(serializableWalls_->size());
-        if (!wall.IsSimplyClosed() || firstClosed == WallID::None)
-            serializableWalls_->push_back(&wall);
-        
-        if (wall.IsSimplyClosed()) {
-            if (firstClosed == WallID::None)
-                firstClosed = id;
-            id = firstClosed;
-        }
 
-        wall.SerializationId = id;
+    switch (option_) {
+    case WallsSerialization::STANDARD:
+        for (auto& wall : walls_) {
+            auto id = static_cast<WallID>(serializableWalls_->size());
+            serializableWalls_->push_back(&wall);
+            wall.SerializationId = id;
+        }
+        break;
+    case WallsSerialization::SHARED_SIMPLE_WALLS:
+        {
+            WallID firstClosed = WallID::None;
+            for (auto& wall : walls_) {
+                auto id = static_cast<WallID>(serializableWalls_->size());
+                if (!wall.IsSimplyClosed() || firstClosed == WallID::None)
+                    serializableWalls_->push_back(&wall);
+        
+                if (wall.IsSimplyClosed()) {
+                    if (firstClosed == WallID::None)
+                        firstClosed = id;
+                    id = firstClosed;
+                }
+
+                wall.SerializationId = id;
+            }
+        }
+        break;
     }
-    assert(serializableWalls_->size() <= static_cast<int>(WallID::Max));
+
+    assert(serializableWalls_->size() <= max_);
 
     return SerializationGuard(&serializableWalls_, [this](auto) {
         serializableWalls_.reset();
@@ -91,28 +112,51 @@ void WallsContainer::Erase(WallID id) {
 }
 
 bool WallsContainer::CanAdd(WallType type) const {
-    if (type == WallType::Closed) {
+    if (WallsSerialization::SHARED_SIMPLE_WALLS == option_
+        && type == WallType::Closed) {
         for (auto&& wall : walls_)
             if (wall.IsSimplyClosed())
                 return true; //can always add another simply closed
     }
     //not a closed or no closed 
-    return ShrinkableSize() < static_cast<size_t>(WallID::Max) - 1;
+    return ShrinkableSize() < max_;
+}
+
+bool WallsContainer::Overfilled() const {
+    return ShrinkableSize() > max_;
 }
 
 size_t WallsContainer::Size() const {
     return walls_.size();
 }
 size_t WallsContainer::ShrinkableSize() const {
+    if (WallsSerialization::STANDARD == option_)
+        return Size();
+
     size_t count = 0;
-    bool first = true;
+    size_t shared = 0;
     for (auto&& w : walls_) {
-        if (!w.IsSimplyClosed() || first)
+        if (w.IsSimplyClosed())
+            shared = 1;
+        else
             ++count;
-        if (first && w.IsSimplyClosed())
-            first = false;
     }
-    return count;
+    return count + shared;
+}
+
+WallsSerialization WallsContainer::SerializationKind() const {
+    return option_;
+}
+
+void WallsContainer::SerializationKind(WallsSerialization option) {
+    if (option == option_)
+        return;
+
+    if (WallsSerialization::SHARED_SIMPLE_WALLS == option_
+        && Size() > max_)
+        throw Exception("WallsContainer: cannot switch serialization kind, too many walls");
+
+    option_ = option;
 }
 
 }//namespace Inferno

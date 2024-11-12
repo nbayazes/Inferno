@@ -6,7 +6,7 @@
 
 namespace Inferno::Game {
     // The loaded level. Only one level can be active at a time.
-    inline Inferno::Level Level;
+    inline Inferno::Level Level{ 1, WallsSerialization::STANDARD };
 
     // The loaded mission. Not always present.
     inline Option<HogFile> Mission;

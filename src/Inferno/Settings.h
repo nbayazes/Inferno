@@ -54,6 +54,7 @@ namespace Inferno {
         float TranslationSnap = 5, RotationSnap = 0;
         Editor::CoordinateSystem CoordinateSystem{};
         Editor::TexturePreviewSize TexturePreviewSize = Editor::TexturePreviewSize::Medium;
+        bool UseSharedClosedWalls = false;
 
         LightSettings Lighting;
         float MouselookSensitivity = 0.005f; // Editor mouselook
