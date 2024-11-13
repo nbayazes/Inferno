@@ -247,7 +247,6 @@ namespace Inferno::Editor {
                 ImGui::SliderInt("##Background", &_graphics.BackgroundFpsLimit, 1, 30);
                 ImGui::NextColumn();
             }
-
             ImGui::Columns(1);
             ImGui::EndChild();
 
@@ -266,15 +265,10 @@ namespace Inferno::Editor {
             ImGui::SetNextItemWidth(150 * Shell::DpiScale);
             ImGui::Combo("##texpreview", (int*)&_texturePreviewSize, "Small\0Medium\0Large");
 
-            ImGui::BeginChild("right", { Width / 2 - 25, columnHeight });
-            ImGui::Columns(1);
-            ImGui::EndChild();
-            {
-                ImGui::Checkbox("Use shared closed walls", &_editor.UseSharedClosedWalls);
-                ImGui::HelpMarker("All closed walls without trigger are shared as one wall.\nThis way a level can contain unlimited number of closed walls.");
-                ImGui::NextColumn();
-            }
-
+            ImGui::Checkbox("Use shared closed walls", &_editor.UseSharedClosedWalls);
+            ImGui::HelpMarker("All closed walls without trigger are shared as one wall.\nThis way a level can contain unlimited number of closed walls.");
+            ImGui::NextColumn();
+            
             ImGui::EndTabItem();
         }
 
