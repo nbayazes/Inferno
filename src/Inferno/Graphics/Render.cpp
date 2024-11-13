@@ -439,7 +439,7 @@ namespace Inferno::Render {
         auto size = camera.GetViewportSize();
 
         FrameConstants frameConstants{};
-        frameConstants.ElapsedTime = (float)Game::Time;
+        frameConstants.ElapsedTime = Game::GetState() == GameState::MainMenu ? Inferno::Clock.GetTotalTimeSeconds() : (float)Game::Time;
         frameConstants.ViewProjection = camera.ViewProjection;
         frameConstants.NearClip = camera.GetNearClip();
         frameConstants.FarClip = camera.GetFarClip();
