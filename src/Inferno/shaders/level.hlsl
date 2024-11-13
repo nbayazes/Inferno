@@ -305,7 +305,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         lighting += directLight * material.LightReceived;
 
         // boost specular ambient contribution from dynamic lighting, so the specular effect is still visible in range of lights
-        float3 specularAmbient = ambient + lighting * 100 /** saturate(1 - emissive)*/;
+        float3 specularAmbient = ambient + lighting * 50 /** saturate(1 - emissive)*/;
         specularAmbient *= material.SpecularStrength * material.LightReceived;
 
         const float AMBIENT_MULT = 0.5;
@@ -316,7 +316,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         // add ambient, but lower contribution to metallic surfaces to keep highlights stronger
         lighting += diffuse.rgb * ambient * AMBIENT_MULT * material.LightReceived * (1 - material.Metalness * .90);
 
-        lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, specularAmbient, diffuse.rgb, .1) * diffuse.a;
+        lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, specularAmbient, diffuse.rgb, .8) * diffuse.a;
         return float4(lighting, diffuse.a);
     }
 }

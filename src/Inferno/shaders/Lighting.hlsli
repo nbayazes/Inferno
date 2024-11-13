@@ -6,6 +6,10 @@
 static const float SMOL_EPS = .000002;
 static const float PI = 3.14159265f;
 static const float GLOBAL_LIGHT_MULT = 50;
+static const float GLOBAL_SPECULAR_MULT = 0.5;
+static const float METAL_DIFFUSE_FACTOR = 1; // Direct lighting contribution on metal. Setting this too low makes robots look odd.
+static const float METAL_SPECULAR_EXP = 2; // increase to get sharper metal highlights
+static const float METAL_SPECULAR_MULT = 1; // increase to get brighter metal
 static const float FRESNEL_MULT = 50;
 
 struct MaterialInfo {
@@ -163,7 +167,7 @@ float Attenuate(float lightDist, float lightRadius, float intensity) {
     if (s >= 1) return 0;
     const float f = 1; // controls falloff curve
     const float s2 = s * s;
-    return intensity * (1 - s2) * (1 - s2) / (1 + f * s2);
+    return intensity * pow(1 - s2, 2) / (1 + f * s2);
 }
 
 // Linear falloff from D = 0
@@ -173,7 +177,7 @@ float AttenuateLinear(float lightDist, float lightRadius, float intensity) {
     if (s >= 1) return 0;
     const float f = 1; // controls falloff curve
     const float s2 = s * s;
-    return intensity * (1 - s2) * (1 - s2) / (1 + f * s);
+    return intensity * pow(1 - s2, 2) / (1 + f * s);
 }
 
 // Applies ambient light to a metal texture as specular
@@ -838,9 +842,6 @@ float3 ApplyRectLight2(
     //return nDotL * lightColor * (diffuseColor + specularFactor * specularColor);
 }
 
-static const float METAL_DIFFUSE_FACTOR = 1; // Direct lighting contribution on metal. Setting this too low makes robots look odd.
-static const float METAL_SPECULAR_EXP = 2; // increase this to get sharper metal highlights
-
 float3 GetMetalDiffuse(float3 diffuse) {
     float3 intensity = dot(diffuse, float3(0.299, 0.587, 0.114));
     return lerp(intensity, diffuse, 2.0); // boost the saturation of the diffuse texture
@@ -852,6 +853,7 @@ void GetLightColors(LightData light, MaterialInfo material, float3 diffuse, out 
     //float3 metalDiffuse = GetMetalDiffuse(diffuse);
 
     specularColor = lerp(lightColor, (pow(diffuse + 1, METAL_SPECULAR_EXP) - 1) * lightRgb, material.Metalness);
+    specularColor *= GLOBAL_SPECULAR_MULT * (1 + material.Metalness * METAL_SPECULAR_MULT);
     //specularColor = lerp(lightColor, diffuse * lightRgb, material.Metalness) * material.SpecularStrength;
     //specularColor = clamp(specularColor, 0, 10); // clamp overly bright specular as it causes bloom flickering
 }  

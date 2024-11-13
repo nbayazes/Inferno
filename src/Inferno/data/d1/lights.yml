@@ -46,7 +46,7 @@ Lights:
       Points: 0.135, 0
       Wrap: 2
       Width: 0.06
-      Color: 1, .88, .88, .4
+      Color: 1, .88, .88, .3
       Radius: 35
   
     - ID: 251 # red
@@ -54,7 +54,7 @@ Lights:
       Points: 0.135, 0
       Wrap: 2
       Width: 0.06
-      Color: 1, .01, .01, .8
+      Color: 1, .01, .01, .4
       Radius: 35
   
     - ID: 252 # blue
@@ -62,7 +62,7 @@ Lights:
       Points: 0.135, 0
       Wrap: 2
       Width: 0.06
-      Color: .05, .05, 1, 0.8
+      Color: .05, .05, 1, .7 # blue appears dimmer than the others
       Radius: 35
   
     - ID: 253 # yellow
@@ -71,7 +71,7 @@ Lights:
       Wrap: 2
       Width: 0.06
       Radius: 35
-      Color: 1, 0.75, 0, .8
+      Color: 1, 0.75, 0, .4
 
     # Yellow ceiling lights
     - ID: 264
@@ -80,17 +80,17 @@ Lights:
       Width: .2
       Height: .2
       Radius: 35
-      Color: 1, .8, .5, .90
+      Color: 1, .8, .5, .8
 
     - ID: 265
       Radius: 35
       Points: 0.5, 0.5
-      Color: 1, .8, .5, 0.75
+      Color: 1, .8, .5, 0.6
 
     - ID: 268 # small square
       Radius: 35
       Points: 0.5, 0.5
-      Color: 1, .8, .5, 0.75
+      Color: 1, .8, .5, 0.6
     
     # Ceiling lights
     - ID: 281 # Big rectangle
@@ -99,33 +99,33 @@ Lights:
       Width: 0.2
       Height: 0.2
       Radius: 35
-      Color: 0.75, 0.75, 1, .75
+      Color: 0.75, 0.75, 1, .6
 
     - ID: 282 # small round
       Radius: 35
       Points: 0.5, 0.5
-      Color: 0.8, 0.8, 1, .6
+      Color: 0.8, 0.8, 1, .5
 
     - ID: 283 # small square
       Radius: 35
       Points: 0.5, 0.5
-      Color: 1, .88, .88, .6
+      Color: 1, .88, .88, .5
 
     - ID: 284 # small square
       Radius: 35
       Points: 0.5, 0.5
-      Color: 0.8, 0.8, 1, .6
+      Color: 0.8, 0.8, 1, .5
 
     # misc lights
     - ID: 293 # small square
       Radius: 35
       Points: 0.5, 0.5
-      Color: 1, .9, .9, .6
+      Color: 1, .9, .9, .5
 
     - ID: 294 # rectangle
       Radius: 35
       Points: 0.5, 0.5
-      Color: 1, .88, .88, .6
+      Color: 1, .88, .88, .5
 
     # Stacked lights
     - ID: 285
@@ -229,18 +229,19 @@ Lights:
       # Radius: 10
       #Radius: 50
 
-    # remove lights from reactor walls as emissives work better
+    # Remove lights from reactor walls as emissives work better. 
+    # Allow designer to set lighting if necessary as reactor textures are often densely packed and will oversaturate.
     - ID: 334
-      Color: 0, 0, 0
+      Color: 0, 0, 0, 0
       Points: []
     - ID: 335
-      Color: 0, 0, 0
+      Color: 0, 0, 0, 0
       Points: []
     - ID: 336
-      Color: 0, 0, 0
+      Color: 0, 0, 0, 0
       Points: []
     - ID: 337
-      Color: 0, 0, 0
+      Color: 0, 0, 0, 0
       Points: []
 
     - ID: 289 # blank light texture. only used for ambient lighting
