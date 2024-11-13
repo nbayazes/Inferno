@@ -33,7 +33,6 @@ namespace Inferno::Render {
 
         Ptr<WorkerThread> _worker;
         std::condition_variable _pruneCondition;
-        TextureMapCache _cache;
 
         friend class MaterialUploadWorker;
 

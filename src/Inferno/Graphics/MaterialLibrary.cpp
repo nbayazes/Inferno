@@ -304,7 +304,8 @@ namespace Inferno::Render {
 
     Option<Material2D> UploadMaterial(ResourceUploadBatch& batch,
                                       const MaterialUpload& upload,
-                                      const TextureMapCache& cache) {
+                                      const TextureMapCache& cache,
+                                      List<ubyte>& buffer) {
         if (upload.ID <= TexID::Invalid) return {};
         Material2D material;
         material.ID = upload.ID;
@@ -333,26 +334,22 @@ namespace Inferno::Render {
                     material.Textures[Material2D::SuperTransparency].LoadDDS(batch, *path);
         }
 
-        auto cached = cache.GetMaterial(upload.ID);
+        auto cached = cache.GetEntry(upload.ID);
 
         if (!material.Textures[Material2D::Diffuse]) {
-            if(cached && !cached->Diffuse.empty())
-                material.Textures[Material2D::Diffuse].LoadMipped(batch, cached->Diffuse.data(), width, height, Convert::ToWideString(material.Name), cached->Mips);
-            else
+            if (cached && cached->DiffuseLength) {
+                cache.ReadDiffuseMap(*cached, buffer);
+                material.Textures[Material2D::Diffuse].LoadMipped(batch, buffer.data(), width, height, Convert::ToWideString(material.Name), cached->Mips);
+            }
+            else {
                 material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap->Data.data(), width, height, Convert::ToWideString(material.Name));
-            //if (upload.Bitmap->Info.Transparent) {
-            //    List<Palette::Color> data = upload.Bitmap->Data; // copy mask, as modifying the original would affect collision
-            //    //ExpandDiffuse(upload.Bitmap->Info, data);
-            //    material.Textures[Material2D::Diffuse].Load(batch, data.data(), width, height, Convert::ToWideString(material.Name));
-            //}
-            //else {
-            //    material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap->Data.data(), width, height, Convert::ToWideString(material.Name));
-            //}
+            }
         }
 
         if (!material.Textures[Material2D::SuperTransparency] && upload.SuperTransparent) {
-            if (cached && !cached->Mask.empty()) {
-                material.Textures[Material2D::SuperTransparency].LoadMipped(batch, cached->Mask.data(), width, height, Convert::ToWideString(material.Name), cached->Mips, DXGI_FORMAT_R8_UNORM);
+            if (cached && cached->MaskLength) {
+                cache.ReadMaskMap(*cached, buffer);
+                material.Textures[Material2D::SuperTransparency].LoadMipped(batch, buffer.data(), width, height, Convert::ToWideString(material.Name), cached->Mips, DXGI_FORMAT_R8_UNORM);
             }
             else {
                 List<uint8> mask = upload.Bitmap->Mask;
@@ -368,13 +365,25 @@ namespace Inferno::Render {
             material.Textures[Material2D::Specular].LoadDDS(batch, *path);
 
         if (!material.Textures[Material2D::Specular] && !upload.Bitmap->Data.empty()) {
-            if (cached && !cached->Specular.empty())
-                material.Textures[Material2D::Specular].LoadMipped(batch, cached->Specular.data(), width, height, Convert::ToWideString(material.Name + "_s"), cached->Mips, DXGI_FORMAT_R8_UNORM);
+            if (cached && cached->SpecularLength) {
+                cache.ReadSpecularMap(*cached, buffer);
+                material.Textures[Material2D::Specular].LoadMipped(batch, buffer.data(), width, height, Convert::ToWideString(material.Name + "_s"), cached->Mips, DXGI_FORMAT_R8_UNORM);
+            }
+            else {
+                auto specular = CreateSpecularMap(*upload.Bitmap);
+                material.Textures[Material2D::Specular].Load(batch, specular.data(), width, height, Convert::ToWideString(material.Name + "_s"), true, DXGI_FORMAT_R8_UNORM);
+            }
         }
 
         if (!material.Textures[Material2D::Normal] && !upload.Bitmap->Data.empty()) {
-            if (cached && !cached->Specular.empty())
-                material.Textures[Material2D::Normal].Load(batch, cached->Normal.data(), width, height, Convert::ToWideString(material.Name + "_n"), true, DXGI_FORMAT_R8G8B8A8_UNORM);
+            if (cached && cached->NormalLength) {
+                cache.ReadNormalMap(*cached, buffer);
+                material.Textures[Material2D::Normal].Load(batch, buffer.data(), width, height, Convert::ToWideString(material.Name + "_n"), true, DXGI_FORMAT_R8G8B8A8_UNORM);
+            }
+            else {
+                auto normal = CreateNormalMap(*upload.Bitmap);
+                material.Textures[Material2D::Normal].Load(batch, normal.data(), width, height, Convert::ToWideString(material.Name + "_n"), true, DXGI_FORMAT_R8G8B8A8_UNORM);
+            }
         }
 
         for (uint i = 0; i < std::size(material.Textures); i++) {
@@ -486,11 +495,14 @@ namespace Inferno::Render {
             _lib->_requestedUploads.Clear();
 
             List<Material2D> uploads;
+            auto& cache = Game::Level.IsDescent1() ? D1TextureCache : D2TextureCache;
+            List<ubyte> buffer;
+
             for (auto& upload : queuedUploads) {
                 if (!upload.Bitmap || upload.Bitmap->Info.Width == 0 || upload.Bitmap->Info.Height == 0 || upload.Bitmap->Data.empty())
                     continue;
 
-                if (auto material = UploadMaterial(batch, upload, TextureMapCache()))
+                if (auto material = UploadMaterial(batch, upload, cache, buffer))
                     uploads.emplace_back(std::move(material.value()));
             }
 
@@ -527,23 +539,16 @@ namespace Inferno::Render {
         // Pre-scan materials, as starting an upload batch causes a stall
         if (!forceLoad && !HasUnloadedTextures(tids)) return;
 
-        // Reload cache if it exists
-        auto path = Game::Level.IsDescent1() ? "cache/d1.cache" : "cache/d2.cache";
-
-        if (_cache.Path != path) {
-            if (std::filesystem::exists(path)) {
-                SPDLOG_INFO("Reading texture cache {}", path);
-                _cache = TextureMapCache::Read(path);
-            }
-        }
-
         Stopwatch time;
         List<Material2D> uploads;
         auto batch = BeginTextureUpload();
 
+        auto& cache = Game::Level.IsDescent1() ? D1TextureCache : D2TextureCache;
+        List<ubyte> buffer;
+
         for (auto& id : tids) {
             if (auto upload = PrepareUpload(id, forceLoad)) {
-                if (auto material = UploadMaterial(batch, *upload, _cache))
+                if (auto material = UploadMaterial(batch, *upload, cache, buffer))
                     uploads.emplace_back(std::move(material.value()));
             }
 

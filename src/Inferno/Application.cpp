@@ -79,6 +79,7 @@ void Application::Initialize(int width, int height) {
     };
 
     BuildTextureMapCache();
+    LoadTextureCaches();
 
     // todo: check for editor command line option
     Game::SetState(GameState::MainMenu);

@@ -103,6 +103,11 @@ namespace Inferno {
             return b;
         }
 
+        void ReadUBytes(size_t length, std::vector<ubyte>& dest) {
+            dest.resize(length);
+            _stream->read((char*)dest.data(), sizeof(ubyte) * length);
+        }
+
         // Reads contiguous structs into a vector
         template<class T>
         List<T> ReadStructs(size_t count) {
@@ -157,6 +162,7 @@ namespace Inferno {
         uint32 ReadUInt32() { return Read<uint32>(); }
         int32 ReadInt32() { return Read<int32>(); }
         int64 ReadInt64() { return Read<int64>(); }
+        int64 ReadUInt64() { return Read<uint64>(); }
         float ReadFloat() { return Read<float>(); }
 
         // Reads a int32 fixed value into a float
@@ -270,6 +276,15 @@ namespace Inferno {
             static_assert(!std::is_same_v<T, Vector3>); // ambiguous
             _stream->write((char*)&value, sizeof(T));
         }
+
+        void WriteInt8(int8 i) { Write(i); }
+        void WriteUInt8(uint8 i) { Write(i); }
+        void WriteInt16(int16 i) { Write(i); }
+        void WriteUInt16(uint16 i) { Write(i); }
+        void WriteInt32(int32 i) { Write(i); }
+        void WriteUInt32(uint32 i) { Write(i); }
+        void WriteInt64(int64 i) { Write(i); }
+        void WriteUInt64(uint64 i) { Write(i); }
 
         void WriteFix(float f) {
             Write(FloatToFix(f));

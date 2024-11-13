@@ -9,7 +9,7 @@
 namespace Inferno {
     namespace {
         constexpr uint32 CACHE_SIG = MakeFourCC("CHCE");
-        constexpr uint32 CACHE_VERSION = 4;
+        constexpr uint32 CACHE_VERSION = 2;
     }
 
     // Expands a supertransparent mask by 1 pixel. Fixes artifacts around supertransparent pixels.
@@ -95,7 +95,7 @@ namespace Inferno {
     }
 
     // Returns the number of mip levels
-    template<class T>
+    template <class T>
     uint8 GenerateMipmaps(List<T>& bitmap, uint srcWidth, uint srcHeight) {
         bitmap.reserve(bitmap.size() * 3 / 2); // mipmaps take roughly 33% more space
 
@@ -132,54 +132,47 @@ namespace Inferno {
         return mips;
     }
 
-    void Serialize(StreamWriter& stream, const TextureMapCache& cache) {
-        stream.Write(CACHE_SIG);
-        stream.Write(CACHE_VERSION);
-        //auto pos = stream.Position();
-        stream.Write((int32)cache.Entries.size());
+    void Serialize(StreamWriter& stream, span<TextureMapCache::Entry> entries) {
+        stream.WriteUInt32(CACHE_SIG);
+        stream.WriteUInt32(CACHE_VERSION);
+        stream.WriteInt32((int32)entries.size());
 
-        for (auto& entry : cache.Entries) {
-            stream.Write((int16)entry.Id);
-            stream.Write((uint16)entry.Width);
-            stream.Write((uint16)entry.Height);
-            stream.Write((uint8)entry.Mips);
+        auto headerStart = stream.Position();
 
-            const auto diffuseSize = entry.Diffuse.size() * sizeof Palette::Color;
-            const auto normalSize = entry.Normal.size() * sizeof Palette::Color;
+        const auto writeHeader = [&stream](TextureMapCache::Entry& entry) {
+            stream.WriteInt16((int16)entry.Id);
+            stream.WriteUInt64(entry.DataOffset);
+            stream.WriteUInt16(entry.Width);
+            stream.WriteUInt16(entry.Height);
+            stream.WriteUInt8(entry.Mips);
 
             // Write data lengths
-            stream.Write((uint32)diffuseSize);
-            stream.Write((uint32)entry.Specular.size());
-            stream.Write((uint32)normalSize);
-            stream.Write((uint32)entry.Mask.size());
+            stream.WriteUInt32((uint32)entry.Diffuse.size() * sizeof Palette::Color);
+            stream.WriteUInt32((uint32)entry.Specular.size());
+            stream.WriteUInt32((uint32)entry.Normal.size() * sizeof Palette::Color);
+            stream.WriteUInt32((uint32)entry.Mask.size());
+        };
 
-            // write image data
-            stream.WriteBytes({ (ubyte*)entry.Diffuse.data(), diffuseSize });
+        Seq::iter(entries, writeHeader);
+
+        auto dataStart = stream.Position();
+
+        // Write image data
+        for (auto& entry : entries) {
+            entry.DataOffset = stream.Position() - dataStart;
+
+            stream.WriteBytes({ (ubyte*)entry.Diffuse.data(), entry.Diffuse.size() * sizeof Palette::Color });
             stream.WriteBytes(entry.Specular);
-            stream.WriteBytes({ (ubyte*)entry.Normal.data(), normalSize });
+            stream.WriteBytes({ (ubyte*)entry.Normal.data(), entry.Normal.size() * sizeof Palette::Color });
             stream.WriteBytes(entry.Mask);
         }
+
+        // Write headers again with the updated data offsets
+        stream.Seek(headerStart);
+        Seq::iter(entries, writeHeader);
     }
 
-    bool CacheFileIsValid(string_view path) {
-        try {
-            if(!std::filesystem::exists(path)) return false;
-
-            StreamReader stream(path);
-
-            auto sig = stream.ReadUInt32();
-            if (sig != CACHE_SIG) return false;
-
-            auto version = stream.ReadUInt32();
-            if (version != CACHE_VERSION) return false;
-            return true;
-        }
-        catch (...) {
-            return false;
-        }
-    }
-
-    TextureMapCache Deserialize(StreamReader& stream) {
+    void TextureMapCache::Deserialize(StreamReader& stream) {
         auto sig = stream.ReadUInt32();
         if (sig != CACHE_SIG)
             throw Exception("Unknown cache file header");
@@ -190,17 +183,17 @@ namespace Inferno {
 
         auto size = stream.ReadElementCount();
 
-        TextureMapCache cache;
-        cache.Entries.resize(3000);
+        uint texturesRead = 0;
 
         for (size_t i = 0; i < size; i++) {
             auto id = stream.ReadInt16();
-            ASSERT(id < cache.Entries.size());
-            if(!Seq::inRange(cache.Entries, id))
-                throw Exception("Cache entry id out of range");
+            ASSERT(id < Entries.size());
+            if (!Seq::inRange(Entries, id))
+                throw Exception(fmt::format("Cache entry id {} larger than capacity {}", id, _size));
 
-            auto& entry = cache.Entries[id];
+            auto& entry = Entries[id];
             entry.Id = (TexID)id;
+            entry.DataOffset = stream.ReadUInt64();
             entry.Width = stream.ReadUInt16();
             entry.Height = stream.ReadUInt16();
             entry.Mips = stream.ReadByte();
@@ -211,28 +204,23 @@ namespace Inferno {
             entry.NormalLength = stream.ReadUInt32();
             entry.MaskLength = stream.ReadUInt32();
 
-            // Read data
-            {
-                //entry.Diffuse = stream.ReadStructs<Palette::Color>(entry.DiffuseLength / sizeof(Palette::Color));
-
-                auto bytes = stream.ReadUBytes(entry.DiffuseLength);
-                span diffuse{ (Palette::Color*)bytes.data(), bytes.size() / sizeof Palette::Color };
-                entry.Diffuse = List<Palette::Color>(diffuse.begin(), diffuse.end());
-                //entry.Diffuse = List<Palette::Color>((Palette::Color*)bytes.data(), (Palette::Color*)bytes.data() + bytes.size() / sizeof Palette::Color);
-            }
-
-            entry.Specular = stream.ReadUBytes(entry.SpecularLength);
-
-            {
-                auto normalBytes = stream.ReadUBytes(entry.NormalLength);
-                span normal{ (Palette::Color*)normalBytes.data(), normalBytes.size() / sizeof Palette::Color };
-                entry.Normal = List<Palette::Color>(normal.begin(), normal.end());
-            }
-
-            entry.Mask = stream.ReadUBytes(entry.MaskLength);
+            texturesRead++;
         }
 
-        return cache;
+        _dataStart = stream.Position();
+
+        //for (auto& entry : Entries) {
+        //    if (entry.DiffuseLength || entry.NormalLength || entry.SpecularLength || entry.MaskLength) {
+        //        // Read data
+        //        stream.Seek(_dataStart + entry.DataOffset);
+        //        entry.Diffuse = stream.ReadStructs<Palette::Color>(entry.DiffuseLength / sizeof Palette::Color);
+        //        entry.Specular = stream.ReadUBytes(entry.SpecularLength);
+        //        entry.Normal = stream.ReadStructs<Palette::Color>(entry.NormalLength / sizeof Palette::Color);
+        //        entry.Mask = stream.ReadUBytes(entry.MaskLength);
+        //    }
+        //}
+
+        SPDLOG_INFO("Read {} textures from cache", texturesRead);
     }
 
     bool IsLevelTexture(const HamFile& ham, TexID id, bool isD1) {
@@ -273,10 +261,10 @@ namespace Inferno {
             bool isVClip = vclips.contains(tid);
 
             // skip hud textures
-            if(!isLevelTexture && !isObjectTexture && !isVClip) continue;
+            if (!isLevelTexture && !isObjectTexture && !isVClip) continue;
 
-            if(isLevelTexture) levelCount++;
-            if(isObjectTexture) objectCount++;
+            if (isLevelTexture) levelCount++;
+            if (isObjectTexture) objectCount++;
 
             auto& entry = Entries.emplace_back();
             entry.Id = tid;
@@ -294,15 +282,6 @@ namespace Inferno {
 
                 GenerateMipmaps(entry.Specular, entry.Width, entry.Height);
                 GenerateMipmaps(entry.Normal, entry.Width, entry.Height);
-
-                //entry.Specular.reserve(entry.Specular.size() * 3 / 2);
-
-                //for (size_t size = 64; size > 1; size /= 2) {
-                //    auto start = entry.Specular.end();
-                //    entry.Specular.resize(entry.Specular.size() + size * 2);
-
-                //    std::fill(start, entry.Specular.end(), entry.Mips * 30);
-                //}
             }
 
             // Add transparency mask
@@ -316,82 +295,46 @@ namespace Inferno {
         SPDLOG_INFO("Cached {} level bitmaps, {} object bitmaps, and {} vclips", levelCount, objectCount, vclips.size());
     }
 
-    TextureMapCache TextureMapCache::Read(const filesystem::path& path) {
-        try {
-            StreamReader stream(path);
-            auto cache = Deserialize(stream);
-            cache.Path = path;
-
-            //for (auto& entry : cache.Entries) {
-                //entry.Mips = 1;
-
-                //if (entry.Width == 64 && entry.Height == 64) {
-                    //entry.Mips = GenerateMipmaps(entry.Specular, entry.Width, entry.Height);
-
-                    //entry.Specular.reserve(entry.Specular.size() * 3 / 2);
-
-
-                    //auto srcWidth = entry.Width;
-                    //auto srcHeight = entry.Height;
-                    //uint offset = 0;
-                    //auto begin = entry.Specular.begin();
-
-                    //for (int i = 0; i < 7; i++) {
-                    //    auto destWidth = srcWidth / 2;
-                    //    auto destHeight = srcHeight / 2;
-                    //    auto srcSize = srcWidth * srcHeight;
-                    //    auto destSize = destWidth * destHeight;
-
-                    //    entry.Specular.resize(entry.Specular.size() + destSize);
-
-                    //    auto srcBegin = entry.Specular.begin() + offset;
-                    //    auto srcEnd = entry.Specular.begin() + offset + srcWidth * srcHeight;
-
-                    //    span src = { begin, begin + srcSize };
-                    //    span dest = { begin + srcSize, begin + srcSize + destSize };
-
-                    //    Downsample(src, srcWidth, srcHeight, dest, destWidth, destHeight);
-
-                    //    srcWidth /= 2;
-                    //    srcHeight /= 2;
-                    //    offset += srcWidth * srcHeight;
-                    //    entry.Mips++;
-                    //    begin += srcSize;
-                    //    if(srcWidth == 1 || srcHeight == 1) break;
-                    //}
-                //}
-            //}
-
-            return cache;
-        }
-        catch (const Exception& e) {
-            SPDLOG_ERROR("Texture cache read error: {}", e.what());
-            return {};
-        }
+    TextureMapCache::TextureMapCache(filesystem::path path, uint size): _size(size), Path(std::move(path)) {
+        _stream = make_unique<StreamReader>(Path);
+        Entries.resize(_size);
+        Deserialize(*_stream);
     }
 
-    void TextureMapCache::Write(const std::filesystem::path& path) const {
+    void TextureMapCache::Write(const std::filesystem::path& path) {
         try {
             if (Entries.empty()) {
                 SPDLOG_WARN("Tried to write an empty texture cache file");
                 return;
             }
 
-            //std::ofstream file(path, std::ios::binary);
             StreamWriter stream(path);
-            Serialize(stream, *this);
+            Serialize(stream, Entries);
         }
         catch (const Exception& e) {
             SPDLOG_ERROR("Texture cache write error: {}", e.what());
         }
     }
 
-    //void BuildGameTextureCache(filesystem::path& path, HogFile& hog) {
-
-
-    //}
-
     constexpr auto D1_CACHE = "cache/d1.cache";
+
+    bool CacheFileIsValid(string_view path) {
+        try {
+            if (!std::filesystem::exists(path)) return false;
+
+            StreamReader stream(path);
+
+            auto sig = stream.ReadUInt32();
+            if (sig != CACHE_SIG) return false;
+
+            auto version = stream.ReadUInt32();
+            if (version != CACHE_VERSION) return false;
+            return true;
+        }
+        catch (...) {
+            return false;
+        }
+    }
 
     void BuildTextureMapCache() {
         if (CacheFileIsValid(D1_CACHE)) {
@@ -425,5 +368,11 @@ namespace Inferno {
         cache.GenerateTextures(ham, pig, palette);
         SPDLOG_INFO("Writing {} textures to cache {}", cache.Entries.size(), D1_CACHE);
         cache.Write(D1_CACHE);
+    }
+
+    void LoadTextureCaches() {
+        if (filesystem::exists(D1_CACHE))
+            D1TextureCache = TextureMapCache(D1_CACHE, 1800);
+        //D2TextureCache = TextureMapCache::Read(D2_CACHE, 2700);
     }
 }
