@@ -139,6 +139,7 @@ namespace Inferno {
             bool Scale = false;
             bool MaterialEditor = false;
             bool Debug = false;
+            bool Bloom = false;
         } Windows;
 
         bool ShowWireframe = false;

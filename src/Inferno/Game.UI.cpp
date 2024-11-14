@@ -933,25 +933,12 @@ namespace Inferno::UI {
         void OnDraw() override {
             {
                 // Background
-                // todo: it'd be nice to have a blur effect
                 Render::CanvasBitmapInfo cbi;
                 cbi.Size = ScreenSize;
-                cbi.Texture = Render::Materials->Black().Handle();
-                cbi.Color = Color(0, 0, 0, 0.90f);
+                cbi.Texture = Render::Adapter->BlurBufferDownsampled.GetSRV();
+                cbi.Color = Color(.6f, .6f, .6f, 1);
                 Render::UICanvas->DrawBitmap(cbi, Layer);
             }
-
-            //{
-            //    // Background 2
-            //    Render::CanvasBitmapInfo cbi;
-            //    cbi.Size = (_menuSize + Vector2(DIALOG_MARGIN * 2, DIALOG_MARGIN * 3)) * GetScale();
-            //    cbi.Texture = Render::Materials->Black().Handle();
-            //    cbi.Color = Color(0, 0, 0, 0.95f);
-            //    cbi.Position = Vector2(0, _topOffset - DIALOG_MARGIN) * GetScale();
-            //    cbi.VerticalAlign = AlignV::Top;
-            //    cbi.HorizontalAlign = AlignH::Center;
-            //    Render::UICanvas->DrawBitmap(cbi, Layer);
-            //}
 
             ScreenBase::OnDraw();
         }

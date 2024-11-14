@@ -102,6 +102,9 @@ namespace Inferno {
         Inferno::RenderTarget SceneColorBuffer, SceneColorBufferMsaa;
         Inferno::DepthBuffer SceneDepthBuffer, SceneDepthBufferMsaa;
 
+        Inferno::RenderTarget BlurBufferTemp;
+        Inferno::ColorBuffer BlurBufferDownsampled, BlurBuffer;
+
         Inferno::RenderTarget BriefingColorBuffer;
         Inferno::RenderTarget BriefingScanlineBuffer;
 

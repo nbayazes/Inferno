@@ -45,6 +45,15 @@ namespace Inferno::PostFx {
         void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, PixelBuffer& dest) const;
     };
 
+    class DownsampleCS : public ComputeShader {
+        enum RootSig { B0_Constants, U0_Result, T0_Bloom };
+
+    public:
+        DownsampleCS() : ComputeShader(8, 8) {}
+
+        void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, PixelBuffer& dest) const;
+    };
+
     class BlurCS : public ComputeShader {
         enum RootSig { U0_Result, T0_Source };
 
@@ -119,6 +128,8 @@ namespace Inferno::PostFx {
         Texture3D TonyMcMapFace;
         Texture2D Dirt;
         UnpackPostBuffer UnpackPost;
+
+        DownsampleCS Downsample;
 
         void Create(UINT width, UINT height, UINT scale = 3);
 

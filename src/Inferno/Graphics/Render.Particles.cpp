@@ -875,7 +875,7 @@ namespace Inferno::Render {
         light.pos = Position;
         Graphics::Lights.AddLight(light);
 
-        if (Game::GetState() == GameState::Editor || Info.SpriteMult <= 0)
+        if (Game::GetState() == GameState::Editor || Game::GetState() == GameState::PauseMenu || Info.SpriteMult <= 0)
             return;
 
         ScanNearbySegments(Game::Level, Segment, Position, lightRadius, [&light, mult = Info.SpriteMult](const Inferno::Segment& seg) {

@@ -21,6 +21,12 @@ namespace Inferno {
             : _numThreadsX(numThreadsX), _numThreadsY(numThreadsY) {}
 
         void Load(const filesystem::path& file, const wstring& entryPoint = L"main") {
+            if (!std::filesystem::exists(file)) {
+                auto msg = fmt::format("Shader {} not found", file.string());
+                SPDLOG_ERROR(msg);
+                throw std::exception(msg.c_str()); // never initialized, crash
+            }
+
             try {
                 LoadComputeShader(file, _rootSignature, _pso, entryPoint);
             }
@@ -33,6 +39,7 @@ namespace Inferno {
             }
         }
 
+    protected:
         void Dispatch2D(ID3D12GraphicsCommandList* commandList, UINT width, UINT height) const {
             auto threadGroupsX = AlignedCeil(width, _numThreadsX);
             auto threadGroupsY = AlignedCeil(height, _numThreadsY);

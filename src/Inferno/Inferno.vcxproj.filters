@@ -328,5 +328,6 @@
     <None Include="shaders\Asteroid.hlsl" />
     <None Include="shaders\ObjectVertex.hlsli" />
     <None Include="shaders\MenuSun.hlsl" />
+    <None Include="shaders\DownsampleCS.hlsl" />
   </ItemGroup>
 </Project>

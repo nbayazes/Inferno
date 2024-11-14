@@ -508,14 +508,11 @@ namespace Inferno {
     void OpenAutomap() {
         Game::Automap.Update(Game::Level);
 
-        Sound::PauseSounds();
-        Sound::GetVolume();
         Input::SetMouseMode(Input::MouseMode::Mouselook);
         ResetAutomapCamera(true);
     }
 
     void CloseAutomap() {
-        Sound::ResumeSounds();
         Input::SetMouseMode(Input::MouseMode::Mouselook);
     }
 

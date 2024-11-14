@@ -83,6 +83,27 @@ namespace Inferno::PostFx {
         Dispatch2D(commandList, source);
     }
 
+    void DownsampleCS::Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, PixelBuffer& dest) const {
+        source.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+        dest.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+        auto xratio = (float)source.GetWidth() / dest.GetWidth();
+        auto yratio = (float)source.GetHeight() / dest.GetHeight();
+
+        DirectX::XMFLOAT2 constants = {
+            1.0f / (float)source.GetWidth() * sqrt(xratio),
+            1.0f / (float)source.GetHeight() * sqrt(yratio)
+        };
+
+        commandList->SetComputeRootSignature(_rootSignature.Get());
+        commandList->SetComputeRoot32BitConstants(B0_Constants, sizeof(constants) / 4, &constants, 0);
+        commandList->SetComputeRootDescriptorTable(U0_Result, dest.GetUAV());
+        commandList->SetComputeRootDescriptorTable(T0_Bloom, source.GetSRV());
+        commandList->SetPipelineState(_pso.Get());
+
+        Dispatch2D(commandList, source);
+    }
+
     void BlurCS::Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, PixelBuffer& dest) const {
         source.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
         dest.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
@@ -254,6 +275,7 @@ namespace Inferno::PostFx {
     void ToneMapping::ReloadShaders() {
         BloomExtractDownsample.Load(L"shaders/BloomExtractDownsampleCS.hlsl");
         DownsampleBloom.Load(L"shaders/DownsampleBloomCS.hlsl");
+        Downsample.Load(L"shaders/DownsampleCS.hlsl");
         Upsample.Load(L"shaders/UpsampleAndBlurCS.hlsl");
         if (Render::Adapter->TypedUAVLoadSupport_R11G11B10_FLOAT())
             ToneMap.Load(L"shaders/ToneMapCS.hlsl");

@@ -625,6 +625,17 @@ namespace Inferno {
         DistortionBuffer.AddShaderResourceView();
         SceneDepthBuffer.Create(L"Scene depth buffer", width, height, m_depthBufferFormat, 1);
 
+        BlurBufferTemp.Create(L"Temporary blur buffer", width, height, IntermediateFormat, clearColor, 1);
+        BlurBufferTemp.AddUnorderedAccessView();
+
+        BlurBufferDownsampled.Create(L"Blur buffer downsampled", width / 4, height / 4, IntermediateFormat, 1);
+        BlurBufferDownsampled.AddUnorderedAccessView();
+        BlurBufferDownsampled.AddShaderResourceView();
+
+        BlurBuffer.Create(L"Blur buffer", width / 4, height / 4, IntermediateFormat, 1);
+        BlurBuffer.AddUnorderedAccessView();
+        BlurBuffer.AddShaderResourceView();
+
         // Double the briefing resolution so that downsampling at low resolution looks better
         uint briefingWidth = 640 * 2;
         uint briefingHeight = 480 * 2;

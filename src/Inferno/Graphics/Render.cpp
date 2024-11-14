@@ -439,7 +439,7 @@ namespace Inferno::Render {
         auto size = camera.GetViewportSize();
 
         FrameConstants frameConstants{};
-        frameConstants.ElapsedTime = Game::GetState() == GameState::MainMenu ? Inferno::Clock.GetTotalTimeSeconds() : (float)Game::Time;
+        frameConstants.ElapsedTime = Game::GetState() == GameState::MainMenu ? (float)Inferno::Clock.GetTotalTimeSeconds() : (float)Game::Time;
         frameConstants.ViewProjection = camera.ViewProjection;
         frameConstants.NearClip = camera.GetNearClip();
         frameConstants.FarClip = camera.GetFarClip();
@@ -702,6 +702,24 @@ namespace Inferno::Render {
         if (((Game::GetState() == GameState::Game || Game::GetState() == GameState::PauseMenu) && !Game::Player.IsDead) ||
             Game::GetState() == GameState::MainMenu)
             DrawHud(ctx);
+
+        if (Game::GetState() == GameState::PauseMenu) {
+            if (Settings::Graphics.MsaaSamples > 1) {
+                Adapter->BlurBufferTemp.ResolveFromMultisample(cmdList, Adapter->SceneColorBufferMsaa);
+                Adapter->SceneColorBufferMsaa.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+            }
+            else {
+                Adapter->BlurBufferTemp.CopyFrom(cmdList, Adapter->SceneColorBuffer);
+                Adapter->SceneColorBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+            }
+
+            Render::ToneMapping->Downsample.Execute(cmdList, Adapter->BlurBufferTemp, Adapter->BlurBufferDownsampled);
+            Render::ToneMapping->Blur.Execute(cmdList, Adapter->BlurBufferDownsampled, Adapter->BlurBuffer);
+            Render::ToneMapping->Blur.Execute(cmdList, Adapter->BlurBuffer, Adapter->BlurBufferDownsampled);
+
+            Adapter->BlurBufferDownsampled.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            Adapter->BlurBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        }
 
         UICanvas->Render(ctx);
 

@@ -7,7 +7,7 @@
 namespace Inferno::Editor {
     class BloomWindow : public WindowBase {
     public:
-        BloomWindow() : WindowBase("Bloom") {}
+        BloomWindow() : WindowBase("Bloom", &Settings::Editor.Windows.Bloom) {}
 
     protected:
         void OnUpdate() override {

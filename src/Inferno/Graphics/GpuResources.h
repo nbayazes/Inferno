@@ -80,6 +80,12 @@ namespace Inferno {
             cmdList->CopyResource(dest.Get(), _resource.Get());
         }
 
+        void CopyFrom(ID3D12GraphicsCommandList* cmdList, GpuResource& src) {
+            Transition(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+            src.Transition(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
+            cmdList->CopyResource(Get(), src._resource.Get());
+        }
+
         void CreateOnUploadHeap(wstring_view name, const D3D12_CLEAR_VALUE* clearValue = nullptr) {
             Create(D3D12_HEAP_TYPE_UPLOAD, name, clearValue);
         }
@@ -774,11 +780,6 @@ namespace Inferno {
             _srvDesc.Texture2D.MostDetailedMip = 0;
             _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
             //AddShaderResourceView(&srvDesc);
-        }
-
-        void Clear(ID3D12GraphicsCommandList* cmdList) const {
-            DirectX::TransitionResource(cmdList, Get(), D3D12_RESOURCE_STATE_RESOLVE_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
-            cmdList->ClearRenderTargetView(_rtv.GetCpuHandle(), ClearColor, 0, nullptr);
         }
     };
 

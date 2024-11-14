@@ -406,11 +406,13 @@ namespace Inferno::Game {
 
             case GameState::Automap:
                 Sound::SetMusicVolume(Settings::Inferno.MusicVolume * 0.33f);
+                Sound::PauseSounds();
                 OpenAutomap();
                 break;
 
             case GameState::Game:
                 Input::ResetState(); // Reset so clicking a menu doesn't fire
+                Sound::ResumeSounds();
 
                 if (State == GameState::Briefing) {
                     //Game::CheckLoadLevel();
@@ -445,6 +447,7 @@ namespace Inferno::Game {
 
             case GameState::PauseMenu:
                 if (State == GameState::PauseMenu) return;
+                Sound::PauseSounds();
                 Sound::SetMusicVolume(Settings::Inferno.MusicVolume * 0.33f);
                 Input::SetMouseMode(Input::MouseMode::Normal);
                 Input::ResetState();
