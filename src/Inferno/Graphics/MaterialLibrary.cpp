@@ -369,20 +369,12 @@ namespace Inferno::Render {
                 cache.ReadSpecularMap(*cached, buffer);
                 material.Textures[Material2D::Specular].LoadMipped(batch, buffer.data(), width, height, Convert::ToWideString(material.Name + "_s"), cached->Mips, DXGI_FORMAT_R8_UNORM);
             }
-            else {
-                auto specular = CreateSpecularMap(*upload.Bitmap);
-                material.Textures[Material2D::Specular].Load(batch, specular.data(), width, height, Convert::ToWideString(material.Name + "_s"), true, DXGI_FORMAT_R8_UNORM);
-            }
         }
 
         if (!material.Textures[Material2D::Normal] && !upload.Bitmap->Data.empty()) {
             if (cached && cached->NormalLength) {
                 cache.ReadNormalMap(*cached, buffer);
                 material.Textures[Material2D::Normal].Load(batch, buffer.data(), width, height, Convert::ToWideString(material.Name + "_n"), true, DXGI_FORMAT_R8G8B8A8_UNORM);
-            }
-            else {
-                auto normal = CreateNormalMap(*upload.Bitmap);
-                material.Textures[Material2D::Normal].Load(batch, normal.data(), width, height, Convert::ToWideString(material.Name + "_n"), true, DXGI_FORMAT_R8G8B8A8_UNORM);
             }
         }
 
