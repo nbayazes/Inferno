@@ -145,7 +145,7 @@ namespace Inferno::PostFx {
             Exposure,
             (HlslBool)Settings::Graphics.NewLightMode,
             Settings::Graphics.ToneMapper,
-            (HlslBool)(dirt && (Game::GetState() == GameState::Game || Game::GetState() == GameState::GameMenu)),
+            (HlslBool)(dirt && (Game::GetState() == GameState::Game || Game::GetState() == GameState::PauseMenu)),
             (HlslBool)Settings::Graphics.EnableBloom
         };
 

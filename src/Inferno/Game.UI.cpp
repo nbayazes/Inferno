@@ -42,8 +42,11 @@ namespace Inferno::UI {
             ControlBase::OnUpdate(); // breaks main menu selection
         }
 
-        // Called when a top level screen is closed. Returns true if it should close.
+        // Called when a top level screen tries to close. Return true if it should close.
         virtual bool OnTryClose() { return false; }
+
+        // Called when a screen is closed.
+        virtual void OnClose() {}
 
         void OnConfirm() {
             if (Selection && Selection->ClickAction) {
@@ -358,6 +361,7 @@ namespace Inferno::UI {
 
         auto& screen = Screens.back();
         SPDLOG_INFO("Closing screen {:x}", (int64)screen.get());
+        screen->OnClose();
         if (screen->CloseCallback) screen->CloseCallback(screen->State);
         Seq::remove(Screens, screen); // Remove the  original screen because the callback might open a new one
         Input::ResetState(); // Clear state so clicking doesn't immediately trigger another action
@@ -366,14 +370,16 @@ namespace Inferno::UI {
 
     class DialogBase : public ScreenBase {
     public:
-        DialogBase(string_view title = "") {
+        DialogBase(string_view title = "", bool showCloseButton = true) {
             HorizontalAlignment = AlignH::Center;
             VerticalAlignment = AlignV::Center;
 
-            auto close = make_unique<CloseButton>([this] { OnDialogClose(); });
-            close->HorizontalAlignment = AlignH::Right;
-            close->Margin = Vector2(DIALOG_MARGIN, DIALOG_MARGIN);
-            AddChild(std::move(close));
+            if (showCloseButton) {
+                auto close = make_unique<CloseButton>([this] { OnDialogClose(); });
+                close->HorizontalAlignment = AlignH::Right;
+                close->Margin = Vector2(DIALOG_MARGIN, DIALOG_MARGIN);
+                AddChild(std::move(close));
+            }
 
             if (!title.empty()) {
                 auto titleLabel = make_unique<Label>(title, FontSize::MediumBlue);
@@ -522,6 +528,50 @@ namespace Inferno::UI {
         void OnPick(DifficultyLevel difficulty) {
             *_value = difficulty;
             State = CloseState::Accept;
+        }
+    };
+
+    class ConfirmDialog : public DialogBase {
+        gsl::strict_not_null<bool*> _result;
+
+    public:
+        ConfirmDialog(string_view message, bool& result) : DialogBase("", false), _result(&result) {
+            auto label = make_unique<Label>(message, FontSize::MediumBlue);
+            label->HorizontalAlignment = AlignH::Center;
+            label->Position = Vector2(0, DIALOG_MARGIN);
+
+            Size = MeasureString(message, FontSize::Medium);
+            Size.x += DIALOG_MARGIN * 2 + 20;
+            Size.y = Size.y * 2 + DIALOG_MARGIN * 2 + 10;
+
+            auto yesButton = make_unique<Button>("yes");
+            yesButton->VerticalAlignment = AlignV::Bottom;
+            yesButton->HorizontalAlignment = AlignH::Center;
+            yesButton->Position = Vector2(-50, -DIALOG_MARGIN);
+            yesButton->ClickAction = [this] { State = CloseState::Accept; };
+
+            auto noButton = make_unique<Button>("no");
+            noButton->VerticalAlignment = AlignV::Bottom;
+            noButton->HorizontalAlignment = AlignH::Center;
+            noButton->Position = Vector2(50, -DIALOG_MARGIN);
+            noButton->ActionSound = "";
+            noButton->ClickAction = [this] { State = CloseState::Cancel; };
+
+            AddChild(std::move(label));
+            AddChild(std::move(yesButton));
+            AddChild(std::move(noButton));
+        }
+
+        void OnUpdate() override {
+            DialogBase::OnUpdate();
+
+            if (Input::IsKeyPressed(Keys::Left)) OnUpArrow();
+            if (Input::IsKeyPressed(Keys::Right)) OnDownArrow();
+        }
+
+        bool OnTryClose() override {
+            Game::SetState(GameState::Game);
+            return true; // Allow closing this dialog with escape
         }
     };
 
@@ -836,36 +886,43 @@ namespace Inferno::UI {
         }
     }
 
-    class ConfirmDialog : public DialogBase {
+    class PauseMenu : public DialogBase {
+        bool _quitConfirm = false;
+        float _topOffset = 150;
+        Vector2 _menuSize;
     public:
-        ConfirmDialog() {}
-    };
-
-    class PauseDialog : public DialogBase {
-    public:
-        PauseDialog() {
+        PauseMenu() : DialogBase("", false) {
             CloseOnConfirm = false;
 
             auto panel = make_unique<StackPanel>();
-            panel->Position = Vector2(0, 60);
+            panel->Position = Vector2(0, _topOffset);
             panel->HorizontalAlignment = AlignH::Center;
             panel->VerticalAlignment = AlignV::Top;
 
-            //panel->AddChild<Button>("Continue", [] {
-            //    Game::SetState(GameState::Game);
-            //});
-            panel->AddChild<Button>("Save Game");
-            panel->AddChild<Button>("Load Game");
-            panel->AddChild<Button>("Options");
-            panel->AddChild<Button>("Quit", [] {
-                Game::SetState(GameState::MainMenu);
-                // todo: show confirmation?
-            });
+            panel->AddChild<Button>("Continue", [] {
+                Game::SetState(GameState::Game);
+            }, AlignH::Center);
+            panel->AddChild<Button>("Save Game", AlignH::Center);
+            panel->AddChild<Button>("Load Game", AlignH::Center);
+            panel->AddChild<Button>("Options", AlignH::Center);
+            panel->AddChild<Button>("Quit", [this] {
+                auto confirmDialog = make_unique<ConfirmDialog>("are you sure?", _quitConfirm);
+                confirmDialog->CloseCallback = [this](CloseState state) {
+                    if (state == CloseState::Accept)
+                        Game::SetState(GameState::MainMenu);
+                };
 
-            auto size = MeasureString("Load Game", FontSize::Medium);
-            Size = Vector2(size.x + 80, size.y * panel->Children.size() + 40 + panel->Position.y);
+                ShowScreen(std::move(confirmDialog));
+            }, AlignH::Center);
+
+            _menuSize = MeasureString("Load Game", FontSize::Medium);
+            _menuSize.y *= (float)panel->Children.size();
+
+            //auto size = MeasureString("Load Game", FontSize::Medium);
+            //Size = Vector2(size.x + 80, size.y * panel->Children.size() + 40 + panel->Position.y);
 
             AddChild(std::move(panel));
+            Sound::Play2D(SoundResource{ MENU_SELECT_SOUND });
         }
 
         bool OnTryClose() override {
@@ -873,10 +930,36 @@ namespace Inferno::UI {
             return true; // Allow closing this dialog with escape
         }
 
-        void OnDialogClose() override {
-            Game::SetState(GameState::Game);
-            CloseScreen();
+        void OnDraw() override {
+            {
+                // Background
+                // todo: it'd be nice to have a blur effect
+                Render::CanvasBitmapInfo cbi;
+                cbi.Size = ScreenSize;
+                cbi.Texture = Render::Materials->Black().Handle();
+                cbi.Color = Color(0, 0, 0, 0.90f);
+                Render::UICanvas->DrawBitmap(cbi, Layer);
+            }
+
+            //{
+            //    // Background 2
+            //    Render::CanvasBitmapInfo cbi;
+            //    cbi.Size = (_menuSize + Vector2(DIALOG_MARGIN * 2, DIALOG_MARGIN * 3)) * GetScale();
+            //    cbi.Texture = Render::Materials->Black().Handle();
+            //    cbi.Color = Color(0, 0, 0, 0.95f);
+            //    cbi.Position = Vector2(0, _topOffset - DIALOG_MARGIN) * GetScale();
+            //    cbi.VerticalAlign = AlignV::Top;
+            //    cbi.HorizontalAlign = AlignH::Center;
+            //    Render::UICanvas->DrawBitmap(cbi, Layer);
+            //}
+
+            ScreenBase::OnDraw();
         }
+
+        //void OnDialogClose() override {
+        //    Game::SetState(GameState::Game);
+        //    CloseScreen();
+        //}
     };
 
     void ShowMainMenu() {
@@ -894,7 +977,7 @@ namespace Inferno::UI {
         }
 
         Screens.clear();
-        ShowScreen(make_unique<PauseDialog>());
+        ShowScreen(make_unique<PauseMenu>());
     }
 
     void Update() {

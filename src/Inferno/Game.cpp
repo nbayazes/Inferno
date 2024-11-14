@@ -366,6 +366,7 @@ namespace Inferno::Game {
                 Game::MainCamera.Up = Vector3::UnitY;
                 Game::MainCamera.Position = MenuCameraPosition;
                 Game::MainCamera.Target = MenuCameraTarget;
+                Sound::SetMusicVolume(Settings::Inferno.MusicVolume);
                 Game::PlayMusic("d1/descent");
                 UI::ShowMainMenu();
                 break;
@@ -400,17 +401,21 @@ namespace Inferno::Game {
                 ResetEffects();
                 LerpAmount = 1;
                 ResetGlobalLighting();
+                Sound::StopMusic();
                 break;
 
             case GameState::Automap:
+                Sound::SetMusicVolume(Settings::Inferno.MusicVolume * 0.33f);
                 OpenAutomap();
                 break;
 
             case GameState::Game:
+                Input::ResetState(); // Reset so clicking a menu doesn't fire
+
                 if (State == GameState::Briefing) {
                     //Game::CheckLoadLevel();
                 }
-                if (State == GameState::GameMenu) {
+                if (State == GameState::PauseMenu) {
                     Input::SetMouseMode(Input::MouseMode::Mouselook);
                 }
                 else if (State == GameState::PhotoMode) {
@@ -421,6 +426,7 @@ namespace Inferno::Game {
                     CloseAutomap();
                 }
 
+                Sound::SetMusicVolume(Settings::Inferno.MusicVolume);
                 State = RequestedState;
                 UpdateWindowTitle();
                 break;
@@ -437,10 +443,12 @@ namespace Inferno::Game {
                 Input::SetMouseMode(Input::MouseMode::Mouselook);
                 break;
 
-            case GameState::GameMenu:
-                if (State == GameState::GameMenu) return;
+            case GameState::PauseMenu:
+                if (State == GameState::PauseMenu) return;
+                Sound::SetMusicVolume(Settings::Inferno.MusicVolume * 0.33f);
                 Input::SetMouseMode(Input::MouseMode::Normal);
-                State = GameState::GameMenu;
+                Input::ResetState();
+                State = GameState::PauseMenu;
                 UI::ShowPauseDialog();
                 break;
         }
@@ -632,7 +640,7 @@ namespace Inferno::Game {
                 }
 
                 if (Input::IsKeyPressed(Input::Keys::Escape)) {
-                    Game::SetState(GameState::GameMenu);
+                    Game::SetState(GameState::PauseMenu);
                 }
                 else if (Input::IsKeyPressed(Input::Keys::Tab)) {
                     Game::SetState(GameState::Automap);
@@ -672,7 +680,7 @@ namespace Inferno::Game {
                 }
                 break;
 
-            case GameState::GameMenu:
+            case GameState::PauseMenu:
                 UI::Update();
                 break;
 
@@ -745,7 +753,7 @@ namespace Inferno::Game {
 
                 Sound3D s(sound);
                 s.Looped = true;
-                s.Radius = 200;
+                s.Radius = 160;
                 s.Volume = 0.60f;
                 //s.Occlusion = false;
                 Sound::Play(s, side.Center, segid, sid);

@@ -92,7 +92,11 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
         //    break;
 
         case WM_MOVE:
-            if (app) app->OnWindowMoved();
+            if (app) {
+                app->OnWindowMoved();
+                // Redrawing while moving works, but is laggy. Need to limit framerate.
+                //app->Tick(); 
+            }
             break;
 
         case WM_DISPLAYCHANGE:

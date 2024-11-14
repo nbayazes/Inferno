@@ -17,6 +17,7 @@ namespace Inferno::Input {
         HWND Hwnd;
         int RawX, RawY;
         bool MouseRecentlyMoved = false;
+        DirectX::SimpleMath::Vector2 PrevMousePosition;
 
         MouseMode ActualMouseMode{}, RequestedMouseMode{};
         int WheelDelta;
@@ -405,7 +406,11 @@ namespace Inferno::Input {
         // All mouse messages provide a new pointer position
         MousePosition.x = static_cast<short>(LOWORD(lParam)); // GET_X_LPARAM(lParam);
         MousePosition.y = static_cast<short>(HIWORD(lParam)); // GET_Y_LPARAM(lParam);
-        Input::QueueEvent(EventType::MouseMoved);
+
+        if (MousePosition != PrevMousePosition)
+            Input::QueueEvent(EventType::MouseMoved);
+
+        PrevMousePosition = MousePosition;
     }
 
     void ProcessMessage(UINT message, WPARAM wParam, LPARAM lParam) {

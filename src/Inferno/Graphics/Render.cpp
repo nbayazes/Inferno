@@ -699,7 +699,7 @@ namespace Inferno::Render {
 
         Debug::EndFrame(ctx);
 
-        if (((Game::GetState() == GameState::Game || Game::GetState() == GameState::GameMenu) && !Game::Player.IsDead) ||
+        if (((Game::GetState() == GameState::Game || Game::GetState() == GameState::PauseMenu) && !Game::Player.IsDead) ||
             Game::GetState() == GameState::MainMenu)
             DrawHud(ctx);
 

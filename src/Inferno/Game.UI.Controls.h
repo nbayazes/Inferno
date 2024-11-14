@@ -163,49 +163,6 @@ namespace Inferno {
             bool SelectPrev = false; // Select the previous control
         };
 
-        SelectionState SelectPrevious(ControlBase* current) const {
-            int index = -1;
-
-            for (int i = 0; i < Children.size(); i++) {
-                if (Children[i].get() == current) {
-                    index = i;
-                    break;
-                }
-            }
-
-            if (index >= 0) {
-                // The current control a child of this control
-                index--;
-
-                // todo: iterate again if not focusable
-                //if(!Children[*index]->Focusable) {
-                //}
-
-                if (Seq::inRange(Children, index)) {
-                    // todo: what if this item has children?
-                    return { Children[index].get() };
-                }
-                else {
-                    return { .SelectPrev = true };
-                }
-            }
-            else {
-                // Check children
-                for (auto& child : Children) {
-                    SelectionState state = child->SelectPrevious(current);
-
-                    // check wrap around
-                    if (state.SelectPrev)
-                        return { Children.back()->SelectLast() };
-
-                    if (state.Selection)
-                        return state;
-                }
-            }
-
-            return { nullptr };
-        }
-
         // Populates a list containing all keyboard selectable controls
         void FlattenSelectionTree(List<ControlBase*>& controls) const {
             for (auto& child : Children) {
@@ -214,56 +171,6 @@ namespace Inferno {
 
                 child->FlattenSelectionTree(controls);
             }
-        }
-
-        SelectionState SelectNext(ControlBase* current) const {
-            int index = -1;
-
-            for (size_t i = 0; i < Children.size(); i++) {
-                if (Children[i].get() == current) {
-                    index = (int)i;
-                    break;
-                }
-            }
-
-            if (index >= 0) {
-                // The current control a child of this control
-                index++;
-
-                // todo: iterate again if not focusable
-                //if(!Children[*index]->Focusable) {
-                //}
-                if (Seq::inRange(Children, index)) {
-                    // todo: what if this item has children?
-                    return { Children[index].get() };
-                }
-                else {
-                    return { .SelectNext = true };
-                }
-            }
-            else {
-                SelectionState state;
-
-                // Check children
-                for (auto& child : Children) {
-                    // Previous iteration indicates this should be selected
-                    if (state.SelectNext) {
-                        return { child->SelectFirst() };
-                    }
-
-                    state = child->SelectNext(current);
-
-                    if (state.Selection)
-                        return state;
-                }
-
-                // wrap around
-                if (state.SelectNext) {
-                    return { Children.front()->SelectFirst() };
-                }
-            }
-
-            return { nullptr };
         }
 
         Vector2 GetScreenPosition;
@@ -359,7 +266,7 @@ namespace Inferno {
             AddChild(make_unique<Rectangle>());
             Padding = Vector2(2, 2);
             ClickAction = [this] {
-                if(ClickItemAction) ClickItemAction(_index);
+                if (ClickItemAction) ClickItemAction(_index);
             };
         }
 
@@ -486,20 +393,22 @@ namespace Inferno {
 
     class Button : public ControlBase {
         string _text;
+        AlignH _alignment;
+        Vector2 _textSize;
 
     public:
         Color TextColor = Color(1, 1, 1);
         Color FocusColor = FOCUS_COLOR;
 
-        Button(string_view text) : _text(text) {
-            Size = MeasureString(_text, FontSize::Medium);
+        Button(string_view text, AlignH alignment = AlignH::Left) : _text(text), _alignment(alignment) {
+            _textSize = Size = MeasureString(_text, FontSize::Medium);
             Selectable = true;
             Padding = Vector2{ 2, 2 };
         }
 
-        Button(string_view text, Action&& action) : _text(text) {
+        Button(string_view text, Action&& action, AlignH alignment = AlignH::Left) : _text(text), _alignment(alignment) {
             ClickAction = action;
-            Size = MeasureString(_text, FontSize::Medium);
+            _textSize = Size = MeasureString(_text, FontSize::Medium);
             Padding = Vector2{ 2, 2 };
         }
 
@@ -508,6 +417,14 @@ namespace Inferno {
             dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
             dti.Color = Focused /*|| Hovered*/ ? FocusColor : TextColor;
             dti.Position = ScreenPosition / GetScale() + Padding;
+
+            if (_alignment == AlignH::Center) {
+                dti.Position.x += Size.x / 2 - _textSize.x / 2;
+            }
+            else if (_alignment == AlignH::Right) {
+                dti.Position.x += Size.x - _textSize.x;
+            }
+
             Render::UICanvas->DrawText(_text, dti, Layer);
         }
     };

@@ -510,14 +510,12 @@ namespace Inferno {
 
         Sound::PauseSounds();
         Sound::GetVolume();
-        Sound::SetMusicVolume(Settings::Inferno.MusicVolume * 0.33f);
         Input::SetMouseMode(Input::MouseMode::Mouselook);
         ResetAutomapCamera(true);
     }
 
     void CloseAutomap() {
         Sound::ResumeSounds();
-        Sound::SetMusicVolume(Settings::Inferno.MusicVolume);
         Input::SetMouseMode(Input::MouseMode::Mouselook);
     }
 

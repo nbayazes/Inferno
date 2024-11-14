@@ -26,7 +26,7 @@ namespace Inferno {
         Automap,
         Briefing, // Showing a briefing before a level
         MainMenu, // The title menu
-        GameMenu, // In-game menu
+        PauseMenu, // In-game menu
         Editor
     };
 
