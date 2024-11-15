@@ -116,7 +116,8 @@ namespace Inferno::Game {
             "tracer",
             "Lightning",
             "Lightning3",
-            "noise"
+            "noise",
+            "menu-bg"
         };
 
         Graphics::LoadTextures(customHudTextures);

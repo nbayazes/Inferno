@@ -936,7 +936,21 @@ namespace Inferno::UI {
                 Render::CanvasBitmapInfo cbi;
                 cbi.Size = ScreenSize;
                 cbi.Texture = Render::Adapter->BlurBufferDownsampled.GetSRV();
-                cbi.Color = Color(.6f, .6f, .6f, 1);
+                cbi.Color = Color(.5f, .5f, .5f, 1);
+                Render::UICanvas->DrawBitmap(cbi, Layer);
+            }
+
+            {
+                // Text Background
+                auto& material = Render::Materials->Get("menu-bg");
+
+                Render::CanvasBitmapInfo cbi;
+                cbi.Position.y = (_topOffset - 40) * GetScale();
+                cbi.Size = Vector2(400, _menuSize.y + 80) * GetScale();
+                cbi.Texture = material.Handle();
+                cbi.Color = Color(1, 1, 1, 0.70f);
+                cbi.HorizontalAlign = AlignH::Center;
+                cbi.VerticalAlign = AlignV::Top;
                 Render::UICanvas->DrawBitmap(cbi, Layer);
             }
 
