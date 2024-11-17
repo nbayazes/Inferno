@@ -147,6 +147,11 @@ namespace Inferno::Editor {
             .Name = "Go to Object"
         };
 
+        Command GotoWall{
+            .Action = [] { Events::ShowDialog(DialogType::GotoWall); },
+            .Name = "Go to Wall"
+        };
+
         Command HideMarks{ .Action = [] {}, .Name = "Hide Marks" };
         Command HoldMouselook{ .Action = [] {}, .Name = "Hold Mouselook" };
     }
@@ -193,6 +198,7 @@ namespace Inferno::Editor {
             case EditorAction::ShowMissionEditor: return Commands::OpenMissionEditor;
             case EditorAction::ShowGotoSegment: return Commands::GotoSegment;
             case EditorAction::ShowGotoObject: return Commands::GotoObject;
+            case EditorAction::ShowGotoWall: return Commands::GotoWall;
             case EditorAction::AlignMarked: return Commands::AlignMarked;
             case EditorAction::ResetUVs: return Commands::ResetUVs;
             case EditorAction::FitUVs: return Commands::FitUVs;
@@ -302,37 +308,37 @@ namespace Inferno::Editor::Bindings {
 
     void LoadDefaults() {
         auto& bindings = Default;
-        bindings.Add({ EditorAction::PointMode, Keys::D1 });
-        bindings.Add({ EditorAction::EdgeMode, Keys::D2 });
-        bindings.Add({ EditorAction::SideMode, Keys::D3 });
-        bindings.Add({ EditorAction::SegmentMode, Keys::D4 });
-        bindings.Add({ EditorAction::ObjectMode, Keys::D5 });
-        bindings.Add({ EditorAction::ToggleWallMode, Keys::D6 });
-        bindings.Add({ EditorAction::ToggleTextureMode, Keys::D7 });
-        bindings.Add({ EditorAction::NextItem, Keys::Right });
-        bindings.Add({ EditorAction::PreviousItem, Keys::Left });
-        bindings.Add({ EditorAction::SelectLinked, Keys::Tab });
-        bindings.Add({ EditorAction::SegmentForward, Keys::Up });
-        bindings.Add({ EditorAction::SelectLinked, Keys::Up, true });
-        bindings.Add({ EditorAction::SegmentBack, Keys::Down });
-        bindings.Add({ EditorAction::Delete, Keys::Delete });
-        bindings.Add({ EditorAction::Delete, Keys::Back });
-        bindings.Add({ EditorAction::Insert, Keys::Insert });
-        bindings.Add({ EditorAction::ClearSelection, Keys::Escape });
+        bindings.Add({ .Action = EditorAction::PointMode, .Key = Keys::D1 });
+        bindings.Add({ .Action = EditorAction::EdgeMode, .Key = Keys::D2 });
+        bindings.Add({ .Action = EditorAction::SideMode, .Key = Keys::D3 });
+        bindings.Add({ .Action = EditorAction::SegmentMode, .Key = Keys::D4 });
+        bindings.Add({ .Action = EditorAction::ObjectMode, .Key = Keys::D5 });
+        bindings.Add({ .Action = EditorAction::ToggleWallMode, .Key = Keys::D6 });
+        bindings.Add({ .Action = EditorAction::ToggleTextureMode, .Key = Keys::D7 });
+        bindings.Add({ .Action = EditorAction::NextItem, .Key = Keys::Right });
+        bindings.Add({ .Action = EditorAction::PreviousItem, .Key = Keys::Left });
+        bindings.Add({ .Action = EditorAction::SelectLinked, .Key = Keys::Tab });
+        bindings.Add({ .Action = EditorAction::SegmentForward, .Key = Keys::Up });
+        bindings.Add({ .Action = EditorAction::SelectLinked, .Key = Keys::Up, .Shift = true });
+        bindings.Add({ .Action = EditorAction::SegmentBack, .Key = Keys::Down });
+        bindings.Add({ .Action = EditorAction::Delete, .Key = Keys::Delete });
+        bindings.Add({ .Action = EditorAction::Delete, .Key = Keys::Back });
+        bindings.Add({ .Action = EditorAction::Insert, .Key = Keys::Insert });
+        bindings.Add({ .Action = EditorAction::ClearSelection, .Key = Keys::Escape });
 
         bindings.Add({ .Action = EditorAction::FocusSelection, .Key = Keys::F });
         bindings.Add({ .Action = EditorAction::AlignViewToFace, .Key = Keys::F, .Shift = true });
 
-        bindings.Add({ EditorAction::CameraForward, Keys::W });
-        bindings.Add({ EditorAction::CameraBack, Keys::S });
-        bindings.Add({ EditorAction::CameraLeft, Keys::A });
-        bindings.Add({ EditorAction::CameraRight, Keys::D });
-        bindings.Add({ EditorAction::CameraUp, Keys::E });
-        bindings.Add({ EditorAction::CameraDown, Keys::Q });
+        bindings.Add({ .Action = EditorAction::CameraForward, .Key = Keys::W });
+        bindings.Add({ .Action = EditorAction::CameraBack, .Key = Keys::S });
+        bindings.Add({ .Action = EditorAction::CameraLeft, .Key = Keys::A });
+        bindings.Add({ .Action = EditorAction::CameraRight, .Key = Keys::D });
+        bindings.Add({ .Action = EditorAction::CameraUp, .Key = Keys::E });
+        bindings.Add({ .Action = EditorAction::CameraDown, .Key = Keys::Q });
         bindings.Add({ .Action = EditorAction::CameraRollLeft, .Key = Keys::Q, .Shift = true });
         bindings.Add({ .Action = EditorAction::CameraRollRight, .Key = Keys::E, .Shift = true });
 
-        bindings.Add({ EditorAction::ToggleMouselook, Keys::Z });
+        bindings.Add({ .Action = EditorAction::ToggleMouselook, .Key = Keys::Z });
 
         bindings.Add({ .Action = EditorAction::Copy, .Key = Keys::C, .Control = true });
         bindings.Add({ .Action = EditorAction::Cut, .Key = Keys::X, .Control = true });
@@ -378,6 +384,7 @@ namespace Inferno::Editor::Bindings {
         bindings.Add({ .Action = EditorAction::ShowMissionEditor, .Key = Keys::M, .Control = true });
         bindings.Add({ .Action = EditorAction::ShowGotoSegment, .Key = Keys::G, .Control = true });
         bindings.Add({ .Action = EditorAction::ShowGotoObject, .Key = Keys::G, .Shift = true, .Control = true });
+        bindings.Add({ .Action = EditorAction::ShowGotoWall, .Key = Keys::G, .Shift = true, .Control = true, .Alt = true });
         bindings.Add({ .Action = EditorAction::HoldMouselook });
         bindings.Add({ .Action = EditorAction::HideMarks, .Key = Keys::OemTilde });
         bindings.Add({ .Action = EditorAction::InsertAlignedSegment, .Key = Keys::Insert, .Control = true });

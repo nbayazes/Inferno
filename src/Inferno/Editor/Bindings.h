@@ -53,6 +53,7 @@ namespace Inferno::Editor {
         ShowMissionEditor,
         ShowGotoSegment,
         ShowGotoObject,
+        ShowGotoWall,
         AlignMarked,
         ResetUVs,
         FitUVs,
@@ -79,11 +80,13 @@ namespace Inferno::Editor {
     };
 
     const Command& GetCommandForAction(EditorAction action);
+
     namespace Commands {
         extern Command NullCommand;
         extern Command ToggleMouselook;
         extern Command GotoSegment;
         extern Command GotoObject;
+        extern Command GotoWall;
     }
 
     struct EditorBinding {
