@@ -308,7 +308,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         float3 specularAmbient = ambient + lighting * 50 /** saturate(1 - emissive)*/;
         specularAmbient *= material.SpecularStrength * material.LightReceived;
 
-        const float AMBIENT_MULT = 0.5;
+        const float AMBIENT_MULT = 0.6;
         lighting += emissive * diffuse.rgb; // emissive
         // also tint emissive by ambient, has the effect of making light glows stronger
         lighting += emissive * diffuse.rgb * ambient * AMBIENT_MULT * material.LightReceived; 

@@ -6,7 +6,7 @@ Lights:
       Radius: 35
       Width: 0.04
       Wrap: 1
-      Color: 0.376, 0.376, 1, 0.5 # cooler
+      Color: 0.5, 0.5, 1, 0.4 # cooler
   
     - ID: 213
       Type: 2
@@ -14,7 +14,7 @@ Lights:
       Width: 0.14
       Height: 0.04
       Radius: 35
-      Color: 0.376, 0.376, 1, 0.5 # cooler
+      Color: 0.5, 0.5, 1, 0.4 # cooler
   
     - ID: 214
       Type: 2
@@ -22,7 +22,7 @@ Lights:
       Width: 0.14
       Height: 0.04
       Radius: 35
-      Color: 0.376, 0.376, 1, 0.5 # cooler
+      Color: 0.5, 0.5, 1, 0.4 # cooler
   
     - ID: 221
       Type: 2
@@ -30,7 +30,7 @@ Lights:
       Width: 0.25
       Height: 0.01
       Radius: 35
-      Color: 0.376, 0.376, 1, 0.5 # cooler
+      Color: 0.5, 0.5, 1, 0.4 # cooler
   
     - ID: 222
       Type: 2
@@ -38,7 +38,7 @@ Lights:
       Width: 0.25
       Height: 0.05
       Radius: 35
-      Color: 0.376, 0.376, 1, 0.5 # cooler
+      Color: 0.5, 0.5, 1, 0.4 # cooler
   
     # Door strips
     - ID: 250 # white
@@ -213,7 +213,7 @@ Lights:
     # lava
     - ID: 333
       Points: []
-      Color: 1.0, 0.25, .05, .25 # Dim by default to prevent oversaturation
+      Color: 1.0, 0.25, .05, .5 # Dim by default to prevent oversaturation
 
     - ID: 356
       Points: []
