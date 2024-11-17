@@ -107,6 +107,7 @@ namespace Inferno {
         Animation AnimationState = {};
 
         Option<NavPoint> TargetPosition; // Last known target position or point of interest. Can have a target position without a target object.
+        Option<NavPoint> LastSeenTargetPosition; // Last time the target was in LOS, used for suppression
         ObjRef Target; // Current thing we're fighting
         ObjRef Ally; // Robot to get help from
 

@@ -114,6 +114,7 @@ namespace Inferno {
         if (SetPathGoal(Game::Level, robot, ai, target, maxDist)) {
             ai.State = AIState::Chase;
             ai.Chase = chase;
+            Chat(robot, "Chase path found");
             return true;
         }
 
@@ -540,7 +541,8 @@ namespace Inferno {
         }
 
         // Fire the weapon
-        Game::FireWeapon(robot, weaponId, gun, &targetDir);
+        Game::FireWeaponInfo info = { .id = weaponId, .gun = gun, .customDir = &targetDir };
+        Game::FireWeapon(robot, info);
 
         if (primary)
             CycleGunpoint(robot, ai, robotInfo);
@@ -1007,7 +1009,7 @@ namespace Inferno {
             return; // Don't allow supressing fire when waiting
 
         if (robotInfo.WeaponType2 != WeaponID::None && ai.FireDelay2 <= 0) {
-            // Check if an ally robot is in the way
+            // Check if an ally robot is in the way and try strafing if it is
             auto sight = HasFiringLineOfSight(robot, 0, ai.TargetPosition->Position, ObjectMask::Robot);
             if (Intersects(sight)) {
                 CircleStrafe(robot, ai, robotInfo);
@@ -1026,18 +1028,22 @@ namespace Inferno {
             }
 
             auto& weapon = Resources::GetWeapon(robotInfo.WeaponType);
+            // Use the last time the target was seen instead of the delayed target tracking used for chasing.
+            auto targetPos = ai.CombatState == AICombatState::BlindFire ? ai.LastSeenTargetPosition->Position : ai.TargetPosition->Position;
 
             if (ai.AnimationState != Animation::Fire && ai.FireDelay < 0.25f) {
-                // Check if an ally robot is in the way
-                auto sight = HasFiringLineOfSight(robot, ai.GunIndex, ai.TargetPosition->Position, ObjectMask::Robot);
-                if (Intersects(sight)) {
-                    CircleStrafe(robot, ai, robotInfo);
-                    CycleGunpoint(robot, ai, robotInfo); // Cycle gun in case a different one isn't blocked
-                    ai.FireDelay = 0.25f + 1 / 8.0f; // Try again in 1/8th of a second
-                    return;
-                }
+                if (ai.CombatState != AICombatState::BlindFire) {
+                    // Check if an ally robot is in the way and try strafing if it is
+                    auto sight = HasFiringLineOfSight(robot, ai.GunIndex, ai.TargetPosition->Position, ObjectMask::Robot);
+                    if (Intersects(sight)) {
+                        CircleStrafe(robot, ai, robotInfo);
+                        CycleGunpoint(robot, ai, robotInfo); // Cycle gun in case a different one isn't blocked
+                        ai.FireDelay = 0.25f + 1 / 8.0f; // Try again in 1/8th of a second
+                        return;
+                    }
+                } 
 
-                auto aimDir = ai.TargetPosition->Position - robot.Position;
+                auto aimDir = targetPos - robot.Position;
                 aimDir.Normalize();
 
                 if (AngleBetweenVectors(aimDir, robot.Rotation.Forward()) <= robotInfo.AimAngle * DegToRad) {
@@ -1057,7 +1063,10 @@ namespace Inferno {
                 //}
 
                 // Fire animation finished, release a projectile
-                FireRobotPrimary(robot, ai, robotInfo, ai.TargetPosition->Position, blind);
+                FireRobotPrimary(robot, ai, robotInfo, targetPos, blind);
+
+                if (Settings::Cheats.ShowPathing)
+                    Graphics::DrawPoint(targetPos, Color(1, 0, 0));
             }
         }
     }
@@ -1294,7 +1303,7 @@ namespace Inferno {
     }
 
     void MakeIdle(AIRuntime& ai) {
-        ai.TargetPosition = {}; // Clear target if robot loses interest.
+        ai.LastSeenTargetPosition = ai.TargetPosition = {}; // Clear target if robot loses interest.
         ai.State = AIState::Idle;
     }
 
@@ -1457,7 +1466,7 @@ namespace Inferno {
     }
 
     // Chooses how to react to the target going out of sight
-    void OnLostLineOfSight(AIRuntime& ai, const Object& robot, const RobotInfo& robotInfo) {
+    void OnLostLineOfSight(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo) {
         if (Game::Difficulty < DifficultyLevel::Hotshot) {
             ai.CombatState = AICombatState::Wait; // Wait on trainee and rookie
             Chat(robot, "Holding position");
@@ -1490,12 +1499,22 @@ namespace Inferno {
 
         // roll the behavior!
         auto roll = Random();
-        if (roll < chaseChance)
+        if (roll < chaseChance) {
+            Chat(robot, "Chasing");
+            robot.NextThinkTime = 0;
             ai.CombatState = AICombatState::Chase;
-        else if (roll < chaseChance + suppressChance)
+        }
+        else if (roll < chaseChance + suppressChance) {
+            Chat(robot, "Suppressing fire!");
+            ai.Awareness = 1; // Reset awareness so robot stays alert for a while
+            ai.BurstShots = 0; // Reset shot counter
+            robot.NextThinkTime = 0;
             ai.CombatState = AICombatState::BlindFire; // Calls the normal firing AI
-        else
+        }
+        else {
+            Chat(robot, "Wait");
             ai.CombatState = AICombatState::Wait;
+        }
     }
 
     void AlertNearby(AIRuntime& ai, const Object& robot, const RobotInfo& robotInfo) {
@@ -1546,10 +1565,10 @@ namespace Inferno {
 
         // Update target location if it is in line of sight and not cloaked
         if ((hasLos && !target.IsCloaked()) || (hasLos && target.IsCloaked() && !target.IsCloakEffective())) {
-            ai.TargetPosition = { target.Segment, target.Position };
+            ai.LastSeenTargetPosition = ai.TargetPosition = { target.Segment, target.Position };
             ai.Awareness = AI_AWARENESS_MAX;
             ai.CombatState = AICombatState::Normal;
-            ai.LostSightDelay = 1.0f; // Let the AI 'cheat' for 1 second after losing direct sight (object permeance?)
+            ai.LostSightDelay = 0.25f; // Let the AI 'cheat' for 1 second after losing direct sight (object permeance?)
 
             // Try to get behind target unless dodging. Maybe make this only happen sometimes?
             if (robotInfo.GetBehind && robot.Control.AI.Behavior != AIBehavior::Still && ai.DodgeTime <= 0)
@@ -1583,14 +1602,9 @@ namespace Inferno {
                 // Chasing a cloaked target does no good, AI just gets confused.
                 // Also don't chase the player ghost
                 if (!target.IsCloaked() && target.Type != ObjectType::Ghost && ai.ChaseTimer <= 0) {
-                    if (Random() < robotInfo.ChaseChance) {
-                        Chat(robot, "Come back here!");
-                        if (!ChaseTarget(ai, robot, *ai.TargetPosition, ChaseMode::StopAtPosition))
-                            ai.ChaseTimer = 5.0f;
-                    }
-                    else {
+                    Chat(robot, "Come back here!");
+                    if (!ChaseTarget(ai, robot, *ai.TargetPosition, ChaseMode::StopAtPosition))
                         ai.ChaseTimer = 5.0f;
-                    }
                 }
             }
 
@@ -1612,7 +1626,7 @@ namespace Inferno {
         }
 
         // Only robots that flee can find help. Limit to hotshot and above.
-        if (robotInfo.FleeThreshold > 0 && 
+        if (robotInfo.FleeThreshold > 0 &&
             robot.Control.AI.Behavior != AIBehavior::Still &&
             Game::Difficulty >= DifficultyLevel::Hotshot) {
             if (!ai.FleeTimer.IsSet()) {
@@ -1844,7 +1858,8 @@ namespace Inferno {
 
             if (ai.FireDelay <= 0) {
                 auto weapon = robot.Control.AI.SmartMineFlag() ? WeaponID::SmartMine : WeaponID::ProxMine;
-                Game::FireWeapon(robot, weapon, 0, nullptr, 1, false);
+                Game::FireWeaponInfo info = { .id = weapon, .gun = 0, .showFlash = false };
+                Game::FireWeapon(robot, info);
                 ai.FireDelay = AI_MINE_LAYER_DELAY;
             }
 
@@ -1936,6 +1951,7 @@ namespace Inferno {
                     // This is so a fleeing player is pursued around corners
                     bool stopOnceVisible = ai.Chase == ChaseMode::StopVisible;
                     PathTowardsGoal(robot, ai, true, stopOnceVisible);
+                    Chat(robot, "Pathing...");
 
                     if (ai.TargetPosition && ai.TargetPosition->Segment == robot.Segment) {
                         // Clear target if pathing towards it discovers the target isn't there.
