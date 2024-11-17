@@ -360,3 +360,6 @@ dxc.exe
 *.ied
 /src/Inferno/data/d1/*.pof
 *.mp3
+*.wav
+/src/Inferno/d1
+/src/Inferno/d2
