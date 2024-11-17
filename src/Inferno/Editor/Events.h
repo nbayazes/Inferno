@@ -23,6 +23,8 @@ namespace Inferno::Editor {
         HogEditor, 
         MissionEditor,
         GotoSegment,
+        GotoObject,
+        GotoWall,
         NewLevel, 
         RenameLevel,
         Settings,

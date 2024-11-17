@@ -24,7 +24,6 @@
 #include "InsetFacesWindow.h"
 
 namespace Inferno::Editor {
-
     class GotoSegmentDialog : public ModalWindowBase {
         int _value = 0;
         int _maxValue = 0;
@@ -32,7 +31,7 @@ namespace Inferno::Editor {
     public:
         GotoSegmentDialog() : ModalWindowBase("Go To Segment") {
             Width = 350;
-        };
+        }
 
     protected:
         bool OnOpen() override {
@@ -57,6 +56,71 @@ namespace Inferno::Editor {
         }
     };
 
+    class GotoObjectDialog : public ModalWindowBase {
+        int _value = 0;
+        int _maxValue = 0;
+
+    public:
+        GotoObjectDialog() : ModalWindowBase("Go To Object") {
+            Width = 350;
+        }
+
+    protected:
+        bool OnOpen() override {
+            _value = (int)Editor::Selection.Object;
+            _maxValue = (int)Game::Level.Objects.size() - 1;
+            return true;
+        }
+
+        void OnUpdate() override {
+            ImGui::Text("Object Number 0 - %i", _maxValue);
+
+            SetInitialFocus();
+            if (ImGui::InputInt("##input", &_value, 0))
+                _value = std::clamp(_value, 0, _maxValue);
+            EndInitialFocus();
+
+            AcceptButtons("OK", "Cancel");
+        }
+
+        void OnAccept() override {
+            Editor::Selection.SetSelection((ObjID)_value);
+        }
+    };
+
+    class GotoWallDialog : public ModalWindowBase {
+        int _value = 0;
+        int _maxValue = 0;
+
+    public:
+        GotoWallDialog() : ModalWindowBase("Go To Wall") {
+            Width = 350;
+        }
+
+    protected:
+        bool OnOpen() override {
+            _value = (int)Editor::Selection.Object;
+            _maxValue = (int)Game::Level.Walls.size() - 1;
+            return true;
+        }
+
+        void OnUpdate() override {
+            ImGui::Text("Wall Number 0 - %i", _maxValue);
+
+            SetInitialFocus();
+            if (ImGui::InputInt("##input", &_value, 0))
+                _value = std::clamp(_value, 0, _maxValue);
+            EndInitialFocus();
+
+            AcceptButtons("OK", "Cancel");
+        }
+
+        void OnAccept() override {
+            if (auto wall = Game::Level.TryGetWall((WallID)_value))
+                Editor::Selection.SetSelection(wall->Tag);
+        }
+    };
+
     class EditorUI {
         StatusBar _statusBar;
         bool _showImguiDemo = false;
@@ -65,12 +129,12 @@ namespace Inferno::Editor {
         List<Ptr<WindowBase>> _windows;
         float _mainMenuHeight = 30;
 
-        template<class TModal>
+        template <class TModal>
         void RegisterDialog(DialogType type) {
             _dialogs[type] = MakePtr<TModal>();
         }
 
-        template<class TWindow>
+        template <class TWindow>
         TWindow* RegisterWindow() {
             auto window = make_unique<TWindow>();
             auto ptr = window.get();
@@ -81,6 +145,8 @@ namespace Inferno::Editor {
     public:
         EditorUI() {
             RegisterDialog<GotoSegmentDialog>(DialogType::GotoSegment);
+            RegisterDialog<GotoObjectDialog>(DialogType::GotoObject);
+            RegisterDialog<GotoWallDialog>(DialogType::GotoWall);
             RegisterDialog<RenameLevelDialog>(DialogType::RenameLevel);
             RegisterDialog<MissionEditor>(DialogType::MissionEditor);
             RegisterDialog<NewLevelDialog>(DialogType::NewLevel);
@@ -120,7 +186,6 @@ namespace Inferno::Editor {
         void DrawMenu();
         void DrawDockspace(const ImGuiViewport* viewport) const;
         ImGuiDockNode* CreateDockLayout(ImGuiID dockspaceId, const ImGuiViewport* viewport) const;
-
     };
 
     inline bool ShowDebugOverlay = false;
