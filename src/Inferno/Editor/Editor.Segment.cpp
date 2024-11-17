@@ -307,8 +307,8 @@ namespace Inferno::Editor {
             List<WallID> walls;
 
             // Remove walls on this seg
-            for (int16 wallId = 0; wallId < level.Walls.size(); wallId++) {
-                if (level.Walls[wallId].Tag.Segment == segId)
+            for (int16 wallId = 0; wallId < level.Walls.Size(); wallId++) {
+                if (level.Walls[static_cast<WallID>(wallId)].Tag.Segment == segId)
                     walls.push_back((WallID)wallId);
             }
 

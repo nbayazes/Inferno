@@ -25,7 +25,7 @@ namespace Inferno::Editor {
             for (auto& side : SideIDs) {
                 if (!includeInvisible) {
                     bool visibleWall = false;
-                    if (auto wall = level.TryGetWall(seg.Sides[(int)side].Wall))
+                    if (auto wall = level.Walls.TryGetWall(seg.Sides[(int)side].Wall))
                         visibleWall = Settings::Editor.EnableWallMode || wall->Type != WallType::FlyThroughTrigger;
 
                     if (seg.SideHasConnection(side) && !visibleWall) continue;
@@ -402,7 +402,7 @@ namespace Inferno::Editor {
     }
 
     void EditorSelection::SelectByWall(WallID id) {
-        if (auto wall = Game::Level.TryGetWall(id)) {
+        if (auto wall = Game::Level.Walls.TryGetWall(id)) {
             Segment = wall->Tag.Segment;
             Side = wall->Tag.Side;
         }
@@ -695,7 +695,7 @@ namespace Inferno::Editor {
     // check if any of the sides with these edges are walls
     bool EdgeHasWall(Level& level, Segment& seg, PointID v0, PointID v1) {
         for (auto& sid : SideIDs) {
-            auto wall = level.TryGetWall(seg.GetSide(sid).Wall);
+            auto wall = level.Walls.TryGetWall(seg.GetSide(sid).Wall);
             if (!wall) continue;
             if (wall->Type == WallType::FlyThroughTrigger) continue;
 
@@ -788,7 +788,7 @@ namespace Inferno::Editor {
         if (!level.SegmentExists(tag)) return false;
         auto [seg, side] = level.GetSegmentAndSide(tag);
 
-        if (auto wall = level.TryGetWall(side.Wall)) {
+        if (auto wall = level.Walls.TryGetWall(side.Wall)) {
             return wall->Type != WallType::FlyThroughTrigger;
         }
 

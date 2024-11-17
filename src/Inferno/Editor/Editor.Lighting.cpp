@@ -219,7 +219,7 @@ namespace Inferno::Editor {
 
         if (side.Wall == WallID::None) return true; // not a wall and this side is open
 
-        auto& wall = level.GetWall(side.Wall);
+        auto& wall = level.Walls[side.Wall];
         if (wall.BlocksLight) return !(*wall.BlocksLight); // User defined
 
         switch (wall.Type) {
@@ -260,7 +260,7 @@ namespace Inferno::Editor {
         auto& side = seg.GetSide(sideId);
         if (side.Wall == WallID::None) return false; // no wall
 
-        auto& wall = level.GetWall(side.Wall);
+        auto& wall = level.Walls[side.Wall];
         switch (wall.Type) {
             case WallType::FlyThroughTrigger:
             case WallType::None:

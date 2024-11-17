@@ -66,7 +66,7 @@ namespace Inferno::Editor {
 
             for (auto& sid : SideIDs) {
                 auto& side = seg.GetSide(sid);
-                if (auto wall = level.TryGetWall(side.Wall)) {
+                if (auto wall = level.Walls.TryGetWall(side.Wall)) {
                     if (wall->Type != WallType::WallTrigger && seg.Connections[(int)sid] == SegID::None) {
                         // Don't copy walls on the boundary of copied segments
                         side.Wall = WallID::None;
@@ -110,7 +110,6 @@ namespace Inferno::Editor {
     // Inserts segments into a level
     List<SegID> InsertSegments(Level& level, SegmentClipboardData copy) {
         auto vertexOffset = (PointID)level.Vertices.size();
-        auto wallOffset = level.Walls.size();
         auto triggerOffset = level.Triggers.size();
         auto segIdOffset = (SegID)level.Segments.size();
         auto matcenOffset = level.Matcens.size();
@@ -127,17 +126,13 @@ namespace Inferno::Editor {
                     conn += segIdOffset;
             }
 
-            newIds.push_back((SegID)level.Segments.size());
+            auto segId = static_cast<SegID>(level.Segments.size());
+            newIds.push_back(segId);
 
             for (auto& side : seg.Sides) {
                 if (Settings::Editor.PasteSegmentWalls) {
                     if (side.Wall != WallID::None) {
-                        auto wallId = (int)side.Wall + wallOffset;
-                        if (wallId >= level.Limits.Walls) {
-                            SPDLOG_WARN("Wall id is out of range!");
-                            break;
-                        }
-                        side.Wall = WallID(wallId);
+                        copy.Walls[static_cast<size_t>(side.Wall)].Tag.Segment = segId;
                     }
                 }
                 else {
@@ -174,12 +169,13 @@ namespace Inferno::Editor {
 
         if (Settings::Editor.PasteSegmentWalls) {
             for (auto& wall : copy.Walls) {
-                if (level.Walls.size() >= level.Limits.Walls) {
+                if (!level.Walls.CanAdd(wall.Type)) {
                     SPDLOG_WARN("Ran out of space for walls!");
                     break;
                 }
 
-                wall.Tag.Segment += segIdOffset;
+                //segment is already correct, but we need to update tag's wall id below
+                //wall.Tag.Segment += segIdOffset;
                 if (wall.Trigger != TriggerID::None) {
                     auto& trigger = copy.Triggers[(int)wall.Trigger];
 
@@ -198,7 +194,10 @@ namespace Inferno::Editor {
                     }
                     wall.Trigger = TriggerID(triggerId);
                 }
-                level.Walls.push_back(std::move(wall));
+                //updating the wall id of the tag
+                auto tag = wall.Tag;
+                auto id = level.Walls.Append(std::move(wall));
+                level.GetSide(tag).Wall = id;
             }
         }
 

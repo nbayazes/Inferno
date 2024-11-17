@@ -3,6 +3,7 @@
 #include "Streams.h"
 #include "Utility.h"
 #include "Pig.h"
+#include "spdlog/spdlog.h"
 
 namespace Inferno {
     void ReadLevelInfo(StreamReader& reader, Level& level) {
@@ -42,10 +43,18 @@ namespace Inferno {
 
         GameDataHeader _deltaLights{}, _deltaLightIndices{};
 
+        // This map is filled while reading sides and maps wallId to all
+        // sides (Tags) that reference it.
+        // Normally this is one to one relation. Now we (may)
+        // allow all closed walls without a trigger to be one wall
+        // referenced by many sides to save WallID's that are limited by 255.
+        // While reading such a file we need to "unpack" shared walls.
+        std::unordered_map<WallID, std::vector<Tag>> wallToTag_;
+
     public:
         LevelReader(span<ubyte> data) : _reader(data) {}
 
-        Level Read() {
+        Level Read(WallsSerialization wallsSerialization) {
             auto sig = (uint)_reader.ReadInt32();
             if (sig != MakeFourCC("LVLP"))
                 throw Exception("File is not a level (bad header)");
@@ -72,9 +81,8 @@ namespace Inferno {
                 _reader.ReadInt32();
             }
 
-            Level level;
-            level.Version = _levelVersion;
-            level.Limits = LevelLimits(_levelVersion);
+            Level level{ _levelVersion, wallsSerialization };
+
             ReadLevelInfo(_reader, level);
             ReadSegments(level);
             ReadGameData(level);
@@ -150,14 +158,17 @@ namespace Inferno {
                 seg.Connections[bit] = bitMask & (1 << bit) ? (SegID)_reader.ReadInt16() : SegID::None;
         }
 
-        void ReadSegmentWalls(Segment& seg) {
+        void ReadSegmentWalls(Segment& seg, SegID id) {
             auto mask = _reader.ReadByte();
 
             for (int i = 0; i < MAX_SIDES; i++) {
                 auto& side = seg.Sides[i];
 
-                if (mask & (1 << i))
+                if (mask & (1 << i)) {
                     side.Wall = WallID(_reader.ReadByte());
+                    ////see the comment for wallToTag_
+                    wallToTag_[side.Wall].emplace_back(id, static_cast<SideID>(i));
+                }
             }
         }
 
@@ -176,6 +187,7 @@ namespace Inferno {
             for (auto& v : level.Vertices)
                 v = _reader.ReadVector();
 
+            size_t segmentId = 0;
             for (auto& seg : level.Segments) {
                 auto bitMask = _reader.ReadByte();
                 bool hasSpecialData = bitMask & (1 << MAX_SIDES);
@@ -200,8 +212,9 @@ namespace Inferno {
                     seg.VolumeLight = Color(light, light, light);
                 }
 
-                ReadSegmentWalls(seg);
+                ReadSegmentWalls(seg, static_cast<SegID>(segmentId));
                 ReadSegmentTextures(seg);
+                ++segmentId;
             }
 
             // D2 retail location for segment special data
@@ -490,7 +503,7 @@ namespace Inferno {
             auto reactorTriggers = ReadHeader();
             auto matcens = ReadHeader();
 
-            level.Walls.resize(walls.Count);
+            //level.Walls.resize(walls.Count);
             level.Triggers.resize(triggers.Count);
             level.Objects.resize(objects.Count);
             level.Matcens.resize(matcens.Count);
@@ -520,8 +533,20 @@ namespace Inferno {
             // Walls
             if (walls.Offset != -1) {
                 _reader.Seek(walls.Offset);
-                for (auto& wall : level.Walls)
-                    wall = ReadWall();
+                for (size_t i=0; i<walls.Count; ++i)
+                    level.Walls.Append(ReadWall());
+                try { 
+                    //see the comment for wallToTag_
+                    if (auto n = level.CreateClosed(wallToTag_)) {
+                        SPDLOG_INFO(std::string("Found shared walls in the file, ") + std::to_string(n) + " re-created");
+                        if (level.Walls.Overfilled())
+                            throw Exception("The file contains too many walls, try activating shared closed walls option");
+                    }
+                }
+                catch (Exception const& e) {
+                    SPDLOG_ERROR(e.what());
+                    throw;
+                }
             }
 
             if (triggers.Offset != -1) {
@@ -529,6 +554,28 @@ namespace Inferno {
                 for (auto& t : level.Triggers)
                     t = ReadTrigger();
             }
+
+            // temporary code to repair the trigger id bug: 
+            // TriggerID::None (255) has been decremented when removing a trigger
+            // leading to many walls having a non-none controlling trigger
+            // that does not exist. If deletion is repeated many times the non-existing
+            // trigger ids could even become existing ids potentially causing
+            // unexpected level behavior
+            for (auto& w : level.Walls) {
+                if ((int)w.ControllingTrigger >= level.Triggers.size())
+                    w.ControllingTrigger = TriggerID::None;
+            }
+            //just in case: check all trigger targets
+            size_t counter = 0;
+            for (auto& t : level.Triggers) {
+                for (auto& tar : t.Targets) {
+                    if (auto w = level.TryGetWall(tar))
+                        w->ControllingTrigger = (TriggerID)counter;
+                }
+                ++counter;
+            }
+            //end of temporary repair
+
 
             // Control center triggers
             if (reactorTriggers.Offset != -1) {
@@ -542,8 +589,8 @@ namespace Inferno {
         }
     };
 
-    Level Level::Deserialize(span<ubyte> data) {
+    Level Level::Deserialize(span<ubyte> data, WallsSerialization serialization) {
         LevelReader reader(data);
-        return reader.Read();
+        return reader.Read(serialization);
     }
 }

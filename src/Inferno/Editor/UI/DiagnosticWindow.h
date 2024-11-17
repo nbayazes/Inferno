@@ -192,7 +192,7 @@ namespace Inferno::Editor {
                     ImGui::Text("%i", _robots);
 
                     ImGui::TableRowLabel("Walls");
-                    ImGui::Text("%i", level.Walls.size());
+                    ImGui::Text("%i (%i)", level.Walls.Size(), level.Walls.ShrinkableSize());
                     ImGui::TableNextColumn();
                     ImGui::Text("%i", level.Limits.Walls);
 

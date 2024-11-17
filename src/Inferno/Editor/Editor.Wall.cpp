@@ -3,13 +3,14 @@
 #include "Editor.Wall.h"
 #include "Graphics/Render.h"
 #include "Editor.Texture.h"
+#include "logging.h"
 
 namespace Inferno::Editor {
     bool FixWallClip(Level& level, Wall& wall) {
-        if (!level.SegmentExists(wall.Tag)) return false;
-        auto& side = level.GetSide(wall.Tag);
-
         if (wall.Type == WallType::Door || wall.Type == WallType::Destroyable) {
+            if (!level.SegmentExists(wall.Tag)) return false;
+            auto& side = level.GetSide(wall.Tag);
+
             // If a clip is selected assign it
             auto id1 = Resources::GetWallClipID(side.TMap);
             if (auto wc = Resources::TryGetWallClip(id1)) {
@@ -51,31 +52,23 @@ namespace Inferno::Editor {
         return id;
     }
 
-    WallID AddWall(Level& level, Tag tag) {
-        if (!level.SegmentExists(tag.Segment)) return WallID::None;
-        auto [seg, side] = level.GetSegmentAndSide(tag);
+    namespace {
+        WallID AddWall(Level& level, Tag tag) {
+            //!: assert(level.Walls.CanAddWall(type)); <- this should be checked in the calling code
 
-        WallID wallId = [&] {
-            // Find an unused wall slot
-            for (int i = 0; i < level.Walls.size(); i++) {
-                auto& wall = level.GetWall(WallID(i));
-                if (wall.Tag.Segment == SegID::None)
-                    return WallID(i);
-            }
+            if (!level.SegmentExists(tag.Segment)) return WallID::None;
+            auto [seg, side] = level.GetSegmentAndSide(tag);
 
-            // Allocate a new wall
-            level.Walls.emplace_back();
-            return WallID(level.Walls.size() - 1);
-        }();
-
-        auto& wall = level.GetWall(wallId);
-        wall.Tag = tag;
-        side.Wall = wallId;
-        return wallId;
-    }
+            Wall wall;
+            wall.Tag = tag;
+            auto id = level.Walls.Append(wall);
+            side.Wall = id;
+            return id;
+        }
+    }//namespace
 
     TriggerID AddTrigger(Level& level, WallID wallId, TriggerType type) {
-        if (auto wall = level.TryGetWall(wallId)) {
+        if (auto wall = level.Walls.TryGetWall(wallId)) {
             wall->Trigger = (TriggerID)level.Triggers.size();
             auto& trigger = level.Triggers.emplace_back();
             trigger.Type = type;
@@ -86,7 +79,7 @@ namespace Inferno::Editor {
     }
 
     TriggerID AddTrigger(Level& level, WallID wallId, TriggerFlagD1 flags) {
-        if (auto wall = level.TryGetWall(wallId)) {
+        if (auto wall = level.Walls.TryGetWall(wallId)) {
             wall->Trigger = (TriggerID)level.Triggers.size();
             auto& trigger = level.Triggers.emplace_back();
             trigger.FlagsD1 = flags;
@@ -104,14 +97,12 @@ namespace Inferno::Editor {
             if (wall.ControllingTrigger == id)
                 wall.ControllingTrigger = TriggerID::None;
 
-            if (wall.ControllingTrigger > id)
-                wall.ControllingTrigger = TriggerID((int)wall.ControllingTrigger - 1);
+            if (wall.ControllingTrigger != TriggerID::None && wall.ControllingTrigger > id)
+                wall.ControllingTrigger--;
 
             if (wall.Trigger == id)
                 wall.Trigger = TriggerID::None;
-        }
 
-        for (auto& wall : level.Walls) {
             if (wall.Trigger != TriggerID::None && wall.Trigger > id)
                 wall.Trigger--;
         }
@@ -133,22 +124,31 @@ namespace Inferno::Editor {
     }
 
     void AddTriggerTarget(Level& level, TriggerID id, Tag target) {
+        auto wall = level.TryGetWall(target);
+        
+        //if the wall was a Closed one and had no controlling trigger
+        //it probably did not count against the max wall count
+        //so we have to check if it is possible to add it back to the wall bookkeeping
+        if (wall && wall->IsSimplyClosed() 
+            && !level.Walls.CanAdd(WallType::WallTrigger)) //WallTrigger is here just as something that is not Closed
+        {
+            SPDLOG_WARN("Can not add wall as target: it will cause the wall amount to exceed {}", level.Limits.Walls);
+            return;
+        }
+
         auto trigger = level.TryGetTrigger(id);
         if (!trigger) return;
         trigger->Targets.Add(target);
 
-        // clear source trigger from wall it was targeting
-        if (auto wall = level.TryGetWall(target)) {
-            if (wall->ControllingTrigger == id)
-                wall->ControllingTrigger = TriggerID::None;
-        }
+        if (wall)
+            wall->ControllingTrigger = id;
     }
 
     bool RemoveWall(Level& level, WallID id) {
         if (id == WallID::None) return false;
 
         {
-            auto wall = level.TryGetWall(id);
+            auto wall = level.Walls.TryGetWall(id);
             if (!wall) return false;
             auto seg = level.TryGetSegment(wall->Tag.Segment);
             if (!seg) return false;
@@ -175,13 +175,19 @@ namespace Inferno::Editor {
             }
         }
 
-        level.Walls.erase(level.Walls.begin() + (int)id);
+        level.Walls.Erase(id);
         Events::LevelChanged();
         return true;
     }
 
     void InitWall(Level& level, Wall& wall, WallType type) {
-        if (wall.Type == type) return;
+        if (wall.Type == type) 
+            return;
+        if (wall.IsSimplyClosed())
+            if (!level.Walls.CanAdd(type)) {
+                SPDLOG_WARN("Can not change the wall type: it will increase walls count over {}", level.Limits.Walls);
+                return;
+            }
 
         if (type == WallType::Destroyable)
             wall.HitPoints = 100;
@@ -206,7 +212,7 @@ namespace Inferno::Editor {
     }
 
     WallID AddWall(Level& level, Tag tag, WallType type, LevelTexID tmap1, LevelTexID tmap2, WallFlag flags) {
-        if (level.Walls.size() + 1 >= (int)WallID::Max) {
+        if (!level.Walls.CanAdd(type)) {
             SetStatusMessageWarn("Cannot have more than {} walls in a level", WallID::Max);
             return WallID::None;
         }
@@ -238,8 +244,8 @@ namespace Inferno::Editor {
             return WallID::None;
         }
 
-        auto& wall = level.GetWall(wallId);
-        wall.Tag = tag;
+        auto& wall = level.Walls[wallId];
+        //wall.Tag = tag;
         wall.Flags = flags;
         InitWall(level, wall, type);
         side.TMap = tmap1;

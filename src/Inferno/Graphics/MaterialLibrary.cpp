@@ -134,7 +134,7 @@ namespace Inferno::Render {
                 }
 
                 // Door clips
-                if (auto wall = level.TryGetWall(side.Wall)) {
+                if (auto wall = level.Walls.TryGetWall(side.Wall)) {
                     auto& wclip = Resources::GetDoorClip(wall->Clip);
                     auto wids = Seq::map(wclip.GetFrames(), Resources::LookupTexID);
                     Seq::insert(ids, wids);

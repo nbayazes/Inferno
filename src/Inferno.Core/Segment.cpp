@@ -6,7 +6,7 @@
 namespace Inferno {
     bool Segment::SideIsSolid(SideID side, Level& level) const {
         if (SideHasConnection(side)) {
-            if (auto wall = level.TryGetWall(Sides[(int)side].Wall))
+            if (auto wall = level.Walls.TryGetWall(Sides[(int)side].Wall))
                 return wall->IsSolid(); // walls might be solid
 
             return false; // open side with no wall

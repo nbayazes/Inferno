@@ -53,7 +53,7 @@ namespace Inferno::Editor {
                 auto& side = level.GetSide(tag);
                 if (side.Wall == WallID::None) continue;
 
-                if (auto wall = level.TryGetWall(side.Wall)) {
+                if (auto wall = level.Walls.TryGetWall(side.Wall)) {
                     if (wall->Tag != tag) {
                         SPDLOG_WARN("Fixing mismatched wall tag on segment {}:{}", (int)tag.Segment, (int)tag.Side);
                         wall->Tag = tag;
@@ -67,8 +67,7 @@ namespace Inferno::Editor {
         }
 
         // Fix VClip 2
-        for (int id = 0; id < level.Walls.size(); id++) {
-            auto& wall = level.GetWall((WallID)id);
+        for (auto&& wall: level.Walls) {
             wall.LinkedWall = WallID::None; // Wall links are only valid during runtime
             if (wall.Clip == WClipID(2)) {
                 // ID 2 is bad and has no animation
@@ -444,7 +443,7 @@ namespace Inferno::Editor {
                         usedWalls.insert(side.Wall);
                     }
 
-                    if (auto wall = level.TryGetWall(side.Wall)) {
+                    if (auto wall = level.Walls.TryGetWall(side.Wall)) {
                         if (usedTriggers.contains(wall->Trigger)) {
                             auto msg = fmt::format("Trigger {} is already in use. Delete trigger on this side and insert a new one.", wall->Trigger);
                             results.push_back({ 0, { segid, sideId }, msg });
