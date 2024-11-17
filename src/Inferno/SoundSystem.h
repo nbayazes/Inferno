@@ -20,6 +20,8 @@ namespace Inferno {
 }
 
 namespace Inferno::Sound {
+    constexpr float SOUND_MERGE_RATIO = 0.1f; // percentage added to existing sounds when merged
+
     void Init(HWND, std::chrono::milliseconds pollRate = std::chrono::milliseconds(4));
 
     void CopySoundIds();
@@ -92,8 +94,14 @@ namespace Inferno::Sound {
 
     void Pause();
     void Resume();
-    float GetVolume();
-    void SetVolume(float volume);
+    //float GetVolume();
+
+    // Volume should be in the range 0.0 to 1.0
+    void SetMasterVolume(float volume);
+
+    // Volume should be in the range 0.0 to 1.0
+    void SetEffectVolume(float volume);
+
     void Stop3DSounds();
     void Stop2DSounds();
     void Stop(Tag);

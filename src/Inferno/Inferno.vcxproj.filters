@@ -113,6 +113,7 @@
     <ClCompile Include="Game.Automap.cpp" />
     <ClCompile Include="Graphics\Render.Briefing.cpp" />
     <ClCompile Include="TextureCache.cpp" />
+    <ClCompile Include="Game.UI.Options.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\Audio.h" />
@@ -271,6 +272,7 @@
     <ClInclude Include="Graphics\Render.Briefing.h" />
     <ClInclude Include="Game.UI.Controls.h" />
     <ClInclude Include="TextureCache.h" />
+    <ClInclude Include="Game.UI.Options.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />

@@ -176,7 +176,8 @@ namespace Inferno {
         float MouseSensitivity = 1/64.0f;
         bool HalvePitchSpeed = true; // Halves the maximum pitch speed
         bool ScreenshotMode = false; // game setting?
-        float MasterVolume = 0.1f;
+        float MasterVolume = 1.0f;
+        float EffectVolume = 0.5f;
         float MusicVolume = 0.5f;
         bool GenerateMaps = true; // Generate specular and normal maps if missing
         bool Descent3Enhanced = false;

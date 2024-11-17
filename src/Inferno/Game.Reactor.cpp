@@ -314,7 +314,8 @@ namespace Inferno::Game {
                 auto dir = Reactor.KnownPlayerPosition - gunPoint;
                 dir.Normalize();
 
-                FireWeapon(reactor, WeaponID::ReactorBlob, (uint8)gun, &dir);
+                Game::FireWeaponInfo info = { .id = WeaponID::ReactorBlob, .gun = (uint8)gun, .customDir = &dir };
+                FireWeapon(reactor, info);
 
                 // Randomly fire more blobs based on level number and difficulty
                 auto chance = 1.0f / ((float)Game::LevelNumber / 4 + 2);
@@ -322,7 +323,7 @@ namespace Inferno::Game {
                 while (count++ < (int)Game::Difficulty && Random() > chance) {
                     dir += RandomVector(1 / 6.0f);
                     dir.Normalize();
-                    FireWeapon(reactor, WeaponID::ReactorBlob, (uint8)gun, &dir);
+                    FireWeapon(reactor, info); // customDir is still pointing at dir
                 }
             }
 

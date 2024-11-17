@@ -171,6 +171,7 @@
     <ClCompile Include="Graphics\Render.Briefing.cpp" />
     <ClCompile Include="Graphics\Render.MainMenu.cpp" />
     <ClCompile Include="Icosphere.cpp" />
+    <ClCompile Include="Game.UI.Options.cpp" />
     <ClCompile Include="TextureCache.cpp" />
     <ClCompile Include="VisualEffects.cpp" />
     <ClCompile Include="Formats\BBM.cpp" />
@@ -296,6 +297,7 @@
     <ClInclude Include="Game.Terrain.h" />
     <ClInclude Include="Game.UI.Controls.h" />
     <ClInclude Include="Game.UI.h" />
+    <ClInclude Include="Game.UI.Options.h" />
     <ClInclude Include="Graphics.Debug.h" />
     <ClInclude Include="Graphics\Render.Automap.h" />
     <ClInclude Include="Graphics\Render.Briefing.h" />

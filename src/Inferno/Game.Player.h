@@ -16,6 +16,8 @@ namespace Inferno {
     constexpr float OMEGA_RECHARGE_TIME = 3; // time to fully recharge omega (original: 4)
     constexpr float OMEGA_RECHARGE_ENERGY = 4; // energy to fully recharge omega
     constexpr float OMEGA_RECHARGE_DELAY = 1.0f / 4; // how long before recharging starts
+    constexpr auto PLAYER_ENGINE_GLOW = Color(1, 0.7f, 0.4f, 0.03f); // Light attached to the player
+    constexpr float PLAYER_ENGINE_GLOW_RADIUS = 35.0f; // Light attached to the player
 
     // Extracted player state that was scattered across methods or globals as static variables
     class Player : public PlayerData {

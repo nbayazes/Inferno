@@ -332,7 +332,8 @@ namespace Inferno {
 
     void Player::FireFlare() {
         if (_nextFlareFireTime > Game::Time) return;
-        Game::FireWeapon(Game::GetPlayerObject(), WeaponID::Flare, 6);
+        Game::FireWeaponInfo info = { .id = WeaponID::Flare, .gun = 6 };
+        Game::FireWeapon(Game::GetPlayerObject(), info);
         auto& weapon = Resources::GetWeapon(WeaponID::Flare);
         _nextFlareFireTime = Game::Time + weapon.FireDelay;
         AlertRobotsOfNoise(Game::GetPlayerObject(), GetWeaponSoundRadius(weapon), weapon.Extended.Noise);
@@ -430,7 +431,7 @@ namespace Inferno {
 
         auto id = GetSecondaryWeaponID(bomb);
         auto& weapon = Resources::GameData.Weapons[(int)id];
-        Game::FireWeapon(Game::GetPlayerObject(), id, 7);
+        Game::FireWeapon(Game::GetPlayerObject(), { .id = id, .gun = 7 });
         ammo -= (uint16)weapon.AmmoUsage;
 
         // Switch active bomb type if ran out of ammo
@@ -486,11 +487,35 @@ namespace Inferno {
         auto& sequence = Ship.Weapons[(int)Primary].Firing;
         if (FiringIndex >= sequence.size()) FiringIndex = 0;
 
+        auto& player = Game::GetPlayerObject();
+
+        // count the active gunpoints to reduce the volume of the fired shots so after they are averaged it's not too loud
+        int activeGunpoints = 0;
+        Vector3 averageGunPosition;
+
+        for (uint8 i = 0; i < 8; i++) {
+            bool quadFire = HasPowerup(PowerupFlag::QuadFire) && Ship.Weapons[(int)Primary].QuadGunpoints[i];
+            if (sequence[FiringIndex].Gunpoints[i] || quadFire) {
+                activeGunpoints++;
+                averageGunPosition += GetGunpointSubmodelOffset(player, i).Offset;
+            }
+        }
+
+        averageGunPosition /= (float)activeGunpoints;
+
+        // Make quad lasers slightly louder
+        float volume = activeGunpoints >= 4 ? 1.1f : 1.0f;
+
+        // Directly play sounds on the player, otherwise mixing gets too complicated to keep a consistent volume
+        auto sound = Game::InitWeaponSound(id, volume);
+        sound.AttachOffset = averageGunPosition;
+        Sound::PlayFrom(sound, player);
+
         for (uint8 i = 0; i < 8; i++) {
             bool quadFire = HasPowerup(PowerupFlag::QuadFire) && Ship.Weapons[(int)Primary].QuadGunpoints[i];
             if (sequence[FiringIndex].Gunpoints[i] || quadFire) {
                 auto& behavior = Game::GetWeaponBehavior(weapon.Extended.Behavior);
-                behavior(*this, i, id);
+                behavior(*this, i, id, 0); // no volume, we handled sound playback earlier
             }
         }
 
@@ -498,7 +523,7 @@ namespace Inferno {
         WeaponCharge = 0;
         LastPrimaryFireTime = Game::Time;
 
-        AlertRobotsOfNoise(Game::GetPlayerObject(), GetWeaponSoundRadius(weapon), weapon.Extended.Noise);
+        AlertRobotsOfNoise(player, GetWeaponSoundRadius(weapon), weapon.Extended.Noise);
 
         if (!CanFirePrimary(Primary) && Primary != PrimaryWeaponIndex::Omega)
             AutoselectPrimary();
@@ -528,7 +553,7 @@ namespace Inferno {
 
         for (uint8 i = 0; i < 8; i++) {
             if (sequence[MissileFiringIndex].Gunpoints[i])
-                Game::FireWeapon(Game::GetPlayerObject(), id, i);
+                Game::FireWeapon(Game::GetPlayerObject(), { .id = id, .gun = i });
         }
 
         MissileFiringIndex = (MissileFiringIndex + 1) % 2;
@@ -950,7 +975,7 @@ namespace Inferno {
                 if (Shields < MAX_SHIELDS) {
                     auto amount = 3 + 3 * (5 - (int)Game::Difficulty); // 18, 15, 12, 9, 6
 
-                    if (Game::Level.IsDescent2() && Game::Difficulty == DifficultyLevel::Trainee) 
+                    if (Game::Level.IsDescent2() && Game::Difficulty == DifficultyLevel::Trainee)
                         amount = 27; // D2 gives 27 shields on trainee
 
                     Shields += amount;
@@ -1348,7 +1373,13 @@ namespace Inferno {
                 SecondaryAmmo[(int)index]--;
                 if (Random() < armChance) {
                     armChance *= 0.5f;
-                    auto mineRef = Game::FireWeapon(player, WeaponID::ProxMine, 7, nullptr, 1, false, 0);
+                    Game::FireWeaponInfo info = {
+                        .id = WeaponID::ProxMine,
+                        .gun = 7,
+                        .volume = 0,
+                        .showFlash = false
+                    };
+                    auto mineRef = Game::FireWeapon(player, info);
                     if (auto mine = Game::GetObject(mineRef))
                         mine->Physics.Velocity += RandomVector(64) + player.Physics.Velocity;
                 }

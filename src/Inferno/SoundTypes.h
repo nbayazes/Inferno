@@ -40,7 +40,7 @@ namespace Inferno {
         //Sound3D(SoundResource resource, const Vector3& pos, SegID seg) : Resource(std::move(resource)), Position(pos), Segment(seg) {}
 
         SoundResource Resource;
-        float Volume = 1;
+        float Volume = 1; // Linear volume
         float Pitch = 0; // -1 to 1;
         float Delay = 0; // Delay before playing
         bool Occlusion = true; // Occludes level geometry when determining volume

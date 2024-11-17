@@ -46,9 +46,8 @@ namespace Inferno::Editor {
 
     protected:
         void OnUpdate() override {
-            auto masterVol = Sound::GetVolume();
-            if (ImGui::SliderFloat("Master Volume", &masterVol, 0, 1))
-                Sound::SetVolume(masterVol);
+            if (ImGui::SliderFloat("Master Volume", &Settings::Inferno.MasterVolume, 0, 1))
+                Sound::SetMasterVolume(Settings::Inferno.MasterVolume);
 
             ImGui::Checkbox("3D", &_3d);
 

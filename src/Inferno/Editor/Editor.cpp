@@ -277,7 +277,8 @@ namespace Inferno::Editor {
 
     // Checks if the current file is dirty. Returns true if the file can be closed.
     bool CanCloseCurrentFile() {
-        if (!Editor::History.Dirty() || Game::Level.IsShareware) return true;
+        if (!Editor::History.Dirty() || Game::Level.IsShareware || Game::GetState() != GameState::Editor)
+            return true;
 
         auto file = Game::Mission ? Game::Mission->Path.filename().wstring() : Convert::ToWideString(Game::Level.FileName);
         auto msg = fmt::format(L"Do you want to save changes to {}?", file);

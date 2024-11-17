@@ -211,6 +211,7 @@ namespace Inferno {
         }
 
         T GetRandom() {
+            if (Min == Max) return Min;
             return (Max - Min) * (T)Random() + Min;
         }
     };

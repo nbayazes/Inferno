@@ -112,12 +112,11 @@ namespace Inferno::Editor {
             ImGui::Checkbox("Classic pitch speed", &Settings::Inferno.HalvePitchSpeed);
             ImGui::SetItemTooltip("The original game limits pitch speed to half the yaw speed");
 
-            auto masterVol = Sound::GetVolume();
-            if (ImGui::SliderFloat("Volume", &masterVol, 0, 1))
-                Sound::SetVolume(masterVol);
+            //if (ImGui::SliderFloat("Volume", &Settings::Inferno.MasterVolume, 0, 1))
+            //    Sound::SetMasterVolume(Settings::Inferno.MasterVolume);
 
-            if (ImGui::SliderFloat("Music", &Settings::Inferno.MusicVolume, 0, 1))
-                Sound::SetMusicVolume(Settings::Inferno.MusicVolume);
+            //if (ImGui::SliderFloat("Music", &Settings::Inferno.MusicVolume, 0, 1))
+            //    Sound::SetMusicVolume(Settings::Inferno.MusicVolume);
         }
 
         {

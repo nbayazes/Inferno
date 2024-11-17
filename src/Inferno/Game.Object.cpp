@@ -461,15 +461,25 @@ namespace Inferno {
                 auto& robot = Resources::GetRobotInfo(obj.ID);
 
                 ExplosionEffectInfo expl;
-                expl.Sound = robot.ExplosionSound2;
                 expl.Clip = robot.ExplosionClip2;
                 expl.Radius = { obj.Radius * 1.75f, obj.Radius * 1.9f };
                 CreateExplosion(expl, obj.Segment, obj.GetPosition(Game::LerpAmount));
 
-                expl.Sound = SoundID::None;
                 expl.Radius = { obj.Radius * 1.15f, obj.Radius * 1.55f };
                 expl.Variance = obj.Radius * 0.5f;
                 CreateExplosion(expl, obj.Segment, obj.GetPosition(Game::LerpAmount), 0, EXPLOSION_DELAY);
+
+                // Make death explosions slightly louder and slower to help
+                // differentiate them from regular weapon hits
+                Sound3D sound(robot.ExplosionSound2);
+
+                // Make stronger robots have bigger, slower explosions
+                float healthScale = Saturate((robot.HitPoints - 30.0f) / 200.0f);
+                auto scale = Random() + healthScale; // 0 to 2x based on hp and randomness
+                sound.Volume = 1.1f + scale * 0.2f;
+                sound.Pitch = -0.1f + -scale * 0.15f;
+                sound.Merge = false;
+                Sound::Play(sound, obj.Position, obj.Segment);
 
                 if (robot.ExplosionStrength > 0) {
                     GameExplosion ge{};
@@ -587,8 +597,8 @@ namespace Inferno {
                 break;
 
             case ObjectType::Player:
-                light.Radius = 40;
-                light.LightColor = Color(1, 1, 1, 0.01f);
+                light.Radius = PLAYER_ENGINE_GLOW_RADIUS;
+                light.LightColor = PLAYER_ENGINE_GLOW;
                 break;
 
             case ObjectType::Weapon:

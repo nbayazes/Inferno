@@ -560,6 +560,7 @@ namespace Inferno {
             doc["Descent2Path"] << Settings::Inferno.Descent2Path.string();
             doc["MasterVolume"] << Settings::Inferno.MasterVolume;
             doc["MusicVolume"] << Settings::Inferno.MusicVolume;
+            doc["EffectVolume"] << Settings::Inferno.EffectVolume;
             doc["GenerateMaps"] << Settings::Inferno.GenerateMaps;
             doc["Descent3Enhanced"] << Settings::Inferno.Descent3Enhanced;
 
@@ -599,6 +600,7 @@ namespace Inferno {
                 ReadValue(root["Descent2Path"], Settings::Inferno.Descent2Path);
                 ReadValue(root["MasterVolume"], Settings::Inferno.MasterVolume);
                 ReadValue(root["MusicVolume"], Settings::Inferno.MusicVolume);
+                ReadValue(root["EffectVolume"], Settings::Inferno.EffectVolume);
                 ReadValue(root["GenerateMaps"], Settings::Inferno.GenerateMaps);
                 ReadValue(root["Descent3Enhanced"], Settings::Inferno.Descent3Enhanced);
 

@@ -23,6 +23,8 @@ namespace Inferno::Sound {
 
         constexpr int SAMPLE_RATE_11KHZ = 11025;
         constexpr int SAMPLE_RATE_22KHZ = 22050;
+        constexpr float DEFAULT_SILENCE = -50;
+        constexpr float MUSIC_SILENCE = -60; // Music tends to be louder than other sound sources
 
         constexpr float MERGE_WINDOW = 1 / 14.0f; // Merge the same sound being played by a source within a window
 
@@ -55,11 +57,18 @@ namespace Inferno::Sound {
         constexpr X3DAUDIO_DISTANCE_CURVE Emitter_CubicCurve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_CubicPoints[0], _countof(Emitter_CubicPoints) };
     }
 
+    // Transforms a volume from 0.0 - 1.0 to an amplitude suitable for XAudio.
+    // Silence is typically a value between -30db and -90db. A higher silence results in a sharper falloff.
+    float VolumeToAmplitudeRatio(float volume, float silence = DEFAULT_SILENCE) {
+        if (volume <= 0.0001f) return 0;
+        return XAudio2DecibelsToAmplitudeRatio(silence * (1 - volume));
+    }
+
     Ptr<MusicStream> CreateMusicStream(List<byte>&& data);
 
     struct PlayMusicInfo {
-        string file;
-        List<byte> data;
+        string file; // Play from file
+        List<byte> data; // Play from memory
         bool loop = true;
     };
 
@@ -93,7 +102,7 @@ namespace Inferno::Sound {
 
         bool IsAlive() const { return Alive; }
 
-        void UpdateEmitter(const Vector3& listener, float dt) {
+        void UpdateEmitter(const Vector3& listener, float dt, float globalVolume) {
             auto& sound = Info.Sound;
 
             if (Info.Source != GLOBAL_SOUND_SOURCE) {
@@ -181,7 +190,8 @@ namespace Inferno::Sound {
             //auto falloff = std::powf(1 - ratio, 3); // cubic falloff
             //auto falloff = 1 - ratio; // linear falloff
             //auto falloff = 1 - (ratio * ratio); // square falloff
-            Effect->SetVolume(sound.Volume /** falloff*/ * Muffle);
+            auto volume = VolumeToAmplitudeRatio(sound.Volume * Muffle * globalVolume);
+            Effect->SetVolume(volume);
 
             Debug::Emitters.push_back(Emitter.Position / AUDIO_SCALE);
         }
@@ -258,11 +268,16 @@ namespace Inferno::Sound {
 
         AudioListener _listener;
 
+        bool _musicChanged = false;
         PlayMusicInfo _musicInfo;
         DataPool<Sound3DInstance> _soundInstances{ &Sound3DInstance::IsAlive, 50 };
 
         List<PlaySound3DInfo> _pending3dSounds;
         List<PlaySound2DInfo> _pending2dSounds;
+
+        float _masterVolume = 0.0f;
+        float _musicVolume = 0.0f;
+        float _effectVolume = 0.0f;
 
     public:
         SoundWorker(milliseconds pollRate) : _pollRate(pollRate) {
@@ -297,6 +312,7 @@ namespace Inferno::Sound {
         std::atomic<bool> ReloadSoundFiles = false;
 
         void StopAllSounds() {
+            std::scoped_lock lock(_threadMutex);
             _requestStopSounds = true;
             //StopMusic();
             //Stop3DSounds();
@@ -323,7 +339,7 @@ namespace Inferno::Sound {
             _pending2dSounds.push_back(sound);
         }
 
-        SoundUID PlaySound3D(PlaySound3DInfo& sound) {
+        SoundUID PlaySound3D(PlaySound3DInfo sound) {
             std::unique_lock lock(_threadMutex);
 
             if (Game::TimeScale != 1.0f)
@@ -356,28 +372,66 @@ namespace Inferno::Sound {
         void Stop2DSounds() {}
 
         void PauseSounds() {
+            std::scoped_lock lock(_threadMutex);
             _requestPauseSounds = true;
         }
 
         void ResumeSounds() {
+            std::scoped_lock lock(_threadMutex);
             _requestPauseSounds = false;
             _requestResumeSounds = true;
         }
 
         void StopMusic() {
             SPDLOG_INFO("Stopping music");
+            std::scoped_lock lock(_threadMutex);
             _requestStopMusic = true;
         }
 
         void PlayMusic(const PlayMusicInfo& info) {
             std::scoped_lock lock(_threadMutex);
+            _musicChanged = true;
             _musicInfo = info;
         }
 
         void SetMusicVolume(float volume) {
             std::scoped_lock lock(_threadMutex);
-            if (_musicStream)
-                _musicStream->Effect->SetVolume(volume);
+            _musicVolume = VolumeToAmplitudeRatio(volume, MUSIC_SILENCE);
+
+            if (_musicVolume == 0) {
+                // Dispose stream if silenced
+                if (_musicStream) {
+                    _musicStream->Effect->Stop();
+                    _musicStream = {}; // release
+                }
+            }
+            else {
+                if (_musicStream) {
+                    _musicStream->Effect->SetVolume(_musicVolume);
+                }
+                else {
+                    // Start playing music
+                    _musicChanged = true;
+                    CheckMusicChanged();
+                }
+            }
+        }
+
+        void SetEffectVolume(float volume) {
+            std::scoped_lock lock(_threadMutex);
+            _effectVolume = volume;
+
+            // Update playing effects
+            for (auto& instance : _soundInstances) {
+                auto amplitude = VolumeToAmplitudeRatio(instance.Info.Sound.Volume * volume, DEFAULT_SILENCE);
+                instance.Effect->SetVolume(amplitude);
+            }
+        }
+
+        void SetMasterVolume(float volume) {
+            std::scoped_lock lock(_threadMutex);
+            _masterVolume = VolumeToAmplitudeRatio(volume, DEFAULT_SILENCE);
+            _engine->SetMasterVolume(_masterVolume);
         }
 
         void PrintStatistics() const {
@@ -414,7 +468,7 @@ namespace Inferno::Sound {
             return _soundUid = SoundUID(int(_soundUid) + 1);
         }
 
-        void Initialize() {
+        void Initialize(float masterVolume, float musicVolume, float effectVolume) {
             SPDLOG_INFO("Starting audio mixer thread");
 
             if (FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED)))
@@ -428,7 +482,10 @@ namespace Inferno::Sound {
 
                 SPDLOG_INFO(info);
 
-                _engine->SetMasterVolume(Settings::Inferno.MasterVolume);
+                SetMasterVolume(masterVolume);
+                SetMusicVolume(musicVolume);
+                SetEffectVolume(effectVolume);
+
                 _initializedCondition.notify_all();
                 SPDLOG_INFO("Sound system initialized");
             }
@@ -438,9 +495,8 @@ namespace Inferno::Sound {
         }
 
         bool PlayMusic(string file, bool loop) {
-            //StopMusic();
-
             auto data = Resources::ReadBinaryFile(file);
+
             if (data.empty()) {
                 SPDLOG_WARN("Music file {} not found", file);
                 return false;
@@ -460,7 +516,7 @@ namespace Inferno::Sound {
 
             SPDLOG_INFO("Playing music {}", file);
             _musicStream->Loop = loop;
-            _musicStream->Effect->SetVolume(Settings::Inferno.MusicVolume);
+            _musicStream->Effect->SetVolume(_musicVolume);
             _musicStream->Effect->Play();
             return true;
         }
@@ -506,7 +562,7 @@ namespace Inferno::Sound {
                         }
 
                         inst.Emitter.Position = (playInfo.Position + inst.Emitter.Position) / 2;
-                        info.Sound.Volume += sound.Volume * 0.5f;
+                        info.Sound.Volume += sound.Volume * SOUND_MERGE_RATIO;
                         //SPDLOG_INFO("Discarded sound");
                         //fmt::print("Merged sound effect {}\n", sound.Resource.GetID());
                         return; // Don't play sounds within the merge window
@@ -517,7 +573,9 @@ namespace Inferno::Sound {
 
             auto& instance = _soundInstances.Alloc();
             instance.Effect = sfx->CreateInstance(SoundEffectInstance_Use3D | SoundEffectInstance_ReverbUseFilters);
-            instance.Effect->SetVolume(std::clamp(sound.Volume, 0.0f, 10.0f));
+
+            auto volume = VolumeToAmplitudeRatio(std::clamp(sound.Volume * _effectVolume, 0.0f, 10.0f));
+            instance.Effect->SetVolume(volume);
             instance.Effect->SetPitch(std::clamp(sound.Pitch, -1.0f, 1.0f));
 
             //s.Emitter.pVolumeCurve = (X3DAUDIO_DISTANCE_CURVE*)&X3DAudioDefault_LinearCurve;
@@ -552,8 +610,10 @@ namespace Inferno::Sound {
 
         void ProcessPending() {
             for (auto& pending : _pending2dSounds) {
-                if (auto sound = LoadSound(pending.resource))
-                    sound->Play(pending.volume, pending.pitch, pending.pan);
+                if (auto sound = LoadSound(pending.resource)) {
+                    auto volume = VolumeToAmplitudeRatio(std::clamp(pending.volume * _effectVolume, 0.0f, 10.0f));
+                    sound->Play(volume, pending.pitch, pending.pan);
+                }
             }
 
             _pending2dSounds.clear();
@@ -566,6 +626,30 @@ namespace Inferno::Sound {
             _pending3dSounds.clear();
         }
 
+        void CheckMusicChanged() {
+            if (!_musicChanged) return;
+            _musicChanged = false;
+
+            if (_musicVolume == 0)
+                return; // Don't waste resources playing silenced music
+
+            if (!_musicInfo.data.empty()) {
+                // Play music from memory
+                _requestStopMusic = true;
+
+                _musicStream = CreateMusicStream(std::move(_musicInfo.data));
+                if (_musicStream) {
+                    _musicStream->Loop = _musicInfo.loop;
+                    _musicStream->Effect->SetVolume(_musicVolume);
+                    _musicStream->Effect->Play();
+                }
+            }
+            else if (!_musicInfo.file.empty()) {
+                // Stream music from file
+                PlayMusic(_musicInfo.file, _musicInfo.loop);
+            }
+        }
+
         void Update() {
             auto dt = (float)_pollRate.count() / 1000.0f;
             auto& camera = Game::GetActiveCamera();
@@ -576,20 +660,7 @@ namespace Inferno::Sound {
 
             ProcessPending();
 
-            if (!_musicInfo.data.empty()) {
-                StopMusic();
-                _musicStream = CreateMusicStream(std::move(_musicInfo.data));
-                if (_musicStream) {
-                    _musicStream->Loop = _musicInfo.loop;
-                    _musicStream->Effect->SetVolume(Settings::Inferno.MusicVolume);
-                    _musicStream->Effect->Play();
-                }
-                _musicInfo = {};
-            }
-            else if (!_musicInfo.file.empty()) {
-                PlayMusic(_musicInfo.file, _musicInfo.loop);
-                _musicInfo = {};
-            }
+            CheckMusicChanged();
 
             for (auto& instance : _soundInstances) {
                 if (instance.Delay > 0) {
@@ -600,7 +671,7 @@ namespace Inferno::Sound {
                 if (!instance.Alive || !instance.Effect)
                     continue;
 
-                instance.UpdateEmitter(camera.Position, dt);
+                instance.UpdateEmitter(camera.Position, dt, _effectVolume);
 
                 if (instance.Effect->GetState() == SoundState::PAUSED)
                     continue;
@@ -676,7 +747,8 @@ namespace Inferno::Sound {
         }
 
         void Task() {
-            Initialize();
+            // Passing the initial volumes this way is not ideal
+            Initialize(Settings::Inferno.MasterVolume, Settings::Inferno.MusicVolume, Settings::Inferno.EffectVolume);
 
             while (!_stopToken.stop_requested()) {
                 Debug::Emitters.clear();
@@ -896,13 +968,16 @@ namespace Inferno::Sound {
         /*Engine->Resume();*/
     }
 
-    float GetVolume() { return SoundThread && SoundThread->GetEngine() ? SoundThread->GetEngine()->GetMasterVolume() : 0; }
+    //float GetVolume() { return SoundThread && SoundThread->GetEngine() ? SoundThread->GetEngine()->GetMasterVolume() : 0; }
 
-    void SetVolume(float volume) {
-        Settings::Inferno.MasterVolume = volume;
-
+    void SetMasterVolume(float volume) {
         if (SoundThread)
-            SoundThread->GetEngine()->SetMasterVolume(volume);
+            SoundThread->SetMasterVolume(volume);
+    }
+
+    void SetEffectVolume(float volume) {
+        if (SoundThread)
+            SoundThread->SetEffectVolume(volume);
     }
 
     void SetMusicVolume(float volume) {
@@ -1008,14 +1083,6 @@ namespace Inferno::Sound {
     bool PlayMusic(const List<byte>&& data, bool loop) {
         SoundThread->PlayMusic({ {}, data, loop });
 
-        //CurrentMusicStream = CreateMusicStream(std::move(data));
-        //if (!CurrentMusicStream) {
-        //    return false;
-        //}
-
-        //CurrentMusicStream->Loop = loop;
-        //CurrentMusicStream->Effect->SetVolume(Settings::Inferno.MusicVolume);
-        //CurrentMusicStream->Effect->Play();
         return true;
     }
 

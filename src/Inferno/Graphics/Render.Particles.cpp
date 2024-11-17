@@ -291,6 +291,7 @@ namespace Inferno::Render {
             if (Info.Sound != SoundID::None && i == 0) {
                 Sound3D sound(Info.Sound);
                 sound.Volume = Info.Volume;
+                sound.Pitch = Info.SoundPitch.GetRandom();
                 Sound::Play(sound, Position, Segment);
                 //sound.Source = expl.Parent; // no parent so all nearby sounds merge
             }

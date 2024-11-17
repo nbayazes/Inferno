@@ -2,6 +2,7 @@
 #include "Game.UI.h"
 #include "Game.UI.Controls.h"
 #include "Game.Text.h"
+#include "Game.UI.Options.h"
 #include "Graphics.h"
 #include "Graphics/Render.h"
 #include "gsl/pointers.h"
@@ -15,129 +16,6 @@
 namespace Inferno::UI {
     using ClickHandler = std::function<void(const Vector2*)>;
     using Inferno::Input::Keys;
-
-    enum class CloseState { None, Accept, Cancel };
-
-    class ScreenBase : public ControlBase {
-    public:
-        ScreenBase() {
-            Selectable = false;
-            Padding = Vector2(5, 5);
-        }
-
-        bool CloseOnConfirm = true;
-        CloseState State = CloseState::None;
-
-        ControlBase* Selection = nullptr;
-        ControlBase* LastGoodSelection = nullptr;
-        std::function<void(CloseState)> CloseCallback;
-
-        void OnUpdate() override {
-            if (Input::MouseMoved()) {
-                // Update selection when cursor moves, but only if the control is valid
-                if (auto control = HitTestCursor())
-                    SetSelection(control);
-            }
-
-            ControlBase::OnUpdate(); // breaks main menu selection
-        }
-
-        // Called when a top level screen tries to close. Return true if it should close.
-        virtual bool OnTryClose() { return false; }
-
-        // Called when a screen is closed.
-        virtual void OnClose() {}
-
-        void OnConfirm() {
-            if (Selection && Selection->ClickAction) {
-                Sound::Play2D(SoundResource{ ActionSound });
-                Selection->ClickAction();
-            }
-            else if (CloseOnConfirm) {
-                // Play the default menu select sound when closing if there's no action
-                Sound::Play2D(SoundResource{ MENU_SELECT_SOUND });
-            }
-
-            if (CloseOnConfirm)
-                State = CloseState::Accept;
-        }
-
-        void OnUpdateLayout() override {
-            // Fill the whole screen if the size is zero
-            auto& canvasSize = Render::UICanvas->GetSize();
-            ScreenSize = Size == Vector2::Zero ? canvasSize : Size * GetScale();
-            ScreenPosition = Render::GetAlignment(ScreenSize, HorizontalAlignment, VerticalAlignment, canvasSize);
-            ControlBase::OnUpdateLayout();
-        }
-
-        void SetSelection(ControlBase* control) {
-            if (Selection) Selection->Focused = false;
-            Selection = control;
-
-            if (control) {
-                control->Focused = true;
-                LastGoodSelection = Selection;
-            }
-        }
-
-        ControlBase* SelectFirst() override {
-            for (auto& control : Children) {
-                Selection = control->SelectFirst();
-                if (Selection) {
-                    SetSelection(Selection);
-                    break;
-                }
-            }
-
-            return Selection;
-        }
-
-        // Returns -1 if the selection is not found
-        int FindSelectionIndex(const List<ControlBase*>& tree) const {
-            for (int i = 0; i < (int)tree.size(); i++) {
-                if (Selection == tree[i])
-                    return i;
-            }
-
-            return -1;
-        }
-
-        void OnUpArrow() {
-            List<ControlBase*> tree;
-            FlattenSelectionTree(tree);
-            int index = FindSelectionIndex(tree);
-
-            if (index == 0 || index == -1)
-                SetSelection(tree.back()); // wrap
-            else
-                SetSelection(tree[index - 1]);
-        }
-
-        void OnDownArrow() {
-            List<ControlBase*> tree;
-            FlattenSelectionTree(tree);
-            int index = FindSelectionIndex(tree);
-
-            if (index == tree.size() - 1 || index == -1)
-                SetSelection(tree.front()); // wrap
-            else
-                SetSelection(tree[index + 1]);
-        }
-    };
-
-    // Horizontal slider
-    //template <typename TValue>
-    //class Slider : public ControlBase {
-    //public:
-    //    float Width;
-    //    TValue Min, Max, Value;
-
-    //    void Clicked(const Vector2& position) {
-    //        if (!Contains(position)) return;
-
-    //        // determine the location within the slider and set the value
-    //    }
-    //};
 
     // Translates an input keycode to an ASCII character
     uchar TranslateSymbol(uchar keycode) {
@@ -368,80 +246,6 @@ namespace Inferno::UI {
         return true;
     }
 
-    class DialogBase : public ScreenBase {
-    public:
-        DialogBase(string_view title = "", bool showCloseButton = true) {
-            HorizontalAlignment = AlignH::Center;
-            VerticalAlignment = AlignV::Center;
-
-            if (showCloseButton) {
-                auto close = make_unique<CloseButton>([this] { OnDialogClose(); });
-                close->HorizontalAlignment = AlignH::Right;
-                close->Margin = Vector2(DIALOG_MARGIN, DIALOG_MARGIN);
-                AddChild(std::move(close));
-            }
-
-            if (!title.empty()) {
-                auto titleLabel = make_unique<Label>(title, FontSize::MediumBlue);
-                titleLabel->VerticalAlignment = AlignV::Top;
-                titleLabel->HorizontalAlignment = AlignH::Center;
-                titleLabel->Position = Vector2(0, DIALOG_MARGIN);
-                titleLabel->Color = DIALOG_TITLE_COLOR;
-                AddChild(std::move(titleLabel));
-            }
-        }
-
-        virtual void OnDialogClose() {
-            CloseScreen();
-        }
-
-        void OnDraw() override {
-            const auto border = Vector2(1, 1) * GetScale();
-
-            {
-                // Border
-                Render::CanvasBitmapInfo cbi;
-                cbi.Position = ScreenPosition;
-                cbi.Size = ScreenSize;
-                cbi.Texture = Render::Materials->White().Handle();
-                cbi.Color = BORDER_COLOR;
-                Render::UICanvas->DrawBitmap(cbi, Layer);
-            }
-
-            {
-                // Background
-                Render::CanvasBitmapInfo cbi;
-                cbi.Position = ScreenPosition + border;
-                cbi.Size = ScreenSize - border * 2;
-                cbi.Texture = Render::Materials->White().Handle();
-                cbi.Color = DIALOG_BACKGROUND;
-                Render::UICanvas->DrawBitmap(cbi, Layer);
-            }
-
-            //{
-            //    // Header
-            //    Render::CanvasBitmapInfo cbi;
-            //    cbi.Position = ScreenPosition + border;
-            //    cbi.Size = Vector2(ScreenSize.x - border.x * 2, 30 * GetScale());
-            //    cbi.Texture = Render::Materials->White().Handle();
-            //    cbi.Color = Color(0.02f, 0.02f, 0.02f, 1);
-            //    Render::UICanvas->DrawBitmap(cbi, 1);
-            //}
-
-            //{
-            //    Render::DrawTextInfo dti;
-            //    dti.Font = FontSize::Big;
-            //    dti.HorizontalAlign = AlignH::Center;
-            //    dti.VerticalAlign = AlignV::Top;
-            //    dti.Position = Vector2(0, 20);
-            //    dti.Color = Color(1, 1, 1, 1);
-            //    Render::UICanvas->DrawGameText("Header", dti, 2);
-            //}
-
-            ScreenBase::OnDraw();
-        }
-    };
-
     class LevelSelectDialog : public DialogBase {
         std::function<void(int)> _callback;
         gsl::strict_not_null<int*> _level;
@@ -467,7 +271,7 @@ namespace Inferno::UI {
             });
             closeButton->HorizontalAlignment = AlignH::Center;
             closeButton->VerticalAlignment = AlignV::Bottom;
-            closeButton->Margin = Vector2(0, DIALOG_MARGIN);
+            closeButton->Margin = Vector2(0, DIALOG_PADDING);
             AddChild(std::move(closeButton));
         }
 
@@ -538,22 +342,22 @@ namespace Inferno::UI {
         ConfirmDialog(string_view message, bool& result) : DialogBase("", false), _result(&result) {
             auto label = make_unique<Label>(message, FontSize::MediumBlue);
             label->HorizontalAlignment = AlignH::Center;
-            label->Position = Vector2(0, DIALOG_MARGIN);
+            label->Position = Vector2(0, DIALOG_PADDING);
 
             Size = MeasureString(message, FontSize::Medium);
-            Size.x += DIALOG_MARGIN * 2 + 20;
-            Size.y = Size.y * 2 + DIALOG_MARGIN * 2 + 10;
+            Size.x += DIALOG_PADDING * 2 + 20;
+            Size.y = Size.y * 2 + DIALOG_PADDING * 2 + 10;
 
             auto yesButton = make_unique<Button>("yes");
             yesButton->VerticalAlignment = AlignV::Bottom;
             yesButton->HorizontalAlignment = AlignH::Center;
-            yesButton->Position = Vector2(-50, -DIALOG_MARGIN);
+            yesButton->Position = Vector2(-50, -DIALOG_PADDING);
             yesButton->ClickAction = [this] { State = CloseState::Accept; };
 
             auto noButton = make_unique<Button>("no");
             noButton->VerticalAlignment = AlignV::Bottom;
             noButton->HorizontalAlignment = AlignH::Center;
-            noButton->Position = Vector2(50, -DIALOG_MARGIN);
+            noButton->Position = Vector2(50, -DIALOG_PADDING);
             noButton->ActionSound = "";
             noButton->ClickAction = [this] { State = CloseState::Cancel; };
 
@@ -604,7 +408,7 @@ namespace Inferno::UI {
             auto title = make_unique<Label>("select mission", FontSize::MediumBlue);
             title->VerticalAlignment = AlignV::Top;
             title->HorizontalAlignment = AlignH::Center;
-            title->Position = Vector2(0, DIALOG_MARGIN);
+            title->Position = Vector2(0, DIALOG_PADDING);
             title->Color = DIALOG_TITLE_COLOR;
             AddChild(std::move(title));
 
@@ -748,7 +552,9 @@ namespace Inferno::UI {
             });
             panel->AddChild<Button>("Play Descent 2");
             panel->AddChild<Button>("Load Game");
-            panel->AddChild<Button>("Options");
+            panel->AddChild<Button>("Options", [] {
+                ShowScreen(make_unique<OptionsMenu>());
+            });
             panel->AddChild<Button>("High Scores");
             panel->AddChild<Button>("Credits");
             panel->AddChild<Button>("Level Editor", [] {
@@ -904,7 +710,9 @@ namespace Inferno::UI {
             }, AlignH::Center);
             panel->AddChild<Button>("Save Game", AlignH::Center);
             panel->AddChild<Button>("Load Game", AlignH::Center);
-            panel->AddChild<Button>("Options", AlignH::Center);
+            panel->AddChild<Button>("Options", [] {
+                ShowScreen(make_unique<OptionsMenu>());
+            }, AlignH::Center);
             panel->AddChild<Button>("Quit", [this] {
                 auto confirmDialog = make_unique<ConfirmDialog>("are you sure?", _quitConfirm);
                 confirmDialog->CloseCallback = [this](CloseState state) {
@@ -970,6 +778,8 @@ namespace Inferno::UI {
 
         Screens.clear();
         ShowScreen(make_unique<MainMenu>());
+
+        ShowScreen(make_unique<OptionsMenu>());
     }
 
     void ShowPauseDialog() {
