@@ -1,4 +1,6 @@
 #pragma once
+#include <algorithm>
+
 #include "Types.h"
 #include "Game.Text.h"
 #include "Graphics/Render.h"
@@ -22,6 +24,10 @@ namespace Inferno::UI {
     constexpr float DIALOG_PADDING = 15;
     constexpr float DIALOG_CONTENT_PADDING = DIALOG_PADDING + 30;
 
+    // Prevents focus from changing when true. Call with false to release
+    void CaptureCursor(bool);
+    bool IsCursorCaptured();
+
     using Action = std::function<void()>;
 
     inline float GetScale() {
@@ -30,10 +36,18 @@ namespace Inferno::UI {
 
     // Returns true if a rectangle at a position and size contain a point
     inline bool RectangleContains(const Vector2 origin, const Vector2& size, const Vector2& point) {
+        if (IsCursorCaptured()) return false;
+
         return
             point.x > origin.x && point.x < origin.x + size.x &&
             point.y > origin.y && point.y < origin.y + size.y;
     }
+
+    // Same as RectangleContains, but checks if the cursor is captured
+    //inline bool RectangleContainsEx(const Vector2 origin, const Vector2& size, const Vector2& point) {
+    //    if(IsCursorCaptured()) return false;
+    //    return RectangleContains(origin, size, point);
+    //}
 
     // Controls are positioned at their top left corner
     struct ControlBase {
@@ -109,10 +123,13 @@ namespace Inferno::UI {
 
         void OnClick(const Vector2& position) const {
             for (auto& control : Children) {
-                if (control->Enabled && control->Contains(position) && control->ClickAction) {
+                if (control->Enabled && control->Contains(position)) {
                     Sound::Play2D(SoundResource{ control->ActionSound });
-                    control->ClickAction();
-                    return;
+                    if (control->ClickAction)
+                        control->ClickAction();
+
+                    if (control->HandleOnClick() || control->ClickAction)
+                        return; // Click was handled, stop
                 }
 
                 control->OnClick(position);
@@ -122,7 +139,7 @@ namespace Inferno::UI {
         virtual void OnUpdate() {
             if (!Enabled) return;
 
-            if (Input::MouseMoved()) {
+            if (Input::MouseMoved() && !IsCursorCaptured()) {
                 Hovered = Contains(Input::MousePosition);
             }
 
@@ -194,10 +211,14 @@ namespace Inferno::UI {
             }
         }
 
-        string ActionSound = MENU_SELECT_SOUND;
+        string ActionSound;
 
         // Called when the control is clicked via some input device
         Action ClickAction;
+
+    protected:
+        // Returns true if the click was handled
+        virtual bool HandleOnClick() { return false; }
     };
 
     class Rectangle : public ControlBase {
@@ -293,8 +314,7 @@ namespace Inferno::UI {
 
             if (Input::IsKeyPressed(Keys::Up, true)) {
                 _index--;
-                if (_index < _scrollIndex)
-                    _scrollIndex = _index;
+                _scrollIndex = std::min(_index, _scrollIndex);
             }
 
             if (Input::IsKeyPressed(Keys::Down, true)) {
@@ -406,12 +426,14 @@ namespace Inferno::UI {
             _textSize = Size = MeasureString(_text, FontSize::Medium);
             Selectable = true;
             Padding = Vector2{ 2, 2 };
+            ActionSound = MENU_SELECT_SOUND;
         }
 
         Button(string_view text, Action&& action, AlignH alignment = AlignH::Left) : _text(text), _alignment(alignment) {
             ClickAction = action;
             _textSize = Size = MeasureString(_text, FontSize::Medium);
             Padding = Vector2{ 2, 2 };
+            ActionSound = MENU_SELECT_SOUND;
         }
 
         void OnDraw() override {
@@ -440,7 +462,7 @@ namespace Inferno::UI {
             ActionSound = MENU_BACK_SOUND;
         }
 
-        float Thickness = 1.0f;
+        float Thickness = 2.0f;
 
         void OnDraw() override {
             const float thickness = Thickness * GetScale();
@@ -471,15 +493,128 @@ namespace Inferno::UI {
             payload.V1.Position = Vector2(position.x + size - thickness, position.y);
             payload.V2.Position = Vector2(position.x, position.y + size - thickness);
             payload.V3.Position = Vector2(position.x, position.y + size);
-            payload.Layer = Layer;
             Render::UICanvas->Draw(payload);
 
             payload.V0.Position = Vector2(position.x + size, position.y);
             payload.V1.Position = Vector2(position.x + size, position.y + thickness);
             payload.V2.Position = Vector2(position.x + thickness, position.y + size);
             payload.V3.Position = Vector2(position.x, position.y + size);
-            payload.Layer = Layer;
             Render::UICanvas->Draw(payload);
+        }
+    };
+
+    class Checkbox : public ControlBase {
+        gsl::strict_not_null<bool*> _value;
+        string _label;
+
+    public:
+        Checkbox(bool& value, string_view label) : _value(&value), _label(label) {
+            Size = MeasureString(label, FontSize::Medium);
+            Size.x += CheckboxSize + CheckboxPadding;
+            Size.y += 2;
+            ActionSound = MENU_SELECT_SOUND;
+        }
+
+        float Thickness = 2.0f;
+        float CheckboxSize = 18;
+        float CheckboxPadding = 10;
+
+        void OnDraw() override {
+            const float thickness = Thickness * GetScale();
+
+            {
+                // label
+                Render::DrawTextInfo dti;
+                dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
+                dti.Color = Focused /*|| Hovered*/ ? FOCUS_COLOR : Color(1, 1, 1);
+                dti.Position = ScreenPosition / GetScale();
+                dti.Position.x += CheckboxSize + CheckboxPadding;
+                Render::UICanvas->DrawText(_label, dti, Layer + 1);
+            }
+
+            Render::HudCanvasPayload payload;
+            payload.Texture = Render::Materials->White().Handle();
+            payload.Layer = Layer;
+            payload.V0.Color = payload.V1.Color = payload.V2.Color = payload.V3.Color = Focused || Hovered ? ACCENT_GLOW : IDLE_BUTTON;
+
+            {
+                auto position = ScreenPosition;
+                float size = CheckboxSize * GetScale();
+
+                // left edge
+                payload.V0.Position = position;
+                payload.V1.Position = Vector2(position.x + thickness, position.y + thickness);
+                payload.V2.Position = Vector2(position.x + thickness, position.y + size - thickness);
+                payload.V3.Position = Vector2(position.x, position.y + size);
+                payload.RoundLayout();
+                Render::UICanvas->Draw(payload);
+
+                // top edge
+                payload.V0.Position = position;
+                payload.V1.Position = Vector2(position.x + thickness, position.y + thickness);
+                payload.V2.Position = Vector2(position.x + size - thickness, position.y + thickness);
+                payload.V3.Position = Vector2(position.x + size, position.y);
+                payload.RoundLayout();
+                Render::UICanvas->Draw(payload);
+
+                // right edge
+                payload.V0.Position = Vector2(position.x + size, position.y + size);
+                payload.V1.Position = Vector2(position.x + size - thickness, position.y + size - thickness);
+                payload.V2.Position = Vector2(position.x + size - thickness, position.y + thickness);
+                payload.V3.Position = Vector2(position.x + size, position.y);
+                payload.RoundLayout();
+                Render::UICanvas->Draw(payload);
+
+                // bottom edge
+                payload.V0.Position = Vector2(position.x + size, position.y + size);
+                payload.V1.Position = Vector2(position.x + size - thickness, position.y + size - thickness);
+                payload.V2.Position = Vector2(position.x + thickness, position.y + size - thickness);
+                payload.V3.Position = Vector2(position.x, position.y + size);
+                payload.RoundLayout();
+                Render::UICanvas->Draw(payload);
+            }
+
+            if (*_value) {
+                float inset = thickness * 1.5f;
+                float size = CheckboxSize * GetScale() - inset * 2;
+                auto position = ScreenPosition + Vector2(inset, inset);
+
+                // tl to br
+                payload.V0.Position = position;
+                payload.V1.Position = Vector2(position.x + thickness, position.y);
+                payload.V2.Position = Vector2(position.x + size, position.y + size - thickness);
+                payload.V3.Position = Vector2(position.x + size, position.y + size);
+                payload.RoundLayout();
+                Render::UICanvas->Draw(payload);
+
+                payload.V0.Position = position;
+                payload.V1.Position = Vector2(position.x, position.y + thickness);
+                payload.V2.Position = Vector2(position.x + size - thickness, position.y + size);
+                payload.V3.Position = Vector2(position.x + size, position.y + size);
+                payload.RoundLayout();
+                Render::UICanvas->Draw(payload);
+
+                // tr to bl
+                payload.V0.Position = Vector2(position.x + size, position.y);
+                payload.V1.Position = Vector2(position.x + size - thickness, position.y);
+                payload.V2.Position = Vector2(position.x, position.y + size - thickness);
+                payload.V3.Position = Vector2(position.x, position.y + size);
+                payload.RoundLayout();
+                Render::UICanvas->Draw(payload);
+
+                payload.V0.Position = Vector2(position.x + size, position.y);
+                payload.V1.Position = Vector2(position.x + size, position.y + thickness);
+                payload.V2.Position = Vector2(position.x + thickness, position.y + size);
+                payload.V3.Position = Vector2(position.x, position.y + size);
+                payload.RoundLayout();
+                Render::UICanvas->Draw(payload);
+            }
+        }
+
+    protected:
+        bool HandleOnClick() override {
+            *_value = !*_value;
+            return true;
         }
     };
 
@@ -521,7 +656,7 @@ namespace Inferno::UI {
                 for (auto& child : Children)
                     if (child->DockFill)
                         child->Size.x = maxLayoutWidth - child->Margin.x * 2 - child->Padding.x * 2;
-                
+
                 Size = Vector2(maxLayoutWidth/* + maxMargin * 2*/, yOffset);
             }
             else {
@@ -793,11 +928,6 @@ namespace Inferno::UI {
         string ChangeSound; // MENU_SELECT_SOUND
         bool ShowValue = false;
 
-        //void Clicked(const Vector2& position) {
-        //    //if (!Contains(position)) return;
-        //    // determine the location within the slider and set the value
-        //}
-
         std::function<void(int)> OnChange;
 
         void UpdatePercent(float percent) {
@@ -840,6 +970,54 @@ namespace Inferno::UI {
             return RectangleContains(barPosition, { barWidth, ScreenSize.y }, Input::MousePosition);
         }
 
+        void DrawLeftBar(const Vector2& position, float width, float percent, bool hovered) const {
+            const float barHeight = 6 * GetScale();
+
+            Render::CanvasBitmapInfo cbi;
+            cbi.Position = position;
+            cbi.Position.y += ScreenSize.y / 2 - barHeight / 2;
+            cbi.Size = Vector2(width * percent, barHeight);
+            cbi.Texture = Render::Materials->White().Handle();
+            //auto color = hovered ? ACCENT_GLOW : Focused ? ACCENT_COLOR : IDLE_BUTTON;
+            auto color = hovered ? ACCENT_GLOW : Focused ? Color(246.0f / 255, 153.0f / 255, 66.0f / 255) : IDLE_BUTTON;
+            cbi.Color = color * 0.8f;
+            Render::UICanvas->DrawBitmap(cbi, Layer + 1);
+        }
+
+        void DrawRightBar(const Vector2& position, float width, float percent, bool hovered) const {
+            // Bar (right half)
+            const float barHeight = 2 * GetScale();
+            Render::CanvasBitmapInfo cbi;
+            cbi.Position = position;
+            cbi.Position.y += ScreenSize.y / 2 - barHeight / 2;
+            cbi.Position.x += width * percent;
+            cbi.Size = Vector2(width * (1 - percent), barHeight);
+            cbi.Texture = Render::Materials->White().Handle();
+            cbi.Color = hovered ? FOCUS_COLOR : Focused ? HOVER_COLOR : IDLE_BUTTON;
+            cbi.Color *= 0.75f;
+            Render::UICanvas->DrawBitmap(cbi, Layer + 1);
+        }
+
+        void DrawNotch(Vector2 position, float width, float percent, bool hovered) const {
+            auto color = hovered ? ACCENT_GLOW : Focused ? ACCENT_COLOR : IDLE_BUTTON;
+            const float notchHeight = 20 * GetScale();
+            float notchWidth = 8 * GetScale();
+
+            position.x += (width - notchWidth) * percent;
+            position.y += ScreenSize.y / 2 - notchHeight / 2;
+
+            Render::HudCanvasPayload payload;
+            payload.Texture = Render::Materials->White().Handle();
+            payload.Layer = Layer + 1;
+            payload.V0.Color = payload.V1.Color = payload.V2.Color = payload.V3.Color = color;
+
+            payload.V0.Position = position;
+            payload.V1.Position = Vector2(position.x + notchWidth, position.y + notchWidth);
+            payload.V2.Position = Vector2(position.x + notchWidth, position.y + notchHeight);
+            payload.V3.Position = Vector2(position.x, position.y + notchHeight);
+            Render::UICanvas->Draw(payload);
+        }
+
         void OnDraw() override {
             //{
             //    // Border
@@ -866,120 +1044,27 @@ namespace Inferno::UI {
 
             auto hovered = _dragging || CheckHover();
             auto barWidth = (Size.x - BarOffset - GetValueWidth() - _barPadding) * GetScale();
-            auto barPosition = Vector2(ScreenPosition.x + BarOffset * GetScale(), ScreenPosition.y - 1 * GetScale());
+            auto barPosition = Vector2(ScreenPosition.x + BarOffset * GetScale(), ScreenPosition.y - 3 * GetScale());
             auto percent = GetPercent();
 
-            {
-                // Bar (left half)
-                //const float barHeight = ScreenSize.y * 0.5f;
-                const float barHeight = 6 * GetScale();
-
-                Render::CanvasBitmapInfo cbi;
-                //cbi.Position = ScreenPosition;
-                //cbi.Size = ScreenSize;
-                //const auto border = Vector2(1, 1) * scale;
-                cbi.Position = barPosition;
-                cbi.Position.y += ScreenSize.y / 2 - barHeight / 2;
-                //cbi.Position.y += ScreenSize.y / 2 - barHeight * GetScale() / 2;
-                cbi.Size = Vector2(barWidth * percent, barHeight);
-                cbi.Texture = Render::Materials->White().Handle();
-                //auto color = hovered ? ACCENT_GLOW : Focused ? ACCENT_COLOR : IDLE_BUTTON;
-                auto color = hovered ? ACCENT_GLOW : Focused ? Color(246.0f / 255, 153.0f / 255, 66.0f / 255) : IDLE_BUTTON;
-                cbi.Color = color * 0.8f;
-                Render::UICanvas->DrawBitmap(cbi, Layer + 1);
-            }
-
-            {
-                // Bar (right half)
-                const float barHeight = 2 * GetScale();
-                //const float barHeight = ScreenSize.y * 0.5f;
-                Render::CanvasBitmapInfo cbi;
-                //cbi.Position = ScreenPosition;
-                //cbi.Size = ScreenSize;
-                //const auto border = Vector2(1, 1) * scale;
-                cbi.Position = barPosition;
-                //cbi.Position.y += ScreenSize.y / 2 - barHeight * GetScale() / 2;
-                cbi.Position.y += ScreenSize.y / 2 - barHeight / 2;
-                cbi.Position.x += barWidth * percent;
-                cbi.Size = Vector2(barWidth * (1 - percent), barHeight);
-                cbi.Texture = Render::Materials->White().Handle();
-                cbi.Color = hovered ? FOCUS_COLOR : Focused ? HOVER_COLOR : IDLE_BUTTON;
-                cbi.Color *= 0.75f;
-                Render::UICanvas->DrawBitmap(cbi, Layer + 1);
-            }
-
-            {
-                // Notch
-                //const float notchWidth = 3;
-                //const float notchHeight = 10;
-
-                auto color = hovered ? ACCENT_GLOW : Focused ? ACCENT_COLOR : IDLE_BUTTON;
-                const float notchHeight = 20 * GetScale();
-                float notchWidth = 8 * GetScale();
-
-                //Render::CanvasBitmapInfo cbi;
-                //cbi.Position = ScreenPosition;
-                //cbi.Size = ScreenSize;
-                //const auto border = Vector2(1, 1) * scale;
-                auto position = barPosition;
-                position.x += (barWidth - notchWidth) * percent;
-                position.y += ScreenSize.y / 2 - notchHeight / 2;
-
-                //cbi.Position = barPosition;
-                //cbi.Position.x += barWidth * percent;
-                //cbi.Position.y += ScreenSize.y / 2 - notchHeight / 2;
-                ////cbi.Position.y += ScreenSize.y / 2 /*- notchHeight * GetScale() / 2*/;
-                //cbi.Size = Vector2(3 * GetScale(), notchHeight);
-                //cbi.Texture = Render::Materials->White().Handle();
-                //cbi.Color = color;
-                //Render::UICanvas->DrawBitmap(cbi, Layer + 1);
-
-
-                Render::HudCanvasPayload payload;
-                payload.Texture = Render::Materials->White().Handle();
-                payload.Layer = Layer + 1;
-                payload.V0.Color = payload.V1.Color = payload.V2.Color = payload.V3.Color = color;
-
-                //float size = ScreenSize.x;
-                //auto position = ScreenPosition;
-
-                payload.V0.Position = position;
-                payload.V1.Position = Vector2(position.x + notchWidth, position.y + notchWidth);
-                payload.V2.Position = Vector2(position.x + notchWidth, position.y + notchHeight);
-                payload.V3.Position = Vector2(position.x, position.y + notchHeight);
-                Render::UICanvas->Draw(payload);
-            }
+            DrawLeftBar(barPosition, barWidth, percent, hovered);
+            DrawRightBar(barPosition, barWidth, percent, hovered);
+            DrawNotch(barPosition, barWidth, percent, hovered);
 
             {
                 // Label
                 Render::DrawTextInfo dti;
                 dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
                 dti.Color = Focused /*|| Hovered*/ ? FOCUS_COLOR : Color(1, 1, 1);
-                //dti.Position = ScreenPosition / GetScale();
                 dti.Position = ScreenPosition / GetScale();
-                //dti.Position.x += Size.x + 5;
-                //auto textLen = MeasureString(_text, FontSize::Medium).x;
-                //dti.Position.x += ScreenSize.x / 2 / scale - textLen / 2 - Padding.x; // center justify text
-                //dti.Position.y += 1; // offset from top slightly
-                //dti.Position.x += ScreenSize.x / scale - textLen - Padding.x - Margin.x - size * 1.75f / scale; // right justify text
-                //dti.HorizontalAlign = AlignH::Center;
                 Render::UICanvas->DrawText(_label, dti, Layer + 1);
             }
-
-
             if (ShowValue) {
                 // Value
                 Render::DrawTextInfo dti;
                 dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
                 dti.Color = Focused /*|| Hovered*/ ? FOCUS_COLOR : Color(1, 1, 1);
                 dti.Position = Vector2(ScreenPosition.x + ScreenSize.x - ValueWidth * GetScale(), ScreenPosition.y) / GetScale();
-
-                //dti.Position.x += BarOffset + Size.x + 5;
-                //auto textLen = MeasureString(_text, FontSize::Medium).x;
-                //dti.Position.x += ScreenSize.x / 2 / scale - textLen / 2 - Padding.x; // center justify text
-                //dti.Position.y += 1; // offset from top slightly
-                //dti.Position.x += ScreenSize.x / scale - textLen - Padding.x - Margin.x - size * 1.75f / scale; // right justify text
-                //dti.HorizontalAlign = AlignH::Center;
                 Render::UICanvas->DrawText(_valueText, dti, Layer + 1);
             }
         }
@@ -990,6 +1075,163 @@ namespace Inferno::UI {
         }
     };
 
+    class SliderFloat : public ControlBase {
+        string _label;
+        gsl::strict_not_null<float*> _value;
+        bool _held = false;
+        string _valueText;
+        float _barPadding = 10;
+        bool _dragging = false;
+        float _min, _max;
+        uint _precision;
+
+    public:
+        SliderFloat(string_view label, float min, float max, float& value, uint precision = 3)
+            : _label(label), _value(&value), _min(min), _max(max), _precision(precision) {
+            auto textSize = MeasureString(_label, FontSize::Medium);
+            Size = Vector2(60, textSize.y);
+            LabelWidth = textSize.x + _barPadding;
+            UpdateValueText();
+        }
+
+        void UpdateValueText() {
+            _valueText = fmt::format("{:.{}f}", *_value, _precision);
+        }
+
+        float LabelWidth = 0;
+        float ValueWidth = 25;
+        string ChangeSound; // MENU_SELECT_SOUND
+        bool ShowValue = false;
+
+        std::function<void(float)> OnChange;
+
+        void UpdatePercent(float percent) {
+            auto value = (_max - _min) * percent + _min;
+
+            if (*_value != value) {
+                *_value = value;
+                if (OnChange) OnChange(value);
+                Sound::Play2D(ChangeSound, 1, 0, 0.25f);
+                UpdateValueText();
+            }
+        }
+
+        float GetValueWidth() const { return ShowValue ? ValueWidth : 0; }
+
+        void OnUpdate() override {
+            // behavior:
+            // when clicked, move cursor to nearest increment, and then continue to update as dragged
+            // need a global flag to tell focus system to not update while dragging
+
+            if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick) && CheckHover()) {
+                _dragging = true;
+                CaptureCursor(true);
+            }
+            else if (!Input::IsMouseButtonDown(Input::MouseButtons::LeftClick)) {
+                if (_dragging) {
+                    _dragging = false;
+                    CaptureCursor(false);
+                }
+            }
+
+            if (_dragging) {
+                auto barWidth = (Size.x - LabelWidth - GetValueWidth() - _barPadding) * GetScale();
+                auto barPosition = ScreenPosition.x + LabelWidth * GetScale();
+                //auto tickWidth = barWidth / (_max - _min);
+
+                auto percent = Saturate((Input::MousePosition.x - barPosition) / barWidth);
+                UpdatePercent(percent);
+            }
+        }
+
+        bool CheckHover() {
+            auto barWidth = (Size.x - LabelWidth - GetValueWidth() - _barPadding) * GetScale();
+            auto barPosition = Vector2(ScreenPosition.x + LabelWidth * GetScale(), ScreenPosition.y);
+            return RectangleContains(barPosition, { barWidth, ScreenSize.y }, Input::MousePosition);
+        }
+
+        void DrawLeftBar(const Vector2& position, float width, float percent, bool hovered) const {
+            const float barHeight = 6 * GetScale();
+
+            Render::CanvasBitmapInfo cbi;
+            cbi.Position = position;
+            cbi.Position.y += ScreenSize.y / 2 - barHeight / 2;
+            cbi.Size = Vector2(width * percent, barHeight);
+            cbi.Texture = Render::Materials->White().Handle();
+            //auto color = hovered ? ACCENT_GLOW : Focused ? ACCENT_COLOR : IDLE_BUTTON;
+            auto color = hovered ? ACCENT_GLOW : Focused ? Color(246.0f / 255, 153.0f / 255, 66.0f / 255) : IDLE_BUTTON;
+            cbi.Color = color * 0.8f;
+            Render::UICanvas->DrawBitmap(cbi, Layer + 1);
+        }
+
+        void DrawRightBar(const Vector2& position, float width, float percent, bool hovered) const {
+            // Bar (right half)
+            const float barHeight = 2 * GetScale();
+            Render::CanvasBitmapInfo cbi;
+            cbi.Position = position;
+            cbi.Position.y += ScreenSize.y / 2 - barHeight / 2;
+            cbi.Position.x += width * percent;
+            cbi.Size = Vector2(width * (1 - percent), barHeight);
+            cbi.Texture = Render::Materials->White().Handle();
+            cbi.Color = hovered ? FOCUS_COLOR : Focused ? HOVER_COLOR : IDLE_BUTTON;
+            cbi.Color *= 0.75f;
+            Render::UICanvas->DrawBitmap(cbi, Layer + 1);
+        }
+
+        void DrawNotch(Vector2 position, float width, float percent, bool hovered) const {
+            auto color = hovered ? ACCENT_GLOW : Focused ? ACCENT_COLOR : IDLE_BUTTON;
+            const float notchHeight = 20 * GetScale();
+            float notchWidth = 8 * GetScale();
+
+            position.x += (width - notchWidth) * percent;
+            position.y += ScreenSize.y / 2 - notchHeight / 2;
+
+            Render::HudCanvasPayload payload;
+            payload.Texture = Render::Materials->White().Handle();
+            payload.Layer = Layer + 1;
+            payload.V0.Color = payload.V1.Color = payload.V2.Color = payload.V3.Color = color;
+
+            payload.V0.Position = position;
+            payload.V1.Position = Vector2(position.x + notchWidth, position.y + notchWidth);
+            payload.V2.Position = Vector2(position.x + notchWidth, position.y + notchHeight);
+            payload.V3.Position = Vector2(position.x, position.y + notchHeight);
+            Render::UICanvas->Draw(payload);
+        }
+
+        void OnDraw() override {
+            auto hovered = _dragging || CheckHover();
+            auto barWidth = (Size.x - LabelWidth - GetValueWidth() - _barPadding) * GetScale();
+            auto barPosition = Vector2(ScreenPosition.x + LabelWidth * GetScale(), ScreenPosition.y - 3 * GetScale());
+            auto percent = GetPercent();
+
+            DrawLeftBar(barPosition, barWidth, percent, hovered);
+            DrawRightBar(barPosition, barWidth, percent, hovered);
+            DrawNotch(barPosition, barWidth, percent, hovered);
+
+            {
+                // Label
+                Render::DrawTextInfo dti;
+                dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
+                dti.Color = Focused /*|| Hovered*/ ? FOCUS_COLOR : Color(1, 1, 1);
+                dti.Position = ScreenPosition / GetScale();
+                Render::UICanvas->DrawText(_label, dti, Layer + 1);
+            }
+
+            if (ShowValue) {
+                // Value
+                Render::DrawTextInfo dti;
+                dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
+                dti.Color = Focused /*|| Hovered*/ ? FOCUS_COLOR : Color(1, 1, 1);
+                dti.Position = Vector2(ScreenPosition.x + ScreenSize.x - ValueWidth * GetScale(), ScreenPosition.y) / GetScale();
+                Render::UICanvas->DrawText(_valueText, dti, Layer + 1);
+            }
+        }
+
+    private:
+        float GetPercent() const {
+            return (*_value - _min) / (_max - _min);
+        }
+    };
 
     bool CloseScreen();
 
@@ -1010,7 +1252,7 @@ namespace Inferno::UI {
         std::function<void(CloseState)> CloseCallback;
 
         void OnUpdate() override {
-            if (Input::MouseMoved()) {
+            if (Input::MouseMoved() && !IsCursorCaptured()) {
                 // Update selection when cursor moves, but only if the control is valid
                 if (auto control = HitTestCursor())
                     SetSelection(control);
@@ -1126,7 +1368,7 @@ namespace Inferno::UI {
         }
 
         virtual void OnDialogClose() {
-            CloseScreen();
+            State = CloseState::Accept;
         }
 
         void OnDraw() override {

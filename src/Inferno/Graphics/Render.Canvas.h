@@ -375,6 +375,20 @@ namespace Inferno::Render {
         D3D12_GPU_DESCRIPTOR_HANDLE Texture{};
         int Layer = 0;
         float Scanline = 0;
+
+        void RoundLayout() {
+            V0.Position.x = std::round(V0.Position.x);
+            V0.Position.y = std::round(V0.Position.y);
+
+            V1.Position.x = std::round(V1.Position.x);
+            V1.Position.y = std::round(V1.Position.y);
+
+            V2.Position.x = std::round(V2.Position.x);
+            V2.Position.y = std::round(V2.Position.y);
+
+            V3.Position.x = std::round(V3.Position.x);
+            V3.Position.y = std::round(V3.Position.y);
+        }
     };
 
     class HudCanvas2D {

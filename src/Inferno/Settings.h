@@ -173,7 +173,8 @@ namespace Inferno {
         List<filesystem::path> DataPaths;
         filesystem::path Descent1Path, Descent2Path;
         bool InvertY = false;
-        float MouseSensitivity = 1/64.0f;
+        float MouseSensitivity = 1 / 64.0f;
+        float MouseSensitivityX = 1 / 64.0f;
         bool HalvePitchSpeed = true; // Halves the maximum pitch speed
         bool ScreenshotMode = false; // game setting?
         float MasterVolume = 1.0f;

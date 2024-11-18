@@ -8,7 +8,8 @@ namespace Inferno::UI {
         int _value = 9;
         int _value2 = 5;
         int _value3 = 5;
-
+        int _value4 = 5;
+        bool _bool = true, _bool2 = false;
     public:
         OptionsMenu() : DialogBase("Options") {
             Size = Vector2(500, 460);
@@ -30,9 +31,6 @@ namespace Inferno::UI {
             volume->OnChange = [](int value) {
                 Settings::Inferno.MasterVolume = value / 10.0f;
                 Sound::SetMasterVolume(Settings::Inferno.MasterVolume);
-                //Sound::SetMasterVolume(VOLUME_TABLE[value]);
-
-                //Sound::SetMasterVolume(value / 10.0f);
             };
             panel->AddChild(std::move(volume));
 
@@ -41,11 +39,7 @@ namespace Inferno::UI {
             fxVolume->BarOffset = 250;
             fxVolume->OnChange = [](int value) {
                 Settings::Inferno.EffectVolume = value / 10.0f;
-                //Settings::Inferno.EffectVolume = XAudio2DecibelsToAmplitudeRatio(-50.0f * (1 - value / 10.0f));
                 Sound::SetEffectVolume(Settings::Inferno.EffectVolume);
-                //Settings::Inferno.EffectVolume = VOLUME_TABLE[value];
-                //Sound::SetEffectVolume(VOLUME_TABLE[value]);
-                //Sound::SetEffectVolume(value / 10.0f);
             };
 
             fxVolume->ChangeSound = MENU_SELECT_SOUND;
@@ -64,6 +58,29 @@ namespace Inferno::UI {
                 //Sound::SetMusicVolume(value);
             };
             panel->AddChild(std::move(music));
+
+            {
+                panel->AddChild<Label>("");
+                panel->AddChild<Label>("Mouse Settings", FontSize::MediumBlue);
+
+                //_value4 = (int)std::floor(Settings::Inferno.MouseSensitivity * 1000);
+                auto mouseXAxis = make_unique<SliderFloat>("X-Axis", 0.001f, 0.050f, Settings::Inferno.MouseSensitivity);
+                mouseXAxis->LabelWidth = 100;
+                mouseXAxis->ShowValue = true;
+                mouseXAxis->ValueWidth = 60;
+                panel->AddChild(std::move(mouseXAxis));
+
+                auto mouseYAxis = make_unique<SliderFloat>("Y-Axis", 0.001f, 0.050f, Settings::Inferno.MouseSensitivityX);
+                mouseYAxis->LabelWidth = 100;
+                mouseYAxis->ShowValue = true;
+                mouseYAxis->ValueWidth = 60;
+                panel->AddChild(std::move(mouseYAxis));
+            }
+
+            panel->AddChild<Checkbox>(Settings::Inferno.InvertY, "Invert Y-axis");
+
+            panel->AddChild<Checkbox>(Settings::Inferno.HalvePitchSpeed, "Classic pitch speed");
+
             AddChild(std::move(panel));
         }
     };

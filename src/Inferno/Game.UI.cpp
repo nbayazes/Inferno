@@ -17,6 +17,13 @@ namespace Inferno::UI {
     using ClickHandler = std::function<void(const Vector2*)>;
     using Inferno::Input::Keys;
 
+    namespace {
+        bool CursorCaptured = false;
+    }
+
+    void CaptureCursor(bool capture) { CursorCaptured = capture; }
+    bool IsCursorCaptured() { return CursorCaptured; }
+
     // Translates an input keycode to an ASCII character
     uchar TranslateSymbol(uchar keycode) {
         switch (keycode) {
@@ -243,6 +250,7 @@ namespace Inferno::UI {
         if (screen->CloseCallback) screen->CloseCallback(screen->State);
         Seq::remove(Screens, screen); // Remove the  original screen because the callback might open a new one
         Input::ResetState(); // Clear state so clicking doesn't immediately trigger another action
+        CaptureCursor(false);
         return true;
     }
 
