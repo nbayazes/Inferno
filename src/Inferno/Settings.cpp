@@ -538,6 +538,7 @@ namespace Inferno {
         node["MouseSensitivity"] << settings.MouseSensitivity;
         node["Difficulty"] << (int)Game::Difficulty;
         node["HalvePitchSpeed"] << Settings::Inferno.HalvePitchSpeed;
+        node["Fullscreen"] << Settings::Inferno.Fullscreen;
     }
 
     void LoadGameSettings(ryml::NodeRef node, InfernoSettings& settings) {
@@ -548,6 +549,7 @@ namespace Inferno {
         ReadValue(node["MouseSensitivity"], settings.MouseSensitivity);
         ReadValue(node["Difficulty"], Game::Difficulty);
         ReadValue(node["HalvePitchSpeed"], settings.HalvePitchSpeed);
+        ReadValue(node["Fullscreen"], Settings::Inferno.Fullscreen);
         Game::Difficulty = (DifficultyLevel)std::clamp((int)Game::Difficulty, 0, 4);
     }
 

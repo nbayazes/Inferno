@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+
 #include "Types.h"
 #include "Level.h"
 #include "Events.h"
@@ -44,7 +46,7 @@ namespace Inferno::Editor {
 
     public:
         EditorHistory(Level* level, int undoLevels = 50) : _level(level), _undoLevels(undoLevels) {
-            if (_undoLevels < 10) _undoLevels = 10;
+            _undoLevels = std::max(_undoLevels, 10);
             Reset();
         }
 
@@ -54,7 +56,7 @@ namespace Inferno::Editor {
             else
                 _cleanId = (size_t)-1;
 
-            UpdateWindowTitle();
+            Shell::UpdateWindowTitle();
         }
 
         void Reset() {
@@ -134,7 +136,7 @@ namespace Inferno::Editor {
             }
 
             _snapshot--;
-            UpdateWindowTitle();
+            Shell::UpdateWindowTitle();
             Events::SnapshotChanged();
         }
 
@@ -144,7 +146,7 @@ namespace Inferno::Editor {
             SetStatusMessage("Redo: {}", _snapshot->Name);
             _snapshot->Restore(_level);
             _snapshot->RestoreSelection();
-            UpdateWindowTitle();
+            Shell::UpdateWindowTitle();
             Events::SnapshotChanged();
         }
 
@@ -204,7 +206,7 @@ namespace Inferno::Editor {
             _snapshot = _snapshots.end();
             _snapshot--;
 
-            UpdateWindowTitle();
+            Shell::UpdateWindowTitle();
         }
     };
 

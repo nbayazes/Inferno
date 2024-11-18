@@ -184,6 +184,7 @@ namespace Inferno {
         bool Descent3Enhanced = false;
         bool ShowWeaponFlash = false; // Are weapon flashes visible in first person?
         WiggleMode ShipWiggle = WiggleMode::Reduced;
+        bool Fullscreen = false;
     };
 
     struct CheatSettings {

@@ -508,7 +508,7 @@ namespace Inferno::UI {
         string _label;
 
     public:
-        Checkbox(bool& value, string_view label) : _value(&value), _label(label) {
+        Checkbox(string_view label, bool& value) : _value(&value), _label(label) {
             Size = MeasureString(label, FontSize::Medium);
             Size.x += CheckboxSize + CheckboxPadding;
             Size.y += 2;

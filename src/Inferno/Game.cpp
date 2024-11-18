@@ -360,7 +360,7 @@ namespace Inferno::Game {
             case GameState::MainMenu:
             {
                 State = GameState::MainMenu;
-                UpdateWindowTitle();
+                Shell::UpdateWindowTitle();
                 Game::Level = {};
                 Editor::History.Reset();
                 Game::MainCamera.Up = Vector3::UnitY;
@@ -385,11 +385,11 @@ namespace Inferno::Game {
             case GameState::Editor:
                 if (Level.Version == 0) {
                     // Null file
-                    UpdateWindowTitle("Loading editor");
+                    Shell::UpdateWindowTitle("Loading editor");
                     Editor::OpenRecentOrEmpty();
                 }
                 else {
-                    UpdateWindowTitle();
+                    Shell::UpdateWindowTitle();
                 }
 
                 Editor::History.Undo();
@@ -430,11 +430,11 @@ namespace Inferno::Game {
 
                 Sound::SetMusicVolume(Settings::Inferno.MusicVolume);
                 State = RequestedState;
-                UpdateWindowTitle();
+                Shell::UpdateWindowTitle();
                 break;
 
             case GameState::ExitSequence:
-                UpdateWindowTitle("Escaping the mine!");
+                Shell::UpdateWindowTitle("Escaping the mine!");
                 break;
 
             case GameState::PhotoMode:

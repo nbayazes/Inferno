@@ -289,7 +289,7 @@ Weapons:
     ExplosionColor: 1, 0.25, 0.0, 10
     FlashColor: 1, 0.25, 0.0, 2
     Size: 1 # was 1.5
-    HomingFov: 40 # Slightly easier to evade than 45
+    HomingFov: 45 # Slightly easier to evade than 45
     HomingDistance: 300
     Damage: [ 10, 15, 20, 25, 30 ] # Changed to D2 values
     # Damage: [ 15, 15, 20, 30, 49 ] # D1 values

@@ -77,9 +77,15 @@ namespace Inferno::UI {
                 panel->AddChild(std::move(mouseYAxis));
             }
 
-            panel->AddChild<Checkbox>(Settings::Inferno.InvertY, "Invert Y-axis");
+            panel->AddChild<Checkbox>("Invert Y-axis", Settings::Inferno.InvertY);
 
-            panel->AddChild<Checkbox>(Settings::Inferno.HalvePitchSpeed, "Classic pitch speed");
+            panel->AddChild<Checkbox>("Classic pitch speed", Settings::Inferno.HalvePitchSpeed);
+
+            {
+                auto fullscreen = make_unique<Checkbox>("Fullscreen", Settings::Inferno.Fullscreen);
+                panel->AddChild(std::move(fullscreen));
+            }
+
 
             AddChild(std::move(panel));
         }

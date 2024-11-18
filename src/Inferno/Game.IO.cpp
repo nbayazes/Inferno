@@ -232,7 +232,7 @@ namespace Inferno::Game {
             throw;
         }
 
-        UpdateWindowTitle();
+        Shell::UpdateWindowTitle();
     }
 
     struct Level LoadLevel(span<byte> buffer, const filesystem::path& srcPath) {

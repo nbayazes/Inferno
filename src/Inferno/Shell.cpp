@@ -3,6 +3,7 @@
 #include "Shell.h"
 #include <Windows.h>
 #include <dwmapi.h>
+#include <WinUser.h>
 #include "imgui_local.h"
 #include "Input.h"
 #include "Version.h"
@@ -23,7 +24,9 @@ namespace {
     bool AppSuspended = false;
     bool AppMinimized = false;
     bool AppFullscreen = false;
+    bool AppMaximized = false;
     HBRUSH BackgroundBrush{};
+    RECT AppWindowRect{};
 }
 
 void EnableDarkMode(HWND hwnd) {
@@ -35,11 +38,54 @@ void EnableDarkMode(HWND hwnd) {
                           &useDarkMode, sizeof(useDarkMode));
 }
 
-LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-    // TODO: Set AppFullscreen to true if defaulting to fullscreen.
+void GetWindowPlacement() {
+    auto hWnd = Inferno::Shell::Hwnd;
+    if (!hWnd) return;
 
+    WINDOWPLACEMENT placement{};
+    GetWindowPlacement(hWnd, &placement);
+    AppMaximized = placement.showCmd == SW_SHOWMAXIMIZED;
+    AppWindowRect = placement.rcNormalPosition;
+}
+
+// Updates the window fullscreen state based on the app setting
+void UpdateFullscreen() {
+    auto hWnd = Inferno::Shell::Hwnd;
+    if (!hWnd) return;
+    if (AppFullscreen == Settings::Inferno.Fullscreen) return;
+
+    AppFullscreen = Settings::Inferno.Fullscreen;
+
+    if (!Inferno::Settings::Inferno.Fullscreen) {
+        // Restore window position and size
+        SetWindowLongPtr(hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW);
+        SetWindowLongPtr(hWnd, GWL_EXSTYLE, 0);
+
+        auto width = AppWindowRect.right - AppWindowRect.left;
+        auto height = AppWindowRect.bottom - AppWindowRect.top;
+        auto flags = SWP_NOZORDER | SWP_FRAMECHANGED;
+
+        // Don't override the window size if the app was maximized, so that restoring keeps the original size.
+        //if (AppMaximized) flags |= SWP_NOSIZE | SWP_NOMOVE;
+
+        SetWindowPos(hWnd, HWND_TOP, AppWindowRect.left, AppWindowRect.top, width, height, flags);
+        ShowWindow(hWnd, AppMaximized ? SW_SHOWMAXIMIZED : SW_SHOW);
+    }
+    else {
+        GetWindowPlacement();
+
+        SetWindowLongPtr(hWnd, GWL_STYLE, 0);
+        SetWindowLongPtr(hWnd, GWL_EXSTYLE, WS_EX_TOPMOST);
+
+        SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+        ShowWindow(hWnd, SW_SHOWMAXIMIZED);
+    }
+}
+
+LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
     auto app = reinterpret_cast<Application*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
 
+    UpdateFullscreen();
     Input::ProcessMessage(message, wParam, lParam);
 
     if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
@@ -53,31 +99,11 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
             break;
 
         case WM_SYSKEYDOWN:
+            // Implements the classic ALT+ENTER fullscreen toggle
             if (app && wParam == VK_RETURN && (lParam & 0x60000000) == 0x20000000) {
-                // Implements the classic ALT+ENTER fullscreen toggle
-                if (AppFullscreen) {
-                    SetWindowLongPtr(hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW);
-                    SetWindowLongPtr(hWnd, GWL_EXSTYLE, 0);
-
-                    ShowWindow(hWnd, SW_SHOWMAXIMIZED);
-                    SetWindowPos(hWnd, HWND_TOP, 0, 0, AppWidth, AppHeight, SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED);
-                }
-                else {
-                    SetWindowLongPtr(hWnd, GWL_STYLE, 0);
-                    SetWindowLongPtr(hWnd, GWL_EXSTYLE, WS_EX_TOPMOST);
-
-                    RECT r{};
-                    GetWindowRect(hWnd, &r);
-
-                    AppWidth = r.right;
-                    AppHeight = r.bottom;
-
-                    SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
-                    ShowWindow(hWnd, SW_SHOWMAXIMIZED);
-                }
-
-                AppFullscreen = !AppFullscreen;
+                Inferno::Settings::Inferno.Fullscreen = !Inferno::Settings::Inferno.Fullscreen;
             }
+
             break;
 
         //case WM_PAINT:
@@ -136,7 +162,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
             }
             else if (/*!AppMoving && */app) {
                 app->OnWindowSizeChanged(LOWORD(lParam), HIWORD(lParam));
-                app->Tick();
+                //app->Tick(); // this crashes when toggling fullscreen
                 return 0;
             }
             break;
@@ -237,6 +263,10 @@ bool RegisterWindowClass(HINSTANCE hInstance) {
     return RegisterClassEx(&wc) != 0;
 }
 
+Inferno::Shell::~Shell() {
+    UnregisterClass(WindowClass, _hInstance);
+}
+
 int Inferno::Shell::Show(int width, int height, int nCmdShow) const {
     if (!RegisterWindowClass(_hInstance))
         throw std::exception("Failed to register window class");
@@ -261,8 +291,8 @@ int Inferno::Shell::Show(int width, int height, int nCmdShow) const {
 
     EnableDarkMode(hwnd);
     Shell::Hwnd = hwnd;
-    // TODO: Change nCmdShow to SW_SHOWMAXIMIZED to default to fullscreen.
     ShowWindow(hwnd, nCmdShow);
+    GetWindowPlacement();
 
     Application app;
     SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(&app));
@@ -286,10 +316,10 @@ int Inferno::Shell::Show(int width, int height, int nCmdShow) const {
     return (int)msg.wParam;
 }
 
-void Inferno::UpdateWindowTitle(string_view message) {
+void Inferno::Shell::UpdateWindowTitle(string_view message) {
     if (!message.empty()) {
         string title = fmt::format("{} - {}", message, APP_TITLE);
-        SetWindowTextW(Shell::Hwnd, Convert::ToWideString(title).c_str());
+        SetWindowTextW(Hwnd, Convert::ToWideString(title).c_str());
         return;
     }
 
@@ -304,10 +334,10 @@ void Inferno::UpdateWindowTitle(string_view message) {
             ? fmt::format("{} [{}] - {}", levelName, Game::Mission->Path.filename().string(), APP_TITLE)
             : fmt::format("{} - {}", levelName, APP_TITLE);
 
-        SetWindowTextW(Shell::Hwnd, Convert::ToWideString(title).c_str());
+        SetWindowTextW(Hwnd, Convert::ToWideString(title).c_str());
     }
     else if (state == GameState::MainMenu) {
-        SetWindowTextW(Shell::Hwnd, Convert::ToWideString(APP_TITLE).c_str());
+        SetWindowTextW(Hwnd, Convert::ToWideString(APP_TITLE).c_str());
     }
     else {
         auto info = Game::TryReadMissionInfo();
@@ -317,6 +347,6 @@ void Inferno::UpdateWindowTitle(string_view message) {
             ? fmt::format("{} [{}] - {}", String::ToUpper(Game::Level.Name), info->Name, APP_TITLE)
             : fmt::format("{} - {}", String::ToUpper(Game::Level.Name), APP_TITLE);
 
-        SetWindowTextW(Shell::Hwnd, Convert::ToWideString(title).c_str());
+        SetWindowTextW(Hwnd, Convert::ToWideString(title).c_str());
     }
 }
