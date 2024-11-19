@@ -120,7 +120,7 @@ namespace Inferno::Render {
         Color background = color * 0.1f;
         background.w = 1;
 
-        auto scale = info.Scale * _scale * font->Scale;
+        auto scale = info.Scale * _scale;
         auto strSize = MeasureString(str, info.Font) * scale;
         Vector2 alignment = GetAlignment(strSize, info.HorizontalAlign, info.VerticalAlign, _size);
         bool inToken = false;
@@ -129,7 +129,7 @@ namespace Inferno::Render {
             uchar c = str[i];
             if (c == '\n') {
                 xOffset = 0;
-                yOffset += (font->Height + FONT_LINE_SPACING) * scale;
+                yOffset += (font->Height * font->Scale + FONT_LINE_SPACING) * scale;
                 continue;
             }
 
@@ -179,7 +179,7 @@ namespace Inferno::Render {
             //if (info.IntegerScaling) 
             //    scale = std::round(scale * 2) / 2;
 
-            Vector2 charSize = Vector2((float)font->GetWidth(c), (float)font->Height) * scale;
+            Vector2 charSize = Vector2(font->GetWidth(c) * font->Scale, font->Height * font->Scale) * scale;
             CanvasBitmapInfo cbi;
             cbi.Position = Vector2{ x0 - 1 * scale, y0 + 1 * scale };
             //cbi.Position.x = std::round(cbi.Position.x);

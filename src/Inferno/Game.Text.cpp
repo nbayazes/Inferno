@@ -14,18 +14,18 @@ namespace Inferno {
         auto font = Atlas.GetFont(size);
         if (!font) return {};
 
-        float height = font->Height;
+        float height = font->Height * font->Scale;
 
         for (int i = 0; i < str.size(); i++) {
             if (str[i] == '\n') {
                 maxWidth = std::max(maxWidth, width);
                 width = 0;
-                height += font->Height + FONT_LINE_SPACING;
+                height += font->Height * font->Scale + FONT_LINE_SPACING;
             }
             else {
                 char next = i + 1 >= str.size() ? 0 : str[i + 1];
                 auto kerning = Atlas.GetKerning(str[i], next, size);
-                width += font->GetWidth(str[i]) + kerning;
+                width += font->GetWidth(str[i]) * font->Scale + kerning;
             }
         }
 
@@ -40,7 +40,7 @@ namespace Inferno {
         for (int i = 0; i < str.size(); i++) {
             char next = i + 1 >= str.size() ? 0 : str[i + 1];
             auto kerning = Atlas.GetKerning(str[i], next, size);
-            width += font->GetWidth(str[i]) + kerning;
+            width += font->GetWidth(str[i]) * font->Scale + kerning;
 
             if (width > maxLength) {
                 return i > 1 ? str.substr(0, i - 1) : string_view{};

@@ -219,7 +219,7 @@ namespace Inferno::Render {
                 auto c = str[i];
                 if (c == '\n') {
                     xOffset = 0;
-                    yOffset += (font->Height + FONT_LINE_SPACING) * scale;
+                    yOffset += (font->Height * font->Scale + FONT_LINE_SPACING) * scale;
                     continue;
                 }
 
@@ -249,7 +249,7 @@ namespace Inferno::Render {
                 auto x0 = alignment.x + xOffset + info.Position.x * scale;
                 auto y0 = alignment.y + yOffset + info.Position.y * scale;
 
-                Vector2 charSize = Vector2(font->GetWidth(c), font->Height) * scale;
+                Vector2 charSize = Vector2(font->GetWidth(c) * font->Scale, font->Height * font->Scale) * scale;
                 CanvasBitmapInfo cbi;
                 cbi.Position = Vector2{ x0 - 1 * scale, y0 + 1 * scale };
                 cbi.Size = charSize;
@@ -274,7 +274,7 @@ namespace Inferno::Render {
             auto& ci = Atlas.GetCharacter(c, fontSize);
             CanvasBitmapInfo cbi;
             cbi.Position = position;
-            cbi.Size = Vector2(font->GetWidth(c), font->Height) * scale;
+            cbi.Size = Vector2(font->GetWidth(c) * font->Scale, font->Height * font->Scale) * scale;
             cbi.UV0 = Vector2{ ci.X0, ci.Y0 };
             cbi.UV1 = Vector2{ ci.X1, ci.Y1 };
             cbi.Color = color;
@@ -310,7 +310,7 @@ namespace Inferno::Render {
                 auto c = str[i];
                 if (c == '\n') {
                     xOffset = 0;
-                    yOffset += (font->Height + FONT_LINE_SPACING) * scale;
+                    yOffset += (font->Height * font->Scale + FONT_LINE_SPACING) * scale;
                     continue;
                 }
 
@@ -343,7 +343,7 @@ namespace Inferno::Render {
                 //auto& ci = Atlas.GetCharacter(c, info.Font);
                 cursor.x = alignment.x + xOffset + info.Position.x;
                 cursor.y = alignment.y + yOffset + info.Position.y;
-                auto charSize = Vector2(font->GetWidth(c), font->Height) * scale;
+                auto charSize = Vector2(font->GetWidth(c) * font->Scale, font->Height * font->Scale) * scale;
 
                 if (displayedChars++ > maxChars) {
                     if (showCursor)
@@ -363,7 +363,7 @@ namespace Inferno::Render {
                 double whole{};
 
                 if (std::modf(Clock.GetTotalTimeSeconds(), &whole) > 0.5f)
-                    DrawCharacter('_', Vector2(info.Position.x, cursor.y + font->Height + FONT_LINE_SPACING), info.Font, color, 1, layer + 1);
+                    DrawCharacter('_', Vector2(info.Position.x, cursor.y + font->Height * font->Scale + FONT_LINE_SPACING), info.Font, color, 1, layer + 1);
             }
 
             return finished;
