@@ -25,7 +25,7 @@ namespace Inferno::Sound {
         constexpr int SAMPLE_RATE_22KHZ = 22050;
         constexpr float DEFAULT_SILENCE = -50;
         constexpr float MUSIC_SILENCE = -60; // Music tends to be louder than other sound sources
-
+        constexpr float THREE_D_VOLUME_MULT = 1.3f; // 3D sounds are quieter than 2D and music, boost them
         constexpr float MERGE_WINDOW = 1 / 14.0f; // Merge the same sound being played by a source within a window
 
         DataPool<AmbientSoundEmitter> Emitters = { AmbientSoundEmitter::IsAlive, 10 };
@@ -190,7 +190,7 @@ namespace Inferno::Sound {
             //auto falloff = std::powf(1 - ratio, 3); // cubic falloff
             //auto falloff = 1 - ratio; // linear falloff
             //auto falloff = 1 - (ratio * ratio); // square falloff
-            auto volume = VolumeToAmplitudeRatio(sound.Volume * Muffle * globalVolume);
+            auto volume = VolumeToAmplitudeRatio(sound.Volume * Muffle * globalVolume * THREE_D_VOLUME_MULT);
             Effect->SetVolume(volume);
 
             Debug::Emitters.push_back(Emitter.Position / AUDIO_SCALE);
@@ -309,7 +309,6 @@ namespace Inferno::Sound {
         AudioEngine* GetEngine() const { return _engine ? _engine.get() : nullptr; }
 
         std::atomic<bool> RequestUnloadD1 = false;
-        std::atomic<bool> ReloadSoundFiles = false;
 
         void StopAllSounds() {
             std::scoped_lock lock(_threadMutex);
@@ -343,7 +342,7 @@ namespace Inferno::Sound {
             std::unique_lock lock(_threadMutex);
 
             if (Game::TimeScale != 1.0f)
-                sound.Sound.Pitch -= (1 - Game::TimeScale) * 0.6f;
+                sound.Sound.Pitch = (1 - Game::TimeScale) * 0.6f;
 
             sound.ID = GetSoundUID();
             //SPDLOG_INFO("Submit sound {}", (int)sound.ID);
@@ -445,20 +444,13 @@ namespace Inferno::Sound {
                         stats.audioBytes);
         }
 
-        //void LoadSoundFiles() {
-        //    // it is important to snapshot these to prevent threading issues
-        //    _soundFileD1 = Resources::SoundsD1;
-        //    _soundFileD2 = Resources::SoundsD2;
-
-        //    ReloadSoundFiles = false;
-        //}
-
         void CopySoundIds() {
             SPDLOG_INFO("Copied sound ids");
             std::scoped_lock lock(_threadMutex);
             _soundsD1 = Resources::SoundsD1;
             _soundsD2 = Resources::SoundsD2;
-            ReloadSoundFiles = false;
+
+            
         }
 
     private:
@@ -544,14 +536,13 @@ namespace Inferno::Sound {
                 //    }
                 //}
 
-                uint liveSounds = 0;
                 auto currentTime = Inferno::Clock.GetTotalTimeSeconds();
 
                 // Check if any emitters are already playing this sound from this source
                 for (auto& inst : _soundInstances) {
-                    if (!inst.IsAlive()) continue;
+                    if (!inst.IsAlive() || !inst.Info.Sound.Merge) continue;
                     auto& info = inst.Info;
-                    liveSounds++;
+
                     if (info.Source == playInfo.Source &&
                         info.Sound.Resource == sound.Resource &&
                         inst.StartTime + MERGE_WINDOW > currentTime + sound.Delay &&
@@ -574,8 +565,6 @@ namespace Inferno::Sound {
             auto& instance = _soundInstances.Alloc();
             instance.Effect = sfx->CreateInstance(SoundEffectInstance_Use3D | SoundEffectInstance_ReverbUseFilters);
 
-            auto volume = VolumeToAmplitudeRatio(std::clamp(sound.Volume * _effectVolume, 0.0f, 10.0f));
-            instance.Effect->SetVolume(volume);
             instance.Effect->SetPitch(std::clamp(sound.Pitch, -1.0f, 1.0f));
 
             //s.Emitter.pVolumeCurve = (X3DAUDIO_DISTANCE_CURVE*)&X3DAudioDefault_LinearCurve;

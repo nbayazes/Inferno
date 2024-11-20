@@ -178,7 +178,6 @@ namespace Inferno::Game {
             Level = std::move(level); // Move to global so resource loading works properly
             FreeProceduralTextures();
             Resources::LoadLevel(Level);
-            LoadFonts();
             PreloadTextures();
             Level.Rooms = CreateRooms(Level);
             Navigation = NavigationNetwork(Level);

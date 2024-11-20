@@ -5,13 +5,15 @@
 
 namespace Inferno {
     SoundResource::SoundResource(SoundID id) {
-        if (!Seq::inRange(Resources::GameData.Sounds, (int)id))
+        if (!Seq::inRange(Resources::GameDataD1.Sounds, (int)id))
             return;
 
-        if (Game::Level.IsDescent1())
-            D1 = Resources::GameData.Sounds[(int)id];
-        else
-            D2 = Resources::GameData.Sounds[(int)id];
+        if (Game::Level.IsDescent1()) {
+            D1 = Resources::GameDataD1.Sounds[(int)id];
+        }
+        else {
+            D2 = Resources::GameDataD2.Sounds[(int)id];
+        }
     }
 
     SoundResource::SoundResource(string name) : D3(std::move(name)) { }

@@ -658,13 +658,15 @@ namespace Inferno {
         return w;
     }
 
-    void ReadDescent1GameData(span<byte> data, const Palette& palette, HamFile& ham, PigFile& pig, SoundFile& sounds) {
+    HamFile ReadDescent1GameData(span<byte> data, const Palette& palette, PigFile* pig, SoundFile* sounds) {
         StreamReader reader(data);
         auto dataOffset = reader.ReadInt32();
 
         // D1 pigs have no signature so guess based on the data offset.
         if (dataOffset <= 1800)
             throw Exception("Cannot read PIG file");
+
+        HamFile ham;
 
         ham.AllTexIdx.resize(800);
         ham.LevelTextures.resize(800);
@@ -786,7 +788,19 @@ namespace Inferno {
         for (int i = 0; i < 1800; i++)
             reader.ReadInt16();
 
-        auto headerLen = ReadD1Pig(data.subspan(dataOffset), pig, sounds);
-        sounds.DataStart = pig.DataStart = dataOffset + headerLen;
+        if (pig && sounds) {
+            auto headerLen = ReadD1Pig(data.subspan(dataOffset), *pig, *sounds);
+            sounds->DataStart = pig->DataStart = dataOffset + headerLen;
+        }
+
+        return ham;
+    }
+
+    HamFile ReadDescent1GameData(span<byte> data, const Palette& palette) {
+        return ReadDescent1GameData(data, palette, nullptr, nullptr);
+    }
+
+    HamFile ReadDescent1GameData(span<byte> data, const Palette& palette, PigFile& pig, SoundFile& sounds) {
+        return ReadDescent1GameData(data, palette, &pig, &sounds);
     }
 }

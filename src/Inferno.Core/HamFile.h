@@ -118,6 +118,9 @@ namespace Inferno {
     EffectClip ReadEffect(StreamReader&);
     JointPos ReadRobotJoint(StreamReader&);
 
-    void ReadDescent1GameData(span<byte> data, const Palette& palette, 
-                              HamFile& ham, PigFile& pig, SoundFile& sounds);
+    // Reads HAM data from a D1 PIG file
+    HamFile ReadDescent1GameData(span<byte> data, const Palette& palette);
+
+    // Reads HAM, texture, and sound data from a D1 PIG file
+    HamFile ReadDescent1GameData(span<byte> data, const Palette& palette, PigFile& pig, SoundFile& sounds);
 }

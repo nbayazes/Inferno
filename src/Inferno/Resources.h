@@ -19,6 +19,11 @@ namespace Inferno {
 // Abstraction for game resources
 namespace Inferno::Resources {
     inline HamFile GameData = {};
+    inline HamFile GameDataD1 = {};
+    inline HamFile GameDataD2 = {};
+
+    void LoadDescent1GameData();
+    void LoadDescent2GameData();
 
     void Init();
 
@@ -100,8 +105,17 @@ namespace Inferno::Resources {
     // Tries to read a text file by checking the mission, the game specific directory, the shared directory, and finally the game HOG
     string ReadTextFile(const string& name);
 
+    enum class LoadFlag {
+        None = 0,
+        PreferD1 = 1 << 0, // Load from D1 before D2 (if present)
+        //PreferD2 = 1 << 1, // The default
+        ReadD3 = 1 << 2,
+        SkipMission = 1 << 3,
+        ReadDxa = 1 << 4
+    };
+
     // Tries to read a binary file by checking the mission, the game specific directory, the shared directory, and finally the game HOG
-    List<byte> ReadBinaryFile(const string& name, bool skipMission = false);
+    List<byte> ReadBinaryFile(const string& name, LoadFlag flags = LoadFlag::ReadDxa);
 
     void LoadDataTables(const Level& level);
 

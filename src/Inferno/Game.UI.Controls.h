@@ -914,7 +914,7 @@ namespace Inferno::UI {
         Slider(string_view label, int min, int max, int& value) : _label(label), _value(&value), Min(min), Max(max) {
             auto textSize = MeasureString(_label, FontSize::Medium);
             Size = Vector2(60, textSize.y);
-            BarOffset = textSize.x + _barPadding;
+            LabelWidth = textSize.x + _barPadding;
             UpdateValueText();
         }
 
@@ -923,7 +923,7 @@ namespace Inferno::UI {
         }
 
         int Min, Max;
-        float BarOffset = 0;
+        float LabelWidth = 0;
         float ValueWidth = 25;
         string ChangeSound; // MENU_SELECT_SOUND
         bool ShowValue = false;
@@ -955,8 +955,8 @@ namespace Inferno::UI {
             }
 
             if (_dragging) {
-                auto barWidth = (Size.x - BarOffset - GetValueWidth() - _barPadding) * GetScale();
-                auto barPosition = ScreenPosition.x + BarOffset * GetScale();
+                auto barWidth = (Size.x - LabelWidth - GetValueWidth() - _barPadding) * GetScale();
+                auto barPosition = ScreenPosition.x + LabelWidth * GetScale();
                 auto tickWidth = barWidth / (Max - Min);
 
                 auto percent = Saturate((Input::MousePosition.x - barPosition + tickWidth / 2) / barWidth);
@@ -965,8 +965,8 @@ namespace Inferno::UI {
         }
 
         bool CheckHover() {
-            auto barWidth = (Size.x - BarOffset - GetValueWidth() - _barPadding) * GetScale();
-            auto barPosition = Vector2(ScreenPosition.x + BarOffset * GetScale(), ScreenPosition.y);
+            auto barWidth = (Size.x - LabelWidth - GetValueWidth() - _barPadding) * GetScale();
+            auto barPosition = Vector2(ScreenPosition.x + LabelWidth * GetScale(), ScreenPosition.y);
             return RectangleContains(barPosition, { barWidth, ScreenSize.y }, Input::MousePosition);
         }
 
@@ -1043,8 +1043,8 @@ namespace Inferno::UI {
             //}
 
             auto hovered = _dragging || CheckHover();
-            auto barWidth = (Size.x - BarOffset - GetValueWidth() - _barPadding) * GetScale();
-            auto barPosition = Vector2(ScreenPosition.x + BarOffset * GetScale(), ScreenPosition.y - 3 * GetScale());
+            auto barWidth = (Size.x - LabelWidth - GetValueWidth() - _barPadding) * GetScale();
+            auto barPosition = Vector2(ScreenPosition.x + LabelWidth * GetScale(), ScreenPosition.y - 3 * GetScale());
             auto percent = GetPercent();
 
             DrawLeftBar(barPosition, barWidth, percent, hovered);
@@ -1100,7 +1100,7 @@ namespace Inferno::UI {
 
         float LabelWidth = 0;
         float ValueWidth = 25;
-        string ChangeSound; // MENU_SELECT_SOUND
+        SoundResource ChangeSound; // MENU_SELECT_SOUND
         bool ShowValue = false;
 
         std::function<void(float)> OnChange;
@@ -1111,7 +1111,6 @@ namespace Inferno::UI {
             if (*_value != value) {
                 *_value = value;
                 if (OnChange) OnChange(value);
-                Sound::Play2D(ChangeSound, 1, 0, 0.25f);
                 UpdateValueText();
             }
         }
@@ -1131,6 +1130,8 @@ namespace Inferno::UI {
                 if (_dragging) {
                     _dragging = false;
                     CaptureCursor(false);
+                    Sound::Play2D(ChangeSound);
+                    //Sound::Play2D(ChangeSound, 1, 0, 0.125f);
                 }
             }
 

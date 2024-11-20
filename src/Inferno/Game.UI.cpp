@@ -750,7 +750,7 @@ namespace Inferno::UI {
             {
                 // Background
                 Render::CanvasBitmapInfo cbi;
-                cbi.Size = ScreenSize;
+                cbi.Size = ScreenSize / Settings::Graphics.RenderScale;
                 cbi.Texture = Render::Adapter->BlurBufferDownsampled.GetSRV();
                 cbi.Color = Color(.5f, .5f, .5f, 1);
                 Render::UICanvas->DrawBitmap(cbi, Layer);

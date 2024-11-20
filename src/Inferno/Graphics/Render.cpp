@@ -236,8 +236,6 @@ namespace Inferno::Render {
         g_ImGuiBatch = make_unique<ImGuiBatch>(Adapter->GetBackBufferCount());
 
         CreateEditorResources();
-        LoadFonts();
-
         ResourceUploadBatch resourceUpload(Device);
 
         resourceUpload.Begin();

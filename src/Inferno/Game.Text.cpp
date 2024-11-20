@@ -6,8 +6,6 @@
 #include "Resources.h"
 
 namespace Inferno {
-    FontAtlas Atlas(1024, 512);
-
     Vector2 MeasureString(string_view str, FontSize size) {
         float maxWidth = 0;
         float width = 0;
@@ -51,18 +49,6 @@ namespace Inferno {
     }
 
     void LoadFonts() {
-        // note: this does not search for loose font files
-        // also this uses D2 fonts even for D1 if D2 is present
-        auto hogPath = FileSystem::TryFindFile(L"descent2.hog");
-        if (!hogPath) hogPath = FileSystem::TryFindFile(L"descent.hog");
-
-        if (!hogPath) {
-            SPDLOG_WARN("No hog file found for font data");
-            return;
-        }
-
-        auto hog = HogFile::Read(*hogPath);
-
         Atlas = { 1024, 512 };
         List<Palette::Color> buffer(Atlas.Width() * Atlas.Height());
         ranges::fill(buffer, Palette::Color{ 0, 0, 0, 0 });
@@ -77,14 +63,16 @@ namespace Inferno {
         };
 
         for (auto& [name, size] : fonts) {
-            List<byte> data;
+            //List<byte> data;
             float scale = 1;
 
             // Prefer reading high res fonts first
-            data = hog.TryReadEntry(name + "h.fnt");
+            //data = hog.TryReadEntry(name + "h.fnt");
+
+            auto data = Resources::ReadBinaryFile(name + "h.fnt");
 
             if (data.empty()) {
-                data = hog.TryReadEntry(name + ".fnt");
+                data = Resources::ReadBinaryFile(name + ".fnt");
                 scale = 2;
             }
 
@@ -96,6 +84,11 @@ namespace Inferno {
             auto font = Font::Read(data);
             font.Scale = scale;
             Atlas.AddFont(buffer, font, size, 2);
+        }
+
+        if (Atlas.FontCount() == 0) {
+            SPDLOG_ERROR("No font data found");
+            return;
         }
 
         Render::Adapter->WaitForGpu();

@@ -6,6 +6,7 @@
 #include "imgui_local.h"
 #include "Resources.h"
 #include "Editor/Editor.h"
+#include "FileSystem.h"
 #include "SystemClock.h"
 #include "Graphics/Render.h"
 #include "Graphics/Render.MainMenu.h"
@@ -60,7 +61,8 @@ void Application::Initialize(int width, int height) {
     Render::Initialize(Shell::Hwnd, width, height);
     Sound::Init(Shell::Hwnd);
 
-    LoadFonts();
+    Resources::LoadSounds();
+    Sound::CopySoundIds();
 
     // Set color picker to use wheel and HDR by default
     ImGui::SetColorEditOptions(ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_PickerHueWheel);
@@ -73,6 +75,10 @@ void Application::Initialize(int width, int height) {
     Game::MainCamera.Up = Vector3::UnitY;
     Game::MainCamera.Position = MenuCameraPosition;
     Game::MainCamera.Target = MenuCameraTarget;
+
+    Resources::LoadDescent1GameData();
+    Resources::LoadDescent2GameData();
+    LoadFonts();
 
     Events::SettingsChanged += [this] {
         UpdateFpsLimit();

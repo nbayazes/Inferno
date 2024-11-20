@@ -1,15 +1,12 @@
 ﻿#pragma once
 #include "Game.UI.Controls.h"
+#include "Procedural.h"
+#include "Resources.h"
 
 namespace Inferno::UI {
     //inline std::array VOLUME_TABLE = { 1.0f, .707f, .5f, .35f, .25f, .18f, .09f, .045f, 0.0225f, 0.0f };
 
     class OptionsMenu : public DialogBase {
-        int _value = 9;
-        int _value2 = 5;
-        int _value3 = 5;
-        int _value4 = 5;
-        bool _bool = true, _bool2 = false;
     public:
         OptionsMenu() : DialogBase("Options") {
             Size = Vector2(500, 460);
@@ -23,40 +20,27 @@ namespace Inferno::UI {
             panel->Spacing = 2;
             //panel->AddChild<Label>("Options", FontSize::MediumBlue);
 
+            auto bombSound = Seq::tryItem(Inferno::Resources::GameDataD1.Sounds, (int)SoundID::DropBomb);
 
-            _value = (int)std::floor(Settings::Inferno.MasterVolume * 10);
-            auto volume = make_unique<Slider>("Master Volume", 0, 10, _value);
-            volume->BarOffset = 250;
-            volume->ChangeSound = MENU_SELECT_SOUND;
-            volume->OnChange = [](int value) {
-                Settings::Inferno.MasterVolume = value / 10.0f;
-                Sound::SetMasterVolume(Settings::Inferno.MasterVolume);
-            };
+            auto volume = make_unique<SliderFloat>("Master Volume", 0.0f, 1.0f, Settings::Inferno.MasterVolume);
+            volume->LabelWidth = 250;
+            volume->ShowValue = false;
+            volume->ChangeSound.D1 = bombSound ? *bombSound : -1;
+            volume->OnChange = [](float value) { Sound::SetMasterVolume(value); };
+
             panel->AddChild(std::move(volume));
 
-            _value2 = (int)std::floor(Settings::Inferno.EffectVolume * 10);
-            auto fxVolume = make_unique<Slider>("FX Volume", 0, 10, _value2);
-            fxVolume->BarOffset = 250;
-            fxVolume->OnChange = [](int value) {
-                Settings::Inferno.EffectVolume = value / 10.0f;
-                Sound::SetEffectVolume(Settings::Inferno.EffectVolume);
-            };
-
-            fxVolume->ChangeSound = MENU_SELECT_SOUND;
+            auto fxVolume = make_unique<SliderFloat>("FX Volume", 0.0f, 1.0f, Settings::Inferno.EffectVolume);
+            fxVolume->LabelWidth = 250;
+            fxVolume->ShowValue = false;
+            fxVolume->ChangeSound.D1 = bombSound ? *bombSound : -1;
+            fxVolume->OnChange = [](float value) { Sound::SetEffectVolume(value); };
             panel->AddChild(std::move(fxVolume));
 
-
-            _value3 = (int)std::floor(Settings::Inferno.MusicVolume * 10);
-            auto music = make_unique<Slider>("Music Volume", 0, 10, _value3);
-            music->BarOffset = 250;
-            music->OnChange = [](int value) {
-                Settings::Inferno.MusicVolume = value / 10.0f;
-                Sound::SetMusicVolume(Settings::Inferno.MusicVolume);
-                //Sound::SetMusicVolume(MUSIC_VOLUME_TABLE[value] * .5f);
-                //auto volume = XAudio2DecibelsToAmplitudeRatio(-60.0f * (1 - value / 10.0f));
-                //Sound::SetMusicVolume(volume);
-                //Sound::SetMusicVolume(value);
-            };
+            auto music = make_unique<SliderFloat>("Music Volume", 0.0f, 1.0f, Settings::Inferno.MusicVolume);
+            music->LabelWidth = 250;
+            music->ShowValue = false;
+            music->OnChange = [](float value) { Sound::SetMusicVolume(value); };
             panel->AddChild(std::move(music));
 
             {
@@ -86,6 +70,22 @@ namespace Inferno::UI {
                 panel->AddChild(std::move(fullscreen));
             }
 
+
+            auto procedurals = make_unique<Checkbox>("Procedural textures", Settings::Graphics.EnableProcedurals);
+            procedurals->ClickAction = [] { EnableProceduralTextures(Settings::Graphics.EnableProcedurals); };
+            panel->AddChild<Checkbox>("Procedural textures", Settings::Graphics.EnableProcedurals);
+
+            // filtering
+            //ImGui::Combo("Filtering", (int*)&Settings::Graphics.FilterMode, "Point\0Enhanced point\0Smooth");
+            auto renderScale = make_unique<SliderFloat>("Render scale", 0.25f, 1.0f, Settings::Graphics.RenderScale, 2);
+            //renderScale->LabelWidth = 300;
+            renderScale->ShowValue = true;
+            renderScale->ValueWidth = 50;
+            renderScale->OnChange = [](float value) {
+                Settings::Graphics.RenderScale = std::floor(value * 20) / 20;
+            };
+
+            panel->AddChild(std::move(renderScale));
 
             AddChild(std::move(panel));
         }

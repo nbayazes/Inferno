@@ -3,9 +3,7 @@
 #include "Fonts.h"
 
 namespace Inferno {
-    class RenderTarget;
-
-    extern FontAtlas Atlas;
+    inline FontAtlas Atlas(1024, 512);
 
     constexpr float FONT_LINE_SPACING = 6.0f;
 

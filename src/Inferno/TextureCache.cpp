@@ -357,10 +357,9 @@ namespace Inferno {
         auto palette = ReadPalette(paletteData);
         auto pigData = File::ReadAllBytes("d1/descent.pig");
 
-        HamFile ham;
         PigFile pig;
         SoundFile sounds;
-        ReadDescent1GameData(pigData, palette, ham, pig, sounds);
+        auto ham = ReadDescent1GameData(pigData, palette, pig, sounds);
         pig.Path = "d1/descent.pig";
 
         TextureMapCache cache;

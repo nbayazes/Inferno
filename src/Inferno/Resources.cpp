@@ -346,7 +346,6 @@ namespace Inferno::Resources {
 
     void LoadDescent2Resources(Level& level) {
         std::scoped_lock lock(PigMutex);
-        SPDLOG_INFO("Loading Descent 2 level: '{}'\r\n Version: {} Segments: {} Vertices: {}", level.Name, level.Version, level.Segments.size(), level.Vertices.size());
         auto hamData = ReadGameResource("descent2.ham");
         StreamReader reader(hamData);
         auto ham = ReadHam(reader);
@@ -427,10 +426,9 @@ namespace Inferno::Resources {
                 auto path = FileSystem::FindFile(L"descent.pig");
                 auto bytes = File::ReadAllBytes(path);
 
-                HamFile ham;
                 PigFile pig;
                 SoundFile sounds;
-                ReadDescent1GameData(bytes, palette, ham, pig, sounds);
+                ReadDescent1GameData(bytes, palette, pig, sounds);
                 sounds.Path = path;
                 SoundsD1 = std::move(sounds);
             }
@@ -533,10 +531,9 @@ namespace Inferno::Resources {
         auto path = FileSystem::FindFile(L"descent.pig");
         auto pigData = File::ReadAllBytes(path);
 
-        HamFile ham;
         PigFile pig;
         SoundFile sounds;
-        ReadDescent1GameData(pigData, palette, ham, pig, sounds);
+        auto ham = ReadDescent1GameData(pigData, palette, pig, sounds);
         pig.Path = path;
         sounds.Path = path;
 
@@ -551,6 +548,34 @@ namespace Inferno::Resources {
         GameData = std::move(ham);
     }
 
+    void LoadDescent1GameData() {
+        auto hogPath = FileSystem::TryFindFile(L"descent.hog");
+        auto pigPath = FileSystem::TryFindFile(L"descent.pig");
+
+        if (!hogPath)
+            throw Exception("descent.hog not found");
+
+        if (!pigPath)
+            throw Exception("descent.pig not found");
+
+        auto hog = HogFile::Read(*hogPath);
+        auto paletteData = hog.ReadEntry("palette.256");
+        auto palette = ReadPalette(paletteData);
+        auto pigData = File::ReadAllBytes(*pigPath);
+
+        GameDataD1 = ReadDescent1GameData(pigData, palette);
+    }
+
+    void LoadDescent2GameData() {
+        auto hamPath = FileSystem::TryFindFile(L"descent2.ham");
+        if (!hamPath)
+            throw Exception("descent2.ham not found");
+
+        auto hamData = File::ReadAllBytes(*hamPath);
+        StreamReader reader(hamData);
+        GameDataD2 = ReadHam(reader);
+    }
+
     void LoadDescent1Resources(Level& level) {
         std::scoped_lock lock(PigMutex);
         auto hog = HogFile::Read(FileSystem::FindFile(L"descent.hog"));
@@ -560,10 +585,9 @@ namespace Inferno::Resources {
         auto path = FileSystem::FindFile(L"descent.pig");
         auto pigData = File::ReadAllBytes(path);
 
-        HamFile ham;
         PigFile pig;
         SoundFile sounds;
-        ReadDescent1GameData(pigData, palette, ham, pig, sounds);
+        auto ham = ReadDescent1GameData(pigData, palette, pig, sounds);
         pig.Path = path;
         sounds.Path = path;
 
@@ -606,7 +630,7 @@ namespace Inferno::Resources {
 
         for (auto& entry : Game::Mission->Entries) {
             if (entry.Name.ends_with(".pof")) {
-                auto modelData = ReadBinaryFile(entry.Name, true);
+                auto modelData = ReadBinaryFile(entry.Name, LoadFlag::SkipMission);
 
                 if (modelData.empty())
                     modelData = ReadBinaryFile(entry.Name);
@@ -802,9 +826,9 @@ namespace Inferno::Resources {
         return false; // Wasn't found
     }
 
-    List<byte> ReadBinaryFile(const string& name, bool skipMission) {
+    List<byte> ReadBinaryFile(const string& name, LoadFlag flags) {
         // current mission
-        if (Game::Mission && !skipMission) {
+        if (Game::Mission && !HasFlag(flags, LoadFlag::SkipMission)) {
             // 'unpacked' folder for the mission
             auto path = Game::Mission->Path.parent_path();
             auto unpacked = path / Game::Mission->Path.stem() / name;
@@ -857,7 +881,28 @@ namespace Inferno::Resources {
             }
         }
 
+        const auto readHogEntry = [](string_view fileName, string_view hogName) {
+            auto hog = HogFile::Read(FileSystem::FindFile(hogName));
+            return hog.TryReadEntry(fileName);
+            //if (!entry.empty())
+            //    return entry;
+        };
+
+        if (HasFlag(flags, LoadFlag::PreferD1)) {
+            auto entry = readHogEntry(name, "descent.hog");
+            if (!entry.empty()) return entry;
+            entry = readHogEntry(name, "descent2.hog");
+            if (!entry.empty()) return entry;
+        }
+        else /*if (HasFlag(flags, LoadFlag::PreferD2))*/ {
+            auto entry = readHogEntry(name, "descent2.hog");
+            if (!entry.empty()) return entry;
+            entry = readHogEntry(name, "descent.hog");
+            if (!entry.empty()) return entry;
+        }
+
         // game specific data folder
+        // todo: there might not be a level loaded
         auto path = GetGameDataFolder(Game::Level) + name;
         if (filesystem::exists(path)) {
             SPDLOG_INFO("Reading {}", path);
@@ -877,11 +922,6 @@ namespace Inferno::Resources {
         }
 
         // Base HOG file
-        auto data = Hog.TryReadEntry(name);
-        if (!data.empty()) {
-            SPDLOG_INFO("Reading {} from game HOG", path);
-            return data;
-        }
 
         // Check data directories
         //if (auto file = FileSystem::TryFindFile(name)) {
@@ -951,11 +991,12 @@ namespace Inferno::Resources {
             Resources::LoadSounds();
 
             if (level.IsDescent2()) {
+                SPDLOG_INFO("Loading Descent 2 level: '{}'\r\n Version: {} Segments: {} Vertices: {}", level.Name, level.Version, level.Segments.size(), level.Vertices.size());
                 LoadDescent2Resources(level);
                 AvailablePalettes = FindAvailablePalettes();
             }
             else if (level.IsDescent1()) {
-                SPDLOG_INFO("Loading Descent 1 level: '{}'\r\n Version: {} Segments: {} Vertices: {}", 
+                SPDLOG_INFO("Loading Descent 1 level: '{}'\r\n Version: {} Segments: {} Vertices: {}",
                             level.Name, level.Version, level.Segments.size(), level.Vertices.size());
 
                 if (String::ToLower(level.FileName).ends_with(".sdl"))

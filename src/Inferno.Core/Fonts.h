@@ -76,5 +76,6 @@ namespace Inferno {
         int Width() const { return _width; }
         int Height() const { return _height; }
         void AddFont(span<Palette::Color> dest, Font& font, FontSize fontSize, int padding = 1);
+        uint FontCount() const { return (uint)_fonts.size(); }
     };
 }
