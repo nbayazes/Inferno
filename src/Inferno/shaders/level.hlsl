@@ -302,7 +302,9 @@ float4 psmain(PS_INPUT input) : SV_Target {
             specularMask = lerp(specularMask, 0, emissiveMask * 0.9);
 
         ShadeLights(directLight, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
-        lighting += directLight * material.LightReceived;
+
+        // allow light contribution to fullbright, otherwise lava looks odd
+        lighting += directLight * (fullbright ? 1 : material.LightReceived);
 
         // boost specular ambient contribution from dynamic lighting, so the specular effect is still visible in range of lights
         float3 specularAmbient = ambient + lighting * 50 /** saturate(1 - emissive)*/;

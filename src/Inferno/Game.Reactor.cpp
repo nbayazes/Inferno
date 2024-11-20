@@ -105,7 +105,16 @@ namespace Inferno::Game {
 
         // Big boom
         Sound3D sound(SoundID::Explosion);
-        sound.Volume = 2;
+        sound.Merge = false;
+        sound.Radius = 400;
+
+        sound.Volume = 1.50f;
+        sound.Pitch = -.3f;
+        Sound::Play(sound, obj.Position, obj.Segment);
+
+        sound.Volume = 1.7f;
+        sound.Pitch = -.8f;
+        sound.Delay = 0.14f;
         Sound::Play(sound, obj.Position, obj.Segment);
 
         int instances = 1000; // Want this to last forever in case multiple reactor levels are ever added

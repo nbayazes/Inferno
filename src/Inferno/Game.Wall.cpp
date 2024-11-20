@@ -850,7 +850,7 @@ namespace Inferno {
             e.Clip = vclip;
             e.FadeTime = weapon.Extended.ExplosionTime;
             e.Color = Color{ 1, .7f, .7f, 2 };
-            e.LightColor = Color{ 1.0f, 0.05f, 0.05f, 4 };
+            e.LightColor = Color{ 1.0f, 0.6f, 0.05f, .5 };
             e.LightRadius = splashRadius;
             CreateExplosion(e, obj.Segment, obj.Position);
 

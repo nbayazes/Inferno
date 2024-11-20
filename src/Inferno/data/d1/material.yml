@@ -296,8 +296,8 @@ Materials:
     NormalStrength: 0.364
     Roughness: 0.738
   - Name: rock001
-    NormalStrength: 0.75
-    Roughness: 0.57
+    NormalStrength: 0.86
+    Roughness: 0.635
     LightReceived: 0.65
   - Name: rock021
     NormalStrength: 2
@@ -1838,8 +1838,8 @@ Materials:
     Metalness: 1
     Roughness: 0.701
   - Name: 'door17#0'
-    NormalStrength: 0.75
-    Roughness: 0.57
+    NormalStrength: 0.86
+    Roughness: 0.635
     LightReceived: 0.65
   - Name: 'door18#0'
     Metalness: 0.25

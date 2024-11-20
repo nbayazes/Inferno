@@ -834,7 +834,8 @@ namespace Inferno::Game {
         if (!CheckForPlayerStart(Level))
             return false;
 
-        if (Input::ControlDown && State == GameState::Editor) {
+        // todo: disable this when not launched from the editor
+        if (Input::ControlDown && Level.SegmentExists(Editor::Selection.Segment)) {
             // Move player to selected segment if control is held down
             Editor::Selection.Object = ObjID(0);
             Editor::Commands::MoveObjectToSegment();
