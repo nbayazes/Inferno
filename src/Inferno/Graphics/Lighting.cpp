@@ -43,8 +43,8 @@ namespace Inferno::Graphics {
         _lightData.Transition(cmdList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
         _lightGrid.Transition(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
         _bitMask.Transition(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-        auto renderWidth = int(_width * Settings::Graphics.RenderScale);
-        auto renderHeight = int(_height * Settings::Graphics.RenderScale);
+        auto renderWidth = (int)_width;
+        auto renderHeight = (int)_height;
 
         uint32_t tileCountX = AlignedCeil(renderWidth, LIGHT_GRID);
         //uint32_t tileCountY = AlignedCeil((int)color.GetHeight(), LIGHT_GRID);
@@ -99,8 +99,8 @@ namespace Inferno::Graphics {
         auto index = Adapter->GetCurrentFrameIndex();
         auto& lightBuffer = _lights[index];
         //UpdateDynamicLights(level, lightBuffer);
-        LightGrid->SetLights(ctx, lightBuffer);
-        LightGrid->Dispatch(ctx, Adapter->LinearizedDepthBuffer);
+        Render::Adapter->LightGrid.SetLights(ctx, lightBuffer);
+        Render::Adapter->LightGrid.Dispatch(ctx, Adapter->LinearizedDepthBuffer);
 
         // Clear the next buffer
         ResetBuffer(_lights[(index + 1) % 2]);

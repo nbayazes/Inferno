@@ -28,6 +28,8 @@ namespace Inferno {
     // Controls all the DirectX device resources.
     class DeviceResources {
         bool _typedUAVLoadSupport_R11G11B10_FLOAT = false;
+        float _renderScale = 1;
+
     public:
         static constexpr unsigned int c_AllowTearing = 0x1;
         static constexpr unsigned int c_EnableHDR = 0x2;
@@ -40,10 +42,10 @@ namespace Inferno {
         ~DeviceResources();
 
         DeviceResources(DeviceResources&&) = default;
-        DeviceResources& operator= (DeviceResources&&) = delete;
+        DeviceResources& operator=(DeviceResources&&) = delete;
 
         DeviceResources(DeviceResources const&) = delete;
-        DeviceResources& operator= (DeviceResources const&) = delete;
+        DeviceResources& operator=(DeviceResources const&) = delete;
 
         void CreateDeviceResources();
         void CreateWindowSizeDependentResources(bool forceSwapChainRebuild = false);
@@ -61,14 +63,14 @@ namespace Inferno {
         uint GetHeight() const noexcept { return m_outputSize.bottom; }
 
         // Direct3D Accessors.
-        auto                        Device() const noexcept { return m_d3dDevice.Get(); }
-        auto                        GetSwapChain() const noexcept { return m_swapChain.Get(); }
-        auto                        GetDXGIFactory() const noexcept { return m_dxgiFactory.Get(); }
-        HWND                        GetWindow() const noexcept { return m_window; }
-        D3D_FEATURE_LEVEL           GetDeviceFeatureLevel() const noexcept { return m_d3dFeatureLevel; }
+        auto Device() const noexcept { return m_d3dDevice.Get(); }
+        auto GetSwapChain() const noexcept { return m_swapChain.Get(); }
+        auto GetDXGIFactory() const noexcept { return m_dxgiFactory.Get(); }
+        HWND GetWindow() const noexcept { return m_window; }
+        D3D_FEATURE_LEVEL GetDeviceFeatureLevel() const noexcept { return m_d3dFeatureLevel; }
 
-        // Gets the active render target
-        auto GetBackBuffer() noexcept { return &BackBuffers[m_backBufferIndex]; }
+        // Gets the active swap chain back buffer
+        RenderTarget& GetBackBuffer() noexcept { return BackBuffers[m_backBufferIndex]; }
         ID3D12CommandQueue* GetCommandQueue() const noexcept { return CommandQueue->Get(); }
         Ptr<CommandQueue> CommandQueue, CopyQueue, BatchUploadQueue, AsyncBatchUploadQueue;
 
@@ -76,18 +78,32 @@ namespace Inferno {
 
         //ID3D12CommandAllocator* GetCommandAllocator() const noexcept { return m_commandAllocators[m_backBufferIndex].Get(); }
         //auto                        GetCommandList() const noexcept { return m_commandList.Get(); }
-        DXGI_FORMAT                 GetBackBufferFormat() const noexcept { return m_backBufferFormat; }
-        D3D12_VIEWPORT              GetScreenViewport() const noexcept { return m_screenViewport; }
-        D3D12_RECT                  GetScissorRect() const noexcept { return m_scissorRect; }
-        UINT                        GetCurrentFrameIndex() const noexcept { return m_backBufferIndex; }
-        UINT                        GetBackBufferCount() const noexcept { return m_backBufferCount; }
-        DXGI_COLOR_SPACE_TYPE       GetColorSpace() const noexcept { return m_colorSpace; }
-        unsigned int                GetDeviceOptions() const noexcept { return m_options; }
+        DXGI_FORMAT GetBackBufferFormat() const noexcept { return m_backBufferFormat; }
+        D3D12_VIEWPORT GetScreenViewport() const noexcept { return m_screenViewport; }
+        D3D12_RECT GetScissorRect() const noexcept { return m_scissorRect; }
+        UINT GetCurrentFrameIndex() const noexcept { return m_backBufferIndex; }
+        UINT GetBackBufferCount() const noexcept { return m_backBufferCount; }
+        DXGI_COLOR_SPACE_TYPE GetColorSpace() const noexcept { return m_colorSpace; }
+        unsigned int GetDeviceOptions() const noexcept { return m_options; }
 
         // Both MSAA and normal render targets are necessary when using MSAA.
         // The MSAA buffers are resolved to normal sources before being drawn
         Inferno::ColorBuffer MsaaLinearizedDepthBuffer, LinearizedDepthBuffer;
-        Inferno::ColorBuffer /*MsaaDistortionBuffer,*/ DistortionBuffer; // Color buffers for distortion effects
+        Inferno::ColorBuffer DistortionBuffer; // Color buffers for distortion effects. Matches Scene resolution
+
+        Inferno::RenderTarget SceneColorBuffer, SceneColorBufferMsaa;
+        Inferno::DepthBuffer SceneDepthBuffer, SceneDepthBufferMsaa;
+
+        // Buffer used to compose the scene and UI. Copied to the swapchain.
+        Inferno::RenderTarget CompositionBuffer;
+
+        // Buffers used for the menu blur effect
+        Inferno::RenderTarget BlurBufferTemp;
+        Inferno::ColorBuffer BlurBufferDownsampled, BlurBuffer;
+
+        Inferno::RenderTarget BriefingColorBuffer;
+        Inferno::RenderTarget BriefingScanlineBuffer;
+
         Inferno::RenderTarget BriefingRobot, BriefingRobotMsaa;
         Inferno::DepthBuffer BriefingRobotDepth, BriefingRobotDepthMsaa;
 
@@ -99,14 +115,7 @@ namespace Inferno {
             return Settings::Graphics.MsaaSamples > 1 ? BriefingRobotDepthMsaa : BriefingRobotDepth;
         }
 
-        Inferno::RenderTarget SceneColorBuffer, SceneColorBufferMsaa;
-        Inferno::DepthBuffer SceneDepthBuffer, SceneDepthBufferMsaa;
-
-        Inferno::RenderTarget BlurBufferTemp;
-        Inferno::ColorBuffer BlurBufferDownsampled, BlurBuffer;
-
-        Inferno::RenderTarget BriefingColorBuffer;
-        Inferno::RenderTarget BriefingScanlineBuffer;
+        Graphics::FillLightGridCS LightGrid;
 
         DescriptorHandle NullCube; // Null cubemap descriptor
 
@@ -168,7 +177,7 @@ namespace Inferno {
 
         Ptr<GraphicsContext> _graphicsContext[2];
         // Direct3D objects.
-        Microsoft::WRL::ComPtr<ID3D12Device>                m_d3dDevice;
+        Microsoft::WRL::ComPtr<ID3D12Device> m_d3dDevice;
         //Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>   m_commandList;
 
         // Command queue must be shared between all command lists that write to the swap chain
@@ -176,32 +185,32 @@ namespace Inferno {
         //Microsoft::WRL::ComPtr<ID3D12CommandAllocator>      m_commandAllocators[MAX_BACK_BUFFER_COUNT];
 
         // Swap chain objects.
-        Microsoft::WRL::ComPtr<IDXGIFactory4>               m_dxgiFactory;
-        Microsoft::WRL::ComPtr<IDXGISwapChain3>             m_swapChain;
+        Microsoft::WRL::ComPtr<IDXGIFactory4> m_dxgiFactory;
+        Microsoft::WRL::ComPtr<IDXGISwapChain3> m_swapChain;
         //Microsoft::WRL::ComPtr<ID3D12Resource>              m_renderTargets[MAX_BACK_BUFFER_COUNT];
         //Microsoft::WRL::ComPtr<ID3D12Resource>              m_depthStencil;
 
         // Direct3D rendering objects.
-        D3D12_VIEWPORT                                      m_screenViewport;
-        D3D12_RECT                                          m_scissorRect;
+        D3D12_VIEWPORT m_screenViewport;
+        D3D12_RECT m_scissorRect;
 
         // Direct3D properties.
-        DXGI_FORMAT                                         m_backBufferFormat;
-        DXGI_FORMAT                                         m_depthBufferFormat;
-        UINT                                                m_backBufferCount;
-        D3D_FEATURE_LEVEL                                   m_d3dMinFeatureLevel;
+        DXGI_FORMAT m_backBufferFormat;
+        DXGI_FORMAT m_depthBufferFormat;
+        UINT m_backBufferCount;
+        D3D_FEATURE_LEVEL m_d3dMinFeatureLevel;
 
         // Cached device properties.
-        HWND                                                m_window;
-        D3D_FEATURE_LEVEL                                   m_d3dFeatureLevel;
-        DWORD                                               m_dxgiFactoryFlags;
-        RECT                                                m_outputSize;
+        HWND m_window;
+        D3D_FEATURE_LEVEL m_d3dFeatureLevel;
+        DWORD m_dxgiFactoryFlags;
+        RECT m_outputSize;
 
         // HDR Support
-        DXGI_COLOR_SPACE_TYPE                               m_colorSpace;
+        DXGI_COLOR_SPACE_TYPE m_colorSpace;
 
         // DeviceResources options (see flags above)
-        unsigned int                                        m_options;
+        unsigned int m_options;
 
         // The IDeviceNotify can be held directly as it owns the DeviceResources.
         IDeviceNotify* m_deviceNotify;

@@ -367,7 +367,7 @@ namespace Inferno::Render {
         Shaders->Level.SetDiffuse2(cmdList, mat2Handle);
         Shaders->Level.SetMaterial2(cmdList, *mat2);
         Shaders->Level.SetInstanceConstants(cmdList, constants);
-        Shaders->Level.SetLightGrid(cmdList, *Render::LightGrid);
+        Shaders->Level.SetLightGrid(cmdList, Render::Adapter->LightGrid);
         mesh.Draw(cmdList);
     }
 
@@ -662,8 +662,8 @@ namespace Inferno::Render {
             auto& target = Adapter->GetRenderTarget();
             target.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
             ctx.SetRenderTarget(target.GetRTV(), depthBuffer.GetDSV());
-            ctx.SetViewportAndScissor(UINT(target.GetWidth() * Settings::Graphics.RenderScale), UINT(target.GetHeight() * Settings::Graphics.RenderScale));
-            LightGrid->SetLightConstants(UINT(target.GetWidth() * Settings::Graphics.RenderScale), UINT(target.GetHeight() * Settings::Graphics.RenderScale));
+            ctx.SetViewportAndScissor((uint)target.GetWidth(), (uint)target.GetHeight());
+            Render::Adapter->LightGrid.SetLightConstants((uint)target.GetWidth(), (uint)target.GetHeight());
 
             // todo: OR game show terrain
             if (Settings::Editor.ShowTerrain) {

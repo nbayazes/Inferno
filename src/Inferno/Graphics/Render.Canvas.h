@@ -68,10 +68,10 @@ namespace Inferno::Render {
     public:
         Canvas2D(ID3D12Device* device, Effect<TShader>& effect) : _batch(device), _effect(&effect) {}
 
-        // Sets the size of the canvas. Affects alignment. Target screen height is the original resolution.
-        void SetSize(uint width, uint height, uint targetScreenHeight = CANVAS_HEIGHT) {
+        // Sets the size of the canvas. Affects alignment. Virtual height is the internal size of the canvas.
+        void SetSize(uint width, uint height, uint virtualHeight = CANVAS_HEIGHT) {
             _size = Vector2{ (float)width, (float)height };
-            _scale = (float)height / targetScreenHeight; // scaling due to original screen size being 480 pixels
+            _scale = (float)height / virtualHeight; // scaling due to original screen size being 480 pixels
         }
 
         const Vector2& GetSize() const { return _size; }
@@ -152,6 +152,7 @@ namespace Inferno::Render {
             Draw(payload);
         }
 
+        // Dispatches the batched draw commands
         void Render(GraphicsContext& ctx, D3D12_GPU_DESCRIPTOR_HANDLE sampler = Heaps->States.PointClamp()) {
             auto orthoProj = Matrix::CreateOrthographicOffCenter(0, _size.x, _size.y, 0.0, 0.0, -2.0f);
 

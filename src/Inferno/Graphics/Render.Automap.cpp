@@ -35,7 +35,7 @@ namespace Inferno::Render {
             effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
             effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
             effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());
-            effect.Shader->SetLightGrid(cmdList, *Render::LightGrid);
+            effect.Shader->SetLightGrid(cmdList, Render::Adapter->LightGrid);
             auto cubeSrv = Render::Materials->EnvironmentCube.GetCubeSRV().GetGpuHandle();
             if (!cubeSrv.ptr)cubeSrv = Render::Adapter->NullCube.GetGpuHandle();
             effect.Shader->SetEnvironmentCube(cmdList, cubeSrv);
@@ -93,7 +93,7 @@ namespace Inferno::Render {
         auto& depthBuffer = Adapter->GetDepthBuffer();
 
         // Clear depth and color buffers
-        ctx.SetViewportAndScissor(UINT(target.GetWidth() * Settings::Graphics.RenderScale), UINT(target.GetHeight() * Settings::Graphics.RenderScale));
+        ctx.SetViewportAndScissor(UINT(target.GetWidth()), UINT(target.GetHeight()));
         target.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
         ctx.ClearDepth(depthBuffer);

@@ -349,7 +349,9 @@ namespace Inferno {
         }
 
         bool End() {
-            if (!_inUpdate) throw Exception("Must call Begin before End");
+            if (!_inUpdate) 
+                throw Exception("Must call Begin before End");
+
             _inUpdate = false;
 
             // copy to GPU
@@ -359,7 +361,9 @@ namespace Inferno {
         }
 
         void Copy(span<T> src) {
-            if (!_inUpdate) throw Exception("Must call Begin before Copy");
+            if (!_inUpdate) 
+                throw Exception("Must call Begin before Copy");
+
             if (_buffer.size() + src.size() > _gpuCapacity) {
                 _requestedCapacity = _buffer.size() + src.size();
                 return;
@@ -369,7 +373,9 @@ namespace Inferno {
         }
 
         void Copy(T& src) {
-            if (!_inUpdate) throw Exception("Must call Begin before Copy");
+            if (!_inUpdate)
+                throw Exception("Must call Begin before Copy");
+
             if (_buffer.size() + 1 > _gpuCapacity) {
                 _requestedCapacity = _buffer.size() + 1;
                 return;

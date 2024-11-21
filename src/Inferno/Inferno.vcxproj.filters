@@ -331,5 +331,6 @@
     <None Include="shaders\ObjectVertex.hlsli" />
     <None Include="shaders\MenuSun.hlsl" />
     <None Include="shaders\DownsampleCS.hlsl" />
+    <None Include="shaders\Compose.hlsl" />
   </ItemGroup>
 </Project>

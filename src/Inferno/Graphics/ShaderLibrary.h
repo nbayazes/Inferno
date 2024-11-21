@@ -54,10 +54,6 @@ namespace Inferno {
         ComPtr<ID3DBlob> VertexShader;
         ComPtr<ID3DBlob> PixelShader;
         ComPtr<ID3D12RootSignature> RootSignature;
-
-        void Apply(ID3D12GraphicsCommandList* commandList) const {
-            commandList->SetGraphicsRootSignature(RootSignature.Get());
-        }
     };
 
     constexpr D3D12_ROOT_SIGNATURE_FLAGS DefaultRootFlags =
@@ -75,6 +71,24 @@ namespace Inferno {
     public:
         FlatLevelShader(const ShaderInfo& info) : IShader(info) {
             InputLayout = LevelVertex::Layout;
+        }
+    };
+
+    class ComposeShader : public IShader {
+        enum RootParameterIndex : uint {
+            Texture,
+            Sampler
+        };
+
+    public:
+        ComposeShader(const ShaderInfo& info) : IShader(info) {}
+
+        static void SetSource(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
+            commandList->SetGraphicsRootDescriptorTable(Texture, handle);
+        }
+
+        static void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
+            commandList->SetGraphicsRootDescriptorTable(Sampler, sampler);
         }
     };
 
@@ -707,6 +721,7 @@ namespace Inferno {
         AutomapOutlineShader AutomapOutline = ShaderInfo{ L"shaders/AutomapOutline.hlsl" };
         AsteroidShader Asteroid = ShaderInfo{ L"shaders/Asteroid.hlsl" };
         MenuSunShader MenuSun = ShaderInfo{ L"shaders/MenuSun.hlsl" };
+        ComposeShader Composition = ShaderInfo{ L"shaders/Compose.hlsl" };
     };
 
     class EffectResources {
@@ -734,12 +749,12 @@ namespace Inferno {
         Effect<ObjectShader> ObjectGlow = { &_shaders->Object, { .Blend = BlendMode::Additive, .Culling = CullMode::None, .Depth = DepthMode::Read, .Stencil = StencilMode::PortalRead } };
         Effect<ObjectDistortionShader> ObjectDistortion{ &_shaders->ObjectDistortion, { .Blend = BlendMode::Alpha, .Culling = CullMode::CounterClockwise, .Depth = DepthMode::Read, .Stencil = StencilMode::PortalRead } };
         Effect<ObjectShader> BriefingObject = { &_shaders->BriefingObject, { BlendMode::Alpha, CullMode::None, DepthMode::ReadWrite } };
-        Effect<ObjectShader> AutomapObject = { &_shaders->AutomapObject, {.Blend = BlendMode::Alpha, .Culling = CullMode::None, .Depth = DepthMode::ReadWrite } };
+        Effect<ObjectShader> AutomapObject = { &_shaders->AutomapObject, { .Blend = BlendMode::Alpha, .Culling = CullMode::None, .Depth = DepthMode::ReadWrite } };
 
         Effect<UIShader> UserInterface = { &_shaders->UserInterface, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, StencilMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, false } };
         Effect<BriefingShader> Briefing = { &_shaders->Briefing, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, StencilMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, false } };
-        Effect<HudShader> Hud = { &_shaders->Hud, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None } };
-        Effect<HudShader> HudAdditive = { &_shaders->Hud, { BlendMode::Additive, CullMode::None, DepthMode::None } };
+        Effect<HudShader> Hud = { &_shaders->Hud, { .Blend = BlendMode::StraightAlpha, .Culling = CullMode::None, .Depth = DepthMode::None, .EnableMultisample = false } };
+        Effect<HudShader> HudAdditive = { &_shaders->Hud, { .Blend = BlendMode::Additive, .Culling = CullMode::None, .Depth = DepthMode::None, .EnableMultisample = false } };
         Effect<FlatShader> Flat = { &_shaders->Flat, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None/*, StencilMode::PortalRead*/ } };
         Effect<FlatShader> FlatAdditive = { &_shaders->Flat, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read/*, StencilMode::PortalRead*/ } };
         Effect<FlatShader> EditorSelection = { &_shaders->Flat, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None/*, StencilMode::PortalRead*/ } };
@@ -755,13 +770,14 @@ namespace Inferno {
 
         Effect<SpriteShader> Sun = { &_shaders->Sun, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
         Effect<StarShader> Stars = { &_shaders->Stars, { BlendMode::Opaque, CullMode::None, DepthMode::None } };
-        Effect<AsteroidShader> Asteroid = { &_shaders->Asteroid, {.Blend = BlendMode::Alpha, .Culling = CullMode::Clockwise, .Depth = DepthMode::ReadWrite } };
-        Effect<MenuSunShader> MenuSun = { &_shaders->MenuSun, {.Blend = BlendMode::Alpha, .Culling = CullMode::Clockwise, .Depth = DepthMode::ReadWrite } };
+        Effect<AsteroidShader> Asteroid = { &_shaders->Asteroid, { .Blend = BlendMode::Alpha, .Culling = CullMode::Clockwise, .Depth = DepthMode::ReadWrite } };
+        Effect<MenuSunShader> MenuSun = { &_shaders->MenuSun, { .Blend = BlendMode::Alpha, .Culling = CullMode::Clockwise, .Depth = DepthMode::ReadWrite } };
 
         Effect<TerrainShader> Terrain = { &_shaders->Terrain, { .Depth = DepthMode::ReadWrite, .Stencil = StencilMode::PortalReadNeq } };
         Effect<DepthShader> TerrainPortal = { &_shaders->Depth, { .Depth = DepthMode::Read, .Stencil = StencilMode::PortalWrite } };
         Effect<ObjectShader> TerrainObject = { &_shaders->Object, { .Blend = BlendMode::Alpha, .Culling = CullMode::None, .Depth = DepthMode::Read } };
         Effect<ObjectDepthShader> TerrainDepthObject = { &_shaders->DepthObject, { .Blend = BlendMode::Opaque, .Culling = CullMode::None } };
+        Effect<ComposeShader> Compose = { &_shaders->Composition, { .Blend = BlendMode::Alpha, .Culling = CullMode::None, .Depth = DepthMode::None, .EnableMultisample = false } };
 
         void Compile(ID3D12Device* device, uint msaaSamples) {
             CompileShader(&_shaders->Flat);
@@ -785,6 +801,7 @@ namespace Inferno {
             CompileShader(&_shaders->AutomapOutline);
             CompileShader(&_shaders->Asteroid);
             CompileShader(&_shaders->MenuSun);
+            CompileShader(&_shaders->Composition);
 
             auto compile = [&](auto& effect, bool useStencil = true, uint renderTargets = 1) {
                 try {
@@ -843,6 +860,7 @@ namespace Inferno {
             compile(Sun);
             compile(MenuSun);
             compile(Asteroid);
+            compile(Compose, false);
         }
     };
 }

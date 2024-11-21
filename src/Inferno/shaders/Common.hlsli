@@ -72,7 +72,7 @@ float4 Sample2D(Texture2D tex, float2 uv, SamplerState texSampler, int filterMod
     uvTex = (uvTex - seam) / fwidth(uvTex) + seam;
 
     uvTex = clamp(uvTex, seam - .5, seam + .5);
-    float4 color = tex.Sample(texSampler, uvTex / texsize);
+    float4 color = tex.SampleBias(texSampler, uvTex / texsize, -1); // Negative LOD bias reduces artifacting at low res
     return color;
 }
 

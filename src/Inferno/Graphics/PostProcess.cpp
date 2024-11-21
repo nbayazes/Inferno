@@ -124,7 +124,7 @@ namespace Inferno::PostFx {
         DirectX::XMFLOAT3 constants = {
             1.0f / highResSrc.GetWidth(),
             1.0f / highResSrc.GetHeight(),
-            UpsampleBlendFactor * Settings::Graphics.RenderScale
+            UpsampleBlendFactor
         };
 
         commandList->SetComputeRootSignature(_rootSignature.Get());
@@ -162,7 +162,7 @@ namespace Inferno::PostFx {
 
         ToneMapConstants constants = {
             { 1.0f / (float)colorDest.GetWidth(), 1.0f / (float)colorDest.GetHeight() },
-            BloomStrength * Settings::Graphics.RenderScale, // Lower resolution blurs more, so reduce the intensity
+            BloomStrength /** Settings::Graphics.RenderScale*/, // Lower resolution blurs more, so reduce the intensity
             Exposure,
             (HlslBool)Settings::Graphics.NewLightMode,
             Settings::Graphics.ToneMapper,

@@ -4,7 +4,6 @@
 #include "Level.h"
 #include "Editor/Editor.h"
 #include "Buffers.h"
-#include "Utility.h"
 #include "Mesh.h"
 #include "Render.Gizmo.h"
 #include "Render.Debug.h"
@@ -16,11 +15,9 @@
 #include "Editor/UI/BriefingEditor.h"
 #include "Graphics.h"
 #include "HUD.h"
-#include "Icosphere.h"
 #include "ScopedTimer.h"
 #include "LegitProfiler.h"
 #include "MaterialLibrary.h"
-#include "OpenSimplex2.h"
 #include "Procedural.h"
 #include "Render.Automap.h"
 #include "Render.Briefing.h"
@@ -222,7 +219,6 @@ namespace Inferno::Render {
         HudGlowCanvas = make_unique<HudCanvas2D>(Device, Effects->HudAdditive);
         UICanvas = make_unique<HudCanvas2D>(Device, Effects->Hud);
         _graphicsMemory = make_unique<GraphicsMemory>(Device);
-        LightGrid = make_unique<FillLightGridCS>();
         //LightGrid->Load(L"shaders/FillLightGridCS.hlsl");
         //NewTextureCache = MakePtr<TextureCache>();
 
@@ -253,7 +249,6 @@ namespace Inferno::Render {
 
     void CreateWindowSizeDependentResources(int width, int height) {
         ToneMapping->Create(width, height);
-        LightGrid->CreateBuffers(width, height);
     }
 
     void Initialize(HWND hwnd, int width, int height) {
@@ -319,7 +314,6 @@ namespace Inferno::Render {
 
         Adapter.reset();
         ToneMapping.reset();
-        LightGrid.reset();
         _postBatch.reset();
         Debug::Shutdown();
         Device = nullptr;
@@ -406,22 +400,17 @@ namespace Inferno::Render {
         return LevelResources.ObjectMeshes->GetOutrageHandle(id);
     }
 
-    void PostProcess(GraphicsContext& ctx) {
+    void PostProcess(const GraphicsContext& ctx, PixelBuffer& source) {
         PIXScopedEvent(ctx.GetCommandList(), PIX_COLOR_INDEX(8), "Post");
-        // Post process
-        auto backBuffer = Adapter->GetBackBuffer();
-        ctx.ClearColor(*backBuffer);
-        ctx.SetRenderTarget(backBuffer->GetRTV());
-        ctx.SetViewportAndScissor((UINT)backBuffer->GetWidth(), (UINT)backBuffer->GetHeight());
-
         auto cmdList = ctx.GetCommandList();
-        ToneMapping->Apply(cmdList, Adapter->SceneColorBuffer);
+        ToneMapping->Apply(cmdList, source);
         Adapter->SceneColorBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         // draw to backbuffer using a shader + polygon
         _postBatch->SetViewport(Adapter->GetScreenViewport());
         _postBatch->Begin(cmdList);
         auto size = Adapter->GetOutputSize();
-        _postBatch->Draw(Adapter->SceneColorBuffer.GetSRV(), XMUINT2{ (uint)(size.x / Settings::Graphics.RenderScale), (uint)(size.y / Settings::Graphics.RenderScale) }, XMFLOAT2{ 0, 0 });
+        //_postBatch->Draw(source.GetSRV(), XMUINT2{ (uint)(size.x / Settings::Graphics.RenderScale), (uint)(size.y / Settings::Graphics.RenderScale) }, XMFLOAT2{ 0, 0 });
+        _postBatch->Draw(source.GetSRV(), XMUINT2{ (uint)size.x, (uint)size.y }, XMFLOAT2{ 0, 0 });
         _postBatch->End();
     }
 
@@ -561,20 +550,23 @@ namespace Inferno::Render {
     }
 
 
-    void BeginScene(GraphicsContext& ctx) {
+    void SetRenderTarget(GraphicsContext& ctx, RenderTarget& target, DepthBuffer* depthBuffer = nullptr) {
         auto cmdList = ctx.GetCommandList();
-        auto& target = Adapter->GetRenderTarget();
-        auto& depthBuffer = Adapter->GetDepthBuffer();
 
         // Clear depth and color buffers
-        ctx.SetViewportAndScissor(UINT(target.GetWidth() * Settings::Graphics.RenderScale), UINT(target.GetHeight() * Settings::Graphics.RenderScale));
+        ctx.SetViewportAndScissor((uint)target.GetWidth(), (uint)target.GetHeight());
         target.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
         ctx.ClearColor(target);
-        ctx.ClearDepth(depthBuffer);
-        ctx.ClearStencil(Adapter->GetDepthBuffer(), 0);
         ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        ctx.SetRenderTarget(target.GetRTV(), depthBuffer.GetDSV());
+
+        if (depthBuffer) {
+            ctx.ClearDepth(*depthBuffer);
+            ctx.SetRenderTarget(target.GetRTV(), depthBuffer->GetDSV());
+        }
+        else {
+            ctx.SetRenderTarget(target.GetRTV());
+        }
     }
 
     // Clears and binds depth buffers as the render target
@@ -588,13 +580,8 @@ namespace Inferno::Render {
 
         linearDepthBuffer.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_RENDER_TARGET);
         ctx.SetRenderTarget(linearDepthBuffer.GetRTV(), depthBuffer.GetDSV());
-        ctx.SetViewportAndScissor(UINT(linearDepthBuffer.GetWidth() * Settings::Graphics.RenderScale), UINT(linearDepthBuffer.GetHeight() * Settings::Graphics.RenderScale));
-
+        ctx.SetViewportAndScissor(UINT(linearDepthBuffer.GetWidth()), UINT(linearDepthBuffer.GetHeight()));
         ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-        //auto& target = Adapter->GetRenderTarget();
-        //ctx.ClearColor(target);
-        //ctx.SetViewportAndScissor(UINT(target.GetWidth() * Settings::Graphics.RenderScale), UINT(target.GetHeight() * Settings::Graphics.RenderScale));
     }
 
     void Present(const Camera& camera) {
@@ -612,12 +599,13 @@ namespace Inferno::Render {
         Heaps->SetDescriptorHeaps(cmdList);
         UpdateFrameConstants(ctx.Camera, Adapter->GetFrameConstants(), Settings::Graphics.RenderScale);
         //auto outputSize = Adapter->GetOutputSize();
-    
+
         auto width = Adapter->GetWidth();
         auto height = Adapter->GetHeight();
         UICanvas->SetSize(width, height);
 
-        BeginScene(ctx);
+        SetRenderTarget(ctx, Adapter->GetRenderTarget(), &Adapter->GetDepthBuffer());
+        ctx.ClearStencil(Adapter->GetDepthBuffer(), 0);
 
         if (Game::BriefingVisible)
             DrawBriefing(ctx, Adapter->BriefingColorBuffer, Game::Briefing);
@@ -667,17 +655,53 @@ namespace Inferno::Render {
             }
         }
 
-        Canvas->SetSize(Adapter->GetWidth(), Adapter->GetHeight());
-        DebugCanvas->SetSize(Adapter->GetWidth(), Adapter->GetHeight());
+        EndUpdateEffects();
 
         if (!Settings::Inferno.ScreenshotMode && Game::GetState() == GameState::Editor) {
             PIXScopedEvent(cmdList, PIX_COLOR_INDEX(6), "Editor");
-            LegitProfiler::ProfilerTask editor("Draw editor", LegitProfiler::Colors::CLOUDS);
-            DrawEditor(ctx, Game::Level);
+            //DrawEditor(ctx, Game::Level);
             DrawLevelDebug(Game::Level, ctx.Camera);
-            LegitProfiler::AddCpuTask(std::move(editor));
+            DrawEditor(ctx, Game::Level);
+            //LegitProfiler::ProfilerTask editor("Draw editor", LegitProfiler::Colors::CLOUDS);
+            //LegitProfiler::AddCpuTask(std::move(editor));
         }
-        else {
+
+
+        Debug::EndFrame(ctx);
+
+        /*
+         * Resolve scene buffer 
+         */
+
+        //LegitProfiler::ProfilerTask resolve("Resolve multisample", LegitProfiler::Colors::CLOUDS);
+        if (Settings::Graphics.MsaaSamples > 1) {
+            Adapter->SceneColorBuffer.ResolveFromMultisample(cmdList, Adapter->SceneColorBufferMsaa);
+        }
+
+        /*
+         * Switch to full screen, HDR, non-MSAA, composition render target
+         */
+        SetRenderTarget(ctx, Adapter->CompositionBuffer);
+
+        Canvas->SetSize(Adapter->GetWidth(), Adapter->GetHeight());
+        DebugCanvas->SetSize(Adapter->GetWidth(), Adapter->GetHeight());
+
+        // Copy the scene into the composition buffer
+        Adapter->SceneColorBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+        auto& compose = Effects->Compose.Shader;
+        ctx.ApplyEffect(Effects->Compose);
+        cmdList->SetGraphicsRootSignature(compose->RootSignature.Get());
+        compose->SetSource(cmdList, Adapter->SceneColorBuffer.GetSRV());
+        compose->SetSampler(cmdList, Heaps->States.PointClamp());
+        cmdList->DrawInstanced(3, 1, 0, 0);
+
+        if (((Game::GetState() == GameState::Game || Game::GetState() == GameState::PauseMenu) && !Game::Player.IsDead) ||
+            Game::GetState() == GameState::MainMenu)
+            DrawHud(ctx);
+
+        // Draw UI elements
+        if (Settings::Inferno.ScreenshotMode || Game::GetState() != GameState::Editor) {
             //Canvas->DrawGameText(level.Name, 0, 20 * Shell::DpiScale, FontSize::Big, { 1, 1, 1 }, 0.5f, AlignH::Center, AlignV::Top);
             if (Game::GetState() == GameState::Automap) {
                 DrawAutomapText(ctx);
@@ -693,23 +717,9 @@ namespace Inferno::Render {
             }
         }
 
-        EndUpdateEffects();
-
-        Debug::EndFrame(ctx);
-
-        if (((Game::GetState() == GameState::Game || Game::GetState() == GameState::PauseMenu) && !Game::Player.IsDead) ||
-            Game::GetState() == GameState::MainMenu)
-            DrawHud(ctx);
-
         if (Game::GetState() == GameState::PauseMenu) {
-            if (Settings::Graphics.MsaaSamples > 1) {
-                Adapter->BlurBufferTemp.ResolveFromMultisample(cmdList, Adapter->SceneColorBufferMsaa);
-                Adapter->SceneColorBufferMsaa.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-            }
-            else {
-                Adapter->BlurBufferTemp.CopyFrom(cmdList, Adapter->SceneColorBuffer);
-                Adapter->SceneColorBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-            }
+            Adapter->BlurBufferTemp.CopyFrom(cmdList, Adapter->CompositionBuffer);
+            Adapter->CompositionBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET); // Copying changes state, reset it back to RT
 
             Render::ToneMapping->Downsample.Execute(cmdList, Adapter->BlurBufferTemp, Adapter->BlurBufferDownsampled);
             Render::ToneMapping->Blur.Execute(cmdList, Adapter->BlurBufferDownsampled, Adapter->BlurBuffer);
@@ -719,18 +729,17 @@ namespace Inferno::Render {
             Adapter->BlurBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         }
 
-        UICanvas->Render(ctx);
-
-        //LegitProfiler::ProfilerTask resolve("Resolve multisample", LegitProfiler::Colors::CLOUDS);
-        if (Settings::Graphics.MsaaSamples > 1) {
-            Adapter->SceneColorBuffer.ResolveFromMultisample(cmdList, Adapter->SceneColorBufferMsaa);
-        }
+        UICanvas->Render(ctx); // todo: update to not use MSAA target
 
         LegitProfiler::ProfilerTask postProcess("Post process");
-        PostProcess(ctx);
+
+        // Draw to the back buffer
+        SetRenderTarget(ctx, Adapter->GetBackBuffer());
+
+        PostProcess(ctx, Adapter->CompositionBuffer);
         LegitProfiler::AddCpuTask(std::move(postProcess));
         DebugCanvas->Render(ctx);
-        DrawImguiBatch(ctx); // Also shared with some UI calls
+        DrawImguiBatch(ctx);
 
         LegitProfiler::ProfilerTask present("Present", LegitProfiler::Colors::NEPHRITIS);
         Adapter->Present();

@@ -16,7 +16,7 @@ namespace Inferno {
 #pragma warning(disable : 4061)
 
     // intermediate format for rendering
-    constexpr DXGI_FORMAT IntermediateFormat = DXGI_FORMAT_R11G11B10_FLOAT;
+    constexpr DXGI_FORMAT SceneBufferFormat = DXGI_FORMAT_R11G11B10_FLOAT;
 
     namespace {
         constexpr DXGI_FORMAT StripSRGB(DXGI_FORMAT fmt) noexcept {
@@ -83,7 +83,7 @@ namespace Inferno {
                 OutputDebugStringA("WARNING: Direct3D Debug Device is not available\n");
             }
             //}
-            
+
             ComPtr<IDXGIInfoQueue> dxgiInfoQueue;
             if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(dxgiInfoQueue.GetAddressOf())))) {
                 m_dxgiFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
@@ -442,6 +442,15 @@ namespace Inferno {
                 ThrowIfFailed(CreateDXGIFactory2(m_dxgiFactoryFlags, IID_PPV_ARGS(m_dxgiFactory.ReleaseAndGetAddressOf())));
             }
         }
+
+        // Check for render scale change
+        if (Inferno::Settings::Graphics.RenderScale != _renderScale) {
+            WaitForGpu();
+            _renderScale = Inferno::Settings::Graphics.RenderScale;
+            auto width = m_outputSize.right;
+            auto height = m_outputSize.bottom;
+            CreateBuffers(width, height);
+        }
     }
 
     // Wait for pending GPU work to complete.
@@ -461,7 +470,7 @@ namespace Inferno {
 
             Render::Effects->Compile(m_d3dDevice.Get(), Settings::Graphics.MsaaSamples);
             Scanline.Load(L"shaders/ScanlineCS.hlsl");
-            Render::LightGrid->Load(L"shaders/FillLightGridCS.hlsl");
+            Render::Adapter->LightGrid.Load(L"shaders/FillLightGridCS.hlsl");
             Render::ToneMapping->ReloadShaders();
 
             CreateBuffers(width, height);
@@ -615,26 +624,38 @@ namespace Inferno {
         clearColor.y = std::pow(clearColor.y, 2.2f);
         clearColor.z = std::pow(clearColor.z, 2.2f);
 
-        LinearizedDepthBuffer.Create(L"Linear depth buffer", width, height, DepthShader::OutputFormat);
+        auto scale = Inferno::Settings::Graphics.RenderScale;
+        uint scaledWidth = uint(width * scale);
+        uint scaledHeight = uint(height * scale);
+
+        LightGrid.CreateBuffers(scaledWidth, scaledHeight);
+
+        LinearizedDepthBuffer.Create(L"Linear depth buffer", scaledWidth, scaledHeight, DepthShader::OutputFormat);
         LinearizedDepthBuffer.AddShaderResourceView();
         LinearizedDepthBuffer.AddUnorderedAccessView();
         LinearizedDepthBuffer.AddRenderTargetView();
-        SceneColorBuffer.Create(L"Scene color buffer", width, height, IntermediateFormat, clearColor, 1);
+        SceneColorBuffer.Create(L"Scene color buffer", scaledWidth, scaledHeight, SceneBufferFormat, clearColor, 1);
         SceneColorBuffer.AddUnorderedAccessView();
-        DistortionBuffer.Create(L"Scene distortion buffer", width, height, IntermediateFormat, 1);
+        DistortionBuffer.Create(L"Scene distortion buffer", scaledWidth, scaledHeight, SceneBufferFormat, 1);
         DistortionBuffer.AddShaderResourceView();
-        SceneDepthBuffer.Create(L"Scene depth buffer", width, height, m_depthBufferFormat, 1);
+        SceneDepthBuffer.Create(L"Scene depth buffer", scaledWidth, scaledHeight, m_depthBufferFormat, 1);
 
-        BlurBufferTemp.Create(L"Temporary blur buffer", width, height, IntermediateFormat, clearColor, 1);
+        BlurBufferTemp.Create(L"Temporary blur buffer", width, height, SceneBufferFormat, clearColor, 1);
         BlurBufferTemp.AddUnorderedAccessView();
 
-        BlurBufferDownsampled.Create(L"Blur buffer downsampled", width / 4, height / 4, IntermediateFormat, 1);
+        // Quarter res blur buffer
+        BlurBufferDownsampled.Create(L"Blur buffer downsampled", width / 4, height / 4, SceneBufferFormat, 1);
         BlurBufferDownsampled.AddUnorderedAccessView();
         BlurBufferDownsampled.AddShaderResourceView();
 
-        BlurBuffer.Create(L"Blur buffer", width / 4, height / 4, IntermediateFormat, 1);
+        BlurBuffer.Create(L"Blur buffer", width / 4, height / 4, SceneBufferFormat, 1);
         BlurBuffer.AddUnorderedAccessView();
         BlurBuffer.AddShaderResourceView();
+
+        // Screen size composition buffer
+        CompositionBuffer.Create(L"Composition buffer", width, height, SceneBufferFormat);
+        CompositionBuffer.AddUnorderedAccessView();
+        CompositionBuffer.AddShaderResourceView();
 
         // Double the briefing resolution so that downsampling at low resolution looks better
         uint briefingWidth = 640 * 2;
@@ -646,20 +667,20 @@ namespace Inferno {
         constexpr uint BRIEFING_ROBOT_WIDTH = 166 * 2;
         constexpr uint BRIEFING_ROBOT_HEIGHT = uint(138 * 2.4f);
 
-        BriefingRobot.Create(L"Briefing robot", BRIEFING_ROBOT_WIDTH, BRIEFING_ROBOT_HEIGHT, IntermediateFormat, emptyColor);
+        BriefingRobot.Create(L"Briefing robot", BRIEFING_ROBOT_WIDTH, BRIEFING_ROBOT_HEIGHT, SceneBufferFormat, emptyColor);
         BriefingRobot.AddRenderTargetView();
         BriefingRobot.AddShaderResourceView();
         BriefingRobotDepth.Create(L"Briefing robot depth", BRIEFING_ROBOT_WIDTH, BRIEFING_ROBOT_HEIGHT);
 
         if (Settings::Graphics.MsaaSamples > 1) {
-            BriefingRobotMsaa.Create(L"MSAA Briefing robot", BRIEFING_ROBOT_WIDTH, BRIEFING_ROBOT_HEIGHT, IntermediateFormat, emptyColor, Settings::Graphics.MsaaSamples);
+            BriefingRobotMsaa.Create(L"MSAA Briefing robot", BRIEFING_ROBOT_WIDTH, BRIEFING_ROBOT_HEIGHT, SceneBufferFormat, emptyColor, Settings::Graphics.MsaaSamples);
             BriefingRobotMsaa.AddRenderTargetView();
             BriefingRobotMsaa.AddShaderResourceView();
             BriefingRobotDepthMsaa.Create(L"MSAA Briefing robot depth", BRIEFING_ROBOT_WIDTH, BRIEFING_ROBOT_HEIGHT, DXGI_FORMAT_D32_FLOAT, Settings::Graphics.MsaaSamples);
 
-            SceneColorBufferMsaa.Create(L"MSAA Color Buffer", width, height, IntermediateFormat, clearColor, Settings::Graphics.MsaaSamples);
-            SceneDepthBufferMsaa.Create(L"MSAA Depth Buffer", width, height, m_depthBufferFormat, Settings::Graphics.MsaaSamples);
-            MsaaLinearizedDepthBuffer.Create(L"MSAA Linear depth buffer", width, height, DepthShader::OutputFormat, Settings::Graphics.MsaaSamples);
+            SceneColorBufferMsaa.Create(L"MSAA Color Buffer", scaledWidth, scaledHeight, SceneBufferFormat, clearColor, Settings::Graphics.MsaaSamples);
+            SceneDepthBufferMsaa.Create(L"MSAA Depth Buffer", scaledWidth, scaledHeight, m_depthBufferFormat, Settings::Graphics.MsaaSamples);
+            MsaaLinearizedDepthBuffer.Create(L"MSAA Linear depth buffer", scaledWidth, scaledHeight, DepthShader::OutputFormat, Settings::Graphics.MsaaSamples);
             MsaaLinearizedDepthBuffer.AddRenderTargetView();
             MsaaLinearizedDepthBuffer.AddShaderResourceView();
         }

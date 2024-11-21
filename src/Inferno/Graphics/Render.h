@@ -23,12 +23,11 @@ namespace Inferno::Render {
     inline Ptr<Inferno::PostFx::ToneMapping> ToneMapping;
     inline Ptr<Inferno::PostFx::ScanlineCS> Scanline;
     inline Ptr<DirectX::PrimitiveBatch<ObjectVertex>> g_SpriteBatch;
-    inline Ptr<Canvas2D<UIShader>> Canvas, DebugCanvas;
-    inline Ptr<Canvas2D<BriefingShader>> BriefingCanvas;
+    inline Ptr<Canvas2D<UIShader>> Canvas;
+    inline Ptr<Canvas2D<UIShader>> DebugCanvas; // SDR canvas, no MSAA
+    inline Ptr<Canvas2D<BriefingShader>> BriefingCanvas; // SDR canvas, no MSAA
 
-    inline Ptr<HudCanvas2D> HudCanvas, HudGlowCanvas, UICanvas;
-    inline Ptr<Graphics::FillLightGridCS> LightGrid;
-
+    inline Ptr<HudCanvas2D> HudCanvas, HudGlowCanvas, UICanvas; // HDR canvas, no MSAA
     inline Ptr<StructuredBuffer> MaterialInfoBuffer;
     inline Ptr<StructuredBuffer> VClipBuffer;
 
