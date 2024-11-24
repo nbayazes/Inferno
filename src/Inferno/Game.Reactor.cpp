@@ -108,11 +108,11 @@ namespace Inferno::Game {
         sound.Merge = false;
         sound.Radius = 400;
 
-        sound.Volume = 1.50f;
+        sound.Volume = 1.25f;
         sound.Pitch = -.3f;
         Sound::Play(sound, obj.Position, obj.Segment);
 
-        sound.Volume = 1.7f;
+        sound.Volume = 1.5f;
         sound.Pitch = -.8f;
         sound.Delay = 0.14f;
         Sound::Play(sound, obj.Position, obj.Segment);

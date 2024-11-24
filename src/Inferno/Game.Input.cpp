@@ -149,7 +149,7 @@ namespace Inferno {
             camera.Orbit(-delta.x * Settings::Editor.MouselookSensitivity, -delta.y * inv * Settings::Editor.MouselookSensitivity);
         }
         else {
-            float yInvert = Settings::Inferno.InvertY ? -1.0f : 1.0f;
+            float yInvert = Settings::Inferno.InvertY ? 1.0f : -1.0f;
             camera.Rotate(delta.x * Settings::Editor.MouselookSensitivity, delta.y * yInvert * Settings::Editor.MouselookSensitivity);
         }
     }

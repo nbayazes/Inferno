@@ -312,10 +312,10 @@ namespace Inferno::Render {
         StopProceduralWorker();
         LevelResources = {};
 
-        Adapter.reset();
         ToneMapping.reset();
         _postBatch.reset();
         Debug::Shutdown();
+        Adapter.reset();
         Device = nullptr;
         ReportLiveObjects();
     }

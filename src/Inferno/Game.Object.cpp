@@ -479,7 +479,7 @@ namespace Inferno {
                 sound.Volume = 1.10f + scale * 0.2f;
                 sound.Pitch = -0.10f + -scale * 0.15f;
                 sound.Merge = false;
-                sound.Delay = 0.08f;
+                sound.Delay = 0.05f;
                 Sound::Play(sound, obj.Position, obj.Segment);
 
                 if (robot.ExplosionStrength > 0) {

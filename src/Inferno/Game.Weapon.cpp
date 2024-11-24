@@ -200,9 +200,10 @@ namespace Inferno::Game {
             //fmt::print("applied {} damage\n", damage);
 
             if (!target.IsPlayer() && !weapon.IsExplosive()) {
-                // Missiles create their explosion effects when expiring
+                // Missiles create their explosion effects when expiring instead of here
                 ExplosionEffectInfo expl;
                 expl.Sound = weapon.RobotHitSound;
+                expl.Volume = WEAPON_HIT_OBJECT_VOLUME;
                 //expl.Parent = src.Parent;
                 expl.Clip = VClipID::SmallExplosion;
                 expl.Radius = { weapon.ImpactSize * 0.85f, weapon.ImpactSize * 1.15f };

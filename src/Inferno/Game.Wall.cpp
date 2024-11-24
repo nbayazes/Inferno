@@ -902,6 +902,7 @@ namespace Inferno {
                 SoundResource resource = { soundId };
                 resource.D3 = weapon.Extended.ExplosionSound; // Will take priority if D3 is loaded
                 Sound3D sound(resource);
+                sound.Volume = Game::WEAPON_HIT_WALL_VOLUME;
                 Sound::Play(sound, hit.Point, hit.Tag.Segment);
             }
         }
