@@ -648,11 +648,10 @@ namespace Inferno::UI {
         if (Screens.empty()) return;
         auto& screen = Screens.back();
 
-        // todo: add controller dpad input
-        if (Input::IsKeyPressed(Input::Keys::Down, true))
+        if (Input::MenuDown())
             screen->OnDownArrow();
 
-        if (Input::IsKeyPressed(Input::Keys::Up, true))
+        if (Input::MenuUp())
             screen->OnUpArrow();
 
         // Wrap selection
@@ -660,13 +659,12 @@ namespace Inferno::UI {
         //    screen->SelectionIndex = (int)Mod(screen->SelectionIndex, screen->Children.size());
 
         if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick))
-            screen->OnClick(Input::MousePosition);
+            screen->OnMouseClick(Input::MousePosition);
 
-        // todo: add controller input
-        if (Input::IsKeyPressed(Input::Keys::Enter) || Input::IsKeyPressed(Input::Keys::Space))
+        if (Input::MenuConfirm() || Input::IsKeyPressed(Input::Keys::Space))
             screen->OnConfirm();
 
-        if (Input::IsKeyPressed(Input::Keys::Escape)) {
+        if (Input::MenuCancel()) {
             screen->State = CloseState::Cancel;
             return;
         }
@@ -713,7 +711,7 @@ namespace Inferno::UI {
             panel->HorizontalAlignment = AlignH::Center;
             panel->VerticalAlignment = AlignV::Top;
 
-            panel->AddChild<Button>("Continue", [] {
+            panel->AddChild<Button>("Resume", [] {
                 Game::SetState(GameState::Game);
             }, AlignH::Center);
             panel->AddChild<Button>("Save Game", AlignH::Center);
@@ -750,7 +748,7 @@ namespace Inferno::UI {
             {
                 // Background
                 Render::CanvasBitmapInfo cbi;
-                cbi.Size = ScreenSize / Settings::Graphics.RenderScale;
+                cbi.Size = ScreenSize;
                 cbi.Texture = Render::Adapter->BlurBufferDownsampled.GetSRV();
                 cbi.Color = Color(.5f, .5f, .5f, 1);
                 Render::UICanvas->DrawBitmap(cbi, Layer);
@@ -787,7 +785,7 @@ namespace Inferno::UI {
         Screens.clear();
         ShowScreen(make_unique<MainMenu>());
 
-        ShowScreen(make_unique<OptionsMenu>());
+        ShowScreen(make_unique<SoundOptionsMenu>());
     }
 
     void ShowPauseDialog() {

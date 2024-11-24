@@ -288,6 +288,32 @@ namespace Inferno::Input {
         return _mouseButtons.released[(uint64)button];
     }
 
+    // todo: check controllers
+
+    bool MenuLeft() {
+        return IsKeyPressed(Keys::Left, true);
+    }
+
+    bool MenuRight() {
+        return IsKeyPressed(Keys::Right, true);
+    }
+
+    bool MenuUp() {
+        return IsKeyPressed(Keys::Up, true);
+    }
+
+    bool MenuDown() {
+        return IsKeyPressed(Keys::Down, true);
+
+    }
+    bool MenuConfirm() {
+        return IsKeyPressed(Keys::Enter, true);
+    }
+
+    bool MenuCancel() {
+        return IsKeyPressed(Keys::Escape, true);
+    }
+
     bool MouseMoved() {
         return MouseRecentlyMoved;
     }

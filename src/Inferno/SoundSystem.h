@@ -22,7 +22,7 @@ namespace Inferno {
 namespace Inferno::Sound {
     constexpr float SOUND_MERGE_RATIO = 0.1f; // percentage added to existing sounds when merged
 
-    void Init(HWND, std::chrono::milliseconds pollRate = std::chrono::milliseconds(4));
+    void Init(HWND, const wstring* deviceId = nullptr, std::chrono::milliseconds pollRate = std::chrono::milliseconds(4));
 
     void CopySoundIds();
 
@@ -63,7 +63,7 @@ namespace Inferno::Sound {
     void UnloadD1Sounds();
 
     enum class Reverb {
-        Off,
+        Off = 0,
         Default = 1,
         Generic = 2,
         PaddedCell = 4,

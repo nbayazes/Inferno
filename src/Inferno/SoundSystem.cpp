@@ -55,6 +55,8 @@ namespace Inferno::Sound {
 
         constexpr X3DAUDIO_DISTANCE_CURVE_POINT Emitter_CubicPoints[] = { { 0.0f, 1.0f }, { 0.1f, 0.73f }, { 0.2f, 0.5f }, { 0.4f, 0.21f }, { 0.6f, 0.060f }, { 0.7f, 0.026f }, { 0.8f, 0.01f }, { 1.0f, 0.0f } };
         constexpr X3DAUDIO_DISTANCE_CURVE Emitter_CubicCurve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_CubicPoints[0], _countof(Emitter_CubicPoints) };
+
+        SoundFile _soundsD1, _soundsD2;
     }
 
     // Transforms a volume from 0.0 - 1.0 to an amplitude suitable for XAudio.
@@ -248,7 +250,6 @@ namespace Inferno::Sound {
         // https://github.com/microsoft/DirectXTK/wiki/AudioEngine
         Ptr<AudioEngine> _engine;
 
-        SoundFile _soundsD1, _soundsD2;
         List<Ptr<SoundEffect>> _effectsD1, _effectsD2;
 
         Dictionary<string, Ptr<SoundEffect>> _soundsD3;
@@ -280,7 +281,7 @@ namespace Inferno::Sound {
         float _effectVolume = 0.0f;
 
     public:
-        SoundWorker(milliseconds pollRate) : _pollRate(pollRate) {
+        SoundWorker(milliseconds pollRate, const wstring* deviceId = nullptr) : _pollRate(pollRate) {
             _effectsD1.resize(255);
             _effectsD2.resize(255);
             _listener.pCone = (X3DAUDIO_CONE*)&LISTENER_CONE;
@@ -289,7 +290,13 @@ namespace Inferno::Sound {
 #ifdef _DEBUG
             flags |= AudioEngine_Debug;
 #endif
-            _engine = make_unique<AudioEngine>(flags, nullptr/*, devices[0].deviceId.c_str()*/);
+            if (deviceId && !deviceId->empty()) {
+                SPDLOG_INFO(L"Creating audio engine for device {}", deviceId->c_str());
+                _engine = make_unique<AudioEngine>(flags, nullptr, deviceId ? deviceId->c_str() : nullptr);
+            } else {
+                SPDLOG_INFO(L"Creating audio engine using default device");
+                _engine = make_unique<AudioEngine>(flags);
+            }
 
             _worker = std::jthread(&SoundWorker::Task, this);
             _stopToken = _worker.get_stop_token();
@@ -449,8 +456,6 @@ namespace Inferno::Sound {
             std::scoped_lock lock(_threadMutex);
             _soundsD1 = Resources::SoundsD1;
             _soundsD2 = Resources::SoundsD2;
-
-            
         }
 
     private:
@@ -779,8 +784,20 @@ namespace Inferno::Sound {
                 }
             }
 
-            _musicStream.reset();
-            _engine->Reset();
+            // Free resources (the engine generates warnings otherwise)
+            for (auto& i : this->_soundInstances) {
+                if (i.Effect) {
+                    i.Effect->Stop();
+                    i.Effect.reset();
+                }
+            }
+
+            if (_musicStream && _musicStream->Effect) {
+                _musicStream->Effect->Stop();
+                _musicStream.reset();
+            }
+
+            _engine->Suspend(); // release all resources
 
             SPDLOG_INFO("Stopping audio mixer thread");
             CoUninitialize();
@@ -1071,7 +1088,6 @@ namespace Inferno::Sound {
 
     bool PlayMusic(const List<byte>&& data, bool loop) {
         SoundThread->PlayMusic({ {}, data, loop });
-
         return true;
     }
 
@@ -1097,8 +1113,8 @@ namespace Inferno::Sound {
     AudioEngine* GetEngine() { return SoundThread ? SoundThread->GetEngine() : nullptr; }
 
     // HWND is not used directly, but indicates the sound system requires a window
-    void Init(HWND, milliseconds pollRate) {
-        SoundThread = make_unique<SoundWorker>(pollRate);
+    void Init(HWND, const wstring* deviceId, milliseconds pollRate) {
+        SoundThread = make_unique<SoundWorker>(pollRate, deviceId);
         Intersect = IntersectContext(Game::Level);
     }
 

@@ -1,6 +1,5 @@
 #pragma once
 #include <algorithm>
-
 #include "Types.h"
 #include "Game.Text.h"
 #include "Graphics/Render.h"
@@ -58,8 +57,8 @@ namespace Inferno::UI {
         ControlBase& operator=(ControlBase&&) = default;
         virtual ~ControlBase() = default;
 
-        bool Focused = false;
-        bool Hovered = false;
+        bool Focused = false; // Focused by the screen and should process input
+        bool Hovered = false; // Mouse cursor is over the control
         bool Enabled = true;
         bool Selectable = true;
 
@@ -121,25 +120,32 @@ namespace Inferno::UI {
             return nullptr;
         }
 
-        void OnClick(const Vector2& position) const {
+        void OnMouseClick(const Vector2& position) const {
             for (auto& control : Children) {
                 if (control->Enabled && control->Contains(position)) {
-                    Sound::Play2D(SoundResource{ control->ActionSound });
-                    if (control->ClickAction)
-                        control->ClickAction();
-
-                    if (control->HandleOnClick() || control->ClickAction)
-                        return; // Click was handled, stop
+                    if (control->OnConfirm()) return;
                 }
 
-                control->OnClick(position);
+                control->OnMouseClick(position);
             }
+        }
+
+        // Called when the control is activated by clicking or pressing a button
+        virtual bool OnConfirm() {
+            Sound::Play2D(SoundResource{ ActionSound });
+            if (ClickAction)
+                ClickAction();
+
+            if (HandleOnClick() || ClickAction)
+                return true; // Click was handled, stop
+
+            return false;
         }
 
         virtual void OnUpdate() {
             if (!Enabled) return;
 
-            if (Input::MouseMoved() && !IsCursorCaptured()) {
+            if (Focused && Input::MouseMoved() && !IsCursorCaptured()) {
                 Hovered = Contains(Input::MousePosition);
             }
 
@@ -288,6 +294,8 @@ namespace Inferno::UI {
             _fontHeight = MeasureString("Descent", FontSize::Medium).y;
             AddChild(make_unique<Rectangle>());
             Padding = Vector2(2, 2);
+            ActionSound = MENU_SELECT_SOUND;
+
             ClickAction = [this] {
                 if (ClickItemAction) ClickItemAction(_index);
             };
@@ -312,12 +320,12 @@ namespace Inferno::UI {
             auto wheelDelta = Input::GetWheelDelta();
             _scrollIndex -= wheelDelta / 40;
 
-            if (Input::IsKeyPressed(Keys::Up, true)) {
+            if (Input::MenuUp()) {
                 _index--;
                 _scrollIndex = std::min(_index, _scrollIndex);
             }
 
-            if (Input::IsKeyPressed(Keys::Down, true)) {
+            if (Input::MenuDown()) {
                 _index++;
                 if (_index > _scrollIndex + VisibleItems - 1)
                     _scrollIndex++;
@@ -733,10 +741,10 @@ namespace Inferno::UI {
             int increment = 0;
             int mult = Input::ShiftDown ? 10 : 1;
 
-            if (Input::IsKeyPressed(Input::Keys::Left, true))
+            if (Input::MenuLeft())
                 increment = -1;
 
-            if (Input::IsKeyPressed(Input::Keys::Right, true))
+            if (Input::MenuRight())
                 increment = 1;
 
             auto wheelDelta = Input::GetWheelDelta();
@@ -1059,6 +1067,7 @@ namespace Inferno::UI {
                 dti.Position = ScreenPosition / GetScale();
                 Render::UICanvas->DrawText(_label, dti, Layer + 1);
             }
+
             if (ShowValue) {
                 // Value
                 Render::DrawTextInfo dti;
@@ -1074,6 +1083,303 @@ namespace Inferno::UI {
             return float(*_value - Min) / float(Max - Min);
         }
     };
+
+    class SliderSelect : public ControlBase {
+        string _label;
+        List<string> _values;
+        gsl::strict_not_null<int*> _index;
+        bool _held = false;
+        string _valueText;
+        float _barPadding = 10;
+        bool _dragging = false;
+
+    public:
+        SliderSelect(string_view label, std::initializer_list<string_view> values, int& index)
+            : _label(label), _values({ values.begin(), values.end() }), _index(&index) {
+            Vector2 size;
+
+            for (auto value : values) {
+                auto textSize = MeasureString(value, FontSize::Medium);
+                size = Vector2(std::max(size.x, textSize.x), std::max(size.y, textSize.y));
+            }
+
+            Size = Vector2(60, size.y);
+            ValueWidth = size.x + _barPadding + 10;
+            LabelWidth = MeasureString(label, FontSize::Medium).x;
+        }
+
+        float LabelWidth = 0;
+        float ValueWidth = 25;
+        string ChangeSound; // MENU_SELECT_SOUND
+        bool ShowValue = false;
+
+        std::function<void(int)> OnChange;
+
+        void OnUpdate() override {
+            if (Input::MenuLeft())
+                (*_index)--;
+
+            if (Input::MenuRight())
+                (*_index)++;
+
+            *_index = std::clamp(*_index, 0, (int)_values.size() - 1);
+        }
+
+        float GetBarWidth() const {
+            return (Size.x - LabelWidth - ValueWidth - _barPadding) * GetScale();
+        }
+
+        float GetTickWidth() const {
+            return GetBarWidth() / _values.size();
+        }
+
+        bool CheckHover() {
+            auto barWidth = (Size.x - LabelWidth - ValueWidth - _barPadding) * GetScale();
+            auto barPosition = Vector2(ScreenPosition.x + LabelWidth * GetScale(), ScreenPosition.y);
+            return RectangleContains(barPosition, { barWidth, ScreenSize.y }, Input::MousePosition);
+        }
+
+        void OnDraw() override {
+            auto hovered = CheckHover();
+            auto selectedColor = hovered ? ACCENT_GLOW : Focused ? ACCENT_COLOR : IDLE_BUTTON;
+            auto color = hovered ? FOCUS_COLOR : Focused ? HOVER_COLOR : IDLE_BUTTON;
+            color *= 0.6f;
+
+            const float notchHeight = 10 * GetScale();
+            float notchPadding = 10 * GetScale();
+
+            auto position = Vector2(ScreenPosition.x + LabelWidth * GetScale() + ValueWidth * GetScale(), ScreenPosition.y - 3 * GetScale());
+            //auto barWidth = GetBarWidth();
+            auto tickWidth = GetTickWidth();
+            //position.x += (barWidth - notchWidth);
+            position.y += ScreenSize.y / 2 - notchHeight / 2;
+
+            for (size_t i = 0; i < _values.size(); i++) {
+                Render::HudCanvasPayload payload;
+                payload.Texture = Render::Materials->White().Handle();
+                payload.Layer = Layer + 1;
+                payload.V0.Color = payload.V1.Color = payload.V2.Color = payload.V3.Color = i == *_index ? selectedColor : color;
+
+                payload.V0.Position = Vector2(position.x - notchHeight / 2, position.y); // tl
+                payload.V1.Position = Vector2(position.x + notchHeight / 2, position.y + notchHeight); // bl
+                payload.V2.Position = Vector2(position.x + tickWidth + notchHeight / 2 - notchPadding, position.y + notchHeight); // br
+                payload.V3.Position = Vector2(position.x + tickWidth - notchHeight / 2 - notchPadding, position.y); // tr
+                Render::UICanvas->Draw(payload);
+
+                position.x += tickWidth;
+            }
+
+            {
+                // Label
+                Render::DrawTextInfo dti;
+                dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
+                dti.Color = Focused /*|| Hovered*/ ? FOCUS_COLOR : Color(1, 1, 1);
+                dti.Position = ScreenPosition / GetScale();
+                Render::UICanvas->DrawText(_label, dti, Layer + 1);
+            }
+
+            if (auto value = Seq::tryItem(_values, *_index)) {
+                // Value
+                auto valueSize = MeasureString(*value, FontSize::Medium).x * GetScale();
+
+                Render::DrawTextInfo dti;
+                dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
+                dti.Color = Focused /*|| Hovered*/ ? FOCUS_COLOR : Color(1, 1, 1);
+                //dti.Position = Vector2(ScreenPosition.x + ScreenSize.x - valueSize.x * GetScale(), ScreenPosition.y) / GetScale();
+                dti.Position = Vector2(ScreenPosition.x + LabelWidth * GetScale() + ValueWidth * GetScale() * 0.5f - valueSize * 0.5f, ScreenPosition.y) / GetScale();
+                Render::UICanvas->DrawText(*value, dti, Layer + 1);
+            }
+        }
+    };
+
+    // Horizontal spinner that toggles through multiple options
+    class OptionSpinner : public ControlBase {
+        string _label;
+        List<string> _values;
+        gsl::strict_not_null<int*> _index;
+        string _valueText;
+        float _barPadding = 10;
+        bool _dragging = false;
+        float _arrowHeight = 18;
+        float _arrowThickness = 8;
+
+    public:
+        OptionSpinner(string_view label, std::initializer_list<string_view> values, int& index)
+            : _label(label), _values({ values.begin(), values.end() }), _index(&index) {
+            auto size = MeasureString(label, FontSize::Medium);
+
+            //for (auto& value : values) {
+            //    auto textSize = MeasureString(value, FontSize::Medium);
+            //    size = Vector2(std::max(size.x, textSize.x), std::max(size.y, textSize.y));
+            //}
+
+            Size = Vector2(300, size.y);
+            ValueWidth = size.x + _barPadding + 10;
+            LabelWidth = MeasureString(label, FontSize::Medium).x;
+        }
+
+        float LabelWidth = 0;
+        float ValueWidth = 25;
+        string ChangeSound = MENU_SELECT_SOUND;
+        bool ShowValue = false;
+
+        std::function<void(int)> OnChange;
+
+        //void UpdatePercent(float percent) {
+        //    auto value = (int)std::floor((Max - Min) * percent);
+        //    if (*_index != value) {
+        //        *_index = value;
+        //        if (OnChange) OnChange(value);
+        //        Sound::Play2D(ChangeSound, 1, 0, 0.25f);
+        //        UpdateValueText();
+        //    }
+        //}
+
+        //float GetValueWidth() const { return ShowValue ? ValueWidth : 0; }
+
+        void OnUpdate() override {
+            ControlBase::OnUpdate();
+
+            if (!Focused) return;
+
+            auto index = *_index;
+
+            if (Input::MenuLeft())
+                index--;
+
+            if (Input::MenuRight())
+                index++;
+
+            if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick)) {
+                if (CheckArrowHover(GetLeftArrowPosition()))
+                    index--;
+                else if (CheckArrowHover(GetRightArrowPosition()))
+                    index++;
+            }
+
+            // Wrap
+            if (index < 0) index = (int)_values.size() - 1;
+            if (index >= _values.size()) index = 0;
+
+            if (index != *_index) {
+                Sound::Play2D(ChangeSound);
+                *_index = index;
+                if (OnChange) OnChange(index);
+            }
+        }
+
+
+        //bool CheckHover() {
+        //    auto barWidth = (Size.x - LabelWidth - ValueWidth - _barPadding) * GetScale();
+        //    auto barPosition = Vector2(ScreenPosition.x + LabelWidth * GetScale(), ScreenPosition.y);
+        //    return RectangleContains(barPosition, { barWidth, ScreenSize.y }, Input::MousePosition);
+        //}
+        bool CheckArrowHover(Vector2 position) const {
+            position.x -= _arrowHeight * GetScale() / 4; // Center the hitbox on the arrow, as they are taller than wide
+            return RectangleContains(position, { _arrowHeight * GetScale() * 1.25f, ScreenSize.y }, Input::MousePosition);
+        }
+
+        void DrawLeftArrow(const Vector2& position, float thickness, float height, const Color& color) const {
+            Render::HudCanvasPayload payload;
+            payload.Texture = Render::Materials->White().Handle();
+            payload.Layer = Layer + 1;
+            payload.V0.Color = payload.V1.Color = payload.V2.Color = payload.V3.Color = color;
+
+            auto width = height / 2;
+
+            payload.V0.Position = Vector2(position.x + width, position.y); // tr
+            payload.V1.Position = Vector2(position.x + width + thickness, position.y); // tr2
+            payload.V2.Position = Vector2(position.x + thickness, position.y + width); // mid
+            payload.V3.Position = Vector2(position.x, position.y + width); // mid
+            Render::UICanvas->Draw(payload);
+
+            payload.V0.Position = Vector2(position.x + width, position.y + height); // br
+            payload.V1.Position = Vector2(position.x + width + thickness, position.y + height); // br2
+            payload.V2.Position = Vector2(position.x + thickness, position.y + width); // mid
+            payload.V3.Position = Vector2(position.x, position.y + width); // mid
+            Render::UICanvas->Draw(payload);
+        }
+
+        void DrawRightArrow(const Vector2& position, float thickness, float height, const Color& color) const {
+            Render::HudCanvasPayload payload;
+            payload.Texture = Render::Materials->White().Handle();
+            payload.Layer = Layer + 1;
+            payload.V0.Color = payload.V1.Color = payload.V2.Color = payload.V3.Color = color;
+            auto width = height / 2;
+
+            payload.V0.Position = Vector2(position.x, position.y); // tr
+            payload.V1.Position = Vector2(position.x + thickness, position.y); // tr2
+            payload.V2.Position = Vector2(position.x + width + thickness, position.y + width); // mid
+            payload.V3.Position = Vector2(position.x + width, position.y + width); // mid
+            Render::UICanvas->Draw(payload);
+
+            payload.V0.Position = Vector2(position.x, position.y + height); // br
+            payload.V1.Position = Vector2(position.x + thickness, position.y + height); // br2
+            payload.V2.Position = Vector2(position.x + width + thickness, position.y + width); // mid
+            payload.V3.Position = Vector2(position.x + width, position.y + width); // mid
+            Render::UICanvas->Draw(payload);
+        }
+
+        Vector2 GetLeftArrowPosition() const {
+            auto labelWidth = LabelWidth * GetScale();
+            auto position = Vector2(ScreenPosition.x + labelWidth, ScreenPosition.y);
+            position.x += 10 * GetScale();
+            return position;
+        }
+
+        Vector2 GetRightArrowPosition() const {
+            return { ScreenPosition.x + ScreenSize.x - _arrowHeight * GetScale() / 2, ScreenPosition.y };
+        }
+
+        void OnDraw() override {
+            //auto hovered = CheckHover();
+            //auto selectedColor = hovered ? ACCENT_GLOW : Focused ? ACCENT_COLOR : IDLE_BUTTON;
+            //auto color = hovered ? FOCUS_COLOR : Focused ? HOVER_COLOR : IDLE_BUTTON;
+            auto labelWidth = LabelWidth * GetScale();
+
+            if (Focused) {
+                float arrowHeight = _arrowHeight * GetScale();
+                float arrowThickness = _arrowThickness * GetScale();
+
+                {
+                    auto leftPos = GetLeftArrowPosition();
+                    auto leftHover = CheckArrowHover(leftPos);
+                    auto selectedColor = leftHover ? ACCENT_GLOW : Focused ? ACCENT_COLOR : IDLE_BUTTON;
+                    DrawLeftArrow(leftPos, arrowThickness, arrowHeight, selectedColor);
+                }
+
+                {
+                    auto rightPos = GetRightArrowPosition();
+                    auto rightHover = CheckArrowHover(rightPos);
+                    auto selectedColor = rightHover ? ACCENT_GLOW : Focused ? ACCENT_COLOR : IDLE_BUTTON;
+                    DrawRightArrow(rightPos, arrowThickness, arrowHeight, selectedColor);
+                }
+            }
+
+            {
+                // Label
+                Render::DrawTextInfo dti;
+                dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
+                dti.Color = Focused /*|| Hovered*/ ? FOCUS_COLOR : Color(1, 1, 1);
+                dti.Position = ScreenPosition / GetScale();
+                Render::UICanvas->DrawText(_label, dti, Layer + 1);
+            }
+
+            if (auto value = Seq::tryItem(_values, *_index)) {
+                // Value
+                auto valueSize = MeasureString(*value, FontSize::Medium).x * GetScale();
+
+                Render::DrawTextInfo dti;
+                dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
+                dti.Color = Focused /*|| Hovered*/ ? FOCUS_COLOR : Color(1, 1, 1);
+                //dti.Position = Vector2(ScreenPosition.x + ScreenSize.x - valueSize.x * GetScale(), ScreenPosition.y) / GetScale();
+                float valueWidth = ScreenSize.x - labelWidth;
+                dti.Position = Vector2(ScreenPosition.x + labelWidth + valueWidth / 2 - valueSize / 2, ScreenPosition.y) / GetScale();
+                Render::UICanvas->DrawText(*value, dti, Layer + 1);
+            }
+        }
+    };
+
 
     class SliderFloat : public ControlBase {
         string _label;
@@ -1105,23 +1411,26 @@ namespace Inferno::UI {
 
         std::function<void(float)> OnChange;
 
-        void UpdatePercent(float percent) {
+        void UpdatePercent(float percent, bool playSound = true) {
+            percent = Saturate(percent);
             auto value = (_max - _min) * percent + _min;
 
             if (*_value != value) {
                 *_value = value;
                 if (OnChange) OnChange(value);
                 UpdateValueText();
+
+                if (playSound)
+                    Sound::Play2D(ChangeSound);
             }
         }
 
         float GetValueWidth() const { return ShowValue ? ValueWidth : 0; }
 
         void OnUpdate() override {
-            // behavior:
-            // when clicked, move cursor to nearest increment, and then continue to update as dragged
-            // need a global flag to tell focus system to not update while dragging
+            if (!Focused) return;
 
+            // when clicked, move cursor to nearest increment, and then continue to update as dragged
             if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick) && CheckHover()) {
                 _dragging = true;
                 CaptureCursor(true);
@@ -1131,21 +1440,29 @@ namespace Inferno::UI {
                     _dragging = false;
                     CaptureCursor(false);
                     Sound::Play2D(ChangeSound);
-                    //Sound::Play2D(ChangeSound, 1, 0, 0.125f);
                 }
             }
 
             if (_dragging) {
                 auto barWidth = (Size.x - LabelWidth - GetValueWidth() - _barPadding) * GetScale();
                 auto barPosition = ScreenPosition.x + LabelWidth * GetScale();
-                //auto tickWidth = barWidth / (_max - _min);
-
                 auto percent = Saturate((Input::MousePosition.x - barPosition) / barWidth);
-                UpdatePercent(percent);
+                UpdatePercent(percent, false);
+            }
+
+            const float keyboardIncrement = Input::ShiftDown ? 0.01f : 0.1f;
+
+            if (Input::MenuLeft()) {
+                UpdatePercent(GetPercent() - keyboardIncrement);
+            }
+
+            if (Input::MenuRight()) {
+                UpdatePercent(GetPercent() + keyboardIncrement);
             }
         }
 
         bool CheckHover() {
+            if (!Focused) return false;
             auto barWidth = (Size.x - LabelWidth - GetValueWidth() - _barPadding) * GetScale();
             auto barPosition = Vector2(ScreenPosition.x + LabelWidth * GetScale(), ScreenPosition.y);
             return RectangleContains(barPosition, { barWidth, ScreenSize.y }, Input::MousePosition);
@@ -1259,7 +1576,7 @@ namespace Inferno::UI {
                     SetSelection(control);
             }
 
-            ControlBase::OnUpdate(); // breaks main menu selection
+            ControlBase::OnUpdate();
         }
 
         // Called when a top level screen tries to close. Return true if it should close.
@@ -1268,18 +1585,21 @@ namespace Inferno::UI {
         // Called when a screen is closed.
         virtual void OnClose() {}
 
-        void OnConfirm() {
-            if (Selection && Selection->ClickAction) {
-                Sound::Play2D(SoundResource{ ActionSound });
-                Selection->ClickAction();
+        bool OnConfirm() override {
+            if (Selection) {
+                return Selection->OnConfirm();
             }
             else if (CloseOnConfirm) {
                 // Play the default menu select sound when closing if there's no action
                 Sound::Play2D(SoundResource{ MENU_SELECT_SOUND });
             }
 
-            if (CloseOnConfirm)
+            if (CloseOnConfirm) {
                 State = CloseState::Accept;
+                return true;
+            }
+
+            return false;
         }
 
         void OnUpdateLayout() override {
@@ -1416,6 +1736,166 @@ namespace Inferno::UI {
             //}
 
             ScreenBase::OnDraw();
+        }
+    };
+
+
+    class SelectionPopup : public DialogBase {
+        gsl::strict_not_null<int*> _index;
+
+    public:
+        SelectionPopup(const List<string>& values, int& index) : DialogBase("", false), _index(&index) {
+            auto panel = make_unique<StackPanel>();
+            panel->Position = Vector2{ DIALOG_PADDING, DIALOG_PADDING };
+            float width = 250;
+            float maxWidth = 630;
+
+            for (int i = 0; i < values.size(); i++) {
+                auto value = TrimStringByLength(values[i], FontSize::Medium, (int)maxWidth);
+                auto labelSize = MeasureString(value, FontSize::Medium);
+                width = std::max(labelSize.x, width);
+
+                panel->AddChild<Button>(value, [this, i] {
+                    *_index = i;
+                    State = CloseState::Accept;
+                    Sound::Play2D(SoundResource{ ActionSound });
+                });
+            }
+
+            Size = Vector2(std::min(width + DIALOG_PADDING * 2, maxWidth), 35.0f * values.size());
+            AddChild(std::move(panel));
+        }
+
+        void OnDraw() override {
+            // Background
+            //Render::CanvasBitmapInfo cbi;
+            //cbi.Size = Render::UICanvas->GetSize();
+            //cbi.Texture = Render::Materials->Black().Handle();
+            //cbi.Color = Color(0, 0, 0, 0.95f);
+            //Render::UICanvas->DrawBitmap(cbi, Layer);
+
+            DialogBase::OnDraw();
+        }
+    };
+
+    ScreenBase* ShowScreen(Ptr<ScreenBase> screen);
+
+    // Shows a box with a label and value that can be activated to show a popup
+    class ComboSelect : public ControlBase {
+        string _label;
+        List<string> _values;
+        gsl::strict_not_null<int*> _index;
+        bool _held = false;
+        string _valueText;
+        bool _dragging = false;
+        float _fontHeight = 0;
+        bool _hovered = false;
+
+    public:
+        float LabelWidth = 0;
+        float ValueWidth = 25;
+        bool ShowValue = false;
+        string MenuActionSound = MENU_SELECT_SOUND; // Sound when picking an item in the popup menu
+
+        std::function<void(int)> OnChange; // Called when a value is selected
+
+        ComboSelect(string_view label, const List<string>& values, int& index)
+            : _label(label), _values({ values.begin(), values.end() }), _index(&index) {
+            Vector2 size;
+
+            for (auto& value : values) {
+                auto textSize = MeasureString(value, FontSize::Medium);
+                size = Vector2(std::max(size.x, textSize.x), std::max(size.y, textSize.y));
+            }
+
+            Size = Vector2(60, size.y);
+            Padding = Vector2(2, 2);
+            LabelWidth = MeasureString(label, FontSize::Medium).x;
+            ValueWidth = size.x - LabelWidth;
+            ActionSound = MENU_SELECT_SOUND;
+
+            if (auto font = Atlas.GetFont(FontSize::Medium))
+                _fontHeight = font->Height * font->Scale;
+        }
+
+        static Ptr<ComboSelect> Create(string_view label, const List<string>& values, int& index) {
+            return make_unique<ComboSelect>(label, values, index);
+        }
+
+        void OnUpdateLayout() override {
+            ValueWidth = Size.x - LabelWidth;
+        }
+
+        void OnUpdate() override {
+            auto boxPosition = Vector2(ScreenPosition.x + LabelWidth * GetScale(), ScreenPosition.y);
+            _hovered = RectangleContains(boxPosition, Vector2(ValueWidth, ScreenSize.y), Input::MousePosition);
+
+            if (Input::MenuConfirm() || (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick) && _hovered)) {
+                auto screen = make_unique<SelectionPopup>(_values, *_index);
+                screen->ActionSound = MenuActionSound;
+
+                screen->CloseCallback = [this](CloseState state) {
+                    if (state == CloseState::Accept) {
+                        OnChange(*_index);
+                    }
+                };
+
+                Sound::Play2D(SoundResource{ ActionSound });
+                ShowScreen(std::move(screen));
+            }
+        }
+
+        void OnDraw() override {
+            Vector2 textCenter(0, ScreenSize.y / 2 - _fontHeight * GetScale() / 2);
+            textCenter += Padding;
+
+            {
+                // Label
+                Render::DrawTextInfo dti;
+                dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
+                dti.Color = Focused /*|| Hovered*/ ? FOCUS_COLOR : Color(1, 1, 1);
+                dti.Position = ScreenPosition / GetScale() + textCenter;
+                Render::UICanvas->DrawText(_label, dti, Layer + 1);
+            }
+
+            auto boxPosition = Vector2(ScreenPosition.x + LabelWidth * GetScale(), ScreenPosition.y);
+            auto borderColor = _hovered ? ACCENT_GLOW : Focused ? Color(246.0f / 255, 153.0f / 255, 66.0f / 255) : IDLE_BUTTON;
+
+            {
+                // Border
+                Render::CanvasBitmapInfo cbi;
+                cbi.Position = boxPosition;
+                cbi.Size = Vector2(ValueWidth * GetScale(), ScreenSize.y);
+                cbi.Texture = Render::Materials->White().Handle();
+                //cbi.Color = Focused ? ACCENT_COLOR : BORDER_COLOR;
+                cbi.Color = borderColor;
+                Render::UICanvas->DrawBitmap(cbi, Layer);
+            }
+
+            {
+                // Background
+                Render::CanvasBitmapInfo cbi;
+                const auto border = Vector2(2, 2) * GetScale();
+                cbi.Position = boxPosition + border;
+                cbi.Size = Vector2(ValueWidth * GetScale(), ScreenSize.y) - border * 2;
+                cbi.Texture = Render::Materials->White().Handle();
+                cbi.Color = borderColor * 0.1f;
+                cbi.Color.A(1);
+                Render::UICanvas->DrawBitmap(cbi, Layer);
+            }
+
+            if (auto value = Seq::tryItem(_values, *_index)) {
+                // Value
+                auto trimmed = TrimStringByLength(*value, FontSize::Medium, (int)(ValueWidth / GetScale()));
+                auto valueSize = MeasureString(trimmed, FontSize::Medium).x * GetScale();
+
+                Render::DrawTextInfo dti;
+                dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
+                dti.Color = Focused /*|| Hovered*/ ? FOCUS_COLOR : Color(1, 1, 1);
+                dti.Position = Vector2(ScreenPosition.x + LabelWidth * GetScale() + ValueWidth * 0.5f * GetScale() - valueSize * 0.5f, ScreenPosition.y) / GetScale();
+                dti.Position += textCenter;
+                Render::UICanvas->DrawText(trimmed, dti, Layer + 1);
+            }
         }
     };
 }

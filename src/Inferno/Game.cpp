@@ -117,6 +117,10 @@ namespace Inferno::Game {
         return &obj;
     }
 
+    void PlayMainMenuMusic() {
+        Game::PlayMusic("d1/descent");
+    }
+
     void UpdateEffects(Object& obj, float dt) {
         auto& e = obj.Effects;
 
@@ -367,7 +371,7 @@ namespace Inferno::Game {
                 Game::MainCamera.Position = MenuCameraPosition;
                 Game::MainCamera.Target = MenuCameraTarget;
                 Sound::SetMusicVolume(Settings::Inferno.MusicVolume);
-                Game::PlayMusic("d1/descent");
+                PlayMainMenuMusic();
                 UI::ShowMainMenu();
                 break;
             }

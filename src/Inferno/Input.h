@@ -55,6 +55,13 @@ namespace Inferno::Input {
     // Returns true when a key is first released
     bool IsMouseButtonReleased(MouseButtons);
 
+    bool MenuLeft();
+    bool MenuRight();
+    bool MenuUp();
+    bool MenuDown();
+    bool MenuConfirm();
+    bool MenuCancel();
+
     bool MouseMoved();
 
     void ResetState();
