@@ -20,11 +20,9 @@ using namespace Inferno;
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace {
-    int AppWidth = 1024, AppHeight = 768;
     bool AppSuspended = false;
     bool AppMinimized = false;
     bool AppFullscreen = false;
-    bool AppMaximized = false;
     HBRUSH BackgroundBrush{};
     RECT AppWindowRect{};
 }
@@ -44,8 +42,13 @@ void GetWindowPlacement() {
 
     WINDOWPLACEMENT placement{};
     GetWindowPlacement(hWnd, &placement);
-    AppMaximized = placement.showCmd == SW_SHOWMAXIMIZED;
-    AppWindowRect = placement.rcNormalPosition;
+    Settings::Inferno.Maximized = placement.showCmd == SW_SHOWMAXIMIZED;
+    auto rect = placement.rcNormalPosition;
+
+    if (!Settings::Inferno.Maximized) {
+        Settings::Inferno.WindowPosition = { (uint)rect.left, (uint)rect.top };
+        Settings::Inferno.WindowSize = { uint(rect.right - rect.left), uint(rect.bottom - rect.top) };
+    }
 }
 
 // Updates the window fullscreen state based on the app setting
@@ -69,9 +72,10 @@ void UpdateFullscreen() {
         //if (AppMaximized) flags |= SWP_NOSIZE | SWP_NOMOVE;
 
         SetWindowPos(hWnd, HWND_TOP, AppWindowRect.left, AppWindowRect.top, width, height, flags);
-        ShowWindow(hWnd, AppMaximized ? SW_SHOWMAXIMIZED : SW_SHOW);
+        ShowWindow(hWnd, Settings::Inferno.Maximized ? SW_SHOWMAXIMIZED : SW_SHOW);
     }
     else {
+        // Windowed fullscreen
         GetWindowPlacement();
 
         SetWindowLongPtr(hWnd, GWL_STYLE, 0);
@@ -96,6 +100,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
             if (!app->OnClose())
                 return 0;
 
+            GetWindowPlacement();
             break;
 
         case WM_SYSKEYDOWN:
@@ -267,21 +272,13 @@ Inferno::Shell::~Shell() {
     UnregisterClass(WindowClass, _hInstance);
 }
 
-int Inferno::Shell::Show(int width, int height, int nCmdShow) const {
+int Inferno::Shell::Show(DirectX::XMUINT2 position, DirectX::XMUINT2 size, int nCmdShow) const {
     if (!RegisterWindowClass(_hInstance))
         throw std::exception("Failed to register window class");
 
-    // Create window
-    AppWidth = width;
-    AppHeight = height;
-    RECT rc = { 0, 0, width, height };
-
-    AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
-
-    // Change to CreateWindowExW(WS_EX_TOPMOST, , , WS_POPUP, to default to fullscreen.
     HWND hwnd = CreateWindowEx(0, WindowClass, Convert::ToWideString(APP_TITLE).c_str(),
-                               WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
-                               rc.right - rc.left, rc.bottom - rc.top,
+                               WS_OVERLAPPEDWINDOW, position.x, position.y,
+                               size.x, size.y,
                                nullptr, nullptr, _hInstance, nullptr);
 
     if (!hwnd)
@@ -296,6 +293,7 @@ int Inferno::Shell::Show(int width, int height, int nCmdShow) const {
 
     Application app;
     SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(&app));
+    RECT rc;
     GetClientRect(hwnd, &rc);
     app.Initialize(rc.right - rc.left, rc.bottom - rc.top);
 

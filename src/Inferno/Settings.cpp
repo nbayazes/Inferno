@@ -539,6 +539,9 @@ namespace Inferno {
         node["Difficulty"] << (int)Game::Difficulty;
         node["HalvePitchSpeed"] << Settings::Inferno.HalvePitchSpeed;
         node["Fullscreen"] << Settings::Inferno.Fullscreen;
+        node["Maximized"] << Settings::Inferno.Maximized;
+        node["WindowSize"] << EncodeVector(Settings::Inferno.WindowSize);
+        node["WindowPosition"] << EncodeVector(Settings::Inferno.WindowPosition);
     }
 
     void LoadGameSettings(ryml::NodeRef node, InfernoSettings& settings) {
@@ -550,6 +553,9 @@ namespace Inferno {
         ReadValue(node["Difficulty"], Game::Difficulty);
         ReadValue(node["HalvePitchSpeed"], settings.HalvePitchSpeed);
         ReadValue(node["Fullscreen"], Settings::Inferno.Fullscreen);
+        ReadValue(node["Maximized"], Settings::Inferno.Maximized);
+        ReadValue(node["WindowSize"], Settings::Inferno.WindowSize);
+        ReadValue(node["WindowPosition"], Settings::Inferno.WindowPosition);
         Game::Difficulty = (DifficultyLevel)std::clamp((int)Game::Difficulty, 0, 4);
     }
 

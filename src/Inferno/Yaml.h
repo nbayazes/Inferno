@@ -7,12 +7,19 @@
 
 #include <ryml/ryml_std.hpp>
 #include <ryml/ryml.hpp>
-#include <spdlog/spdlog.h>
 #include "Types.h"
 #include "Utility.h"
 
 namespace Yaml {
     inline bool ParseFloat(std::string_view s, float& value) {
+        float f = 0;
+        auto [p, ec] = std::from_chars(s.data(), s.data() + s.size(), f);
+        if (ec != std::errc()) return false;
+        value = f;
+        return true;
+    }
+
+    inline bool ParseInt(std::string_view s, float& value) {
         float f = 0;
         auto [p, ec] = std::from_chars(s.data(), s.data() + s.size(), f);
         if (ec != std::errc()) return false;
@@ -113,6 +120,29 @@ namespace Yaml {
     }
 
     template<>
+    inline bool ReadValue(ryml::ConstNodeRef node, DirectX::XMUINT2& value) {
+        if (!node.valid()) return false;
+        std::string str;
+        node >> str;
+        auto token = Inferno::String::Split(str, ',', true);
+        if (token.size() != 2)
+            return false;
+
+        try {
+            auto x = std::stoi(token[0]);
+            auto y = std::stoi(token[1]);
+            // y might throw, so read both before assignment
+            value.x = x;
+            value.y = y;
+        }
+        catch (...) {
+            return false;
+        }
+
+        return true;
+    }
+
+    template<>
     inline bool ReadValue(ryml::ConstNodeRef node, DirectX::SimpleMath::Vector2& value) {
         if (!node.valid()) return false;
         std::string str;
@@ -151,6 +181,10 @@ namespace Yaml {
 
     inline std::string EncodeArray(const std::array<bool, 4>& a) {
         return fmt::format("{}, {}, {}, {}", (int)a[0], (int)a[1], (int)a[2], (int)a[3]);
+    }
+
+    inline std::string EncodeVector(const DirectX::XMUINT2& v) {
+        return fmt::format("{}, {}", v.x, v.y);
     }
 
     inline std::string EncodeVector(const DirectX::SimpleMath::Vector2& v) {

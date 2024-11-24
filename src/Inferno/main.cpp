@@ -289,7 +289,32 @@ int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
         FileSystem::Init();
         Resources::Init();
         Inferno::InitShaderCompiler();
-        int result = shell.Show(1024, 768);
+
+        //auto cmdShow = [] {
+        //    switch (Settings::Inferno.WindowMode) {
+        //        default:
+        //        case WindowMode::Fullscreen:
+        //            return SW_SHOW;
+        //        case WindowMode::Maximized:
+        //            return SW_SHOWMAXIMIZED;
+        //        case WindowMode::Windowed:
+        //            return SW_SHOW;
+        //    }
+        //}();
+
+        auto cmdShow = Settings::Inferno.Maximized ? SW_SHOWMAXIMIZED : SW_SHOW;
+        auto size = Settings::Inferno.WindowSize;
+        if (size.x <= 0 || size.y <= 0) size = { 640, 480 };
+
+        // Check if the saved position is still on screen in case the desktop resolution changes
+        auto desktopWidth = (uint)GetSystemMetrics(SM_CXSCREEN);
+        auto desktopHeight = (uint)GetSystemMetrics(SM_CYSCREEN);
+        auto pos = Settings::Inferno.WindowPosition;
+
+        if (pos.x >= desktopWidth || pos.y >= desktopHeight)
+            pos = { 0, 0 };
+
+        int result = shell.Show(pos, size, cmdShow);
         Settings::Save();
 
         //CoUninitialize();

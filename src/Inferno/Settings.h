@@ -154,7 +154,7 @@ namespace Inferno {
         bool HighRes = false; // Enables high res textures and filtering
         bool EnableBloom = true; // Enables bloom post-processing and tone mapping
         bool EnableProcedurals = true;
-        int MsaaSamples = 1;
+        int MsaaSamples = 1; // 1 through 8. 1 is no MSAA
         int ForegroundFpsLimit = -1, BackgroundFpsLimit = 20;
         bool UseVsync = true;
         bool NewLightMode = true;
@@ -167,6 +167,12 @@ namespace Inferno {
 
         bool OutlineVisibleRooms = false;
         bool DrawGunpoints = false;
+    };
+
+    enum class WindowMode {
+        Fullscreen = 0,
+        Maximized = 1,
+        Windowed = 2
     };
 
     struct InfernoSettings {
@@ -184,7 +190,11 @@ namespace Inferno {
         bool Descent3Enhanced = false;
         bool ShowWeaponFlash = false; // Are weapon flashes visible in first person?
         WiggleMode ShipWiggle = WiggleMode::Reduced;
+        WindowMode WindowMode = WindowMode::Fullscreen;
         bool Fullscreen = false;
+        bool Maximized = true; // Maximized or windowed
+        DirectX::XMUINT2 WindowSize;
+        DirectX::XMUINT2 WindowPosition;
     };
 
     struct CheatSettings {
