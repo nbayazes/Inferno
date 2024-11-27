@@ -785,7 +785,7 @@ namespace Inferno::UI {
         Screens.clear();
         ShowScreen(make_unique<MainMenu>());
 
-        ShowScreen(make_unique<SoundOptionsMenu>());
+        ShowScreen(make_unique<SoundMenu>());
     }
 
     void ShowPauseDialog() {

@@ -122,7 +122,7 @@ namespace Inferno {
         bool InvertY = false;
         bool InvertOrbitY = false;
         float FieldOfView = 80;
-        Editor::MiddleMouseMode MiddleMouseMode = Editor::MiddleMouseMode::Mouselook;
+        Editor::MiddleMouseMode MiddleMouseMode = Editor::MiddleMouseMode::Orbit;
 
         struct OpenWindows {
             bool Lighting = false;
@@ -155,7 +155,8 @@ namespace Inferno {
         bool EnableBloom = true; // Enables bloom post-processing and tone mapping
         bool EnableProcedurals = true;
         int MsaaSamples = 1; // 1 through 8. 1 is no MSAA
-        int ForegroundFpsLimit = -1, BackgroundFpsLimit = 20;
+        int ForegroundFpsLimit = 120, BackgroundFpsLimit = 20;
+        bool EnableForegroundFpsLimit = false;
         bool UseVsync = true;
         bool NewLightMode = true;
         int ToneMapper = 1;
@@ -193,8 +194,16 @@ namespace Inferno {
         WindowMode WindowMode = WindowMode::Fullscreen;
         bool Fullscreen = false;
         bool Maximized = true; // Maximized or windowed
-        DirectX::XMUINT2 WindowSize;
-        DirectX::XMUINT2 WindowPosition;
+        bool ShipAutolevel = false;
+        bool NoAutoselectWhileFiring = true;
+        bool AutoselectAfterFiring = true;
+        bool OnlyCycleAutoselectWeapons = true;
+        bool StickyRearview = false;
+        bool SlowmoFusion = true;
+        bool EnableJoystick = false;
+        bool EnableMouse = true;
+        uint2 WindowSize;
+        uint2 WindowPosition;
     };
 
     struct CheatSettings {

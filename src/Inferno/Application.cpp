@@ -93,7 +93,10 @@ void Application::Initialize(int width, int height) {
 
 void Application::UpdateFpsLimit() {
     auto limit = _isForeground ? Settings::Graphics.ForegroundFpsLimit : Settings::Graphics.BackgroundFpsLimit;
-    _fpsLimitMs = limit > 0 ? int(1000.0f / (float)limit) : 0;
+    if ((_isForeground && Settings::Graphics.EnableForegroundFpsLimit) || !_isForeground)
+        _fpsLimitMs = limit > 0 ? int(1000.0f / (float)limit) : 60;
+    else
+        _fpsLimitMs = 0;
 }
 
 void Application::Tick() const {

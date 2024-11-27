@@ -32,6 +32,7 @@ namespace Inferno {
         node["HighRes"] << s.HighRes;
         node["EnableBloom"] << s.EnableBloom;
         node["MsaaSamples"] << s.MsaaSamples;
+        node["EnableForegroundFpsLimit"] << s.EnableForegroundFpsLimit;
         node["ForegroundFpsLimit"] << s.ForegroundFpsLimit;
         node["BackgroundFpsLimit"] << s.BackgroundFpsLimit;
         node["UseVsync"] << s.UseVsync;
@@ -47,10 +48,13 @@ namespace Inferno {
         if (s.MsaaSamples != 1 && s.MsaaSamples != 2 && s.MsaaSamples != 4 && s.MsaaSamples != 8)
             s.MsaaSamples = 1;
 
+        ReadValue(node["EnableForegroundFpsLimit"], s.EnableForegroundFpsLimit);
         ReadValue(node["ForegroundFpsLimit"], s.ForegroundFpsLimit);
         ReadValue(node["BackgroundFpsLimit"], s.BackgroundFpsLimit);
         ReadValue(node["UseVsync"], s.UseVsync);
         ReadValue(node["FilterMode"], (int&)s.FilterMode);
+
+        s.ForegroundFpsLimit = std::max(s.ForegroundFpsLimit, 20);
         return s;
     }
 
@@ -538,10 +542,11 @@ namespace Inferno {
         node["MouseSensitivity"] << settings.MouseSensitivity;
         node["Difficulty"] << (int)Game::Difficulty;
         node["HalvePitchSpeed"] << Settings::Inferno.HalvePitchSpeed;
-        node["Fullscreen"] << Settings::Inferno.Fullscreen;
-        node["Maximized"] << Settings::Inferno.Maximized;
-        node["WindowSize"] << EncodeVector(Settings::Inferno.WindowSize);
-        node["WindowPosition"] << EncodeVector(Settings::Inferno.WindowPosition);
+        node["ShipAutolevel"] << Settings::Inferno.ShipAutolevel;
+        node["NoAutoselectWhileFiring"] << Settings::Inferno.NoAutoselectWhileFiring;
+        node["AutoselectAfterFiring"] << Settings::Inferno.AutoselectAfterFiring;
+        node["StickyRearview"] << Settings::Inferno.StickyRearview;
+        node["SlowmoFusion"] << Settings::Inferno.SlowmoFusion;
     }
 
     void LoadGameSettings(ryml::NodeRef node, InfernoSettings& settings) {
@@ -552,10 +557,12 @@ namespace Inferno {
         ReadValue(node["MouseSensitivity"], settings.MouseSensitivity);
         ReadValue(node["Difficulty"], Game::Difficulty);
         ReadValue(node["HalvePitchSpeed"], settings.HalvePitchSpeed);
-        ReadValue(node["Fullscreen"], Settings::Inferno.Fullscreen);
-        ReadValue(node["Maximized"], Settings::Inferno.Maximized);
-        ReadValue(node["WindowSize"], Settings::Inferno.WindowSize);
-        ReadValue(node["WindowPosition"], Settings::Inferno.WindowPosition);
+        ReadValue(node["ShipAutolevel"], settings.ShipAutolevel);
+        ReadValue(node["NoAutoselectWhileFiring"], settings.NoAutoselectWhileFiring);
+        ReadValue(node["AutoselectAfterFiring"], settings.AutoselectAfterFiring);
+        ReadValue(node["StickyRearview"], settings.StickyRearview);
+        ReadValue(node["SlowmoFusion"], settings.SlowmoFusion);
+
         Game::Difficulty = (DifficultyLevel)std::clamp((int)Game::Difficulty, 0, 4);
     }
 
@@ -571,6 +578,11 @@ namespace Inferno {
             doc["EffectVolume"] << Settings::Inferno.EffectVolume;
             doc["GenerateMaps"] << Settings::Inferno.GenerateMaps;
             doc["Descent3Enhanced"] << Settings::Inferno.Descent3Enhanced;
+
+            doc["Fullscreen"] << Settings::Inferno.Fullscreen;
+            doc["Maximized"] << Settings::Inferno.Maximized;
+            doc["WindowSize"] << EncodeVector(Settings::Inferno.WindowSize);
+            doc["WindowPosition"] << EncodeVector(Settings::Inferno.WindowPosition);
 
             SaveGameSettings(doc["Game"], Settings::Inferno);
             WriteSequence(doc["DataPaths"], Settings::Inferno.DataPaths);
@@ -611,6 +623,11 @@ namespace Inferno {
                 ReadValue(root["EffectVolume"], Settings::Inferno.EffectVolume);
                 ReadValue(root["GenerateMaps"], Settings::Inferno.GenerateMaps);
                 ReadValue(root["Descent3Enhanced"], Settings::Inferno.Descent3Enhanced);
+
+                ReadValue(root["Fullscreen"], Settings::Inferno.Fullscreen);
+                ReadValue(root["Maximized"], Settings::Inferno.Maximized);
+                ReadValue(root["WindowSize"], Settings::Inferno.WindowSize);
+                ReadValue(root["WindowPosition"], Settings::Inferno.WindowPosition);
 
                 auto dataPaths = root["DataPaths"];
                 if (!dataPaths.is_seed()) {

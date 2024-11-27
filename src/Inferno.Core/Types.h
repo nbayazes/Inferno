@@ -85,6 +85,34 @@ namespace Inferno {
     //    }
     //}
 
+    using uint3 = DirectX::XMUINT3;
+
+    struct uint2 : DirectX::XMUINT2 {
+        uint2() noexcept : DirectX::XMUINT2(0, 0) {}
+        constexpr explicit uint2(unsigned int ix) noexcept : DirectX::XMUINT2(ix, ix) {}
+        constexpr uint2(unsigned int ix, unsigned int iy) noexcept : DirectX::XMUINT2(ix, iy) {}
+        explicit uint2(_In_reads_(2) const unsigned int* pArray) noexcept : DirectX::XMUINT2(pArray) {}
+        //uint2(DirectX::FXMVECTOR V) noexcept { DirectX::XMStoreUInt2(this, V); }
+        uint2(const DirectX::XMUINT2& v) noexcept { this->x = v.x; this->y = v.y; }
+        //explicit uint2(const DirectX::XMVECTORU32& F) noexcept { this->x = F.u[0]; this->y = F.u[1]; }
+
+        ~uint2() { }
+
+        uint2(const uint2&) = default;
+        uint2& operator=(const uint2&) = default;
+
+        uint2(uint2&&) = default;
+        uint2& operator=(uint2&&) = default;
+
+        bool operator == (const uint2& v) const noexcept {
+            return v.x == x && v.y == y;
+        }
+
+        bool operator != (const uint2& v) const noexcept {
+            return v.x != x || v.y != y;
+        }
+    };
+
     // Typed concept that allows iterating over a range
     // Usage: Function(IEnumerable<Type> auto items)
     template <class _Rng, class T>
@@ -524,7 +552,7 @@ namespace Inferno {
 
     public:
         LerpedColor(const Color& color = {})
-            : _color(color) {}
+            : _color(color), _endColor(color) {}
 
         void SetTarget(const Color& color, double currentTime, float fadeTime = 0.5f) {
             if (fadeTime <= 0) {

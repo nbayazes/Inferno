@@ -132,12 +132,13 @@ namespace Inferno::UI {
 
         // Called when the control is activated by clicking or pressing a button
         virtual bool OnConfirm() {
-            Sound::Play2D(SoundResource{ ActionSound });
             if (ClickAction)
                 ClickAction();
 
-            if (HandleOnClick() || ClickAction)
+            if (HandleOnClick() || ClickAction) {
+                Sound::Play2D(SoundResource{ ActionSound });
                 return true; // Click was handled, stop
+            }
 
             return false;
         }
@@ -209,6 +210,12 @@ namespace Inferno::UI {
 
         void AddChild(Ptr<ControlBase> control) {
             Children.push_back(std::move(control));
+        }
+
+        template <class TControl>
+        TControl* AddChildT(Ptr<TControl> control) {
+            Children.push_back(std::move(control));
+            return (TControl*)Children.back().get();
         }
 
         virtual void OnDraw() {
@@ -471,6 +478,10 @@ namespace Inferno::UI {
         }
 
         float Thickness = 2.0f;
+
+        void OnUpdate() override {
+            Hovered = RectangleContains(ScreenPosition, ScreenSize, Input::MousePosition);
+        }
 
         void OnDraw() override {
             const float thickness = Thickness * GetScale();
@@ -1108,6 +1119,11 @@ namespace Inferno::UI {
             LabelWidth = MeasureString(label, FontSize::Medium).x;
         }
 
+
+        static Ptr<SliderSelect> Create(string_view label, std::initializer_list<string_view> values, int& index) {
+            return make_unique<SliderSelect>(label, values, index);
+        }
+
         float LabelWidth = 0;
         float ValueWidth = 25;
         string ChangeSound; // MENU_SELECT_SOUND
@@ -1216,6 +1232,10 @@ namespace Inferno::UI {
             Size = Vector2(300, size.y);
             ValueWidth = size.x + _barPadding + 10;
             LabelWidth = MeasureString(label, FontSize::Medium).x;
+        }
+
+        static Ptr<OptionSpinner> Create(string_view label, std::initializer_list<string_view> values, int& index) {
+            return make_unique<OptionSpinner>(label, values, index);
         }
 
         float LabelWidth = 0;
@@ -1665,11 +1685,24 @@ namespace Inferno::UI {
         }
     };
 
+    //void DrawLabel(const Color& color, FontSize font = FontSize::Medium) {
+    //    Render::DrawTextInfo dti;
+    //    dti.Font = font;
+    //    dti.Color = color;
+    //    dti.Position = ScreenPosition / GetScale() + textCenter;
+    //    dti.Position = Render::GetAlignment();
+    //    Render::UICanvas->DrawText(_title, dti, Layer + 1);
+    //}
+
     class DialogBase : public ScreenBase {
+        string _title;
+        Vector2 _titleSize;
+
     public:
-        DialogBase(string_view title = "", bool showCloseButton = true) {
+        DialogBase(string_view title = "", bool showCloseButton = true): _title(title) {
             HorizontalAlignment = AlignH::Center;
             VerticalAlignment = AlignV::Center;
+            _titleSize = MeasureString(title, FontSize::Medium);
 
             if (showCloseButton) {
                 auto close = make_unique<CloseButton>([this] { OnDialogClose(); });
@@ -1678,15 +1711,17 @@ namespace Inferno::UI {
                 AddChild(std::move(close));
             }
 
-            if (!title.empty()) {
-                auto titleLabel = make_unique<Label>(title, FontSize::MediumBlue);
-                titleLabel->VerticalAlignment = AlignV::Top;
-                titleLabel->HorizontalAlignment = AlignH::Center;
-                titleLabel->Position = Vector2(0, DIALOG_PADDING);
-                titleLabel->Color = DIALOG_TITLE_COLOR;
-                AddChild(std::move(titleLabel));
-            }
+            //if (!title.empty()) {
+            //    auto titleLabel = make_unique<Label>(title, FontSize::MediumBlue);
+            //    titleLabel->VerticalAlignment = AlignV::Top;
+            //    titleLabel->HorizontalAlignment = AlignH::Center;
+            //    titleLabel->Position = Vector2(0, DIALOG_PADDING);
+            //    titleLabel->Color = DIALOG_TITLE_COLOR;
+            //    AddChild(std::move(titleLabel));
+            //}
         }
+
+        AlignH TitleAlignment = AlignH::Center;
 
         virtual void OnDialogClose() {
             State = CloseState::Accept;
@@ -1694,6 +1729,17 @@ namespace Inferno::UI {
 
         void OnDraw() override {
             const auto border = Vector2(1, 1) * GetScale();
+
+            if (!_title.empty()) {
+                // Label
+                Render::DrawTextInfo dti;
+                dti.Font = FontSize::MediumBlue;
+                dti.Color = DIALOG_TITLE_COLOR;
+                dti.Position = ScreenPosition / GetScale() + Render::GetAlignment(_titleSize, TitleAlignment, AlignV::Top, Size);
+                dti.Position.y += DIALOG_PADDING;
+                if(TitleAlignment == AlignH::Left) dti.Position.x += DIALOG_PADDING;
+                Render::UICanvas->DrawText(_title, dti, Layer + 1);
+            }
 
             {
                 // Border
@@ -1766,6 +1812,15 @@ namespace Inferno::UI {
             AddChild(std::move(panel));
         }
 
+        void OnUpdate() override {
+            DialogBase::OnUpdate();
+
+            if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick) && !RectangleContains(ScreenPosition, ScreenSize, Input::MousePosition)) {
+                State = CloseState::Cancel;
+                Sound::Play2D(SoundResource{ MENU_BACK_SOUND });
+            }
+        }
+
         void OnDraw() override {
             // Background
             //Render::CanvasBitmapInfo cbi;
@@ -1794,7 +1849,6 @@ namespace Inferno::UI {
     public:
         float LabelWidth = 0;
         float ValueWidth = 25;
-        bool ShowValue = false;
         string MenuActionSound = MENU_SELECT_SOUND; // Sound when picking an item in the popup menu
 
         std::function<void(int)> OnChange; // Called when a value is selected
@@ -1809,7 +1863,7 @@ namespace Inferno::UI {
             }
 
             Size = Vector2(60, size.y);
-            Padding = Vector2(2, 2);
+            Padding = Vector2(0, 2);
             LabelWidth = MeasureString(label, FontSize::Medium).x;
             ValueWidth = size.x - LabelWidth;
             ActionSound = MENU_SELECT_SOUND;
@@ -1828,7 +1882,7 @@ namespace Inferno::UI {
 
         void OnUpdate() override {
             auto boxPosition = Vector2(ScreenPosition.x + LabelWidth * GetScale(), ScreenPosition.y);
-            _hovered = RectangleContains(boxPosition, Vector2(ValueWidth, ScreenSize.y), Input::MousePosition);
+            _hovered = RectangleContains(boxPosition, Vector2(ValueWidth * GetScale(), ScreenSize.y), Input::MousePosition);
 
             if (Input::MenuConfirm() || (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick) && _hovered)) {
                 auto screen = make_unique<SelectionPopup>(_values, *_index);
@@ -1836,9 +1890,11 @@ namespace Inferno::UI {
 
                 screen->CloseCallback = [this](CloseState state) {
                     if (state == CloseState::Accept) {
-                        OnChange(*_index);
+                        if (OnChange) OnChange(*_index);
                     }
                 };
+
+                screen->Layer = Layer + 2;
 
                 Sound::Play2D(SoundResource{ ActionSound });
                 ShowScreen(std::move(screen));
@@ -1846,8 +1902,9 @@ namespace Inferno::UI {
         }
 
         void OnDraw() override {
-            Vector2 textCenter(0, ScreenSize.y / 2 - _fontHeight * GetScale() / 2);
+            Vector2 textCenter(0, ScreenSize.y / 2 / GetScale() - _fontHeight / 2);
             textCenter += Padding;
+            textCenter.y += 1;
 
             {
                 // Label
@@ -1886,13 +1943,13 @@ namespace Inferno::UI {
 
             if (auto value = Seq::tryItem(_values, *_index)) {
                 // Value
-                auto trimmed = TrimStringByLength(*value, FontSize::Medium, (int)(ValueWidth / GetScale()));
-                auto valueSize = MeasureString(trimmed, FontSize::Medium).x * GetScale();
+                auto trimmed = TrimStringByLength(*value, FontSize::Medium, (int)ValueWidth);
+                auto valueSize = MeasureString(trimmed, FontSize::Medium).x;
 
                 Render::DrawTextInfo dti;
                 dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
                 dti.Color = Focused /*|| Hovered*/ ? FOCUS_COLOR : Color(1, 1, 1);
-                dti.Position = Vector2(ScreenPosition.x + LabelWidth * GetScale() + ValueWidth * 0.5f * GetScale() - valueSize * 0.5f, ScreenPosition.y) / GetScale();
+                dti.Position = Vector2(ScreenPosition.x / GetScale() + LabelWidth + ValueWidth * 0.5f - valueSize * 0.5f, ScreenPosition.y / GetScale());
                 dti.Position += textCenter;
                 Render::UICanvas->DrawText(trimmed, dti, Layer + 1);
             }

@@ -261,9 +261,7 @@ namespace Inferno::Editor {
                 ImGui::SliderInt("##Foreground", &_graphics.ForegroundFpsLimit, 30, 150);
             }
             ImGui::SameLine();
-            if (ImGui::Checkbox("##enablelimit", &_enableForegroundFpsLimit)) {
-                _graphics.ForegroundFpsLimit = _enableForegroundFpsLimit ? 60 : -1;
-            }
+            ImGui::Checkbox("##enablelimit", &_enableForegroundFpsLimit);
 
             ImGui::NextColumn();
 
@@ -580,7 +578,7 @@ namespace Inferno::Editor {
         _inferno = Settings::Inferno;
         _editor = Settings::Editor;
         _graphics = Settings::Graphics;
-        _enableForegroundFpsLimit = Settings::Graphics.ForegroundFpsLimit != -1;
+        _enableForegroundFpsLimit = Settings::Graphics.EnableForegroundFpsLimit;
 
         if (!Resources::HasGameData()) {
             ShowOkMessage(L"Game data was not found, please configure the executable paths.\n\n"

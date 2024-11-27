@@ -120,7 +120,7 @@ namespace Yaml {
     }
 
     template<>
-    inline bool ReadValue(ryml::ConstNodeRef node, DirectX::XMUINT2& value) {
+    inline bool ReadValue(ryml::ConstNodeRef node, Inferno::uint2& value) {
         if (!node.valid()) return false;
         std::string str;
         node >> str;
