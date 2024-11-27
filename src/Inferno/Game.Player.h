@@ -18,6 +18,9 @@ namespace Inferno {
     constexpr float OMEGA_RECHARGE_DELAY = 1.0f / 4; // how long before recharging starts
     constexpr auto PLAYER_ENGINE_GLOW = Color(1, 0.7f, 0.4f, 0.03f); // Light attached to the player
     constexpr float PLAYER_ENGINE_GLOW_RADIUS = 35.0f; // Light attached to the player
+    constexpr float SLOWMO_MIN_CHARGE = 0.5f; // Time before slowmo starts on fusion
+    constexpr float SLOWMO_DOWN_RATE = 0.4f; // How fast time slows down (u/s)
+    constexpr float SLOWMO_UP_RATE = 1.0f; // How fast time speeds up (u/s)
 
     // Extracted player state that was scattered across methods or globals as static variables
     class Player : public PlayerData {
@@ -36,7 +39,7 @@ namespace Inferno {
 
         float PrimarySwapTime = 0; // Primary weapon is changing. Used to fade monitor contents.
         float SecondarySwapTime = 0; // Secondary weapon is changing. Used to fade monitor contents.
-        float WeaponCharge = 0; // How long weapon has been charging (held down)
+        float WeaponCharge = 0; // How long weapon has been charging in seconds
         float OmegaCharge = 1; // How much charge the omega has stored
         float OmegaRechargeDelay = 0; // Delay before Omega starts recharging after firing
         float FlareDelay = 0;

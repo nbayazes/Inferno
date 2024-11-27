@@ -263,14 +263,16 @@ namespace Inferno {
             else if (PrimaryState == FireState::Hold && Energy > 0 && WeaponCharge > 0) {
                 SubtractEnergy(dt); // 1 energy cost per second
                 WeaponCharge += dt;
-                if (Energy <= 0) {
-                    Energy = 0;
-                }
+                Energy = std::max(Energy, 0.0f);
 
-                AddScreenFlash(FLASH_FUSION_CHARGE);
                 FusionNextSoundDelay -= dt;
+                Game::ScreenTint.SetTarget(Color(0.6, 0, 1.0f, std::min(WeaponCharge * 0.6f, 1.5f)), Game::Time, 0);
 
                 float physicsMult = std::min(1 + WeaponCharge * 0.5f, 4.0f);
+
+                if (Settings::Inferno.SlowmoFusion && WeaponCharge > SLOWMO_MIN_CHARGE) {
+                    Game::SetTimeScale(0.5f, SLOWMO_DOWN_RATE); // Halve speed
+                }
 
                 if (FusionNextSoundDelay < 0) {
                     if (WeaponCharge > weapon.Extended.MaxCharge) {
@@ -306,6 +308,11 @@ namespace Inferno {
             }
             else if (PrimaryState == FireState::Release || Energy <= 0) {
                 if (WeaponCharge > 0) {
+                    if (Settings::Inferno.SlowmoFusion && WeaponCharge > SLOWMO_MIN_CHARGE) {
+                        Game::SetTimeScale(1.0f, SLOWMO_UP_RATE); // Return to normal speed
+                    }
+
+                    Game::ScreenTint.SetTarget(Color(0, 0, 0, 0), Game::Time, 0.4f);
                     Sound::Stop(_fusionChargeSound);
                     FirePrimary();
                 }

@@ -58,7 +58,7 @@ namespace Inferno {
         void WaitForGpu() const;
         void ReloadResources();
 
-        Vector2 GetOutputSize() const noexcept { return { (float)m_outputSize.right, (float)m_outputSize.bottom }; }
+        uint2 GetOutputSize() const noexcept { return { (uint)m_outputSize.right, (uint)m_outputSize.bottom }; }
         uint GetWidth() const noexcept { return m_outputSize.right; }
         uint GetHeight() const noexcept { return m_outputSize.bottom; }
 

@@ -158,6 +158,7 @@ namespace Inferno::PostFx {
             int32 ToneMapper;
             HlslBool EnableDirt;
             HlslBool EnableBloom;
+            Color Tint;
         };
 
         ToneMapConstants constants = {
@@ -167,7 +168,8 @@ namespace Inferno::PostFx {
             (HlslBool)Settings::Graphics.NewLightMode,
             Settings::Graphics.ToneMapper,
             (HlslBool)(dirt && (Game::GetState() == GameState::Game || Game::GetState() == GameState::PauseMenu)),
-            (HlslBool)Settings::Graphics.EnableBloom
+            (HlslBool)Settings::Graphics.EnableBloom,
+            Game::ScreenTint.GetColor()
         };
 
         commandList->SetPipelineState(_pso.Get());

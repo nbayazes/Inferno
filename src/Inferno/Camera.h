@@ -41,14 +41,14 @@ namespace Inferno {
         DirectX::BoundingFrustum Frustum;
         Matrix ViewProjection;
 
-        Vector2 GetViewportSize() const {
-            return { _viewport.width, _viewport.height };
+        uint2 GetViewportSize() const {
+            return { (uint)_viewport.width, (uint)_viewport.height };
         }
 
-        void SetViewport(Vector2 size) {
+        void SetViewport(const uint2& size) {
             if (size == GetViewportSize()) return;
-            _viewport.width = size.x;
-            _viewport.height = size.y;
+            _viewport.width = (float)size.x;
+            _viewport.height = (float)size.y;
             _changed = true;
         }
 

@@ -267,6 +267,7 @@ namespace Inferno::Game {
 
         Game::Player.HomingObjectDist = -1; // Clear each frame. Updating objects sets this.
         Game::Player.DirectLight = Color();
+        Game::ScreenTint.Update(Game::Time);
         DecayScreenFlash(dt);
 
         // Update global dimming

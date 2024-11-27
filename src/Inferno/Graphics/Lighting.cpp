@@ -3,7 +3,7 @@
 #include "Render.h"
 
 namespace Inferno::Graphics {
-    void FillLightGridCS::SetLightConstants(uint32 width, uint32 height) {
+    void FillLightGridCS::SetLightConstants(uint2 size) {
         LightingConstants psConstants{};
         //psConstants.sunDirection = m_SunDirection;
         //psConstants.sunLight = Vector3(1.0f, 1.0f, 1.0f) * m_SunLightIntensity;
@@ -11,8 +11,8 @@ namespace Inferno::Graphics {
         //psConstants.ShadowTexelSize[0] = 1.0f / g_ShadowBuffer.GetWidth();
         psConstants.InvTileDim[0] = 1.0f / LIGHT_GRID;
         psConstants.InvTileDim[1] = 1.0f / LIGHT_GRID;
-        psConstants.TileCount[0] = AlignedCeil(width, (uint32)LIGHT_GRID);
-        psConstants.TileCount[1] = AlignedCeil(height, (uint32)LIGHT_GRID);
+        psConstants.TileCount[0] = AlignedCeil(size.x, (uint32)LIGHT_GRID);
+        psConstants.TileCount[1] = AlignedCeil(size.y, (uint32)LIGHT_GRID);
         //psConstants.FirstLightIndex[0] = Lighting::m_FirstConeLight;
         //psConstants.FirstLightIndex[1] = Lighting::m_FirstConeShadowedLight;
         psConstants.FrameIndexMod2 = Render::Adapter->GetCurrentFrameIndex();

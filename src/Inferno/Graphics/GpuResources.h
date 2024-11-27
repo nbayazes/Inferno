@@ -309,6 +309,8 @@ namespace Inferno {
         uint64 GetWidth() const { return _desc.Width; }
         uint64 GetHeight() const { return _desc.Height; }
         uint64 GetPitch() const { return _desc.Width * sizeof(uint32); }
+        uint2 GetSize() const { return { (uint32)_desc.Width, (uint32)_desc.Height }; }
+
         DXGI_FORMAT GetFormat() const { return _desc.Format; }
 
         bool IsMultisampled() const { return _desc.SampleDesc.Count > 1; }

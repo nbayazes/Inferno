@@ -57,8 +57,8 @@ namespace Inferno::Render {
 
     //void DrawVClip(GraphicsContext& ctx, const VClip& vclip, const Vector3& position, float radius, const Color& color, float elapsed, bool additive = false, float rotation = 0, const Vector3* up = nullptr);
 
-    void Initialize(HWND hwnd, int width, int height);
-    void Resize(int width, int height);
+    void Initialize(HWND hwnd, uint width, uint height);
+    void Resize(uint width, uint height);
     void Shutdown();
     void Present(const Camera& camera);
 

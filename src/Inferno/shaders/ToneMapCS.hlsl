@@ -19,7 +19,7 @@
 #endif
 
 #define RS \
-    "RootConstants(b0, num32BitConstants = 8), " \
+    "RootConstants(b0, num32BitConstants = 12), " \
     "DescriptorTable(UAV(u0))," \
     "DescriptorTable(UAV(u1))," \
     "DescriptorTable(SRV(t0))," \
@@ -55,6 +55,7 @@ struct Constants {
     int ToneMapper;
     bool EnableDirt;
     bool EnableBloom;
+    float4 Tint;
 };
 
 ConstantBuffer<Constants> Args : register(b0);
@@ -136,6 +137,13 @@ float3 TonyMcMapface(float3 stimulus) {
     return TonyMcMapfaceLUT.SampleLevel(LinearSampler, uv, 0);
 }
 
+static float3 luminanceWeighting = float3(0.2125, 0.7154, 0.0721);
+
+float3 AdjustTint(float3 color, float3 mapBlackTo, float3 mapWhiteTo, float amount) {
+    float luminance = dot(color, luminanceWeighting);
+    return lerp(color, lerp(mapBlackTo, mapWhiteTo, luminance), amount);
+}
+
 [RootSignature(RS)]
 [numthreads(8, 8, 1)]
 void main(uint3 DTid : SV_DispatchThreadID) {
@@ -175,20 +183,36 @@ void main(uint3 DTid : SV_DispatchThreadID) {
             //    break;
         }
 
+        //float3 mapBlackTo = pow(float3(0, 0, 1) * .1, 2.2);
+        //float3 mapWhiteTo = pow(float3(1, 0, 0.5) * 1, 2.2);
+
+
+        //hdrColor = AdjustTint(hdrColor, mapBlackTo, mapWhiteTo, 1);
+
         // blend with the original color to preserve reds
         //float lum = Luminance(hdrColor);
 
         // Using a lower lum comparison results in more saturated colors but causes clipping
         // Use higher green whitepoint to make it less overpowering
         const float3 whitepoint = float3(0.75, 1.5, 0.75);
-        float lum = dot(sqrt(hdrColor), whitepoint);
+        float luminance = dot(sqrt(hdrColor), whitepoint);
+
+        if (Args.Tint.a > 0) {
+            float3 mapBlackTo = pow(Args.Tint.rgb * .1, 2.2);
+            float3 mapWhiteTo = pow(Args.Tint.rgb * 1, 2.2);
+            //hdrColor = lerp(hdrColor, lerp(mapBlackTo, mapWhiteTo, luminance), luminance * Args.Tint.a);
+            hdrColor += Args.Tint.rgb * Args.Tint.a * (luminance * 0.5 + 0.5f);
+            //hdrColor += 1 - (1 - abs(hdrColor)) / (Args.Tint.rgb) * Args.Tint.a;
+            //hdrColor += max(1 - (1 - abs(hdrColor)) / (Args.Tint.rgb * abs(Args.Tint.a)), 0);
+            //hdrColor += max(hdrColor + Args.Tint.rgb * Args.Tint.a - 1, 0);
+        }
 
         // lum = (hdrColor.r + hdrColor.b + hdrColor.g) / 3; // this renders lava correctly but clips very bright light
         // lowering the lower bound introduces more of the tone mapping, causing reds to be more pink
         // but also causes bright areas like reactor highlights to be smoother
         // it also causes bright white areas to blend more smoothly
         //float t0 = max(0, smoothstep(0.2, 0.4, lum));
-        float t0 = max(0, smoothstep(0, 3, lum));
+        float t0 = max(0, smoothstep(0, 3, luminance));
         sdrColor = sdrColor * t0 + hdrColor * (1 - t0); // slightly darker and more contrast in high ranges
     }
 

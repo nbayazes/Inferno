@@ -241,6 +241,8 @@ namespace Inferno::Game {
 
     Object& GetPlayerObject();
 
+    inline LerpedColor ScreenTint = Color(0, 0, 0, 0);
+
     //bool ObjectIsInFOV(const Ray& ray, const Object& obj, float fov);
 
     // Returns an object reference based on its address

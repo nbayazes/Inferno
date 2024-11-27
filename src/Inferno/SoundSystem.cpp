@@ -349,7 +349,7 @@ namespace Inferno::Sound {
             std::unique_lock lock(_threadMutex);
 
             if (Game::TimeScale != 1.0f)
-                sound.Sound.Pitch = (1 - Game::TimeScale) * 0.6f;
+                sound.Sound.Pitch -= (1 - Game::TimeScale) * 0.5f;
 
             sound.ID = GetSoundUID();
             //SPDLOG_INFO("Submit sound {}", (int)sound.ID);

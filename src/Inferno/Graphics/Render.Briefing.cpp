@@ -78,10 +78,7 @@ namespace Inferno::Render {
         ctx.ClearDepth(depthTarget);
         ctx.SetRenderTarget(target.GetRTV(), depthTarget.GetDSV());
 
-        Vector2 size((float)target.GetWidth(), (float)target.GetHeight());
-
-        ctx.SetViewport(UINT(size.x), UINT(size.y));
-        ctx.SetScissor(UINT(target.GetWidth()), UINT(target.GetHeight()));
+        ctx.SetViewportAndScissor(target.GetSize());
 
         auto& model = Resources::GetModel(object.Render.Model.ID);
         if (model.DataSize != 0) {
@@ -94,7 +91,7 @@ namespace Inferno::Render {
             auto& frameConstants = Adapter->GetBriefingFrameConstants();
             BriefingCamera.SetPosition(Vector3(0, model.Radius * .5f, -model.Radius * 3.0f));
             BriefingCamera.SetFov(45);
-            BriefingCamera.SetViewport(size);
+            BriefingCamera.SetViewport(target.GetSize());
             BriefingCamera.UpdatePerspectiveMatrices();
             UpdateFrameConstants(BriefingCamera, frameConstants);
 
@@ -116,7 +113,7 @@ namespace Inferno::Render {
 
         // Update the light grid in briefing mode, as the level won't do it for us
         if (Game::GetState() == GameState::Briefing)
-            Render::Adapter->LightGrid.SetLightConstants(UINT(Adapter->BriefingRobot.GetWidth()), UINT(Adapter->BriefingRobot.GetHeight()));
+            Render::Adapter->LightGrid.SetLightConstants(Adapter->BriefingRobot.GetSize());
 
         if (auto screen = briefing.GetScreen()) {
             if (auto page = briefing.GetPage()) {
@@ -130,8 +127,7 @@ namespace Inferno::Render {
                     DrawBriefingObject(ctx, *object);
 
                 ctx.SetRenderTarget(target.GetRTV());
-                ctx.SetViewport(UINT(target.GetWidth()), UINT(target.GetHeight()));
-                ctx.SetScissor(UINT(target.GetWidth()), UINT(target.GetHeight()));
+                ctx.SetViewportAndScissor(target.GetSize());
                 BriefingCanvas->SetSize(640, 480); // Always use 640x480 regardless of actual resolution
 
                 if (screen->Background.empty()) {

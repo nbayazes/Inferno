@@ -106,25 +106,25 @@ namespace Inferno {
             _activeEffect = 0;
         }
 
-        void SetScissor(UINT width, UINT height) const {
+        void SetScissor(uint2 size) const {
             D3D12_RECT scissor{};
-            scissor.right = (LONG)width;
-            scissor.bottom = (LONG)height;
+            scissor.right = (LONG)size.x;
+            scissor.bottom = (LONG)size.y;
             _cmdList->RSSetScissorRects(1, &scissor);
         }
 
-        void SetViewport(UINT width, UINT height) const {
+        void SetViewport(uint2 size) const {
             D3D12_VIEWPORT viewport{};
-            viewport.Width = (float)width;
-            viewport.Height = (float)height;
+            viewport.Width = (float)size.x;
+            viewport.Height = (float)size.y;
             viewport.MinDepth = D3D12_MIN_DEPTH;
             viewport.MaxDepth = D3D12_MAX_DEPTH;
             _cmdList->RSSetViewports(1, &viewport);
         }
 
-        void SetViewportAndScissor(UINT width, UINT height) const {
-            SetViewport(width, height);
-            SetScissor(width, height);
+        void SetViewportAndScissor(uint2 size) const {
+            SetViewport(size);
+            SetScissor(size);
         }
 
         template <class T>

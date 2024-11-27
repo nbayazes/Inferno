@@ -662,8 +662,8 @@ namespace Inferno::Render {
             auto& target = Adapter->GetRenderTarget();
             target.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
             ctx.SetRenderTarget(target.GetRTV(), depthBuffer.GetDSV());
-            ctx.SetViewportAndScissor((uint)target.GetWidth(), (uint)target.GetHeight());
-            Render::Adapter->LightGrid.SetLightConstants((uint)target.GetWidth(), (uint)target.GetHeight());
+            ctx.SetViewportAndScissor(target.GetSize());
+            Render::Adapter->LightGrid.SetLightConstants(target.GetSize());
 
             // todo: OR game show terrain
             if (Settings::Editor.ShowTerrain) {

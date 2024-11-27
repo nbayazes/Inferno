@@ -105,7 +105,7 @@ namespace Inferno::Render {
         float depth = GetRenderDepth(position, camera);
         const float maxDistSquared = Settings::Editor.ObjectRenderDistance * Settings::Editor.ObjectRenderDistance;
 
-        if (depth > maxDistSquared && Game::GetState() == GameState::Editor) {
+        if (depth > maxDistSquared && Game::GetState() == GameState::Editor && !Settings::Inferno.ScreenshotMode) {
             DrawObjectOutline(obj, camera);
         }
         else if (obj.Render.Model.Outrage) {

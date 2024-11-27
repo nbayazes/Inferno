@@ -251,7 +251,7 @@ namespace Inferno::Render {
         ToneMapping->Create(width, height);
     }
 
-    void Initialize(HWND hwnd, int width, int height) {
+    void Initialize(HWND hwnd, uint width, uint height) {
         assert(hwnd);
         _hwnd = hwnd;
         Adapter = make_unique<DeviceResources>(BackBufferFormat);
@@ -266,8 +266,8 @@ namespace Inferno::Render {
         GlobalMeshes = make_unique<GenericMeshes>();
         CreateMainMenuResources();
         CreateWindowSizeDependentResources(width, height);
-        Editor::EditorCamera.SetViewport(Vector2((float)width, (float)height));
-        Game::MainCamera.SetViewport(Vector2((float)width, (float)height));
+        Editor::EditorCamera.SetViewport({ width, height });
+        Game::MainCamera.SetViewport({ width, height });
 
         Editor::Events::LevelChanged += [] { LevelChanged = true; };
         Editor::Events::TexturesChanged += [] {
@@ -320,15 +320,15 @@ namespace Inferno::Render {
         ReportLiveObjects();
     }
 
-    void Resize(int width, int height) {
+    void Resize(uint width, uint height) {
         //SPDLOG_INFO("Resize: {} {}", width, height);
 
         if (!Adapter->WindowSizeChanged(width, height))
             return;
 
         CreateWindowSizeDependentResources(width, height);
-        Editor::EditorCamera.SetViewport(Vector2((float)width, (float)height));
-        Game::MainCamera.SetViewport(Vector2((float)width, (float)height));
+        Editor::EditorCamera.SetViewport({ width, height });
+        Game::MainCamera.SetViewport({ width, height });
         //pCam->SetViewport((float)width, (float)height);
         // Reset frame upload buffers, otherwise they run out of memory.
         // For some reason resizing does not increment the adapter frame index, causing the same buffer to be used.
@@ -433,7 +433,7 @@ namespace Inferno::Render {
         frameConstants.Eye = camera.Position;
         frameConstants.EyeDir = camera.GetForward();
         frameConstants.EyeUp = camera.Up;
-        frameConstants.Size = size * renderScale;
+        frameConstants.Size = Vector2{ size.x * renderScale, size.y * renderScale };
         frameConstants.RenderScale = renderScale;
         frameConstants.GlobalDimming = Game::GlobalDimming;
         frameConstants.NewLightMode = Settings::Graphics.NewLightMode;
@@ -466,7 +466,7 @@ namespace Inferno::Render {
 
         if (Game::ScreenFlash != Color(0, 0, 0)) {
             CanvasBitmapInfo flash;
-            flash.Size = Adapter->GetOutputSize();
+            flash.Size = Vector2((float)width, (float)height);
             flash.Color = Game::ScreenFlash;
             flash.Texture = Materials->White().Handle();
             HudGlowCanvas->DrawBitmap(flash);
@@ -554,7 +554,7 @@ namespace Inferno::Render {
         auto cmdList = ctx.GetCommandList();
 
         // Clear depth and color buffers
-        ctx.SetViewportAndScissor((uint)target.GetWidth(), (uint)target.GetHeight());
+        ctx.SetViewportAndScissor(target.GetSize());
         target.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
         ctx.ClearColor(target);
@@ -580,7 +580,7 @@ namespace Inferno::Render {
 
         linearDepthBuffer.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_RENDER_TARGET);
         ctx.SetRenderTarget(linearDepthBuffer.GetRTV(), depthBuffer.GetDSV());
-        ctx.SetViewportAndScissor(UINT(linearDepthBuffer.GetWidth()), UINT(linearDepthBuffer.GetHeight()));
+        ctx.SetViewportAndScissor(linearDepthBuffer.GetSize());
         ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     }
 

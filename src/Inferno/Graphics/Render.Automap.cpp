@@ -93,7 +93,7 @@ namespace Inferno::Render {
         auto& depthBuffer = Adapter->GetDepthBuffer();
 
         // Clear depth and color buffers
-        ctx.SetViewportAndScissor(UINT(target.GetWidth()), UINT(target.GetHeight()));
+        ctx.SetViewportAndScissor(target.GetSize());
         target.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
         ctx.ClearDepth(depthBuffer);

@@ -5,12 +5,14 @@
 #include "Resources.h"
 
 namespace Inferno::UI {
-    class SoundOptionsMenu : public DialogBase {
+    class SoundMenu : public DialogBase {
         List<AudioEngine::RendererDetail> _devices;
         int _deviceIndex = 0;
+        int _musicIndexD1 = 0;
+        int _musicIndexD2 = 1;
 
     public:
-        SoundOptionsMenu() : DialogBase("Sound Options") {
+        SoundMenu() : DialogBase("Sound Options") {
             CloseOnConfirm = false;
             Size = Vector2(620, 460);
 
@@ -59,7 +61,6 @@ namespace Inferno::UI {
                 auto device = ComboSelect::Create("Sound Device", deviceNames, _deviceIndex);
                 device->MenuActionSound = ""; // Clear action sound, as switching sound devices orphans the one-shot effect which results in a warning
                 device->LabelWidth = 250;
-                device->ShowValue = false;
                 device->OnChange = [this](int value) {
                     auto deviceId = &_devices[value].deviceId;
                     Sound::Init(Shell::Hwnd, deviceId->empty() ? nullptr : deviceId);
@@ -71,32 +72,21 @@ namespace Inferno::UI {
                 SPDLOG_ERROR("Error getting sound devices");
             }
 
+            auto d1Music = OptionSpinner::Create("D1 Music", { "Mission", "Jukebox" }, _musicIndexD1);
+            d1Music->LabelWidth = 250;
+            panel->AddChild(std::move(d1Music));
 
-            //try {
-            //    _devices = AudioEngine::GetRendererDetails();
-            //    for (auto& device : _devices) {
-            //        //panel->AddChild<Label>(Convert::ToString(device.description));
-            //        auto button = make_unique<Button>(Convert::ToString(device.description), [&device] {
-            //            Sound::Init(Shell::Hwnd, &device.deviceId);
-            //            Game::PlayMainMenuMusic();
-            //        });
-            //        button->ActionSound = ""; // Clear action sound, as switching sound devices orphans the one-shot effect which results in a warning
-            //        panel->AddChild(std::move(button));
-            //    }
-            //}
-            //catch (...) {
-            //    SPDLOG_ERROR("Error getting sound devices");
-            //}
+            auto d2Music = OptionSpinner::Create("D2 Music", { "Mission", "Jukebox" }, _musicIndexD2);
+            d2Music->LabelWidth = 250;
+            panel->AddChild(std::move(d2Music));
 
             AddChild(std::move(panel));
         }
     };
 
-    class OptionsMenu : public DialogBase {
-        int _msaaSamples = 0;
-
+    class InputMenu : public DialogBase {
     public:
-        OptionsMenu() : DialogBase("Options") {
+        InputMenu() : DialogBase("Input Options") {
             Size = Vector2(620, 460);
             CloseOnConfirm = false;
 
@@ -105,34 +95,12 @@ namespace Inferno::UI {
             panel->Position = Vector2(0, DIALOG_CONTENT_PADDING);
             panel->HorizontalAlignment = AlignH::Center;
             panel->VerticalAlignment = AlignV::Top;
-            panel->Spacing = 2;
-            //panel->AddChild<Label>("Options", FontSize::MediumBlue);
 
-            auto bombSound = Seq::tryItem(Inferno::Resources::GameDataD1.Sounds, (int)SoundID::DropBomb);
-
-            auto volume = make_unique<SliderFloat>("Master Volume", 0.0f, 1.0f, Settings::Inferno.MasterVolume);
-            volume->LabelWidth = 250;
-            volume->ShowValue = false;
-            volume->ChangeSound.D1 = bombSound ? *bombSound : -1;
-            volume->OnChange = [](float value) { Sound::SetMasterVolume(value); };
-
-            panel->AddChild(std::move(volume));
-
-            auto fxVolume = make_unique<SliderFloat>("FX Volume", 0.0f, 1.0f, Settings::Inferno.EffectVolume);
-            fxVolume->LabelWidth = 250;
-            fxVolume->ShowValue = false;
-            fxVolume->ChangeSound.D1 = bombSound ? *bombSound : -1;
-            fxVolume->OnChange = [](float value) { Sound::SetEffectVolume(value); };
-            panel->AddChild(std::move(fxVolume));
-
-            auto music = make_unique<SliderFloat>("Music Volume", 0.0f, 1.0f, Settings::Inferno.MusicVolume);
-            music->LabelWidth = 250;
-            music->ShowValue = false;
-            music->OnChange = [](float value) { Sound::SetMusicVolume(value); };
-            panel->AddChild(std::move(music));
-
+            panel->AddChild<Checkbox>("Enable Mouse", Settings::Inferno.EnableMouse);
+            panel->AddChild<Checkbox>("Enable joystick", Settings::Inferno.EnableJoystick);
             {
-                panel->AddChild<Label>("");
+
+
                 panel->AddChild<Label>("Mouse Settings", FontSize::MediumBlue);
 
                 //_value4 = (int)std::floor(Settings::Inferno.MouseSensitivity * 1000);
@@ -148,21 +116,36 @@ namespace Inferno::UI {
                 mouseYAxis->ValueWidth = 60;
                 panel->AddChild(std::move(mouseYAxis));
             }
-
             panel->AddChild<Checkbox>("Invert Y-axis", Settings::Inferno.InvertY);
-
             panel->AddChild<Checkbox>("Classic pitch speed", Settings::Inferno.HalvePitchSpeed);
 
-            {
-                auto fullscreen = make_unique<Checkbox>("Fullscreen", Settings::Inferno.Fullscreen);
-                panel->AddChild(std::move(fullscreen));
-            }
+            panel->AddChild<Button>("Customize bindings");
+            panel->AddChild<Button>("Keyboard sensitivity");
+            panel->AddChild<Button>("Mouse sensitivity");
+            panel->AddChild<Button>("Joystick sensitivity");
 
+            AddChild(std::move(panel));
+        }
+    };
 
-            panel->AddChild<Checkbox>("Procedural textures", Settings::Graphics.EnableProcedurals);
+    class GraphicsMenu : public DialogBase {
+        int _msaaSamples = 0;
 
-            // filtering
-            //ImGui::Combo("Filtering", (int*)&Settings::Graphics.FilterMode, "Point\0Enhanced point\0Smooth");
+    public:
+        GraphicsMenu() : DialogBase("Graphics Options") {
+            Size = Vector2(620, 460);
+            CloseOnConfirm = false;
+
+            auto panel = make_unique<StackPanel>();
+            panel->Size.x = Size.x - DIALOG_PADDING * 2;
+            panel->Position = Vector2(0, DIALOG_CONTENT_PADDING);
+            panel->HorizontalAlignment = AlignH::Center;
+            panel->VerticalAlignment = AlignV::Top;
+            panel->Spacing = 2;
+
+            auto fullscreen = make_unique<Checkbox>("Fullscreen", Settings::Inferno.Fullscreen);
+            panel->AddChild(std::move(fullscreen));
+
             auto renderScale = make_unique<SliderFloat>("Render scale", 0.25f, 1.0f, Settings::Graphics.RenderScale, 2);
             //renderScale->LabelWidth = 300;
             renderScale->ShowValue = true;
@@ -170,6 +153,11 @@ namespace Inferno::UI {
             renderScale->OnChange = [](float value) {
                 Settings::Graphics.RenderScale = std::floor(value * 20) / 20;
             };
+
+            panel->AddChild<Checkbox>("Procedural textures", Settings::Graphics.EnableProcedurals);
+
+            // filtering
+            //ImGui::Combo("Filtering", (int*)&Settings::Graphics.FilterMode, "Point\0Enhanced point\0Smooth");
 
             panel->AddChild(std::move(renderScale));
 
@@ -179,10 +167,6 @@ namespace Inferno::UI {
             auto filterMode = make_unique<OptionSpinner>("Texture Filtering", std::initializer_list<string_view>{ "Point", "Enhanced", "Smooth" }, (int&)Settings::Graphics.FilterMode);
             filterMode->LabelWidth = 320;
             panel->AddChild(std::move(filterMode));
-
-            auto wiggle = make_unique<OptionSpinner>("Ship Wiggle", std::initializer_list<string_view>{ "None", "Reduced", "Normal" }, (int&)Settings::Inferno.ShipWiggle);
-            wiggle->LabelWidth = 320;
-            panel->AddChild(std::move(wiggle));
 
             _msaaSamples = [] {
                 switch (Settings::Graphics.MsaaSamples) {
@@ -197,6 +181,12 @@ namespace Inferno::UI {
             auto msaa = make_unique<OptionSpinner>("MSAA", std::initializer_list<string_view>{ "None", "2x", "4x", "8x" }, _msaaSamples);
             msaa->LabelWidth = 320;
             panel->AddChild(std::move(msaa));
+
+            panel->AddChild<Label>("Framerate limits", FontSize::MediumBlue);
+            panel->AddChild<Checkbox>("VSync", Inferno::Settings::Graphics.UseVsync);
+            panel->AddChild<Checkbox>("Enable Foreground Limit", Inferno::Settings::Graphics.EnableForegroundFpsLimit);
+            panel->AddChild<Slider>("Foreground", 20, 240, Inferno::Settings::Graphics.ForegroundFpsLimit);
+            panel->AddChild<Slider>("Background", 20, 60, Inferno::Settings::Graphics.BackgroundFpsLimit);
 
             AddChild(std::move(panel));
         }
@@ -216,6 +206,68 @@ namespace Inferno::UI {
                 Settings::Graphics.MsaaSamples = msaaSamples;
                 Graphics::ReloadResources();
             }
+        }
+    };
+
+    class GameOptionsMenu : public DialogBase {
+    public:
+        GameOptionsMenu() : DialogBase("Game Options") {
+            Size = Vector2(620, 460);
+            CloseOnConfirm = false;
+
+            auto panel = make_unique<StackPanel>();
+            panel->Size.x = Size.x - DIALOG_PADDING * 2;
+            panel->Position = Vector2(0, DIALOG_CONTENT_PADDING);
+            panel->HorizontalAlignment = AlignH::Center;
+            panel->VerticalAlignment = AlignV::Top;
+            panel->Spacing = 2;
+
+            auto wiggle = make_unique<OptionSpinner>("Ship Wiggle", std::initializer_list<string_view>{ "None", "Reduced", "Normal" }, (int&)Settings::Inferno.ShipWiggle);
+            wiggle->LabelWidth = 320;
+            panel->AddChild(std::move(wiggle));
+            panel->AddChild<Checkbox>("ship auto-leveling", Settings::Inferno.ShipAutolevel);
+
+            panel->AddChild<Checkbox>("no weapon autoselect while firing", Settings::Inferno.NoAutoselectWhileFiring);
+            panel->AddChild<Checkbox>("only cycle autoselect weapons", Settings::Inferno.OnlyCycleAutoselectWeapons);
+            panel->AddChild<Checkbox>("sticky rearview", Settings::Inferno.StickyRearview);
+            panel->AddChild<Checkbox>("charging fusion slows time", Settings::Inferno.SlowmoFusion);
+
+            panel->AddChild<Button>("Primary autoselect ordering");
+            panel->AddChild<Button>("Secondary autoselect ordering");
+
+            AddChild(std::move(panel));
+        }
+    };
+
+    ScreenBase* ShowScreen(Ptr<ScreenBase> screen);
+
+    class OptionsMenu : public DialogBase {
+    public:
+        OptionsMenu() : DialogBase("Options") {
+            Size = Vector2(200, 30 * 4 + DIALOG_CONTENT_PADDING + DIALOG_PADDING);
+            CloseOnConfirm = false;
+            //TitleAlignment = AlignH::Left;
+
+            auto panel = make_unique<StackPanel>();
+            panel->Size.x = Size.x - DIALOG_PADDING * 2;
+            panel->Position = Vector2(0, DIALOG_CONTENT_PADDING);
+            panel->HorizontalAlignment = AlignH::Center;
+            panel->VerticalAlignment = AlignV::Top;
+            panel->Spacing = 2;
+
+            //Size.x = MeasureString("Graphics", FontSize::Medium).x + DIALOG_PADDING * 2;
+            //Size.y += DIALOG_PADDING;
+
+            panel->AddChild<Button>("Graphics", [] {ShowScreen(make_unique<GraphicsMenu>()); }, AlignH::Center);
+            panel->AddChild<Button>("Sound", [] {ShowScreen(make_unique<SoundMenu>()); }, AlignH::Center);
+            panel->AddChild<Button>("Input", [] {ShowScreen(make_unique<InputMenu>()); }, AlignH::Center);
+            panel->AddChild<Button>("Game", [] {ShowScreen(make_unique<GameOptionsMenu>());}, AlignH::Center);
+
+            AddChild(std::move(panel));
+        }
+
+        void OnClose() override {
+            Settings::Save();
         }
     };
 }
