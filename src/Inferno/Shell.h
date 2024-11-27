@@ -15,7 +15,7 @@ namespace Inferno {
         Shell& operator=(const Shell&) = delete;
         Shell& operator=(Shell&&) = delete;
 
-        int Show(DirectX::XMUINT2 position, DirectX::XMUINT2 size, int nCmdShow = SW_SHOWMAXIMIZED) const;
+        int Show(uint2 position, uint2 size, int nCmdShow = SW_SHOWMAXIMIZED) const;
 
         inline static HWND Hwnd = nullptr;
         inline static float DpiScale = 1;

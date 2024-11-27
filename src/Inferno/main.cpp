@@ -306,14 +306,7 @@ int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
         auto size = Settings::Inferno.WindowSize;
         if (size.x <= 0 || size.y <= 0) size = { 640, 480 };
 
-        // Check if the saved position is still on screen in case the desktop resolution changes
-        auto desktopWidth = (uint)GetSystemMetrics(SM_CXSCREEN);
-        auto desktopHeight = (uint)GetSystemMetrics(SM_CYSCREEN);
         auto pos = Settings::Inferno.WindowPosition;
-
-        if (pos.x >= desktopWidth || pos.y >= desktopHeight)
-            pos = { 0, 0 };
-
         int result = shell.Show(pos, size, cmdShow);
         Settings::Save();
 

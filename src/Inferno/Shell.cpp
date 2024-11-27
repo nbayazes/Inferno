@@ -24,7 +24,6 @@ namespace {
     bool AppMinimized = false;
     bool AppFullscreen = false;
     HBRUSH BackgroundBrush{};
-    RECT AppWindowRect{};
 }
 
 void EnableDarkMode(HWND hwnd) {
@@ -34,6 +33,18 @@ void EnableDarkMode(HWND hwnd) {
     // support for this attribute was added in Windows 10 20H1, whatever version that was
     DwmSetWindowAttribute(hwnd, DWMWINDOWATTRIBUTE::DWMWA_USE_IMMERSIVE_DARK_MODE,
                           &useDarkMode, sizeof(useDarkMode));
+}
+
+void ClampWindowPosition(uint2& pos, uint2& size) {
+    // Check if the saved position is still on screen in case the desktop resolution changes
+    auto desktopWidth = (uint)GetSystemMetrics(SM_CXSCREEN);
+    auto desktopHeight = (uint)GetSystemMetrics(SM_CYSCREEN);
+
+    if (pos.x >= desktopWidth || pos.y >= desktopHeight)
+        pos = { 0, 0 };
+
+    if(size.x <= 640 || size.y <= 480)
+        size = uint2(640, 480);
 }
 
 void GetWindowPlacement() {
@@ -64,14 +75,13 @@ void UpdateFullscreen() {
         SetWindowLongPtr(hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW);
         SetWindowLongPtr(hWnd, GWL_EXSTYLE, 0);
 
-        auto width = AppWindowRect.right - AppWindowRect.left;
-        auto height = AppWindowRect.bottom - AppWindowRect.top;
         auto flags = SWP_NOZORDER | SWP_FRAMECHANGED;
 
-        // Don't override the window size if the app was maximized, so that restoring keeps the original size.
         //if (AppMaximized) flags |= SWP_NOSIZE | SWP_NOMOVE;
-
-        SetWindowPos(hWnd, HWND_TOP, AppWindowRect.left, AppWindowRect.top, width, height, flags);
+        auto size = Settings::Inferno.WindowSize;
+        auto pos = Settings::Inferno.WindowPosition;
+        ClampWindowPosition(pos, size);
+        SetWindowPos(hWnd, HWND_TOP, pos.x, pos.y, size.x, size.y, flags);
         ShowWindow(hWnd, Settings::Inferno.Maximized ? SW_SHOWMAXIMIZED : SW_SHOW);
     }
     else {
@@ -189,8 +199,8 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
         case WM_GETMINMAXINFO:
             if (lParam) {
                 auto info = reinterpret_cast<MINMAXINFO*>(lParam);
-                info->ptMinTrackSize.x = 320;
-                info->ptMinTrackSize.y = 200;
+                info->ptMinTrackSize.x = 640;
+                info->ptMinTrackSize.y = 480;
             }
             break;
 
@@ -272,9 +282,11 @@ Inferno::Shell::~Shell() {
     UnregisterClass(WindowClass, _hInstance);
 }
 
-int Inferno::Shell::Show(DirectX::XMUINT2 position, DirectX::XMUINT2 size, int nCmdShow) const {
+int Inferno::Shell::Show(uint2 position, uint2 size, int nCmdShow) const {
     if (!RegisterWindowClass(_hInstance))
         throw std::exception("Failed to register window class");
+
+    ClampWindowPosition(position, size);
 
     HWND hwnd = CreateWindowEx(0, WindowClass, Convert::ToWideString(APP_TITLE).c_str(),
                                WS_OVERLAPPEDWINDOW, position.x, position.y,
