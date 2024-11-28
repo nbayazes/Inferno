@@ -203,9 +203,10 @@ namespace Inferno::UI {
         List<Ptr<ControlBase>> Children;
 
         template <class T, class... Args>
-        void AddChild(Args&&... args) {
+        T* AddChild(Args&&... args) {
             auto control = make_unique<T>(std::forward<Args>(args)...);
             Children.push_back(std::move(control));
+            return (T*)Children.back().get();
         }
 
         void AddChild(Ptr<ControlBase> control) {
@@ -950,7 +951,7 @@ namespace Inferno::UI {
         std::function<void(int)> OnChange;
 
         void UpdatePercent(float percent) {
-            auto value = (int)std::floor((Max - Min) * percent);
+            auto value = (int)std::floor((Max - Min) * percent) + Min;
             if (*_value != value) {
                 *_value = value;
                 if (OnChange) OnChange(value);

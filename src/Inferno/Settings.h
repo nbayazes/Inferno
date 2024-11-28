@@ -32,6 +32,10 @@ namespace Inferno {
         Point, EnhancedPoint, Smooth
     };
 
+    enum class UpscaleFilterMode {
+        Point, Smooth
+    };
+
     enum class WiggleMode {
         Normal, Reduced, Off
     };
@@ -161,6 +165,8 @@ namespace Inferno {
         bool NewLightMode = true;
         int ToneMapper = 1;
         TextureFilterMode FilterMode = TextureFilterMode::EnhancedPoint;
+        UpscaleFilterMode UpscaleFilter = UpscaleFilterMode::Point;
+
         float FieldOfView = 65; // FOV in degrees
         float RenderScale = 1; // Scale of 3D render target
 

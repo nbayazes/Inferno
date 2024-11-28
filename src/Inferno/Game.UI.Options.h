@@ -99,8 +99,6 @@ namespace Inferno::UI {
             panel->AddChild<Checkbox>("Enable Mouse", Settings::Inferno.EnableMouse);
             panel->AddChild<Checkbox>("Enable joystick", Settings::Inferno.EnableJoystick);
             {
-
-
                 panel->AddChild<Label>("Mouse Settings", FontSize::MediumBlue);
 
                 //_value4 = (int)std::floor(Settings::Inferno.MouseSensitivity * 1000);
@@ -130,6 +128,7 @@ namespace Inferno::UI {
 
     class GraphicsMenu : public DialogBase {
         int _msaaSamples = 0;
+        bool _useVsync;
 
     public:
         GraphicsMenu() : DialogBase("Graphics Options") {
@@ -143,8 +142,12 @@ namespace Inferno::UI {
             panel->VerticalAlignment = AlignV::Top;
             panel->Spacing = 2;
 
-            auto fullscreen = make_unique<Checkbox>("Fullscreen", Settings::Inferno.Fullscreen);
-            panel->AddChild(std::move(fullscreen));
+            panel->AddChild<Checkbox>("Fullscreen", Settings::Inferno.Fullscreen);
+
+            _useVsync = Settings::Graphics.UseVsync;
+            panel->AddChild<Checkbox>("VSync", _useVsync);
+            panel->AddChild<Checkbox>("Procedural textures", Settings::Graphics.EnableProcedurals);
+            panel->AddChild<Label>("");
 
             auto renderScale = make_unique<SliderFloat>("Render scale", 0.25f, 1.0f, Settings::Graphics.RenderScale, 2);
             //renderScale->LabelWidth = 300;
@@ -153,19 +156,14 @@ namespace Inferno::UI {
             renderScale->OnChange = [](float value) {
                 Settings::Graphics.RenderScale = std::floor(value * 20) / 20;
             };
-
-            panel->AddChild<Checkbox>("Procedural textures", Settings::Graphics.EnableProcedurals);
-
-            // filtering
-            //ImGui::Combo("Filtering", (int*)&Settings::Graphics.FilterMode, "Point\0Enhanced point\0Smooth");
-
             panel->AddChild(std::move(renderScale));
 
-            //auto filterMode = make_unique<SliderSelect>("Filter:", std::initializer_list<string_view>{ "Point", "Enhanced", "Smooth" }, (int&)Settings::Graphics.FilterMode);
-            //panel->AddChild(std::move(filterMode));
+            auto upscaleFilter = make_unique<OptionSpinner>("upscale filtering", std::initializer_list<string_view>{ "Sharp", "Smooth" }, (int&)Settings::Graphics.UpscaleFilter);
+            upscaleFilter->LabelWidth = 340;
+            panel->AddChild(std::move(upscaleFilter));
 
-            auto filterMode = make_unique<OptionSpinner>("Texture Filtering", std::initializer_list<string_view>{ "Point", "Enhanced", "Smooth" }, (int&)Settings::Graphics.FilterMode);
-            filterMode->LabelWidth = 320;
+            auto filterMode = make_unique<OptionSpinner>("Texture Filtering", std::initializer_list<string_view>{ "None", "Enhanced", "Smooth" }, (int&)Settings::Graphics.FilterMode);
+            filterMode->LabelWidth = 340;
             panel->AddChild(std::move(filterMode));
 
             _msaaSamples = [] {
@@ -179,14 +177,22 @@ namespace Inferno::UI {
             }();
 
             auto msaa = make_unique<OptionSpinner>("MSAA", std::initializer_list<string_view>{ "None", "2x", "4x", "8x" }, _msaaSamples);
-            msaa->LabelWidth = 320;
+            msaa->LabelWidth = 340;
             panel->AddChild(std::move(msaa));
 
+            panel->AddChild<Label>("");
             panel->AddChild<Label>("Framerate limits", FontSize::MediumBlue);
-            panel->AddChild<Checkbox>("VSync", Inferno::Settings::Graphics.UseVsync);
             panel->AddChild<Checkbox>("Enable Foreground Limit", Inferno::Settings::Graphics.EnableForegroundFpsLimit);
-            panel->AddChild<Slider>("Foreground", 20, 240, Inferno::Settings::Graphics.ForegroundFpsLimit);
-            panel->AddChild<Slider>("Background", 20, 60, Inferno::Settings::Graphics.BackgroundFpsLimit);
+
+            auto foreground = panel->AddChild<Slider>("Foreground", 20, 240, Inferno::Settings::Graphics.ForegroundFpsLimit);
+            foreground->ShowValue = true;
+            foreground->LabelWidth = 200;
+            foreground->ValueWidth = 40;
+
+            auto background = panel->AddChild<Slider>("Background", 20, 60, Inferno::Settings::Graphics.BackgroundFpsLimit);
+            background->ShowValue = true;
+            background->LabelWidth = 200;
+            background->ValueWidth = 40;
 
             AddChild(std::move(panel));
         }
@@ -205,6 +211,12 @@ namespace Inferno::UI {
             if (msaaSamples != Settings::Graphics.MsaaSamples) {
                 Settings::Graphics.MsaaSamples = msaaSamples;
                 Graphics::ReloadResources();
+            }
+
+            if (_useVsync != Settings::Graphics.UseVsync) {
+                Settings::Graphics.UseVsync = _useVsync;
+                // Recreate the swap chain if vsync changes
+                Graphics::CreateWindowSizeDependentResources(true);
             }
         }
     };
@@ -258,10 +270,10 @@ namespace Inferno::UI {
             //Size.x = MeasureString("Graphics", FontSize::Medium).x + DIALOG_PADDING * 2;
             //Size.y += DIALOG_PADDING;
 
-            panel->AddChild<Button>("Graphics", [] {ShowScreen(make_unique<GraphicsMenu>()); }, AlignH::Center);
-            panel->AddChild<Button>("Sound", [] {ShowScreen(make_unique<SoundMenu>()); }, AlignH::Center);
-            panel->AddChild<Button>("Input", [] {ShowScreen(make_unique<InputMenu>()); }, AlignH::Center);
-            panel->AddChild<Button>("Game", [] {ShowScreen(make_unique<GameOptionsMenu>());}, AlignH::Center);
+            panel->AddChild<Button>("Graphics", [] { ShowScreen(make_unique<GraphicsMenu>()); }, AlignH::Center);
+            panel->AddChild<Button>("Sound", [] { ShowScreen(make_unique<SoundMenu>()); }, AlignH::Center);
+            panel->AddChild<Button>("Input", [] { ShowScreen(make_unique<InputMenu>()); }, AlignH::Center);
+            panel->AddChild<Button>("Game", [] { ShowScreen(make_unique<GameOptionsMenu>()); }, AlignH::Center);
 
             AddChild(std::move(panel));
         }
