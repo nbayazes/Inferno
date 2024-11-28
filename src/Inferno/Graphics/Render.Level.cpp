@@ -18,7 +18,6 @@
 #include "Resources.h"
 #include "ScopedTimer.h"
 #include "ShaderLibrary.h"
-#include "Shell.h"
 #include "SoundSystem.h"
 
 namespace Inferno::Render {
@@ -533,7 +532,7 @@ namespace Inferno::Render {
 
         TerrainShader::Constants constants = {};
         constants.World = Game::Terrain.Transform;
-        constants.Ambient = Vector4(1, 1, 1, 1);
+        constants.Ambient = Game::Terrain.Ambient;
         effect.Shader->SetConstants(cmdList, constants);
 
         auto& depthBuffer = Adapter->GetDepthBuffer();
@@ -551,8 +550,8 @@ namespace Inferno::Render {
         }
 
         //ctx.GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-        Color ambient = { 4, 4, 4 };
+        auto ambient = Game::Terrain.Ambient;
+        ambient.w *= 1.4f; // The textures on the exit are quite dark
         DrawStaticModel(ctx, Game::Terrain.ExitModel, RenderPass::Opaque, ambient, Adapter->GetFrameConstants(), Game::Terrain.ExitTransform);
     }
 

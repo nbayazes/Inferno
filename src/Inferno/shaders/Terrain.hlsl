@@ -76,9 +76,10 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //return float4(0, 1, 0, 1);
     float3 viewDir = normalize(input.world - Frame.Eye);
     float3 diffuse = Sample2D(Diffuse, input.uv, Sampler, Frame.FilterMode).rgb;
-    //diffuse *= input.col;
+    float3 ambient = Terrain.Ambient.rgb * Terrain.Ambient.a;
+    ambient.rgb = pow(ambient.rgb, 2.2); // sRGB to linear
 
-    //float3 ambient = Object.Ambient.rgb;
+    //diffuse *= input.col;
     //MaterialInfo material = Materials[matid];
 
     float3 lighting = float3(0, 0, 0);
@@ -95,7 +96,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
     lighting += pow(HalfLambert(input.normal, -lightDir), 12) * 2.0;
     lighting = pow(1 + lighting, 1.75) - 1;
-    lighting += 0.10.rrr; // ambient
+    lighting *= ambient;
     //lighting = pow(1 + lighting, 1.5) - 1;
 
     float nDotH = Lambert(input.normal, -viewDir);

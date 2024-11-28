@@ -242,7 +242,19 @@ namespace Inferno {
         }
     }
 
-    void HandleInput() {
+    void HandleFixedUpdateInput(float /*dt*/) {
+        bool firePrimary = false;
+        bool fireSecondary = false;
+
+        if (Game::GetState() == GameState::Game) {
+            firePrimary = Game::Bindings.Pressed(GameAction::FirePrimary);
+            fireSecondary = Game::Bindings.Pressed(GameAction::FireSecondary);
+        }
+
+        Game::Player.UpdateFireState(firePrimary, fireSecondary);
+    }
+
+    void HandleInput(float dt) {
         if (Game::GetState() == GameState::Automap) {
             HandleAutomapInput();
             return;
@@ -255,12 +267,15 @@ namespace Inferno {
 
         if (Game::GetState() == GameState::PhotoMode) {
             GenericCameraController(Game::MainCamera, 90);
-            HandleDebugKeys();
             return;
         }
 
+        if (Game::GetState() == GameState::Game) {
+            HandleShipInput(dt);
+            HandleWeaponKeys();
+        }
+
         HandleDebugKeys();
-        HandleWeaponKeys();
     }
 
     void HandleShipInput(float dt) {

@@ -18,6 +18,14 @@ namespace Inferno::Render {
         return true;
     }
 
+    void UpdateSegmentEffects(Level& level, SegID sid) {
+        if (auto seg = level.TryGetSegment(sid)) {
+            for (int i = 0; i < seg->Effects.size(); i++) {
+                UpdateEffect(Game::FrameTime, seg->Effects[i]);
+            }
+        }
+    }
+
     void RenderQueue::Update(Level& level, LevelMeshBuilder& meshBuilder, bool drawObjects, const Camera& camera) {
         LegitProfiler::ProfilerTask task("Render queue", LegitProfiler::Colors::ALIZARIN);
         _transparentQueue.clear();
@@ -90,6 +98,27 @@ namespace Inferno::Render {
 
             auto roomId = level.GetRoomID(Game::GetPlayerObject());
             TraverseLevelRooms(roomId, level, meshBuilder.GetWallMeshes(), camera);
+        }
+
+        // Draw effects and objects on the terrain
+        auto& player = Game::GetPlayerObject();
+        if (player.Segment == SegID::Terrain || Game::GetState() == GameState::ExitSequence) {
+            UpdateSegmentEffects(level, SegID::Terrain);
+
+            for (auto& oid : level.Terrain.Objects) {
+                if (auto object = level.TryGetObject(oid)) {
+                    float depth = GetRenderDepth(object->Position, camera);
+                    _objects.push_back({ object, depth });
+                }
+            }
+
+            for (auto& effectId : level.Terrain.Effects) {
+                if (auto effect = GetEffect(effectId)) {
+                    _objects.push_back({ nullptr, GetRenderDepth(effect->Position, camera), effect });
+                }
+            }
+
+            SubmitObjects(camera);
         }
 
         LegitProfiler::AddCpuTask(std::move(task));
@@ -243,8 +272,9 @@ namespace Inferno::Render {
         Seq::sortBy(_objects, [](const ObjDepth& a, const ObjDepth& b) {
             return a.Depth > b.Depth;
         });
+    }
 
-        // Add objects to queue
+    void RenderQueue::SubmitObjects(const Camera& camera) {
         for (auto& obj : _objects) {
             if (obj.Obj) {
                 if (obj.Obj->Render.Type == RenderType::Model &&
@@ -536,14 +566,10 @@ namespace Inferno::Render {
                 }
 
                 QueueRoomObjects(level, *room, camera);
+                SubmitObjects(camera);
 
-                // Update effects in the room
                 for (auto& sid : room->Segments) {
-                    if (auto seg = level.TryGetSegment(sid)) {
-                        for (int i = 0; i < seg->Effects.size(); i++) {
-                            UpdateEffect(Game::FrameTime, seg->Effects[i]);
-                        }
-                    }
+                    UpdateSegmentEffects(level, sid);
                 }
             }
         }

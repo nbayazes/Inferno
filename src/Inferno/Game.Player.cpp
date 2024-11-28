@@ -193,7 +193,7 @@ namespace Inferno {
     }
 
 
-    void Player::UpdateFireState() {
+    void Player::UpdateFireState(bool firePrimary, bool fireSecondary) {
         auto toggleState = [](FireState& state, bool buttonDown) {
             if (buttonDown) {
                 if (state == FireState::None || state == FireState::Release)
@@ -211,8 +211,8 @@ namespace Inferno {
 
         // must check held keys inside of fixed updates so events aren't missed
         // due to the state changing on a frame that doesn't have a game tick
-        toggleState(PrimaryState, Game::Bindings.Pressed(GameAction::FirePrimary));
-        toggleState(SecondaryState, Game::Bindings.Pressed(GameAction::FireSecondary));
+        toggleState(PrimaryState, firePrimary);
+        toggleState(SecondaryState, fireSecondary);
     }
 
     void Player::Update(float dt) {
@@ -666,8 +666,8 @@ namespace Inferno {
     }
 
     void Player::ApplyDamage(float damage, bool playSound) {
-        //if (Endlevel_sequence)
-        //    return;
+        if (Game::GetState() == GameState::ExitSequence)
+            return; // Can't take damage during cutscene
 
         // Keep player shields in sync with the object that represents it
         if (auto player = Game::Level.TryGetObject(Reference)) {

@@ -14,12 +14,9 @@
 #include "SoundSystem.h"
 
 namespace Inferno {
-    enum class EscapeScene {
-        None,
-        Start, // Camera still in first person
-        LookBack, // Camera looking backwards at player
-        Outside
-    };
+    constexpr float SHIP_MAX_SPEED = 100;
+    constexpr float SHIP_TURN_RATE = 0.4f; // Rate per second
+    constexpr float SHIP_ACCELERATION = 130.0f;
 
     struct EscapeState {
         EscapeScene Scene{};
@@ -30,7 +27,8 @@ namespace Inferno {
         Vector3 Up;
         GameTimer ExplosionTimer;
         GameTimer ExplosionSoundTimer;
-        bool FinalExplosion = false;
+        bool SurfaceExplosion = false;
+        bool CollapseExplosion = false;
         Vector3 DesiredCameraPosition;
         //Vector3 OutsideStartUp;
         Vector3 OutsideCameraStartPos;
@@ -43,11 +41,11 @@ namespace Inferno {
         bool ZoomingOut = false;
         bool StopRoll = false;
         int RollSign = 0;
+        int ShipRollSign = 1;
     };
 
     namespace {
         EscapeState State;
-        Camera CinematicCamera;
     }
 
     //void MoveShipTowardsGoal() {
@@ -205,7 +203,9 @@ namespace Inferno {
         return info;
     }
 
-    constexpr float SHIP_MAX_SPEED = 100;
+    EscapeScene GetEscapeScene() {
+        return State.Scene;
+    }
 
     void MoveShipAlongPath(Object& ship, span<Vector3> path, float acceleration, float turnRate, int& pathIndex, float dt) {
         // turn and move towards the next node
@@ -221,6 +221,10 @@ namespace Inferno {
         auto& node = path[pathIndex];
         auto dir = node - ship.Position;
         dir.Normalize();
+
+        // Reset inputs
+        ship.Physics.Thrust = Vector3::Zero;
+        ship.Physics.AngularThrust = Vector3::Zero;
 
         if (ship.Physics.Velocity.Length() < SHIP_MAX_SPEED)
             ship.Physics.Velocity += dir * acceleration * dt;
@@ -246,7 +250,12 @@ namespace Inferno {
     }
 
     bool UpdateEscapeSequence(float dt) {
+        State.Elapsed += dt;
         auto& player = Game::GetPlayerObject();
+
+        if (Game::Terrain.EscapePath.empty()) {
+            return false;
+        }
 
         switch (State.Scene) {
             case EscapeScene::None:
@@ -260,6 +269,7 @@ namespace Inferno {
                     auto cameraDir = Game::Terrain.EscapePath[State.CameraPathIndex] - player.Position;
                     cameraDir.Normalize();
                     CinematicCamera.Position = player.Position + cameraDir * 20;
+                    DetachEffects(Game::GetObjectRef(ObjID(0))); // Detach light from player so it's not visible in the cutscene
                 }
                 break;
             case EscapeScene::LookBack:
@@ -270,49 +280,50 @@ namespace Inferno {
                 break;
         }
 
-        if (player.Segment == Game::Terrain.ExitTag.Segment) {
-            Settings::Editor.ShowTerrain = true;
-            //player.Segment = SegID::Terrain;
-            RelinkObject(Game::Level, player, SegID::Terrain);
-            Game::OnTerrain = true;
+        // Activate terrain once in the last segment and camera is in front of the exit portal
+        if (player.Segment == Game::Terrain.ExitTag.Segment && !Game::OnTerrain) {
+            auto& side = Game::Level.GetSide(Game::Terrain.ExitTag);
+
+            if (DistanceFromPlane(CinematicCamera.Position, side.Center, -side.AverageNormal) > 1.0f) {
+                Settings::Editor.ShowTerrain = true;
+                RelinkObject(Game::Level, player, SegID::Terrain);
+                Game::OnTerrain = true;
+                Game::StopSelfDestruct(); // Stop self destruct so the mine exit doesn't get global dimming
+            }
         }
 
-        float acceleration = 110.0f; // u/s
-        float turnRate = 0.25f;
-        MoveShipAlongPath(player, Game::Terrain.EscapePath, acceleration, turnRate, State.PathIndex, dt);
-
-        if (Game::OnTerrain) {
-            // Random roll
-            player.Physics.AngularVelocity.z += 0.024f;
-            //player.Physics.AngularVelocity.z += 0.004f;
+        auto acceleration = SHIP_ACCELERATION;
+        if (State.Elapsed < 0.5f) {
+            acceleration *= 0.5 + (float)State.Elapsed / 4.0f;
         }
 
-        if (!State.FinalExplosion) {
+        MoveShipAlongPath(player, Game::Terrain.EscapePath, acceleration, SHIP_TURN_RATE, State.PathIndex, dt);
+
+        if (!State.SurfaceExplosion) {
             if (State.ExplosionTimer < 0) {
+                // Add explosions on the walls of the current segment
                 if (auto seg = Game::Level.TryGetSegment(player.Segment)) {
-                    if (auto e = EffectLibrary.GetExplosion("reactor_small_explosions")) {
-                        e->Variance = 5.0f;
-                        e->Instances = 2;
-                        e->Delay = { 0, 0.15f };
+                    if (auto e = EffectLibrary.GetExplosion("tunnel wall fireballs")) {
                         auto verts = seg->GetVertices(Game::Level);
 
                         for (int i = 0; i < 8; i++) {
                             if (RandomInt(8) > 6) continue;
                             auto dir = seg->Center - *verts[i];
                             dir.Normalize();
-                            CreateExplosion(*e, player.Segment, *verts[i] + dir * e->Variance);
+                            CreateExplosion(*e, SegID::Terrain, *verts[i] + dir * e->Variance);
                         }
                     }
                 }
 
+                // Add explosion behind the player
                 if (auto e = EffectLibrary.GetExplosion("tunnel chase fireball")) {
                     auto pos = player.Position + player.Rotation.Backward() * 10;
-                    CreateExplosion(*e, player.Segment, pos);
+                    CreateExplosion(*e, SegID::Terrain, pos);
                 }
 
                 // Random roll turbulence
                 auto signX = RandomInt(1) ? 1 : -1;
-                player.Physics.AngularVelocity.z += signX * .14f;
+                player.Physics.AngularVelocity.z += signX * 8.4f * dt;
 
                 State.ExplosionTimer += 0.2f;
             }
@@ -321,32 +332,45 @@ namespace Inferno {
             if (State.ExplosionSoundTimer < 0) {
                 State.ExplosionSoundTimer += 0.30f + Random() * 0.15f;
                 auto pos = player.Position + player.Rotation.Backward() * 10;
-                Inferno::Sound::Play({ SoundID::ExplodingWall }, pos, player.Segment);
+                Sound3D sound{ SoundID::ExplodingWall };
+                sound.Radius = 400;
+                Inferno::Sound::Play(sound, pos, player.Segment);
             }
         }
 
-
-        auto mineExplosionPos = Game::Terrain.ExitTransform.Translation() + Game::Terrain.ExitTransform.Forward() * 15;
+        auto mineExplosionPos = Game::Terrain.ExitTransform.Translation() + Game::Terrain.ExitTransform.Forward() * 25;
         constexpr float MINE_EXPLODE_CLEARANCE = 40; // How far the ship must be before the mine will explode
 
-        // Blow up once the player is outside and far enough away
-        if (!State.FinalExplosion &&
-            State.PathIndex >= Game::Terrain.SurfacePathIndex + 1 &&
-            Vector3::Distance(Game::Terrain.ExitTransform.Translation(), player.Position) > MINE_EXPLODE_CLEARANCE) {
-            if (auto e = EffectLibrary.GetExplosion("mine collapse fireball")) {
-                CreateExplosion(*e, SegID::Terrain, mineExplosionPos);
+        if (Game::OnTerrain) {
+            if (State.SurfaceExplosion)
+                player.Physics.AngularVelocity.z += 1.8f * dt * State.ShipRollSign;
+
+            // Blow up once the player is outside and far enough away
+            if (!State.SurfaceExplosion &&
+                Vector3::Distance(Game::Terrain.ExitTransform.Translation(), player.Position) > MINE_EXPLODE_CLEARANCE) {
+                if (auto e = EffectLibrary.GetExplosion("mine collapse fireball")) {
+                    CreateExplosion(*e, SegID::Terrain, mineExplosionPos);
+                }
+
+                State.ExplosionTimer = 0.75f; // Start the collapse explosion
+                State.SurfaceExplosion = true;
+                //State.OutsideStartUp = CinematicCamera.Up;
             }
 
-            if (auto e = EffectLibrary.GetExplosion("mine collapse huge fireball")) {
-                CreateExplosion(*e, SegID::Terrain, mineExplosionPos, 0, e->Delay.GetRandom());
+            if (State.SurfaceExplosion && !State.CollapseExplosion && State.ExplosionTimer < 0) {
+                if (auto e = EffectLibrary.GetExplosion("mine collapse huge fireball")) {
+                    CreateExplosion(*e, SegID::Terrain, mineExplosionPos + Game::Terrain.ExitTransform.Forward() * 10, 0);
+                }
+
+                // It's dead
+                Game::Terrain.ExitModel = Resources::GameData.DestroyedExitModel;
+                State.Scene = EscapeScene::Outside;
+                State.CollapseExplosion = true;
+
+                if (auto e = EffectLibrary.GetExplosion("mine smoldering")) {
+                    CreateExplosion(*e, SegID::Terrain, Game::Terrain.ExitTransform.Translation(), 0);
+                }
             }
-
-            Game::StopSelfDestruct();
-            State.FinalExplosion = true;
-            Game::Terrain.ExitModel = Resources::GameData.DestroyedExitModel;
-
-            State.Scene = EscapeScene::Outside;
-            //State.OutsideStartUp = CinematicCamera.Up;
         }
 
         return true;
@@ -384,17 +408,17 @@ namespace Inferno {
         switch (State.Scene) {
             case EscapeScene::Start:
                 // Use first person camera
-                Game::MoveCameraToObject(CinematicCamera, player, Game::LerpAmount);
+                Game::SetActiveCamera(Game::MainCamera);
+            //Game::MoveCameraToObject(CinematicCamera, player, Game::LerpAmount);
             //CinematicCamera.SetFov(Settings::Graphics.FieldOfView);
                 player.Render.Type = RenderType::None;
-            //CinematicCamera.Position = player.Position + player.Rotation.Forward() * 20;
                 break;
             case EscapeScene::LookBack:
             {
+                Game::SetActiveCamera(CinematicCamera);
+
                 // Use third person camera
                 float speed = player.Physics.Velocity.Length();
-                //float distance = 20;
-                //MoveCameraAlongPath(CinematicCamera, player, Game::Terrain.EscapePath, State.PathIndex, distance, dt, speed);
                 MoveCameraAlongPath(CinematicCamera, Game::Terrain.EscapePath, State.CameraPathIndex, dt, speed);
                 //Game::GameCamera.SetFov(45);
                 //CinematicCamera.Up = player.Rotation.Up();
@@ -419,6 +443,8 @@ namespace Inferno {
             }
             case EscapeScene::Outside:
             {
+                Game::SetActiveCamera(CinematicCamera);
+
                 //const auto targetPos = transform.Translation() + transform.Forward() * 100 + transform.Right() * 50 + transform.Up() * 5;
                 //CinematicCamera.Target = (player.GetPosition(Game::LerpAmount)) / 2.0f;
                 //auto shipPosition = player.GetPosition(Game::LerpAmount);
@@ -488,19 +514,28 @@ namespace Inferno {
             State.OutsideCameraLerp += dt * .60f;
             if (State.OutsideCameraLerp > 1) State.OutsideCameraLerp = 1;
         }
-
-        Game::SetActiveCamera(CinematicCamera);
     }
 
-    void BeginEscapeSequence() {
-        State = { .Scene = EscapeScene::Start };
-        State.ExplosionTimer = 0; // todo: set this to 0 when camera switches?
-        State.ExplosionSoundTimer = 0;
+    void StartEscapeSequence() {
+        auto exit = FindExit(Game::Level);
+        if (!exit) return;
 
-        //if (Seq::inRange(Game::Terrain.EscapePath, State.CameraPathIndex)) {
-        //    State.CameraPathIndex = Game::Terrain.LookbackPathIndex + 2;
-        //    CinematicCamera.Position = Game::Terrain.EscapePath[State.CameraPathIndex];
-        //}
+        if (Game::Terrain.EscapePath.empty()) {
+            CreateEscapePath(Game::Level, Game::Terrain);
+        }
+
+        Settings::Editor.ShowTerrain = false;
+        Game::OnTerrain = false;
+        Game::Level.Terrain.VolumeLight = Color(.90f, 0.90f, 1.0f, 3);
+        Game::Terrain.ExitModel = Resources::GameData.ExitModel;
+
+        State = { .Scene = EscapeScene::Start };
+        State.ExplosionTimer = 0;
+        State.ExplosionSoundTimer = 0;
+        State.ShipRollSign = RandomInt(1) ? 1 : -1;
+        Game::SetState(GameState::ExitSequence);
+
+        Game::PlayMusic("endlevel", false);
     }
 
     void DebugEscapeSequence() {
@@ -540,12 +575,10 @@ namespace Inferno {
         Game::Level.Terrain.VolumeLight = Color(.90, 0.90f, 1.0f, 3);
         Game::Terrain.ExitModel = Resources::GameData.ExitModel;
 
-        BeginEscapeSequence();
+        State = { .Scene = EscapeScene::Start };
+        State.ExplosionTimer = 0;
+        State.ExplosionSoundTimer = 0;
+
         Game::PlayMusic("endlevel", false);
     }
-
-    //void LoadEscape(span<byte> data) {
-    //    DecodeText(data);
-    //    auto lines = String::ToLines(String::OfBytes(data));
-    //}
 }

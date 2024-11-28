@@ -5,7 +5,7 @@
 
 namespace Inferno {
     enum class WallFlag : uint8 {
-        None,
+        None = 0,
         Destroyed = BIT(0), // Converts a blastable wall to an illusionary wall
         DoorOpened = BIT(1), // Door is opened and no longer has collision
         DoorLocked = BIT(3), // Door cannot be opened
@@ -120,13 +120,12 @@ namespace Inferno {
         CloseWall = 10, // Wall Open -> Closed
         IllusoryWall = 11, // Makes a wall illusory (fly-through)
         LightOff = 12,
-        LightOn = 13,
-        NumTriggerTypes
+        LightOn = 13
     };
 
     // Trigger flags for Descent 1
     enum class TriggerFlagD1 : uint16 {
-        None,
+        None = 0,
         OpenDoor = BIT(0), // Control Trigger
         ShieldDamage = BIT(1), // Shield Damage Trigger. Not properly implemented
         EnergyDrain = BIT(2), // Energy Drain Trigger. Not properly implemented
@@ -140,7 +139,7 @@ namespace Inferno {
     };
 
     enum class TriggerFlag : uint8 {
-        None,
+        None = 0,
         NoMessage = BIT(0),
         OneShot = BIT(1),
         Disabled = BIT(2)

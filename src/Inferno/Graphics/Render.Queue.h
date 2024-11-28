@@ -169,6 +169,7 @@ namespace Inferno::Render {
     private:
         void QueueEditorObject(Object& obj, float lerp, const Camera& camera);
         void QueueRoomObjects(Level& level, const Room& room, const Camera& camera);
+        void SubmitObjects(const Camera& camera);
         void CheckRoomVisibility(Level& level, const Portal& srcPortal, const Bounds2D& srcBounds, const Camera& camera);
         void TraverseLevelRooms(RoomID startRoomId, Level& level, span<LevelMesh> wallMeshes, const Camera& camera);
     };

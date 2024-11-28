@@ -605,6 +605,33 @@ namespace Inferno::Resources {
 
         FixD1ReactorModel(level);
 
+        // Load the custom exit models. Replace with a generic loading approach later.
+        {
+            auto exit = "exit01.pof";
+            auto modelData = ReadBinaryFile(exit, LoadFlag::SkipMission);
+            if (!modelData.empty()) {
+                //auto modelData = Game::Mission->ReadEntry(entry);
+                auto model = ReadPof(modelData, &palette);
+                model.FileName = exit;
+                auto firstTexture = ham.Models[(int)ham.ExitModel].FirstTexture;
+                ham.Models[(int)ham.ExitModel] = model;
+                ham.Models[(int)ham.ExitModel].FirstTexture = firstTexture;
+            }
+        }
+
+        {
+            auto exit = "exit01d.pof";
+            auto modelData = ReadBinaryFile(exit, LoadFlag::SkipMission);
+            if (!modelData.empty()) {
+                //auto modelData = Game::Mission->ReadEntry(entry);
+                auto model = ReadPof(modelData, &palette);
+                model.FileName = exit;
+                auto firstTexture = ham.Models[(int)ham.DestroyedExitModel].FirstTexture;
+                ham.Models[(int)ham.DestroyedExitModel] = model;
+                ham.Models[(int)ham.DestroyedExitModel].FirstTexture = firstTexture;
+            }
+        }
+
         // Everything loaded okay, set the internal data
         Textures = std::move(textures);
         LevelPalette = std::move(palette);

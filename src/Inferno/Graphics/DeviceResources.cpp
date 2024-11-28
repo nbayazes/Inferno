@@ -250,7 +250,6 @@ namespace Inferno {
 
         // If the swap chain already exists, resize it, otherwise create one.
         if (m_swapChain && !forceSwapChainRebuild) {
-            // If the swap chain already exists, resize it.
             HRESULT hr = m_swapChain->ResizeBuffers(
                 m_backBufferCount,
                 backBufferWidth,

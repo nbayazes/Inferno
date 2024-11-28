@@ -106,14 +106,14 @@ namespace Inferno {
             _activeEffect = 0;
         }
 
-        void SetScissor(uint2 size) const {
+        void SetScissor(const uint2& size) const {
             D3D12_RECT scissor{};
             scissor.right = (LONG)size.x;
             scissor.bottom = (LONG)size.y;
             _cmdList->RSSetScissorRects(1, &scissor);
         }
 
-        void SetViewport(uint2 size) const {
+        void SetViewport(const uint2& size) const {
             D3D12_VIEWPORT viewport{};
             viewport.Width = (float)size.x;
             viewport.Height = (float)size.y;
@@ -122,7 +122,7 @@ namespace Inferno {
             _cmdList->RSSetViewports(1, &viewport);
         }
 
-        void SetViewportAndScissor(uint2 size) const {
+        void SetViewportAndScissor(const uint2& size) const {
             SetViewport(size);
             SetScissor(size);
         }

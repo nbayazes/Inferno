@@ -257,11 +257,15 @@ namespace Inferno {
         Yaml::ReadValue(node["FadeTime"], info.FadeTime);
         Yaml::ReadValue(node["UseParentVertices"], info.UseParentVertices);
         ReadRange(node["Radius"], info.Radius);
+        ReadRange(node["SoundPitch"], info.SoundPitch);
         ReadRange(node["Delay"], info.Delay);
         Yaml::ReadValue(node["Clip"], (int&)info.Clip);
         Yaml::ReadValue(node["Sound"], (int&)info.Sound);
+        Yaml::ReadValue(node["SoundRadius"], info.SoundRadius);
         Yaml::ReadValue(node["Volume"], info.Volume);
         Yaml::ReadValue(node["Variance"], info.Variance);
+        Yaml::ReadValue(node["Color"], info.Color);
+        Yaml::ReadValue(node["LightColor"], info.LightColor);
 
         if (auto name = ReadEffectName(node))
             explosions[*name] = info;

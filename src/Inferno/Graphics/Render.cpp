@@ -693,11 +693,12 @@ namespace Inferno::Render {
         ctx.ApplyEffect(Effects->Compose);
         cmdList->SetGraphicsRootSignature(compose->RootSignature.Get());
         compose->SetSource(cmdList, Adapter->SceneColorBuffer.GetSRV());
-        compose->SetSampler(cmdList, Heaps->States.PointClamp());
+        compose->SetSampler(cmdList, Settings::Graphics.UpscaleFilter == UpscaleFilterMode::Point ? Heaps->States.PointClamp() : Heaps->States.LinearClamp());
         cmdList->DrawInstanced(3, 1, 0, 0);
 
         if (((Game::GetState() == GameState::Game || Game::GetState() == GameState::PauseMenu) && !Game::Player.IsDead) ||
-            Game::GetState() == GameState::MainMenu)
+            Game::GetState() == GameState::MainMenu ||
+            GetEscapeScene() == EscapeScene::Start)
             DrawHud(ctx);
 
         // Draw UI elements

@@ -9,55 +9,6 @@
 #include "VisualEffects.h"
 
 namespace Inferno {
-    
-
-    void EscapeSequence() {
-        //CinematicInfo begin {
-        //    //.Letterbox = ,
-        //    //.FadeIn = ,
-        //    //.FadeOut = ,
-        //    //.FadeColor = ,
-        //    //.SkipRange = ,
-        //    //.MoveObjectToEndOfPathOnSkip = ,
-        //    //.TargetObject = ,
-        //    //.Target = ,
-        //    .CameraPath = ,
-        //    .Text = ,
-        //    .TextMode = ,
-        //    .TextRange = 
-        //};
-        
-
-        /* -- ESCAPE SEQUENCE --
-         * Start cinematic to disable controls
-         * Not skippable
-         * Move player along path.
-         * Create small explosions on walls in front of player
-         * NEW: Slightly randomize rotation and shake ship.
-         *
-         * After 1/3 of tunnel traversed:
-         * - move camera outside of ship, offset by 7 units facing backwards
-         * - switch to letterbox and disable hud
-         * - Create explosions in segments behind player (maybe around path?)
-         *
-         * After 2/3
-         * - prepare to show terrain, switch tunnel model
-         *
-         * After 3/3
-         * - Create big explosion, switch mine model
-         * - Detach camera and move to position away from exit, track player?
-         * - Do a random roll on the ship
-         */
-        // 
-        // 
-
-
-        //int stage = 0;
-
-
-    }
-
-
     constexpr float PLAYER_DEATH_EXPLODE_TIME = 2.0f;
 
     void DrawCutsceneLetterbox() {

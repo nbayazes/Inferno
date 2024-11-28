@@ -109,7 +109,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         phaseColor = Object.PhaseColor.rgb * step(Object.PhaseAmount - dissolveTex, 0.05);
     }
 
-    float3 ambient = Object.Ambient.rgb;
+    float3 ambient = Object.Ambient.rgb * Object.Ambient.a;
     ambient.rgb = pow(ambient.rgb, 2.2); // sRGB to linear
 
     if (!Frame.NewLightMode) {

@@ -237,7 +237,7 @@ Weapons:
     Mass: 2
     Behavior: fusion
     StunMult: 0.4
-    Recoil: 50
+    Recoil: 100
     Damage: 60
     PlayerDamageScale: 0.5 # Halve robot damage to players
 
@@ -1128,7 +1128,7 @@ Effects:
       Clip: 2 # Small explosion
       Sound: 11 # Explosion
 
-    - Name: reactor_large_explosions # large periodic explosion with sound
+    - Name: reactor large explosions # large periodic explosion with sound
       FadeTime: 0.25
       # Color: 2.75, 2.25, 2.25
       # LightColor: 4, 1, 0.1
@@ -1138,7 +1138,7 @@ Effects:
       Sound: 31 # Exploding wall
       Volume: 0.5
 
-    - Name: reactor_small_explosions # small periodic explosion
+    - Name: reactor small explosions # small periodic explosion
       FadeTime: 0.25
       Radius: [ 1, 3 ]
       Delay: [ 0.05, 0.10 ]
@@ -1163,35 +1163,59 @@ Effects:
       Instances: 1
       UseParentVertices: 1
 
+    - Name: tunnel wall fireballs
+      FadeTime: 0.25
+      Radius: [ 2, 4 ]
+      Delay: [ 0.01, 0.15 ]
+      Variance: 5
+      Clip: 2 # Small explosion
+
     - Name: tunnel chase fireball
       FadeTime: 0.25
-      Color: 1, .8, .8, 3.5
-      Radius: [ 11, 15 ]
+      Color: 1, .8, .8, 4
+      Radius: [ 13, 20 ]
       Delay: [ 0.1, 0.25 ]
+      LightColor: 1, 0.25, 0.025, 1
       Clip: 58
-      # Sound: 31 # Exploding wall
+      Sound: 31 # Exploding wall
       Instances: 3
-      Variance: 10
+      Variance: 12
 
     - Name: mine collapse fireball
       FadeTime: 0.25
-      Color: 1, .8, .8, 3.5
-      Radius: [ 30, 40 ]
-      Delay: .05
+      Color: 1, .8, .8, 7.5
+      Radius: [ 40, 50 ]
+      Delay: [ .18, .23 ]
       Clip: 58
       Sound: 11
-      Instances: 6
+      Instances: 4
       Variance: 10
-      Volume: 2
+      Volume: 1.4
+      SoundPitch: -0.4
+      SoundRadius: 1000
 
     - Name: mine collapse huge fireball
-      FadeTime: 0.125
-      Color: 1, .8, .8, 3.5
-      Radius: 40
-      Delay: .70
+      FadeTime: 0.25
+      Color: 1, .8, .8, 2.5
+      Radius: [ 25, 60 ]
+      Delay: 0
       Clip: 58
-      Sound: 11
-      Volume: 3
+      Sound: 31
+      Volume: 1.75
+      SoundPitch: -0.25
+      SoundRadius: 1000
+      Instances: 20
+      Variance: 45
+
+    - Name: mine smoldering
+      FadeTime: 0.125
+      Radius: [ 2, 6 ]
+      Delay: [ 0.15, 0.3 ]
+      Variance: 20
+      Instances: 1000
+      LightRadius: 120
+      LightColor: 1, .8, .2, 4
+      Clip: 2 # Small explosion
 
     - Name: boss small fireball
       FadeTime: 0.25

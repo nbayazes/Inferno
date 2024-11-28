@@ -379,10 +379,6 @@ namespace Inferno {
         return changed;
     }
 
-    void StartExitSequence(Level&) {
-        //Game::SetState(GameState::ExitSequence);
-    }
-
     void EnterSecretLevel() {}
 
     void ToggleWall(Segment& /*seg*/, SideID /*side*/) {}
@@ -954,7 +950,7 @@ namespace Inferno {
         }
 
         if (trigger.HasFlag(TriggerFlagD1::Exit)) {
-            StartExitSequence(level);
+            StartEscapeSequence();
         }
 
         if (trigger.HasFlag(TriggerFlagD1::OpenDoor)) {
@@ -992,7 +988,7 @@ namespace Inferno {
 
         switch (trigger.Type) {
             case TriggerType::Exit:
-                StartExitSequence(level);
+                StartEscapeSequence();
                 break;
 
             case TriggerType::SecretExit:

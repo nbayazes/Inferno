@@ -145,7 +145,7 @@ namespace Inferno {
         void SelectSecondary(SecondaryWeaponIndex index);
 
         void Update(float dt);
-        void UpdateFireState();
+        void UpdateFireState(bool firePrimary, bool fireSecondary);
 
         void FireFlare();
         void FirePrimary();

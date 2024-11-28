@@ -173,6 +173,8 @@ namespace Inferno::Game {
     void FixedUpdate(float dt) {
         Debug::ActiveRobots = 0;
         Debug::LiveObjects = 0;
+
+        HandleFixedUpdateInput(dt);
         Player.Update(dt);
         BeginAIFrame();
 
@@ -187,6 +189,9 @@ namespace Inferno::Game {
             UpdateReactorCountdown(dt);
 
         FixedUpdateEffects(dt);
+
+        if (State == GameState::ExitSequence)
+            UpdateEscapeSequence(dt);
 
         for (int i = 0; i < Level.Objects.size(); i++) {
             auto& obj = Level.Objects[i];
@@ -294,7 +299,7 @@ namespace Inferno::Game {
             }
         }
 
-        if (Game::ActiveCamera && State == GameState::Game)
+        if (Game::ActiveCamera && (State == GameState::Game || State == GameState::ExitSequence))
             TraverseSegments(*Game::ActiveCamera, GetPlayerObject().Segment, TraversalFlag::None);
 
         static double accumulator = 0;
@@ -397,6 +402,10 @@ namespace Inferno::Game {
                     Shell::UpdateWindowTitle();
                 }
 
+                if (State == GameState::ExitSequence) {
+                    Settings::Editor.ShowTerrain = false;
+                }
+
                 Editor::History.Undo();
                 State = GameState::Editor;
                 ResetCountdown();
@@ -418,6 +427,7 @@ namespace Inferno::Game {
             case GameState::Game:
                 Input::ResetState(); // Reset so clicking a menu doesn't fire
                 Sound::ResumeSounds();
+                Settings::Editor.ShowTerrain = false;
 
                 if (State == GameState::Briefing) {
                     //Game::CheckLoadLevel();
@@ -541,7 +551,7 @@ namespace Inferno::Game {
         Game::FrameTime = 0;
 
         // Stop time when not in game or in editor. Editor uses gametime to animate vclips.
-        if (Game::State == GameState::Game || Game::State == GameState::Editor) {
+        if (Game::State == GameState::Game || Game::State == GameState::Editor || Game::State == GameState::ExitSequence) {
             Game::Time += dt * Game::TimeScale;
             Game::FrameTime = dt * Game::TimeScale;
         }
@@ -562,8 +572,7 @@ namespace Inferno::Game {
                 HandleEditorDebugInput(dt);
         }
         else {
-            HandleInput();
-            HandleShipInput(dt);
+            HandleInput(dt);
         }
 
         Graphics::BeginFrame(); // enable debug calls during updates
@@ -634,11 +643,8 @@ namespace Inferno::Game {
             case GameState::Game:
                 LerpAmount = GameUpdate(dt);
             //UpdateCommsMessage();
-            //DrawBriefing();
-                if (!UpdateEscapeSequence(dt)) {
                     SetActiveCamera(Game::MainCamera);
                     Game::MainCamera.SetFov(Settings::Graphics.FieldOfView);
-                }
 
                 if (!Level.Objects.empty()) {
                     if (Player.IsDead)
@@ -662,7 +668,8 @@ namespace Inferno::Game {
 
             case GameState::ExitSequence:
                 LerpAmount = GameUpdate(dt);
-                UpdateExitSequence();
+                UpdateEscapeCamera(dt);
+                MoveCameraToObject(Game::MainCamera, Level.Objects[0], LerpAmount);
                 break;
 
             case GameState::Editor:
@@ -674,13 +681,8 @@ namespace Inferno::Game {
                 }
 
                 Editor::Update();
-                if (!UpdateEscapeSequence(dt)) {
                     SetActiveCamera(Editor::EditorCamera);
                     Editor::EditorCamera.SetFov(Settings::Editor.FieldOfView);
-                }
-                else {
-                    UpdateEscapeCamera(dt);
-                }
 
                 if (!Settings::Inferno.ScreenshotMode) {
                     if (!EditorUI) EditorUI = make_unique<Inferno::Editor::EditorUI>();
@@ -851,6 +853,7 @@ namespace Inferno::Game {
 
         // Reset level timing
         Game::Time = Game::FrameTime = 0;
+        Settings::Editor.ShowTerrain = false;
 
         // Activate game mode
         InitObject(*player, ObjectType::Player);

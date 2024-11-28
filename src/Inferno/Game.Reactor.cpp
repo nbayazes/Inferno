@@ -128,14 +128,14 @@ namespace Inferno::Game {
             CreateExplosion(*e, obj.Segment, obj.Position);
         }
 
-        if (auto e = EffectLibrary.GetExplosion("reactor_large_explosions")) {
+        if (auto e = EffectLibrary.GetExplosion("reactor large explosions")) {
             // Larger periodic explosions with sound
             e->Variance = obj.Radius * 0.45f;
             e->Instances = instances;
             CreateExplosion(*e, obj.Segment, obj.Position);
         }
 
-        if (auto e = EffectLibrary.GetExplosion("reactor_small_explosions")) {
+        if (auto e = EffectLibrary.GetExplosion("reactor small explosions")) {
             e->Variance = obj.Radius * 0.55f;
             e->Instances = instances * 10;
             CreateExplosion(*e, obj.Segment, obj.Position);

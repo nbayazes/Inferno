@@ -710,7 +710,9 @@ namespace Inferno {
                 Render::HudCanvas->DrawText("!LOCK!", info);
             }
 
-            if (Game::ControlCenterDestroyed && Game::CountdownSeconds >= 0) {
+            if (Game::ControlCenterDestroyed &&
+                Game::CountdownSeconds >= 0 &&
+                Game::GetState() != GameState::ExitSequence) {
                 Render::DrawTextInfo info;
                 info.Font = FontSize::Small;
                 info.Color = GREEN_TEXT;
