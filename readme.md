@@ -1,7 +1,12 @@
-# Inferno Editor
-The Inferno Editor is a modern level editor for Descent 1 and 2 designed for efficiency and ease of use. Inspired by Blender and UnrealEd.
+# Inferno
+Inferno is a remaster of Descent 1 and Descent 2, built on a completely new engine and includes a level editor.
 
-![preview](docs/preview.jpg)
+## Features
+- HDR lighting and materials. Dynamic lights added to many sources.
+- Completely reworked AI to give each robot unique behaviors and quirks
+	- Robots will use covering fire, call for backup, sneak up from behind, or run for help!
+- Rebalances and modernizes several aspects of the game that were exploitable or tedious
+- Modernized Automap
 
 ## Features
 - Interactive extrusion, translation, rotation, and scaling
