@@ -453,6 +453,10 @@ Weapons:
 
   - id: 32
     Name: gauss
+    # Behavior: shotgun
+    # FireCount: 7
+    # Spread: 1.2 # 3.6
+    # FireDelay: 0.4;
     Decal: BulletHole02
     DecalRadius: 1.25
     ExplosionTexture: vaussimpact
@@ -465,7 +469,8 @@ Weapons:
     LightRadius: 6
     ExplosionSound: # ExpHardBullet
     Model: -1
-    FlashColor: 1, 1, 1, 15
+    FlashColor: 1, 0.6, .3, 1
+    ExplosionColor: 1.0, 0.36, 0.0, 1.2
 
   - id: 33
     Name: helix
@@ -1081,7 +1086,7 @@ Effects:
       Clip: 2 # Small explosion
       Sound: 11 # Explosion
 
-    - Name: reactor_large_explosions # large periodic explosion with sound
+    - Name: reactor large explosions # large periodic explosion with sound
       FadeTime: 0.25
       # Color: 2.75, 2.25, 2.25
       # LightColor: 4, 1, 0.1
@@ -1091,7 +1096,7 @@ Effects:
       Sound: 31 # Exploding wall
       Volume: 0.5
 
-    - Name: reactor_small_explosions # small periodic explosion
+    - Name: reactor small explosions # small periodic explosion
       FadeTime: 0.25
       Radius: [ 1, 3 ]
       Delay: [ 0.05, 0.10 ]
@@ -1168,5 +1173,6 @@ Effects:
       Width: 0.9
       Texture: tracer
       BlobTexture: Tracerblob
-      Color: 1, .4, .4, 2
+      #Color: 1, .4, .4, 2
+      Color: 1, .4, .1, 60
       FadeSpeed: 0.2

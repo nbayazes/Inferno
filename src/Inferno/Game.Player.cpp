@@ -219,7 +219,6 @@ namespace Inferno {
         PrimaryDelay -= dt;
         SecondaryDelay -= dt;
 
-        UpdateFireState();
         if (Game::Level.Objects.empty()) return;
 
         auto& weapon = Resources::GetWeapon(GetPrimaryWeaponID(Primary));
@@ -349,7 +348,7 @@ namespace Inferno {
     void Player::GiveWeapon(PrimaryWeaponIndex weapon) {
         PrimaryWeapons |= 1 << (uint16)weapon;
         if (weapon == PrimaryWeaponIndex::Vulcan || weapon == PrimaryWeaponIndex::Gauss)
-            PrimaryAmmo[(int)PrimaryWeaponIndex::Vulcan] += Game::VULCAN_AMMO_PICKUP;
+            PrimaryAmmo[(int)PrimaryWeaponIndex::Vulcan] += Game::VULCAN_AMMO_PICKUP * 2; // Start with 2000 ammo
     }
 
     SecondaryWeaponIndex Player::GetActiveBomb() const {

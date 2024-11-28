@@ -1029,7 +1029,9 @@ namespace Inferno {
 
             auto& weapon = Resources::GetWeapon(robotInfo.WeaponType);
             // Use the last time the target was seen instead of the delayed target tracking used for chasing.
-            auto targetPos = ai.CombatState == AICombatState::BlindFire ? ai.LastSeenTargetPosition->Position : ai.TargetPosition->Position;
+            auto targetPos = ai.CombatState == AICombatState::BlindFire && ai.LastSeenTargetPosition
+                ? ai.LastSeenTargetPosition->Position
+                : ai.TargetPosition->Position;
 
             if (ai.AnimationState != Animation::Fire && ai.FireDelay < 0.25f) {
                 if (ai.CombatState != AICombatState::BlindFire) {
@@ -1041,7 +1043,7 @@ namespace Inferno {
                         ai.FireDelay = 0.25f + 1 / 8.0f; // Try again in 1/8th of a second
                         return;
                     }
-                } 
+                }
 
                 auto aimDir = targetPos - robot.Position;
                 aimDir.Normalize();
@@ -1951,7 +1953,7 @@ namespace Inferno {
                     // This is so a fleeing player is pursued around corners
                     bool stopOnceVisible = ai.Chase == ChaseMode::StopVisible;
                     PathTowardsGoal(robot, ai, true, stopOnceVisible);
-                    Chat(robot, "Pathing...");
+                    //Chat(robot, "Pathing...");
 
                     if (ai.TargetPosition && ai.TargetPosition->Segment == robot.Segment) {
                         // Clear target if pathing towards it discovers the target isn't there.
