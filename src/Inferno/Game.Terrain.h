@@ -20,7 +20,7 @@ namespace Inferno {
         float SatelliteAspectRatio = 1; // Ratio to use when drawing sprite
         Color SatelliteColor = { 1, 1, 1 };
         Color AtmosphereColor = { 0.3f, 0.4f, 1, 0.5f };
-        Color Ambient = { 1, 1, 1, 1.2f };
+        Color Light = { 1, 1, 1, 1 };
         Color StarColor = { 0.25f, 0.9f, 1.750f };
 
         List<ObjectVertex> Vertices;

@@ -532,7 +532,7 @@ namespace Inferno::Render {
 
         TerrainShader::Constants constants = {};
         constants.World = Game::Terrain.Transform;
-        constants.Ambient = Game::Terrain.Ambient;
+        constants.Light = Game::Terrain.Light;
         effect.Shader->SetConstants(cmdList, constants);
 
         auto& depthBuffer = Adapter->GetDepthBuffer();
@@ -550,7 +550,7 @@ namespace Inferno::Render {
         }
 
         //ctx.GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        auto ambient = Game::Terrain.Ambient;
+        auto ambient = Game::Terrain.Light;
         ambient.w *= 1.4f; // The textures on the exit are quite dark
         DrawStaticModel(ctx, Game::Terrain.ExitModel, RenderPass::Opaque, ambient, Adapter->GetFrameConstants(), Game::Terrain.ExitTransform);
     }

@@ -279,7 +279,7 @@ namespace Inferno::Editor {
             ImGui::Separator();
 
             ImGui::ColorEdit4("Atmosphere", &Game::Terrain.AtmosphereColor.x);
-            ImGui::ColorEdit4("Ambient", &Game::Terrain.Ambient.x);
+            ImGui::ColorEdit4("Ambient", &Game::Terrain.Light.x);
         }
     }
 }
