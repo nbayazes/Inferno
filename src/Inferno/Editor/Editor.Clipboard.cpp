@@ -118,6 +118,10 @@ namespace Inferno::Editor {
 
         List<SegID> newIds;
 
+        bool outOfWalls = false;
+        bool outOfObjects = false;
+        bool outOfTriggers = false;
+
         for (auto& seg : copy.Segments) {
             for (auto& v : seg.Indices)
                 v += vertexOffset; // adjust indices to the end
@@ -134,7 +138,8 @@ namespace Inferno::Editor {
                     if (side.Wall != WallID::None) {
                         auto wallId = (int)side.Wall + wallOffset;
                         if (wallId >= level.Limits.Walls) {
-                            SPDLOG_WARN("Wall id is out of range!");
+                            outOfWalls = true;
+                            side.Wall = WallID::None;
                             break;
                         }
                         side.Wall = WallID(wallId);
@@ -163,7 +168,7 @@ namespace Inferno::Editor {
         if (Settings::Editor.PasteSegmentObjects) {
             for (auto& o : copy.Objects) {
                 if (level.Objects.size() >= level.Limits.Objects) {
-                    SPDLOG_WARN("Ran out of space for objects!");
+                    outOfObjects = true;
                     break;
                 }
 
@@ -175,7 +180,7 @@ namespace Inferno::Editor {
         if (Settings::Editor.PasteSegmentWalls) {
             for (auto& wall : copy.Walls) {
                 if (level.Walls.size() >= level.Limits.Walls) {
-                    SPDLOG_WARN("Ran out of space for walls!");
+                    outOfWalls = true;
                     break;
                 }
 
@@ -193,7 +198,7 @@ namespace Inferno::Editor {
 
                     auto triggerId = (int)wall.Trigger + triggerOffset;
                     if (triggerId >= level.Limits.Triggers) {
-                        SPDLOG_WARN("Ran out of space for triggers!");
+                        outOfTriggers = true;
                         break;
                     }
                     wall.Trigger = TriggerID(triggerId);
@@ -215,6 +220,15 @@ namespace Inferno::Editor {
         for (auto& id : newIds)
             for (auto& side : SideIDs)
                 WeldConnection(level, { id, side }, 0.01f);
+
+        if (outOfWalls)
+            ShowWarningMessage(L"Wall limit reached. Some walls have been discarded.");
+
+        if (outOfObjects)
+            ShowWarningMessage(L"Object limit reached. Some objects have been discarded.");
+
+        if (outOfTriggers)
+            ShowWarningMessage(L"Trigger limit reached. Some triggers have been discarded.");
 
         return newIds;
     }
