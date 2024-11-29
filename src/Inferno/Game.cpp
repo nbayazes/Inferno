@@ -415,7 +415,6 @@ namespace Inferno::Game {
                 ResetEffects();
                 LerpAmount = 1;
                 ResetGlobalLighting();
-                Sound::StopMusic();
                 break;
 
             case GameState::Automap:
@@ -643,8 +642,8 @@ namespace Inferno::Game {
             case GameState::Game:
                 LerpAmount = GameUpdate(dt);
             //UpdateCommsMessage();
-                    SetActiveCamera(Game::MainCamera);
-                    Game::MainCamera.SetFov(Settings::Graphics.FieldOfView);
+                SetActiveCamera(Game::MainCamera);
+                Game::MainCamera.SetFov(Settings::Graphics.FieldOfView);
 
                 if (!Level.Objects.empty()) {
                     if (Player.IsDead)
@@ -681,8 +680,8 @@ namespace Inferno::Game {
                 }
 
                 Editor::Update();
-                    SetActiveCamera(Editor::EditorCamera);
-                    Editor::EditorCamera.SetFov(Settings::Editor.FieldOfView);
+                SetActiveCamera(Editor::EditorCamera);
+                Editor::EditorCamera.SetFov(Settings::Editor.FieldOfView);
 
                 if (!Settings::Inferno.ScreenshotMode) {
                     if (!EditorUI) EditorUI = make_unique<Inferno::Editor::EditorUI>();
@@ -723,7 +722,7 @@ namespace Inferno::Game {
             if (!StartLevel()) {
                 // something went wrong loading level
                 // todo: go back to editor if started from there
-                SetState(GameState::MainMenu); 
+                SetState(GameState::MainMenu);
             }
             else {
                 SetState(GameState::Game);

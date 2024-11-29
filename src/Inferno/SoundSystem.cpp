@@ -293,7 +293,8 @@ namespace Inferno::Sound {
             if (deviceId && !deviceId->empty()) {
                 SPDLOG_INFO(L"Creating audio engine for device {}", deviceId->c_str());
                 _engine = make_unique<AudioEngine>(flags, nullptr, deviceId ? deviceId->c_str() : nullptr);
-            } else {
+            }
+            else {
                 SPDLOG_INFO(L"Creating audio engine using default device");
                 _engine = make_unique<AudioEngine>(flags);
             }
@@ -592,6 +593,15 @@ namespace Inferno::Sound {
             _stopSoundTags.clear();
             _stopSoundUIDs.clear();
             _stopSoundSources.clear();
+
+            for (auto& instance : _soundInstances) {
+                if (instance.Effect) {
+                    instance.Effect->Stop();
+                    instance.Effect.reset();
+                }
+            }
+
+            _engine->TrimVoicePool();
             _requestStopSounds = false;
         }
 
@@ -755,13 +765,6 @@ namespace Inferno::Sound {
                         SPDLOG_ERROR("Error in audio worker: {}", e.what());
                     }
 
-                    if (_requestStopSounds) {
-                        _engine->TrimVoicePool();
-                    }
-
-                    _requestStopSounds = false;
-                    _requestStopMusic = false;
-
                     if (!_requestStopSounds) {
                         _idleCondition.notify_all();
                         std::this_thread::sleep_for(_pollRate);
@@ -804,7 +807,8 @@ namespace Inferno::Sound {
         }
 
         bool ShouldStop(const Sound3DInstance& sound) const {
-            if (_requestStopSounds) return true;
+            if (_requestStopSounds)
+                return true;
 
             for (auto& tag : _stopSoundTags) {
                 if (sound.Info.Segment == tag.Segment && sound.Info.Side == tag.Side)
