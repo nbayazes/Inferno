@@ -250,6 +250,7 @@ namespace Inferno {
         node["TexturePreviewSize"] << (int)s.TexturePreviewSize;
         node["ShowLevelTitle"] << s.ShowLevelTitle;
         node["Descent3Mode"] << s.Descent3Mode;
+        node["Background"] << EncodeColor3(s.Background);
 
         SaveSelectionSettings(node["Selection"], s.Selection);
         SaveOpenWindows(node["Windows"], s.Windows);
@@ -326,6 +327,7 @@ namespace Inferno {
         ReadValue(node["TexturePreviewSize"], (int&)s.TexturePreviewSize);
         ReadValue(node["ShowLevelTitle"], s.ShowLevelTitle);
         ReadValue(node["Descent3Mode"], s.Descent3Mode);
+        ReadValue(node["Background"], s.Background);
 
         s.Selection = LoadSelectionSettings(node["Selection"]);
         s.Windows = LoadOpenWindows(node["Windows"]);

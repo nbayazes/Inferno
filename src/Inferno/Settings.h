@@ -56,6 +56,7 @@ namespace Inferno {
         Editor::TexturePreviewSize TexturePreviewSize = Editor::TexturePreviewSize::Medium;
 
         LightSettings Lighting;
+        Color Background = { 0.1f, 0.1f, 0.1f };
         float MouselookSensitivity = 0.005f; // Editor mouselook
         float MoveSpeed = 120.0f; // Editor move speed
         bool EditBothWallSides = true;

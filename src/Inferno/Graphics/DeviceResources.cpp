@@ -89,7 +89,7 @@ namespace Inferno {
 
                 dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, true);
                 dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, true);
-
+                
                 /* IDXGISwapChain::GetContainingOutput: The swapchain's adapter does not control the output on which the swapchain's window resides. */
                 DXGI_INFO_QUEUE_MESSAGE_ID hide[] = { 80 };
                 DXGI_INFO_QUEUE_FILTER filter = {};
@@ -140,7 +140,8 @@ namespace Inferno {
             D3D12_MESSAGE_ID hide[] = {
                 D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,
                 D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,
-                D3D12_MESSAGE_ID_EXECUTECOMMANDLISTS_WRONGSWAPCHAINBUFFERREFERENCE
+                D3D12_MESSAGE_ID_EXECUTECOMMANDLISTS_WRONGSWAPCHAINBUFFERREFERENCE,
+                D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE
             };
             D3D12_INFO_QUEUE_FILTER filter = {};
             filter.DenyList.NumIDs = _countof(hide);
@@ -609,18 +610,15 @@ namespace Inferno {
         auto scaledWidth = UINT(width * RenderScale);
         auto scaledHeight = UINT(height * RenderScale);
 
-        // Order of buffer creation matters
-        Color clearColor(0.1f, 0.1f, 0.1f);
-
-        SceneColorBuffer.Create(L"Scene color buffer", scaledWidth, scaledHeight, IntermediateFormat, clearColor, 1);
+        SceneColorBuffer.Create(L"Scene color buffer", scaledWidth, scaledHeight, IntermediateFormat, Settings::Editor.Background, 1);
         SceneDepthBuffer.Create(L"Scene depth buffer", scaledWidth, scaledHeight, m_depthBufferFormat, 1);
         SceneColorBuffer.AddUnorderedAccessView();
-        BriefingColorBuffer.Create(L"Briefing color buffer", 640, 480, DXGI_FORMAT_R8G8B8A8_UNORM, { 0, 0, 0, 0 });
-        BriefingScanlineBuffer.Create(L"Briefing scanline buffer", 640, 480, DXGI_FORMAT_R8G8B8A8_UNORM, { 0, 0, 0, 0 });
-        BriefingScanlineBuffer.AddUnorderedAccessView();
+        //BriefingColorBuffer.Create(L"Briefing color buffer", 640, 480, DXGI_FORMAT_R8G8B8A8_UNORM, { 0, 0, 0, 0 });
+        //BriefingScanlineBuffer.Create(L"Briefing scanline buffer", 640, 480, DXGI_FORMAT_R8G8B8A8_UNORM, { 0, 0, 0, 0 });
+        //BriefingScanlineBuffer.AddUnorderedAccessView();
 
         if (Settings::Graphics.MsaaSamples > 1) {
-            MsaaColorBuffer.Create(L"MSAA Color Buffer", scaledWidth, scaledHeight, IntermediateFormat, clearColor, Settings::Graphics.MsaaSamples);
+            MsaaColorBuffer.Create(L"MSAA Color Buffer", scaledWidth, scaledHeight, IntermediateFormat, Settings::Editor.Background, Settings::Graphics.MsaaSamples);
             MsaaDepthBuffer.Create(L"MSAA Depth Buffer", scaledWidth, scaledHeight, m_depthBufferFormat, Settings::Graphics.MsaaSamples);
         }
         else {

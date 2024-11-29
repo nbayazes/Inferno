@@ -683,6 +683,7 @@ namespace Inferno::Render {
         auto& target = Adapter->GetHdrRenderTarget();
         auto& depthBuffer = Adapter->GetHdrDepthBuffer();
         ctx.SetRenderTarget(target.GetRTV(), depthBuffer.GetDSV());
+        target.ClearColor = Settings::Editor.Background;
         ctx.ClearColor(target);
         ctx.ClearDepth(depthBuffer);
         ctx.SetViewportAndScissor((UINT)target.GetWidth(), (UINT)target.GetHeight());

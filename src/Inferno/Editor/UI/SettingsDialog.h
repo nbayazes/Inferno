@@ -7,7 +7,7 @@ namespace Inferno::Editor {
     class SettingsDialog : public ModalWindowBase {
         Array<char, MAX_PATH> _d1PathBuffer{}, _d2PathBuffer{};
         bool _enableForegroundFpsLimit = false;
-        const std::array<int, 4> _msaaSamples = { 1, 2, 4, 8 };
+        static constexpr std::array<int, 4> _msaaSamples = { 1, 2, 4, 8 };
 
         int _selectedPath{};
         TexturePreviewSize _texturePreviewSize = TexturePreviewSize::Medium;
@@ -29,6 +29,7 @@ namespace Inferno::Editor {
     public:
         SettingsDialog() : ModalWindowBase("Settings") {
             Width = 800 * Shell::DpiScale;
+            Height = 900 * Shell::DpiScale;
             EnableCloseHotkeys = false;
         }
 
@@ -251,20 +252,38 @@ namespace Inferno::Editor {
             ImGui::Columns(1);
             ImGui::EndChild();
 
-            ImGui::Checkbox("Reset UVs on alignment", &_editor.ResetUVsOnAlign);
-            ImGui::HelpMarker("Resets the UVs of marked faces when\nusing the align marked command");
+            {
+                ImGui::BeginChild("left-misc", { Width / 2 - 25 * Shell::DpiScale, -1 });
 
-            ImGui::Checkbox("Select segment when marking", &_editor.SelectMarkedSegment);
-            ImGui::HelpMarker("Enable to select the clicked segment when\nmarking connected faces (Ctrl+Shift+Click)");
+                ImGui::Checkbox("Reset UVs on alignment", &_editor.ResetUVsOnAlign);
+                ImGui::HelpMarker("Resets the UVs of marked faces when\nusing the align marked command");
 
-            ImGui::Checkbox("Reopen last level on start", &_editor.ReopenLastLevel);
+                ImGui::Checkbox("Select segment when marking", &_editor.SelectMarkedSegment);
+                ImGui::HelpMarker("Enable to select the clicked segment when\nmarking connected faces (Ctrl+Shift+Click)");
 
-            ImGui::Checkbox("Show level title", &_editor.ShowLevelTitle);
+                ImGui::Checkbox("Reopen last level on start", &_editor.ReopenLastLevel);
 
-            ImGui::Text("Texture preview size");
-            ImGui::SameLine();
-            ImGui::SetNextItemWidth(150 * Shell::DpiScale);
-            ImGui::Combo("##texpreview", (int*)&_texturePreviewSize, "Small\0Medium\0Large");
+                ImGui::Checkbox("Show level title", &_editor.ShowLevelTitle);
+
+
+                ImGui::EndChild();
+            }
+
+            ImGui::SameLine(0, 10 * Shell::DpiScale);
+
+            {
+                ImGui::BeginChild("right-misc", { Width / 2 - 25, -1 });
+
+                ImGui::Text("Texture preview size");
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(150 * Shell::DpiScale);
+                ImGui::Combo("##texpreview", (int*)&_texturePreviewSize, "Small\0Medium\0Large");
+
+                ImGui::ColorEdit3("Viewport Background", &_editor.Background.x, ImGuiColorEditFlags_NoInputs);
+
+                ImGui::EndChild();
+            }
+
             ImGui::EndTabItem();
         }
 
@@ -445,7 +464,7 @@ namespace Inferno::Editor {
         }
 
         void OnUpdate() override {
-            ImGui::BeginChild("prop_panel", { -1, 800 * Shell::DpiScale });
+            ImGui::BeginChild("prop_panel", { -1, Height - 100 * Shell::DpiScale });
 
             if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None)) {
                 MainOptionsTab();
