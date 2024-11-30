@@ -152,11 +152,17 @@ namespace Inferno::UI {
             auto renderScale = make_unique<SliderFloat>("Render scale", 0.25f, 1.0f, Settings::Graphics.RenderScale, 2);
             //renderScale->LabelWidth = 300;
             renderScale->ShowValue = true;
+            renderScale->LabelWidth = 250;
             renderScale->ValueWidth = 50;
             renderScale->OnChange = [](float value) {
                 Settings::Graphics.RenderScale = std::floor(value * 20) / 20;
             };
             panel->AddChild(std::move(renderScale));
+
+            auto fov = panel->AddChild<SliderFloat>("Field of view", 60.0f, 90.0f, Inferno::Settings::Graphics.FieldOfView, 0);
+            fov->ShowValue = true;
+            fov->LabelWidth = 250;
+            fov->ValueWidth = 50;
 
             auto upscaleFilter = make_unique<OptionSpinner>("upscale filtering", std::initializer_list<string_view>{ "Sharp", "Smooth" }, (int&)Settings::Graphics.UpscaleFilter);
             upscaleFilter->LabelWidth = 340;

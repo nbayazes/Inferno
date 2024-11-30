@@ -167,7 +167,7 @@ namespace Inferno {
         TextureFilterMode FilterMode = TextureFilterMode::EnhancedPoint;
         UpscaleFilterMode UpscaleFilter = UpscaleFilterMode::Point;
 
-        float FieldOfView = 65; // FOV in degrees
+        float FieldOfView = 60; // Game FOV in degrees
         float RenderScale = 1; // Scale of 3D render target
 
         // Debugging
