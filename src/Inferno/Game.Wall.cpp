@@ -890,16 +890,24 @@ namespace Inferno {
             // Hit normal wall
             Game::AddWeaponDecal(hit, weapon);
 
+            
             // Explosive weapons play their effects on death instead of here
             if (!bounce && splashRadius <= 0) {
                 if (vclip != VClipID::None)
                     Game::DrawWeaponExplosion(obj, weapon);
 
-                SoundResource resource = { soundId };
-                resource.D3 = weapon.Extended.ExplosionSound; // Will take priority if D3 is loaded
-                Sound3D sound(resource);
-                sound.Volume = Game::WEAPON_HIT_WALL_VOLUME;
-                Sound::Play(sound, hit.Point, hit.Tag.Segment);
+                // Don't play hit sound if door is locked. Door will play a different sound.
+                bool locked = false;
+                if (auto wall = level.TryGetWall(hit.Tag))
+                    locked = wall->Type == WallType::Door && wall->HasFlag(WallFlag::DoorLocked);
+
+                if (!locked) {
+                    SoundResource resource = { soundId };
+                    resource.D3 = weapon.Extended.ExplosionSound; // Will take priority if D3 is loaded
+                    Sound3D sound(resource);
+                    sound.Volume = Game::WEAPON_HIT_WALL_VOLUME;
+                    Sound::Play(sound, hit.Point, hit.Tag.Segment);
+                }
             }
         }
 
