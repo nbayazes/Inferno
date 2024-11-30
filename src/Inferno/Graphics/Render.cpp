@@ -409,8 +409,7 @@ namespace Inferno::Render {
         _postBatch->SetViewport(Adapter->GetScreenViewport());
         _postBatch->Begin(cmdList);
         auto size = Adapter->GetOutputSize();
-        //_postBatch->Draw(source.GetSRV(), XMUINT2{ (uint)(size.x / Settings::Graphics.RenderScale), (uint)(size.y / Settings::Graphics.RenderScale) }, XMFLOAT2{ 0, 0 });
-        _postBatch->Draw(source.GetSRV(), XMUINT2{ (uint)size.x, (uint)size.y }, XMFLOAT2{ 0, 0 });
+        _postBatch->Draw(source.GetSRV(), size, XMFLOAT2{ 0, 0 });
         _postBatch->End();
     }
 

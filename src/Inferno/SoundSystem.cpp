@@ -142,7 +142,7 @@ namespace Inferno::Sound {
 
             if (dist < sound.Radius) {
                 // only hit test if sound is actually within range
-                if (sound.Looped) {
+                if (sound.Looped && (Game::GetState() == GameState::Game || Game::GetState() == GameState::ExitSequence || Game::GetState() == GameState::Cutscene)) {
                     if (Effect->GetState() == SoundState::PAUSED) {
                         Effect->Resume();
                     }
@@ -700,15 +700,17 @@ namespace Inferno::Sound {
 
                 if (ShouldStop(instance)) {
                     instance.Effect->Stop();
+                    instance.Effect.reset();
                     instance.Alive = false;
+                }
+                else {
+                    instance.Effect->Apply3D(_listener, instance.Emitter, false);
                 }
 
                 // Hack to force sounds caused by the player to be exactly on top of the listener.
                 // Objects and the camera are slightly out of sync due to update timing and threading
                 //if (Game::GetState() == GameState::Game && instance.Info.AtListener)
                 //    instance.Emitter.Position = _listener.Position;
-
-                instance.Effect->Apply3D(_listener, instance.Emitter, false);
             }
 
             if (RequestUnloadD1) {
@@ -732,13 +734,15 @@ namespace Inferno::Sound {
 
             if (_requestPauseSounds) {
                 for (auto& instance : _soundInstances) {
-                    instance.Effect->Pause(); // todo: check if instance is music
+                    if (instance.Effect)
+                        instance.Effect->Pause();
                 }
             }
 
             if (_requestResumeSounds) {
                 for (auto& instance : _soundInstances) {
-                    instance.Effect->Resume();
+                    if (instance.Effect)
+                        instance.Effect->Resume();
                 }
             }
 
