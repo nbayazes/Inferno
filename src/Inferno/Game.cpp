@@ -34,8 +34,8 @@ using namespace DirectX;
 
 namespace Inferno::Game {
     namespace {
-        auto State = GameState::Startup;
-        auto RequestedState = GameState::Startup;
+        std::atomic State = GameState::Startup;
+        std::atomic RequestedState = GameState::Startup;
         constexpr size_t OBJECT_BUFFER_SIZE = 100; // How many new objects to keep in reserve
         Ptr<Editor::EditorUI> EditorUI;
         auto ActiveCamera = gsl::strict_not_null(&MainCamera);
@@ -369,7 +369,6 @@ namespace Inferno::Game {
         switch (RequestedState) {
             case GameState::MainMenu:
             {
-                State = GameState::MainMenu;
                 Shell::UpdateWindowTitle();
                 Game::Level = {};
                 Editor::History.Reset();
@@ -385,7 +384,6 @@ namespace Inferno::Game {
             case GameState::Briefing:
             {
                 if (!Game::Briefing.IsValid()) return;
-                State = GameState::Briefing;
                 break;
             }
 
@@ -407,7 +405,6 @@ namespace Inferno::Game {
                 }
 
                 Editor::History.Undo();
-                State = GameState::Editor;
                 ResetCountdown();
                 Input::SetMouseMode(Input::MouseMode::Normal);
                 Sound::StopAllSounds();
@@ -443,7 +440,6 @@ namespace Inferno::Game {
                 }
 
                 Sound::SetMusicVolume(Settings::Inferno.MusicVolume);
-                State = RequestedState;
                 Shell::UpdateWindowTitle();
                 break;
 
@@ -453,7 +449,6 @@ namespace Inferno::Game {
 
             case GameState::PhotoMode:
                 if (State != GameState::Game && State != GameState::ExitSequence) return;
-                State = GameState::PhotoMode;
                 MoveCameraToObject(Game::MainCamera, GetPlayerObject(), LerpAmount);
                 GetPlayerObject().Render.Type = RenderType::Model; // Make player visible
                 Input::SetMouseMode(Input::MouseMode::Mouselook);
@@ -465,12 +460,11 @@ namespace Inferno::Game {
                 Sound::SetMusicVolume(Settings::Inferno.MusicVolume * 0.33f);
                 Input::SetMouseMode(Input::MouseMode::Normal);
                 Input::ResetState();
-                State = GameState::PauseMenu;
                 UI::ShowPauseDialog();
                 break;
         }
 
-        State = RequestedState;
+        State.store(RequestedState);
     }
 
     // Test code for showing a message from an NPC
