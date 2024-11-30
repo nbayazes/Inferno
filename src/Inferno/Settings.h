@@ -40,6 +40,10 @@ namespace Inferno {
         Normal, Reduced, Off
     };
 
+    enum class ShipRollMode {
+        Normal, Reduced
+    };
+
     struct LightSettings {
         Color Ambient = { 0.0f, 0.0f, 0.0f };
         float Multiplier = 1.00f;
@@ -167,7 +171,7 @@ namespace Inferno {
         TextureFilterMode FilterMode = TextureFilterMode::EnhancedPoint;
         UpscaleFilterMode UpscaleFilter = UpscaleFilterMode::Point;
 
-        float FieldOfView = 60; // Game FOV in degrees
+        float FieldOfView = 70; // Game FOV in degrees. Descent uses 60, but a higher value feels better for input.
         float RenderScale = 1; // Scale of 3D render target
 
         // Debugging
@@ -197,6 +201,7 @@ namespace Inferno {
         bool Descent3Enhanced = false;
         bool ShowWeaponFlash = false; // Are weapon flashes visible in first person?
         WiggleMode ShipWiggle = WiggleMode::Reduced;
+        ShipRollMode ShipRoll = ShipRollMode::Normal;  // Scales the amount of roll to apply to the player when turning
         WindowMode WindowMode = WindowMode::Fullscreen;
         bool Fullscreen = false;
         bool Maximized = true; // Maximized or windowed

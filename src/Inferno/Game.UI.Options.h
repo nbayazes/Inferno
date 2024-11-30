@@ -240,9 +240,14 @@ namespace Inferno::UI {
             panel->VerticalAlignment = AlignV::Top;
             panel->Spacing = 2;
 
-            auto wiggle = make_unique<OptionSpinner>("Ship Wiggle", std::initializer_list<string_view>{ "None", "Reduced", "Normal" }, (int&)Settings::Inferno.ShipWiggle);
+            auto wiggle = make_unique<OptionSpinner>("Ship Wiggle", std::initializer_list<string_view>{ "Normal", "Reduced", "None" }, (int&)Settings::Inferno.ShipWiggle);
             wiggle->LabelWidth = 320;
             panel->AddChild(std::move(wiggle));
+
+            auto roll = make_unique<OptionSpinner>("Ship Roll", std::initializer_list<string_view>{ "Normal", "Reduced" }, (int&)Settings::Inferno.ShipRoll);
+            roll->LabelWidth = 320;
+            panel->AddChild(std::move(roll));
+
             panel->AddChild<Checkbox>("ship auto-leveling", Settings::Inferno.ShipAutolevel);
 
             panel->AddChild<Checkbox>("no weapon autoselect while firing", Settings::Inferno.NoAutoselectWhileFiring);

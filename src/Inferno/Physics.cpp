@@ -19,8 +19,8 @@ using namespace DirectX;
 
 namespace Inferno {
     // todo: move to extended object props
-    constexpr auto PlayerTurnRollScale = FixToFloat(0x4ec4 / 2) * XM_2PI;
-    constexpr auto PlayerTurnRollRate = FixToFloat(0x2000) * XM_2PI;
+    constexpr auto PLAYER_TURN_ROLL_SCALE = FixToFloat(0x4ec4) * XM_2PI;
+    constexpr auto PLAYER_TURN_ROLL_RATE = FixToFloat(0x2000) * XM_2PI;
 
     namespace {
         IntersectContext Intersect(Game::Level);
@@ -75,7 +75,8 @@ namespace Inferno {
         obj.Rotation = Matrix3x3(Matrix::CreateFromYawPitchRoll(-pd.AngularVelocity * dt * XM_2PI) * obj.Rotation);
 
         if (HasFlag(pd.Flags, PhysicsFlag::TurnRoll)) {
-            TurnRoll(obj.Physics, PlayerTurnRollScale, PlayerTurnRollRate, dt);
+            auto roll = PLAYER_TURN_ROLL_SCALE * (Settings::Inferno.ShipRoll == ShipRollMode::Normal ? 1 : 0.5f);
+            TurnRoll(obj.Physics, roll, PLAYER_TURN_ROLL_RATE, dt);
 
             // re-rotate object for bank caused by turn
             obj.Rotation = Matrix3x3(Matrix::CreateRotationZ(-pd.TurnRoll) * obj.Rotation);
