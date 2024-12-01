@@ -57,10 +57,10 @@ namespace Inferno::UI {
         ControlBase& operator=(ControlBase&&) = default;
         virtual ~ControlBase() = default;
 
+        bool Focusable = true; // Able to be focused by keyboard, mouse, or gamepad input. Mouse hover effects can still work.
         bool Focused = false; // Focused by the screen and should process input
         bool Hovered = false; // Mouse cursor is over the control
         bool Enabled = true;
-        bool Selectable = true;
 
         bool DockFill = true; // Match size of parent layout container
 
@@ -108,7 +108,7 @@ namespace Inferno::UI {
         virtual ControlBase* HitTestCursor() {
             if (!Enabled) return nullptr;
 
-            if (Selectable && Contains(Input::MousePosition)) {
+            if (Focusable && Contains(Input::MousePosition)) {
                 return this;
             }
 
@@ -144,9 +144,11 @@ namespace Inferno::UI {
         }
 
         virtual void OnUpdate() {
+            Hovered = false;
             if (!Enabled) return;
 
-            if (Focused && Input::MouseMoved() && !IsCursorCaptured()) {
+            
+            if ((Focusable ? Focused && Input::MouseMoved() : true) && !IsCursorCaptured()) {
                 Hovered = Contains(Input::MousePosition);
             }
 
@@ -157,7 +159,7 @@ namespace Inferno::UI {
 
         virtual ControlBase* SelectFirst() {
             for (auto& child : Children) {
-                if (child->Selectable) {
+                if (child->Focusable) {
                     return child.get();
                 }
                 else if (auto control = child->SelectFirst()) {
@@ -165,14 +167,14 @@ namespace Inferno::UI {
                 }
             }
 
-            if (Selectable) return this;
+            if (Focusable) return this;
 
             return nullptr;
         }
 
         ControlBase* SelectLast() const {
             for (auto& child : Children | views::reverse) {
-                if (child->Selectable) {
+                if (child->Focusable) {
                     return child.get();
                 }
                 else if (auto control = child->SelectLast()) {
@@ -192,7 +194,7 @@ namespace Inferno::UI {
         // Populates a list containing all keyboard selectable controls
         void FlattenSelectionTree(List<ControlBase*>& controls) const {
             for (auto& child : Children) {
-                if (child->Selectable)
+                if (child->Focusable)
                     controls.push_back(child.get());
 
                 child->FlattenSelectionTree(controls);
@@ -238,7 +240,7 @@ namespace Inferno::UI {
     class Rectangle : public ControlBase {
     public:
         Rectangle() {
-            Selectable = false;
+            Focusable = false;
         }
 
         Color Fill;
@@ -261,7 +263,7 @@ namespace Inferno::UI {
         Color Color = { 1, 1, 1 };
 
         Label(string_view text, FontSize font = FontSize::Medium) : _text(text), _font(font) {
-            Selectable = false;
+            Focusable = false;
         }
 
         void OnUpdateLayout() override {
@@ -440,7 +442,7 @@ namespace Inferno::UI {
 
         Button(string_view text, AlignH alignment = AlignH::Left) : _text(text), _alignment(alignment) {
             _textSize = Size = MeasureString(_text, FontSize::Medium);
-            Selectable = true;
+            Focusable = true;
             Padding = Vector2{ 2, 2 };
             ActionSound = MENU_SELECT_SOUND;
         }
@@ -474,15 +476,12 @@ namespace Inferno::UI {
         CloseButton(Action&& action) {
             ClickAction = action;
             Size = Vector2(15, 15);
-            Selectable = false; // Disable keyboard navigation
+            Focusable = false; // Disable keyboard navigation
             ActionSound = MENU_BACK_SOUND;
         }
 
         float Thickness = 2.0f;
 
-        void OnUpdate() override {
-            Hovered = RectangleContains(ScreenPosition, ScreenSize, Input::MousePosition);
-        }
 
         void OnDraw() override {
             const float thickness = Thickness * GetScale();
@@ -642,7 +641,7 @@ namespace Inferno::UI {
 
     class StackPanel : public ControlBase {
     public:
-        StackPanel() { Selectable = false; }
+        StackPanel() { Focusable = false; }
 
         PanelOrientation Orientation = PanelOrientation::Vertical;
         int Spacing = 0;
@@ -1579,7 +1578,7 @@ namespace Inferno::UI {
     class ScreenBase : public ControlBase {
     public:
         ScreenBase() {
-            Selectable = false;
+            Focusable = false;
             Padding = Vector2(5, 5);
         }
 

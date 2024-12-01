@@ -290,18 +290,6 @@ int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
         Resources::Init();
         Inferno::InitShaderCompiler();
 
-        //auto cmdShow = [] {
-        //    switch (Settings::Inferno.WindowMode) {
-        //        default:
-        //        case WindowMode::Fullscreen:
-        //            return SW_SHOW;
-        //        case WindowMode::Maximized:
-        //            return SW_SHOWMAXIMIZED;
-        //        case WindowMode::Windowed:
-        //            return SW_SHOW;
-        //    }
-        //}();
-
         auto cmdShow = Settings::Inferno.Maximized ? SW_SHOWMAXIMIZED : SW_SHOW;
         auto size = Settings::Inferno.WindowSize;
         if (size.x <= 0 || size.y <= 0) size = { 640, 480 };

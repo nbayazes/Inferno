@@ -212,7 +212,9 @@ namespace Inferno {
         bool StickyRearview = false;
         bool SlowmoFusion = true;
         bool EnableJoystick = false;
+        bool EnableController = false;
         bool EnableMouse = true;
+        bool PreferHighResFonts = true;
         uint2 WindowSize;
         uint2 WindowPosition;
     };

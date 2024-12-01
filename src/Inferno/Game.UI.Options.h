@@ -98,7 +98,10 @@ namespace Inferno::UI {
 
             panel->AddChild<Checkbox>("Enable Mouse", Settings::Inferno.EnableMouse);
             panel->AddChild<Checkbox>("Enable joystick", Settings::Inferno.EnableJoystick);
+            panel->AddChild<Checkbox>("Enable controller", Settings::Inferno.EnableController);
+
             {
+                panel->AddChild<Label>("");
                 panel->AddChild<Label>("Mouse Settings", FontSize::MediumBlue);
 
                 //_value4 = (int)std::floor(Settings::Inferno.MouseSensitivity * 1000);
@@ -114,9 +117,11 @@ namespace Inferno::UI {
                 mouseYAxis->ValueWidth = 60;
                 panel->AddChild(std::move(mouseYAxis));
             }
+
             panel->AddChild<Checkbox>("Invert Y-axis", Settings::Inferno.InvertY);
             panel->AddChild<Checkbox>("Classic pitch speed", Settings::Inferno.HalvePitchSpeed);
 
+            panel->AddChild<Label>("");
             panel->AddChild<Button>("Customize bindings");
             panel->AddChild<Button>("Keyboard sensitivity");
             panel->AddChild<Button>("Mouse sensitivity");
@@ -254,6 +259,7 @@ namespace Inferno::UI {
             panel->AddChild<Checkbox>("only cycle autoselect weapons", Settings::Inferno.OnlyCycleAutoselectWeapons);
             panel->AddChild<Checkbox>("sticky rearview", Settings::Inferno.StickyRearview);
             panel->AddChild<Checkbox>("charging fusion slows time", Settings::Inferno.SlowmoFusion);
+            panel->AddChild<Checkbox>("prefer high res fonts", Settings::Inferno.PreferHighResFonts);
 
             panel->AddChild<Button>("Primary autoselect ordering");
             panel->AddChild<Button>("Secondary autoselect ordering");

@@ -551,6 +551,7 @@ namespace Inferno {
         node["AutoselectAfterFiring"] << Settings::Inferno.AutoselectAfterFiring;
         node["StickyRearview"] << Settings::Inferno.StickyRearview;
         node["SlowmoFusion"] << Settings::Inferno.SlowmoFusion;
+        node["PreferHighResFonts"] << Settings::Inferno.PreferHighResFonts;
     }
 
     void LoadGameSettings(ryml::NodeRef node, InfernoSettings& settings) {
@@ -566,6 +567,7 @@ namespace Inferno {
         ReadValue(node["AutoselectAfterFiring"], settings.AutoselectAfterFiring);
         ReadValue(node["StickyRearview"], settings.StickyRearview);
         ReadValue(node["SlowmoFusion"], settings.SlowmoFusion);
+        ReadValue(node["PreferHighResFonts"], settings.PreferHighResFonts);
 
         Game::Difficulty = (DifficultyLevel)std::clamp((int)Game::Difficulty, 0, 4);
     }

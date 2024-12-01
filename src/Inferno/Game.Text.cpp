@@ -63,17 +63,24 @@ namespace Inferno {
         };
 
         for (auto& [name, size] : fonts) {
-            //List<byte> data;
+            List<byte> data;
             float scale = 1;
 
-            // Prefer reading high res fonts first
-            //data = hog.TryReadEntry(name + "h.fnt");
+            if (Settings::Inferno.PreferHighResFonts) {
+                data = Resources::ReadBinaryFile(name + "h.fnt");
 
-            auto data = Resources::ReadBinaryFile(name + "h.fnt");
-
-            if (data.empty()) {
+                if (data.empty()) {
+                    data = Resources::ReadBinaryFile(name + ".fnt");
+                    scale = 2;
+                }
+            }
+            else {
                 data = Resources::ReadBinaryFile(name + ".fnt");
                 scale = 2;
+
+                if (data.empty()) {
+                    data = Resources::ReadBinaryFile(name + "h.fnt");
+                }
             }
 
             if (data.empty()) {
