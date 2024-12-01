@@ -167,7 +167,9 @@ namespace Inferno::PostFx {
         fusionTint.Premultiply();
 
         auto tint = fusionTint + screenTint;
-        tint.w = 1;
+        auto gameState = Game::GetState();
+        // Disable tint unless in-game. We don't want fusion to cause the menu to be unreadable.
+        tint.w = gameState == GameState::Game || gameState == GameState::ExitSequence ? 1 : 0;
 
         ToneMapConstants constants = {
             { 1.0f / (float)colorDest.GetWidth(), 1.0f / (float)colorDest.GetHeight() },
@@ -175,7 +177,7 @@ namespace Inferno::PostFx {
             Exposure,
             (HlslBool)Settings::Graphics.NewLightMode,
             Settings::Graphics.ToneMapper,
-            (HlslBool)(dirt && (Game::GetState() == GameState::Game || Game::GetState() == GameState::PauseMenu)),
+            (HlslBool)(dirt && (gameState == GameState::Game || gameState == GameState::PauseMenu)),
             (HlslBool)Settings::Graphics.EnableBloom,
             tint
         };

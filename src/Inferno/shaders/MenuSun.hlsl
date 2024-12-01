@@ -200,7 +200,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //float pole_noise = Noise.Sample(Sampler, uv * float2(3, 2)).r;
     //noise = pole_noise;
 
-    const float3 color1 = float3(.9, .25, 0.05) * 6;
+    float3 color = float3(1, .25, 0) * 2.75;
     //const float3 color2 = float3(80, 35, 15) * .5;
     const float3 ringColor = float3(0.6, 0.5, .2) * 12;
 
@@ -208,7 +208,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float3 viewDir = normalize(input.world - Frame.Eye);
     //float highlight = pow(saturate(dot(input.normal, -viewDir)), 2);
     //float highlight = saturate(dot(input.normal, -viewDir)), 2);
-    float3 color = color1;
 
     //color *= pow(1 + saturate(NoiseLayer2(input.uv, 0.25)) * 4, 4);
 
@@ -251,7 +250,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //color.r *= 2;
     //color.gb = pow(color.gb, 1.5);
     //color.r = pow(color.r, 1.5);
-    color = pow(color, 1.5);
+    color = pow(color, 1.65);
     //color = pow(color, 2);
 
     // outer ring
