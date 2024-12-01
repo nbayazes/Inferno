@@ -43,22 +43,29 @@ void ClampWindowPosition(uint2& pos, uint2& size) {
     if (pos.x >= desktopWidth || pos.y >= desktopHeight)
         pos = { 0, 0 };
 
-    if(size.x <= 640 || size.y <= 480)
+    if (size.x <= 640 || size.y <= 480)
         size = uint2(640, 480);
 }
 
-void GetWindowPlacement() {
+void SaveWindowSize() {
     auto hWnd = Inferno::Shell::Hwnd;
     if (!hWnd) return;
 
-    WINDOWPLACEMENT placement{};
+    WINDOWPLACEMENT placement{ .length = sizeof(WINDOWPLACEMENT) };
     GetWindowPlacement(hWnd, &placement);
     Settings::Inferno.Maximized = placement.showCmd == SW_SHOWMAXIMIZED;
-    auto rect = placement.rcNormalPosition;
 
+    RECT windowRect{};
+    GetWindowRect(hWnd, &windowRect);
+
+    // account for borders
+    RECT client{};
+    GetClientRect(hWnd, &client);
+
+    // Only update settings if the window isn't maximized - otherwise it will save garbage
     if (!Settings::Inferno.Maximized) {
-        Settings::Inferno.WindowPosition = { (uint)rect.left, (uint)rect.top };
-        Settings::Inferno.WindowSize = { uint(rect.right - rect.left), uint(rect.bottom - rect.top) };
+        Settings::Inferno.WindowPosition = { (uint)windowRect.left, (uint)windowRect.top };
+        Settings::Inferno.WindowSize = { uint(client.right - client.left), uint(client.bottom - client.top) };
     }
 }
 
@@ -81,12 +88,21 @@ void UpdateFullscreen() {
         auto size = Settings::Inferno.WindowSize;
         auto pos = Settings::Inferno.WindowPosition;
         ClampWindowPosition(pos, size);
-        SetWindowPos(hWnd, HWND_TOP, pos.x, pos.y, size.x, size.y, flags);
+
+        SaveWindowSize();
+
+        // Account for window borders
+        RECT windowRect = { 0, 0, (long)size.x, (long)size.y };
+        AdjustWindowRectEx(&windowRect, flags, FALSE, 0);
+        auto width = windowRect.right - windowRect.left;
+        auto height = windowRect.bottom - windowRect.top;
+
+        SetWindowPos(hWnd, HWND_TOP, pos.x, pos.y, width, height, flags);
         ShowWindow(hWnd, Settings::Inferno.Maximized ? SW_SHOWMAXIMIZED : SW_SHOW);
     }
     else {
         // Windowed fullscreen
-        GetWindowPlacement();
+        SaveWindowSize();
 
         SetWindowLongPtr(hWnd, GWL_STYLE, 0);
         SetWindowLongPtr(hWnd, GWL_EXSTYLE, WS_EX_TOPMOST);
@@ -110,7 +126,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
             if (!app->OnClose())
                 return 0;
 
-            GetWindowPlacement();
+            SaveWindowSize();
             break;
 
         case WM_SYSKEYDOWN:
@@ -288,9 +304,16 @@ int Inferno::Shell::Show(uint2 position, uint2 size, int nCmdShow) const {
 
     ClampWindowPosition(position, size);
 
+    // Adjust the window client area to the requested size
+    RECT windowRect = { 0, 0, (long)size.x, (long)size.y };
+    AdjustWindowRectEx(&windowRect, WS_OVERLAPPEDWINDOW, FALSE, 0);
+    auto width = windowRect.right - windowRect.left;
+    auto height = windowRect.bottom - windowRect.top;
+
     HWND hwnd = CreateWindowEx(0, WindowClass, Convert::ToWideString(APP_TITLE).c_str(),
-                               WS_OVERLAPPEDWINDOW, position.x, position.y,
-                               size.x, size.y,
+                               WS_OVERLAPPEDWINDOW,
+                               position.x, position.y,
+                               width, height,
                                nullptr, nullptr, _hInstance, nullptr);
 
     if (!hwnd)
@@ -301,7 +324,6 @@ int Inferno::Shell::Show(uint2 position, uint2 size, int nCmdShow) const {
     EnableDarkMode(hwnd);
     Shell::Hwnd = hwnd;
     ShowWindow(hwnd, nCmdShow);
-    GetWindowPlacement();
 
     Application app;
     SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(&app));
