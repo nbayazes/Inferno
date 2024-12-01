@@ -198,24 +198,25 @@ namespace Inferno::Game {
                 Sound::Play2D({ SoundID::Siren });
         }
         else {
-            if (time > 0)
+            if (time > 0) {
                 Sound::Play2D({ SoundID::MineBlewUp });
+                Game::ScreenGlow.SetTarget(Color(1, 1, 1, 60), Game::Time, 4);
+                //Game::Exposure.SetTarget(60, 4);
+                //Game::BloomStrength.SetTarget(10, 4);
+            }
 
-            auto flash = -CountdownTimer / 4.0f; // 4 seconds to fade out
-            ScreenFlash = Color{ flash, flash, flash };
+            //auto flash = -CountdownTimer / 4.0f; // 4 seconds to fade out
+            //ScreenFlash = Color{ flash, flash, flash };
 
-            float bloom = std::lerp(0.0f, 10.0f, flash);
-            float exposure = std::lerp(0.0f, 60.0f, flash);
+            //float bloom = std::lerp(0.0f, 10.0f, flash);
+            //float exposure = std::lerp(0.0f, 60.0f, flash);
 
             if (CountdownTimer < -4) {
                 // todo: kill player, show "you have died in the mine" message
-                bloom = 0.35f; // restore default
-                exposure = 1;
                 Game::Player.ResetInventory();
                 SetState(GameState::Editor);
+                // todo: show score screen
             }
-
-            Graphics::SetExposure(exposure, bloom);
         }
     }
 

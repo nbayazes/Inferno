@@ -25,7 +25,7 @@ namespace Inferno::Render {
                     bool additive,
                     const Vector3* up = nullptr,
                     bool lit = false) {
-        Color color = lit ? object.Ambient.GetColor() * Game::GlobalDimming : Color(1, 1, 1);
+        Color color = lit ? object.Ambient.GetValue() * Game::GlobalDimming : Color(1, 1, 1);
         if (object.IsPowerup()) color += MIN_POWERUP_AMBIENT;
 
         if (object.Render.Emissive != Color())
@@ -594,7 +594,7 @@ namespace Inferno::Render {
                     constants.Ambient = seg->VolumeLight;
             }
             else {
-                constants.Ambient = object.Ambient.GetColor().ToVector4();
+                constants.Ambient = object.Ambient.GetValue().ToVector4();
             }
         }
 

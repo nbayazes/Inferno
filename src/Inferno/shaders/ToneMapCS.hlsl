@@ -171,6 +171,19 @@ void main(uint3 DTid : SV_DispatchThreadID) {
 
     // Tone map to SDR
     if (Args.NewLightMode) {
+        const float3 whitepoint = float3(0.75, 1.5, 0.75);
+
+        // Additive tinting needs to be applied before tone mapping, otherwise it deep fries bright areas
+        if (Args.Tint.a > 0) {
+            //float3 mapBlackTo = pow(Args.Tint.rgb * .1, 2.2);
+            //float3 mapWhiteTo = pow(Args.Tint.rgb * 1, 2.2);
+            float luminance = dot(sqrt(hdrColor), whitepoint);
+            hdrColor += Args.Tint.rgb * Args.Tint.a * (luminance * 1 + 0.5f);
+            //hdrColor += 1 - (1 - abs(hdrColor)) / (Args.Tint.rgb) * Args.Tint.a;
+            //hdrColor += max(1 - (1 - abs(hdrColor)) / (Args.Tint.rgb * abs(Args.Tint.a)), 0);
+            //hdrColor += max(hdrColor + Args.Tint.rgb * Args.Tint.a - 1, 0);
+        }
+
         switch (Args.ToneMapper) {
             case 0:
                 sdrColor = Uncharted2ToneMapping(hdrColor);
@@ -183,29 +196,12 @@ void main(uint3 DTid : SV_DispatchThreadID) {
             //    break;
         }
 
-        //float3 mapBlackTo = pow(float3(0, 0, 1) * .1, 2.2);
-        //float3 mapWhiteTo = pow(float3(1, 0, 0.5) * 1, 2.2);
-
-
-        //hdrColor = AdjustTint(hdrColor, mapBlackTo, mapWhiteTo, 1);
-
         // blend with the original color to preserve reds
         //float lum = Luminance(hdrColor);
 
         // Using a lower lum comparison results in more saturated colors but causes clipping
         // Use higher green whitepoint to make it less overpowering
-        const float3 whitepoint = float3(0.75, 1.5, 0.75);
         float luminance = dot(sqrt(hdrColor), whitepoint);
-
-        if (Args.Tint.a > 0) {
-            float3 mapBlackTo = pow(Args.Tint.rgb * .1, 2.2);
-            float3 mapWhiteTo = pow(Args.Tint.rgb * 1, 2.2);
-            //hdrColor = lerp(hdrColor, lerp(mapBlackTo, mapWhiteTo, luminance), luminance * Args.Tint.a);
-            hdrColor += Args.Tint.rgb * Args.Tint.a * (luminance * 0.5 + 0.5f);
-            //hdrColor += 1 - (1 - abs(hdrColor)) / (Args.Tint.rgb) * Args.Tint.a;
-            //hdrColor += max(1 - (1 - abs(hdrColor)) / (Args.Tint.rgb * abs(Args.Tint.a)), 0);
-            //hdrColor += max(hdrColor + Args.Tint.rgb * Args.Tint.a - 1, 0);
-        }
 
         // lum = (hdrColor.r + hdrColor.b + hdrColor.g) / 3; // this renders lava correctly but clips very bright light
         // lowering the lower bound introduces more of the tone mapping, causing reds to be more pink
@@ -214,6 +210,13 @@ void main(uint3 DTid : SV_DispatchThreadID) {
         //float t0 = max(0, smoothstep(0.2, 0.4, lum));
         float t0 = max(0, smoothstep(0, 3, luminance));
         sdrColor = sdrColor * t0 + hdrColor * (1 - t0); // slightly darker and more contrast in high ranges
+
+        // Regular tinting should be applied in SDR
+        //if (Args.Tint.a > 0) {
+        //    float3 mapBlackTo = pow(Args.Tint.rgb * 0.1, 2.2);
+        //    float3 mapWhiteTo = pow(Args.Tint.rgb * 1, 2.2);
+        //    sdrColor = AdjustTint(sdrColor, mapBlackTo, mapWhiteTo, saturate(Args.Tint.a));
+        //}
     }
 
 #if SUPPORT_TYPED_UAV_LOADS

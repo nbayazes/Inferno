@@ -241,7 +241,11 @@ namespace Inferno::Game {
 
     Object& GetPlayerObject();
 
-    inline LerpedColor ScreenTint = Color(0, 0, 0, 0);
+    constexpr float DEFAULT_BLOOM = 0.35f;
+    inline LerpedColor ScreenGlow = Color(0, 0, 0, 0);
+    inline LerpedColor FusionTint = Color(0, 0, 0, 0);
+    inline LerpedValue Exposure = 1;
+    inline LerpedValue BloomStrength = DEFAULT_BLOOM;
 
     //bool ObjectIsInFOV(const Ray& ray, const Object& obj, float fov);
 

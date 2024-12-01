@@ -265,7 +265,7 @@ namespace Inferno {
                 Energy = std::max(Energy, 0.0f);
 
                 FusionNextSoundDelay -= dt;
-                Game::ScreenTint.SetTarget(Color(0.6, 0, 1.0f, std::min(WeaponCharge * 0.6f, 1.5f)), Game::Time, 0);
+                Game::FusionTint.SetTarget(Color(0.6, 0, 1.0f, std::min(WeaponCharge * 0.6f, 1.5f)), Game::Time, 0);
 
                 float physicsMult = std::min(1 + WeaponCharge * 0.5f, 4.0f);
 
@@ -311,7 +311,7 @@ namespace Inferno {
                         Game::SetTimeScale(1.0f, SLOWMO_UP_RATE); // Return to normal speed
                     }
 
-                    Game::ScreenTint.SetTarget(Color(0, 0, 0, 0), Game::Time, 0.4f);
+                    Game::FusionTint.SetTarget(Color(0, 0, 0, 0), Game::Time, 0.4f);
                     Sound::Stop(_fusionChargeSound);
                     FirePrimary();
                 }
@@ -839,7 +839,7 @@ namespace Inferno {
 
     float Player::GetShipVisibility() const {
         if (auto player = Game::Level.TryGetObject(Reference)) {
-            auto lum = Luminance(player->Ambient.GetColor().ToVector3());
+            auto lum = Luminance(player->Ambient.GetValue().ToVector3());
             lum = Saturate(lum - 0.1f); // Make slightly darker so dim segments are stealthy
             if (LastPrimaryFireTime + .5f > Game::Time) lum = std::max(lum, 2.0f);
             return lum;

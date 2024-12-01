@@ -403,6 +403,8 @@ namespace Inferno::Render {
     void PostProcess(const GraphicsContext& ctx, PixelBuffer& source) {
         PIXScopedEvent(ctx.GetCommandList(), PIX_COLOR_INDEX(8), "Post");
         auto cmdList = ctx.GetCommandList();
+        ToneMapping->ToneMap.Exposure = Game::Exposure;
+        ToneMapping->ToneMap.BloomStrength = Game::BloomStrength;
         ToneMapping->Apply(cmdList, source);
         Adapter->SceneColorBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         // draw to backbuffer using a shader + polygon
@@ -460,7 +462,7 @@ namespace Inferno::Render {
         HudGlowCanvas->SetSize(width, height);
 
         if (auto player = Game::Level.TryGetObject(ObjID(0))) {
-            DrawHUD(Game::FrameTime, player->Ambient.GetColor());
+            DrawHUD(Game::FrameTime, player->Ambient.GetValue());
         }
 
         if (Game::ScreenFlash != Color(0, 0, 0)) {

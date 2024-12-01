@@ -185,7 +185,7 @@ namespace Inferno::Game {
         Sound::UpdateSoundEmitters(dt);
         UpdateExplodingWalls(Game::Level, dt);
 
-        if (ControlCenterDestroyed)
+        if (ControlCenterDestroyed && State == GameState::Game)
             UpdateReactorCountdown(dt);
 
         FixedUpdateEffects(dt);
@@ -272,7 +272,10 @@ namespace Inferno::Game {
 
         Game::Player.HomingObjectDist = -1; // Clear each frame. Updating objects sets this.
         Game::Player.DirectLight = Color();
-        Game::ScreenTint.Update(Game::Time);
+        Game::ScreenGlow.Update(Game::Time);
+        Game::FusionTint.Update(Game::Time);
+        Game::BloomStrength.Update(dt);
+        Game::Exposure.Update(dt);
         DecayScreenFlash(dt);
 
         // Update global dimming
@@ -412,6 +415,7 @@ namespace Inferno::Game {
                 ResetEffects();
                 LerpAmount = 1;
                 ResetGlobalLighting();
+                Game::ScreenGlow.SetTarget(Color(0, 0, 0, 0), Game::Time, 0);
                 break;
 
             case GameState::Automap:
@@ -663,6 +667,7 @@ namespace Inferno::Game {
                 LerpAmount = GameUpdate(dt);
                 UpdateEscapeCamera(dt);
                 MoveCameraToObject(Game::MainCamera, Level.Objects[0], LerpAmount);
+                Game::ScreenGlow.SetTarget(Color(0, 0, 0, 0), Game::Time, 0.5f);
                 break;
 
             case GameState::Editor:
@@ -847,6 +852,7 @@ namespace Inferno::Game {
         // Reset level timing
         Game::Time = Game::FrameTime = 0;
         Settings::Editor.ShowTerrain = false;
+        Game::ScreenGlow.SetTarget(Color(0, 0, 0, 0), Game::Time, 0);
 
         // Activate game mode
         InitObject(*player, ObjectType::Player);

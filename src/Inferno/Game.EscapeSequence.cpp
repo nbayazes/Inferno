@@ -294,7 +294,7 @@ namespace Inferno {
 
         auto acceleration = SHIP_ACCELERATION;
         if (State.Elapsed < 0.5f) {
-            acceleration *= 0.5 + (float)State.Elapsed / 4.0f;
+            acceleration *= 0.5f + (float)State.Elapsed / 4.0f;
         }
 
         MoveShipAlongPath(player, Game::Terrain.EscapePath, acceleration, SHIP_TURN_RATE, State.PathIndex, dt);

@@ -174,11 +174,6 @@ namespace Inferno::Graphics {
         return id;
     }
 
-    void SetExposure(float exposure, float bloom) {
-        Render::ToneMapping->ToneMap.BloomStrength = bloom;
-        Render::ToneMapping->ToneMap.Exposure = exposure;
-    }
-
     span<RoomID> GetVisibleRooms() {
         return Render::GetVisibleRooms();
     }

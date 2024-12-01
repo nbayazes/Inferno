@@ -39,7 +39,7 @@ namespace Inferno::Render {
             constants.EmissiveLight = object.Render.Emissive;
         }
         else {
-            constants.Ambient = object.Ambient.GetColor().ToVector4();
+            constants.Ambient = object.Ambient.GetValue().ToVector4();
             constants.EmissiveLight = Color(0, 0, 0);
         }
 

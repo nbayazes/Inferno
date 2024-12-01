@@ -161,6 +161,14 @@ namespace Inferno::PostFx {
             Color Tint;
         };
 
+        Color screenTint = Game::ScreenGlow;
+        Color fusionTint = Game::FusionTint;
+        screenTint.Premultiply();
+        fusionTint.Premultiply();
+
+        auto tint = fusionTint + screenTint;
+        tint.w = 1;
+
         ToneMapConstants constants = {
             { 1.0f / (float)colorDest.GetWidth(), 1.0f / (float)colorDest.GetHeight() },
             BloomStrength /** Settings::Graphics.RenderScale*/, // Lower resolution blurs more, so reduce the intensity
@@ -169,7 +177,7 @@ namespace Inferno::PostFx {
             Settings::Graphics.ToneMapper,
             (HlslBool)(dirt && (Game::GetState() == GameState::Game || Game::GetState() == GameState::PauseMenu)),
             (HlslBool)Settings::Graphics.EnableBloom,
-            Game::ScreenTint.GetColor()
+            tint
         };
 
         commandList->SetPipelineState(_pso.Get());

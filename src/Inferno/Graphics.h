@@ -27,8 +27,6 @@ namespace Inferno::Graphics {
     // Locates and loads an OOF by path. Returns -1 if not found.
     ModelID LoadOutrageModel(const string& path);
 
-    void SetExposure(float exposure, float bloom);
-
     void PrintMemoryUsage();
 
     // Returns the diffuse GPU material pointer

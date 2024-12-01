@@ -566,15 +566,17 @@ namespace Inferno {
             }
         }
 
+        void SetValue(const Color& color) { SetTarget(color, 0, 0); }
+
         void Update(double time) {
             if (_color == _endColor) return;
             auto t = std::clamp(float(time - _startTime) / _fadeTime, 0.0f, 1.0f);
             _color = Color::Lerp(_startColor, _endColor, t);
         }
 
-        const Color& GetColor() const {
-            return _color;
-        }
+        operator Color() const { return _color; };
+        const Color& GetValue() const { return _color; }
+        Color& GetValue() { return _color; }
     };
 
     // Lerps a value to a target based on a given speed
@@ -586,7 +588,9 @@ namespace Inferno {
     public:
         LerpedValue(float value) : _target(value), _value(value) {}
 
-        float GetValue() const { return _value; }
+        operator float() const { return _value; };
+        const float GetValue() const { return _value; }
+        float& GetValue() { return _value; }
 
         void SetTarget(float target, float speed) {
             _target = target;
