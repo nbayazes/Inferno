@@ -272,9 +272,11 @@ namespace Inferno::UI {
 
     class OptionsMenu : public DialogBase {
     public:
-        OptionsMenu() : DialogBase("Options") {
+        OptionsMenu() : DialogBase("Options", false) {
             Size = Vector2(200, 30 * 4 + DIALOG_CONTENT_PADDING + DIALOG_PADDING);
             CloseOnConfirm = false;
+            CloseOnClickOutside = true;
+            
             //TitleAlignment = AlignH::Left;
 
             auto panel = make_unique<StackPanel>();

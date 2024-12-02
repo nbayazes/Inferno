@@ -1722,6 +1722,16 @@ namespace Inferno::UI {
         }
 
         AlignH TitleAlignment = AlignH::Center;
+        bool CloseOnClickOutside = false; // Clicking outside of the dialog closes it with a cancel status
+
+        void OnUpdate() override {
+            ScreenBase::OnUpdate();
+
+            if (CloseOnClickOutside && Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick) && !RectangleContains(ScreenPosition, ScreenSize, Input::MousePosition)) {
+                State = CloseState::Cancel;
+                Sound::Play2D(SoundResource{ MENU_BACK_SOUND });
+            }
+        }
 
         virtual void OnDialogClose() {
             State = CloseState::Accept;
@@ -1793,6 +1803,7 @@ namespace Inferno::UI {
         SelectionPopup(const List<string>& values, int& index) : DialogBase("", false), _index(&index) {
             auto panel = make_unique<StackPanel>();
             panel->Position = Vector2{ DIALOG_PADDING, DIALOG_PADDING };
+            CloseOnClickOutside = true;
             float width = 250;
             float maxWidth = 630;
 
@@ -1810,15 +1821,6 @@ namespace Inferno::UI {
 
             Size = Vector2(std::min(width + DIALOG_PADDING * 2, maxWidth), 35.0f * values.size());
             AddChild(std::move(panel));
-        }
-
-        void OnUpdate() override {
-            DialogBase::OnUpdate();
-
-            if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick) && !RectangleContains(ScreenPosition, ScreenSize, Input::MousePosition)) {
-                State = CloseState::Cancel;
-                Sound::Play2D(SoundResource{ MENU_BACK_SOUND });
-            }
         }
 
         void OnDraw() override {
