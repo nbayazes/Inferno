@@ -22,6 +22,9 @@ namespace Inferno::UI {
     constexpr Color HELP_TEXT_COLOR = { 0.75f, 0.75f, 0.75f };
     constexpr float DIALOG_PADDING = 15;
     constexpr float DIALOG_CONTENT_PADDING = DIALOG_PADDING + 30;
+    constexpr float MENU_TEXT_HEIGHT = 24; // Medium high res font
+    constexpr float CONTROL_PADDING = 1;
+    constexpr float CONTROL_HEIGHT = MENU_TEXT_HEIGHT + CONTROL_PADDING * 2;
 
     // Prevents focus from changing when true. Call with false to release
     void CaptureCursor(bool);
@@ -147,7 +150,7 @@ namespace Inferno::UI {
             Hovered = false;
             if (!Enabled) return;
 
-            
+
             if ((Focusable ? Focused && Input::MouseMoved() : true) && !IsCursorCaptured()) {
                 Hovered = Contains(Input::MousePosition);
             }
@@ -258,24 +261,27 @@ namespace Inferno::UI {
     class Label : public ControlBase {
         string _text;
         FontSize _font;
+        Vector2 _textSize;
 
     public:
         Color Color = { 1, 1, 1 };
 
         Label(string_view text, FontSize font = FontSize::Medium) : _text(text), _font(font) {
             Focusable = false;
-        }
-
-        void OnUpdateLayout() override {
-            Size = MeasureString(_text, _font);
+            _textSize = MeasureString(_text, _font);
+            Size = _textSize;
+            Size.y = CONTROL_HEIGHT;
         }
 
         void OnDraw() override {
             Render::DrawTextInfo dti;
             dti.Font = _font;
             dti.Color = Color;
-            dti.Position = ScreenPosition / GetScale() + Margin;
-            Render::UICanvas->DrawText(_text, dti, Layer);
+
+            // Center text in the label
+            dti.Position.x = ScreenPosition.x + _textSize.x * GetScale() * 0.5f - _textSize.x * GetScale() / 2.0f; /* + Margin.x * GetScale()*/
+            dti.Position.y = ScreenPosition.y + ScreenSize.y / 2 - _textSize.y * GetScale() / 2.0f;
+            Render::UICanvas->DrawRaw(_text, dti, Layer);
         }
     };
 
@@ -389,6 +395,8 @@ namespace Inferno::UI {
         }
 
         void OnDraw() override {
+            const auto scale = GetScale();
+
             {
                 Render::CanvasBitmapInfo cbi;
                 cbi.Position = ScreenPosition;
@@ -404,11 +412,10 @@ namespace Inferno::UI {
                 Render::DrawTextInfo dti;
                 dti.Font = _index == i ? FontSize::MediumGold : FontSize::Medium;
                 dti.Color = _index == i ? FOCUS_COLOR : Color(1, 1, 1);
-                dti.Position = ScreenPosition / GetScale() + Padding;
-                dti.Position.y += (_fontHeight + ItemSpacing) * j + LINE_OFFSET;
-                Render::UICanvas->DrawText(item, dti, Layer);
+                dti.Position = ScreenPosition + Padding * scale;
+                dti.Position.y += ((_fontHeight + ItemSpacing) * j + LINE_OFFSET) * scale;
+                Render::UICanvas->DrawRaw(item, dti, Layer);
             }
-
 
             // Draw scrollbar
             if (!Items.empty()) {
@@ -458,16 +465,17 @@ namespace Inferno::UI {
             Render::DrawTextInfo dti;
             dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
             dti.Color = Focused /*|| Hovered*/ ? FocusColor : TextColor;
-            dti.Position = ScreenPosition / GetScale() + Padding;
+            dti.Position.x = ScreenPosition.x + Padding.x * GetScale();
+            dti.Position.y = ScreenPosition.y + ScreenSize.y * 0.5f - _textSize.y * 0.5f * GetScale();
 
             if (_alignment == AlignH::Center) {
-                dti.Position.x += Size.x / 2 - _textSize.x / 2;
+                dti.Position.x += ScreenSize.x / 2 - _textSize.x / 2 * GetScale();
             }
             else if (_alignment == AlignH::Right) {
-                dti.Position.x += Size.x - _textSize.x;
+                dti.Position.x += ScreenSize.x - _textSize.x * GetScale();
             }
 
-            Render::UICanvas->DrawText(_text, dti, Layer);
+            Render::UICanvas->DrawRaw(_text, dti, Layer);
         }
     };
 
@@ -525,12 +533,13 @@ namespace Inferno::UI {
     class Checkbox : public ControlBase {
         gsl::strict_not_null<bool*> _value;
         string _label;
+        Vector2 _textSize;
 
     public:
         Checkbox(string_view label, bool& value) : _value(&value), _label(label) {
-            Size = MeasureString(label, FontSize::Medium);
-            Size.x += CheckboxSize + CheckboxPadding;
-            Size.y += 2;
+            _textSize = MeasureString(label, FontSize::Medium);
+            Size.x = _textSize.x + CheckboxSize + CheckboxPadding;
+            Size.y = CONTROL_HEIGHT;
             ActionSound = MENU_SELECT_SOUND;
         }
 
@@ -546,9 +555,9 @@ namespace Inferno::UI {
                 Render::DrawTextInfo dti;
                 dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
                 dti.Color = Focused /*|| Hovered*/ ? FOCUS_COLOR : Color(1, 1, 1);
-                dti.Position = ScreenPosition / GetScale();
-                dti.Position.x += CheckboxSize + CheckboxPadding;
-                Render::UICanvas->DrawText(_label, dti, Layer + 1);
+                dti.Position.x = ScreenPosition.x + (CheckboxSize + CheckboxPadding) * GetScale();
+                dti.Position.y = ScreenPosition.y + ScreenSize.y * 0.5f - _textSize.y * 0.5f * GetScale();
+                Render::UICanvas->DrawRaw(_label, dti, Layer + 1);
             }
 
             Render::HudCanvasPayload payload;
@@ -556,9 +565,13 @@ namespace Inferno::UI {
             payload.Layer = Layer;
             payload.V0.Color = payload.V1.Color = payload.V2.Color = payload.V3.Color = Focused || Hovered ? ACCENT_GLOW : IDLE_BUTTON;
 
+            const float yOffset = (ScreenSize.y - _textSize.y * GetScale()) * 0.5f;
+
             {
-                auto position = ScreenPosition;
                 float size = CheckboxSize * GetScale();
+                auto position = ScreenPosition;
+                position.y += yOffset;
+                //position.y += ScreenSize.y * 0.5f - size * 0.5f; // center the checkbox
 
                 // left edge
                 payload.V0.Position = position;
@@ -597,6 +610,8 @@ namespace Inferno::UI {
                 float inset = thickness * 1.5f;
                 float size = CheckboxSize * GetScale() - inset * 2;
                 auto position = ScreenPosition + Vector2(inset, inset);
+                //position.y += ScreenSize.y * 0.5f - size - inset; // center the checkbox
+                position.y += yOffset; // center the checkbox
 
                 // tl to br
                 payload.V0.Position = position;
@@ -910,13 +925,13 @@ namespace Inferno::UI {
                 Render::DrawTextInfo dti;
                 dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
                 dti.Color = Focused /*|| Hovered*/ ? FocusColor : TextColor;
-                dti.Position = ScreenPosition / scale + Padding;
+                dti.Position = ScreenPosition + Padding * scale;
                 auto textLen = MeasureString(_text, FontSize::Medium).x;
-                dti.Position.x += ScreenSize.x / 2 / scale - textLen / 2 - Padding.x; // center justify text
-                dti.Position.y += 1; // offset from top slightly
+                dti.Position.x += ScreenSize.x / 2 - textLen / 2 - Padding.x * scale; // center justify text
+                dti.Position.y += 1 * scale; // offset from top slightly
                 //dti.Position.x += ScreenSize.x / scale - textLen - Padding.x - Margin.x - size * 1.75f / scale; // right justify text
                 //dti.HorizontalAlign = AlignH::Center;
-                Render::UICanvas->DrawText(_text, dti, Layer + 1);
+                Render::UICanvas->DrawRaw(_text, dti, Layer + 1);
             }
         }
     };
@@ -932,7 +947,7 @@ namespace Inferno::UI {
     public:
         Slider(string_view label, int min, int max, int& value) : _label(label), _value(&value), Min(min), Max(max) {
             auto textSize = MeasureString(_label, FontSize::Medium);
-            Size = Vector2(60, textSize.y);
+            Size = Vector2(60, CONTROL_HEIGHT);
             LabelWidth = textSize.x + _barPadding;
             UpdateValueText();
         }
@@ -1075,8 +1090,8 @@ namespace Inferno::UI {
                 Render::DrawTextInfo dti;
                 dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
                 dti.Color = Focused /*|| Hovered*/ ? FOCUS_COLOR : Color(1, 1, 1);
-                dti.Position = ScreenPosition / GetScale();
-                Render::UICanvas->DrawText(_label, dti, Layer + 1);
+                dti.Position = ScreenPosition;
+                Render::UICanvas->DrawRaw(_label, dti, Layer + 1);
             }
 
             if (ShowValue) {
@@ -1084,8 +1099,8 @@ namespace Inferno::UI {
                 Render::DrawTextInfo dti;
                 dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
                 dti.Color = Focused /*|| Hovered*/ ? FOCUS_COLOR : Color(1, 1, 1);
-                dti.Position = Vector2(ScreenPosition.x + ScreenSize.x - ValueWidth * GetScale(), ScreenPosition.y) / GetScale();
-                Render::UICanvas->DrawText(_valueText, dti, Layer + 1);
+                dti.Position = Vector2(ScreenPosition.x + ScreenSize.x - ValueWidth * GetScale(), ScreenPosition.y);
+                Render::UICanvas->DrawRaw(_valueText, dti, Layer + 1);
             }
         }
 
@@ -1114,7 +1129,7 @@ namespace Inferno::UI {
                 size = Vector2(std::max(size.x, textSize.x), std::max(size.y, textSize.y));
             }
 
-            Size = Vector2(60, size.y);
+            Size = Vector2(60, CONTROL_HEIGHT);
             ValueWidth = size.x + _barPadding + 10;
             LabelWidth = MeasureString(label, FontSize::Medium).x;
         }
@@ -1190,8 +1205,8 @@ namespace Inferno::UI {
                 Render::DrawTextInfo dti;
                 dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
                 dti.Color = Focused /*|| Hovered*/ ? FOCUS_COLOR : Color(1, 1, 1);
-                dti.Position = ScreenPosition / GetScale();
-                Render::UICanvas->DrawText(_label, dti, Layer + 1);
+                dti.Position = ScreenPosition;
+                Render::UICanvas->DrawRaw(_label, dti, Layer + 1);
             }
 
             if (auto value = Seq::tryItem(_values, *_index)) {
@@ -1202,8 +1217,8 @@ namespace Inferno::UI {
                 dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
                 dti.Color = Focused /*|| Hovered*/ ? FOCUS_COLOR : Color(1, 1, 1);
                 //dti.Position = Vector2(ScreenPosition.x + ScreenSize.x - valueSize.x * GetScale(), ScreenPosition.y) / GetScale();
-                dti.Position = Vector2(ScreenPosition.x + LabelWidth * GetScale() + ValueWidth * GetScale() * 0.5f - valueSize * 0.5f, ScreenPosition.y) / GetScale();
-                Render::UICanvas->DrawText(*value, dti, Layer + 1);
+                dti.Position = Vector2(ScreenPosition.x + LabelWidth * GetScale() + ValueWidth * GetScale() * 0.5f - valueSize * 0.5f, ScreenPosition.y);
+                Render::UICanvas->DrawRaw(*value, dti, Layer + 1);
             }
         }
     };
@@ -1218,18 +1233,14 @@ namespace Inferno::UI {
         bool _dragging = false;
         float _arrowHeight = 18;
         float _arrowThickness = 8;
+        float _textHeight = 24;
 
     public:
         OptionSpinner(string_view label, std::initializer_list<string_view> values, int& index)
             : _label(label), _values({ values.begin(), values.end() }), _index(&index) {
             auto size = MeasureString(label, FontSize::Medium);
-
-            //for (auto& value : values) {
-            //    auto textSize = MeasureString(value, FontSize::Medium);
-            //    size = Vector2(std::max(size.x, textSize.x), std::max(size.y, textSize.y));
-            //}
-
-            Size = Vector2(300, size.y);
+            _textHeight = size.y;
+            Size = Vector2(300, CONTROL_HEIGHT);
             ValueWidth = size.x + _barPadding + 10;
             LabelWidth = MeasureString(label, FontSize::Medium).x;
         }
@@ -1244,18 +1255,6 @@ namespace Inferno::UI {
         bool ShowValue = false;
 
         std::function<void(int)> OnChange;
-
-        //void UpdatePercent(float percent) {
-        //    auto value = (int)std::floor((Max - Min) * percent);
-        //    if (*_index != value) {
-        //        *_index = value;
-        //        if (OnChange) OnChange(value);
-        //        Sound::Play2D(ChangeSound, 1, 0, 0.25f);
-        //        UpdateValueText();
-        //    }
-        //}
-
-        //float GetValueWidth() const { return ShowValue ? ValueWidth : 0; }
 
         void OnUpdate() override {
             ControlBase::OnUpdate();
@@ -1288,12 +1287,6 @@ namespace Inferno::UI {
             }
         }
 
-
-        //bool CheckHover() {
-        //    auto barWidth = (Size.x - LabelWidth - ValueWidth - _barPadding) * GetScale();
-        //    auto barPosition = Vector2(ScreenPosition.x + LabelWidth * GetScale(), ScreenPosition.y);
-        //    return RectangleContains(barPosition, { barWidth, ScreenSize.y }, Input::MousePosition);
-        //}
         bool CheckArrowHover(Vector2 position) const {
             position.x -= _arrowHeight * GetScale() / 4; // Center the hitbox on the arrow, as they are taller than wide
             return RectangleContains(position, { _arrowHeight * GetScale() * 1.25f, ScreenSize.y }, Input::MousePosition);
@@ -1342,13 +1335,13 @@ namespace Inferno::UI {
 
         Vector2 GetLeftArrowPosition() const {
             auto labelWidth = LabelWidth * GetScale();
-            auto position = Vector2(ScreenPosition.x + labelWidth, ScreenPosition.y);
+            auto position = Vector2(ScreenPosition.x + labelWidth, ScreenPosition.y + 1 * GetScale());
             position.x += 10 * GetScale();
             return position;
         }
 
         Vector2 GetRightArrowPosition() const {
-            return { ScreenPosition.x + ScreenSize.x - _arrowHeight * GetScale() / 2, ScreenPosition.y };
+            return { ScreenPosition.x + ScreenSize.x - _arrowHeight * GetScale() / 2, ScreenPosition.y + 1 * GetScale() };
         }
 
         void OnDraw() override {
@@ -1376,13 +1369,16 @@ namespace Inferno::UI {
                 }
             }
 
+            const float yOffset = (ScreenSize.y - _textHeight * GetScale()) * 0.5f;
+
             {
                 // Label
                 Render::DrawTextInfo dti;
                 dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
                 dti.Color = Focused /*|| Hovered*/ ? FOCUS_COLOR : Color(1, 1, 1);
-                dti.Position = ScreenPosition / GetScale();
-                Render::UICanvas->DrawText(_label, dti, Layer + 1);
+                dti.Position.x = ScreenPosition.x;
+                dti.Position.y = ScreenPosition.y + yOffset;
+                Render::UICanvas->DrawRaw(_label, dti, Layer + 1);
             }
 
             if (auto value = Seq::tryItem(_values, *_index)) {
@@ -1394,12 +1390,12 @@ namespace Inferno::UI {
                 dti.Color = Focused /*|| Hovered*/ ? FOCUS_COLOR : Color(1, 1, 1);
                 //dti.Position = Vector2(ScreenPosition.x + ScreenSize.x - valueSize.x * GetScale(), ScreenPosition.y) / GetScale();
                 float valueWidth = ScreenSize.x - labelWidth;
-                dti.Position = Vector2(ScreenPosition.x + labelWidth + valueWidth / 2 - valueSize / 2, ScreenPosition.y) / GetScale();
-                Render::UICanvas->DrawText(*value, dti, Layer + 1);
+                dti.Position.x = ScreenPosition.x + labelWidth + valueWidth / 2 - valueSize / 2;
+                dti.Position.y = ScreenPosition.y + yOffset;
+                Render::UICanvas->DrawRaw(*value, dti, Layer + 1);
             }
         }
     };
-
 
     class SliderFloat : public ControlBase {
         string _label;
@@ -1415,7 +1411,7 @@ namespace Inferno::UI {
         SliderFloat(string_view label, float min, float max, float& value, uint precision = 3)
             : _label(label), _value(&value), _min(min), _max(max), _precision(precision) {
             auto textSize = MeasureString(_label, FontSize::Medium);
-            Size = Vector2(60, textSize.y);
+            Size = Vector2(60, CONTROL_HEIGHT);
             LabelWidth = textSize.x + _barPadding;
             UpdateValueText();
         }
@@ -1537,9 +1533,10 @@ namespace Inferno::UI {
         }
 
         void OnDraw() override {
+            const auto scale = GetScale();
             auto hovered = _dragging || CheckHover();
-            auto barWidth = (Size.x - LabelWidth - GetValueWidth() - _barPadding) * GetScale();
-            auto barPosition = Vector2(ScreenPosition.x + LabelWidth * GetScale(), ScreenPosition.y - 3 * GetScale());
+            auto barWidth = (Size.x - LabelWidth - GetValueWidth() - _barPadding) * scale;
+            auto barPosition = Vector2(ScreenPosition.x + LabelWidth * scale, ScreenPosition.y - 3 * scale);
             auto percent = GetPercent();
 
             DrawLeftBar(barPosition, barWidth, percent, hovered);
@@ -1551,8 +1548,9 @@ namespace Inferno::UI {
                 Render::DrawTextInfo dti;
                 dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
                 dti.Color = Focused /*|| Hovered*/ ? FOCUS_COLOR : Color(1, 1, 1);
-                dti.Position = ScreenPosition / GetScale();
-                Render::UICanvas->DrawText(_label, dti, Layer + 1);
+                dti.Position = ScreenPosition;
+                dti.Position.y += CONTROL_PADDING * scale;
+                Render::UICanvas->DrawRaw(_label, dti, Layer + 1);
             }
 
             if (ShowValue) {
@@ -1560,8 +1558,8 @@ namespace Inferno::UI {
                 Render::DrawTextInfo dti;
                 dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
                 dti.Color = Focused /*|| Hovered*/ ? FOCUS_COLOR : Color(1, 1, 1);
-                dti.Position = Vector2(ScreenPosition.x + ScreenSize.x - ValueWidth * GetScale(), ScreenPosition.y) / GetScale();
-                Render::UICanvas->DrawText(_valueText, dti, Layer + 1);
+                dti.Position = Vector2(ScreenPosition.x + ScreenSize.x - ValueWidth * scale, ScreenPosition.y + CONTROL_PADDING * scale);
+                Render::UICanvas->DrawRaw(_valueText, dti, Layer + 1);
             }
         }
 
@@ -1685,16 +1683,8 @@ namespace Inferno::UI {
         }
     };
 
-    //void DrawLabel(const Color& color, FontSize font = FontSize::Medium) {
-    //    Render::DrawTextInfo dti;
-    //    dti.Font = font;
-    //    dti.Color = color;
-    //    dti.Position = ScreenPosition / GetScale() + textCenter;
-    //    dti.Position = Render::GetAlignment();
-    //    Render::UICanvas->DrawText(_title, dti, Layer + 1);
-    //}
-
     class DialogBase : public ScreenBase {
+    protected:
         string _title;
         Vector2 _titleSize;
 
@@ -1745,10 +1735,10 @@ namespace Inferno::UI {
                 Render::DrawTextInfo dti;
                 dti.Font = FontSize::MediumBlue;
                 dti.Color = DIALOG_TITLE_COLOR;
-                dti.Position = ScreenPosition / GetScale() + Render::GetAlignment(_titleSize, TitleAlignment, AlignV::Top, Size);
-                dti.Position.y += DIALOG_PADDING;
-                if(TitleAlignment == AlignH::Left) dti.Position.x += DIALOG_PADDING;
-                Render::UICanvas->DrawText(_title, dti, Layer + 1);
+                dti.Position = ScreenPosition + Render::GetAlignment(_titleSize * GetScale(), TitleAlignment, AlignV::Top, ScreenSize);
+                dti.Position.y += DIALOG_PADDING * GetScale();
+                if (TitleAlignment == AlignH::Left) dti.Position.x += DIALOG_PADDING * GetScale();
+                Render::UICanvas->DrawRaw(_title, dti, Layer + 1);
             }
 
             {
@@ -1845,8 +1835,8 @@ namespace Inferno::UI {
         bool _held = false;
         string _valueText;
         bool _dragging = false;
-        float _fontHeight = 0;
         bool _hovered = false;
+        float _textHeight = 24;
 
     public:
         float LabelWidth = 0;
@@ -1864,14 +1854,13 @@ namespace Inferno::UI {
                 size = Vector2(std::max(size.x, textSize.x), std::max(size.y, textSize.y));
             }
 
-            Size = Vector2(60, size.y);
-            Padding = Vector2(0, 2);
-            LabelWidth = MeasureString(label, FontSize::Medium).x;
+            Size = Vector2(60, CONTROL_HEIGHT);
+            //Padding = Vector2(0, 2);
+            auto labelSize = MeasureString(label, FontSize::Medium);
+            LabelWidth = labelSize.x;
+            _textHeight = labelSize.y;
             ValueWidth = size.x - LabelWidth;
             ActionSound = MENU_SELECT_SOUND;
-
-            if (auto font = Atlas.GetFont(FontSize::Medium))
-                _fontHeight = font->Height * font->Scale;
         }
 
         static Ptr<ComboSelect> Create(string_view label, const List<string>& values, int& index) {
@@ -1904,17 +1893,14 @@ namespace Inferno::UI {
         }
 
         void OnDraw() override {
-            Vector2 textCenter(0, ScreenSize.y / 2 / GetScale() - _fontHeight / 2);
-            textCenter += Padding;
-            textCenter.y += 1;
-
             {
                 // Label
                 Render::DrawTextInfo dti;
                 dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
                 dti.Color = Focused /*|| Hovered*/ ? FOCUS_COLOR : Color(1, 1, 1);
-                dti.Position = ScreenPosition / GetScale() + textCenter;
-                Render::UICanvas->DrawText(_label, dti, Layer + 1);
+                dti.Position = ScreenPosition;
+                dti.Position.y += CONTROL_PADDING * GetScale();
+                Render::UICanvas->DrawRaw(_label, dti, Layer + 1);
             }
 
             auto boxPosition = Vector2(ScreenPosition.x + LabelWidth * GetScale(), ScreenPosition.y);
@@ -1924,7 +1910,9 @@ namespace Inferno::UI {
                 // Border
                 Render::CanvasBitmapInfo cbi;
                 cbi.Position = boxPosition;
-                cbi.Size = Vector2(ValueWidth * GetScale(), ScreenSize.y);
+                //cbi.Size = Vector2(ValueWidth * GetScale(), ScreenSize.y - CONTROL_PADDING * GetScale() * 3);
+                cbi.Size.x = ValueWidth * GetScale();
+                cbi.Size.y = ScreenSize.y;
                 cbi.Texture = Render::Materials->White().Handle();
                 //cbi.Color = Focused ? ACCENT_COLOR : BORDER_COLOR;
                 cbi.Color = borderColor;
@@ -1936,7 +1924,9 @@ namespace Inferno::UI {
                 Render::CanvasBitmapInfo cbi;
                 const auto border = Vector2(2, 2) * GetScale();
                 cbi.Position = boxPosition + border;
-                cbi.Size = Vector2(ValueWidth * GetScale(), ScreenSize.y) - border * 2;
+                //cbi.Size = Vector2(ValueWidth * GetScale(), ScreenSize.y) - border * 2;
+                cbi.Size.x = ValueWidth * GetScale() - border.x * 2;
+                cbi.Size.y = ScreenSize.y - border.y * 2;
                 cbi.Texture = Render::Materials->White().Handle();
                 cbi.Color = borderColor * 0.1f;
                 cbi.Color.A(1);
@@ -1951,9 +1941,10 @@ namespace Inferno::UI {
                 Render::DrawTextInfo dti;
                 dti.Font = Focused ? FontSize::MediumGold : FontSize::Medium;
                 dti.Color = Focused /*|| Hovered*/ ? FOCUS_COLOR : Color(1, 1, 1);
-                dti.Position = Vector2(ScreenPosition.x / GetScale() + LabelWidth + ValueWidth * 0.5f - valueSize * 0.5f, ScreenPosition.y / GetScale());
-                dti.Position += textCenter;
-                Render::UICanvas->DrawText(trimmed, dti, Layer + 1);
+                //dti.Position = Vector2(ScreenPosition.x + LabelWidth + ValueWidth * 0.5f - valueSize * 0.5f, ScreenPosition.y);
+                dti.Position.x = ScreenPosition.x + (LabelWidth + ValueWidth * 0.5f - valueSize * 0.5f) * GetScale();
+                dti.Position.y = ScreenPosition.y + (CONTROL_PADDING + 3) * GetScale(); // Shifting text off-center is not ideal, but there's no room
+                Render::UICanvas->DrawRaw(trimmed, dti, Layer + 1);
             }
         }
     };

@@ -259,8 +259,9 @@ namespace Inferno::UI {
         gsl::strict_not_null<int*> _level;
 
     public:
-        LevelSelectDialog(int levelCount, int& level) : DialogBase("select level"), _level(&level) {
-            Size = Vector2(300, 170);
+        LevelSelectDialog(int levelCount, int& level) : DialogBase("select level", false), _level(&level) {
+            Size = Vector2(_titleSize.x + DIALOG_PADDING * 2, 170);
+            CloseOnClickOutside = true;
 
             auto description = make_unique<Label>(fmt::format("1 to {}", levelCount), FontSize::MediumBlue);
             description->HorizontalAlignment = AlignH::Center;
@@ -298,14 +299,13 @@ namespace Inferno::UI {
         gsl::strict_not_null<DifficultyLevel*> _value;
 
     public:
-        DifficultyDialog(DifficultyLevel& value) : DialogBase("Difficulty"), _value(&value) {
-            // immediately load briefing - no load screen
-            // after briefing -> load screen "prepare for descent"
-
-            Size = Vector2(260, 220);
+        DifficultyDialog(DifficultyLevel& value) : DialogBase("Difficulty", false), _value(&value) {
+            
+            Size = Vector2(_titleSize.x + DIALOG_PADDING * 2, CONTROL_HEIGHT * 5 + DIALOG_CONTENT_PADDING + DIALOG_PADDING);
+            CloseOnClickOutside = true;
 
             auto panel = make_unique<StackPanel>();
-            panel->Position = Vector2(0, 60);
+            panel->Position = Vector2(0, DIALOG_CONTENT_PADDING);
             panel->HorizontalAlignment = AlignH::Center;
             panel->VerticalAlignment = AlignV::Top;
 

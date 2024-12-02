@@ -202,4 +202,96 @@ namespace Inferno::Render {
             xOffset += charSize.x + kerning;
         }
     }
+
+    void HudCanvas2D::DrawRaw(string_view str, const DrawTextInfo& info, int layer) {
+        float xOffset = 0, yOffset = 0;
+        auto font = Atlas.GetFont(info.Font);
+        if (!font) return;
+
+        auto color = info.Color;
+        Color background = color * 0.1f;
+        background.w = 1;
+
+        auto canvasScale = info.IntegerScaling ? std::round(_scale) : _scale;
+        auto scale = info.Scale * canvasScale;
+        auto strSize = MeasureString(str, info.Font) * canvasScale;
+        Vector2 alignment = GetAlignment(strSize, info.HorizontalAlign, info.VerticalAlign, _size);
+        bool inToken = false;
+        auto position = info.Position;
+        position.x = std::round(position.x);
+        position.y = std::round(position.x);
+
+        for (int i = 0; i < str.size(); i++) {
+            uchar c = str[i];
+            if (c == '\n') {
+                xOffset = 0;
+                yOffset += (font->Height * font->Scale + FONT_LINE_SPACING) * scale;
+                continue;
+            }
+
+            char next = i + 1 >= str.size() ? 0 : str[i + 1];
+
+            if (info.EnableTokenParsing) {
+                if (c == '$') {
+                    inToken = true;
+                    continue;
+                }
+
+                if (c == '\t') {
+                    xOffset = info.TabStop * scale;
+                    continue;
+                }
+
+                if (c == ';') {
+                    break; // skip comments
+                }
+
+                if (inToken) {
+                    if (c == 'C') {
+                        if (next == '1') {
+                            color = ColorFromRGB(0, 219, 0);
+                            background = ColorFromRGB(0, 75, 0);
+                        }
+                        else if (next == '2') {
+                            color = ColorFromRGB(163, 151, 147);
+                            background = ColorFromRGB(19, 19, 27);
+                        }
+                        else if (next == '3') {
+                            color = ColorFromRGB(100, 109, 117);
+                            background = ColorFromRGB(19, 19, 27);
+                        }
+                    }
+
+                    i++;
+                    inToken = false;
+                    continue;
+                }
+            }
+
+            auto& ci = Atlas.GetCharacter(c, info.Font);
+            auto x0 = alignment.x + xOffset + info.Position.x;
+            auto y0 = alignment.y + yOffset + info.Position.y;
+
+            //if (info.IntegerScaling) 
+            //    scale = std::round(scale * 2) / 2;
+
+            Vector2 charSize = Vector2(font->GetWidth(c) * font->Scale, font->Height * font->Scale) * scale;
+            CanvasBitmapInfo cbi;
+            cbi.Position = Vector2{ x0 - 1 * scale, y0 + 1 * scale };
+            cbi.Size = charSize;
+            cbi.UV0 = Vector2{ ci.X0, ci.Y0 };
+            cbi.UV1 = Vector2{ ci.X1, ci.Y1 };
+            cbi.Color = background;
+            cbi.Texture = Render::StaticTextures->Font.GetSRV();
+            DrawBitmap(cbi, layer); // Shadow
+
+            cbi.Color = color;
+            cbi.Position = Vector2{ x0, y0 };
+            cbi.Scanline = info.Scanline;
+            DrawBitmap(cbi, layer); // Foreground
+
+            auto kerning = Atlas.GetKerning(c, next, info.Font) * scale;
+            xOffset += charSize.x + kerning;
+        }
+    }
 }
