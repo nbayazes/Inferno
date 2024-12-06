@@ -45,7 +45,7 @@ Lights:
       Type: 2
       Points: 0.135, 0
       Wrap: 2
-      Width: 0.06
+      Width: 0.1
       Color: 1, .88, .88, .3
       Radius: 35
   
@@ -53,7 +53,7 @@ Lights:
       Type: 2
       Points: 0.135, 0
       Wrap: 2
-      Width: 0.06
+      Width: 0.1
       Color: 1, .01, .01, .4
       Radius: 35
   
@@ -61,7 +61,7 @@ Lights:
       Type: 2
       Points: 0.135, 0
       Wrap: 2
-      Width: 0.06
+      Width: 0.1
       Color: .05, .05, 1, .7 # blue appears dimmer than the others
       Radius: 35
   
@@ -69,7 +69,7 @@ Lights:
       Type: 2
       Points: 0.135, 0
       Wrap: 2
-      Width: 0.06
+      Width: 0.1
       Radius: 35
       Color: 1, 0.75, 0, .4
 
@@ -135,17 +135,19 @@ Lights:
         - 0.5, 0.75
       Width: .2
       Height: .1
-      Color: 0.75, 0.833, 1, .5
+      Color:  .75, .75, 1, 0.5
+      #Color: 0.75, 0.833, 1, .5
       Radius: 35
 
     - ID: 286
       Type: 2
       Points:
-        - 0.51, 0.24
-        - 0.51, 0.74
-      Width: .35
-      Height: 0.06
-      Color: 0.8, 0.87, 1, .5
+        - 0.50, 0.24
+        - 0.50, 0.74
+      Width: .375
+      Height: 0.095
+      Color:  .75, .75, 1, 0.5
+      #Color: 0.8, 0.87, 1, .5
       Radius: 35
 
     # Double edge wrapped lights
@@ -195,7 +197,7 @@ Lights:
       Points:
         - 0.5, 0.24
         - 0.5, 0.74
-      Width: .04
+      Width: .08
       Wrap: 1
       Color: .75, .75, 1, 0.4
       Radius: 25

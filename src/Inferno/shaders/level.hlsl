@@ -307,7 +307,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
         lighting += directLight * (fullbright ? 1 : material.LightReceived);
 
         // boost specular ambient contribution from dynamic lighting, so the specular effect is still visible in range of lights
-        float3 specularAmbient = ambient + lighting * 50 /** saturate(1 - emissive)*/;
+        // setting this too high causes sparkling on doors
+        float3 specularAmbient = ambient + lighting * 20 /** saturate(1 - emissive)*/;
         specularAmbient *= material.SpecularStrength * material.LightReceived;
 
         const float AMBIENT_MULT = 0.6;
