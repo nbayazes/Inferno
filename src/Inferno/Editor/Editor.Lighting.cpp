@@ -471,9 +471,9 @@ namespace Inferno::Editor {
 
                     // Move occlusion sample points off of faces to improve light wrapping around corners
                     auto destSamples =
-                        destSeg.IsZeroVolume(level) ?
-                        InsetTowardsPointPercentage(destFace.Center() + destFace.AverageNormal() * 5, destFace, 0.25f) :
-                        InsetTowardsPointPercentage(destSeg.Center, destFace, 0.1f);
+                        destSeg.IsZeroVolume(level)
+                        ? InsetTowardsPointPercentage(destFace.Center() + destFace.AverageNormal() * 5, destFace, 0.25f)
+                        : InsetTowardsPointPercentage(destSeg.Center, destFace, 0.1f);
 
                     auto calcIntensity = [&](int vertIndex) {
                         bool fullBright = !bouncePass && (src == dest || Seq::contains(lightVertIds, destVertIds[vertIndex]));
@@ -636,6 +636,16 @@ namespace Inferno::Editor {
 
     // Gathers all light sources in the level
     List<LightSource> GatherLightSources(Level& level, const LightSettings& settings) {
+        List<Tag> triggeredLights;
+
+        for (auto& trigger : level.Triggers) {
+            if (trigger.Type == TriggerType::LightOff || trigger.Type == TriggerType::LightOn) {
+                for (auto& target : trigger.Targets) {
+                    triggeredLights.push_back(target);
+                }
+            }
+        }
+
         List<LightSource> sources;
 
         for (int i = 0; i < level.Segments.size(); i++) {
@@ -655,7 +665,7 @@ namespace Inferno::Editor {
                     .Tag = tag,
                     .Indices = seg.GetVertexIndices(sideId),
                     .Colors = { color, color, color, color },
-                    .IsDynamic = Resources::GetDestroyedTexture(side.TMap2) > LevelTexID::Unset || level.GetFlickeringLight(tag),
+                    .IsDynamic = Resources::GetDestroyedTexture(side.TMap2) > LevelTexID::Unset || level.GetFlickeringLight(tag) || Seq::contains(triggeredLights, tag),
                     .Radius = side.LightRadiusOverride.value_or(settings.Radius),
                     .LightPlaneTolerance = side.LightPlaneOverride.value_or(settings.LightPlaneTolerance),
                     .EnableOcclusion = side.EnableOcclusion,
