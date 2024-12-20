@@ -31,6 +31,8 @@ namespace Inferno {
         ModelID Model;
         Array<Vector3, MAX_GUNS> GunPoints{}; // where each gun model is
         Array<uint8, MAX_GUNS> GunSubmodels{};   // which submodel each gun is attached to
+        string Name; // Used for score messages
+        string DevName; // Optional name
 
         VClipID ExplosionClip1, ExplosionClip2;
 

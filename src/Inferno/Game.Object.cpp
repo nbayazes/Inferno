@@ -8,6 +8,7 @@
 #include "Game.Segment.h"
 #include "Game.Wall.h"
 #include "Graphics.h"
+#include "HUD.h"
 #include "Physics.h"
 #include "SoundSystem.h"
 #include "Resources.h"
@@ -497,6 +498,11 @@ namespace Inferno {
                 if (obj.SourceMatcen != MatcenID::Boss)
                     Game::AddPointsToScore(robot.Score);
 
+                if (!robot.DevName.empty() && Random() < 0.02f)
+                    AddKillToHUD(robot.DevName); // Randomly use developer name if present
+                else
+                    AddKillToHUD(robot.Name);
+
                 auto hitForce = obj.LastHitForce * (1.0f + Random() * 0.5f);
                 CreateObjectDebris(obj, robot.Model, hitForce);
 
@@ -936,7 +942,10 @@ namespace Inferno {
             }
 
             case ObjectType::Hostage:
-                return 5;
+                if (obj.Radius > 0.1f)
+                    return obj.Radius; // Some user levels have custom sized hostages
+                else
+                    return 5;
 
             case ObjectType::Powerup:
                 return Resources::GetPowerup((PowerupID)obj.ID).Size;

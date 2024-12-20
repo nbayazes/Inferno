@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "HUD.h"
 #include "Game.h"
+#include "GameTimer.h"
 #include "Graphics.h"
 #include "Graphics/Render.h"
 #include "Resources.h"
@@ -604,11 +605,36 @@ namespace Inferno {
         }
     }
 
+    struct KillEntry {
+        GameTimer Timer;
+        string Message;
+    };
+
+    template <int TSize>
+    class KillTracker {
+        std::array<KillEntry, TSize> _messages;
+
+    public:
+        void AddKill(string_view message) {
+            // Shift all existing entries down by 1
+            for (size_t i = _messages.size() - 1; i > 0; i--) {
+                _messages[i] = _messages[i - 1];
+            }
+
+            _messages[0].Message = message;
+            _messages[0].Timer = BASE_SCORE_WINDOW;
+        }
+
+        span<KillEntry> GetKills() { return _messages; }
+    };
+
+    KillTracker<5> _killTracker;
+
     class Hud {
         MonitorState _leftMonitor = { true }, _rightMonitor = { false };
         float _scoreTime = 0;
         int _scoreAdded = 0;
-        string _messages[4]{};
+        string _messages[4];
         int _messageCount = 0;
         float _messageTimer = 0;
         double _lastLockWarningTime = -1;
@@ -621,6 +647,7 @@ namespace Inferno {
             _lastLockWarningTime = -1;
             _lockTextTime = 0;
             _scoreTime = 0;
+            ranges::fill(_messages, "");
         }
 
         void Draw(float dt, Player& player) {
@@ -679,10 +706,11 @@ namespace Inferno {
                 UseWide1Char(score);
                 Render::HudCanvas->DrawText(score, info);
 
+                info.Position.y += 16;
+
                 _scoreTime -= dt;
                 if (_scoreTime > 0) {
                     // fade score out
-                    info.Position = Vector2(-5, 20);
                     auto t = std::clamp((2 - _scoreTime) / 2, 0.0f, 1.0f); // fade the last 2 seconds
                     t = int(t * 10) / 10.0f; // steps of 10 to simulate a limited palette
                     info.Color.w = std::lerp(1.0f, 0.0f, t);
@@ -693,6 +721,18 @@ namespace Inferno {
                 else {
                     _scoreTime = 0;
                     _scoreAdded = 0;
+                }
+
+                // Kills
+                for (auto& kill : _killTracker.GetKills()) {
+                    auto t = Saturate(kill.Timer.Remaining() / 2); // fade the last 2 seconds
+                    t = int(t * 10) / 10.0f; // steps of 10 to simulate a limited palette
+                    info.Color.w = std::lerp(0.0f, 1.0f, t);
+                    //info.Position.y += Atlas.GetFont(FontSize::Small)->Height; // text height
+                    info.Position.y += 16; // text height
+
+                    if (info.Color.w > 0)
+                        Render::HudCanvas->DrawText(kill.Message, info);
                 }
             }
 
@@ -838,7 +878,12 @@ namespace Inferno {
         Hud.AddPoints(points);
     }
 
+    void AddKillToHUD(string_view name) {
+        _killTracker.AddKill(name);
+    }
+
     void ResetHUD() {
+        _killTracker = {};
         Hud.Reset();
     }
 }

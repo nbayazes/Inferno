@@ -102,6 +102,9 @@ namespace Inferno::Game {
         }
 
         AddPointsToScore(REACTOR_SCORE);
+        AddKillToHUD("Reactor");
+
+        Graphics::TakeScoreScreenshot(0.10f);
 
         // Big boom
         Sound3D sound(SoundID::Explosion);

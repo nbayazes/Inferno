@@ -550,7 +550,9 @@ Weapons:
     LightColor: 1, 0, 0
     
 Robots:
-  - id: 0 # Medium hulk
+  - id: 0
+    Name: Medium Hulk
+    DevName: Mech
     CircleDistance: 80 # Prefer staying away and lobbing missiles
     Mass: 6.5
     Multishot: 2
@@ -563,7 +565,9 @@ Robots:
     BurstDelay: 0.75
     FireDelay: [ 5, 4, 3, 2.5, 1.5 ] # Was 5, 4, 3, 2, 1
     Aim: 120
-  - id: 1 # Medium lifter
+  - id: 1
+    Name: Medium Lifter
+    DevName: Green Claw
     CircleDistance: 12
     Mass: 8
     MeleeDamage: [ 6, 7, 8, 9, 10 ]
@@ -571,12 +575,16 @@ Robots:
     ChaseChance: 1
     Curiosity: 0.4 # Don't always give away position
     GetBehind: 1
-  - id: 2 # Spider
+  - id: 2
+    Name: Spider
+    DevName: Spider
     CircleDistance: 80
     Mass: 5.5
     Radius: 4.5 # Default radius is too large and causes problems in level 10 tunnels
     BurstDelay: 0.15
-  - id: 3 # Class 1 drone
+  - id: 3
+    Name: Class 1 Drone
+    DevName: Josh
     CircleDistance: 60
     # Speed: [ 40, 40, 45, 50, 60 ] # Speed boosted at lower difficulty 30, 30, 35, 40, 60
     Mass: 2.5
@@ -586,7 +594,9 @@ Robots:
     ChaseChance: 1
     Curiosity: 0.95 # Scouts should nearly always investigate noises
     GetBehind: 1
-  - id: 4 # Class 2 drone
+  - id: 4 
+    Name: Class 2 drone
+    DevName: Violet
     CircleDistance: 40
     Drag: 0.03
     Mass: 3.0
@@ -594,7 +604,9 @@ Robots:
     AngerBehavior: 1 # Gets angry when alone
     AimAngle: 60 # Increased to make it a bit more unique
     GetBehind: 1
-  - id: 5 # Cloaked driller
+  - id: 5
+    Name: Cloaked Driller
+    DevName: Cloak Vulcan
     CircleDistance: 100 # sniper
     Mass: 6.5 # Heavier than regular due to cloaking device
     Drag: 0.15
@@ -605,7 +617,9 @@ Robots:
     AimAngle: 20 # Don't let drillers lead very much for balance reasons
     Aim: 200 # Make slightly inaccurate
     GetBehind: 1
-  - id: 6 # Cloaked hulk
+  - id: 6 
+    Name: Cloaked Hulk
+    DevName: Cloak Mech
     CircleDistance: 60
     Multishot: 2
     Mass: 6.5
@@ -618,14 +632,18 @@ Robots:
     BurstDelay: 0.75
     FireDelay: [ 7, 5, 3, 1.5, 1 ] # Was 7, 5, 3, 1, 1
     Aim: 120
-  - id: 7 # Supervisor
+  - id: 7
+    Name: Supervisor
+    DevName: Brain
     Mass: 3.25
     AlertRadius: 250 # Alert all nearby robots!
     Script: Supervisor
     OpenKeyDoors: 1 # Can open key doors!
     Score: 800 # Was 400. These are rare and much more dangerous now
     Curiosity: 1 # Always investigate, it's a supervisor!
-  - id: 8 # Secondary Lifter (one arm)
+  - id: 8
+    Name: Secondary Lifter
+    DevName: One Arm
     CircleDistance: 25
     Mass: 3.5
     Drag: 0.03
@@ -635,7 +653,9 @@ Robots:
     Curiosity: 0.95 # Scout
     GetBehind: 1
     AimAngle: 35
-  - id: 9 # Heavy driller
+  - id: 9
+    Name: Heavy driller
+    DevName: Plasma Mech
     CircleDistance: 40
     Multishot: 2
     BurstDelay: 0.2 # Increase from 1/8 due to multishot
@@ -646,10 +666,14 @@ Robots:
     FireDelay: [ 1, .75, 1, .75, 0.9 ] # Was 1, .75, .75, .75, .75. Adjusted to compensate for extra shots on hotshot and insane
     Shots: [ 2, 2, 4, 4, 6 ] # Was 2, 2, 3, 4, 5
     Curiosity: 0.25 # Usually hold position
-  - id: 10 # Gopher
+  - id: 10
+    Name: Class 3 Gopher
+    DevName: Toaster 
     FleeThreshold: 0.4
     Score: 400 # Was 200, too low for their mine laying annoyance and hit points
-  - id: 11 # Laser platform
+  - id: 11
+    Name: Laser platform
+    DevName: Bird  
     CircleDistance: 50
     Mass: 2.5
     Multishot: 7 # shotgun all available projectiles
@@ -662,7 +686,9 @@ Robots:
     Curiosity: 0.5
     AimAngle: 35 # Looks odd to lead much
     GetBehind: 0
-  - id: 12 # Missile platform
+  - id: 12
+    Name:  Missile Platform
+    DevName: Missile Bird
     #FireDelay: [ 3, 2, 2, 1.75, 1.5 ]
     #Shots: [ 2, 2, 2, 3, 4 ]
     FireDelay: [ 1.5, 1.5, 1, 0.75, .65 ]
@@ -672,8 +698,12 @@ Robots:
     Drag: 0.03
     Curiosity: 0.25 # Usually hold position
     AimAngle: 20 # Looks odd to lead much
-  - id: 13 # Pod
-  - id: 14 # Baby spider
+  - id: 13
+    Name: Splitter Pod
+    DevName: Polyhedron
+  - id: 14 
+    Name: Baby Spider
+    DevName: Baby Spider
     CircleDistance: 15
     Mass: 1.9
     Drag: 0.025
@@ -685,7 +715,9 @@ Robots:
     Aim: 25 # Inaccurate
     BurstDelay: 0.15
     TurnTime: 0.15
-  - id: 15 # Fusion hulk
+  - id: 15
+    Name: Fusion hulk
+    DevName: Miniboss
     FireDelay: [ 2, 1.25, 1.5, 1, .5 ] # Reduced by 1 second due to charge time
     Shots: [ 1, 1, 2, 2, 2 ]
     CircleDistance: 40
@@ -698,7 +730,9 @@ Robots:
     SuppressChance: 0.2
     Curiosity: 0 # Don't investigate sounds
     # DeathRollSound: 185 # d1
-  - id: 16 # Red hulk / Super hulk
+  - id: 16
+    Name: Red Hulk
+    DevName: Super Mech
     CircleDistance: 80
     Multishot: 1
     Mass: 7
@@ -708,7 +742,9 @@ Robots:
     BurstDelay: 0.4
     SeeSound: 177
     # HitPoints: 270 # Was 325
-  - id: 17 # Level 7 boss
+  - id: 17
+    Name: Boss # Level 7 boss
+    DevName: Boss # Shareware Boss
     Mass: 40
     Multishot: 2
     CircleDistance: 200
@@ -722,7 +758,9 @@ Robots:
     AlertRadius: 240
     TeleportInterval: 6 # 8 original. lowered due to removing engine reductions in teleport delay such as firing or taking damage.
     AimAngle: 45 # Looks odd if boss leads very much
-  - id: 18 # Cloaked lifter
+  - id: 18
+    Name: Cloaked Lifter
+    DevName: Cloak Green
     CircleDistance: 12
     Mass: 9.5
     Speed: [ 20, 30, 40, 50, 60 ] # Increased ace speed
@@ -730,7 +768,9 @@ Robots:
     ChaseChance: 1
     Score: 800 # Was 1000
     GetBehind: 1
-  - id: 19 # Class 1 driller
+  - id: 19 
+    Name: Class 1 Driller
+    DevName: Vulcan Mech
     CircleDistance: 100 # sniper
     Mass: 5.5
     Drag: 0.04
@@ -740,7 +780,9 @@ Robots:
     AimAngle: 20 # Don't let drillers lead very much for balance reasons
     Aim: 200 # Make slightly inaccurate
     GetBehind: 1
-  - id: 20 # Green hulk / Small hulk / Light hulk
+  - id: 20 
+    Name: Light Hulk # Green hulk / Light hulk
+    DevName: Toad
     CircleDistance: 80
     Mass: 6.5
     FireDelay: [ 3, 2, 1, 0.5, 0.5 ]
@@ -752,7 +794,9 @@ Robots:
     SuppressChance: 1
     Curiosity: 0.2 # Rarely move to investigate sounds. Has slow move speed.
     HitPoints: 90 # Increased from 70 to better fill the 'hulk' role. Brown hulks have 100 health.
-  - id: 21 # Advanced lifter
+  - id: 21
+    Name: Advanced lifter
+    DevName: "4-Claw"
     CircleDistance: 12
     Mass: 9
     MeleeDamage: [ 5, 5, 6, 7, 8 ]
@@ -761,7 +805,9 @@ Robots:
     Score: 750 # Was 800
     GetBehind: 1
     Evasion: 1 # Lower evasion so they don't bounce off the walls at higher difficulty
-  - id: 22 # PTMC Defense Prototype
+  - id: 22
+    Name: PTMC Defense Prototype
+    DevName: Quad-Laser
     CircleDistance: 40
     Aim: 190 # 255 is perfect aim
     AimAngle: 25
@@ -771,7 +817,9 @@ Robots:
     Drag: 0.03
     SuppressChance: 1
     HitPoints: 110 # Increased from 70 to not explode from one homing missile and to be tougher in general
-  - id: 23 # level 27 boss
+  - id: 23 
+    Name: Super Boss # level 27 boss
+    DevName: Super Boss
     Mass: 100
     GatedRobots: [ 0, 1, 8, 9, 10, 11, 12, 15, 16, 18, 19, 20, 22, 0, 8, 11, 19, 20, 8, 20, 8 ]
     TurnTime: 0.3
@@ -1111,11 +1159,11 @@ Effects:
       Restitution: 0.6
       Velocity: [ 60, 100 ]
       Count: 60
-      Color: 1, 0.05, 0.05, 20
+      Color: 1, 0.15, 0.05, 20
       FadeTime: 0.4
       Drag: 0.04
       Texture: tracer # hotspark
-      Width: 0.35
+      Width: 0.3
 
   Explosions:
     - Name: reactor_initial_explosion
