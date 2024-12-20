@@ -1156,7 +1156,9 @@ namespace Inferno::Game {
     // Can create multiple rooms from one is several leaf rooms are formed.
     void SplitLargeRooms(Level& level, List<Room>& rooms, int maxSize) {
         bool maybeBigRoom = true;
-        while (maybeBigRoom) {
+        int iterations = 0;
+
+        while (maybeBigRoom && iterations < 1000) {
             maybeBigRoom = false;
             List<Room> roomBuffer;
 
@@ -1171,6 +1173,7 @@ namespace Inferno::Game {
 
             Seq::append(rooms, roomBuffer);
             RemoveEmptyRooms(rooms);
+            iterations++;
         }
     }
 

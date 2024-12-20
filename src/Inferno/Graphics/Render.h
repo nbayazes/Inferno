@@ -33,6 +33,7 @@ namespace Inferno::Render {
 
     inline bool TerrainChanged = false;
     inline bool DebugEmissive = false;
+    inline bool TakeScoreScreenshot = false;
     inline Ptr<TextureCache> NewTextureCache;
 
     inline D3D12_GPU_DESCRIPTOR_HANDLE GetWrappedTextureSampler() {

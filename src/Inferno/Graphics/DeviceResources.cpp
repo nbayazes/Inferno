@@ -647,6 +647,10 @@ namespace Inferno {
         BlurBufferDownsampled.AddUnorderedAccessView();
         BlurBufferDownsampled.AddShaderResourceView();
 
+        ScoreBackground.Create(L"Score background", width / 4, height / 4, SceneBufferFormat, 1);
+        ScoreBackground.AddUnorderedAccessView();
+        ScoreBackground.AddShaderResourceView();
+
         BlurBuffer.Create(L"Blur buffer", width / 4, height / 4, SceneBufferFormat, 1);
         BlurBuffer.AddUnorderedAccessView();
         BlurBuffer.AddShaderResourceView();

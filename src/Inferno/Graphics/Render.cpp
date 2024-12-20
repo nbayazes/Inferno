@@ -697,12 +697,27 @@ namespace Inferno::Render {
         compose->SetSampler(cmdList, Settings::Graphics.UpscaleFilter == UpscaleFilterMode::Point ? Heaps->States.PointClamp() : Heaps->States.LinearClamp());
         cmdList->DrawInstanced(3, 1, 0, 0);
 
+        // Create a screenshot without the HUD
+        if (TakeScoreScreenshot) {
+            TakeScoreScreenshot = false;
+            Adapter->BlurBufferTemp.CopyFrom(cmdList, Adapter->CompositionBuffer);
+            Adapter->CompositionBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET); // Copying changes state, reset it back to RT
+
+            Render::ToneMapping->Downsample.Execute(cmdList, Adapter->BlurBufferTemp, Adapter->BlurBufferDownsampled);
+            //Render::ToneMapping->Blur.Execute(cmdList, Adapter->BlurBufferDownsampled, Adapter->BlurBuffer);
+            //Render::ToneMapping->Blur.Execute(cmdList, Adapter->BlurBuffer, Adapter->ScoreBackground);
+            Render::ToneMapping->Blur.Execute(cmdList, Adapter->BlurBufferDownsampled, Adapter->ScoreBackground);
+
+            Adapter->ScoreBackground.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            Adapter->BlurBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        }
+
+        // Draw UI elements
         if (((Game::GetState() == GameState::Game || Game::GetState() == GameState::PauseMenu) && !Game::Player.IsDead) ||
             Game::GetState() == GameState::MainMenu ||
             GetEscapeScene() == EscapeScene::Start)
             DrawHud(ctx);
 
-        // Draw UI elements
         if (Settings::Inferno.ScreenshotMode || Game::GetState() != GameState::Editor) {
             //Canvas->DrawGameText(level.Name, 0, 20 * Shell::DpiScale, FontSize::Big, { 1, 1, 1 }, 0.5f, AlignH::Center, AlignV::Top);
             if (Game::GetState() == GameState::Automap) {
@@ -719,6 +734,7 @@ namespace Inferno::Render {
             }
         }
 
+        // Create the blurred menu background texture
         if (Game::GetState() == GameState::PauseMenu) {
             Adapter->BlurBufferTemp.CopyFrom(cmdList, Adapter->CompositionBuffer);
             Adapter->CompositionBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET); // Copying changes state, reset it back to RT

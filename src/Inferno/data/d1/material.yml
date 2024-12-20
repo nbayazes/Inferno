@@ -1867,6 +1867,10 @@ Materials:
   - Name: 'door23#2'
     NormalStrength: 0.768
     Roughness: 0.611
+  - Name: 'door26#0'
+    NormalStrength: 0.632
+    SpecularStrength: 0.262
+    Roughness: 0.708
   - Name: 'door28#0'
     NormalStrength: 0.15
     Metalness: 1

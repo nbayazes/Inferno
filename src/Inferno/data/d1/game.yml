@@ -1154,26 +1154,35 @@ Effects:
       Width: 0.2
       Color: 1, .5, .166, 6
 
-    - Name: reactor_destroyed
-      Duration: [ 0.75, 0.95 ]
-      Restitution: 0.6
-      Velocity: [ 60, 100 ]
-      Count: 60
-      Color: 1, 0.15, 0.05, 20
-      FadeTime: 0.4
-      Drag: 0.04
+    - Name: reactor destroyed
+      # Duration: [ 0.75, 0.95 ]
+      Duration: [ 0.25, 0.75 ]
+      #Restitution: 0.6
+      Velocity: [ 60, 130 ]
+      # Velocity: [ 30, 60 ]
+      Count: 45
+      SpawnRadius: 0
+      Color: 1, 0, 0, 160
+      # Color: 0.8, 0.0, 1, 80
+      FadeTime: .75
+      Drag: 0
       Texture: tracer # hotspark
-      Width: 0.3
+      Width: 3.5
+      VelocitySmear: 0.25
+      UseWorldGravity: 0
 
   Explosions:
-    - Name: reactor_initial_explosion
+    - Name: reactor initial explosion
       FadeTime: 0.25
-      Instances: 5
-      # Color: 2.75, 2.25, 2.25
-      # LightColor: 4, 1, 0.1
-      Radius: 2.5 # array
+      Instances: 10
+      Color: 1, 0.8, 1, 4
+      LightColor: 1, .1, 0.0, 5
+      # LightColor: 0.8, 0.1, 1.0, 2
+      LightRadius: 90
+      Variance: 12.5
+      Radius: [ 7.5, 12 ]
       Delay: 0
-      Clip: 2 # Small explosion
+      Clip: 58
       Sound: 11 # Explosion
 
     - Name: reactor large explosions # large periodic explosion with sound

@@ -8,6 +8,7 @@
 #include "Game.Reactor.h"
 #include "Game.Segment.h"
 #include "Game.Object.h"
+#include "Graphics.h"
 #include "Physics.h"
 #include "Random.h"
 #include "Resources.h"
@@ -18,7 +19,7 @@
 namespace Inferno::Game {
     namespace {
         constexpr float BOSS_DEATH_DURATION = 5.5f;
-        constexpr float BOSS_DEATH_SOUND_VOLUME = 2;
+        constexpr float BOSS_DEATH_SOUND_VOLUME = 1.25f;
         constexpr float BOSS_PHASE_TIME = 1.25f;
         //float3(.2, .2, 25)
         constexpr Color BOSS_PHASE_COLOR = { 25, 0, 0 };
@@ -207,8 +208,10 @@ namespace Inferno::Game {
     }
 
     void BossBehaviorD1(AIRuntime& ai, Object& boss, const RobotInfo& info, float dt) {
-        if (boss.HitPoints <= 0)
+        if (boss.HitPoints <= 0 && !BossDying) {
             BossDying = true;
+            Graphics::TakeScoreScreenshot(0.25f);
+        }
 
         if (BossDying) {
             // Phase the boss back in if it dies while warping out
@@ -223,8 +226,9 @@ namespace Inferno::Game {
                 ExplodeObject(boss);
                 BossDying = false; // safeguard
                 Sound3D sound(info.ExplosionSound2);
-                sound.Volume = 3;
-                sound.Radius = 1000;
+                sound.Volume = 1.6f;
+                sound.Radius = 10000;
+                sound.Occlusion = false;
                 Sound::Play(sound, boss.Position, boss.Segment);
 
                 LightEffectInfo light;

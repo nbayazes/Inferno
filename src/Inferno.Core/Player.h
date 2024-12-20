@@ -55,7 +55,7 @@ namespace Inferno {
         uint16 PrimaryAmmo[MAX_PRIMARY_WEAPONS];
         uint16 SecondaryAmmo[MAX_SECONDARY_WEAPONS];
 
-        int Score;
+        int Score, LevelStartScore;
         int64 LevelTime, TotalTime;
 
         void SubtractEnergy(float energy) {

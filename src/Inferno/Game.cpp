@@ -277,6 +277,7 @@ namespace Inferno::Game {
         Game::BloomStrength.Update(dt);
         Game::Exposure.Update(dt);
         DecayScreenFlash(dt);
+        Graphics::UpdateTimers();
 
         // Update global dimming
         GlobalDimming = ControlCenterDestroyed ? float(sin(CountdownTimer * 4) * 0.5 + 0.5) : 1;
@@ -372,6 +373,7 @@ namespace Inferno::Game {
         switch (RequestedState) {
             case GameState::MainMenu:
             {
+                Sound::StopAllSounds();
                 Shell::UpdateWindowTitle();
                 Game::Level = {};
                 Editor::History.Reset();
@@ -870,6 +872,7 @@ namespace Inferno::Game {
         player->Faction = Faction::Player;
 
         State = GameState::Game;
+        Player.LevelStartScore = Player.Score;
 
         ResetCountdown();
         StuckObjects = {};

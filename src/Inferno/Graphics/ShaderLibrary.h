@@ -42,10 +42,9 @@ namespace Inferno {
     };
 
     // Shaders can be combined with different PSOs to create several effects
-    class IShader {
+    class IShader : public NonCopyable {
     public:
         IShader(ShaderInfo info) : Info(std::move(info)) {}
-        virtual ~IShader() = default;
 
         ShaderInfo Info;
         D3D12_INPUT_LAYOUT_DESC InputLayout{};

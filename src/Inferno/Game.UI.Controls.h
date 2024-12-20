@@ -265,6 +265,7 @@ namespace Inferno::UI {
 
     public:
         Color Color = { 1, 1, 1 };
+        AlignH TextAlignment = AlignH::Left;
 
         Label(string_view text, FontSize font = FontSize::Medium) : _text(text), _font(font) {
             Focusable = false;
@@ -279,8 +280,19 @@ namespace Inferno::UI {
             dti.Color = Color;
 
             // Center text in the label
-            dti.Position.x = ScreenPosition.x + _textSize.x * GetScale() * 0.5f - _textSize.x * GetScale() / 2.0f; /* + Margin.x * GetScale()*/
-            dti.Position.y = ScreenPosition.y + ScreenSize.y / 2 - _textSize.y * GetScale() / 2.0f;
+            //dti.Position.x = ScreenPosition.x + _textSize.x * GetScale() * 0.5f - _textSize.x * GetScale() / 2.0f; /* + Margin.x * GetScale()*/
+            //dti.Position.y = ScreenPosition.y + ScreenSize.y / 2 - _textSize.y * GetScale() / 2.0f;
+            dti.Position.x = ScreenPosition.x + Padding.x * GetScale();
+            dti.Position.y = ScreenPosition.y + ScreenSize.y / 2 - _textSize.y * GetScale() / 2;
+
+
+            if (TextAlignment == AlignH::Center) {
+                dti.Position.x += ScreenSize.x / 2 - _textSize.x / 2 * GetScale();
+            }
+            else if (TextAlignment == AlignH::Right) {
+                dti.Position.x += ScreenSize.x - _textSize.x * GetScale();
+            }
+
             Render::UICanvas->DrawRaw(_text, dti, Layer);
         }
     };

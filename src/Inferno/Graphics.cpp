@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Graphics.h"
 #include "FileSystem.h"
+#include "GameTimer.h"
 #include "Graphics/Render.h"
 #include "Graphics/MaterialLibrary.h"
 #include "Graphics/Render.Level.h"
@@ -202,5 +203,25 @@ namespace Inferno::Graphics {
 
     void NotifyLevelChanged() {
         Render::LevelChanged = true;
+    }
+
+    GameTimer ScreenshotTimer;
+    bool TakeScreenshot = false;
+
+    void TakeScoreScreenshot(float delay) {
+        if(delay == 0) {
+            Render::TakeScoreScreenshot = true;
+        }
+        else {
+            ScreenshotTimer = delay;
+            TakeScreenshot = true;
+        }
+    }
+
+    void UpdateTimers() {
+        if (ScreenshotTimer.Expired() && TakeScreenshot) {
+            Render::TakeScoreScreenshot = true;
+            TakeScreenshot = false;
+        }
     }
 }

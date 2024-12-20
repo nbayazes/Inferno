@@ -251,6 +251,8 @@ namespace Inferno::Resources {
     string_view GetSoundName(SoundID id) {
         if (!Seq::inRange(GameData.Sounds, (int)id)) return "None";
         auto index = GameData.Sounds[(int)id];
+        if (index == 255) return "None";
+
         if (Game::Level.IsDescent1())
             return SoundsD1.Sounds[index].Name;
         else
@@ -1045,6 +1047,11 @@ namespace Inferno::Resources {
             //}
 
             Materials = { Render::MATERIAL_COUNT };
+
+            for (auto& obj : level.Objects) {
+                if (obj.Type == ObjectType::Hostage)
+                    level.TotalHostages++;
+            }
 
             LoadDataTables(level);
             LoadStringTable();

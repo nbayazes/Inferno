@@ -48,4 +48,7 @@ namespace Inferno::Graphics {
     void PruneTextures();
 
     void NotifyLevelChanged();
+
+    void TakeScoreScreenshot(float delay = 0);
+    void UpdateTimers();
 }

@@ -3,6 +3,7 @@
 #include "Game.UI.Controls.h"
 #include "Game.Text.h"
 #include "Game.UI.Options.h"
+#include "Game.UI.ScoreScreen.h"
 #include "Graphics.h"
 #include "Graphics/Render.h"
 #include "gsl/pointers.h"
@@ -300,7 +301,6 @@ namespace Inferno::UI {
 
     public:
         DifficultyDialog(DifficultyLevel& value) : DialogBase("Difficulty", false), _value(&value) {
-            
             Size = Vector2(_titleSize.x + DIALOG_PADDING * 2, CONTROL_HEIGHT * 5 + DIALOG_CONTENT_PADDING + DIALOG_PADDING);
             CloseOnClickOutside = true;
 
@@ -702,6 +702,7 @@ namespace Inferno::UI {
         bool _quitConfirm = false;
         float _topOffset = 150;
         Vector2 _menuSize;
+
     public:
         PauseMenu() : DialogBase("", false) {
             CloseOnConfirm = false;
@@ -785,7 +786,28 @@ namespace Inferno::UI {
         Screens.clear();
         ShowScreen(make_unique<MainMenu>());
 
-        ShowScreen(make_unique<SoundMenu>());
+        auto textures = std::to_array<const string>({ "menu-bg" });
+        Graphics::LoadTextures(textures);
+
+        ScoreInfo info{
+            .LevelName = "Ahayweh Gate",
+            .LevelNumber = 1,
+            .Difficulty = DifficultyLevel::Trainee,
+            .Time = "3:01",
+            .Secrets = 3,
+            .SecretsFound = 1,
+            .RobotsDestroyed = 10,
+            .ShieldBonus = 1000,
+            .EnergyBonus = 1000,
+            .HostageBonus = 1000,
+            .FullRescue = true,
+            .SkillBonus = 0,
+            .TotalBonus = 3000,
+            .TotalScore = 53000,
+            .ExtraLives = 1
+        };
+
+        ShowScreen(make_unique<ScoreScreen>(info));
     }
 
     void ShowPauseDialog() {

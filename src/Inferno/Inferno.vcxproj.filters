@@ -273,6 +273,7 @@
     <ClInclude Include="Game.UI.Controls.h" />
     <ClInclude Include="TextureCache.h" />
     <ClInclude Include="Game.UI.Options.h" />
+    <ClInclude Include="Game.UI.ScoreScreen.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />

@@ -9,6 +9,7 @@
 #include "Settings.h"
 #include "SoundSystem.h"
 #include "logging.h"
+#include "HUD.h"
 
 namespace Inferno::Game {
     void PlaySelfDestructSounds(float delay) {
@@ -54,7 +55,7 @@ namespace Inferno::Game {
             static_assert(DefaultCountdownTimes.size() == (int)DifficultyLevel::Count);
             return DefaultCountdownTimes[difficulty];
         }
-    } 
+    }
 
     void BeginSelfDestruct() {
         for (auto& tag : Level.ReactorTriggers) {
@@ -83,8 +84,8 @@ namespace Inferno::Game {
         auto& player = Game::GetPlayerObject();
         auto signX = RandomInt(1) ? 1 : -1;
         auto signY = RandomInt(1) ? 1 : -1;
-        player.Physics.AngularVelocity.z += signX * .35f;
-        player.Physics.AngularVelocity.x += signY * .5f;
+        //player.Physics.AngularVelocity.z += signX * .25f;
+        //player.Physics.AngularVelocity.x += signY * .4f;
     }
 
     void StopSelfDestruct() {
@@ -104,7 +105,7 @@ namespace Inferno::Game {
         AddPointsToScore(REACTOR_SCORE);
         AddKillToHUD("Reactor");
 
-        Graphics::TakeScoreScreenshot(0.10f);
+        Graphics::TakeScoreScreenshot(0.15f);
 
         // Big boom
         Sound3D sound(SoundID::Explosion);
@@ -120,14 +121,18 @@ namespace Inferno::Game {
         sound.Delay = 0.14f;
         Sound::Play(sound, obj.Position, obj.Segment);
 
+        DetachEffects(Game::GetObjectRef(obj)); // Remove the glowing light effect
+
         int instances = 1000; // Want this to last forever in case multiple reactor levels are ever added
 
-        if (auto e = EffectLibrary.GetSparks("reactor_destroyed"))
+        if (auto e = EffectLibrary.GetSparks("reactor destroyed")) {
+            // Tint blue based on level number to correspond with increasing shield values. More energy!
+            e->Color.z += (Game::LevelNumber - 1) * 0.04f; 
             AddSparkEmitter(*e, obj.Segment, obj.Position);
+        }
 
-        if (auto e = EffectLibrary.GetExplosion("reactor_initial_explosion")) {
-            e->Radius = { obj.Radius * 0.5f, obj.Radius * 0.7f };
-            e->Variance = obj.Radius * 0.9f;
+        if (auto e = EffectLibrary.GetExplosion("reactor initial explosion")) {
+            e->LightColor.z += (Game::LevelNumber - 1) * 0.04f;
             CreateExplosion(*e, obj.Segment, obj.Position);
         }
 

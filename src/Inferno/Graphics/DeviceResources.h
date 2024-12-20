@@ -100,6 +100,7 @@ namespace Inferno {
         // Buffers used for the menu blur effect
         Inferno::RenderTarget BlurBufferTemp;
         Inferno::ColorBuffer BlurBufferDownsampled, BlurBuffer;
+        Inferno::ColorBuffer ScoreBackground; // Screenshot taken from the game for use as the score screen background
 
         Inferno::RenderTarget BriefingColorBuffer;
         Inferno::RenderTarget BriefingScanlineBuffer;

@@ -646,17 +646,18 @@ namespace Inferno {
 
         // Returns true if two strings are equal ignoring capitalization
         inline bool InvariantEquals(const string_view s1, const string_view s2) {
-            return _stricmp(s1.data(), s2.data()) == 0;
+            // string views might not be null terminated
+            return _stricmp(string{ s1 }.data(), string{ s2 }.data()) == 0;
         }
 
         // Returns true if two strings are equal ignoring capitalization, up to a number of characters
         inline bool InvariantEquals(const string_view s1, const string_view s2, size_t maxCount) {
-            return _strnicmp(s1.data(), s2.data(), maxCount) == 0;
+            return _strnicmp(string{ s1 }.data(), string{ s2 }.data(), maxCount) == 0;
         }
 
         // Returns true if two strings are equal ignoring capitalization
         inline bool InvariantEquals(const wstring_view s1, const wstring_view s2) {
-            return _wcsicmp(s1.data(), s2.data()) == 0;
+            return _wcsicmp(wstring{ s1 }.data(), wstring{ s2 }.data()) == 0;
         }
 
         // Returns the file name without the extension. Returns original string if no extension.
@@ -756,6 +757,30 @@ namespace Inferno {
         bool operator()(const string& a, const string& b) const {
             return String::InvariantEquals(a, b);
         }
+    };
+
+    // Flags a type as non-copyable
+    struct NonCopyable {
+        NonCopyable(NonCopyable const&) = delete;
+        NonCopyable& operator=(NonCopyable const&) = delete;
+        NonCopyable(NonCopyable&&) = default;
+        NonCopyable& operator=(NonCopyable&&) = default;
+        ~NonCopyable() = default; // Must be public for move constructor to be implicitly defined
+
+    protected:
+        constexpr NonCopyable() = default;
+    };
+
+    // Flags a type as non-movable
+    struct NonMovable {
+        NonMovable(NonMovable const&) = delete;
+        NonMovable& operator=(NonMovable const&) = delete;
+        NonMovable(NonMovable&&) = delete;
+        NonMovable& operator=(NonMovable&&) = delete;
+
+    protected:
+        constexpr NonMovable() = default;
+        ~NonMovable() = default;
     };
 
     namespace Seq {

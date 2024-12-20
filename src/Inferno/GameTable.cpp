@@ -266,6 +266,7 @@ namespace Inferno {
         Yaml::ReadValue(node["Variance"], info.Variance);
         Yaml::ReadValue(node["Color"], info.Color);
         Yaml::ReadValue(node["LightColor"], info.LightColor);
+        Yaml::ReadValue(node["LightRadius"], info.LightRadius);
 
         if (auto name = ReadEffectName(node))
             explosions[*name] = info;

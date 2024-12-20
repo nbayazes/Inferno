@@ -321,14 +321,14 @@ namespace Inferno::Render {
             info.Color = Info.Color;
             info.FadeTime = FadeTime;
 
-            // only apply light to first explosion instance
+            // Apply light at the explosion origin
             if (i == 0 && Info.LightColor != LIGHT_UNSET) {
                 auto lightDuration = Resources::GetVideoClip(info.Clip).PlayTime * 0.75f;
                 LightEffectInfo light;
                 light.FadeTime = lightDuration;
                 light.LightColor = Info.LightColor;
                 light.Radius = Info.LightRadius > 0 ? Info.LightRadius : info.Radius * 4;
-                Inferno::AddLight(light, position, lightDuration, Segment);
+                Inferno::AddLight(light, Position, lightDuration, Segment);
             }
 
             AddParticle(info, Segment, position);
@@ -646,7 +646,7 @@ namespace Inferno::Render {
 
             auto color = Info.Color;
             if (FadeTime > 0) {
-                auto t = 1 - std::clamp((FadeTime - spark.Life) / FadeTime, 0.0f, 1.0f);
+                auto t = 1 - Saturate((FadeTime - spark.Life) / FadeTime);
                 color.w = t * fade;
                 tangent *= t;
             }

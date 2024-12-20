@@ -160,6 +160,7 @@ namespace Inferno {
         DataPool<ActiveDoor> ActiveDoors{ &ActiveDoor::IsAlive, 20 };
 
         bool HasBoss = false;
+        uint TotalHostages = 0; // Number of hostages in the level
 
 #pragma region EditorProperties
         string FileName; // Name in hog or on filesystem
