@@ -294,6 +294,10 @@ int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
         auto size = Settings::Inferno.WindowSize;
         if (size.x <= 0 || size.y <= 0) size = { 640, 480 };
 
+#ifdef _DEBUG
+        size = { 640 * 2, 480 * 2 };
+#endif
+
         auto pos = Settings::Inferno.WindowPosition;
         int result = shell.Show(pos, size, cmdShow);
         Settings::Save();
