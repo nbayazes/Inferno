@@ -26,6 +26,7 @@ namespace Inferno::Sound {
     public:
         Ptr<DynamicSoundEffectInstance> Effect;
         bool Loop = true;
+        float Length = 0; // Length in seconds
 
         MusicStream() = default;
         MusicStream(const MusicStream&) = delete;
@@ -82,7 +83,6 @@ namespace Inferno::Sound {
         drflac* _flac;
         List<byte> _source;
         uint _bufferIndex = 0;
-        size_t _frames = 0;
 
     public:
         FlacStream(std::vector<byte>&& ogg);

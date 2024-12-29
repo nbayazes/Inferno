@@ -11,10 +11,12 @@ namespace Inferno::Sound {
 
         _frames = drmp3_get_pcm_frame_count(&_decoder);
 
-        if (!_frames) {
+        if (_frames == 0) {
             drmp3_uninit(&_decoder);
             throw Exception("Empty or invalid MP3");
         }
+        
+        Length = (float)_frames / _decoder.mp3FrameSampleRate;
 
         //drmp3_seek_to_pcm_frame(&_decoder, _frames - 500000);
 
@@ -54,6 +56,7 @@ namespace Inferno::Sound {
 
         _info = stb_vorbis_get_info(_vorbis);
         _frames = stb_vorbis_stream_length_in_samples(_vorbis);
+        Length = stb_vorbis_stream_length_in_seconds(_vorbis);
 
         if (!_frames) {
             stb_vorbis_close(_vorbis);
@@ -99,6 +102,8 @@ namespace Inferno::Sound {
             drflac_close(_flac);
             throw Exception("Empty or invalid FLAC");
         }
+
+        Length = (float)_flac->totalPCMFrameCount / _flac->sampleRate;
 
         //drflac_seek_to_pcm_frame(_flac, _flac->totalPCMFrameCount - 48'000 * 5);
 

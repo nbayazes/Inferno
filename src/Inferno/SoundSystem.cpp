@@ -505,14 +505,14 @@ namespace Inferno::Sound {
                 return false;
             }
 
-
             _musicStream = CreateMusicStream(std::move(data));
+
             if (!_musicStream) {
                 SPDLOG_WARN("Unable to create music stream from {}", file);
                 return false;
             }
 
-            SPDLOG_INFO("Playing music {}", file);
+            SPDLOG_INFO("Playing music {}. Loop {}", file, loop);
             _musicStream->Loop = loop;
             _musicStream->Effect->SetVolume(_musicVolume);
             _musicStream->Effect->Play();
@@ -1098,7 +1098,6 @@ namespace Inferno::Sound {
         SoundThread->PlayMusic({ {}, data, loop });
         return true;
     }
-
 
     bool PlayMusic(string_view file, bool loop) {
         SoundThread->PlayMusic({ string(file), {}, loop });
