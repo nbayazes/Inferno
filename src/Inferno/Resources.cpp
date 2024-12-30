@@ -721,9 +721,9 @@ namespace Inferno::Resources {
         StringTable.clear();
         StringTable.reserve(700);
         auto data = Hog.ReadEntry("descent.txb");
-        auto briefing = Briefing::Read(data);
+        auto text = DecodeText(data);
 
-        std::stringstream ss(briefing.Raw);
+        std::stringstream ss(text);
         std::string line;
 
         while (std::getline(ss, line, '\n')) {

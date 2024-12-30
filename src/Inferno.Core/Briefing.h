@@ -27,7 +27,7 @@ namespace Inferno {
         List<Screen> Screens;
         string Raw;
 
-        static Briefing Read(span<ubyte> data);
+        static Briefing Read(span<ubyte> data, bool d1);
     };
 
     void SetD1BriefingBackgrounds(Briefing& briefing, bool shareware);

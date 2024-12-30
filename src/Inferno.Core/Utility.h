@@ -609,13 +609,15 @@ namespace Inferno {
     //}
 
     // Decodes shifted text from a TXB or bitmap.tbl
-    constexpr void DecodeText(span<byte> data) {
+    constexpr string DecodeText(span<byte> data) {
         for (auto& c : data) {
             if (c != '\n') {
                 c = std::rotl(c, 1) ^ 0xD3;
                 c = std::rotl(c, 1);
             }
         }
+
+        return string(data.begin(), data.end());
     }
 
     namespace String {

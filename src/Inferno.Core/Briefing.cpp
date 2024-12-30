@@ -27,87 +27,122 @@ namespace Inferno {
         return count;
     }
 
-    List<Briefing::Screen> ParseScreens(span<string> lines) {
+    List<Briefing::Screen> ParseScreens(span<string> lines, bool d1) {
         List<Briefing::Screen> screens;
         Briefing::Screen screen;
         Briefing::Page page;
-        //List<Briefing::Page> pages;
-        //Briefing::Page nullPage;
-        //Briefing::Page* page = &nullPage;
 
         for (auto& line : lines) {
-            if (line.starts_with('$')) {
-                if (line.length() < 2) continue;
+            bool inToken = false;
 
-                switch (line[1]) {
-                    case 'S': // screen / background change
-                    {
-                        if (screen.Number != -1) {
+            // Skip empty lines on the first page of D1 briefings.
+            // There is an odd case of user missions adding blank lines to try and position the text,
+            // but D1 uses hard coded text offsets for each screen
+            if (d1 && screen.Number == 1 && line.empty()) {
+                continue;
+            }
+
+            for (int i = 0; i < line.size(); i++) {
+                auto& c = line[i];
+
+                if (c == '$') {
+                    inToken = true;
+                    i++;
+                    //continue;
+                }
+
+                if (inToken) {
+                    // Read the token
+                    string token = "$";
+
+                    while (i < line.size()) {
+                        if (line[i] == '\n' || line[i] == '$' || line[i] == '\t' || line[i] == ';') {
+                            inToken = false;
+                            break;
+                        }
+
+                        token += line[i];
+                        i++;
+                    }
+
+                    if (token.length() < 2) continue; // missing token value
+
+                    switch (token[1]) {
+                        case 'S': // screen / background change
+                        {
+                            if (screen.Number != -1) {
+                                if (!page.Text.empty()) {
+                                    screen.Pages.push_back(page);
+                                    page = {};
+                                }
+
+                                for (auto& p : screen.Pages)
+                                    p.VisibleCharacters = CountVisibleCharacters(p.Text);
+
+                                screens.push_back(screen);
+                                screen = {};
+                            }
+
+                            if (token.size() > 2)
+                                String::TryParse(token.substr(2), screen.Number);
+
+                            break;
+                        }
+                        case 'P':
                             if (!page.Text.empty()) {
                                 screen.Pages.push_back(page);
                                 page = {};
                             }
 
-                            for (auto& p : screen.Pages)
-                                p.VisibleCharacters = CountVisibleCharacters(p.Text);
+                            break;
 
-                            screens.push_back(screen);
-                            screen = {};
-                        }
+                        case 'T':
+                            if (token.size() > 2)
+                                String::TryParse(String::Trim(token.substr(2)), screen.TabStop);
+                            break;
 
-                        String::TryParse(line.substr(2), screen.Number);
-                        break;
+                        case 'F':
+                            screen.Cursor = true;
+                            break;
+
+                        case 'N':
+                            if (token.size() > 2)
+                                page.Image = token.substr(2) + "#0";
+                            break;
+
+                        case 'B':
+                            if (token.size() > 2)
+                                page.Image = token.substr(2);
+                            break;
+
+                        case 'R':
+                            if (token.size() > 2)
+                                String::TryParse(token.substr(2), page.Robot);
+                            break;
+
+                        default:
+                            page.Text += token;
+                            break;
                     }
-                    case 'P':
-                        if (!page.Text.empty()) {
-                            screen.Pages.push_back(page);
-                            page = {};
-                        }
-
-                        break;
-
-                    case 'T':
-                        String::TryParse(String::Trim(line.substr(2)), screen.TabStop);
-                        break;
-
-                    case 'F':
-                        screen.Cursor = true;
-                        break;
-
-                    case 'N':
-                        page.Image = line.substr(2) + "#0";
-                        break;
-
-                    case 'B':
-                        page.Image = line.substr(2);
-                        break;
-
-                    case 'R':
-                        String::TryParse(line.substr(2), page.Robot);
-                        break;
-
-                    default:
-                        page.Text += line;
-                        break;
+                }
+                else {
+                    page.Text += c;
                 }
             }
-            else {
-                page.Text += line + '\n';
-            }
+
+            if (!inToken)
+                page.Text += '\n';
         }
 
         return screens;
     }
 
-    Briefing Briefing::Read(span<ubyte> data) {
-        // briefings can be either plain text or encoded text
-        DecodeText(data);
-
+    Briefing Briefing::Read(span<ubyte> data, bool d1) {
+        // briefings can be either plain text or encoded text, but assume encoded for now
         Briefing briefing;
-        briefing.Raw = string(data.begin(), data.end());
+        briefing.Raw = DecodeText(data);
         auto lines = String::ToLines(briefing.Raw);
-        briefing.Screens = ParseScreens(lines);
-        //briefing.Screens = ParseScreens(data);
+        briefing.Screens = ParseScreens(lines, d1);
         return briefing;
     }
 
