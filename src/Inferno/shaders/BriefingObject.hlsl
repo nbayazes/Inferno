@@ -84,8 +84,6 @@ float4 Fresnel(float3 eyeDir, float3 normal, float4 color, float power) {
 }
 
 float4 psmain(PS_INPUT input) : SV_Target {
-    //return Sample2D(TextureTable[2934 * 5], input.uv, Sampler, Frame.FilterMode) * input.col;
-    //return float4(0, 1, 0, 1);
     float3 viewDir = normalize(input.world - Frame.Eye);
 
     int texid = input.texid;
@@ -104,22 +102,13 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float4 diffuse = Sample2D(TextureTable[NonUniformResourceIndex(texid * 5)], input.uv, Sampler, Frame.FilterMode);
     float emissive = Sample2D(TextureTable[NonUniformResourceIndex(texid * 5 + 2)], input.uv, Sampler, Frame.FilterMode).r;
 
-    //float3 phaseColor = 0;
-    ////float argDissolve = frac(Frame.Time * .5);
-    //if (Object.PhaseAmount > 0) {
-    //    float dissolveTex = .95 - Sample2D(DissolveTexture, input.uv + float2(Object.TimeOffset, Object.TimeOffset), Sampler, Frame.FilterMode).r;
-    //    clip(Object.PhaseAmount - dissolveTex);
-    //    phaseColor = Object.PhaseColor.rgb * step(Object.PhaseAmount - dissolveTex, 0.05);
-    //}
-
-    //float3 ambient = Object.Ambient.rgb;
-    float3 ambient = 1.0.rrr;
+    float3 ambient = 0.75.rrr;
     MaterialInfo material = Materials[matid];
 
     float3 lighting = ambient;
     diffuse *= input.col;
 
-
+    float specularMask = Sample2D(TextureTable[NonUniformResourceIndex(texid * 5 + 3)], input.uv, Sampler, Frame.FilterMode).r;
     float3 normal = SampleNormal(TextureTable[NonUniformResourceIndex(texid * 5 + 4)], input.uv, NormalSampler, Frame.FilterMode);
     normal.xy *= material.NormalStrength;
     normal = normalize(normal);
@@ -131,20 +120,30 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
     // saturate metallic diffuse. It looks better and removes white highlights. Causes yellow to look orange.
     diffuse.rgb = pow(diffuse.rgb, 1 + material.Metalness * .5);
+    specularMask *= material.SpecularStrength;
 
     {
         // Add some fake specular highlights so objects without direct lighting aren't completely flat
         float nDotH = HalfLambert(normal, -viewDir);
-        float gloss = RoughnessToGloss(material.Roughness) / 4;
-        //float gloss = 16;
-        float eyeTerm = pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
-        float3 specularColor = diffuse.rgb * ambient * 3;
-        lighting += eyeTerm * specularColor * input.col.rgb * material.SpecularStrength * 5;
-        //lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, ambient, diffuse.rgb, specularMask, .25) * nDotH;
+        float gloss = RoughnessToGloss(material.Roughness);
+        ambient *= material.LightReceived;
+        float3 specularColor = diffuse.rgb * material.SpecularStrength * 20;
+
+        //{
+        //    float eyeTerm = pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
+        //    lighting += eyeTerm * specularColor * specularMask * 2;
+        //}
+
+        // second layer of rough gloss based on environment to simulate indirect lighting
+        {
+            gloss /= 16;
+            float envGloss = pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
+            lighting += envGloss * specularColor * 2;
+        }
     }
 
     //lighting *= Specular(lightDir, viewDir, input.normal, 32) * 5;
-    lighting += emissive * diffuse.rgb * material.EmissiveStrength * .2;
+    lighting += emissive * diffuse.rgb * material.EmissiveStrength;
 
     return float4(diffuse.rgb * lighting * Frame.GlobalDimming, diffuse.a);
 }

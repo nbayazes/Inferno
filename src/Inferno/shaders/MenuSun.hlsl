@@ -122,7 +122,7 @@ float SurfaceNoise(float2 uv, float2 speed) {
 
     {
         float2 uv2 = uv - frac(speed * float2(.4, -2) * Frame.Time);
-        noise += Noise.Sample(Sampler, uv2 * float2(14, 6)).r;
+        noise += Noise.Sample(Sampler, uv2 * float2(14, 6)).r * 3;
     }
 
     {
@@ -132,7 +132,7 @@ float SurfaceNoise(float2 uv, float2 speed) {
                    uv.x * sin(theta) + uv.y * cos(theta));
 
         uv3 += frac(-speed * float2(.5, 1) * Frame.Time);
-        noise += saturate(Noise.Sample(Sampler, uv3 * float2(4, 8)).r - .1) * 1.2;
+        noise += saturate(Noise.Sample(Sampler, uv3 * float2(10, 12)).r - .1) * 1.5;
     }
 
     {
@@ -144,14 +144,14 @@ float SurfaceNoise(float2 uv, float2 speed) {
         uv3 += frac(-speed * 2 * Frame.Time);
 
         float noise2 = saturate(Noise.Sample(Sampler, uv3 * 6).r - .2);
-        noise2 *= Noise.Sample(Sampler, uv3 * 2 + .23).r;
-        noise += noise2 * 2;
+        noise2 *= Noise.Sample(Sampler, uv3 * 6 + .23).r;
+        noise += noise2 * 3;
 
         //noise *= Noise.Sample(Sampler, uv3 * 2 + .23).r * 0.75 + 0.25;
     }
 
     //return .05 + noise;
-    return noise + .1;
+    return noise;
     //return pow(noise + .15, 1.2) * .8;
 }
 
@@ -200,9 +200,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //float pole_noise = Noise.Sample(Sampler, uv * float2(3, 2)).r;
     //noise = pole_noise;
 
-    float3 color = float3(1, .25, 0) * 2.75;
-    //const float3 color2 = float3(80, 35, 15) * .5;
-    const float3 ringColor = float3(0.6, 0.5, .2) * 12;
+    float3 color = float3(1, .35, .0) * 2;
+    const float3 ringColor = float3(1, 0.9, .2) * 1.5;
 
     //return float4(input.uv.y, 0, 0, 1);
     float3 viewDir = normalize(input.world - Frame.Eye);
@@ -211,7 +210,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
     //color *= pow(1 + saturate(NoiseLayer2(input.uv, 0.25)) * 4, 4);
 
-    color *= SurfaceNoise(input.uv, float2(0.0005, 0.0005) * 4);
+    color *= 0.95 + SurfaceNoise(input.uv, float2(0.0005, 0.0005) * 4);
     //color = pow(color, 2);
     //    pow(1 + saturate(NoiseLayer2(input.uv + .25, 0.25, .11) * NoiseLayer2(input.uv + .5, .5, 3.14 / 2.44)) * 4, 2) * 2;
 
@@ -249,16 +248,19 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //color *= pow(saturate(dot(input.normal, -viewDir)), 4);
     //color.r *= 2;
     //color.gb = pow(color.gb, 1.5);
-    //color.r = pow(color.r, 1.5);
-    color = pow(color, 1.65);
+    color.r = pow(color.r, 2);
+    //color = pow(color, 1.5);
     //color = pow(color, 2);
 
     // outer ring
-    //float3 ring = pow(saturate(1 - dot(input.normal, -viewDir)), 2);
-    float3 ring = saturate(1 - dot(input.normal, -viewDir));
-    color *= 1 + ring * ringColor;
+    float ring = saturate(dot(input.normal, -viewDir));
+    //color *= pow(1 + ring, 2) * 0.3; // Curvature highlight so sphere isn't flat
+    //color *= 1 + ring * 1.5 * ringColor; // Curvature highlight so sphere isn't flat
 
-    return float4(color, 1);
+    float3 ring2 = pow(saturate(1 - dot(input.normal, -viewDir)), 6);
+    color += ring2 * float3(1, .1, 0) * 10; // Narrow edge ring
+
+    return float4(color * .80, 1);
 }
 
 //float4 psmain(PS_INPUT input) : SV_Target {
