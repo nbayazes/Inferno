@@ -1268,9 +1268,9 @@ namespace Inferno {
     }
 
     // Applies damage and play a sound if object velocity changes suddenly
-    void CheckForImpact(Object& obj, const LevelHit& hit, const LevelTexture* ti) {
+    void CheckForImpact(Object& obj, const Vector3& point, const LevelTexture* ti = nullptr) {
         constexpr float DAMAGE_SCALE = 128;
-        constexpr float DAMAGE_THRESHOLD = 1 / 3.0f;
+        constexpr float DAMAGE_THRESHOLD = 1 / 4.0f;
         auto speed = obj.Physics.Velocity.Length() - obj.Physics.PrevVelocity.Length();
         bool isForceField = ti && ti->IsForceField();
         if (speed > 0 && !isForceField) return; // Object sped up
@@ -1283,7 +1283,7 @@ namespace Inferno {
             if (obj.IsPlayer())
                 Game::AddScreenFlash({ 0, 0, 1 });
 
-            Sound::Play({ SoundID::PlayerHitForcefield }, hit.Point, obj.Segment);
+            Sound::Play({ SoundID::PlayerHitForcefield }, point, obj.Segment);
 
             auto force = Vector3(RandomN11(), RandomN11(), RandomN11()) * 20;
             ApplyRotationForcePlayer(obj, force);
@@ -1295,7 +1295,7 @@ namespace Inferno {
                 if (obj.IsPlayer())
                     AlertRobotsOfNoise(Game::GetPlayerObject(), Game::PLAYER_HIT_WALL_RADIUS, Game::PLAYER_HIT_WALL_NOISE);
 
-                Sound::Play({ SoundID::PlayerHitWall }, hit.Point, obj.Segment);
+                Sound::Play({ SoundID::PlayerHitWall }, point, obj.Segment);
             }
         }
 
@@ -1371,11 +1371,15 @@ namespace Inferno {
                     Game::Player.TouchObject(*hit.HitObj);
                 }
 
-                if (obj.IsRobot() && hit.HitObj)
+                if (obj.IsRobot() && hit.HitObj) {
                     RobotTouchObject(obj, *hit.HitObj);
+                    CheckForImpact(obj, hit.Point);
+                }
 
-                if (hit.HitObj && hit.HitObj->IsRobot())
+                if (hit.HitObj && hit.HitObj->IsRobot()) {
                     RobotTouchObject(*hit.HitObj, obj);
+                    CheckForImpact(*hit.HitObj, hit.Point);
+                }
             }
 
             if (IntersectLevelMesh(level, obj, pvs, hit, dt)) {
@@ -1406,10 +1410,10 @@ namespace Inferno {
                         if (ti->IsLiquid())
                             ScrapeWall(obj, hit, *ti, dt);
                         else
-                            CheckForImpact(obj, hit, ti);
+                            CheckForImpact(obj, hit.Point, ti);
                     }
                     else {
-                        CheckForImpact(obj, hit, nullptr);
+                        CheckForImpact(obj, hit.Point, nullptr);
                     }
                 }
             }
