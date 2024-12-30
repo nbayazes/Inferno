@@ -96,6 +96,13 @@ namespace Inferno::Game {
     // Loads a level from a mission or file
     // If levelName is provided, tries to load that level from the mission, otherwise the first level
     void LoadLevel(const filesystem::path& path, const string& level = "", bool addToRecent = false);
+
+    // Loads a specific level number from a mission. Shows any briefings if present.
+    // Pass > 0 for normal levels, < 0 for secret.
+    void LoadLevelFromMission(const MissionInfo& mission, int levelNumber);
+
+    void LoadNextLevel();
+
     void NewLevel(Editor::NewLevelInfo& info);
 
     void InitLevel(Inferno::Level&& level);

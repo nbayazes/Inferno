@@ -371,6 +371,9 @@ void Inferno::Shell::UpdateWindowTitle(string_view message) {
     else if (state == GameState::MainMenu) {
         SetWindowTextW(Hwnd, Convert::ToWideString(APP_TITLE).c_str());
     }
+    else if (state == GameState::ExitSequence) {
+        SetWindowTextW(Hwnd, L"Escaping the mine!");
+    }
     else {
         auto info = Game::TryReadMissionInfo();
 

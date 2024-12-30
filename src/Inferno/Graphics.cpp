@@ -203,6 +203,7 @@ namespace Inferno::Graphics {
 
     void NotifyLevelChanged() {
         Render::LevelChanged = true;
+        Render::MaterialsChanged = true;
     }
 
     GameTimer ScreenshotTimer;

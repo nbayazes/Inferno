@@ -173,7 +173,6 @@ void Application::OnWindowSizeChanged(int width, int height) {
     Render::Resize(width, height);
 }
 
-
 void Application::OnDeviceLost() {
     // TODO: Add Direct3D resource cleanup here.
     //_graphicsMemory.reset();

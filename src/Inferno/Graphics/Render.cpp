@@ -270,6 +270,7 @@ namespace Inferno::Render {
         Game::MainCamera.SetViewport({ width, height });
 
         Editor::Events::LevelChanged += [] { LevelChanged = true; };
+        Editor::Events::MaterialsChanged += [] { MaterialsChanged = true; };
         Editor::Events::TexturesChanged += [] {
             //PendingTextures.push_back(id);
             Materials->LoadLevelTextures(Game::Level, false);
@@ -426,8 +427,11 @@ namespace Inferno::Render {
     void UpdateFrameConstants(const Inferno::Camera& camera, UploadBuffer<FrameConstants>& dest, float renderScale) {
         auto size = camera.GetViewportSize();
 
+
         FrameConstants frameConstants{};
-        frameConstants.ElapsedTime = Game::GetState() == GameState::MainMenu ? (float)Inferno::Clock.GetTotalTimeSeconds() : (float)Game::Time;
+        frameConstants.ElapsedTime = Game::GetState() == GameState::MainMenu || Game::GetState() == GameState::Briefing
+            ? (float)Inferno::Clock.GetTotalTimeSeconds()
+            : (float)Game::Time;
         frameConstants.ViewProjection = camera.ViewProjection;
         frameConstants.NearClip = camera.GetNearClip();
         frameConstants.FarClip = camera.GetFarClip();
@@ -608,13 +612,22 @@ namespace Inferno::Render {
         SetRenderTarget(ctx, Adapter->GetRenderTarget(), &Adapter->GetDepthBuffer());
         ctx.ClearStencil(Adapter->GetDepthBuffer(), 0);
 
-        if (Game::BriefingVisible)
-            DrawBriefing(ctx, Adapter->BriefingColorBuffer, Game::Briefing);
+        if (MaterialsChanged) {
+            CopyMaterialData(cmdList);
+            LoadVClips(cmdList);
+            MaterialsChanged = false;
+        }
 
-        if (Game::GetState() == GameState::MainMenu) {
+        if (Game::BriefingVisible) {
+            DrawBriefing(ctx, Adapter->BriefingColorBuffer, Game::Briefing);
+        }
+
+        auto gameState = Game::GetState();
+
+        if (gameState == GameState::MainMenu) {
             DrawMainMenuBackground(ctx);
         }
-        else {
+        else if (gameState == GameState::Game || gameState == GameState::PauseMenu || gameState == GameState::Editor) {
             if (LevelChanged) {
                 Adapter->WaitForGpu();
                 RebuildLevelResources(Game::Level);
@@ -627,9 +640,6 @@ namespace Inferno::Render {
                         Game::AttachLight(obj, ref);
                     }
                 }
-
-                CopyMaterialData(cmdList);
-                LoadVClips(cmdList); // todo: only load on initial level load
             }
 
             if (TerrainChanged) {
@@ -666,7 +676,6 @@ namespace Inferno::Render {
             //LegitProfiler::ProfilerTask editor("Draw editor", LegitProfiler::Colors::CLOUDS);
             //LegitProfiler::AddCpuTask(std::move(editor));
         }
-
 
         Debug::EndFrame(ctx);
 

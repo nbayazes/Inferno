@@ -17,6 +17,7 @@ namespace Inferno {
     constexpr float SHIP_MAX_SPEED = 100;
     constexpr float SHIP_TURN_RATE = 0.4f; // Rate per second
     constexpr float SHIP_ACCELERATION = 130.0f;
+    constexpr float SCORE_SCREEN_DELAY = 2.0f; // Seconds after reaching the surface to show the score screen
 
     struct EscapeState {
         EscapeScene Scene{};
@@ -27,6 +28,7 @@ namespace Inferno {
         Vector3 Up;
         GameTimer ExplosionTimer;
         GameTimer ExplosionSoundTimer;
+        GameTimer ScoreScreenTimer;
         bool SurfaceExplosion = false;
         bool CollapseExplosion = false;
         Vector3 DesiredCameraPosition;
@@ -366,11 +368,16 @@ namespace Inferno {
                 Game::Terrain.ExitModel = Resources::GameData.DestroyedExitModel;
                 State.Scene = EscapeScene::Outside;
                 State.CollapseExplosion = true;
+                State.ScoreScreenTimer = SCORE_SCREEN_DELAY; // Show the score screen soon
 
                 if (auto e = EffectLibrary.GetExplosion("mine smoldering")) {
                     CreateExplosion(*e, SegID::Terrain, Game::Terrain.ExitTransform.Translation(), 0);
                 }
             }
+        }
+
+        if (State.ScoreScreenTimer.Expired() || Input::IsKeyPressed(Input::Keys::Escape)) {
+            Game::SetState(GameState::ScoreScreen);
         }
 
         return true;
@@ -479,7 +486,7 @@ namespace Inferno {
             //CinematicCamera.Up = Vector3::Transform(CinematicCamera.Up, qroll);
             //Up.Normalize();
 
-            SPDLOG_INFO("CAMERA ROLL {}", State.CameraRoll);
+            //SPDLOG_INFO("CAMERA ROLL {}", State.CameraRoll);
             State.OutsideCameraLerp = 0;
             State.ZoomingOut = true;
         }

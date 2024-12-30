@@ -18,6 +18,7 @@
 #include "Game.Room.h"
 #include "Game.Segment.h"
 #include "Game.UI.h"
+#include "Game.UI.ScoreScreen.h"
 #include "Game.Visibility.h"
 #include "Game.Wall.h"
 #include "Graphics.Debug.h"
@@ -291,7 +292,7 @@ namespace Inferno::Game {
                         side->TMap2 = clip.DestroyedTexture;
 
                     clip.OneShotTag = {};
-                    Render::LevelChanged = true; // Need to update textures on mesh. This is not ideal.
+                    Graphics::NotifyLevelChanged(); // Need to update textures on mesh. This is not ideal.
                 }
             }
         }
@@ -344,27 +345,6 @@ namespace Inferno::Game {
         Game::GlobalDimming = 1; // Clear dimming
     }
 
-    void UpdateExitSequence() {
-        return;
-
-        // todo: escape sequence
-        // escape cancels sequence?
-
-        // restore default exposure in case the reactor started going critical.
-        //ResetGlobalLighting();
-
-        //auto nextLevel = LevelNameByIndex(LevelNumber + 1);
-        //if (nextLevel.empty()) {
-        //    SetState(GameState::Editor);
-        //}
-        //else {
-        //    LoadLevel(Level.Path, nextLevel);
-        //    SetState(GameState::Game);
-        //}
-        // reset level game state. countdown etc
-        // respawn
-    }
-
     // Changes the game state if a new one is requested
     void CheckGameStateChange() {
         if (State == RequestedState) return;
@@ -374,7 +354,6 @@ namespace Inferno::Game {
             case GameState::MainMenu:
             {
                 Sound::StopAllSounds();
-                Shell::UpdateWindowTitle();
                 Game::Level = {};
                 Editor::History.Reset();
                 Game::MainCamera.Up = Vector3::UnitY;
@@ -383,6 +362,7 @@ namespace Inferno::Game {
                 Sound::SetMusicVolume(Settings::Inferno.MusicVolume);
                 PlayMainMenuMusic();
                 UI::ShowMainMenu();
+                
                 break;
             }
 
@@ -395,14 +375,27 @@ namespace Inferno::Game {
             case GameState::LoadLevel:
                 break;
 
+            case GameState::ScoreScreen:
+                if (Level.Version != 0 && Mission) {
+                    // update the score
+                    auto finalLevel = true; // Standalone
+
+                    if (auto info = TryReadMissionInfo()) {
+                        finalLevel = info->Levels.size() == LevelNumber;
+                    }
+
+                    auto scoreInfo = UI::ScoreInfo::CalculateScore(LevelNumber, Level, Game::Player, Game::Difficulty, finalLevel, false);
+                }
+
+                UI::ShowScoreScreen();
+
+                break;
+
             case GameState::Editor:
                 if (Level.Version == 0) {
                     // Null file
-                    Shell::UpdateWindowTitle("Loading editor");
+                    //Shell::UpdateWindowTitle("Loading editor");
                     Editor::OpenRecentOrEmpty();
-                }
-                else {
-                    Shell::UpdateWindowTitle();
                 }
 
                 if (State == GameState::ExitSequence) {
@@ -446,11 +439,9 @@ namespace Inferno::Game {
                 }
 
                 Sound::SetMusicVolume(Settings::Inferno.MusicVolume);
-                Shell::UpdateWindowTitle();
                 break;
 
             case GameState::ExitSequence:
-                Shell::UpdateWindowTitle("Escaping the mine!");
                 break;
 
             case GameState::PhotoMode:
@@ -471,6 +462,7 @@ namespace Inferno::Game {
         }
 
         State.store(RequestedState);
+        Shell::UpdateWindowTitle();
     }
 
     // Test code for showing a message from an NPC
@@ -592,6 +584,10 @@ namespace Inferno::Game {
 
             //Input::SetMouseMode(Input::MouseMode::Mouselook);
             //GenericCameraController(MainCamera, 300);
+                break;
+
+            case GameState::ScoreScreen:
+                Inferno::UI::Update();
                 break;
 
             case GameState::Briefing:
@@ -834,6 +830,85 @@ namespace Inferno::Game {
         return true;
     }
 
+    constexpr auto FIRST_STRIKE_NAME = "Descent: First Strike";
+
+    void LoadLevelFromMission(const MissionInfo& mission, int levelNumber) {
+        try {
+            if (levelNumber == 0)
+                levelNumber = 1;
+
+            if (levelNumber > mission.Levels.size()) {
+                ShowErrorMessage(Convert::ToWideString(std::format("Level number {} not found", levelNumber)));
+                return;
+            }
+
+            // load next level or exit to main menu
+            filesystem::path hogPath = mission.Path;
+            hogPath.replace_extension(".hog");
+
+            if (!Game::LoadMission(hogPath)) {
+                ShowErrorMessage(Convert::ToWideString(std::format("Unable to load mission {}", hogPath.string())));
+                return;
+            }
+
+            auto isShareware = Game::Mission->ContainsFileType(".sdl");
+
+            if (auto levelEntry = Seq::tryItem(mission.Levels, levelNumber - 1)) {
+                auto data = Game::Mission->ReadEntry(*levelEntry);
+                auto level = isShareware ? Level::DeserializeD1Demo(data) : Level::Deserialize(data);
+                //Game::LoadLevelFromMission(_mission->Levels[_level]);
+                Resources::LoadLevel(level);
+                Graphics::LoadLevel(level);
+                Game::LoadLevel(hogPath, *levelEntry);
+                Render::MaterialsChanged = true;
+
+                auto briefingName = mission.GetValue("briefing");
+
+                if (!briefingName.empty()) {
+                    if (String::Extension(briefingName).empty())
+                        briefingName += ".txb";
+
+                    auto entry = Game::Mission->TryReadEntry(briefingName);
+                    auto briefing = Briefing::Read(entry, level.IsDescent1());
+
+                    SetD1BriefingBackgrounds(briefing, isShareware);
+
+                    if (mission.Name == FIRST_STRIKE_NAME && levelNumber == 1) {
+                        AddPyroAndReactorPages(briefing);
+                    }
+
+                    //LoadBriefingResources(briefing);
+                    Game::Briefing = BriefingState(briefing, levelNumber, true);
+                    Game::Level.Version = level.Version; // hack: due to LoadResources
+                    Game::Briefing.LoadResources(); // TODO: Load resources depends on the level being fully loaded to pick the right assets!
+                    Game::PlayMusic("d1/briefing");
+                    Game::SetState(GameState::Briefing);
+                }
+                else {
+                    Game::SetState(GameState::LoadLevel);
+                }
+            }
+        }
+        catch (const std::exception& e) {
+            ShowErrorMessage(Convert::ToWideString(
+                std::format("Unable to load mission {}\n{}", mission.Path.string(), e.what())
+            ));
+
+            Game::SetState(GameState::MainMenu);
+        }
+    }
+
+    void LoadNextLevel() {
+        if (auto mission = TryReadMissionInfo()) {
+            if (Game::LevelNumber + 1 <= mission->Levels.size()) {
+                LoadLevelFromMission(*mission, Game::LevelNumber + 1);
+                return;
+            }
+        }
+
+        Game::SetState(GameState::MainMenu);
+    }
+
     bool StartLevel() {
         SPDLOG_INFO("Starting level");
         auto player = Level.TryGetObject(ObjID(0));
@@ -896,7 +971,7 @@ namespace Inferno::Game {
         Navigation = NavigationNetwork(Level);
         Level.Rooms = CreateRooms(Level);
         Level.HasBoss = false;
-        Render::LevelChanged = true; // regenerate level meshes
+        Graphics::NotifyLevelChanged(); // regenerate level meshes
 
         // init objects
         for (int id = 0; id < Level.Objects.size(); id++) {

@@ -1,5 +1,6 @@
 #pragma once
 #include "Game.UI.Controls.h"
+#include "Game.Bindings.h"
 
 namespace Inferno::UI {
     struct ScoreInfo {
@@ -19,13 +20,13 @@ namespace Inferno::UI {
         int TotalBonus = 0;
         int TotalScore = 0;
         int ExtraLives = 0;
+        bool FinalLevel = false;
 
-        ScoreInfo CalculateScore(int levelNumber, const Level& level, const MissionInfo& mission, const Player& player, bool cheater) {
+        static ScoreInfo CalculateScore(int levelNumber, const Level& level, const Player& player, DifficultyLevel difficulty, bool finalLevel, bool cheater) {
             //auto levelNumber = levelNumber > 0 ? LevelNumber : -(mission.Levels.size() / mission.SecretLevels.size());
 
             auto levelPoints = player.Score - player.LevelStartScore;
             auto skillPoints = 0;
-            auto difficulty = (int)Difficulty;
 
             //auto shieldPoints = 0;
             //auto energyPoints = 0;
@@ -34,28 +35,29 @@ namespace Inferno::UI {
             auto endgamePoints = 0;
 
             ScoreInfo score;
+            score.FinalLevel = finalLevel;
 
             if (!cheater) {
-                if (difficulty > 1) {
-                    skillPoints = levelPoints * difficulty / 4;
+                if ((int)difficulty > 1) {
+                    skillPoints = levelPoints * (int)difficulty / 4;
                     skillPoints -= skillPoints % 100; // round
                 }
 
                 score.ShieldBonus = (int)player.Shields * 5 * levelNumber;
                 score.EnergyBonus = (int)player.Energy * 2 * levelNumber;
-                score.HostageBonus = player.HostagesOnShip * 500 * (difficulty + 1);
+                score.HostageBonus = player.HostagesOnShip * 500 * ((int)difficulty + 1);
 
                 score.ShieldBonus -= score.ShieldBonus % 50;
                 score.EnergyBonus -= score.EnergyBonus % 50;
 
                 if (player.HostagesOnShip == level.TotalHostages) {
-                    score.HostageBonus += player.HostagesOnShip * 1000 * (difficulty + 1);
+                    score.HostageBonus += player.HostagesOnShip * 1000 * ((int)difficulty + 1);
 
-                    FullRescue = true;
+                    score.FullRescue = true;
                 }
 
                 // Convert extra lives to points on the final level
-                if (Game::LevelNumber == mission.Levels.size()) {
+                if (finalLevel) {
                     endgamePoints = player.Lives * 10000;
                 }
             }
@@ -79,11 +81,12 @@ namespace Inferno::UI {
 
     class ScoreScreen : public ScreenBase {
         static constexpr float titleOffset = 30;
+        static constexpr float statsSpacing = 150;
 
+        StackPanel* _panel = nullptr;
     public:
         ScoreScreen(const ScoreInfo& info) {
             constexpr float statsOffset = titleOffset + 70;
-            constexpr float statsSpacing = 200;
             constexpr float statsLineHeight = 20;
 
             {
@@ -179,14 +182,14 @@ namespace Inferno::UI {
                 if (info.Secrets > 0)
                     addRightAligned(fmt::format("{} of {}", info.SecretsFound, info.Secrets));
 
-                panel->AddChild<Label>("");
+                addRightAligned("");
                 addRightAligned(std::to_string(info.ShieldBonus));
                 addRightAligned(std::to_string(info.EnergyBonus));
                 addRightAligned(std::to_string(info.HostageBonus));
                 addRightAligned(std::to_string(info.SkillBonus));
                 //panel->AddChild<Label>("");
                 addRightAligned(std::to_string(info.TotalBonus));
-                panel->AddChild<Label>("");
+                addRightAligned("");
                 addRightAligned(std::to_string(info.TotalScore));
 
                 // D3 score screen:
@@ -196,7 +199,8 @@ namespace Inferno::UI {
                 // Difficulty, Score, Time Played, Robots Destroyed, Shield / Energy Rating,  Number of Deaths
                 // Objectives: Destroy the Reactor: Complete
 
-                AddChild(std::move(panel));
+                //AddChild(std::move(panel));
+                _panel = AddChildT(std::move(panel));
             }
 
             if (info.ExtraLives > 0) {
@@ -208,6 +212,12 @@ namespace Inferno::UI {
                 extraLife->HorizontalAlignment = AlignH::Center;
                 extraLife->Position.y = -60;
                 extraLife->Color = Color(1.75f, 1.75f, 1.75f);
+            }
+        }
+
+        void OnUpdate() override {
+            if (Input::IsKeyPressed(Input::Keys::Escape) || Game::Bindings.Pressed(GameAction::FirePrimary) || Input::MenuConfirm()) {
+                Game::LoadNextLevel();
             }
         }
 
@@ -224,15 +234,24 @@ namespace Inferno::UI {
 
             {
                 // Text Background
-                auto& material = Render::Materials->Get("menu-bg");
+                //auto& material = Render::Materials->Get("menu-bg");
+                auto& material = Render::Materials->Black();
 
                 Render::CanvasBitmapInfo cbi;
-                cbi.Position.y = (titleOffset - 40) * GetScale();
-                cbi.Size = Vector2(640, 400) * GetScale();
+                cbi.Position.y = (titleOffset - 10) * GetScale();
+                cbi.Size = Vector2(statsSpacing * 2 + 20, 400) * GetScale();
                 cbi.Texture = material.Handle();
-                cbi.Color = Color(1, 1, 1, 0.80f);
+                cbi.Color = Color(1, 1, 1, 0.90f);
                 cbi.HorizontalAlign = AlignH::Center;
                 cbi.VerticalAlign = AlignV::Top;
+
+                if (_panel) {
+                    cbi.Position.y = _panel->ScreenPosition.y - 10 * GetScale();
+                    //cbi.Size.x = _panel->ScreenSize.x + 20;
+                    cbi.Size.x = (statsSpacing * 2 + 20) * GetScale();
+                    cbi.Size.y = _panel->ScreenSize.y + 20 * GetScale();
+                }
+
                 Render::UICanvas->DrawBitmap(cbi, Layer);
             }
 

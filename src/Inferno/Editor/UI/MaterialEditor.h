@@ -1,4 +1,5 @@
 #pragma once
+#include "Editor/Events.h"
 #include "Procedural.h"
 #include "Resources.h"
 #include "WindowBase.h"
@@ -202,14 +203,14 @@ namespace Inferno::Editor {
                     ImGui::SameLine();
                     if (ImGui::Button("Paste", buttonSize)) {
                         material = _copy;
-                        Events::LevelChanged();
+                        Events::MaterialsChanged();
                     }
 
                     ImGui::SameLine();
                     if (ImGui::Button("Revert", buttonSize)) {
                         if (Seq::inRange(_backup, (int)ti.ID))
                             material = _backup[(int)ti.ID];
-                        Events::LevelChanged();
+                        Events::MaterialsChanged();
                     }
 
                     ImGui::Dummy({ 0, 5 });
@@ -222,7 +223,7 @@ namespace Inferno::Editor {
 
                         auto onMaterialChanged = [&] {
                             material.ID = (int)ti.ID;
-                            Events::LevelChanged();
+                            Events::MaterialsChanged();
                         };
 
                         ImGui::TableRowLabel("Roughness");
@@ -278,7 +279,7 @@ namespace Inferno::Editor {
                         auto additive = (bool)material.Additive;
                         if (ImGui::Checkbox("##Additive", &additive)) {
                             material.Additive = additive;
-                            Events::LevelChanged(); // Rebuild meshes due to blend mode changing
+                            Events::MaterialsChanged(); // Rebuild meshes due to blend mode changing
                         }
 
                         ImGui::EndTable();

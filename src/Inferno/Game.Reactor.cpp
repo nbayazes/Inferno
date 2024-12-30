@@ -84,8 +84,8 @@ namespace Inferno::Game {
         auto& player = Game::GetPlayerObject();
         auto signX = RandomInt(1) ? 1 : -1;
         auto signY = RandomInt(1) ? 1 : -1;
-        //player.Physics.AngularVelocity.z += signX * .25f;
-        //player.Physics.AngularVelocity.x += signY * .4f;
+        player.Physics.AngularVelocity.z += signX * .25f;
+        player.Physics.AngularVelocity.x += signY * .4f;
     }
 
     void StopSelfDestruct() {

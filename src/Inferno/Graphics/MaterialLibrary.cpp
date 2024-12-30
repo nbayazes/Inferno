@@ -744,7 +744,7 @@ namespace Inferno::Render {
         }
 
         Render::Adapter->PrintMemoryUsage();
-        Render::LevelChanged = true; // To trigger refresh of material cache
+        Render::MaterialsChanged = true; // To trigger refresh of material cache
     }
 
     void MaterialLibrary::Unload() {

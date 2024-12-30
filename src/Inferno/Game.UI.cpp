@@ -216,6 +216,7 @@ namespace Inferno::UI {
             screen->SelectFirst();
 
         Input::ResetState(); // Reset input to prevent clicking a control as soon as the screen appears
+        Game::Bindings.ResetState();
         screen->OnUpdate();
         Screens.push_back(std::move(screen));
         return Screens.back().get();
@@ -305,15 +306,16 @@ namespace Inferno::UI {
             CloseOnClickOutside = true;
 
             auto panel = make_unique<StackPanel>();
-            panel->Position = Vector2(0, DIALOG_CONTENT_PADDING);
+            panel->Size.x = Size.x;
+            panel->Position = Vector2(2, DIALOG_CONTENT_PADDING);
             panel->HorizontalAlignment = AlignH::Center;
             panel->VerticalAlignment = AlignV::Top;
 
-            panel->AddChild<Button>("Trainee", [this] { OnPick(DifficultyLevel::Trainee); });
-            panel->AddChild<Button>("Rookie", [this] { OnPick(DifficultyLevel::Rookie); });
-            panel->AddChild<Button>("Hotshot", [this] { OnPick(DifficultyLevel::Hotshot); });
-            panel->AddChild<Button>("Ace", [this] { OnPick(DifficultyLevel::Ace); });
-            Button insane("Insane", [this] { OnPick(DifficultyLevel::Insane); });
+            panel->AddChild<Button>("Trainee", [this] { OnPick(DifficultyLevel::Trainee); }, AlignH::Center);
+            panel->AddChild<Button>("Rookie", [this] { OnPick(DifficultyLevel::Rookie); }, AlignH::Center);
+            panel->AddChild<Button>("Hotshot", [this] { OnPick(DifficultyLevel::Hotshot); }, AlignH::Center);
+            panel->AddChild<Button>("Ace", [this] { OnPick(DifficultyLevel::Ace); }, AlignH::Center);
+            Button insane("Insane", [this] { OnPick(DifficultyLevel::Insane); }, AlignH::Center);
             insane.TextColor = Color(3.0f, 0.4f, 0.4f);
             insane.FocusColor = Color(4.0f, 0.4f, 0.4f);
             panel->AddChild<Button>(std::move(insane));
@@ -461,72 +463,8 @@ namespace Inferno::UI {
 
             screen->CloseCallback = [this](CloseState state) {
                 if (state == CloseState::Accept && _mission) {
-                    try {
-                        // todo: show briefing or loading screen
-                        Game::Difficulty = _difficulty;
-
-                        // open the hog and check for a briefing
-                        filesystem::path hogPath = _mission->Path;
-                        hogPath.replace_extension(".hog");
-
-                        if (!Game::LoadMission(hogPath)) {
-                            ShowErrorMessage(Convert::ToWideString(std::format("Unable to load mission {}", hogPath.string())));
-                            return;
-                        }
-
-                        auto isShareware = Game::Mission->ContainsFileType(".sdl");
-                        auto levelEntry = Seq::tryItem(_mission->Levels, _level - 1);
-                        if (!levelEntry) {
-                            ShowErrorMessage(Convert::ToWideString(std::format("Tried to load level {} but hog only contains {}", _level, _mission->Levels.size())));
-                            return;
-                        }
-
-                        auto data = Game::Mission->ReadEntry(*levelEntry);
-                        auto level = isShareware ? Level::DeserializeD1Demo(data) : Level::Deserialize(data);
-                        //Game::LoadLevelFromMission(_mission->Levels[_level]);
-                        Resources::LoadLevel(level);
-                        Graphics::LoadLevel(level);
-                        Game::LoadLevel(hogPath, *levelEntry);
-
-                        auto briefingName = _mission->GetValue("briefing");
-
-                        if (!briefingName.empty()) {
-                            if (String::Extension(briefingName).empty())
-                                briefingName += ".txb";
-
-                            auto entry = Game::Mission->TryReadEntry(briefingName);
-                            auto briefing = Briefing::Read(entry);
-
-                            // mount the game data
-                            //if (isShareware)
-                            //    Resources::LoadDescent1Shareware();
-                            //else
-                            //    Resources::LoadDescent1Resources();
-
-                            SetD1BriefingBackgrounds(briefing, isShareware);
-
-                            // Queue load level
-
-                            if (_mission->Name == FIRST_STRIKE_NAME && _level == 1) {
-                                AddPyroAndReactorPages(briefing);
-                            }
-
-                            //LoadBriefingResources(briefing);
-                            Game::Briefing = BriefingState(briefing, _level, true);
-                            Game::Level.Version = level.Version; // hack: due to LoadResources
-                            Game::Briefing.LoadResources(); // TODO: Load resources depends on the level being fully loaded to pick the right assets!
-                            Game::PlayMusic("d1/briefing");
-                            Game::SetState(GameState::Briefing);
-                        }
-                        else {
-                            Game::SetState(GameState::LoadLevel);
-                        }
-                    }
-                    catch (const std::exception& e) {
-                        ShowErrorMessage(Convert::ToWideString(
-                            std::format("Unable to load mission {}\n{}", _mission->Path.string(), e.what())
-                        ));
-                    }
+                    Game::Difficulty = _difficulty;
+                    Game::LoadLevelFromMission(*_mission, _level);
                 }
 
                 _mission = nullptr;
@@ -563,7 +501,9 @@ namespace Inferno::UI {
             panel->AddChild<Button>("Options", [] {
                 ShowScreen(make_unique<OptionsMenu>());
             });
-            panel->AddChild<Button>("High Scores");
+            panel->AddChild<Button>("High Scores", [] {
+                Game::SetState(GameState::ScoreScreen);
+            });
             panel->AddChild<Button>("Credits");
             panel->AddChild<Button>("Level Editor", [] {
                 Game::SetState(GameState::Editor);
@@ -785,6 +725,23 @@ namespace Inferno::UI {
 
         Screens.clear();
         ShowScreen(make_unique<MainMenu>());
+    }
+
+    void ShowPauseDialog() {
+        if (Screens.empty()) {
+            Screens.reserve(20);
+        }
+
+        Screens.clear();
+        ShowScreen(make_unique<PauseMenu>());
+    }
+
+    void ShowScoreScreen() {
+        if (Screens.empty()) {
+            Screens.reserve(20);
+        }
+
+        Screens.clear();
 
         auto textures = std::to_array<const string>({ "menu-bg" });
         Graphics::LoadTextures(textures);
@@ -808,15 +765,6 @@ namespace Inferno::UI {
         };
 
         ShowScreen(make_unique<ScoreScreen>(info));
-    }
-
-    void ShowPauseDialog() {
-        if (Screens.empty()) {
-            Screens.reserve(20);
-        }
-
-        Screens.clear();
-        ShowScreen(make_unique<PauseMenu>());
     }
 
     void Update() {

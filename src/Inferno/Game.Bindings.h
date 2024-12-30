@@ -70,7 +70,7 @@ namespace Inferno {
         Array<string, (uint)GameAction::Count> _labels = {};
 
     public:
-        GameBindings() { Reset(); }
+        GameBindings() { RestoreDefaults(); }
 
         void Clear() { _bindings.clear(); }
 
@@ -96,8 +96,7 @@ namespace Inferno {
         }
 
         void Update() {
-            // Clear state
-            ranges::fill(_state, false);
+            ResetState();
 
             // If any bindings are down for the action, set it as true
             for (auto& binding : _bindings) {
@@ -116,9 +115,10 @@ namespace Inferno {
             return _state[(uint)action];
         }
 
-        void Reset();
+        void RestoreDefaults();
+        void ResetState() { ranges::fill(_state, false); }
 
-        bool IsReservedKey(Input::Keys key) const {
+        static bool IsReservedKey(Input::Keys key) {
             using Input::Keys;
             return key == Keys::Escape || key == Keys::LeftWindows || key == Keys::RightWindows;
         }

@@ -481,10 +481,10 @@ namespace Inferno::UI {
             dti.Position.y = ScreenPosition.y + ScreenSize.y * 0.5f - _textSize.y * 0.5f * GetScale();
 
             if (_alignment == AlignH::Center) {
-                dti.Position.x += ScreenSize.x / 2 - _textSize.x / 2 * GetScale();
+                dti.Position.x += ScreenSize.x / 2 - _textSize.x / 2 * GetScale() - Padding.x * GetScale();
             }
             else if (_alignment == AlignH::Right) {
-                dti.Position.x += ScreenSize.x - _textSize.x * GetScale();
+                dti.Position.x += ScreenSize.x - _textSize.x * GetScale() - Padding.x * GetScale();
             }
 
             Render::UICanvas->DrawRaw(_text, dti, Layer);

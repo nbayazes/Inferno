@@ -38,6 +38,7 @@ namespace Inferno::Editor {
         inline Event<LevelTexID, LevelTexID> SelectTexture;
         inline Event<LevelTexID> TextureInfo;
         inline Event LevelChanged; // Level mesh needs regenerating
+        inline Event MaterialsChanged; // Materials need uploading
         inline Event TexturesChanged; // Textures maybe need to be reloaded
         inline Event SegmentsChanged; // Number of segments changed
         inline Event ObjectsChanged; // Number of objects changed

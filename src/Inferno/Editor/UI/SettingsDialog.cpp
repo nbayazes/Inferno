@@ -418,7 +418,7 @@ namespace Inferno::Editor {
         if (!ImGui::BeginTabItem("Game keys")) return;
 
         if (ImGui::Button("Reset to defaults")) {
-            Game::Bindings.Reset();
+            Game::Bindings.RestoreDefaults();
         }
 
         ImGui::BeginChild("container");

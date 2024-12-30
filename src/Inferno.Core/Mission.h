@@ -31,16 +31,16 @@ namespace Inferno {
             Metadata[key] = value ? "yes" : "no";
         }
 
-        bool GetBool(const string& key) {
+        bool GetBool(const string& key) const {
             if (Metadata.contains(key))
-                return Metadata[key] == "yes";
+                return Metadata.at(key) == "yes";
 
             return false;
         }
 
-        string GetValue(const string& key) {
+        string GetValue(const string& key) const {
             if (Metadata.contains(key))
-                return Metadata[key];
+                return Metadata.at(key);
 
             return "";
         }

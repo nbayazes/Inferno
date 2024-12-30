@@ -36,7 +36,7 @@ namespace Inferno {
         _bindings.push_back(binding);
     }
 
-    void GameBindings::Reset() {
+    void GameBindings::RestoreDefaults() {
         auto setLabel = [this](GameAction action, const string& str) {
             _labels[(uint)action] = str;
         };
