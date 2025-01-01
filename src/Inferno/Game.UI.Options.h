@@ -3,8 +3,11 @@
 #include "Graphics.h"
 #include "Procedural.h"
 #include "Resources.h"
+#include "Game.UI.Bindings.h"
 
 namespace Inferno::UI {
+    ScreenBase* ShowScreen(Ptr<ScreenBase> screen);
+
     class SoundMenu : public DialogBase {
         List<AudioEngine::RendererDetail> _devices;
         int _deviceIndex = 0;
@@ -122,7 +125,9 @@ namespace Inferno::UI {
             panel->AddChild<Checkbox>("Classic pitch speed", Settings::Inferno.HalvePitchSpeed);
 
             panel->AddChild<Label>("");
-            panel->AddChild<Button>("Customize bindings");
+            panel->AddChild<Button>("Customize bindings", [] {
+                ShowScreen(make_unique<BindingDialog>());
+            });
             panel->AddChild<Button>("Keyboard sensitivity");
             panel->AddChild<Button>("Mouse sensitivity");
             panel->AddChild<Button>("Joystick sensitivity");
@@ -267,8 +272,6 @@ namespace Inferno::UI {
             AddChild(std::move(panel));
         }
     };
-
-    ScreenBase* ShowScreen(Ptr<ScreenBase> screen);
 
     class OptionsMenu : public DialogBase {
     public:

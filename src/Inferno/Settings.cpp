@@ -362,12 +362,21 @@ namespace Inferno {
         Game::Bindings.Clear(); // we have some bindings to replace defaults!
 
         for (const auto& c : node.children()) {
-            if (c.is_seed() || !c.is_map()) continue;
-
+            if (c.is_seed() || !c.is_map() || !c.valid() || c.empty() || !c.has_children()) continue;
             auto kvp = c.child(0);
             string value, command;
-            if (kvp.has_key()) command = string(kvp.key().data(), kvp.key().len);
-            if (kvp.has_val()) value = string(kvp.val().data(), kvp.val().len);
+            if (kvp.has_key()) {
+                auto key = kvp.key();
+                if (key.len > 0)
+                    command = string(key.data(), key.len);
+            }
+
+            if (kvp.has_val()) {
+                auto val = kvp.val();
+                if (val.len > 0)
+                    value = string(val.data(), val.len);
+            }
+
             if (value.empty() || command.empty()) continue;
 
             GameBinding binding;

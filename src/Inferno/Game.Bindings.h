@@ -58,6 +58,10 @@ namespace Inferno {
             Mouse = {};
         }
 
+        bool HasValue() const {
+            return Action != GameAction::None && (Key != Input::Keys::None || Mouse != Input::MouseButtons::None);
+        }
+
         //bool operator==(const GameBinding& rhs) const {
         //    return Key == rhs.Key || Mouse == rhs.Mouse;
         //}
@@ -79,20 +83,23 @@ namespace Inferno {
         span<GameBinding> GetBindings() { return _bindings; }
         const string& GetLabel(GameAction action) const;
 
+        // Unbinds any existing usages of this key or mouse button
         void UnbindExisting(const GameBinding& binding) {
             for (auto& b : _bindings) {
                 if (&b == &binding) continue;
 
-                if (b.Key == binding.Key)
+                if (binding.Key != Input::Keys::None && b.Key == binding.Key)
                     b.Key = Input::Keys::None;
 
-                if (b.Mouse == binding.Mouse)
+                if (binding.Mouse != Input::MouseButtons::None && b.Mouse == binding.Mouse)
                     b.Mouse = Input::MouseButtons::None;
             }
         }
 
         GameBinding* TryFind(GameAction action) {
-            return Seq::find(_bindings, [&](const GameBinding& b) { return b.Action == action; });
+            return Seq::find(_bindings, [&](const GameBinding& b) {
+                return b.Action == action && b.HasValue();
+            });
         }
 
         void Update() {

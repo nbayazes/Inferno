@@ -295,6 +295,7 @@
     <ClInclude Include="Editor\UI\DiagnosticWindow.h" />
     <ClInclude Include="Effect.h" />
     <ClInclude Include="Game.Terrain.h" />
+    <ClInclude Include="Game.UI.Bindings.h" />
     <ClInclude Include="Game.UI.Controls.h" />
     <ClInclude Include="Game.UI.h" />
     <ClInclude Include="Game.UI.Options.h" />

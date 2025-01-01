@@ -444,7 +444,7 @@ namespace Inferno::Editor {
                             break;
                         }
 
-                        if (Game::Bindings.IsReservedKey(key))
+                        if (GameBindings::IsReservedKey(key))
                             continue;
 
                         // assign the new binding

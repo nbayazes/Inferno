@@ -113,6 +113,7 @@ namespace Inferno::Editor {
 
     class EditorBindings {
         List<EditorBinding> _bindings;
+
     public:
         // Adds a new binding and unbinds any existing actions using the same shortcut
         void Add(EditorBinding binding);

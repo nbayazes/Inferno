@@ -20,6 +20,7 @@ namespace Inferno::UI {
     constexpr Color DIALOG_TITLE_COLOR = { 1.25f, 1.25f, 2.0f };
     constexpr Color DIALOG_BACKGROUND = { 0.1f, 0.1f, 0.1f };
     constexpr Color HELP_TEXT_COLOR = { 0.75f, 0.75f, 0.75f };
+    constexpr Color FOCUSED_BUTTON = { 246.0f / 255, 153.0f / 255, 66.0f / 255 };
     constexpr float DIALOG_PADDING = 15;
     constexpr float DIALOG_CONTENT_PADDING = DIALOG_PADDING + 30;
     constexpr float MENU_TEXT_HEIGHT = 24; // Medium high res font
@@ -29,6 +30,10 @@ namespace Inferno::UI {
     // Prevents focus from changing when true. Call with false to release
     void CaptureCursor(bool);
     bool IsCursorCaptured();
+
+    // Prevents all default navigation when true
+    void CaptureInput(bool capture);
+    bool IsInputCaptured();
 
     using Action = std::function<void()>;
 
@@ -497,11 +502,10 @@ namespace Inferno::UI {
             ClickAction = action;
             Size = Vector2(15, 15);
             Focusable = false; // Disable keyboard navigation
-            ActionSound = MENU_BACK_SOUND;
+            //ActionSound = MENU_BACK_SOUND;
         }
 
         float Thickness = 2.0f;
-
 
         void OnDraw() override {
             const float thickness = Thickness * GetScale();
@@ -1025,7 +1029,7 @@ namespace Inferno::UI {
             cbi.Size = Vector2(width * percent, barHeight);
             cbi.Texture = Render::Materials->White().Handle();
             //auto color = hovered ? ACCENT_GLOW : Focused ? ACCENT_COLOR : IDLE_BUTTON;
-            auto color = hovered ? ACCENT_GLOW : Focused ? Color(246.0f / 255, 153.0f / 255, 66.0f / 255) : IDLE_BUTTON;
+            auto color = hovered ? ACCENT_GLOW : Focused ? FOCUSED_BUTTON : IDLE_BUTTON;
             cbi.Color = color * 0.8f;
             Render::UICanvas->DrawBitmap(cbi, Layer + 1);
         }
@@ -1505,7 +1509,7 @@ namespace Inferno::UI {
             cbi.Size = Vector2(width * percent, barHeight);
             cbi.Texture = Render::Materials->White().Handle();
             //auto color = hovered ? ACCENT_GLOW : Focused ? ACCENT_COLOR : IDLE_BUTTON;
-            auto color = hovered ? ACCENT_GLOW : Focused ? Color(246.0f / 255, 153.0f / 255, 66.0f / 255) : IDLE_BUTTON;
+            auto color = hovered ? ACCENT_GLOW : Focused ? FOCUSED_BUTTON : IDLE_BUTTON;
             cbi.Color = color * 0.8f;
             Render::UICanvas->DrawBitmap(cbi, Layer + 1);
         }
@@ -1590,6 +1594,7 @@ namespace Inferno::UI {
         ScreenBase() {
             Focusable = false;
             Padding = Vector2(5, 5);
+            ActionSound = MENU_SELECT_SOUND;
         }
 
         bool CloseOnConfirm = true;
@@ -1824,17 +1829,6 @@ namespace Inferno::UI {
             Size = Vector2(std::min(width + DIALOG_PADDING * 2, maxWidth), 35.0f * values.size());
             AddChild(std::move(panel));
         }
-
-        void OnDraw() override {
-            // Background
-            //Render::CanvasBitmapInfo cbi;
-            //cbi.Size = Render::UICanvas->GetSize();
-            //cbi.Texture = Render::Materials->Black().Handle();
-            //cbi.Color = Color(0, 0, 0, 0.95f);
-            //Render::UICanvas->DrawBitmap(cbi, Layer);
-
-            DialogBase::OnDraw();
-        }
     };
 
     ScreenBase* ShowScreen(Ptr<ScreenBase> screen);
@@ -1916,7 +1910,7 @@ namespace Inferno::UI {
             }
 
             auto boxPosition = Vector2(ScreenPosition.x + LabelWidth * GetScale(), ScreenPosition.y);
-            auto borderColor = _hovered ? ACCENT_GLOW : Focused ? Color(246.0f / 255, 153.0f / 255, 66.0f / 255) : IDLE_BUTTON;
+            auto borderColor = _hovered ? ACCENT_GLOW : Focused ? FOCUSED_BUTTON : IDLE_BUTTON;
 
             {
                 // Border

@@ -20,10 +20,14 @@ namespace Inferno::UI {
 
     namespace {
         bool CursorCaptured = false;
+        bool InputCaptured = false;
     }
 
     void CaptureCursor(bool capture) { CursorCaptured = capture; }
     bool IsCursorCaptured() { return CursorCaptured; }
+
+    void CaptureInput(bool capture) { InputCaptured = capture; }
+    bool IsInputCaptured() { return InputCaptured; }
 
     // Translates an input keycode to an ASCII character
     uchar TranslateSymbol(uchar keycode) {
@@ -246,6 +250,11 @@ namespace Inferno::UI {
                 return false; // Can't close the last screen
         }
 
+        if (Screens.back()->State == CloseState::Accept)
+            Sound::Play2D(SoundResource{ Screens.back()->ActionSound });
+        else if (Screens.back()->State == CloseState::Cancel)
+            Sound::Play2D(SoundResource{ MENU_BACK_SOUND });
+
         auto& screen = Screens.back();
         SPDLOG_INFO("Closing screen {:x}", (int64)screen.get());
         screen->OnClose();
@@ -299,11 +308,13 @@ namespace Inferno::UI {
 
     class DifficultyDialog : public DialogBase {
         gsl::strict_not_null<DifficultyLevel*> _value;
+        Button* _selection;
 
     public:
         DifficultyDialog(DifficultyLevel& value) : DialogBase("Difficulty", false), _value(&value) {
             Size = Vector2(_titleSize.x + DIALOG_PADDING * 2, CONTROL_HEIGHT * 5 + DIALOG_CONTENT_PADDING + DIALOG_PADDING);
             CloseOnClickOutside = true;
+            ActionSound = ""; // Clear close sound because buttons already have one
 
             auto panel = make_unique<StackPanel>();
             panel->Size.x = Size.x;
@@ -311,32 +322,44 @@ namespace Inferno::UI {
             panel->HorizontalAlignment = AlignH::Center;
             panel->VerticalAlignment = AlignV::Top;
 
-            panel->AddChild<Button>("Trainee", [this] { OnPick(DifficultyLevel::Trainee); }, AlignH::Center);
-            panel->AddChild<Button>("Rookie", [this] { OnPick(DifficultyLevel::Rookie); }, AlignH::Center);
-            panel->AddChild<Button>("Hotshot", [this] { OnPick(DifficultyLevel::Hotshot); }, AlignH::Center);
-            panel->AddChild<Button>("Ace", [this] { OnPick(DifficultyLevel::Ace); }, AlignH::Center);
-            Button insane("Insane", [this] { OnPick(DifficultyLevel::Insane); }, AlignH::Center);
-            insane.TextColor = Color(3.0f, 0.4f, 0.4f);
-            insane.FocusColor = Color(4.0f, 0.4f, 0.4f);
-            panel->AddChild<Button>(std::move(insane));
+            auto trainee = panel->AddChild<Button>("Trainee", [this] { OnPick(DifficultyLevel::Trainee); }, AlignH::Center);
+            auto rookie = panel->AddChild<Button>("Rookie", [this] { OnPick(DifficultyLevel::Rookie); }, AlignH::Center);
+            auto hotshot = panel->AddChild<Button>("Hotshot", [this] { OnPick(DifficultyLevel::Hotshot); }, AlignH::Center);
+            auto ace = panel->AddChild<Button>("Ace", [this] { OnPick(DifficultyLevel::Ace); }, AlignH::Center);
+            auto insane = panel->AddChild<Button>("Insane", [this] { OnPick(DifficultyLevel::Insane); }, AlignH::Center);
+            insane->TextColor = Color(3.0f, 0.4f, 0.4f);
+            insane->FocusColor = Color(4.0f, 0.4f, 0.4f);
 
             //Button lunacy("Lunacy");
             //lunacy.TextColor = Color(4.0f, 0.4f, 0.4f);
             //panel.AddChild<Button>(std::move(lunacy));
 
+            // Set default selection based on difficulty
+            switch (Game::Difficulty) {
+                default:
+                case DifficultyLevel::Trainee:
+                    _selection = trainee;
+                    break;
+                case DifficultyLevel::Rookie:
+                    _selection = rookie;
+                    break;
+                case DifficultyLevel::Hotshot:
+                    _selection = hotshot;
+                    break;
+                case DifficultyLevel::Ace:
+                    _selection = ace;
+                    break;
+                case DifficultyLevel::Insane:
+                    _selection = insane;
+                    break;
+            }
+
             Children.push_back(std::move(panel));
         }
 
         ControlBase* SelectFirst() override {
-            // Terrible hack due to the lack of named controls
-            if (auto list = Seq::tryItem(Children, 2)) {
-                if (auto child = Seq::tryItem(list->get()->Children, (int)*_value)) {
-                    SetSelection(child->get());
-                    return child->get();
-                }
-            }
-
-            return nullptr;
+            SetSelection(_selection);
+            return _selection;
         }
 
         void OnPick(DifficultyLevel difficulty) {
@@ -350,7 +373,8 @@ namespace Inferno::UI {
 
     public:
         ConfirmDialog(string_view message, bool& result) : DialogBase("", false), _result(&result) {
-            auto label = make_unique<Label>(message, FontSize::MediumBlue);
+            ActionSound = "";
+            auto label = AddChild<Label>(message, FontSize::MediumBlue);
             label->HorizontalAlignment = AlignH::Center;
             label->Position = Vector2(0, DIALOG_PADDING);
 
@@ -358,22 +382,18 @@ namespace Inferno::UI {
             Size.x += DIALOG_PADDING * 2 + 20;
             Size.y = Size.y * 2 + DIALOG_PADDING * 2 + 10;
 
-            auto yesButton = make_unique<Button>("yes");
+            auto yesButton = AddChild<Button>("yes");
             yesButton->VerticalAlignment = AlignV::Bottom;
             yesButton->HorizontalAlignment = AlignH::Center;
             yesButton->Position = Vector2(-50, -DIALOG_PADDING);
             yesButton->ClickAction = [this] { State = CloseState::Accept; };
 
-            auto noButton = make_unique<Button>("no");
+            auto noButton = AddChild<Button>("no");
             noButton->VerticalAlignment = AlignV::Bottom;
             noButton->HorizontalAlignment = AlignH::Center;
             noButton->Position = Vector2(50, -DIALOG_PADDING);
             noButton->ActionSound = "";
             noButton->ClickAction = [this] { State = CloseState::Cancel; };
-
-            AddChild(std::move(label));
-            AddChild(std::move(yesButton));
-            AddChild(std::move(noButton));
         }
 
         void OnUpdate() override {
@@ -437,6 +457,7 @@ namespace Inferno::UI {
                         ShowLevelSelect((int)mission->Levels.size());
                     }
                     else {
+                        _level = 1; // Use the first level instead of showing selection screen
                         ShowDifficultySelect();
                     }
                 }
@@ -588,25 +609,26 @@ namespace Inferno::UI {
         if (Screens.empty()) return;
         auto& screen = Screens.back();
 
-        if (Input::MenuDown())
-            screen->OnDownArrow();
-
-        if (Input::MenuUp())
-            screen->OnUpArrow();
-
-        // Wrap selection
-        //if (!screen->Children.empty())
-        //    screen->SelectionIndex = (int)Mod(screen->SelectionIndex, screen->Children.size());
-
         if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick))
             screen->OnMouseClick(Input::MousePosition);
 
-        if (Input::MenuConfirm() || Input::IsKeyPressed(Input::Keys::Space))
-            screen->OnConfirm();
+        if (!InputCaptured) {
+            if (Input::MenuDown())
+                screen->OnDownArrow();
 
-        if (Input::MenuCancel()) {
-            screen->State = CloseState::Cancel;
-            return;
+            if (Input::MenuUp())
+                screen->OnUpArrow();
+
+            // Wrap selection
+            //if (!screen->Children.empty())
+            //    screen->SelectionIndex = (int)Mod(screen->SelectionIndex, screen->Children.size());
+
+            if (Input::MenuConfirm() || Input::IsKeyPressed(Input::Keys::Space))
+                screen->OnConfirm();
+
+            if (Input::MenuCancel()) {
+                screen->State = CloseState::Cancel;
+            }
         }
 
         //if (screen.Controls.empty()) return;
@@ -646,6 +668,7 @@ namespace Inferno::UI {
     public:
         PauseMenu() : DialogBase("", false) {
             CloseOnConfirm = false;
+            ActionSound = ""; // Clear pause sound because buttons already have one
 
             auto panel = make_unique<StackPanel>();
             panel->Position = Vector2(0, _topOffset);
@@ -725,6 +748,7 @@ namespace Inferno::UI {
 
         Screens.clear();
         ShowScreen(make_unique<MainMenu>());
+        ShowScreen(make_unique<BindingDialog>());
     }
 
     void ShowPauseDialog() {
@@ -788,16 +812,19 @@ namespace Inferno::UI {
             screen->OnDraw();
         }
 
-        if (Screens.back()->State == CloseState::Accept) {
+        if (Screens.back()->State != CloseState::None) {
             CloseScreen();
-            /*string sound = Screens.back()->ActionSound;
-            if (CloseScreen())
-                Sound::Play2D(SoundResource{ sound });*/
+
+            //CloseScreen();
+            //string sound = Screens.back()->ActionSound;
+            //if (CloseScreen())
+            //    Sound::Play2D(SoundResource{ MENU_SELECT_SOUND });
+            //Sound::Play2D(SoundResource{ sound });
         }
-        else if (Screens.back()->State == CloseState::Cancel) {
-            if (CloseScreen())
-                Sound::Play2D(SoundResource{ MENU_BACK_SOUND });
-        }
+        //else if (Screens.back()->State == CloseState::Cancel) {
+        //    if (CloseScreen())
+        //        Sound::Play2D(SoundResource{ MENU_BACK_SOUND });
+        //}
 
         std::function<void(ControlBase&)> debugDraw = [&](const ControlBase& control) {
             for (auto& child : control.Children) {
