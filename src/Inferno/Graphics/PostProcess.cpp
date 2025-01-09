@@ -68,15 +68,17 @@ namespace Inferno::PostFx {
         Dispatch2D(commandList, destBloom);
     }
 
-    void DownsampleBloomCS::Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, PixelBuffer& dest) const {
+    void DownsampleBloomCS::Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, std::array<ColorBuffer, 4>& destBuffers) const {
         source.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-        dest.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+        for (auto& dest : destBuffers)
+            dest.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
         DirectX::XMFLOAT2 constants = { 1.0f / source.GetWidth(), 1.0f / source.GetHeight() };
 
         commandList->SetComputeRootSignature(_rootSignature.Get());
         commandList->SetComputeRoot32BitConstants(B0_Constants, sizeof(constants) / 4, &constants, 0);
-        commandList->SetComputeRootDescriptorTable(U0_4Results, dest.GetUAV()); // binding 0 will bind the next 3 as well
+        commandList->SetComputeRootDescriptorTable(U0_4Results, destBuffers[0].GetUAV()); // binding 0 will bind the next 3 as well
         commandList->SetComputeRootDescriptorTable(T0_Bloom, source.GetSRV());
         commandList->SetPipelineState(_pso.Get());
 
@@ -202,20 +204,20 @@ namespace Inferno::PostFx {
     }
 
     void BloomBuffers::Create(UINT width, UINT height, DXGI_FORMAT format) {
-        Blur.Create(L"Blur Result", width / 16, height / 16, format);
-        DownsampleBlur.Create(L"Bloom extract downsample", width, height, format);
-        DownsampleLuma.Create(L"Downsample Luma", width, height, DXGI_FORMAT_R8_UINT);
-        OutputLuma.Create(L"Output Luma", width, height, DXGI_FORMAT_R8_UINT);
+        Blur.Create("Blur Result", width / 16, height / 16, format);
+        DownsampleBlur.Create("Bloom extract downsample", width, height, format);
+        DownsampleLuma.Create("Downsample Luma", width, height, DXGI_FORMAT_R8_UINT);
+        OutputLuma.Create("Output Luma", width, height, DXGI_FORMAT_R8_UINT);
 
-        Downsample[0].Create(L"Bloom Downsample 8x8", width / 2, height / 2, format);
-        Downsample[1].Create(L"Bloom Downsample 4x4", width / 4, height / 4, format);
-        Downsample[2].Create(L"Bloom Downsample 2x2", width / 8, height / 8, format);
-        Downsample[3].Create(L"Bloom Downsample 1x1", width / 16, height / 16, format);
+        Downsample[0].Create("Bloom Downsample 8x8", width / 2, height / 2, format);
+        Downsample[1].Create("Bloom Downsample 4x4", width / 4, height / 4, format);
+        Downsample[2].Create("Bloom Downsample 2x2", width / 8, height / 8, format);
+        Downsample[3].Create("Bloom Downsample 1x1", width / 16, height / 16, format);
 
-        Upsample[0].Create(L"Bloom Upsample 8x8", width / 1, height / 1, format);
-        Upsample[1].Create(L"Bloom Upsample 4x4", width / 2, height / 2, format);
-        Upsample[2].Create(L"Bloom Upsample 2x2", width / 4, height / 4, format);
-        Upsample[3].Create(L"Bloom Upsample 1x1", width / 8, height / 8, format);
+        Upsample[0].Create("Bloom Upsample 8x8", width / 1, height / 1, format);
+        Upsample[1].Create("Bloom Upsample 4x4", width / 2, height / 2, format);
+        Upsample[2].Create("Bloom Upsample 2x2", width / 4, height / 4, format);
+        Upsample[3].Create("Bloom Upsample 1x1", width / 8, height / 8, format);
 
         Blur.AddUnorderedAccessView();
         Blur.AddShaderResourceView();
@@ -260,7 +262,7 @@ namespace Inferno::PostFx {
         Buffers.Create(width / scale, height / scale);
 
         if (!Render::Adapter->TypedUAVLoadSupport_R11G11B10_FLOAT()) {
-            _post.Create(L"Post process buffer", width, height, DXGI_FORMAT_R32_UINT, 1);
+            _post.Create("Post process buffer", width, height, DXGI_FORMAT_R32_UINT, 1);
             _post.AddUnorderedAccessView();
             _post.AddShaderResourceView();
         }
@@ -275,7 +277,7 @@ namespace Inferno::PostFx {
             TonyMcMapFace.AddShaderResourceView();
         }
         else {
-            ShowErrorMessage(L"Unable to find required file: tony_mc_mapface.dds");
+            ShowErrorMessage("Unable to find required file: tony_mc_mapface.dds");
         }
 
         if (auto path = FileSystem::TryFindFile("cockpit-dirt.dds")) {
@@ -285,16 +287,16 @@ namespace Inferno::PostFx {
     }
 
     void ToneMapping::ReloadShaders() {
-        BloomExtractDownsample.Load(L"shaders/BloomExtractDownsampleCS.hlsl");
-        DownsampleBloom.Load(L"shaders/DownsampleBloomCS.hlsl");
-        Downsample.Load(L"shaders/DownsampleCS.hlsl");
-        Upsample.Load(L"shaders/UpsampleAndBlurCS.hlsl");
+        BloomExtractDownsample.Load("shaders/BloomExtractDownsampleCS.hlsl");
+        DownsampleBloom.Load("shaders/DownsampleBloomCS.hlsl");
+        Downsample.Load("shaders/DownsampleCS.hlsl");
+        Upsample.Load("shaders/UpsampleAndBlurCS.hlsl");
         if (Render::Adapter->TypedUAVLoadSupport_R11G11B10_FLOAT())
-            ToneMap.Load(L"shaders/ToneMapCS.hlsl");
+            ToneMap.Load("shaders/ToneMapCS.hlsl");
         else
-            ToneMap.Load(L"shaders/ToneMapCS-NoUAVL.hlsl");
+            ToneMap.Load("shaders/ToneMapCS-NoUAVL.hlsl");
 
-        Blur.Load(L"shaders/BlurCS.hlsl");
+        Blur.Load("shaders/BlurCS.hlsl");
         UnpackPost.Load("shaders/UnpackBufferCS.hlsl");
     }
 
@@ -302,7 +304,7 @@ namespace Inferno::PostFx {
         if (Settings::Graphics.EnableBloom) {
             PIXScopedEvent(commandList, PIX_COLOR_DEFAULT, "Bloom");
             BloomExtractDownsample.Execute(commandList, source, Buffers.DownsampleBlur, Buffers.DownsampleLuma);
-            DownsampleBloom.Execute(commandList, Buffers.DownsampleBlur, Buffers.Downsample[0]);
+            DownsampleBloom.Execute(commandList, Buffers.DownsampleBlur, Buffers.Downsample);
             Blur.Execute(commandList, Buffers.Downsample[3], Buffers.Blur);
             Upsample.Execute(commandList, Buffers.Downsample[2], Buffers.Blur, Buffers.Upsample[3]);
             Upsample.Execute(commandList, Buffers.Downsample[1], Buffers.Upsample[3], Buffers.Upsample[2]);

@@ -310,7 +310,7 @@ int Inferno::Shell::Show(uint2 position, uint2 size, int nCmdShow) const {
     auto width = windowRect.right - windowRect.left;
     auto height = windowRect.bottom - windowRect.top;
 
-    HWND hwnd = CreateWindowEx(0, WindowClass, Convert::ToWideString(APP_TITLE).c_str(),
+    HWND hwnd = CreateWindowEx(0, WindowClass, Widen(APP_TITLE).c_str(),
                                WS_OVERLAPPEDWINDOW,
                                position.x, position.y,
                                width, height,
@@ -351,7 +351,7 @@ int Inferno::Shell::Show(uint2 position, uint2 size, int nCmdShow) const {
 void Inferno::Shell::UpdateWindowTitle(string_view message) {
     if (!message.empty()) {
         string title = fmt::format("{} - {}", message, APP_TITLE);
-        SetWindowTextW(Hwnd, Convert::ToWideString(title).c_str());
+        SetWindowTextW(Hwnd, Widen(title).c_str());
         return;
     }
 
@@ -366,10 +366,10 @@ void Inferno::Shell::UpdateWindowTitle(string_view message) {
             ? fmt::format("{} [{}] - {}", levelName, Game::Mission->Path.filename().string(), APP_TITLE)
             : fmt::format("{} - {}", levelName, APP_TITLE);
 
-        SetWindowTextW(Hwnd, Convert::ToWideString(title).c_str());
+        SetWindowTextW(Hwnd, Widen(title).c_str());
     }
     else if (state == GameState::MainMenu) {
-        SetWindowTextW(Hwnd, Convert::ToWideString(APP_TITLE).c_str());
+        SetWindowTextW(Hwnd, Widen(APP_TITLE).c_str());
     }
     else if (state == GameState::ExitSequence) {
         SetWindowTextW(Hwnd, L"Escaping the mine!");
@@ -382,6 +382,6 @@ void Inferno::Shell::UpdateWindowTitle(string_view message) {
             ? fmt::format("{} [{}] - {}", String::ToUpper(Game::Level.Name), info->Name, APP_TITLE)
             : fmt::format("{} - {}", String::ToUpper(Game::Level.Name), APP_TITLE);
 
-        SetWindowTextW(Hwnd, Convert::ToWideString(title).c_str());
+        SetWindowTextW(Hwnd, Widen(title).c_str());
     }
 }

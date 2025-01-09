@@ -231,7 +231,7 @@ namespace Inferno {
     public:
         PackedUploadBuffer(uint size = 1024 * 1024 * 10)
             : _size(size) {
-            _resource.CreateOnUploadHeap(L"Upload buffer");
+            _resource.CreateOnUploadHeap("Upload buffer");
             ThrowIfFailed(_resource->Map(0, &CPU_READ_NONE, (void**)&_mappedData));
         }
 
@@ -283,10 +283,10 @@ namespace Inferno {
         List<T> _buffer;
         DescriptorHandle _srv, _uav;
         bool _forbidResize = false;
-        wstring _name;
+        string _name;
 
     public:
-        UploadBuffer(size_t capacity, wstring_view name) : _requestedCapacity(capacity), _name(name) {
+        UploadBuffer(size_t capacity, string_view name) : _requestedCapacity(capacity), _name(name) {
             _buffer.reserve(capacity);
             _gpuCapacity = _requestedCapacity;
         }
@@ -338,7 +338,7 @@ namespace Inferno {
                 if (shouldGrow)
                     _gpuCapacity = size_t(_requestedCapacity * 1.5);
                 CreateUploadHeap(_resource, _gpuCapacity * sizeof(T));
-                std::ignore = _resource->SetName(_name.c_str());
+                std::ignore = _resource->SetName(Widen(_name).c_str());
 
                 //if (_mapped) _resource->Unmap(0, &CPU_READ_NONE);
                 // leave the buffer mapped

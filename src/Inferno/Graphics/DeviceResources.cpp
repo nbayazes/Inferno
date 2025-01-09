@@ -63,42 +63,59 @@ namespace Inferno {
         WaitForGpu();
     }
 
+    // Enable the debug layer (requires the Graphics Tools "optional feature").
+    // NOTE: Enabling the debug layer after device creation will invalidate the active device.
+    void EnableGpuDebugLayer(DWORD& dxgiFactoryFlags) {
+        //ComPtr<IDXGraphicsAnalysis> graphics_analysis;
+        //const auto result = DXGIGetDebugInterface1(0, IID_PPV_ARGS(&graphics_analysis));
+        //if (FAILED(result)) {
+        // Not running in PIX, enable the debug layer
+
+        ComPtr<ID3D12Debug> debugInterface;
+        if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(debugInterface.GetAddressOf())))) {
+            OutputDebugStringA("Direct3D Debug Layer Enabled\n");
+            debugInterface->EnableDebugLayer();
+        }
+        else {
+            OutputDebugStringA("WARNING: Direct3D Debug Device is not available\n");
+        }
+
+        //#if GPU_VALIDATION
+        // Enable GPU validation to find out of bounds resource access. VERY SLOW.
+        //ComPtr<ID3D12Debug1> spDebugController1;
+        //if (SUCCEEDED(debugInterface->QueryInterface(IID_PPV_ARGS(&spDebugController1))))
+        //    spDebugController1->SetEnableGPUBasedValidation(true);
+        //#endif
+
+        // enable DRED to trace TDRs
+        ComPtr<ID3D12DeviceRemovedExtendedDataSettings> dreadSettings;
+        if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&dreadSettings)))) {
+            // Turn on auto-breadcrumbs and page fault reporting.
+            dreadSettings->SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+            dreadSettings->SetPageFaultEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+        }
+
+        // Enable breakpoints
+        ComPtr<IDXGIInfoQueue> dxgiInfoQueue;
+        if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(dxgiInfoQueue.GetAddressOf())))) {
+            dxgiFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
+
+            std::ignore = dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, true);
+            std::ignore = dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, true);
+
+            /* IDXGISwapChain::GetContainingOutput: The swapchain's adapter does not control the output on which the swapchain's window resides. */
+            DXGI_INFO_QUEUE_MESSAGE_ID hide[] = { 80 };
+            DXGI_INFO_QUEUE_FILTER filter = {};
+            filter.DenyList.NumIDs = _countof(hide);
+            filter.DenyList.pIDList = hide;
+            std::ignore = dxgiInfoQueue->AddStorageFilterEntries(DXGI_DEBUG_DXGI, &filter);
+        }
+    }
+
     // Configures the Direct3D device, and stores handles to it and the device context.
     void DeviceResources::CreateDeviceResources() {
-#ifdef _DEBUG
-        // Enable the debug layer (requires the Graphics Tools "optional feature").
-        //
-        // NOTE: Enabling the debug layer after device creation will invalidate the active device.
-        {
-            //ComPtr<IDXGraphicsAnalysis> graphics_analysis;
-            //const auto result = DXGIGetDebugInterface1(0, IID_PPV_ARGS(&graphics_analysis));
-            //if (FAILED(result)) {
-            // Not running in PIX, enable the debug layer
-            ComPtr<ID3D12Debug> debugController;
-            if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(debugController.GetAddressOf())))) {
-                OutputDebugStringA("Direct3D Debug Layer Enabled\n");
-                debugController->EnableDebugLayer();
-            }
-            else {
-                OutputDebugStringA("WARNING: Direct3D Debug Device is not available\n");
-            }
-            //}
-
-            ComPtr<IDXGIInfoQueue> dxgiInfoQueue;
-            if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(dxgiInfoQueue.GetAddressOf())))) {
-                m_dxgiFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
-
-                dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, true);
-                dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, true);
-
-                /* IDXGISwapChain::GetContainingOutput: The swapchain's adapter does not control the output on which the swapchain's window resides. */
-                DXGI_INFO_QUEUE_MESSAGE_ID hide[] = { 80 };
-                DXGI_INFO_QUEUE_FILTER filter = {};
-                filter.DenyList.NumIDs = _countof(hide);
-                filter.DenyList.pIDList = hide;
-                dxgiInfoQueue->AddStorageFilterEntries(DXGI_DEBUG_DXGI, &filter);
-            }
-        }
+#if defined(_DEBUG) && defined(GPU_DEBUG_LAYER)
+        EnableGpuDebug(m_dxgiFactoryFlags);
 #endif
 
         ThrowIfFailed(CreateDXGIFactory2(m_dxgiFactoryFlags, IID_PPV_ARGS(m_dxgiFactory.ReleaseAndGetAddressOf())));
@@ -187,14 +204,14 @@ namespace Inferno {
         Render::Device = m_d3dDevice.Get();
 
         // Create the command queues
-        CommandQueue = make_unique<Inferno::CommandQueue>(m_d3dDevice.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT, L"DeviceResources Command Queue");
-        BatchUploadQueue = make_unique<Inferno::CommandQueue>(m_d3dDevice.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT, L"DeviceResources Batch Queue");
-        AsyncBatchUploadQueue = make_unique<Inferno::CommandQueue>(m_d3dDevice.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT, L"DeviceResources Batch Queue");
-        CopyQueue = make_unique<Inferno::CommandQueue>(m_d3dDevice.Get(), D3D12_COMMAND_LIST_TYPE_COPY, L"DeviceResources Copy Queue");
+        CommandQueue = make_unique<Inferno::CommandQueue>(m_d3dDevice.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT, "DeviceResources Command Queue");
+        BatchUploadQueue = make_unique<Inferno::CommandQueue>(m_d3dDevice.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT, "DeviceResources Batch Queue");
+        AsyncBatchUploadQueue = make_unique<Inferno::CommandQueue>(m_d3dDevice.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT, "DeviceResources Batch Queue");
+        CopyQueue = make_unique<Inferno::CommandQueue>(m_d3dDevice.Get(), D3D12_COMMAND_LIST_TYPE_COPY, "DeviceResources Copy Queue");
 
         // Create a command allocator for each back buffer that will be rendered to.
         for (UINT n = 0; n < m_backBufferCount; n++) {
-            _graphicsContext[n] = MakePtr<GraphicsContext>(m_d3dDevice.Get(), CommandQueue.get(), fmt::format(L"Render target {}", n));
+            _graphicsContext[n] = MakePtr<GraphicsContext>(m_d3dDevice.Get(), CommandQueue.get(), fmt::format("Render target {}", n));
             //ThrowIfFailed(m_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_commandAllocators[n].ReleaseAndGetAddressOf())));
             //m_commandAllocators[n]->SetName();
         }
@@ -222,7 +239,7 @@ namespace Inferno {
 
         Render::Heaps = MakePtr<DescriptorHeaps>(20, 300, 200, 500, Render::MATERIAL_COUNT * 5);
         Render::UploadHeap = MakePtr<UserDescriptorHeap>(Render::MATERIAL_COUNT * 5, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, false);
-        Render::UploadHeap->SetName(L"Upload Heap");
+        Render::UploadHeap->SetName("Upload Heap");
         Render::Uploads = MakePtr<DescriptorRange<5>>(*Render::UploadHeap, Render::UploadHeap->Size());
     }
 
@@ -320,12 +337,12 @@ namespace Inferno {
         // Obtain the back buffers for this window which will be the final render targets
         // and create render target views for each of them.
         for (UINT n = 0; n < m_backBufferCount; n++) {
-            auto name = fmt::format(L"Render target {}", n);
+            auto name = fmt::format("Render target {}", n);
             BackBuffers[n].Create(name, m_swapChain.Get(), n, m_backBufferFormat);
         }
 
         if (m_depthBufferFormat != DXGI_FORMAT_UNKNOWN) {
-            SceneDepthBuffer.Create(L"Depth stencil buffer", backBufferWidth, backBufferHeight, m_depthBufferFormat);
+            SceneDepthBuffer.Create("Depth stencil buffer", backBufferWidth, backBufferHeight, m_depthBufferFormat);
         }
 
         // Reset the index to the current back buffer.
@@ -468,8 +485,8 @@ namespace Inferno {
             auto height = m_outputSize.bottom;
 
             Render::Effects->Compile(m_d3dDevice.Get(), Settings::Graphics.MsaaSamples);
-            Scanline.Load(L"shaders/ScanlineCS.hlsl");
-            Render::Adapter->LightGrid.Load(L"shaders/FillLightGridCS.hlsl");
+            Scanline.Load("shaders/ScanlineCS.hlsl");
+            Render::Adapter->LightGrid.Load("shaders/FillLightGridCS.hlsl");
             Render::ToneMapping->ReloadShaders();
 
             CreateBuffers(width, height);
@@ -629,61 +646,61 @@ namespace Inferno {
 
         LightGrid.CreateBuffers(scaledWidth, scaledHeight);
 
-        LinearizedDepthBuffer.Create(L"Linear depth buffer", scaledWidth, scaledHeight, DepthShader::OutputFormat);
+        LinearizedDepthBuffer.Create("Linear depth buffer", scaledWidth, scaledHeight, DepthShader::OutputFormat);
         LinearizedDepthBuffer.AddShaderResourceView();
         LinearizedDepthBuffer.AddUnorderedAccessView();
         LinearizedDepthBuffer.AddRenderTargetView();
-        SceneColorBuffer.Create(L"Scene color buffer", scaledWidth, scaledHeight, SceneBufferFormat, clearColor, 1);
+        SceneColorBuffer.Create("Scene color buffer", scaledWidth, scaledHeight, SceneBufferFormat, clearColor, 1);
         SceneColorBuffer.AddUnorderedAccessView();
-        DistortionBuffer.Create(L"Scene distortion buffer", scaledWidth, scaledHeight, SceneBufferFormat, 1);
+        DistortionBuffer.Create("Scene distortion buffer", scaledWidth, scaledHeight, SceneBufferFormat, 1);
         DistortionBuffer.AddShaderResourceView();
-        SceneDepthBuffer.Create(L"Scene depth buffer", scaledWidth, scaledHeight, m_depthBufferFormat, 1);
+        SceneDepthBuffer.Create("Scene depth buffer", scaledWidth, scaledHeight, m_depthBufferFormat, 1);
 
-        BlurBufferTemp.Create(L"Temporary blur buffer", width, height, SceneBufferFormat, clearColor, 1);
+        BlurBufferTemp.Create("Temporary blur buffer", width, height, SceneBufferFormat, clearColor, 1);
         BlurBufferTemp.AddUnorderedAccessView();
 
         // Quarter res blur buffer
-        BlurBufferDownsampled.Create(L"Blur buffer downsampled", width / 4, height / 4, SceneBufferFormat, 1);
+        BlurBufferDownsampled.Create("Blur buffer downsampled", width / 4, height / 4, SceneBufferFormat, 1);
         BlurBufferDownsampled.AddUnorderedAccessView();
         BlurBufferDownsampled.AddShaderResourceView();
 
-        ScoreBackground.Create(L"Score background", width / 4, height / 4, SceneBufferFormat, 1);
+        ScoreBackground.Create("Score background", width / 4, height / 4, SceneBufferFormat, 1);
         ScoreBackground.AddUnorderedAccessView();
         ScoreBackground.AddShaderResourceView();
 
-        BlurBuffer.Create(L"Blur buffer", width / 4, height / 4, SceneBufferFormat, 1);
+        BlurBuffer.Create("Blur buffer", width / 4, height / 4, SceneBufferFormat, 1);
         BlurBuffer.AddUnorderedAccessView();
         BlurBuffer.AddShaderResourceView();
 
         // Screen size composition buffer
-        CompositionBuffer.Create(L"Composition buffer", width, height, SceneBufferFormat);
+        CompositionBuffer.Create("Composition buffer", width, height, SceneBufferFormat);
         CompositionBuffer.AddUnorderedAccessView();
         CompositionBuffer.AddShaderResourceView();
 
         // Double the briefing resolution so that downsampling at low resolution looks better
         uint briefingWidth = 640 * 2;
         uint briefingHeight = 480 * 2;
-        BriefingColorBuffer.Create(L"Briefing color buffer", briefingWidth, briefingHeight, DXGI_FORMAT_R8G8B8A8_UNORM, emptyColor);
-        BriefingScanlineBuffer.Create(L"Briefing scanline buffer", briefingWidth, briefingHeight, DXGI_FORMAT_R8G8B8A8_UNORM, emptyColor);
+        BriefingColorBuffer.Create("Briefing color buffer", briefingWidth, briefingHeight, DXGI_FORMAT_R8G8B8A8_UNORM, emptyColor);
+        BriefingScanlineBuffer.Create("Briefing scanline buffer", briefingWidth, briefingHeight, DXGI_FORMAT_R8G8B8A8_UNORM, emptyColor);
         BriefingScanlineBuffer.AddUnorderedAccessView();
 
         constexpr uint BRIEFING_ROBOT_WIDTH = 166 * 2;
         constexpr uint BRIEFING_ROBOT_HEIGHT = uint(138 * 2.4f);
 
-        BriefingRobot.Create(L"Briefing robot", BRIEFING_ROBOT_WIDTH, BRIEFING_ROBOT_HEIGHT, SceneBufferFormat, emptyColor);
+        BriefingRobot.Create("Briefing robot", BRIEFING_ROBOT_WIDTH, BRIEFING_ROBOT_HEIGHT, SceneBufferFormat, emptyColor);
         BriefingRobot.AddRenderTargetView();
         BriefingRobot.AddShaderResourceView();
-        BriefingRobotDepth.Create(L"Briefing robot depth", BRIEFING_ROBOT_WIDTH, BRIEFING_ROBOT_HEIGHT);
+        BriefingRobotDepth.Create("Briefing robot depth", BRIEFING_ROBOT_WIDTH, BRIEFING_ROBOT_HEIGHT);
 
         if (Settings::Graphics.MsaaSamples > 1) {
-            BriefingRobotMsaa.Create(L"MSAA Briefing robot", BRIEFING_ROBOT_WIDTH, BRIEFING_ROBOT_HEIGHT, SceneBufferFormat, emptyColor, Settings::Graphics.MsaaSamples);
+            BriefingRobotMsaa.Create("MSAA Briefing robot", BRIEFING_ROBOT_WIDTH, BRIEFING_ROBOT_HEIGHT, SceneBufferFormat, emptyColor, Settings::Graphics.MsaaSamples);
             BriefingRobotMsaa.AddRenderTargetView();
             BriefingRobotMsaa.AddShaderResourceView();
-            BriefingRobotDepthMsaa.Create(L"MSAA Briefing robot depth", BRIEFING_ROBOT_WIDTH, BRIEFING_ROBOT_HEIGHT, DXGI_FORMAT_D32_FLOAT, Settings::Graphics.MsaaSamples);
+            BriefingRobotDepthMsaa.Create("MSAA Briefing robot depth", BRIEFING_ROBOT_WIDTH, BRIEFING_ROBOT_HEIGHT, DXGI_FORMAT_D32_FLOAT, Settings::Graphics.MsaaSamples);
 
-            SceneColorBufferMsaa.Create(L"MSAA Color Buffer", scaledWidth, scaledHeight, SceneBufferFormat, clearColor, Settings::Graphics.MsaaSamples);
-            SceneDepthBufferMsaa.Create(L"MSAA Depth Buffer", scaledWidth, scaledHeight, m_depthBufferFormat, Settings::Graphics.MsaaSamples);
-            MsaaLinearizedDepthBuffer.Create(L"MSAA Linear depth buffer", scaledWidth, scaledHeight, DepthShader::OutputFormat, Settings::Graphics.MsaaSamples);
+            SceneColorBufferMsaa.Create("MSAA Color Buffer", scaledWidth, scaledHeight, SceneBufferFormat, clearColor, Settings::Graphics.MsaaSamples);
+            SceneDepthBufferMsaa.Create("MSAA Depth Buffer", scaledWidth, scaledHeight, m_depthBufferFormat, Settings::Graphics.MsaaSamples);
+            MsaaLinearizedDepthBuffer.Create("MSAA Linear depth buffer", scaledWidth, scaledHeight, DepthShader::OutputFormat, Settings::Graphics.MsaaSamples);
             MsaaLinearizedDepthBuffer.AddRenderTargetView();
             MsaaLinearizedDepthBuffer.AddShaderResourceView();
         }

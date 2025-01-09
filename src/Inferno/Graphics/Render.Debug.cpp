@@ -11,7 +11,7 @@ namespace Inferno::Render::Debug {
         UploadBuffer<FlatVertex> _vertices;
 
     public:
-        LineBatch(int vertexCapacity) : _vertices(vertexCapacity, L"Line batch") {}
+        LineBatch(int vertexCapacity) : _vertices(vertexCapacity, "Line batch") {}
 
         void Begin() {
             _vertices.Begin();
@@ -52,7 +52,7 @@ namespace Inferno::Render::Debug {
         uint16 _elementCount = 0;
 
     public:
-        PolygonBatch(int vertexCapacity) : _vertices(vertexCapacity, L"Polygon batch") {}
+        PolygonBatch(int vertexCapacity) : _vertices(vertexCapacity, "Polygon batch") {}
 
         void Begin() {
             _vertices.Begin();

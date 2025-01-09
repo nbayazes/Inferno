@@ -81,7 +81,7 @@ namespace Inferno::Editor {
             }
         }
         catch (...) {
-            SPDLOG_ERROR(L"Error reading texture filter from `{}`", path.wstring());
+            SPDLOG_ERROR("Error reading texture filter from `{}`", path.string());
         }
 
         return filters;

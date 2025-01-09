@@ -20,7 +20,7 @@ namespace Inferno {
     public:
         TextureRingBuffer(uint resolution, DescriptorRange<1>* descriptors) : _descriptors(descriptors) {
             for (int i = 0; i < std::size(_textures); i++) {
-                auto name = fmt::format(L"ring buffer {}", i);
+                auto name = fmt::format("ring buffer {}", i);
                 auto& texture = _textures[i];
                 texture.SetDesc(resolution, resolution);
                 texture.CreateOnDefaultHeap(name);
@@ -116,10 +116,10 @@ namespace Inferno {
         List<Ptr<ProceduralTextureBase>> Procedurals;
 
         ProceduralWorker(ID3D12Device* device) {
-            _uploadQueue = MakePtr<Inferno::CommandQueue>(device, D3D12_COMMAND_LIST_TYPE_COPY, L"Procedural Upload Queue");
-            _copyQueue = MakePtr<Inferno::CommandQueue>(device, D3D12_COMMAND_LIST_TYPE_DIRECT, L"Procedural Copy Queue");
-            _uploadCommands = MakePtr<CommandContext>(device, _uploadQueue.get(), L"Procedural upload queue");
-            _copyCommands = MakePtr<CommandContext>(device, _copyQueue.get(), L"Procedural copy queue");
+            _uploadQueue = MakePtr<Inferno::CommandQueue>(device, D3D12_COMMAND_LIST_TYPE_COPY, "Procedural Upload Queue");
+            _copyQueue = MakePtr<Inferno::CommandQueue>(device, D3D12_COMMAND_LIST_TYPE_DIRECT, "Procedural Copy Queue");
+            _uploadCommands = MakePtr<CommandContext>(device, _uploadQueue.get(), "Procedural upload queue");
+            _copyCommands = MakePtr<CommandContext>(device, _copyQueue.get(), "Procedural copy queue");
             Pause(false); // Start the worker after creating queues
             Procedurals.reserve(MAX_PROCEDURALS);
         }
@@ -231,7 +231,7 @@ namespace Inferno {
     ProceduralTextureBase::ProceduralTextureBase(const Outrage::TextureInfo& info, TexID baseTexture) {
         ID = baseTexture;
         Info = info;
-        _name = Convert::ToWideString(Info.Name);
+        _name = Info.Name;
         _resolution = info.GetSize();
         _resMask = _resolution - 1;
         _totalSize = _resolution * _resolution;
@@ -239,7 +239,7 @@ namespace Inferno {
 
         for (int i = 0; i < std::size(_textureBuffers); i++) {
             _textureBuffers[i].SetDesc(_resolution, _resolution);
-            _textureBuffers[i].CreateOnDefaultHeap(Convert::ToWideString(Info.Name + " Buffer"));
+            _textureBuffers[i].CreateOnDefaultHeap(Info.Name + " Buffer");
         }
     }
 

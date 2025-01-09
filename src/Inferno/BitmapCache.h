@@ -120,7 +120,7 @@ namespace Inferno {
             bool same = m.Name == bitmap.Name;
             m.Name = bitmap.Name;
             m.Textures[Material::Diffuse] = FindTexture(m.Name);
-            m.Textures[Material::Diffuse]->Load(batch, bitmap.Mips[0].data(), bitmap.Width, bitmap.Height, Convert::ToWideString(bitmap.Name));
+            m.Textures[Material::Diffuse]->Load(batch, bitmap.Mips[0].data(), bitmap.Width, bitmap.Height, bitmap.Name);
             //SPDLOG_INFO("Uploading to GPU: {}", m.Name);
 
             // todo: load specular if present

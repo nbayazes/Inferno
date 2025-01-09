@@ -6,14 +6,14 @@ namespace Inferno {
     using DirectX::SimpleMath::Viewport;
     using DirectX::SimpleMath::Quaternion;
 
-    // Returns a frustum for the perspective view
-    inline DirectX::BoundingFrustum GetFrustum(const Vector3& position, const Matrix& view, const Matrix& projection) {
+    // Returns a frustum for the camera perspective in world space
+    inline DirectX::BoundingFrustum GetFrustum(const Vector3& cameraPos, const Matrix& view, const Matrix& projection) {
         DirectX::BoundingFrustum frustum;
         DirectX::BoundingFrustum::CreateFromMatrix(frustum, projection);
         DirectX::XMVECTOR s, r, t;
         DirectX::XMMatrixDecompose(&s, &r, &t, view);
         r = DirectX::XMQuaternionInverse(r);
-        frustum.Transform(frustum, 1.0f, r, position);
+        frustum.Transform(frustum, 1.0f, r, cameraPos);
         return frustum;
     }
 

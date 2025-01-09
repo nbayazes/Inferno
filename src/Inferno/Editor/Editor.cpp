@@ -280,9 +280,9 @@ namespace Inferno::Editor {
         if (!Editor::History.Dirty() || Game::Level.IsShareware || Game::GetState() != GameState::Editor)
             return true;
 
-        auto file = Game::Mission ? Game::Mission->Path.filename().wstring() : Convert::ToWideString(Game::Level.FileName);
-        auto msg = fmt::format(L"Do you want to save changes to {}?", file);
-        auto result = ShowYesNoCancelMessage(msg.c_str(), L"File has changed");
+        auto file = Game::Mission ? Game::Mission->Path.filename().string() : Game::Level.FileName;
+        auto msg = fmt::format("Do you want to save changes to {}?", file);
+        auto result = ShowYesNoCancelMessage(msg, "File has changed");
         if (!result) return false; // Cancelled
         if (*result) Editor::Commands::Save(); // Yes
         return true;
@@ -716,7 +716,7 @@ namespace Inferno::Editor {
                                &si,
                                &pi)) {
                 auto msg = fmt::format("Unable to start game:\n{}", GetLastError());
-                ShowErrorMessage(Convert::ToWideString(msg));
+                ShowErrorMessage(msg);
                 return;
             }
 

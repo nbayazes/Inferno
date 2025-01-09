@@ -460,7 +460,7 @@ namespace Inferno::Editor {
             ImGui::SetNextItemWidth(80 * Shell::DpiScale);
             auto snap = Settings::Editor.RotationSnap * RadToDeg;
 
-            if (ImGui::InputFloat("##rotation", &snap, 0, 0, (char*)u8"%.3f°"))
+            if (ImGui::InputFloat("##rotation", &snap, 0, 0, (char*)u8"%.3fÂ°"))
                 Settings::Editor.RotationSnap = std::clamp(snap, 0.0f, 180.0f) * DegToRad;
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Rotation snapping");
 
@@ -472,7 +472,7 @@ namespace Inferno::Editor {
                 constexpr auto pi = (float)std::numbers::pi * RadToDeg;
                 static constexpr float snapValues[] = { 0, pi / 32, pi / 24, pi / 16, pi / 12, pi / 8, pi / 6, pi / 4 };
                 for (auto& value : snapValues) {
-                    auto label = fmt::format(u8"{:.2f}°", value);
+                    auto label = fmt::format(u8"{:.2f}Â°", value);
                     if (ImGui::Selectable((char*)label.c_str()))
                         Settings::Editor.RotationSnap = value * DegToRad;
                 }
@@ -539,7 +539,7 @@ namespace Inferno::Editor {
 
                 // must use utf8 encoding to properly render glyphs
                 auto tolerance = Settings::Editor.Selection.PlanarTolerance;
-                auto label = fmt::format(u8"{:.0f}°", tolerance);
+                auto label = fmt::format(u8"{:.0f}Â°", tolerance);
                 ImGui::SetNextItemWidth(175 * Shell::DpiScale);
 
                 if (ImGui::SliderFloat("##tolerance", &tolerance, 0, 90, (char*)label.c_str())) {
@@ -570,7 +570,7 @@ namespace Inferno::Editor {
         }
 
         //{
-        //    static const std::array uvAngles = { (char*)u8"0°", (char*)u8"90°", (char*)u8"180°", (char*)u8"270°" };
+        //    static const std::array uvAngles = { (char*)u8"0Â°", (char*)u8"90Â°", (char*)u8"180Â°", (char*)u8"270Â°" };
         //    ImGui::AlignTextToFramePadding();
         //    ImGui::Text("UV Angle");
         //    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Extra angle to apply when resetting UVs");

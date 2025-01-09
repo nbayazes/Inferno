@@ -527,7 +527,7 @@ namespace Inferno::Editor {
 
         auto destTag = level.GetConnectedSide(src);
         if (!level.SegmentExists(destTag)) {
-            ShowErrorMessage(L"Connected segment doesn't exist. This shouldn't happen.");
+            ShowErrorMessage("Connected segment doesn't exist. This shouldn't happen.");
             return false;
         }
 

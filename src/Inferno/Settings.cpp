@@ -5,7 +5,7 @@
 
 #include <Settings.h>
 #include <fstream>
-#include <magic_enum.hpp>
+#include <magic_enum/magic_enum.hpp>
 #include <spdlog/spdlog.h>
 #include "Game.Bindings.h"
 #include "Game.h"

@@ -406,7 +406,7 @@ namespace Inferno {
             ryml::NodeRef root = doc.rootref();
 
             if (!root.is_map()) {
-                SPDLOG_WARN(L"Game table is empty");
+                SPDLOG_WARN("Game table is empty");
                 return;
             }
 

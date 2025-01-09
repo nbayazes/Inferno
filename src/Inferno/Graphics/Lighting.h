@@ -55,7 +55,7 @@ namespace Inferno::Graphics {
 
 
     //LightData m_LightData[MAX_LIGHTS];
-    //ComputePSO m_FillLightGridCS_16(L"Fill Light Grid 16 CS");
+    //ComputePSO m_FillLightGridCS_16("Fill Light Grid 16 CS");
     //RootSignature m_FillLightRootSig;
     //StructuredBuffer m_LightBuffer;
     //ByteAddressBuffer m_LightGrid;
@@ -66,8 +66,8 @@ namespace Inferno::Graphics {
         ByteAddressBuffer _bitMask;
         ByteAddressBuffer _lightGrid;
         StructuredBuffer _lightData;
-        UploadBuffer<LightData> _lightUploadBuffer{ MAX_LIGHTS, L"Light data" };
-        UploadBuffer<LightingConstants> _lightingConstantsBuffer{ 1, L"Light constants" };
+        UploadBuffer<LightData> _lightUploadBuffer{ MAX_LIGHTS, "Light data" };
+        UploadBuffer<LightingConstants> _lightingConstantsBuffer{ 1, "Light constants" };
 
         struct alignas(16) CSConstants {
             uint32_t ViewportWidth, ViewportHeight;
@@ -78,7 +78,7 @@ namespace Inferno::Graphics {
             alignas(16) Matrix InverseProjection;
         };
 
-        UploadBuffer<CSConstants> _csConstants{ 1, L"Light grid CS" };
+        UploadBuffer<CSConstants> _csConstants{ 1, "Light grid CS" };
 
         enum RootSig { B0_Constants, T0_LightBuffer, T1_LinearDepth, U0_Grid, U1_GridMask };
 
@@ -100,11 +100,11 @@ namespace Inferno::Graphics {
 
             const uint32 lightGridCells = AlignedCeil(width, LIGHT_GRID_MIN_DIM) * AlignedCeil(height, LIGHT_GRID_MIN_DIM);
             uint32 lightGridSizeBytes = lightGridCells * TILE_SIZE;
-            _lightGrid.Create(L"Light Grid", 1, lightGridSizeBytes);
+            _lightGrid.Create("Light Grid", 1, lightGridSizeBytes);
 
             uint32 lightGridBitMaskSizeBytes = lightGridCells * 4 * 4;
-            _bitMask.Create(L"Light Bit Mask", 1, lightGridBitMaskSizeBytes);
-            _lightData.Create(L"Light Data", sizeof LightData, MAX_LIGHTS);
+            _bitMask.Create("Light Bit Mask", 1, lightGridBitMaskSizeBytes);
+            _lightData.Create("Light Data", sizeof LightData, MAX_LIGHTS);
 
             _lightData.AddUnorderedAccessView(false);
             _lightGrid.AddUnorderedAccessView(false);

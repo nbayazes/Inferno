@@ -364,7 +364,7 @@ namespace Inferno::Editor {
         if (!ObjectClipboard) return;
 
         if (level.Objects.size() + 1 >= level.Limits.Objects) {
-            ShowWarningMessage(L"Out of room for objects!");
+            ShowWarningMessage("Out of room for objects!");
             return;
         }
 

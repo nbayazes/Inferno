@@ -71,7 +71,7 @@
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnforceTypeConversionRules>
       </EnforceTypeConversionRules>
-      <AdditionalOptions>/Zc:__cplusplus /we4715 /w34800 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Zc:__cplusplus /we4715 /w34800 /utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -92,7 +92,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
-      <AdditionalOptions>/Zc:__cplusplus /we4715 /w34800 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Zc:__cplusplus /we4715 /w34800 /utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>

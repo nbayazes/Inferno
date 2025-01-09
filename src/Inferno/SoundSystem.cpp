@@ -291,11 +291,11 @@ namespace Inferno::Sound {
             flags |= AudioEngine_Debug;
 #endif
             if (deviceId && !deviceId->empty()) {
-                SPDLOG_INFO(L"Creating audio engine for device {}", deviceId->c_str());
+                SPDLOG_INFO("Creating audio engine for device {}", Narrow(*deviceId));
                 _engine = make_unique<AudioEngine>(flags, nullptr, deviceId ? deviceId->c_str() : nullptr);
             }
             else {
-                SPDLOG_INFO(L"Creating audio engine using default device");
+                SPDLOG_INFO("Creating audio engine using default device");
                 _engine = make_unique<AudioEngine>(flags);
             }
 
@@ -474,9 +474,9 @@ namespace Inferno::Sound {
 
             try {
                 auto devices = AudioEngine::GetRendererDetails();
-                wstring info = L"Available sound devices:\n";
+                string info = "Available sound devices:\n";
                 for (auto& device : devices)
-                    info += fmt::format(L"{}\n", device.description/*, device.deviceId*/);
+                    info += fmt::format("{}\n", Narrow(device.description)/*, device.deviceId*/);
 
                 SPDLOG_INFO(info);
 

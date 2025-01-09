@@ -978,11 +978,11 @@ namespace Inferno {
         return String::TrimEnd(string(name)) + String::TrimEnd(string(ext));
     }
 
-    inline bool ExtensionEquals(const std::filesystem::path& path, wstring ext) {
+    inline bool ExtensionEquals(const std::filesystem::path& path, string ext) {
         if (!path.has_extension()) return false;
-        if (!ext.starts_with('.')) ext.insert(0, L".");
+        if (!ext.starts_with('.')) ext.insert(0, ".");
 
-        return String::InvariantEquals(path.extension().wstring(), ext);
+        return String::InvariantEquals(path.extension().string(), ext);
     }
 
     class ScopedBool {

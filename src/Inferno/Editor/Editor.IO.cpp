@@ -63,7 +63,7 @@ namespace Inferno::Editor {
         level.CameraTarget = Editor::EditorCamera.Target;
         level.CameraUp = Editor::EditorCamera.Up;
         SaveLevelMetadata(level, metadata, EditorLightSettings);
-        SetStatusMessage(L"Saved level to {}", path.wstring());
+        SetStatusMessage("Saved level to {}", path.string());
 
         // Save custom textures
         if (Resources::CustomTextures.Any()) {
@@ -99,7 +99,7 @@ namespace Inferno::Editor {
             }
 
             // Insert vertigo data
-            auto xhog = HogFile::Read(FileSystem::FindFile(L"d2x.hog"));
+            auto xhog = HogFile::Read(FileSystem::FindFile("d2x.hog"));
             auto vertigoData = xhog.ReadEntry("d2x.ham");
             writer.WriteEntry(hamName, vertigoData);
             SPDLOG_INFO("Copied Vertigo d2x.ham into HOG");
@@ -267,7 +267,7 @@ namespace Inferno::Editor {
         SaveLevelToPath(level, path);
     }
 
-    constexpr auto SHAREWARE_SAVE_ERROR = L"Shareware levels cannot be saved.";
+    constexpr auto SHAREWARE_SAVE_ERROR = "Shareware levels cannot be saved.";
 
     void OnSaveAs() {
         if (Game::Level.IsShareware) {
@@ -285,16 +285,15 @@ namespace Inferno::Editor {
         else
             filter.push_back({ L"Descent 2 Level", L"*.rl2" });
 
-        wstring defaultName;
+        string defaultName;
         uint filterIndex = 0;
 
         if (Game::Mission) {
-            defaultName = Game::Mission->Path.filename();
+            defaultName = Game::Mission->Path.filename().string();
             filterIndex = 1;
         }
         else {
-            auto name = level.FileName == "" ? "level" : level.FileName;
-            defaultName = Convert::ToWideString(name);
+            defaultName = level.FileName == "" ? "level" : level.FileName;
             filterIndex = 2;
         }
 
@@ -302,7 +301,7 @@ namespace Inferno::Editor {
         auto path = SaveFileDialog(filter, filterIndex, defaultName);
         if (!path) return;
 
-        if (ExtensionEquals(*path, L"hog")) {
+        if (ExtensionEquals(*path, "hog")) {
             if (Game::Mission) {
                 // Update level in existing hog
                 WriteHog(level, *Game::Mission, *path);
@@ -313,7 +312,7 @@ namespace Inferno::Editor {
                 if (filesystem::exists(srcMsn)) {
                     auto destMsn = Game::Mission->GetMissionPath();
                     filesystem::copy(srcMsn, destMsn);
-                    SPDLOG_INFO(L"Copied mission to {}", destMsn.wstring());
+                    SPDLOG_INFO("Copied mission to {}", destMsn.string());
                 }
             }
             else {
@@ -348,7 +347,7 @@ namespace Inferno::Editor {
             assert(level.FileName != "");
             WriteHog(level, *Game::Mission, Game::Mission->Path);
             Game::LoadMission(Game::Mission->Path);
-            SetStatusMessage(L"Mission saved to {}", Game::Mission->Path.filename().wstring());
+            SetStatusMessage("Mission saved to {}", Game::Mission->Path.filename().string());
             Settings::Editor.AddRecentFile(Game::Mission->Path);
         }
         else {
@@ -392,7 +391,7 @@ namespace Inferno::Editor {
         if (!CanConvertToVertigo()) return;
 
         if (!Resources::FoundVertigo()) {
-            ShowErrorMessage(L"No Vertigo data found!", L"Unable to Convert");
+            ShowErrorMessage("No Vertigo data found!", "Unable to Convert");
             return; // Can't do it!
         }
 
@@ -481,8 +480,8 @@ namespace Inferno::Editor {
             try {
                 auto& path = Game::Mission ? Game::Mission->Path : Game::Level.Path;
                 if (path.empty()) path = Game::Level.FileName;
-                wstring backupPath = path.wstring() + L".sav";
-                SPDLOG_INFO(L"Autosaving backup to {}", backupPath);
+                string backupPath = path.string() + ".sav";
+                SPDLOG_INFO("Autosaving backup to {}", backupPath);
 
                 auto permissions = std::filesystem::status(backupPath).permissions();
                 if ((permissions & std::filesystem::perms::owner_write) == std::filesystem::perms::none) {
@@ -525,7 +524,7 @@ namespace Inferno::Editor {
                     { L"All Files", L"*.*" }
                 };
 
-                if (auto file = OpenFileDialog(filter, L"Open Mission"))
+                if (auto file = OpenFileDialog(filter, "Open Mission"))
                     Game::LoadLevel(*file, "", true);
             },
             .Name = "Open..."

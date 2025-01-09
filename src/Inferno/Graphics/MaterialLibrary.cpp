@@ -339,22 +339,22 @@ namespace Inferno::Render {
         if (!material.Textures[Material2D::Diffuse]) {
             if (cached && cached->DiffuseLength) {
                 cache.ReadDiffuseMap(*cached, buffer);
-                material.Textures[Material2D::Diffuse].LoadMipped(batch, buffer.data(), width, height, Convert::ToWideString(material.Name), cached->Mips);
+                material.Textures[Material2D::Diffuse].LoadMipped(batch, buffer.data(), width, height, material.Name, cached->Mips);
             }
             else {
-                material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap->Data.data(), width, height, Convert::ToWideString(material.Name));
+                material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap->Data.data(), width, height, material.Name);
             }
         }
 
         if (!material.Textures[Material2D::SuperTransparency] && upload.SuperTransparent) {
             if (cached && cached->MaskLength) {
                 cache.ReadMaskMap(*cached, buffer);
-                material.Textures[Material2D::SuperTransparency].LoadMipped(batch, buffer.data(), width, height, Convert::ToWideString(material.Name), cached->Mips, DXGI_FORMAT_R8_UNORM);
+                material.Textures[Material2D::SuperTransparency].LoadMipped(batch, buffer.data(), width, height, material.Name, cached->Mips, DXGI_FORMAT_R8_UNORM);
             }
             else {
                 List<uint8> mask = upload.Bitmap->Mask;
                 ExpandMask(upload.Bitmap->Info, mask);
-                material.Textures[Material2D::SuperTransparency].Load(batch, mask.data(), width, height, Convert::ToWideString(material.Name), true, DXGI_FORMAT_R8_UNORM);
+                material.Textures[Material2D::SuperTransparency].Load(batch, mask.data(), width, height, material.Name, true, DXGI_FORMAT_R8_UNORM);
             }
         }
 
@@ -367,14 +367,14 @@ namespace Inferno::Render {
         if (!material.Textures[Material2D::Specular] && !upload.Bitmap->Data.empty()) {
             if (cached && cached->SpecularLength) {
                 cache.ReadSpecularMap(*cached, buffer);
-                material.Textures[Material2D::Specular].LoadMipped(batch, buffer.data(), width, height, Convert::ToWideString(material.Name + "_s"), cached->Mips, DXGI_FORMAT_R8_UNORM);
+                material.Textures[Material2D::Specular].LoadMipped(batch, buffer.data(), width, height, material.Name + "_s", cached->Mips, DXGI_FORMAT_R8_UNORM);
             }
         }
 
         if (!material.Textures[Material2D::Normal] && !upload.Bitmap->Data.empty()) {
             if (cached && cached->NormalLength) {
                 cache.ReadNormalMap(*cached, buffer);
-                material.Textures[Material2D::Normal].Load(batch, buffer.data(), width, height, Convert::ToWideString(material.Name + "_n"), true, DXGI_FORMAT_R8G8B8A8_UNORM);
+                material.Textures[Material2D::Normal].Load(batch, buffer.data(), width, height, material.Name + "_n", true, DXGI_FORMAT_R8G8B8A8_UNORM);
             }
         }
 
@@ -434,7 +434,7 @@ namespace Inferno::Render {
             material.Handles[i] = Render::Uploads->GetGpuHandle(material.UploadIndex + i);
 
         material.Name = bitmap.Name;
-        material.Textures[Material2D::Diffuse].Load(batch, bitmap.Mips[0].data(), bitmap.Width, bitmap.Height, Convert::ToWideString(bitmap.Name));
+        material.Textures[Material2D::Diffuse].Load(batch, bitmap.Mips[0].data(), bitmap.Width, bitmap.Height, bitmap.Name);
 
         // Set default secondary textures
         for (uint i = 0; i < std::size(material.Textures); i++) {
@@ -458,7 +458,7 @@ namespace Inferno::Render {
         for (int i = 0; i < Material2D::Count; i++)
             material.Handles[i] = Render::Uploads->GetGpuHandle(material.UploadIndex + i);
 
-        material.Textures[Material2D::Diffuse].Load(batch, bitmap.Data.data(), bitmap.Width, bitmap.Height, Convert::ToWideString(name), false, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
+        material.Textures[Material2D::Diffuse].Load(batch, bitmap.Data.data(), bitmap.Width, bitmap.Height, name, false, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
 
         // Set default secondary textures
         for (uint i = 0; i < std::size(material.Textures); i++) {

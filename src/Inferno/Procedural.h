@@ -21,7 +21,7 @@ namespace Inferno {
 
     class ProceduralTextureBase {
         double _nextTime = 0;
-        wstring _name;
+        string _name;
 
     protected:
         int _frameCount = 0;

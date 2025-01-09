@@ -162,19 +162,19 @@ namespace Inferno::Render {
     void CreateDefaultTextures() {
         auto batch = BeginTextureUpload();
         uint normalData[] = { 0x00FF8080, 0x00FF8080, 0x00FF8080, 0x00FF8080 };
-        StaticTextures->Normal.Load(batch, normalData, 2, 2, L"normal", false, DXGI_FORMAT_R8G8B8A8_UNORM);
+        StaticTextures->Normal.Load(batch, normalData, 2, 2, "normal", false, DXGI_FORMAT_R8G8B8A8_UNORM);
         StaticTextures->Normal.AddShaderResourceView();
 
         uint whiteData[] = { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
-        StaticTextures->White.Load(batch, whiteData, 2, 2, L"white", false, DXGI_FORMAT_R8G8B8A8_UNORM);
+        StaticTextures->White.Load(batch, whiteData, 2, 2, "white", false, DXGI_FORMAT_R8G8B8A8_UNORM);
         StaticTextures->White.AddShaderResourceView();
 
         uint blackData[] = { 0xFF000000, 0xFF000000, 0xFF000000, 0xFF000000 };
-        StaticTextures->Black.Load(batch, blackData, 2, 2, L"black", false, DXGI_FORMAT_R8G8B8A8_UNORM);
+        StaticTextures->Black.Load(batch, blackData, 2, 2, "black", false, DXGI_FORMAT_R8G8B8A8_UNORM);
         StaticTextures->Black.AddShaderResourceView();
 
         uint missingData[] = { 0xFFFF00FF, 0xFF000000, 0xFF000000, 0xFFFF00FF };
-        StaticTextures->Missing.Load(batch, missingData, 2, 2, L"missing", false, DXGI_FORMAT_R8G8B8A8_UNORM);
+        StaticTextures->Missing.Load(batch, missingData, 2, 2, "missing", false, DXGI_FORMAT_R8G8B8A8_UNORM);
         StaticTextures->Missing.AddShaderResourceView();
 
         try {
@@ -196,14 +196,14 @@ namespace Inferno::Render {
         Shaders = make_unique<ShaderResources>();
         Effects = make_unique<EffectResources>(Shaders.get());
         ToneMapping = make_unique<PostFx::ToneMapping>();
-        MaterialInfoUploadBuffer = make_unique<UploadBuffer<MaterialInfo>>(MATERIAL_COUNT, L"Material upload buffer");
+        MaterialInfoUploadBuffer = make_unique<UploadBuffer<MaterialInfo>>(MATERIAL_COUNT, "Material upload buffer");
         MaterialInfoBuffer = make_unique<StructuredBuffer>();
-        MaterialInfoBuffer->Create(L"MaterialInfo", sizeof MaterialInfo, MATERIAL_COUNT);
+        MaterialInfoBuffer->Create("MaterialInfo", sizeof MaterialInfo, MATERIAL_COUNT);
         MaterialInfoBuffer->AddShaderResourceView();
 
-        VClipUploadBuffer = make_unique<UploadBuffer<GpuVClip>>(VCLIP_COUNT, L"vclip buffer");
+        VClipUploadBuffer = make_unique<UploadBuffer<GpuVClip>>(VCLIP_COUNT, "vclip buffer");
         VClipBuffer = make_unique<StructuredBuffer>();
-        VClipBuffer->Create(L"VClips", sizeof GpuVClip, VCLIP_COUNT);
+        VClipBuffer->Create("VClips", sizeof GpuVClip, VCLIP_COUNT);
         VClipBuffer->AddShaderResourceView();
 
         for (auto& buffer : FrameUploadBuffers)

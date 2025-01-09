@@ -104,18 +104,19 @@ namespace Inferno {
         ThrowIfFailed(resultBlob.As(&result));
     }
 
-    ComPtr<ID3DBlob> LoadComputeShader(const filesystem::path& file, ComPtr<ID3D12RootSignature>& rootSignature, ComPtr<ID3D12PipelineState>& pso, wstring entryPoint) {
+    ComPtr<ID3DBlob> LoadComputeShader(const filesystem::path& file, ComPtr<ID3D12RootSignature>& rootSignature, ComPtr<ID3D12PipelineState>& pso, string_view entryPoint) {
         ComPtr<ID3DBlob> shader;
 
         auto binaryPath = GetBinaryPath(file, ".bin");
         if (std::filesystem::exists(binaryPath)) {
-            SPDLOG_INFO(L"Loading compute shader {}", binaryPath.wstring());
+            SPDLOG_INFO("Loading compute shader {}", binaryPath.string());
             LoadFile(binaryPath, shader);
         }
         else {
-            SPDLOG_INFO(L"Compiling compute shader {}:{}", file.wstring(), entryPoint);
+            SPDLOG_INFO("Compiling compute shader {}:{}", file.string(), entryPoint);
             List<LPCWSTR> args;
-            AddCommonArgs(args, entryPoint.c_str(), L"cs_6_0");
+            auto wideEntry = Widen(entryPoint); // args takes a pointer to string, must keep it allocated
+            AddCommonArgs(args, wideEntry.c_str(), L"cs_6_0");
             CompileShader(file, args, shader);
         }
 
@@ -136,22 +137,23 @@ namespace Inferno {
         return shader;
     }
 
-    ComPtr<ID3DBlob> LoadVertexShader(const filesystem::path& file, ComPtr<ID3D12RootSignature>& rootSignature, wstring entryPoint) {
+    ComPtr<ID3DBlob> LoadVertexShader(const filesystem::path& file, ComPtr<ID3D12RootSignature>& rootSignature, string_view entryPoint) {
         ComPtr<ID3DBlob> shader;
 
         auto binaryPath = GetBinaryPath(file, ".vs.bin");
         if (filesystem::exists(binaryPath)) {
-            SPDLOG_INFO(L"Loading vertex shader {}", binaryPath.wstring());
+            SPDLOG_INFO("Loading vertex shader {}", binaryPath.string());
             LoadFile(binaryPath, shader);
         }
         else {
             if (!filesystem::exists(file))
                 throw Exception(fmt::format("Shader file not found:\n{}", file.string()));
 
-            SPDLOG_INFO(L"Compiling vertex shader {}:{}", file.wstring(), entryPoint);
+            SPDLOG_INFO("Compiling vertex shader {}:{}", file.string(), entryPoint);
 
             List<LPCWSTR> args;
-            AddCommonArgs(args, entryPoint.c_str(), L"vs_6_0");
+            auto wideEntry = Widen(entryPoint); // args takes a pointer to string, must keep it allocated
+            AddCommonArgs(args, wideEntry.c_str(), L"vs_6_0");
             CompileShader(file, args, shader);
         }
 
@@ -162,18 +164,19 @@ namespace Inferno {
         return shader;
     }
 
-    ComPtr<ID3DBlob> LoadPixelShader(const filesystem::path& file, wstring entryPoint) {
+    ComPtr<ID3DBlob> LoadPixelShader(const filesystem::path& file, string_view entryPoint) {
         ComPtr<ID3DBlob> shader;
         auto binaryPath = GetBinaryPath(file, ".ps.bin");
         if (filesystem::exists(binaryPath)) {
-            SPDLOG_INFO(L"Loading pixel shader {}", binaryPath.wstring());
+            SPDLOG_INFO("Loading pixel shader {}", binaryPath.string());
             LoadFile(binaryPath, shader);
         }
         else {
-            SPDLOG_INFO(L"Compiling pixel shader {}:{}", file.wstring(), entryPoint);
+            SPDLOG_INFO("Compiling pixel shader {}:{}", file.string(), entryPoint);
 
             List<LPCWSTR> args;
-            AddCommonArgs(args, entryPoint.c_str(), L"ps_6_0");
+            auto wideEntry = Widen(entryPoint); // args takes a pointer to string, must keep it allocated
+            AddCommonArgs(args, wideEntry.c_str(), L"ps_6_0");
             CompileShader(file, args, shader);
         }
 

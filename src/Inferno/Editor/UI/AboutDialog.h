@@ -23,7 +23,7 @@ namespace Inferno::Editor {
             ImGui::Text("Version %s", VERSION_STRING);
 
             ImGui::Dummy({ 0, 10 * Shell::DpiScale });
-            ImGui::Text((char*)u8"© 2024 Nicholas Bayazes");
+            ImGui::Text("Â© 2025 Nicholas Bayazes");
 
             ImGui::Dummy({ 0, 10 * Shell::DpiScale });
             ImGui::PushStyleColor(ImGuiCol_Button, { 0, 0, 0, 0 });
@@ -31,7 +31,7 @@ namespace Inferno::Editor {
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.5f, 0.75f, 1, 0.15f });
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.5f, 0.75f, 1, 0.30f });
             if (ImGui::SmallButton("Visit Project Page"))
-                ShellExecute(nullptr, L"open", L"https://github.com/nbayazes/Inferno", nullptr, nullptr, SW_SHOWNORMAL);
+                ShellExecute(nullptr, Widen("open").c_str(), Widen("https://github.com/nbayazes/Inferno").c_str(), nullptr, nullptr, SW_SHOWNORMAL);
             ImGui::PopStyleColor(4);
 
             ImGui::BeginChild("closebtns", { 0, 32 * Shell::DpiScale });

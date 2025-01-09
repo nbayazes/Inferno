@@ -13,17 +13,17 @@ namespace Inferno {
         std::mutex _eventMutex;
 
     public:
-        CommandQueue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type, wstring_view name) : _type(type) {
+        CommandQueue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type, string_view name) : _type(type) {
             assert(device);
             D3D12_COMMAND_QUEUE_DESC desc{};
             desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
             desc.Type = type;
 
             ThrowIfFailed(device->CreateCommandQueue(&desc, IID_PPV_ARGS(&_queue)));
-            ThrowIfFailed(_queue->SetName(name.data()));
+            ThrowIfFailed(_queue->SetName(Widen(name).c_str()));
 
             ThrowIfFailed(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&_fence)));
-            ThrowIfFailed(_fence->SetName(name.data()));
+            ThrowIfFailed(_fence->SetName(Widen(name).c_str()));
 
             //ThrowIfFailed(_fence->Signal((uint64)type << 56));
 

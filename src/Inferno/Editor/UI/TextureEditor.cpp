@@ -9,7 +9,7 @@ namespace Inferno::Editor {
         try {
             auto& bmp = Resources::GetBitmap(id);
             static constexpr COMDLG_FILTERSPEC filter[] = { { L"256 Color Bitmap", L"*.BMP" } };
-            if (auto path = SaveFileDialog(filter, 0, Convert::ToWideString(bmp.Info.Name + ".bmp"), L"Export BMP")) {
+            if (auto path = SaveFileDialog(filter, 0, bmp.Info.Name + ".bmp", "Export BMP")) {
                 WriteBmp(*path, Resources::GetPalette(), bmp);
             }
         }
@@ -260,7 +260,7 @@ namespace Inferno::Editor {
     void TextureEditor::OnImport(const PigEntry& entry) {
         try {
             static constexpr COMDLG_FILTERSPEC filter[] = { { L"256 Color Bitmap", L"*.BMP" }, };
-            if (auto file = OpenFileDialog(filter, L"Import custom texture")) {
+            if (auto file = OpenFileDialog(filter, "Import custom texture")) {
                 Resources::CustomTextures.ImportBmp(*file, _useTransparency, entry, Game::Level.IsDescent1(), _whiteAsTransparent);
                 std::array ids{ _selection };
                 Render::Materials->LoadMaterialsAsync(ids, true);

@@ -27,7 +27,7 @@ namespace Inferno::Editor {
                 if (renamed.Name == _renameDialog.Name) return; // name didn't change
 
                 if (Seq::find(_entries, [this, &renamed](auto x) { return x.Name == _renameDialog.Name; })) {
-                    ShowWarningMessage(L"File name is already in use");
+                    ShowWarningMessage("File name is already in use");
                     _renameDialog.Show();
                     return;
                 }
@@ -188,7 +188,7 @@ namespace Inferno::Editor {
                     Seq::sortDescending(_selections);
                     for (auto& i : _selections) {
                         if (String::InvariantEquals(_entries[i].Name, Game::Level.FileName)) {
-                            if (!ShowYesNoMessage(L"Are you sure you want to delete the currently opened level?", L"Confirm delete"))
+                            if (!ShowYesNoMessage("Are you sure you want to delete the currently opened level?", "Confirm delete"))
                                 continue;
                         }
                         Seq::removeAt(_entries, i);
@@ -294,7 +294,7 @@ namespace Inferno::Editor {
                     { L"All Files", L"*.*" }
                 };
 
-                auto files = OpenMultipleFilesDialog(filter, L"Import files to HOG");
+                auto files = OpenMultipleFilesDialog(filter, "Import files to HOG");
                 if (files.empty()) return;
 
                 _selections.clear();
@@ -338,7 +338,7 @@ namespace Inferno::Editor {
                     { L"All Files", L"*.*" }
                 };
 
-                auto file = OpenFileDialog(filter, L"Import file to levels");
+                auto file = OpenFileDialog(filter, "Import file to levels");
                 if (!file) return;
 
                 auto size = filesystem::file_size(*file);
@@ -361,8 +361,8 @@ namespace Inferno::Editor {
                 }
 
                 if (existingCount) {
-                    auto msg = fmt::format(L"{} existing files will be overwritten.", existingCount);
-                    if (!ShowOkCancelMessage(msg, L"Confirm Overwrite"))
+                    auto msg = fmt::format("{} existing files will be overwritten.", existingCount);
+                    if (!ShowOkCancelMessage(msg, "Confirm Overwrite"))
                         return;
                 }
 
@@ -429,7 +429,7 @@ namespace Inferno::Editor {
                     { L"All Files", L"*.*" }
                 };
 
-                if (auto path = SaveFileDialog(filter, 1, Convert::ToWideString(entry->Name), L"Export File")) {
+                if (auto path = SaveFileDialog(filter, 1, entry->Name, "Export File")) {
                     ExportEntry(*entry, *path);
                 }
             }

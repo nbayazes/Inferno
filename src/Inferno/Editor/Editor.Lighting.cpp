@@ -758,12 +758,12 @@ namespace Inferno::Editor {
             if (!light.Source->IsDynamic) continue;
 
             if (level.LightDeltaIndices.size() >= MAX_DYNAMIC_LIGHTS) {
-                ShowWarningMessage(L"Maximum dynamic lights reached. Some lights will not work as expected.");
+                ShowWarningMessage("Maximum dynamic lights reached. Some lights will not work as expected.");
                 return;
             }
 
             if (level.LightDeltas.size() + MAX_DELTAS_PER_LIGHT > MAX_LIGHT_DELTAS) {
-                ShowWarningMessage(L"Maximum light deltas reached. Some lights will not work as expected.");
+                ShowWarningMessage("Maximum light deltas reached. Some lights will not work as expected.");
                 return;
             }
 
@@ -1085,7 +1085,7 @@ namespace Inferno::Editor {
         if (!LightLevelResults) return; // No results to copy
 
         if (LightLevelResults->Segments.size() != level.Segments.size()) {
-            ShowErrorMessage(L"Level segment count doesn't match lighting segment count.\nAvoid adding or removing segments during lighting.");
+            ShowErrorMessage("Level segment count doesn't match lighting segment count.\nAvoid adding or removing segments during lighting.");
             LightLevelResults = {}; // Clear for next run
             return;
         }

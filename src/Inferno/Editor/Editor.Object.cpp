@@ -114,7 +114,7 @@ namespace Inferno::Editor {
         if (!level.SegmentExists(tag)) return ObjID::None;
 
         if (level.Objects.size() + 1 >= level.Limits.Objects) {
-            ShowWarningMessage(L"Out of room for objects!");
+            ShowWarningMessage("Out of room for objects!");
             return ObjID::None;
         }
 

@@ -64,7 +64,7 @@ namespace Inferno::Editor {
 
         if (ImGui::Button("Add##TriggerTarget", btnSize)) {
             if (Editor::Marked.Faces.empty())
-                ShowWarningMessage(L"Please mark faces to add as targets.");
+                ShowWarningMessage("Please mark faces to add as targets.");
 
             for (auto& mark : Editor::Marked.Faces) {
                 AddTriggerTarget(level, tid, mark);
@@ -426,7 +426,7 @@ namespace Inferno::Editor {
                 snapshot = true; // Snapshot after the user releases the mouse button
 
             if (ImGui::Button("Reset palette")) {
-                if (ShowYesNoMessage(L"Are you sure you want to reset the palette?", L"Reset palette")) {
+                if (ShowYesNoMessage("Are you sure you want to reset the palette?", "Reset palette")) {
                     Settings::Editor.Palette = GetDefaultPalette();
                 }
             }
@@ -1414,7 +1414,7 @@ namespace Inferno::Editor {
         auto segType = seg.Type;
         if (SegmentTypeDropdown(segType)) {
             if (segType == SegmentType::Matcen && !level.CanAddMatcen()) {
-                ShowWarningMessage(L"Maximum number of matcens reached");
+                ShowWarningMessage("Maximum number of matcens reached");
             }
             else {
                 SetSegmentType(level, Selection.Tag(), segType);

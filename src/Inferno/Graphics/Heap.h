@@ -74,7 +74,9 @@ namespace Inferno {
 
         DescriptorHandle operator[](int index) const { return GetHandle(index); }
 
-        void SetName(const wstring& name) const { ThrowIfFailed(_heap->SetName(name.c_str())); };
+        void SetName(string_view name) const {
+            ThrowIfFailed(_heap->SetName(Widen(name).c_str()));
+        };
 
         // Returns an unused handle. This ignores any direct index usage.
         DescriptorHandle Allocate(uint count = 1) {
@@ -203,9 +205,9 @@ namespace Inferno {
               Materials(_shader, materials, reserved + procedurals + cubemaps),
               RenderTargets(renderTargets, D3D12_DESCRIPTOR_HEAP_TYPE_RTV),
               DepthStencil(5, D3D12_DESCRIPTOR_HEAP_TYPE_DSV) {
-            _shader.SetName(L"Shader visible heap");
-            RenderTargets.SetName(L"Render target heap");
-            DepthStencil.SetName(L"Depth stencil heap");
+            _shader.SetName("Shader visible heap");
+            RenderTargets.SetName("Render target heap");
+            DepthStencil.SetName("Depth stencil heap");
         }
 
         DirectX::CommonStates States;

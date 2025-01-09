@@ -217,7 +217,6 @@ namespace Inferno {
 
         void ReadSegments(Level& level) {
             _reader.Seek(_mineDataOffset);
-            //OutputDebugString(std::format(L"Mine data offset: {}\n", _reader.Position()).c_str());
 
             // Header
             _reader.ReadByte(); // compiled mine version, unused

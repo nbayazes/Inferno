@@ -1,7 +1,6 @@
 #pragma once
 #include "Buffers.h"
 #include "Compiler.h"
-#include "WindowsDialogs.h"
 
 namespace Inferno {
     // Divides an integral value and rounds up to the nearest alignment.
@@ -20,7 +19,7 @@ namespace Inferno {
         ComputeShader(UINT numThreadsX, UINT numThreadsY)
             : _numThreadsX(numThreadsX), _numThreadsY(numThreadsY) {}
 
-        void Load(const filesystem::path& file, const wstring& entryPoint = L"main") {
+        void Load(const filesystem::path& file, string_view entryPoint = "main") {
             if (!std::filesystem::exists(file)) {
                 auto msg = fmt::format("Shader {} not found", file.string());
                 SPDLOG_ERROR(msg);

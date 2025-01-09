@@ -10,15 +10,15 @@
 Inferno::List<Inferno::ubyte> Inferno::File::ReadAllBytes(const std::filesystem::path& path) {
     std::ifstream file(path, std::ios::binary);
     if (!file) {
-        auto msg = fmt::format(L"File not found: {}", path.wstring());
-        throw Exception(Convert::ToString(msg).c_str());
+        auto msg = fmt::format("File not found: {}", path.string());
+        throw Exception(msg);
     }
 
     auto size = filesystem::file_size(path);
     List<ubyte> buffer(size);
     if (!file.read((char*)buffer.data(), size)) {
-        auto msg = fmt::format(L"File read error: {}", path.wstring());
-        throw Exception(Convert::ToString(msg).c_str());
+        auto msg = fmt::format("File read error: {}", path.string());
+        throw Exception(msg);
     }
 
     return buffer;
@@ -64,9 +64,9 @@ namespace Inferno::FileSystem {
         if (auto path = TryFindFile(file))
             return *path;
 
-        auto msg = fmt::format(L"File not found: {}", file.wstring());
+        auto msg = fmt::format("File not found: {}", file.string());
         SPDLOG_ERROR(msg);
-        throw Exception(Convert::ToString(msg).c_str());
+        throw Exception(msg);
     }
 
     span<filesystem::path> GetDirectories() {
@@ -92,11 +92,11 @@ namespace Inferno::FileSystem {
 
     void AddDataDirectory(const filesystem::path& path) {
         if (!filesystem::exists(path)) {
-            SPDLOG_WARN(L"Tried to add invalid path: {}", path.wstring());
+            SPDLOG_WARN("Tried to add invalid path: {}", path.string());
             return;
         }
 
-        SPDLOG_INFO(L"Adding data directory {}", path.wstring());
+        SPDLOG_INFO("Adding data directory {}", path.string());
         Directories.push_back(path);
     }
 

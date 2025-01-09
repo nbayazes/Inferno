@@ -56,7 +56,7 @@ namespace Inferno::Resources {
                 RobotNames.push_back(line);
         }
         catch (...) {
-            SPDLOG_ERROR(L"Error reading robot names from `{}`", path.wstring());
+            SPDLOG_ERROR("Error reading robot names from `{}`", path.string());
         }
     }
 
@@ -73,7 +73,7 @@ namespace Inferno::Resources {
                 PowerupNames.push_back(line);
         }
         catch (...) {
-            SPDLOG_ERROR(L"Error reading powerup names from `{}`", path.wstring());
+            SPDLOG_ERROR("Error reading powerup names from `{}`", path.string());
         }
     }
 
@@ -351,7 +351,7 @@ namespace Inferno::Resources {
         auto hamData = ReadGameResource("descent2.ham");
         StreamReader reader(hamData);
         auto ham = ReadHam(reader);
-        auto hog = HogFile::Read(FileSystem::FindFile(L"descent2.hog"));
+        auto hog = HogFile::Read(FileSystem::FindFile("descent2.hog"));
 
         // Find the 256 for the palette first. In most cases it is located inside of the hog.
         // But for custom palettes it is on the filesystem
@@ -421,11 +421,11 @@ namespace Inferno::Resources {
             try {
                 // Unfortunately have to parse the whole pig file because there's no specialized method
                 // for just reading sounds
-                auto hog = HogFile::Read(FileSystem::FindFile(L"descent.hog"));
+                auto hog = HogFile::Read(FileSystem::FindFile("descent.hog"));
                 auto paletteData = hog.ReadEntry("palette.256");
                 auto palette = ReadPalette(paletteData);
 
-                auto path = FileSystem::FindFile(L"descent.pig");
+                auto path = FileSystem::FindFile("descent.pig");
                 auto bytes = File::ReadAllBytes(path);
 
                 PigFile pig;
@@ -439,7 +439,7 @@ namespace Inferno::Resources {
             }
         }
 
-        if (auto s22 = FileSystem::TryFindFile(L"descent2.s22")) {
+        if (auto s22 = FileSystem::TryFindFile("descent2.s22")) {
             SoundsD2 = ReadSoundFile(*s22);
         }
     }
@@ -526,11 +526,11 @@ namespace Inferno::Resources {
 
     void LoadDescent1Resources() {
         std::scoped_lock lock(PigMutex);
-        auto hog = HogFile::Read(FileSystem::FindFile(L"descent.hog"));
+        auto hog = HogFile::Read(FileSystem::FindFile("descent.hog"));
         auto paletteData = hog.ReadEntry("palette.256");
         auto palette = ReadPalette(paletteData);
 
-        auto path = FileSystem::FindFile(L"descent.pig");
+        auto path = FileSystem::FindFile("descent.pig");
         auto pigData = File::ReadAllBytes(path);
 
         PigFile pig;
@@ -551,8 +551,8 @@ namespace Inferno::Resources {
     }
 
     void LoadDescent1GameData() {
-        auto hogPath = FileSystem::TryFindFile(L"descent.hog");
-        auto pigPath = FileSystem::TryFindFile(L"descent.pig");
+        auto hogPath = FileSystem::TryFindFile("descent.hog");
+        auto pigPath = FileSystem::TryFindFile("descent.pig");
 
         if (!hogPath)
             throw Exception("descent.hog not found");
@@ -569,7 +569,7 @@ namespace Inferno::Resources {
     }
 
     void LoadDescent2GameData() {
-        auto hamPath = FileSystem::TryFindFile(L"descent2.ham");
+        auto hamPath = FileSystem::TryFindFile("descent2.ham");
         if (!hamPath)
             throw Exception("descent2.ham not found");
 
@@ -580,11 +580,11 @@ namespace Inferno::Resources {
 
     void LoadDescent1Resources(Level& level) {
         std::scoped_lock lock(PigMutex);
-        auto hog = HogFile::Read(FileSystem::FindFile(L"descent.hog"));
+        auto hog = HogFile::Read(FileSystem::FindFile("descent.hog"));
         auto paletteData = hog.ReadEntry("palette.256");
         auto palette = ReadPalette(paletteData);
 
-        auto path = FileSystem::FindFile(L"descent.pig");
+        auto path = FileSystem::FindFile("descent.pig");
         auto pigData = File::ReadAllBytes(path);
 
         PigFile pig;
@@ -1115,7 +1115,7 @@ namespace Inferno::Resources {
     void MountDescent3() {
         try {
             if (auto path = FileSystem::TryFindFile("d3.hog")) {
-                SPDLOG_INFO(L"Loading {} and Table.gam", path->wstring());
+                SPDLOG_INFO("Loading {} and Table.gam", path->string());
                 Descent3Hog = Hog2::Read(*path);
                 if (auto r = OpenFile("Table.gam"))
                     GameTable = Outrage::GameTable::Read(*r);

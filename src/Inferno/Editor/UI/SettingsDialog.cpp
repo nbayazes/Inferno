@@ -83,7 +83,7 @@ namespace Inferno::Editor {
 
         ImGui::SameLine();
         if (ImGui::Button("Browse...##d1", { 90 * Shell::DpiScale, 0 }))
-            if (auto folder = OpenFileDialog(filter, L"Pick game executable"))
+            if (auto folder = OpenFileDialog(filter, "Pick game executable"))
                 _inferno.Descent1Path = *folder;
 
         ImGui::Dummy({ 0, 10 * Shell::DpiScale });
@@ -96,7 +96,7 @@ namespace Inferno::Editor {
 
         ImGui::SameLine();
         if (ImGui::Button("Browse...##d2", { 90 * Shell::DpiScale, 0 }))
-            if (auto folder = OpenFileDialog(filter, L"Pick game executable"))
+            if (auto folder = OpenFileDialog(filter, "Pick game executable"))
                 _inferno.Descent2Path = *folder;
 
         ImGui::Dummy({ 0, 10 * Shell::DpiScale });
@@ -581,9 +581,9 @@ namespace Inferno::Editor {
         _enableForegroundFpsLimit = Settings::Graphics.EnableForegroundFpsLimit;
 
         if (!Resources::HasGameData()) {
-            ShowOkMessage(L"Game data was not found, please configure the executable paths.\n\n"
-                          L"If game data is not in the same folder as the executable, use the Data Paths tab to add the folders containing descent.hog and descent2.hog",
-                          L"Missing game data");
+            ShowOkMessage("Game data was not found, please configure the executable paths.\n\n"
+                          "If game data is not in the same folder as the executable, use the Data Paths tab to add the folders containing descent.hog and descent2.hog",
+                          "Missing game data");
         }
         return true;
     }

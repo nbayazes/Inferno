@@ -29,13 +29,13 @@ namespace Inferno {
 
         List<ubyte> bmp(64 * 64 * 4);
         FillTexture(bmp, 0, 0, 0, 255);
-        Black->Load(batch, bmp.data(), 64, 64, L"black");
+        Black->Load(batch, bmp.data(), 64, 64, "black");
 
         FillTexture(bmp, 255, 255, 255, 255);
-        White->Load(batch, bmp.data(), 64, 64, L"white");
+        White->Load(batch, bmp.data(), 64, 64, "white");
 
         FillTexture(bmp, 255, 0, 255, 255);
-        Missing->Load(batch, bmp.data(), 64, 64, L"purple");
+        Missing->Load(batch, bmp.data(), 64, 64, "purple");
 
         {
             _defaultMaterial.Name = "default";

@@ -53,7 +53,7 @@ namespace Inferno {
         return length;
     }
 
-    //Use Newton–Raphsons method to find the t value at the end of this distance d
+    //Use Newtonâ€“Raphsons method to find the t value at the end of this distance d
     inline float FindTValue(const Array<Vector3, 4>& curve, float dist, float totalLength) {
         float t = dist / totalLength;
 
@@ -89,7 +89,7 @@ namespace Inferno {
         result.push_back(curve[0]); // start point
 
         for (int i = 1; i < steps; i++) {
-            //Use Newton–Raphsons method to find the t value from the start of the curve 
+            //Use Newtonâ€“Raphsons method to find the t value from the start of the curve 
             //to the end of the distance we have
             float t = FindTValue(curve, currentDistance, totalLength);
 

@@ -362,7 +362,7 @@ namespace Inferno::Game {
                 Sound::SetMusicVolume(Settings::Inferno.MusicVolume);
                 PlayMainMenuMusic();
                 UI::ShowMainMenu();
-                
+
                 break;
             }
 
@@ -554,7 +554,7 @@ namespace Inferno::Game {
             CheckLoadLevel();
 
         Game::BriefingVisible = false;
-        Inferno::Input::Update();
+        Input::Update();
         Bindings.Update();
         CheckGlobalHotkeys();
 
@@ -823,7 +823,7 @@ namespace Inferno::Game {
         auto player = level.TryGetObject(ObjID(0));
 
         if (!player || !player->IsPlayer()) {
-            ShowErrorMessage(L"No player start at object 0!", L"Unable to load level");
+            ShowErrorMessage("No player start at object 0!", "Unable to load level");
             return false;
         }
 
@@ -838,7 +838,7 @@ namespace Inferno::Game {
                 levelNumber = 1;
 
             if (levelNumber > mission.Levels.size()) {
-                ShowErrorMessage(Convert::ToWideString(std::format("Level number {} not found", levelNumber)));
+                ShowErrorMessage(std::format("Level number {} not found", levelNumber));
                 return;
             }
 
@@ -847,7 +847,7 @@ namespace Inferno::Game {
             hogPath.replace_extension(".hog");
 
             if (!Game::LoadMission(hogPath)) {
-                ShowErrorMessage(Convert::ToWideString(std::format("Unable to load mission {}", hogPath.string())));
+                ShowErrorMessage(std::format("Unable to load mission {}", hogPath.string()));
                 return;
             }
 
@@ -890,9 +890,7 @@ namespace Inferno::Game {
             }
         }
         catch (const std::exception& e) {
-            ShowErrorMessage(Convert::ToWideString(
-                std::format("Unable to load mission {}\n{}", mission.Path.string(), e.what())
-            ));
+            ShowErrorMessage(std::format("Unable to load mission {}\n{}", mission.Path.string(), e.what()));
 
             Game::SetState(GameState::MainMenu);
         }

@@ -22,7 +22,7 @@ namespace Inferno {
         D3D12_RESOURCE_STATES _state = D3D12_RESOURCE_STATE_COMMON;
         D3D12_RESOURCE_DESC _desc = {};
         D3D12_HEAP_TYPE _heapType = {};
-        wstring _name;
+        string _name;
 
         DescriptorHandle _srv, _rtv, _uav;
         D3D12_RENDER_TARGET_VIEW_DESC _rtvDesc = {};
@@ -50,12 +50,12 @@ namespace Inferno {
         const D3D12_GPU_DESCRIPTOR_HANDLE GetUAV() const { return _uav.GetGpuHandle(); }
         const D3D12_CPU_DESCRIPTOR_HANDLE GetRTV() const { return _rtv.GetCpuHandle(); }
 
-        void SetName(wstring_view name) {
+        void SetName(string_view name) {
             _name = name;
-            ThrowIfFailed(_resource->SetName(name.data()));
+            ThrowIfFailed(_resource->SetName(Widen(name).data()));
         }
 
-        wstring_view GetName() { return _name; }
+        string_view GetName() { return _name; }
 
         // Returns the original state
         D3D12_RESOURCE_STATES Transition(ID3D12GraphicsCommandList* cmdList, D3D12_RESOURCE_STATES state) {
@@ -86,11 +86,11 @@ namespace Inferno {
             cmdList->CopyResource(Get(), src._resource.Get());
         }
 
-        void CreateOnUploadHeap(wstring_view name, const D3D12_CLEAR_VALUE* clearValue = nullptr) {
+        void CreateOnUploadHeap(string_view name, const D3D12_CLEAR_VALUE* clearValue = nullptr) {
             Create(D3D12_HEAP_TYPE_UPLOAD, name, clearValue);
         }
 
-        void CreateOnDefaultHeap(wstring_view name, const D3D12_CLEAR_VALUE* clearValue = nullptr) {
+        void CreateOnDefaultHeap(string_view name, const D3D12_CLEAR_VALUE* clearValue = nullptr) {
             Create(D3D12_HEAP_TYPE_DEFAULT, name, clearValue);
         }
 
@@ -98,7 +98,7 @@ namespace Inferno {
         CD3DX12_RESOURCE_BARRIER CreatePlacedResource(ID3D12Device* device,
                                                       ID3D12Heap* heap,
                                                       size_t offset,
-                                                      wstring_view name) {
+                                                      string_view name) {
             ThrowIfFailed(device->CreatePlacedResource(
                 heap,
                 offset,
@@ -107,7 +107,7 @@ namespace Inferno {
                 nullptr,
                 IID_PPV_ARGS(&_resource)));
 
-            ThrowIfFailed(_resource->SetName(name.data()));
+            ThrowIfFailed(_resource->SetName(Widen(name).c_str()));
             return CD3DX12_RESOURCE_BARRIER::Aliasing(nullptr, _resource.Get());
         }
 
@@ -150,7 +150,7 @@ namespace Inferno {
         }
 
     private:
-        void Create(D3D12_HEAP_TYPE heapType, wstring_view name, const D3D12_CLEAR_VALUE* clearValue) {
+        void Create(D3D12_HEAP_TYPE heapType, string_view name, const D3D12_CLEAR_VALUE* clearValue) {
             _heapType = heapType;
             CD3DX12_HEAP_PROPERTIES props(_heapType);
             ThrowIfFailed(Render::Device->CreateCommittedResource(
@@ -168,7 +168,7 @@ namespace Inferno {
     // General purpose buffer
     class GpuBuffer : public GpuResource {
     public:
-        void CreateGenericBuffer(wstring_view name, uint32 elementSize, uint32 elementCount) {
+        void CreateGenericBuffer(string_view name, uint32 elementSize, uint32 elementCount) {
             _desc = CD3DX12_RESOURCE_DESC::Buffer(elementSize * elementCount);
             _state = D3D12_RESOURCE_STATE_GENERIC_READ;
 
@@ -196,7 +196,7 @@ namespace Inferno {
 
     class ByteAddressBuffer final : public GpuBuffer {
     public:
-        void Create(wstring_view name, uint32 elementSize, uint32 elementCount) {
+        void Create(string_view name, uint32 elementSize, uint32 elementCount) {
             _desc = CD3DX12_RESOURCE_DESC::Buffer(elementSize * elementCount, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
             _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
@@ -263,7 +263,7 @@ namespace Inferno {
         ByteAddressBuffer _counterBuffer;
 
     public:
-        void Create(wstring_view name, uint32 elementSize, uint32 elementCount) {
+        void Create(string_view name, uint32 elementSize, uint32 elementCount) {
             _desc = CD3DX12_RESOURCE_DESC::Buffer(elementSize * elementCount, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
             _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
@@ -297,7 +297,7 @@ namespace Inferno {
 
             SetName(name);
 
-            //_counterBuffer.Create(L"StructuredBuffer::Counter", 1, 4);
+            //_counterBuffer.Create("StructuredBuffer::Counter", 1, 4);
 
             //if (m_UAV.ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN)
             //m_UAV = AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -379,7 +379,7 @@ namespace Inferno {
         void Load(DirectX::ResourceUploadBatch& batch,
                   const void* data,
                   uint width, uint height,
-                  wstring_view name,
+                  string_view name,
                   bool enableMips = true,
                   DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
             assert(data);
@@ -409,11 +409,11 @@ namespace Inferno {
 
         // Uploads a resource with mipmaps
         void LoadMipped(DirectX::ResourceUploadBatch& batch,
-                  const void* data,
-                  uint width, uint height,
-                  wstring_view name,
-                  uint16 mips,
-                  DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
+                        const void* data,
+                        uint width, uint height,
+                        string_view name,
+                        uint16 mips,
+                        DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
             assert(data);
             assert(mips >= 1);
             if (!data) return;
@@ -422,7 +422,7 @@ namespace Inferno {
 
             uint64 bpp = format == DXGI_FORMAT_R8_UNORM ? 1 : 4;
 
-            List< D3D12_SUBRESOURCE_DATA> uploads;
+            List<D3D12_SUBRESOURCE_DATA> uploads;
 
             LONG_PTR begin = 0;
             uint mipWidth = width;
@@ -431,7 +431,7 @@ namespace Inferno {
             for (uint16 i = 0; i < mips; i++) {
                 auto& upload = uploads.emplace_back();
                 upload.pData = (uint8*)data + begin;
-                upload.RowPitch =  mipWidth * bpp;
+                upload.RowPitch = mipWidth * bpp;
                 upload.SlicePitch = upload.RowPitch * mipHeight;
 
                 begin += upload.SlicePitch;
@@ -450,7 +450,7 @@ namespace Inferno {
         }
 
         // Creates the texture on the default heap
-        void Create(uint width, uint height, wstring_view name, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
+        void Create(uint width, uint height, string_view name, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
             SetDesc(width, height, 1, format);
             CreateOnDefaultHeap(name, nullptr);
             _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
@@ -505,7 +505,7 @@ namespace Inferno {
         // this creates a new texture resource on the default heap in copy_dest state, but hasn't copied anything to it.
         void LoadDDS(ID3D12Device* device, const filesystem::path& path, Ptr<uint8[]>& data, List<D3D12_SUBRESOURCE_DATA>& subresources) {
             ThrowIfFailed(DirectX::LoadDDSTextureFromFile(device, path.c_str(), &_resource, data, subresources));
-            SetName(path.wstring());
+            SetName(path.string());
             _state = D3D12_RESOURCE_STATE_COPY_DEST;
         }
 
@@ -538,7 +538,7 @@ namespace Inferno {
         void Load(DirectX::ResourceUploadBatch& batch,
                   const void* data,
                   int width, int height, int depth,
-                  wstring_view name,
+                  string_view name,
                   DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM) {
             assert(data);
             _desc = CD3DX12_RESOURCE_DESC::Tex3D(format, width, height, (uint16)depth, 1);
@@ -563,7 +563,7 @@ namespace Inferno {
             _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
         }
 
-        void Create(int width, int height, int depth, wstring_view name, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
+        void Create(int width, int height, int depth, string_view name, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
             CreateNoHeap(width, height, depth, format);
             CreateOnDefaultHeap(name, nullptr);
             _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
@@ -613,7 +613,7 @@ namespace Inferno {
         // this creates a new texture resource on the default heap in copy_dest state, but hasn't copied anything to it.
         void LoadDDS(ID3D12Device* device, const filesystem::path& path, Ptr<uint8[]>& data, List<D3D12_SUBRESOURCE_DATA>& subresources) {
             ThrowIfFailed(DirectX::LoadDDSTextureFromFile(device, path.c_str(), &_resource, data, subresources));
-            SetName(path.wstring());
+            SetName(path.string());
             _state = D3D12_RESOURCE_STATE_COPY_DEST;
         }
     };
@@ -644,7 +644,7 @@ namespace Inferno {
         }
 
         // Creates the texture on the default heap
-        void Create(uint width, uint height, wstring_view name, bool renderTarget, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, uint samples = 1) {
+        void Create(uint width, uint height, string_view name, bool renderTarget, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, uint samples = 1) {
             SetDesc(width, height, renderTarget, 1, format, samples);
             CreateOnDefaultHeap(name, nullptr);
             _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
@@ -760,7 +760,7 @@ namespace Inferno {
     public:
         Color ClearColor = { 0, 0, 0, 1 };
 
-        void Create(wstring_view name, uint width, uint height, DXGI_FORMAT format, int samples = 1) {
+        void Create(string_view name, uint width, uint height, DXGI_FORMAT format, int samples = 1) {
             _sampleCount = samples;
 
             _desc = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, 1, 1, samples);
@@ -792,7 +792,7 @@ namespace Inferno {
     public:
         float ClearDepth = 1.0f;
 
-        void Create(wstring_view name, UINT width, UINT height, DXGI_FORMAT format = DXGI_FORMAT_D32_FLOAT, UINT samples = 1) {
+        void Create(string_view name, UINT width, UINT height, DXGI_FORMAT format = DXGI_FORMAT_D32_FLOAT, UINT samples = 1) {
             CD3DX12_HEAP_PROPERTIES depthHeapProperties(D3D12_HEAP_TYPE_DEFAULT);
 
             _desc = CD3DX12_RESOURCE_DESC::Tex2D(
@@ -867,7 +867,7 @@ namespace Inferno {
         Color ClearColor;
 
         // Creates a RTV for a swap chain buffer
-        void Create(wstring_view name, IDXGISwapChain* swapChain, UINT buffer, DXGI_FORMAT format) {
+        void Create(string_view name, IDXGISwapChain* swapChain, UINT buffer, DXGI_FORMAT format) {
             ThrowIfFailed(swapChain->GetBuffer(buffer, IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())));
 
             _desc = _resource->GetDesc();
@@ -879,7 +879,7 @@ namespace Inferno {
         }
 
         // Creates a render target on the default heap
-        void Create(wstring_view name, UINT width, UINT height, DXGI_FORMAT format, const Color& clearColor = { 0, 0, 0 }, UINT samples = 1) {
+        void Create(string_view name, UINT width, UINT height, DXGI_FORMAT format, const Color& clearColor = { 0, 0, 0 }, UINT samples = 1) {
             ClearColor = clearColor;
 
             _desc = CD3DX12_RESOURCE_DESC::Tex2D(

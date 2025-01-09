@@ -11,7 +11,7 @@
 namespace Inferno::Editor {
     TunnelNode CreateNode(Level& level, PointTag source, float sign) {
         TunnelNode node;
-        auto face = Face::FromSide(level, source);
+        auto face = Face::FromSide(level, (Tag)source);
         node.Normal = face.AverageNormal() * sign;
         node.Vertices = face.CopyPoints();
         node.Point = face.Center();
@@ -286,14 +286,14 @@ namespace Inferno::Editor {
 
         auto path = CreateTunnel(level, args);
         auto prev = start;
-        auto startIndices = level.GetSegment(start).GetVertexIndices(start.Side);
+        auto startIndices = level.GetSegment((Tag)start).GetVertexIndices(start.Side);
 
         Marked.Segments.clear();
         auto vertIndex = (uint16)level.Vertices.size(); // take index before adding new points
         auto lastId = SegID::None;
 
         for (size_t nNode = 1; nNode < path.Nodes.size(); nNode++) {
-            auto& lastSeg = level.GetSegment(prev);
+            auto& lastSeg = level.GetSegment((Tag)prev);
 
             Segment newSeg = {};
             auto id = (SegID)level.Segments.size();

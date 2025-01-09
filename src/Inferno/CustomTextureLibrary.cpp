@@ -182,7 +182,7 @@ namespace Inferno {
         bmp.Info.Custom = true;
         bmp.ExtractMask();
 
-        SPDLOG_INFO(L"Loaded BMP {}x{} from {}", bmp.Info.Width, bmp.Info.Height, path.wstring());
+        SPDLOG_INFO("Loaded BMP {}x{} from {}", bmp.Info.Width, bmp.Info.Height, path.string());
         _textures[entry.ID] = std::move(bmp);
     }
 

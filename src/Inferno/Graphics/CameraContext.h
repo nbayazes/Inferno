@@ -14,14 +14,14 @@ namespace Inferno {
         ComPtr<ID3D12CommandAllocator> _allocator;
     public:
 
-        CommandContext(ID3D12Device* device, CommandQueue* queue, wstring_view name) : _queue(queue) {
+        CommandContext(ID3D12Device* device, CommandQueue* queue, string_view name) : _queue(queue) {
             assert(device);
             assert(queue);
             ThrowIfFailed(device->CreateCommandAllocator(queue->GetType(), IID_PPV_ARGS(&_allocator)));
-            ThrowIfFailed(_allocator->SetName(name.data()));
+            ThrowIfFailed(_allocator->SetName(Widen(name).data()));
 
             ThrowIfFailed(device->CreateCommandList(1, queue->GetType(), _allocator.Get(), nullptr, IID_PPV_ARGS(&_cmdList)));
-            ThrowIfFailed(_cmdList->SetName(name.data()));
+            ThrowIfFailed(_cmdList->SetName(Widen(name).data()));
             ThrowIfFailed(_cmdList->Close()); // Command lists start open
         }
 
@@ -57,7 +57,7 @@ namespace Inferno {
     class GraphicsContext : public CommandContext {
         uintptr_t _activeEffect = 0;
     public:
-        GraphicsContext(ID3D12Device* device, CommandQueue* queue, const wstring& name) : CommandContext(device, queue, name) {}
+        GraphicsContext(ID3D12Device* device, CommandQueue* queue, string_view name) : CommandContext(device, queue, name) {}
 
         Inferno::Camera Camera;
 

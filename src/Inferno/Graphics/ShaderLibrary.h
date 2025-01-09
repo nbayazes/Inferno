@@ -22,9 +22,9 @@ namespace Inferno {
 
     // Shader definition to allow recompilation
     struct ShaderInfo {
-        std::wstring File;
-        wstring VSEntryPoint = L"vsmain";
-        wstring PSEntryPoint = L"psmain";
+        string File;
+        string VSEntryPoint = "vsmain";
+        string PSEntryPoint = "psmain";
     };
 
     struct FrameConstants {
@@ -699,28 +699,28 @@ namespace Inferno {
     D3D12_GRAPHICS_PIPELINE_STATE_DESC BuildPipelineStateDesc(EffectSettings info, IShader* shader, bool useStencil, uint msaaSamples, uint renderTargets = 1);
 
     struct ShaderResources {
-        LevelShader Level = ShaderInfo{ L"shaders/level.hlsl" };
-        FlatLevelShader LevelFlat = ShaderInfo{ L"shaders/levelflat.hlsl" };
-        FlatShader Flat = ShaderInfo{ L"shaders/editor.hlsl" };
-        DepthShader Depth = ShaderInfo{ L"shaders/Depth.hlsl" };
-        ObjectDepthShader DepthObject = ShaderInfo{ L"shaders/DepthObject.hlsl" };
-        DepthCutoutShader DepthCutout = ShaderInfo{ L"shaders/DepthCutout.hlsl" };
-        UIShader UserInterface = ShaderInfo{ L"shaders/imgui.hlsl" };
-        BriefingShader Briefing = ShaderInfo{ L"shaders/imgui.hlsl" };
-        HudShader Hud = ShaderInfo{ L"shaders/HUD.hlsl" };
-        SpriteShader Sprite = ShaderInfo{ L"shaders/sprite.hlsl" };
-        ObjectShader Object = ShaderInfo{ L"shaders/object.hlsl" };
-        ObjectShader AutomapObject = ShaderInfo{ L"shaders/AutomapObject.hlsl" };
-        ObjectShader BriefingObject = ShaderInfo{ L"shaders/BriefingObject.hlsl" };
-        TerrainShader Terrain = ShaderInfo{ L"shaders/Terrain.hlsl" };
-        ObjectDistortionShader ObjectDistortion = ShaderInfo{ L"shaders/Cloak.hlsl" };
-        StarShader Stars = ShaderInfo{ L"shaders/stars.hlsl" };
-        SpriteShader Sun = ShaderInfo{ L"shaders/Sun.hlsl" };
-        AutomapShader Automap = ShaderInfo{ L"shaders/Automap.hlsl" };
-        AutomapOutlineShader AutomapOutline = ShaderInfo{ L"shaders/AutomapOutline.hlsl" };
-        AsteroidShader Asteroid = ShaderInfo{ L"shaders/Asteroid.hlsl" };
-        MenuSunShader MenuSun = ShaderInfo{ L"shaders/MenuSun.hlsl" };
-        ComposeShader Composition = ShaderInfo{ L"shaders/Compose.hlsl" };
+        LevelShader Level = ShaderInfo{ "shaders/level.hlsl" };
+        FlatLevelShader LevelFlat = ShaderInfo{ "shaders/levelflat.hlsl" };
+        FlatShader Flat = ShaderInfo{ "shaders/editor.hlsl" };
+        DepthShader Depth = ShaderInfo{ "shaders/Depth.hlsl" };
+        ObjectDepthShader DepthObject = ShaderInfo{ "shaders/DepthObject.hlsl" };
+        DepthCutoutShader DepthCutout = ShaderInfo{ "shaders/DepthCutout.hlsl" };
+        UIShader UserInterface = ShaderInfo{ "shaders/imgui.hlsl" };
+        BriefingShader Briefing = ShaderInfo{ "shaders/imgui.hlsl" };
+        HudShader Hud = ShaderInfo{ "shaders/HUD.hlsl" };
+        SpriteShader Sprite = ShaderInfo{ "shaders/sprite.hlsl" };
+        ObjectShader Object = ShaderInfo{ "shaders/object.hlsl" };
+        ObjectShader AutomapObject = ShaderInfo{ "shaders/AutomapObject.hlsl" };
+        ObjectShader BriefingObject = ShaderInfo{ "shaders/BriefingObject.hlsl" };
+        TerrainShader Terrain = ShaderInfo{ "shaders/Terrain.hlsl" };
+        ObjectDistortionShader ObjectDistortion = ShaderInfo{ "shaders/Cloak.hlsl" };
+        StarShader Stars = ShaderInfo{ "shaders/stars.hlsl" };
+        SpriteShader Sun = ShaderInfo{ "shaders/Sun.hlsl" };
+        AutomapShader Automap = ShaderInfo{ "shaders/Automap.hlsl" };
+        AutomapOutlineShader AutomapOutline = ShaderInfo{ "shaders/AutomapOutline.hlsl" };
+        AsteroidShader Asteroid = ShaderInfo{ "shaders/Asteroid.hlsl" };
+        MenuSunShader MenuSun = ShaderInfo{ "shaders/MenuSun.hlsl" };
+        ComposeShader Composition = ShaderInfo{ "shaders/Compose.hlsl" };
     };
 
     class EffectResources {

@@ -158,8 +158,8 @@ void ImGui::SeparatorVertical() {
 
 namespace Inferno {
     struct FrameResources {
-        UploadBuffer<ImDrawVert> VertexBuffer = { 20000, L"imgui vertices" };
-        UploadBuffer<ImDrawIdx> IndexBuffer = { 40000, L"imgui indices" };
+        UploadBuffer<ImDrawVert> VertexBuffer = { 20000, "imgui vertices" };
+        UploadBuffer<ImDrawIdx> IndexBuffer = { 40000, "imgui indices" };
     };
 
     struct FrameContext {
@@ -205,7 +205,7 @@ namespace Inferno {
         io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
         auto batch = Render::BeginTextureUpload();
-        Render::StaticTextures->ImguiFont.Load(batch, pixels, width, height, L"ImGui Font");
+        Render::StaticTextures->ImguiFont.Load(batch, pixels, width, height, "ImGui Font");
         Render::StaticTextures->ImguiFont.AddShaderResourceView();
         Render::EndTextureUpload(batch, Render::Adapter->BatchUploadQueue->Get());
 
