@@ -352,6 +352,7 @@ Materials:
     LightReceived: 0.333
   - Name: rock057
     NormalStrength: 1.1
+    SpecularStrength: 0.603
     Roughness: 0.746
   - Name: rock059
     NormalStrength: 0.6
@@ -647,6 +648,10 @@ Materials:
     NormalStrength: -1
     SpecularStrength: 0.4
     Roughness: 0.6
+  - Name: rock250
+    NormalStrength: 0.907
+    SpecularStrength: 0.384
+    Roughness: 0.637
   - Name: rock251
     NormalStrength: 0.4
     Roughness: 0.95
@@ -804,7 +809,7 @@ Materials:
     Roughness: 0.5
     LightReceived: 0.5
   - Name: metl039
-    NormalStrength: 0.1
+    NormalStrength: 0.15
     Metalness: 1
     Roughness: 0.4
     LightReceived: 0.33
