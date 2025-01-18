@@ -407,8 +407,9 @@ namespace Inferno::Render {
         ToneMapping->ToneMap.Exposure = Game::Exposure;
         ToneMapping->ToneMap.BloomStrength = Game::BloomStrength;
         ToneMapping->Apply(cmdList, source);
-        Adapter->SceneColorBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         // draw to backbuffer using a shader + polygon
+
+        source.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         _postBatch->SetViewport(Adapter->GetScreenViewport());
         _postBatch->Begin(cmdList);
         auto size = Adapter->GetOutputSize();
@@ -627,7 +628,10 @@ namespace Inferno::Render {
         if (gameState == GameState::MainMenu) {
             DrawMainMenuBackground(ctx);
         }
-        else if (gameState == GameState::Game || gameState == GameState::PauseMenu || gameState == GameState::Editor) {
+        else if (gameState == GameState::Game ||
+                 gameState == GameState::PauseMenu || 
+                 gameState == GameState::Editor || 
+                 gameState == GameState::ExitSequence) {
             if (LevelChanged) {
                 Adapter->WaitForGpu();
                 RebuildLevelResources(Game::Level);
