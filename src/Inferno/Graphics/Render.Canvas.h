@@ -394,7 +394,7 @@ namespace Inferno::Render {
 
     class HudCanvas2D {
         // Layers -> Texture id -> commands
-        Array<Dictionary<uint64, List<HudCanvasPayload>>, 10> _commands;
+        Array<Dictionary<uint64, List<HudCanvasPayload>>, 20> _commands;
         DirectX::PrimitiveBatch<HudVertex> _batch;
         Effect<HudShader>* _effect;
         Vector2 _size = { 1024, 1024 };

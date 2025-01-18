@@ -10,20 +10,27 @@ namespace Inferno {
         None,
         SlideLeft,
         SlideRight,
+        SlideLeftRightAxis,
         SlideUp,
         SlideDown,
+        SlideUpDownAxis,
         Forward,
         Reverse,
+        ForwardReverseAxis,
         RollLeft,
         RollRight,
+        RollAxis,
         PitchUp,
         PitchDown,
+        PitchAxis,
         YawLeft,
         YawRight,
+        YawAxis,
         Afterburner,
 
         FirePrimary,
         FireSecondary,
+        RearView,
 
         FireOnceEventIndex, // Actions past this index are only fired on button down
 
@@ -34,11 +41,37 @@ namespace Inferno {
         CycleSecondary,
         CycleBomb,
 
+        // Bindings for selecting weapons on each slot
+        Weapon1,
+        Weapon2,
+        Weapon3,
+        Weapon4,
+        Weapon5,
+        Weapon6,
+        Weapon7,
+        Weapon8,
+        Weapon9,
+        Weapon10,
+
         Automap,
         Headlight,
         Converter,
         Count
     };
+
+    inline bool IsAxisAction(GameAction action) {
+        switch (action) {
+            case GameAction::SlideLeftRightAxis:
+            case GameAction::SlideUpDownAxis:
+            case GameAction::ForwardReverseAxis:
+            case GameAction::PitchAxis:
+            case GameAction::YawAxis:
+            case GameAction::RollAxis:
+                return true;
+            default:
+                return false;
+        }
+    }
 
     struct GameCommand {
         GameAction Id;
@@ -49,7 +82,11 @@ namespace Inferno {
         GameAction Action = GameAction::None;
         Input::Keys Key = Input::Keys::None;
         Input::MouseButtons Mouse = Input::MouseButtons::None;
+        Input::InputAxis Axis = Input::InputAxis::None;
+        Input::MouseAxis MouseAxis = Input::MouseAxis::None;
         // Gamepad / Joystick?
+        // Controller ID
+        // Controller Button / Axis
 
         string GetShortcutLabel() const;
 
@@ -59,7 +96,7 @@ namespace Inferno {
         }
 
         bool HasValue() const {
-            return Action != GameAction::None && (Key != Input::Keys::None || Mouse != Input::MouseButtons::None);
+            return Action != GameAction::None && (Key != Input::Keys::None || Mouse != Input::MouseButtons::None || Axis != Input::InputAxis::None);
         }
 
         //bool operator==(const GameBinding& rhs) const {
@@ -85,20 +122,41 @@ namespace Inferno {
 
         // Unbinds any existing usages of this key or mouse button
         void UnbindExisting(const GameBinding& binding) {
+            using namespace Input;
+
             for (auto& b : _bindings) {
                 if (&b == &binding) continue;
 
-                if (binding.Key != Input::Keys::None && b.Key == binding.Key)
-                    b.Key = Input::Keys::None;
+                if (binding.Key != Keys::None && b.Key == binding.Key)
+                    b.Key = Keys::None;
 
-                if (binding.Mouse != Input::MouseButtons::None && b.Mouse == binding.Mouse)
-                    b.Mouse = Input::MouseButtons::None;
+                if (binding.Mouse != MouseButtons::None && b.Mouse == binding.Mouse)
+                    b.Mouse = MouseButtons::None;
+
+                if (binding.MouseAxis != MouseAxis::None && b.MouseAxis == binding.MouseAxis)
+                    b.MouseAxis = MouseAxis::None;
+
+                if (binding.Axis != InputAxis::None && b.Axis == binding.Axis)
+                    b.Axis = InputAxis::None;
             }
         }
 
-        GameBinding* TryFind(GameAction action) {
+        GameBinding* TryFind(GameAction action, Input::InputType type) {
             return Seq::find(_bindings, [&](const GameBinding& b) {
-                return b.Action == action && b.HasValue();
+                if(b.Action != action) return false;
+
+                using enum Input::InputType;
+
+                switch(type) {
+                    case Keyboard:
+                        return b.Key != Input::Keys::None;
+                    case Mouse:
+                        return b.Mouse != Input::MouseButtons::None || b.MouseAxis != Input::MouseAxis::None;
+                    case Gamepad:
+                        return b.Axis != Input::InputAxis::None; // todo: gamepad buttons
+                    default:
+                        return b.HasValue();
+                }
             });
         }
 
@@ -125,7 +183,7 @@ namespace Inferno {
         void RestoreDefaults();
         void ResetState() { ranges::fill(_state, false); }
 
-        static bool IsReservedKey(Input::Keys key) {
+        static constexpr bool IsReservedKey(Input::Keys key) {
             using Input::Keys;
             return key == Keys::Escape || key == Keys::LeftWindows || key == Keys::RightWindows;
         }

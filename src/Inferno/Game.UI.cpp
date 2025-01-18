@@ -221,6 +221,7 @@ namespace Inferno::UI {
 
         Input::ResetState(); // Reset input to prevent clicking a control as soon as the screen appears
         Game::Bindings.ResetState();
+        screen->OnShow();
         screen->OnUpdate();
         Screens.push_back(std::move(screen));
         return Screens.back().get();
@@ -245,6 +246,8 @@ namespace Inferno::UI {
     }
 
     bool CloseScreen() {
+        if (Screens.empty()) return false;
+
         if (Screens.size() == 1) {
             if (!Screens.back()->OnTryClose())
                 return false; // Can't close the last screen
@@ -256,13 +259,20 @@ namespace Inferno::UI {
             Sound::Play2D(SoundResource{ MENU_BACK_SOUND });
 
         auto& screen = Screens.back();
-        SPDLOG_INFO("Closing screen {:x}", (int64)screen.get());
+        //SPDLOG_INFO("Closing screen {:x}", (int64)screen.get());
         screen->OnClose();
         if (screen->CloseCallback) screen->CloseCallback(screen->State);
-        Seq::remove(Screens, screen); // Remove the  original screen because the callback might open a new one
+        Seq::remove(Screens, screen); // Remove the original screen because the callback might open a new one
         Input::ResetState(); // Clear state so clicking doesn't immediately trigger another action
         CaptureCursor(false);
         return true;
+    }
+
+    void SetSelection(class ControlBase* control) {
+        if (Screens.empty()) return;
+
+        auto& screen = Screens.back();
+        screen->SetSelection(control);
     }
 
     class LevelSelectDialog : public DialogBase {
@@ -403,6 +413,20 @@ namespace Inferno::UI {
             if (Input::IsKeyPressed(Keys::Right)) OnDownArrow();
         }
 
+        bool HandleMenuAction(Input::MenuAction action) override {
+            if (action == Input::MenuAction::Left) {
+                OnUpArrow();
+                return true;
+            }
+
+            if (action == Input::MenuAction::Right) {
+                OnDownArrow();
+                return true;
+            }
+
+            return DialogBase::HandleMenuAction(action);
+        }
+
         bool OnTryClose() override {
             Game::SetState(GameState::Game);
             return true; // Allow closing this dialog with escape
@@ -427,7 +451,7 @@ namespace Inferno::UI {
             MissionInfo firstStrike{ .Name = FIRST_STRIKE_NAME, .Path = "d1/descent.hog" };
             firstStrike.Levels.resize(27);
             for (int i = 1; i <= firstStrike.Levels.size(); i++) {
-                // todo: this could also be SDL
+                // todo: this could also be SDL extension
                 firstStrike.Levels[i - 1] = fmt::format("level{:02}.rdl", i);
             }
 
@@ -605,40 +629,6 @@ namespace Inferno::UI {
         }
     };
 
-    void HandleInput() {
-        if (Screens.empty()) return;
-        auto& screen = Screens.back();
-
-        if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick))
-            screen->OnMouseClick(Input::MousePosition);
-
-        if (!InputCaptured) {
-            if (Input::MenuDown())
-                screen->OnDownArrow();
-
-            if (Input::MenuUp())
-                screen->OnUpArrow();
-
-            // Wrap selection
-            //if (!screen->Children.empty())
-            //    screen->SelectionIndex = (int)Mod(screen->SelectionIndex, screen->Children.size());
-
-            if (Input::MenuConfirm() || Input::IsKeyPressed(Input::Keys::Space))
-                screen->OnConfirm();
-
-            if (Input::MenuCancel()) {
-                screen->State = CloseState::Cancel;
-            }
-        }
-
-        //if (screen.Controls.empty()) return;
-        //auto& control = screen.Controls[screen.SelectionIndex];
-
-        //if (Input::IsKeyPressed(Input::Keys::Enter)) {
-        //    control.OnClick();
-        //}
-    }
-
     void DrawTestText(const Vector2& position, FontSize font, uchar lineLen = 32) {
         Render::DrawTextInfo dti;
         dti.Font = font;
@@ -796,16 +786,25 @@ namespace Inferno::UI {
         //DrawTestText({ 10, 150 }, FontSize::Small);
         //DrawTestText({ 10, 170 }, FontSize::Big, 24);
 
-
-        HandleInput();
-
         if (Screens.empty()) return;
 
         for (size_t i = 0; i < Screens.size(); i++) {
             auto& screen = Screens[i];
 
             if (i == Screens.size() - 1) {
+                bool inputCaptured = InputCaptured; // store the capture state so cancelling doesn't exit the screen in the same frame
+
                 screen->OnUpdate(); // only update input for topmost screen
+
+                if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick))
+                    screen->OnMouseClick(Input::MousePosition);
+
+                if (!inputCaptured) {
+                    auto action = Input::GetMenuAction();
+
+                    if (action != Input::MenuAction::None)
+                        screen->HandleMenuAction(action);
+                }
             }
 
             screen->OnUpdateLayout();

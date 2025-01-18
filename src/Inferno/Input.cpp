@@ -1,16 +1,23 @@
 #include "pch.h"
 #include "Input.h"
 #include <bitset>
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_gamepad.h>
 #include <vector>
 #include "Game.h"
 #include "imgui_local.h"
 #include "PlatformHelpers.h"
+#include "Settings.h"
 #include "Shell.h"
 
 using namespace DirectX::SimpleMath;
 
 namespace Inferno::Input {
     namespace {
+        // Gamepads should store their inputs between each update.
+        // Holding a stick steady should continue that movement
+        Vector2 GamepadLeftStick, GamepadRightStick;
+
         Vector2 MousePrev, DragEnd;
         constexpr float DRAG_WINDOW = 3.0f;
         Vector2 WindowCenter;
@@ -27,6 +34,10 @@ namespace Inferno::Input {
             std::bitset<N> pressed, released, repeat;
             std::bitset<N> current, previous;
 
+            constexpr static size_t Size() { return N; }
+
+            bool Controller = false; // When set to true, holds button pressed state until a release is called
+
             void Reset() {
                 pressed.reset();
                 repeat.reset();
@@ -38,9 +49,12 @@ namespace Inferno::Input {
 
             // Call this before handling a frame's input events
             void NextFrame() {
-                pressed.reset();
-                repeat.reset();
-                released.reset();
+                if (!Controller) {
+                    pressed.reset();
+                    released.reset();
+                    repeat.reset();
+                }
+
                 previous = current;
                 MouseRecentlyMoved = false;
             }
@@ -64,11 +78,16 @@ namespace Inferno::Input {
                 released[key] = true;
                 current[key] = false;
                 repeat[key] = false;
+
+                if (Controller) {
+                    pressed[key] = false;
+                }
             }
         };
 
         ButtonState<256> _keyboard;
         ButtonState<8> _mouseButtons;
+        ButtonState<SDL_GAMEPAD_BUTTON_COUNT> _controller = { .Controller = true };
 
         struct InputEvent {
             EventType type;
@@ -128,6 +147,7 @@ namespace Inferno::Input {
                     case EventType::Reset:
                         _keyboard.Reset();
                         _mouseButtons.Reset();
+                        _controller.Reset();
                         break;
 
                     case EventType::MouseMoved:
@@ -143,6 +163,7 @@ namespace Inferno::Input {
     void NextFrame() {
         _keyboard.NextFrame();
         _mouseButtons.NextFrame();
+        _controller.NextFrame();
         WheelDelta = 0;
     }
 
@@ -186,7 +207,183 @@ namespace Inferno::Input {
         _inputEventQueue.push_back({ type, static_cast<uint8_t>(keyCode), flags });
     }
 
+    string GuidToString(SDL_GUID guid) {
+        char buffer[33];
+        SDL_GUIDToString(guid, buffer, (int)std::size(buffer));
+        return { buffer };
+    }
+
+    bool GuidIsZero(string_view guid) {
+        return ranges::all_of(guid, [](char c) { return c == '0'; });
+    }
+
+    class GamepadManager {
+        std::list<Gamepad> _gamepads;
+
+    public:
+        Gamepad* FindGamepad(string_view guid) {
+            for (auto& gamepad : _gamepads) {
+                if (gamepad.guid == guid) return &gamepad;
+            }
+
+            return nullptr;
+        }
+
+        Gamepad* FindGamepad(SDL_JoystickID id) {
+            for (auto& gamepad : _gamepads) {
+                if (gamepad.id == id) return &gamepad;
+            }
+
+            return nullptr;
+        }
+
+        void AddGamepad(SDL_JoystickID id) {
+            if (!SDL_IsGamepad(id)) {
+                SPDLOG_WARN("Tried to add a non-gamepad {}", id);
+                return;
+            }
+
+            auto gamepad = SDL_OpenGamepad(id);
+            if (!gamepad) {
+                SPDLOG_WARN("Unable to open gamepad");
+                return;
+            }
+
+            auto guid = GuidToString(SDL_GetGamepadGUIDForID(id));
+            auto name = SDL_GetGamepadNameForID(id);
+
+            if (GuidIsZero(guid) || !name) {
+                SPDLOG_WARN("Ignoring gamepad {} with no name (guid: {})", id, guid);
+                return;
+            }
+
+            auto device = FindGamepad(guid); // check if gamepad was already connected
+
+            if (!device) {
+                device = &_gamepads.emplace_back(); // create a new device
+            }
+
+            device->connected = SDL_GamepadConnected(gamepad);
+
+            if (!device->connected) {
+                return;
+            }
+
+            device->name = name;
+            device->guid = guid;
+            device->id = id;
+
+            // Name can be empty for wireless PS5 controllers that are turned off
+            SPDLOG_INFO("Add gamepad {}: {} - {}", id, device->name, device->guid);
+
+            if (SDL_SetGamepadSensorEnabled(gamepad, SDL_SENSOR_ACCEL, true))
+                SPDLOG_INFO("Enabled Accel");
+            if (SDL_SetGamepadSensorEnabled(gamepad, SDL_SENSOR_GYRO, true))
+                SPDLOG_INFO("Enabled Gyro");
+        }
+
+        void RemoveGamepad(SDL_JoystickID id) {
+            SPDLOG_INFO("Remove gamepad {}", id);
+            _gamepads.remove_if([id](auto g) { return g.id == id; });
+            auto gamepad = SDL_GetGamepadFromID(id);
+            SDL_CloseGamepad(gamepad);
+        }
+
+        List<Gamepad> GetGamepads() {
+            return { _gamepads.begin(), _gamepads.end() };
+        }
+    };
+
+    GamepadManager Gamepads;
+
+    List<Gamepad> GetGamepads() {
+        return Gamepads.GetGamepads();
+    }
+
+    Vector2 CircularDampen(const Vector2& input, float innerDeadzone, float outerDeadzone) {
+        float magnitude = input.Length();
+        float scale = (magnitude - innerDeadzone) / (outerDeadzone - innerDeadzone);
+        return input * Saturate(scale) / magnitude;
+    }
+
     void Update() {
+        SDL_Event event;
+        Pitch = Yaw = Roll = 0;
+        Input::Thrust = Vector3::Zero;
+
+        while (SDL_PollEvent(&event)) {
+            switch (event.type) {
+                case SDL_EVENT_GAMEPAD_BUTTON_UP:
+                {
+                    _controller.Release(event.gbutton.button);
+                    break;
+                }
+
+                case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
+                {
+                    _controller.Press(event.gbutton.button);
+                    break;
+                }
+
+                case SDL_EVENT_GAMEPAD_SENSOR_UPDATE:
+                {
+                    auto gamepad = SDL_GetGamepadFromID(event.gdevice.which);
+
+                    float gyro[3], accel[3];
+                    if (SDL_GetGamepadSensorData(gamepad, SDL_SENSOR_GYRO, gyro, std::size(gyro))) {
+                        //SPDLOG_INFO("Gyro: {}, {}, {}", gyro[0], gyro[1], gyro[1]);
+                        Pitch += gyro[0] * .75f;
+                        Yaw += -gyro[1] * 1;
+                        Roll += -gyro[2] * .125f;
+                    }
+
+                    if (SDL_GetGamepadSensorData(gamepad, SDL_SENSOR_ACCEL, accel, std::size(accel))) {
+                        //SPDLOG_INFO("Accel: {}, {}, {}", accel[0], accel[1], accel[1]);
+                    }
+                    break;
+                }
+
+                case SDL_EVENT_GAMEPAD_AXIS_MOTION:
+                {
+                    auto gamepad = SDL_GetGamepadFromID(event.gdevice.which);
+                    Vector2 rightStick;
+                    rightStick.x = SDL_GetGamepadAxis(gamepad, SDL_GAMEPAD_AXIS_RIGHTX) / 32767.0f;
+                    rightStick.y = SDL_GetGamepadAxis(gamepad, SDL_GAMEPAD_AXIS_RIGHTY) / 32767.0f;
+                    GamepadRightStick = CircularDampen({ rightStick.x, rightStick.y }, 0.1f, 1);
+
+                    // todo: change based on mappings
+                    Vector2 leftStick;
+                    leftStick.x = SDL_GetGamepadAxis(gamepad, SDL_GAMEPAD_AXIS_LEFTX) / 32767.0f;
+                    leftStick.y = -SDL_GetGamepadAxis(gamepad, SDL_GAMEPAD_AXIS_LEFTY) / 32767.0f;
+                    GamepadLeftStick = CircularDampen({ leftStick.x, leftStick.y }, 0.1f, 1);
+                    // thrust.y = ??; // unknown what to bind slide up/down to
+                    break;
+                }
+
+                case SDL_EventType::SDL_EVENT_GAMEPAD_ADDED:
+                {
+                    Gamepads.AddGamepad(event.gdevice.which);
+                    //AddGamepad(event.gdevice.which);
+                    break;
+                }
+
+                case SDL_EventType::SDL_EVENT_GAMEPAD_REMOVED:
+                {
+                    Gamepads.RemoveGamepad(event.gdevice.which);
+                    //RemoveGamepad(event.gdevice.which);
+                    break;
+                }
+            }
+        }
+
+        if (Settings::Inferno.EnableGamepads) {
+            Input::Yaw += GamepadRightStick.x;
+            Input::Pitch += GamepadRightStick.y;
+
+            Input::Thrust.x += GamepadLeftStick.x;
+            Input::Thrust.z += GamepadLeftStick.y;
+        }
+
         if (RequestedMouseMode != ActualMouseMode) {
             ActualMouseMode = RequestedMouseMode;
             RawX = RawY = 0;
@@ -257,7 +454,26 @@ namespace Inferno::Input {
         rid.hwndTarget = hwnd;
         if (!RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE)))
             throw std::system_error(std::error_code(static_cast<int>(GetLastError()), std::system_category()), "RegisterRawInputDevices");
+
+        if (Inferno::Settings::Inferno.EnableGamepads) {
+            SDL_SetGamepadEventsEnabled(true);
+
+            int gamepadCount = 0;
+            auto gamepadIds = SDL_GetGamepads(&gamepadCount);
+
+            if (gamepadCount > 0) {
+                SPDLOG_INFO("Connected gamepads:");
+
+                for (size_t i = 0; i < gamepadCount; i++) {
+                    Gamepads.AddGamepad(gamepadIds[i]);
+                }
+            }
+
+            SDL_free(gamepadIds);
+        }
     }
+
+    void Shutdown() {}
 
     bool IsKeyDown(Keys key) {
         return _keyboard.pressed[key] || _keyboard.previous[key];
@@ -274,44 +490,42 @@ namespace Inferno::Input {
     std::bitset<256> GetPressedKeys() { return _keyboard.pressed; }
     std::bitset<256> GetRepeatedKeys() { return _keyboard.repeat; }
 
+    bool IsControllerButtonDown(SDL_GamepadButton button) {
+        if (button >= _controller.Size()) return false;
+        return _controller.pressed[button];
+    }
+
     bool IsMouseButtonDown(MouseButtons button) {
-        if (button == MouseButtons::None) return false;
+        if (button == MouseButtons::None || (int)button > _mouseButtons.Size()) return false;
         return _mouseButtons.pressed[(uint64)button] || _mouseButtons.previous[(uint64)button];
     }
 
     bool IsMouseButtonPressed(MouseButtons button) {
-        if (button == MouseButtons::None) return false;
+        if (button == MouseButtons::None || (int)button > _mouseButtons.Size()) return false;
         return _mouseButtons.pressed[(uint64)button];
     }
 
     bool IsMouseButtonReleased(MouseButtons button) {
+        if (button == MouseButtons::None || (int)button > _mouseButtons.Size()) return false;
         return _mouseButtons.released[(uint64)button];
     }
 
-    // todo: check controllers
+    MenuAction GetMenuAction() {
+        if (IsKeyPressed(Keys::Enter, true) || IsKeyPressed(Keys::Space) ||
+            IsControllerButtonDown(SDL_GAMEPAD_BUTTON_SOUTH))
+            return MenuAction::Confirm;
+        else if (IsKeyPressed(Keys::Escape, true) || IsControllerButtonDown(SDL_GAMEPAD_BUTTON_EAST))
+            return MenuAction::Cancel;
+        else if (IsKeyPressed(Keys::Left, true) || IsControllerButtonDown(SDL_GAMEPAD_BUTTON_DPAD_LEFT))
+            return MenuAction::Left;
+        else if (IsKeyPressed(Keys::Down, true) || IsControllerButtonDown(SDL_GAMEPAD_BUTTON_DPAD_DOWN))
+            return MenuAction::Down;
+        else if (IsKeyPressed(Keys::Up, true) || IsControllerButtonDown(SDL_GAMEPAD_BUTTON_DPAD_UP))
+            return MenuAction::Up;
+        else if (IsKeyPressed(Keys::Right, true) || IsControllerButtonDown(SDL_GAMEPAD_BUTTON_DPAD_RIGHT))
+            return MenuAction::Right;
 
-    bool MenuLeft() {
-        return IsKeyPressed(Keys::Left, true);
-    }
-
-    bool MenuRight() {
-        return IsKeyPressed(Keys::Right, true);
-    }
-
-    bool MenuUp() {
-        return IsKeyPressed(Keys::Up, true);
-    }
-
-    bool MenuDown() {
-        return IsKeyPressed(Keys::Down, true);
-
-    }
-    bool MenuConfirm() {
-        return IsKeyPressed(Keys::Enter, true);
-    }
-
-    bool MenuCancel() {
-        return IsKeyPressed(Keys::Escape, true);
+        return MenuAction::None;
     }
 
     bool MouseMoved() {

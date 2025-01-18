@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Application.h"
+#include <SDL3/SDL_init.h>
 #include "SoundSystem.h"
 #include "Input.h"
 #include "Game.h"
@@ -9,6 +10,7 @@
 #include "SystemClock.h"
 #include "Graphics/Render.h"
 #include "Graphics/Render.MainMenu.h"
+#include "Version.h"
 
 using namespace Inferno;
 using namespace Inferno::Editor;
@@ -53,9 +55,19 @@ void LoadAllD3Models() {
 Application::~Application() {
     Render::Shutdown();
     Sound::Shutdown();
+    Input::Shutdown();
+    SDL_Quit();
 }
 
 void Application::Initialize(int width, int height) {
+    // SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS
+    // SDL_INIT_VIDEO is necessary to get keyboard and mouse devices
+    if (!SDL_Init(SDL_INIT_GAMEPAD | SDL_INIT_SENSOR)) {
+        SPDLOG_ERROR("Error initializing SDL: {}", SDL_GetError());
+    }
+
+    SDL_SetAppMetadata(Inferno::APP_TITLE, Inferno::VERSION_STRING, nullptr);
+
     Inferno::Input::Initialize(Shell::Hwnd);
     Render::Initialize(Shell::Hwnd, width, height);
     Sound::Init(Shell::Hwnd);

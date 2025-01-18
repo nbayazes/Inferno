@@ -26,10 +26,10 @@ namespace Inferno::PostFx {
         enum RootSig { B0_Constants, U0_Bloom, U1_Luma, T0_Source, T1_Emissive };
 
     public:
-        BloomExtractDownsampleCS() : ComputeShader(8, 8) { }
+        BloomExtractDownsampleCS() : ComputeShader(8, 8) {}
 
         float BloomThreshold = 1.25f; // how high value needs to be to bloom. Setting to 0 causes exposure to have no effect.
-        float Exposure = 1.0f;        // exposure adjustment on source image for bloom sampling
+        float Exposure = 1.0f; // exposure adjustment on source image for bloom sampling
         const float InitialMinLog = -12.0f;
         const float InitialMaxLog = 4.0f;
 
@@ -40,9 +40,9 @@ namespace Inferno::PostFx {
         enum RootSig { B0_Constants, U0_4Results, T0_Bloom };
 
     public:
-        DownsampleBloomCS() : ComputeShader(8, 8) { }
+        DownsampleBloomCS() : ComputeShader(8, 8) {}
 
-        void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, PixelBuffer& dest) const;
+        void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, std::array<ColorBuffer, 4>& destBuffers) const;
     };
 
     class DownsampleCS : public ComputeShader {
@@ -58,7 +58,7 @@ namespace Inferno::PostFx {
         enum RootSig { U0_Result, T0_Source };
 
     public:
-        BlurCS() : ComputeShader(8, 8) { }
+        BlurCS() : ComputeShader(8, 8) {}
 
         void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, PixelBuffer& dest) const;
     };
@@ -67,7 +67,7 @@ namespace Inferno::PostFx {
         enum RootSig { B0_Constants, U0_Result, T0_HigherRes, T1_LowerRes };
 
     public:
-        UpsampleAndBlurCS() : ComputeShader(8, 8) { }
+        UpsampleAndBlurCS() : ComputeShader(8, 8) {}
 
         float UpsampleBlendFactor = 0.325f; // How much to blend between low and high res
 
@@ -77,6 +77,7 @@ namespace Inferno::PostFx {
     // Unpacks a R32_UINT buffer to a color buffer
     class UnpackPostBuffer : public ComputeShader {
         enum { T0_SOURCE, U0_DEST };
+
     public:
         UnpackPostBuffer() : ComputeShader(8, 8) {}
 
@@ -94,7 +95,7 @@ namespace Inferno::PostFx {
 
         void Execute(ID3D12GraphicsCommandList* commandList,
                      PixelBuffer& tonyMcMapface,
-                     PixelBuffer& bloom, 
+                     PixelBuffer& bloom,
                      PixelBuffer& colorDest,
                      PixelBuffer& lumaDest,
                      PixelBuffer* source,
@@ -103,8 +104,8 @@ namespace Inferno::PostFx {
 
 
     struct BloomBuffers {
-        ColorBuffer Downsample[4]; // 8x8, 4x4, 2x2 and 1x1
-        ColorBuffer Upsample[4];   // 8x8, 4x4, 2x2 and 1x1
+        std::array<ColorBuffer, 4> Downsample; // 8x8, 4x4, 2x2 and 1x1
+        std::array<ColorBuffer, 4> Upsample; // 8x8, 4x4, 2x2 and 1x1
         ColorBuffer OutputLuma, DownsampleBlur, DownsampleLuma, Blur;
 
         BloomBuffers() = default;

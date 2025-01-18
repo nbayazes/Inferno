@@ -10,5 +10,4 @@ namespace Inferno {
     // Same as handle input, but is only called on game ticks
     void HandleFixedUpdateInput(float dt);
     void HandleInput(float dt);
-    void HandleShipInput(float dt);
 }

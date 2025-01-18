@@ -21,6 +21,30 @@ namespace Inferno {
             }
         }
 
+        if (MouseAxis != Input::MouseAxis::None) {
+            switch(MouseAxis) {
+                case Input::MouseAxis::MouseX: return "X-Axis";
+                case Input::MouseAxis::MouseY: return "Y-Axis";
+                default: return "Axis";
+                //case Input::InputAxis::Axis0:
+                //    break;
+                //case Input::InputAxis::Axis1:
+                //    break;
+                //case Input::InputAxis::Axis2:
+                //    break;
+                //case Input::InputAxis::Axis3:
+                //    break;
+                //case Input::InputAxis::Axis4:
+                //    break;
+                //case Input::InputAxis::Axis5:
+                //    break;
+                //case Input::InputAxis::Axis6:
+                //    break;
+                //case Input::InputAxis::Axis7:
+                //    break;
+            }
+        }
+
         return "";
     }
 
@@ -42,8 +66,6 @@ namespace Inferno {
         };
 
         ranges::fill(_labels, string("undefined"));
-        //for (auto& label : _labels)
-        //    label = string("undefined");
 
         setLabel(GameAction::FirePrimary, "Fire primary");
         setLabel(GameAction::FireSecondary, "Fire secondary");
@@ -51,14 +73,19 @@ namespace Inferno {
         setLabel(GameAction::FireFlare, "Fire flare");
         setLabel(GameAction::SlideLeft, "Slide left");
         setLabel(GameAction::SlideRight, "Slide right");
+        setLabel(GameAction::SlideLeftRightAxis, "Slide left/right");
         setLabel(GameAction::SlideUp, "Slide up");
         setLabel(GameAction::SlideDown, "Slide down");
+        setLabel(GameAction::SlideUpDownAxis, "Slide up/down");
         setLabel(GameAction::Forward, "Forward");
         setLabel(GameAction::Reverse, "Reverse");
+        setLabel(GameAction::ForwardReverseAxis, "Forward/Reverse");
         setLabel(GameAction::PitchUp, "Pitch up");
         setLabel(GameAction::PitchDown, "Pitch down");
+        setLabel(GameAction::PitchAxis, "Pitch");
         setLabel(GameAction::YawLeft, "Yaw left");
         setLabel(GameAction::YawRight, "Yaw right");
+        setLabel(GameAction::YawAxis, "Yaw");
         setLabel(GameAction::Afterburner, "Afterburner");
         setLabel(GameAction::Automap, "Automap");
         setLabel(GameAction::Converter, "Converter");
@@ -68,6 +95,19 @@ namespace Inferno {
         setLabel(GameAction::Headlight, "Headlight");
         setLabel(GameAction::RollLeft, "Roll left");
         setLabel(GameAction::RollRight, "Roll right");
+        setLabel(GameAction::RollAxis, "Roll");
+        setLabel(GameAction::RearView, "Rear view");
+
+        setLabel(GameAction::Weapon1, "Laser cannon");
+        setLabel(GameAction::Weapon2, "Vulcan/Gauss cannon");
+        setLabel(GameAction::Weapon3, "Spreadfire/Helix cannon");
+        setLabel(GameAction::Weapon4, "Plasma/phoenix cannon");
+        setLabel(GameAction::Weapon5, "fusion/omega cannon");
+        setLabel(GameAction::Weapon6, "concussion/flash missile");
+        setLabel(GameAction::Weapon7, "homing/guided missile");
+        setLabel(GameAction::Weapon8, "proximity bomb/smart mine");
+        setLabel(GameAction::Weapon9, "smart/mercury missile");
+        setLabel(GameAction::Weapon10, "mega/earthshaker missile");
 
         _bindings.clear();
         Add({ .Action = GameAction::Forward, .Key = Keys::W });

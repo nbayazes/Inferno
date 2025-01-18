@@ -84,6 +84,7 @@ namespace Inferno::UI {
         static constexpr float statsSpacing = 150;
 
         StackPanel* _panel = nullptr;
+
     public:
         ScoreScreen(const ScoreInfo& info) {
             constexpr float statsOffset = titleOffset + 70;
@@ -157,16 +158,16 @@ namespace Inferno::UI {
             }
 
             {
-                auto panel = make_unique<StackPanel>();
+                _panel = AddChild<StackPanel>();
                 //panel->Size.x = Size.x - DIALOG_PADDING * 2;
                 //panel->Position = Vector2(0, DIALOG_CONTENT_PADDING);
-                panel->HorizontalAlignment = AlignH::CenterLeft;
-                panel->VerticalAlignment = AlignV::Top;
-                panel->Position.y = statsOffset;
-                panel->Position.x = statsSpacing;
+                _panel->HorizontalAlignment = AlignH::CenterLeft;
+                _panel->VerticalAlignment = AlignV::Top;
+                _panel->Position.y = statsOffset;
+                _panel->Position.x = statsSpacing;
 
                 const auto addRightAligned = [&](string_view label) {
-                    auto child = panel->AddChild<Label>(label, FontSize::Small);
+                    auto child = _panel->AddChild<Label>(label, FontSize::Small);
                     child->TextAlignment = AlignH::Right;
                     //child->Color = Color(1.0f, 0.75f, 0.6f);
                     child->Color = Color(1.0f, 0.75f, 0.4f);
@@ -198,9 +199,6 @@ namespace Inferno::UI {
                 // Mission Successful / Failed
                 // Difficulty, Score, Time Played, Robots Destroyed, Shield / Energy Rating,  Number of Deaths
                 // Objectives: Destroy the Reactor: Complete
-
-                //AddChild(std::move(panel));
-                _panel = AddChildT(std::move(panel));
             }
 
             if (info.ExtraLives > 0) {
@@ -215,10 +213,14 @@ namespace Inferno::UI {
             }
         }
 
-        void OnUpdate() override {
-            if (Input::IsKeyPressed(Input::Keys::Escape) || Game::Bindings.Pressed(GameAction::FirePrimary) || Input::MenuConfirm()) {
+        bool HandleMenuAction(Input::MenuAction action) override {
+            //if (Input::IsKeyPressed(Input::Keys::Escape) || Game::Bindings.Pressed(GameAction::FirePrimary)) {
+            if (action == Input::MenuAction::Confirm || action == Input::MenuAction::Cancel) {
                 Game::LoadNextLevel();
+                return true;
             }
+
+            return false;
         }
 
         void OnDraw() override {

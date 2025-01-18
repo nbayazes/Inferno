@@ -212,11 +212,13 @@ namespace Inferno {
         bool StickyRearview = false;
         bool SlowmoFusion = true;
         bool EnableJoystick = false;
-        bool EnableController = false;
+        bool EnableGamepads = true;
         bool EnableMouse = true;
         bool PreferHighResFonts = true;
         uint2 WindowSize;
         uint2 WindowPosition;
+        float GamepadSensitivityX = 8;
+        float GamepadSensitivityY = 8;
     };
 
     struct CheatSettings {

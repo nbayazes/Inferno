@@ -448,27 +448,27 @@ namespace Inferno::Editor {
                             continue;
 
                         // assign the new binding
-                        if (auto binding = Game::Bindings.TryFind(selectedAction)) {
-                            binding->Key = key;
-                            binding->Mouse = MouseButtons::None;
-                            selectedAction = GameAction::None;
-                            binded = true;
-                            Game::Bindings.UnbindExisting(*binding);
-                            break;
-                        }
+                        //if (auto binding = Game::Bindings.TryFind(selectedAction)) {
+                        //    binding->Key = key;
+                        //    binding->Mouse = MouseButtons::None;
+                        //    selectedAction = GameAction::None;
+                        //    binded = true;
+                        //    Game::Bindings.UnbindExisting(*binding);
+                        //    break;
+                        //}
                     }
                 }
 
                 for (auto btn = Input::MouseButtons::LeftClick; btn <= Input::MouseButtons::WheelDown; btn = Input::MouseButtons((uint8)btn + 1)) {
                     if (Input::IsMouseButtonPressed(btn)) {
-                        if (auto binding = Game::Bindings.TryFind(selectedAction)) {
-                            binding->Mouse = btn;
-                            binding->Key = Keys::None;
-                            selectedAction = GameAction::None;
-                            binded = true;
-                            Game::Bindings.UnbindExisting(*binding);
-                            break;
-                        }
+                        //if (auto binding = Game::Bindings.TryFind(selectedAction)) {
+                        //    binding->Mouse = btn;
+                        //    binding->Key = Keys::None;
+                        //    selectedAction = GameAction::None;
+                        //    binded = true;
+                        //    Game::Bindings.UnbindExisting(*binding);
+                        //    break;
+                        //}
                     }
                 }
             }

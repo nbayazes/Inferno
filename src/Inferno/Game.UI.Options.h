@@ -58,7 +58,7 @@ namespace Inferno::UI {
                 }
 
                 for (auto& device : _devices) {
-                    deviceNames.push_back(Convert::ToString(device.description));
+                    deviceNames.push_back(Narrow(device.description));
                 }
 
                 auto device = ComboSelect::Create("Sound Device", deviceNames, _deviceIndex);
@@ -100,8 +100,8 @@ namespace Inferno::UI {
             panel->VerticalAlignment = AlignV::Top;
 
             panel->AddChild<Checkbox>("Enable Mouse", Settings::Inferno.EnableMouse);
-            panel->AddChild<Checkbox>("Enable joystick", Settings::Inferno.EnableJoystick);
-            panel->AddChild<Checkbox>("Enable controller", Settings::Inferno.EnableController);
+            //panel->AddChild<Checkbox>("Enable joystick", Settings::Inferno.EnableJoystick);
+            panel->AddChild<Checkbox>("Enable gamepads and joysticks", Settings::Inferno.EnableGamepads);
 
             {
                 panel->AddChild<Label>("");

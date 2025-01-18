@@ -475,8 +475,12 @@ namespace Inferno::Sound {
             try {
                 auto devices = AudioEngine::GetRendererDetails();
                 string info = "Available sound devices:\n";
-                for (auto& device : devices)
-                    info += fmt::format("{}\n", Narrow(device.description)/*, device.deviceId*/);
+                for (auto& device : devices) {
+                    info += Narrow(device.description);
+
+                    if (&device != &devices.back())
+                        info += '\n';
+                }
 
                 SPDLOG_INFO(info);
 

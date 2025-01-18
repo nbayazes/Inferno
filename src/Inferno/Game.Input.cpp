@@ -249,33 +249,12 @@ namespace Inferno {
         if (Game::GetState() == GameState::Game) {
             firePrimary = Game::Bindings.Pressed(GameAction::FirePrimary);
             fireSecondary = Game::Bindings.Pressed(GameAction::FireSecondary);
+            // todo: replace with bindings
+            firePrimary |= Input::IsControllerButtonDown(SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER);
+            fireSecondary |= Input::IsControllerButtonDown(SDL_GAMEPAD_BUTTON_LEFT_SHOULDER);
         }
 
         Game::Player.UpdateFireState(firePrimary, fireSecondary);
-    }
-
-    void HandleInput(float dt) {
-        if (Game::GetState() == GameState::Automap) {
-            HandleAutomapInput();
-            return;
-        }
-
-        if (Game::GetState() == GameState::Briefing) {
-            HandleBriefingInput();
-            return;
-        }
-
-        if (Game::GetState() == GameState::PhotoMode) {
-            GenericCameraController(Game::MainCamera, 90);
-            return;
-        }
-
-        if (Game::GetState() == GameState::Game) {
-            HandleShipInput(dt);
-            HandleWeaponKeys();
-        }
-
-        HandleDebugKeys();
     }
 
     void HandleShipInput(float dt) {
@@ -317,25 +296,41 @@ namespace Inferno {
         if (Game::Bindings.Pressed(GameAction::SlideUp))
             thrust.y += maxThrust;
 
+        thrust += Input::Thrust * maxThrust;
+        //thrust.x += Input::GamepadMovementStick.x * maxThrust;
+        //physics.Thrust.y += 
+        //thrust.z += Input::GamepadMovementStick.y * maxThrust;
+
         bool abActive = Game::Bindings.Pressed(GameAction::Afterburner);
         float afterburnerThrust = Game::Player.UpdateAfterburner(dt, abActive);
         if (afterburnerThrust > 1)
             thrust.z = maxThrust * afterburnerThrust;
 
-        Vector3 min = { -maxThrust, -maxThrust, -maxThrust };
-        Vector3 max = { maxThrust, maxThrust, afterburnerThrust > 1 ? maxThrust * 2 : maxThrust };
-        thrust.Clamp(min, max);
+        // Clamp linear thrust
+        Vector3 minLinear = { -maxThrust, -maxThrust, -maxThrust };
+        Vector3 maxLinear = { maxThrust, maxThrust, afterburnerThrust > 1 ? maxThrust * 2 : maxThrust };
+        thrust.Clamp(minLinear, maxLinear);
 
-        // Clamp linear speeds
         physics.Thrust += player.Rotation.Right() * thrust.x;
         physics.Thrust += player.Rotation.Up() * thrust.y;
         physics.Thrust += player.Rotation.Forward() * thrust.z;
 
-        float invertMult = Settings::Inferno.InvertY ? -1.0f : 1.0f;
-        float scale = Settings::Inferno.MouseSensitivity * Game::TICK_RATE / dt;
+        if (Settings::Inferno.EnableMouse) {
+            // todo: separate axis sensitivity
+            float invertMult = Settings::Inferno.InvertY ? -1.0f : 1.0f;
+            float sensitivity = Settings::Inferno.MouseSensitivity * Game::TICK_RATE / dt;
+            float yawSensitivity = Settings::Inferno.MouseSensitivityX* Game::TICK_RATE / dt;
+            physics.AngularThrust.x += Input::MouseDelta.y * sensitivity * invertMult; // pitch
+            physics.AngularThrust.y += Input::MouseDelta.x * yawSensitivity; // yaw
+        }
 
-        physics.AngularThrust.x += Input::MouseDelta.y * scale * invertMult; // pitch
-        physics.AngularThrust.y += Input::MouseDelta.x * scale; // yaw
+        if (Settings::Inferno.EnableGamepads) {
+            // todo: check vertical halving, sensitivity?
+            physics.AngularThrust.x += Input::Pitch * maxAngularThrust * -1 * .5f;
+            physics.AngularThrust.y += Input::Yaw * maxAngularThrust;
+            physics.AngularThrust.z += Input::Roll * maxAngularThrust * .5f;
+        }
+
 
         if (Game::Bindings.Pressed(GameAction::PitchUp))
             physics.AngularThrust.x -= 1; // pitch
@@ -360,5 +355,29 @@ namespace Inferno {
         const auto maxPitch = Settings::Inferno.HalvePitchSpeed ? maxAngularThrust / 2 : maxAngularThrust;
         Vector3 maxAngVec(maxPitch, maxAngularThrust, maxAngularThrust);
         physics.AngularThrust.Clamp(-maxAngVec, maxAngVec);
+    }
+
+    void HandleInput(float dt) {
+        if (Game::GetState() == GameState::Automap) {
+            HandleAutomapInput();
+            return;
+        }
+
+        if (Game::GetState() == GameState::Briefing) {
+            HandleBriefingInput();
+            return;
+        }
+
+        if (Game::GetState() == GameState::PhotoMode) {
+            GenericCameraController(Game::MainCamera, 90);
+            return;
+        }
+
+        if (Game::GetState() == GameState::Game) {
+            HandleShipInput(dt);
+            HandleWeaponKeys();
+        }
+
+        HandleDebugKeys();
     }
 }
