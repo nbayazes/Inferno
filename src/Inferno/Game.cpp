@@ -762,7 +762,8 @@ namespace Inferno::Game {
                 s.Radius = 160;
                 s.Volume = 0.60f;
                 //s.Occlusion = false;
-                Sound::Play(s, side.Center, segid, sid);
+                // Offset so raycasts don't get stuck inside wall
+                Sound::Play(s, side.Center + side.AverageNormal, segid, sid);
             }
         }
     }

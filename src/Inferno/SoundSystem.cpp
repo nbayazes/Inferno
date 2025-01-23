@@ -104,6 +104,36 @@ namespace Inferno::Sound {
 
         bool IsAlive() const { return Alive; }
 
+        // Updates the muffle due to occlusion
+        void UpdateOcclusion(const Vector3& listener, float dist, const Vector3& dir) {
+            if (!Info.Sound.Occlusion) return;
+
+            constexpr float MUFFLE_MAX = 0.95f;
+            constexpr float MUFFLE_MIN = 0.25f;
+
+            if (dist > 20) {
+                // don't hit test nearby sounds
+                Ray ray(Emitter.Position / AUDIO_SCALE, dir);
+                LevelHit hit;
+                RayQuery query{ .MaxDistance = dist, .Start = Info.Segment, .Mode = RayQueryMode::Visibility };
+
+                if (Info.Segment != SegID::Terrain && Intersect.RayLevel(ray, query, hit)) {
+                    auto hitDist = (listener - hit.Point).Length();
+                    // we hit a wall, muffle it based on the distance from the source
+                    // a sound coming immediately around the corner shouldn't get muffled much
+                    TargetMuffle = std::clamp(1 - hitDist / 60, MUFFLE_MIN, MUFFLE_MAX);
+                }
+            }
+        }
+
+        Tuple<float, Vector3> GetListenerDistanceAndDir(const Vector3& listener) const {
+            auto emitterPos = Emitter.Position / AUDIO_SCALE;
+            auto delta = listener - emitterPos;
+            Vector3 dir;
+            delta.Normalize(dir);
+            return { delta.Length(), dir };
+        }
+
         void UpdateEmitter(const Vector3& listener, float dt, float globalVolume) {
             auto& sound = Info.Sound;
 
@@ -128,11 +158,7 @@ namespace Inferno::Sound {
             }
 
             assert(sound.Radius > 0);
-            auto emitterPos = Emitter.Position / AUDIO_SCALE;
-            auto delta = listener - emitterPos;
-            Vector3 dir;
-            delta.Normalize(dir);
-            auto dist = delta.Length();
+            auto [dist, dir] = GetListenerDistanceAndDir(listener);
 
             //auto ratio = std::min(dist / Radius, 1.0f);
             // 1 / (0.97 + 3x)^2 - 0.065 inverse square that crosses at 0,1 and 1,0
@@ -158,24 +184,7 @@ namespace Inferno::Sound {
                     }
                 }
 
-                if (sound.Occlusion) {
-                    constexpr float MUFFLE_MAX = 0.95f;
-                    constexpr float MUFFLE_MIN = 0.25f;
-
-                    if (dist > 20) {
-                        // don't hit test nearby sounds
-                        Ray ray(emitterPos, dir);
-                        LevelHit hit;
-                        RayQuery query{ .MaxDistance = dist, .Start = Info.Segment };
-
-                        if (Info.Segment != SegID::Terrain && Intersect.RayLevel(ray, query, hit)) {
-                            auto hitDist = (listener - hit.Point).Length();
-                            // we hit a wall, muffle it based on the distance from the source
-                            // a sound coming immediately around the corner shouldn't get muffled much
-                            TargetMuffle = std::clamp(1 - hitDist / 60, MUFFLE_MIN, MUFFLE_MAX);
-                        }
-                    }
-                }
+                UpdateOcclusion(listener, dist, dir);
             }
             else {
                 // pause looped sounds when going out of range
@@ -445,11 +454,11 @@ namespace Inferno::Sound {
             auto stats = _engine->GetStatistics();
 
             SPDLOG_INFO("Audio stats:\nPlaying: {} / {}\nInstances: {}\nVoices {} / {} / {} / {}\n{} audio bytes",
-                        stats.playingOneShots, stats.playingInstances,
-                        stats.allocatedInstances,
-                        stats.allocatedVoices, stats.allocatedVoices3d,
-                        stats.allocatedVoicesOneShot, stats.allocatedVoicesIdle,
-                        stats.audioBytes);
+                stats.playingOneShots, stats.playingInstances,
+                stats.allocatedInstances,
+                stats.allocatedVoices, stats.allocatedVoices3d,
+                stats.allocatedVoicesOneShot, stats.allocatedVoicesIdle,
+                stats.audioBytes);
         }
 
         void CopySoundIds() {
@@ -591,6 +600,13 @@ namespace Inferno::Sound {
             instance.Emitter.Position = playInfo.Position;
             instance.Alive = true;
             instance.Delay = sound.Delay;
+
+            // Calculate the initial occlusion so there isn't a popping noise
+            if (sound.Occlusion) {
+                auto& camera = Game::GetActiveCamera();
+                auto [dist, dir] = instance.GetListenerDistanceAndDir(camera.Position);
+                instance.UpdateOcclusion(camera.Position, dist, dir);
+            }
         }
 
         void OnStopAllSounds() {
