@@ -585,22 +585,14 @@ namespace Inferno::UI {
             auto wheelDelta = Input::GetWheelDelta();
             _scrollIndex -= wheelDelta / 40;
 
-            //if (Input::MenuUp()) {
-            //    SelectPrevious();
-            //}
-
-            //if (Input::MenuDown()) {
-            //    SelectNext();
-            //}
+            //if (wheelDelta != 0)
+            //    HitTestCursor(); // Update index when scrolling
 
             if (Children.size() <= _visibleItems) {
                 _scrollIndex = 0; // Reset scrolling if all items fit on screen
             }
 
             ClampRanges();
-
-            //if (wheelDelta != 0)
-            //    HitTestCursor(); // Update index when scrolling
         }
 
         void ScrollToIndex(int index) {

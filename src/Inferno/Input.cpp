@@ -799,6 +799,7 @@ namespace Inferno::Input {
         _inputEventQueue.clear();
         MenuActions.Reset();
         Joysticks.ResetState();
+        WheelDelta = 0;
     }
 
     ScopedHandle RelativeModeEvent, RelativeReadEvent;
