@@ -14,7 +14,7 @@ namespace Inferno {
         ReadValue(node["Wrap"], (int&)info.Wrap);
 
         auto pointNode = node["Points"];
-        if (pointNode.valid() && !pointNode.is_seed()) {
+        if (pointNode.readable()) {
             info.Points.clear();
 
             if (pointNode.has_children()) {
@@ -67,9 +67,9 @@ namespace Inferno {
 
             if (!root.is_map()) return;
 
-            if (auto node = root["Lights"]; node.valid() && !node.is_seed()) {
+            if (auto node = root["Lights"]; node.readable()) {
                 for (const auto& child : node.children()) {
-                    if (!child.valid() || child.is_seed()) continue;
+                    if (!child.readable()) continue;
                     auto info = ReadLightInfo(child);
                     lightInfo[info.Id] = info;
                 }

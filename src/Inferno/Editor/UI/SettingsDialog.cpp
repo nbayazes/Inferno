@@ -15,7 +15,6 @@ namespace Inferno::Editor {
         if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None)) {
             MainOptionsTab();
             KeyBindingsTab();
-            GameBindingsTab();
             DataPathsTab();
             ImGui::EndTabBar();
         }
@@ -404,110 +403,6 @@ namespace Inferno::Editor {
                         break;
                     }
                 }
-            }
-
-            ImGui::EndTable();
-        }
-
-        ImGui::EndChild();
-
-        ImGui::EndTabItem();
-    }
-
-    void SettingsDialog::GameBindingsTab() {
-        if (!ImGui::BeginTabItem("Game keys")) return;
-
-        if (ImGui::Button("Reset to defaults")) {
-            Game::Bindings.RestoreDefaults();
-        }
-
-        ImGui::BeginChild("container");
-
-        constexpr auto flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY;
-        if (ImGui::BeginTable("binds", 2, flags)) {
-            ImGui::TableSetupScrollFreeze(0, 1); // Make top row always visible
-            ImGui::TableSetupColumn("Action", ImGuiTableColumnFlags_WidthFixed/*, ImGuiTableColumnFlags_DefaultSort, 0.0f*/);
-            ImGui::TableSetupColumn("Shortcut");
-            ImGui::TableHeadersRow();
-
-            using Input::Keys;
-            using Input::MouseButtons;
-            static auto selectedAction = GameAction::None;
-            bool binded = false;
-
-            // In bind mode - capture the next pressed key
-            if (selectedAction != GameAction::None) {
-                for (Keys key = Keys::Back; key <= Keys::OemClear; key = Keys((unsigned char)key + 1)) {
-                    if (Input::IsKeyDown(key)) {
-                        if (key == Keys::Escape) {
-                            selectedAction = GameAction::None; // Cancel the assignment
-                            break;
-                        }
-
-                        if (GameBindings::IsReservedKey(key))
-                            continue;
-
-                        // assign the new binding
-                        //if (auto binding = Game::Bindings.TryFind(selectedAction)) {
-                        //    binding->Key = key;
-                        //    binding->Mouse = MouseButtons::None;
-                        //    selectedAction = GameAction::None;
-                        //    binded = true;
-                        //    Game::Bindings.UnbindExisting(*binding);
-                        //    break;
-                        //}
-                    }
-                }
-
-                for (auto btn = Input::MouseButtons::LeftClick; btn <= Input::MouseButtons::WheelDown; btn = Input::MouseButtons((uint8)btn + 1)) {
-                    if (Input::IsMouseButtonPressed(btn)) {
-                        //if (auto binding = Game::Bindings.TryFind(selectedAction)) {
-                        //    binding->Mouse = btn;
-                        //    binding->Key = Keys::None;
-                        //    selectedAction = GameAction::None;
-                        //    binded = true;
-                        //    Game::Bindings.UnbindExisting(*binding);
-                        //    break;
-                        //}
-                    }
-                }
-            }
-
-            uint i = 0;
-            for (auto& binding : Game::Bindings.GetBindings()) {
-                auto& label = Game::Bindings.GetLabel(binding.Action);
-                if (label == "undefined")
-                    continue;
-
-                ImGui::PushID(i++);
-
-                ImGui::TableNextRow();
-                ImGui::TableNextColumn();
-                ImGui::Text(label.c_str());
-                ImGui::TableNextColumn();
-                ImVec2 bindBtnSize = { 250 * Shell::DpiScale, 0 };
-
-                if (binding.Action == selectedAction) {
-                    if (ImGui::Button("Press a button...", bindBtnSize))
-                        selectedAction = GameAction::None;
-                }
-                else {
-                    auto shortcut = binding.GetShortcutLabel();
-                    if (ImGui::Button(shortcut.c_str(), bindBtnSize) && !binded)
-                        selectedAction = binding.Action;
-                }
-
-                const ImVec2 clearBtnSize = { 40 * Shell::DpiScale, 0 };
-                ImGui::SameLine(0, 1);
-                if (binding.Key == Keys::None && binding.Mouse == Input::MouseButtons::None) {
-                    ImGui::Dummy(clearBtnSize);
-                }
-                else {
-                    if (ImGui::ButtonEx("X", clearBtnSize))
-                        binding.Clear();
-                }
-
-                ImGui::PopID();
             }
 
             ImGui::EndTable();

@@ -183,8 +183,8 @@ namespace Inferno::UI {
             return false;
         }
 
-        virtual bool HandleMenuAction(Input::MenuAction action) {
-            if (action == Input::MenuAction::Confirm) {
+        virtual bool HandleMenuAction(Input::MenuActionState action) {
+            if (action.IsSet(MenuAction::Confirm)) {
                 return OnConfirm();
             }
 
@@ -379,13 +379,13 @@ namespace Inferno::UI {
             };
         }
 
-        bool HandleMenuAction(Input::MenuAction action) override {
-            if (action == Input::MenuAction::Up) {
+        bool HandleMenuAction(Input::MenuActionState action) override {
+            if (action == MenuAction::Up) {
                 _index--;
                 _scrollIndex = std::min(_index, _scrollIndex);
                 return true;
             }
-            else if (action == Input::MenuAction::Down) {
+            else if (action == MenuAction::Down) {
                 _index++;
                 if (_index > _scrollIndex + VisibleItems - 1)
                     _scrollIndex++;
@@ -1007,14 +1007,14 @@ namespace Inferno::UI {
             _text = std::to_string(*_value);
         }
 
-        bool HandleMenuAction(Input::MenuAction action) override {
+        bool HandleMenuAction(Input::MenuActionState action) override {
             int increment = 0;
             int mult = Input::ShiftDown ? 10 : 1;
 
-            if (action == Input::MenuAction::Left)
+            if (action == MenuAction::Left)
                 increment = -1;
 
-            if (action == Input::MenuAction::Right)
+            if (action == MenuAction::Right)
                 increment = 1;
 
             if (increment != 0) {
@@ -1404,13 +1404,13 @@ namespace Inferno::UI {
 
         std::function<void(int)> OnChange;
 
-        bool HandleMenuAction(Input::MenuAction action) override {
+        bool HandleMenuAction(Input::MenuActionState action) override {
             int value = 0;
 
-            if (action == Input::MenuAction::Left)
+            if (action == MenuAction::Left)
                 value = -1;
 
-            if (action == Input::MenuAction::Right)
+            if (action == MenuAction::Right)
                 value = 1;
 
             if (value != 0) {
@@ -1522,13 +1522,13 @@ namespace Inferno::UI {
 
         std::function<void(int)> OnChange;
 
-        bool HandleMenuAction(Input::MenuAction action) override {
+        bool HandleMenuAction(Input::MenuActionState action) override {
             auto value = 0;
 
-            if (action == Input::MenuAction::Left)
+            if (action == MenuAction::Left)
                 value = -1;
 
-            if (action == Input::MenuAction::Right)
+            if (action == MenuAction::Right)
                 value = 1;
 
             if (value != 0) {
@@ -1724,15 +1724,15 @@ namespace Inferno::UI {
 
         float GetValueWidth() const { return ShowValue ? ValueWidth : 0; }
 
-        bool HandleMenuAction(Input::MenuAction action) override {
+        bool HandleMenuAction(Input::MenuActionState action) override {
             const float keyboardIncrement = Input::ShiftDown ? 0.01f : 0.1f;
 
-            if (action == Input::MenuAction::Left) {
+            if (action == MenuAction::Left) {
                 UpdatePercent(GetPercent() - keyboardIncrement);
                 return true;
             }
 
-            if (action == Input::MenuAction::Right) {
+            if (action == MenuAction::Right) {
                 UpdatePercent(GetPercent() + keyboardIncrement);
                 return true;
             }
@@ -1916,7 +1916,7 @@ namespace Inferno::UI {
             auto& canvasSize = Render::UICanvas->GetSize();
             ScreenSize = Size == Vector2::Zero ? canvasSize : Size * GetScale();
             ScreenPosition = Render::GetAlignment(ScreenSize, HorizontalAlignment, VerticalAlignment, canvasSize)
-                + Position * GetScale();
+                             + Position * GetScale();
             ControlBase::OnUpdateLayout();
         }
 
@@ -1963,26 +1963,26 @@ namespace Inferno::UI {
             return -1;
         }
 
-        bool HandleMenuAction(Input::MenuAction action) override {
+        bool HandleMenuAction(Input::MenuActionState action) override {
             // Allow the selected control to handle input first
             if (Selection && Selection->HandleMenuAction(action))
                 return true;
 
-            if (action == Input::MenuAction::Confirm) {
+            if (action == MenuAction::Confirm) {
                 return OnConfirm();
             }
 
-            if (action == Input::MenuAction::Cancel) {
+            if (action == MenuAction::Cancel) {
                 State = CloseState::Cancel;
                 return true;
             }
 
-            if (action == Input::MenuAction::Down) {
+            if (action == MenuAction::Down) {
                 OnDownArrow();
                 return true;
             }
 
-            if (action == Input::MenuAction::Up) {
+            if (action == MenuAction::Up) {
                 OnUpArrow();
                 return true;
             }
@@ -2169,7 +2169,6 @@ namespace Inferno::UI {
             DialogBase("", false), _index(&index), _parent(&parent), _offset(offset) {
             auto stack = AddChild<StackPanel>();
             stack->Position = Vector2{ Padding, Padding };
-            CloseOnClickOutside = true;
 
             float maxWidth = 630 - parent.Position.x;
             //float width = 0;
@@ -2193,11 +2192,40 @@ namespace Inferno::UI {
             Size = Vector2(std::min(width, maxWidth), SMALL_CONTROL_HEIGHT * values.size() + Padding * 3);
             stack->Size.x = Size.x - Padding * 2;
 
+            CloseOnClickOutside = true;
             Position = parent.ScreenPosition;
             HorizontalAlignment = AlignH::Left;
             VerticalAlignment = AlignV::Top;
             BorderColor = ACCENT_GLOW;
+
+            //SetValues(values);
         }
+
+        //void SetValues(const List<string>& values) {
+        //    Children.clear();
+        //    float maxWidth = 630 - _parent->Position.x;
+        //    float width = _width;
+        //    auto stack = AddChild<StackPanel>();
+        //    stack->Position = Vector2{ Padding, Padding };
+
+        //    for (int i = 0; i < values.size(); i++) {
+        //        auto value = TrimStringByLength(values[i], FontSize::Small, (int)maxWidth);
+        //        auto labelSize = MeasureString(value, FontSize::Small);
+        //        width = std::max(labelSize.x, width);
+
+        //        auto button = stack->AddChild<Button>(value, [this, i] {
+        //            *_index = i;
+        //            State = CloseState::Accept;
+        //        }, AlignH::Center, FontSize::Small);
+
+        //        button->TextColor = HOVER_COLOR;
+        //        button->ActionSound = ""; // No sound, closing dialog plays one
+        //        if (i == *_index) _initialSelection = button;
+        //    }
+
+        //    Size = Vector2(std::min(width, maxWidth), SMALL_CONTROL_HEIGHT * values.size() + Padding * 3);
+        //    stack->Size.x = Size.x - Padding * 2;
+        //}
 
         void OnUpdateLayout() override {
             DialogBase::OnUpdateLayout();
@@ -2232,21 +2260,36 @@ namespace Inferno::UI {
         std::function<void(int)> OnChange; // Called when a value is selected
 
         ComboSelect(string_view label, const List<string>& values, int& index)
-            : _label(label), _values({ values.begin(), values.end() }), _index(&index) {
-            Vector2 size;
+            : _label(label), _index(&index) {
+            //Vector2 size;
 
-            for (auto& value : values) {
-                auto textSize = MeasureString(value, FontSize::Medium);
-                size = Vector2(std::max(size.x, textSize.x), std::max(size.y, textSize.y));
-            }
+            //for (auto& value : values) {
+            //    auto textSize = MeasureString(value, FontSize::Medium);
+            //    size = Vector2(std::max(size.x, textSize.x), std::max(size.y, textSize.y));
+            //}
 
             Size = Vector2(60, CONTROL_HEIGHT);
             //Padding = Vector2(0, 2);
             auto labelSize = MeasureString(label, FontSize::Medium);
             LabelWidth = labelSize.x;
             _textHeight = labelSize.y;
-            ValueWidth = size.x - LabelWidth;
+            //ValueWidth = size.x - LabelWidth;
             ActionSound = MENU_SELECT_SOUND;
+
+            SetValues(values);
+        }
+
+        void SetValues(const List<string>& values) {
+            _values = values;
+
+            //Vector2 size;
+
+            //for (auto& value : values) {
+            //    auto textSize = MeasureString(value, FontSize::Medium);
+            //    size = Vector2(std::max(size.x, textSize.x), std::max(size.y, textSize.y));
+            //}
+
+            //ValueWidth = size.x - LabelWidth;
         }
 
         static Ptr<ComboSelect> Create(string_view label, const List<string>& values, int& index) {
@@ -2257,8 +2300,8 @@ namespace Inferno::UI {
             ValueWidth = Size.x - LabelWidth;
         }
 
-        bool HandleMenuAction(Input::MenuAction action) override {
-            if (action == Input::MenuAction::Confirm) {
+        bool HandleMenuAction(Input::MenuActionState action) override {
+            if (action == MenuAction::Confirm) {
                 SetSelection(this);
                 ShowPopup();
                 return true;
@@ -2268,6 +2311,8 @@ namespace Inferno::UI {
         }
 
         void ShowPopup() {
+            if (OpenCallback) OpenCallback();
+
             auto screen = make_unique<SelectionPopup>(_values, *_index, *this, Vector2(LabelWidth, -9), ValueWidth);
             screen->ActionSound = MenuActionSound;
 
@@ -2283,6 +2328,8 @@ namespace Inferno::UI {
             Sound::Play2D(SoundResource{ ActionSound });
             ShowScreen(std::move(screen));
         }
+
+        Action OpenCallback;
 
         void OnUpdate() override {
             auto boxPosition = Vector2(ScreenPosition.x + LabelWidth * GetScale(), ScreenPosition.y);

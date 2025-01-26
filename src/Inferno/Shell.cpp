@@ -69,53 +69,9 @@ void SaveWindowSize() {
     }
 }
 
-// Updates the window fullscreen state based on the app setting
-void UpdateFullscreen() {
-    auto hWnd = Inferno::Shell::Hwnd;
-    if (!hWnd) return;
-    if (AppFullscreen == Settings::Inferno.Fullscreen) return;
-
-    AppFullscreen = Settings::Inferno.Fullscreen;
-
-    if (!Inferno::Settings::Inferno.Fullscreen) {
-        // Restore window position and size
-        SetWindowLongPtr(hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW);
-        SetWindowLongPtr(hWnd, GWL_EXSTYLE, 0);
-
-        auto flags = SWP_NOZORDER | SWP_FRAMECHANGED;
-
-        //if (AppMaximized) flags |= SWP_NOSIZE | SWP_NOMOVE;
-        auto size = Settings::Inferno.WindowSize;
-        auto pos = Settings::Inferno.WindowPosition;
-        ClampWindowPosition(pos, size);
-
-        SaveWindowSize();
-
-        // Account for window borders
-        RECT windowRect = { 0, 0, (long)size.x, (long)size.y };
-        AdjustWindowRectEx(&windowRect, flags, FALSE, 0);
-        auto width = windowRect.right - windowRect.left;
-        auto height = windowRect.bottom - windowRect.top;
-
-        SetWindowPos(hWnd, HWND_TOP, pos.x, pos.y, width, height, flags);
-        ShowWindow(hWnd, Settings::Inferno.Maximized ? SW_SHOWMAXIMIZED : SW_SHOW);
-    }
-    else {
-        // Windowed fullscreen
-        SaveWindowSize();
-
-        SetWindowLongPtr(hWnd, GWL_STYLE, 0);
-        SetWindowLongPtr(hWnd, GWL_EXSTYLE, WS_EX_TOPMOST);
-
-        SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
-        ShowWindow(hWnd, SW_SHOWMAXIMIZED);
-    }
-}
-
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
     auto app = reinterpret_cast<Application*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
 
-    UpdateFullscreen();
     Input::ProcessMessage(message, wParam, lParam);
 
     if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
@@ -383,5 +339,50 @@ void Inferno::Shell::UpdateWindowTitle(string_view message) {
             : fmt::format("{} - {}", String::ToUpper(Game::Level.Name), APP_TITLE);
 
         SetWindowTextW(Hwnd, Widen(title).c_str());
+    }
+}
+
+namespace Inferno {
+    // Updates the window fullscreen state based on the app setting
+    void UpdateFullscreen() {
+        auto hWnd = Inferno::Shell::Hwnd;
+        if (!hWnd) return;
+        if (AppFullscreen == Settings::Inferno.Fullscreen) return;
+
+        AppFullscreen = Settings::Inferno.Fullscreen;
+
+        if (!Inferno::Settings::Inferno.Fullscreen) {
+            // Restore window position and size
+            SetWindowLongPtr(hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW);
+            SetWindowLongPtr(hWnd, GWL_EXSTYLE, 0);
+
+            auto flags = SWP_NOZORDER | SWP_FRAMECHANGED;
+
+            //if (AppMaximized) flags |= SWP_NOSIZE | SWP_NOMOVE;
+            auto size = Settings::Inferno.WindowSize;
+            auto pos = Settings::Inferno.WindowPosition;
+            ClampWindowPosition(pos, size);
+
+            SaveWindowSize();
+
+            // Account for window borders
+            RECT windowRect = { 0, 0, (long)size.x, (long)size.y };
+            AdjustWindowRectEx(&windowRect, flags, FALSE, 0);
+            auto width = windowRect.right - windowRect.left;
+            auto height = windowRect.bottom - windowRect.top;
+
+            SetWindowPos(hWnd, HWND_TOP, pos.x, pos.y, width, height, flags);
+            ShowWindow(hWnd, Settings::Inferno.Maximized ? SW_SHOWMAXIMIZED : SW_SHOW);
+        }
+        else {
+            // Windowed fullscreen
+            SaveWindowSize();
+
+            SetWindowLongPtr(hWnd, GWL_STYLE, 0);
+            SetWindowLongPtr(hWnd, GWL_EXSTYLE, WS_EX_TOPMOST);
+
+            SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+            ShowWindow(hWnd, SW_SHOWMAXIMIZED);
+        }
     }
 }

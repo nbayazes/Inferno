@@ -158,53 +158,55 @@ namespace Inferno {
         if (Game::GetState() != GameState::Game)
             return; // Not in game
 
-        if (!Input::HasFocus || Game::Player.IsDead || Game::Level.Objects.empty())
+        auto& player = Game::Player;
+
+        if (!Input::HasFocus || player.IsDead || Game::Level.Objects.empty())
             return; // No player input without focus or while dead
 
-        if (Input::IsKeyPressed(Keys::D1))
-            Game::Player.SelectPrimary(PrimaryWeaponIndex::Laser);
+        if (Game::Bindings.Pressed(GameAction::Weapon1))
+            player.SelectPrimary(PrimaryWeaponIndex::Laser);
 
-        if (Input::IsKeyPressed(Keys::D2))
-            Game::Player.SelectPrimary(PrimaryWeaponIndex::Vulcan);
+        if (Game::Bindings.Pressed(GameAction::Weapon2))
+            player.SelectPrimary(PrimaryWeaponIndex::Vulcan);
 
-        if (Input::IsKeyPressed(Keys::D3))
-            Game::Player.SelectPrimary(PrimaryWeaponIndex::Spreadfire);
+        if (Game::Bindings.Pressed(GameAction::Weapon3))
+            player.SelectPrimary(PrimaryWeaponIndex::Spreadfire);
 
-        if (Input::IsKeyPressed(Keys::D4))
-            Game::Player.SelectPrimary(PrimaryWeaponIndex::Plasma);
+        if (Game::Bindings.Pressed(GameAction::Weapon4))
+            player.SelectPrimary(PrimaryWeaponIndex::Plasma);
 
-        if (Input::IsKeyPressed(Keys::D5))
-            Game::Player.SelectPrimary(PrimaryWeaponIndex::Fusion);
+        if (Game::Bindings.Pressed(GameAction::Weapon5))
+            player.SelectPrimary(PrimaryWeaponIndex::Fusion);
 
-        if (Input::IsKeyPressed(Keys::D6))
-            Game::Player.SelectSecondary(SecondaryWeaponIndex::Concussion);
+        if (Game::Bindings.Pressed(GameAction::Weapon6))
+            player.SelectSecondary(SecondaryWeaponIndex::Concussion);
 
-        if (Input::IsKeyPressed(Keys::D7))
-            Game::Player.SelectSecondary(SecondaryWeaponIndex::Homing);
+        if (Game::Bindings.Pressed(GameAction::Weapon7))
+            player.SelectSecondary(SecondaryWeaponIndex::Homing);
 
-        if (Input::IsKeyPressed(Keys::D8))
-            Game::Player.SelectSecondary(SecondaryWeaponIndex::ProximityMine);
+        if (Game::Bindings.Pressed(GameAction::Weapon8))
+            player.SelectSecondary(SecondaryWeaponIndex::ProximityMine);
 
-        if (Input::IsKeyPressed(Keys::D9))
-            Game::Player.SelectSecondary(SecondaryWeaponIndex::Smart);
+        if (Game::Bindings.Pressed(GameAction::Weapon9))
+            player.SelectSecondary(SecondaryWeaponIndex::Smart);
 
-        if (Input::IsKeyPressed(Keys::D0))
-            Game::Player.SelectSecondary(SecondaryWeaponIndex::Mega);
+        if (Game::Bindings.Pressed(GameAction::Weapon10))
+            player.SelectSecondary(SecondaryWeaponIndex::Mega);
 
         if (Game::Bindings.Pressed(GameAction::FireFlare))
-            Game::Player.FireFlare();
+            player.FireFlare();
 
         if (Game::Bindings.Pressed(GameAction::CycleBomb))
-            Game::Player.CycleBombs();
+            player.CycleBombs();
 
         if (Game::Bindings.Pressed(GameAction::CyclePrimary))
-            Game::Player.CyclePrimary();
+            player.CyclePrimary();
 
         if (Game::Bindings.Pressed(GameAction::CycleSecondary))
-            Game::Player.CycleSecondary();
+            player.CycleSecondary();
 
         if (Game::Bindings.Pressed(GameAction::DropBomb))
-            Game::Player.DropBomb();
+            player.DropBomb();
     }
 
     bool ConfirmedInput() {
@@ -247,15 +249,13 @@ namespace Inferno {
         bool fireSecondary = false;
 
         if (Game::GetState() == GameState::Game) {
-            firePrimary = Game::Bindings.Pressed(GameAction::FirePrimary);
-            fireSecondary = Game::Bindings.Pressed(GameAction::FireSecondary);
-            // todo: replace with bindings
-            firePrimary |= Input::IsControllerButtonDown(SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER);
-            fireSecondary |= Input::IsControllerButtonDown(SDL_GAMEPAD_BUTTON_LEFT_SHOULDER);
+            firePrimary = Game::Bindings.Held(GameAction::FirePrimary);
+            fireSecondary = Game::Bindings.Held(GameAction::FireSecondary);
         }
 
         Game::Player.UpdateFireState(firePrimary, fireSecondary);
     }
+
 
     void HandleShipInput(float dt) {
         if (dt <= 0 || Game::Level.Objects.empty())
@@ -275,33 +275,45 @@ namespace Inferno {
 
         const auto maxAngularThrust = Resources::GameData.PlayerShip.MaxRotationalThrust;
         const auto maxThrust = Resources::GameData.PlayerShip.MaxThrust;
+        const auto maxPitch = Settings::Inferno.HalvePitchSpeed ? maxAngularThrust / 2 : maxAngularThrust;
 
         Vector3 thrust;
 
-        if (Game::Bindings.Pressed(GameAction::Forward))
+        if (Game::Bindings.Held(GameAction::Forward))
             thrust.z += maxThrust;
 
-        if (Game::Bindings.Pressed(GameAction::Reverse))
+        if (Game::Bindings.Held(GameAction::Reverse))
             thrust.z -= maxThrust;
 
-        if (Game::Bindings.Pressed(GameAction::SlideLeft))
+        if (Game::Bindings.Held(GameAction::SlideLeft))
             thrust.x -= maxThrust;
 
-        if (Game::Bindings.Pressed(GameAction::SlideRight))
+        if (Game::Bindings.Held(GameAction::SlideRight))
             thrust.x += maxThrust;
 
-        if (Game::Bindings.Pressed(GameAction::SlideDown))
+        if (Game::Bindings.Held(GameAction::SlideDown))
             thrust.y -= maxThrust;
 
-        if (Game::Bindings.Pressed(GameAction::SlideUp))
+        if (Game::Bindings.Held(GameAction::SlideUp))
             thrust.y += maxThrust;
 
-        thrust += Input::Thrust * maxThrust;
+        //auto pitchAxis = Game::Bindings.LinearAxis(GameAction::PitchAxis);
+        thrust.x += Game::Bindings.LinearAxis(GameAction::LeftRightAxis) * maxThrust;
+        thrust.y += Game::Bindings.LinearAxis(GameAction::UpDownAxis) * maxThrust;
+        thrust.z += Game::Bindings.LinearAxis(GameAction::ForwardReverseAxis) * maxThrust;
+
+        physics.AngularThrust.z += Game::Bindings.LinearAxis(GameAction::RollLeft) * maxAngularThrust;
+        physics.AngularThrust.z += Game::Bindings.LinearAxis(GameAction::RollRight) * maxAngularThrust;
+
+        physics.AngularThrust.x += Game::Bindings.LinearAxis(GameAction::PitchAxis) * maxPitch * -1;
+        physics.AngularThrust.y += Game::Bindings.LinearAxis(GameAction::YawAxis) * maxAngularThrust;
+        physics.AngularThrust.z += Game::Bindings.LinearAxis(GameAction::RollAxis) * maxAngularThrust;
+
         //thrust.x += Input::GamepadMovementStick.x * maxThrust;
         //physics.Thrust.y += 
         //thrust.z += Input::GamepadMovementStick.y * maxThrust;
 
-        bool abActive = Game::Bindings.Pressed(GameAction::Afterburner);
+        bool abActive = Game::Bindings.Held(GameAction::Afterburner);
         float afterburnerThrust = Game::Player.UpdateAfterburner(dt, abActive);
         if (afterburnerThrust > 1)
             thrust.z = maxThrust * afterburnerThrust;
@@ -317,65 +329,92 @@ namespace Inferno {
 
         if (Settings::Inferno.EnableMouse) {
             // todo: separate axis sensitivity
-            float invertMult = Settings::Inferno.InvertY ? -1.0f : 1.0f;
-            float sensitivity = Settings::Inferno.MouseSensitivity * Game::TICK_RATE / dt;
-            float yawSensitivity = Settings::Inferno.MouseSensitivityX* Game::TICK_RATE / dt;
-            physics.AngularThrust.x += Input::MouseDelta.y * sensitivity * invertMult; // pitch
-            physics.AngularThrust.y += Input::MouseDelta.x * yawSensitivity; // yaw
+
+            auto& mouse = Game::Bindings.GetMouse();
+
+            for (auto& binding : mouse.GetBinding(GameAction::YawAxis)) {
+                if (binding.type == BindType::None) continue;
+
+                float value = 0;
+                if (binding.id == (int)Input::MouseAxis::MouseX)
+                    value = Input::MouseDelta.x;
+                if (binding.id == (int)Input::MouseAxis::MouseY)
+                    value = Input::MouseDelta.y;
+
+                float sensitivity = Settings::Inferno.MouseSensitivity * Game::TICK_RATE / dt;
+
+                physics.AngularThrust.y += value * binding.GetInvertSign() * sensitivity; // yaw
+            }
+
+
+            for (auto& binding : mouse.GetBinding(GameAction::PitchAxis)) {
+                if (binding.type == BindType::None) continue;
+
+                float value = 0;
+                if (binding.id == (int)Input::MouseAxis::MouseX)
+                    value = Input::MouseDelta.x;
+                if (binding.id == (int)Input::MouseAxis::MouseY)
+                    value = Input::MouseDelta.y;
+
+                float sensitivity = Settings::Inferno.MouseSensitivity * Game::TICK_RATE / dt;
+                physics.AngularThrust.x += value * binding.GetInvertSign() * sensitivity; // pitch
+            }
         }
 
-        if (Settings::Inferno.EnableGamepads) {
-            // todo: check vertical halving, sensitivity?
-            physics.AngularThrust.x += Input::Pitch * maxAngularThrust * -1 * .5f;
-            physics.AngularThrust.y += Input::Yaw * maxAngularThrust;
-            physics.AngularThrust.z += Input::Roll * maxAngularThrust * .5f;
-        }
-
-
-        if (Game::Bindings.Pressed(GameAction::PitchUp))
+        if (Game::Bindings.Held(GameAction::PitchUp))
             physics.AngularThrust.x -= 1; // pitch
 
-        if (Game::Bindings.Pressed(GameAction::PitchDown))
+        if (Game::Bindings.Held(GameAction::PitchDown))
             physics.AngularThrust.x += 1; // pitch
 
-        if (Game::Bindings.Pressed(GameAction::YawLeft))
+        if (Game::Bindings.Held(GameAction::YawLeft))
             physics.AngularThrust.y -= 1;
 
-        if (Game::Bindings.Pressed(GameAction::YawRight))
+        if (Game::Bindings.Held(GameAction::YawRight))
             physics.AngularThrust.y += 1;
 
         // roll
-        if (Game::Bindings.Pressed(GameAction::RollLeft))
+        if (Game::Bindings.Held(GameAction::RollLeft))
             physics.AngularThrust.z -= 1;
 
-        if (Game::Bindings.Pressed(GameAction::RollRight))
+        if (Game::Bindings.Held(GameAction::RollRight))
             physics.AngularThrust.z += 1;
 
         // Clamp angular speeds
-        const auto maxPitch = Settings::Inferno.HalvePitchSpeed ? maxAngularThrust / 2 : maxAngularThrust;
         Vector3 maxAngVec(maxPitch, maxAngularThrust, maxAngularThrust);
         physics.AngularThrust.Clamp(-maxAngVec, maxAngVec);
     }
 
     void HandleInput(float dt) {
-        if (Game::GetState() == GameState::Automap) {
-            HandleAutomapInput();
-            return;
-        }
+        switch (Game::GetState()) {
+            case GameState::Automap:
+                if (Game::Bindings.Pressed(GameAction::Automap) || Input::MenuActions.IsSet(MenuAction::Cancel)) {
+                    Game::SetState(GameState::Automap);
+                }
 
-        if (Game::GetState() == GameState::Briefing) {
-            HandleBriefingInput();
-            return;
-        }
+                HandleAutomapInput();
+                return;
 
-        if (Game::GetState() == GameState::PhotoMode) {
-            GenericCameraController(Game::MainCamera, 90);
-            return;
-        }
+            case GameState::Briefing:
+                HandleBriefingInput();
+                return;
 
-        if (Game::GetState() == GameState::Game) {
-            HandleShipInput(dt);
-            HandleWeaponKeys();
+            case GameState::PhotoMode:
+                GenericCameraController(Game::MainCamera, 90);
+                return;
+
+            case GameState::Game:
+                if (Game::Bindings.Pressed(GameAction::Automap)) {
+                    Game::SetState(GameState::Automap);
+                }
+
+                if (Game::Bindings.Pressed(GameAction::Pause)) {
+                    Game::SetState(GameState::PauseMenu);
+                }
+
+                HandleShipInput(dt);
+                HandleWeaponKeys();
+                break;
         }
 
         HandleDebugKeys();

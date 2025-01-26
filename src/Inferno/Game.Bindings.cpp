@@ -5,136 +5,392 @@ namespace Inferno {
     using Mouse = Input::MouseButtons;
     using Input::Keys;
 
-    string GameBinding::GetShortcutLabel() const {
-        if (Key != Input::Keys::None)
-            return Input::KeyToString(Key);
+    namespace {
+        std::array<string, (int)GameAction::Count> ActionLabels;
+    }
 
-        if (Mouse != Mouse::None) {
-            switch (Mouse) {
-                case Mouse::LeftClick: return "Left click";
-                case Mouse::RightClick: return "Right click";
-                case Mouse::MiddleClick: return "Middle click";
-                case Mouse::X1: return "Mouse 4";
-                case Mouse::X2: return "Mouse 5";
-                case Mouse::WheelUp: return "Wheel up";
-                case Mouse::WheelDown: return "Wheel down";
-            }
-        }
+    string InputDeviceBinding::GetBindingLabel(GameAction action, int slot) {
+        auto binding = GetBinding(action, slot);
+        if (!binding) return "unknown";
 
-        if (MouseAxis != Input::MouseAxis::None) {
-            switch(MouseAxis) {
-                case Input::MouseAxis::MouseX: return "X-Axis";
-                case Input::MouseAxis::MouseY: return "Y-Axis";
-                default: return "Axis";
-                //case Input::InputAxis::Axis0:
-                //    break;
-                //case Input::InputAxis::Axis1:
-                //    break;
-                //case Input::InputAxis::Axis2:
-                //    break;
-                //case Input::InputAxis::Axis3:
-                //    break;
-                //case Input::InputAxis::Axis4:
-                //    break;
-                //case Input::InputAxis::Axis5:
-                //    break;
-                //case Input::InputAxis::Axis6:
-                //    break;
-                //case Input::InputAxis::Axis7:
-                //    break;
-            }
+        switch (type) {
+            case Input::InputType::Unknown:
+                return fmt::format("B{}", binding->id);
+            case Input::InputType::Keyboard:
+                return Input::KeyToString((Input::Keys)binding->id);
+            case Input::InputType::Mouse:
+                if (binding->type == BindType::Axis) {
+                    using enum Input::MouseAxis;
+                    switch ((Input::MouseAxis)binding->id) {
+                        case None: return "";
+                        case MouseX: return "X-Axis";
+                        case MouseY: return "Y-Axis";
+                        default: return fmt::format("axis {}", binding->id);
+                    }
+                }
+                else if (binding->type == BindType::Button) {
+                    using enum Input::MouseButtons;
+                    switch ((Input::MouseButtons)binding->id) {
+                        case LeftClick: return "Left click";
+                        case RightClick: return "Right click";
+                        case MiddleClick: return "Middle click";
+                        //case X1: return "button 4";
+                        //case X2: return "button 5";
+                        case WheelUp: return "Wheel up";
+                        case WheelDown: return "Wheel down";
+                        default: return fmt::format("button {}", binding->id);
+                    }
+                }
+                break;
+            case Input::InputType::Gamepad:
+                // todo: check gamepad type
+                if (binding->type == BindType::Button && binding->id < Input::PS_BUTTON_LABELS.size()) {
+                    return Input::PS_BUTTON_LABELS[binding->id];
+                }
+                else if (binding->type == BindType::Axis) {
+                    if (binding->id == SDL_GAMEPAD_AXIS_LEFTX)
+                        return "LEFT X";
+                    if (binding->id == SDL_GAMEPAD_AXIS_LEFTY)
+                        return "LEFT Y";
+                    if (binding->id == SDL_GAMEPAD_AXIS_RIGHTX)
+                        return "RIGHT X";
+                    if (binding->id == SDL_GAMEPAD_AXIS_RIGHTY)
+                        return "RIGHT Y";
+                }
+                else if (binding->type == BindType::AxisPlus || binding->type == BindType::AxisMinus) {
+                    if (binding->id == SDL_GAMEPAD_AXIS_LEFT_TRIGGER)
+                        return "L2";
+                    if (binding->id == SDL_GAMEPAD_AXIS_RIGHT_TRIGGER)
+                        return "R2";
+                }
+                else if (binding->type == BindType::AxisButtonPlus) {
+                    if (binding->id == SDL_GAMEPAD_AXIS_LEFTX)
+                        return "LEFT X+";
+                    if (binding->id == SDL_GAMEPAD_AXIS_LEFTY)
+                        return "LEFT Y+";
+                    if (binding->id == SDL_GAMEPAD_AXIS_RIGHTX)
+                        return "RIGHT X+";
+                    if (binding->id == SDL_GAMEPAD_AXIS_RIGHTY)
+                        return "RIGHT Y+";
+                    if (binding->id == SDL_GAMEPAD_AXIS_LEFT_TRIGGER)
+                        return "L2";
+                    if (binding->id == SDL_GAMEPAD_AXIS_RIGHT_TRIGGER)
+                        return "R2";
+                }
+                else if (binding->type == BindType::AxisButtonMinus) {
+                    if (binding->id == SDL_GAMEPAD_AXIS_LEFTX)
+                        return "LEFT X-";
+                    if (binding->id == SDL_GAMEPAD_AXIS_LEFTY)
+                        return "LEFT Y-";
+                    if (binding->id == SDL_GAMEPAD_AXIS_RIGHTX)
+                        return "RIGHT X-";
+                    if (binding->id == SDL_GAMEPAD_AXIS_RIGHTY)
+                        return "RIGHT Y-";
+                    if (binding->id == SDL_GAMEPAD_AXIS_LEFT_TRIGGER)
+                        return "L2";
+                    if (binding->id == SDL_GAMEPAD_AXIS_RIGHT_TRIGGER)
+                        return "R2";
+                }
+                break;
+            case Input::InputType::Joystick:
+                break;
         }
 
         return "";
     }
 
-    const string& GameBindings::GetLabel(GameAction action) const {
-        return _labels[(uint)action];
+    bool GameBindings::Pressed(GameAction action) {
+        for (auto& device : _devices) {
+            if (auto joystick = Input::GetJoystick(device.guid)) {
+                for (auto& binding : device.bindings[(int)action]) {
+                    switch (binding.type) {
+                        case BindType::Button:
+                            if (joystick->ButtonDown(binding.id))
+                                return true;
+                            break;
+                        case BindType::AxisButtonPlus:
+                            if (joystick->AxisPressed(binding.id, true))
+                                return true;
+                            break;
+
+                        case BindType::AxisButtonMinus:
+                            if (joystick->AxisPressed(binding.id, false))
+                                return true;
+                            break;
+
+                        case BindType::Hat:
+                            if (joystick->HatDirection((Input::HatDirection)binding.id))
+                                return true;
+                            break;
+                    }
+                }
+            }
+        }
+
+        for (auto& binding : _keyboard.bindings[(int)action]) {
+            if (Input::IsKeyPressed((Input::Keys)binding.id))
+                return true;
+        }
+
+        for (auto& binding : _mouse.bindings[(int)action]) {
+            if (Input::IsMouseButtonPressed((Input::MouseButtons)binding.id))
+                return true;
+        }
+
+        return false;
     }
 
-    void GameBindings::Add(const GameBinding& binding) {
-        if (binding.Action == GameAction::None) return;
-        if (binding.Key == Keys::Escape) return;
+    bool GameBindings::Held(GameAction action) {
+        for (auto& device : _devices) {
+            if (auto joystick = Input::GetJoystick(device.guid)) {
+                for (auto& binding : device.bindings[(int)action]) {
+                    switch (binding.type) {
+                        case BindType::Button:
+                            if (joystick->Held(binding.id))
+                                return true;
+                            break;
+                        case BindType::AxisButtonPlus:
+                            if (joystick->axes[binding.id] > 0.3f)
+                                return true;
+                            break;
 
-        UnbindExisting(binding);
-        _bindings.push_back(binding);
+                        case BindType::AxisButtonMinus:
+                            if (joystick->axes[binding.id] < -0.3f)
+                                return true;
+                            break;
+
+                        case BindType::Hat:
+                            if (joystick->HatDirection((Input::HatDirection)binding.id))
+                                return true;
+                            break;
+                    }
+                }
+            }
+        }
+
+        for (auto& binding : _keyboard.bindings[(int)action]) {
+            if (Input::IsKeyDown((Input::Keys)binding.id))
+                return true;
+        }
+
+        for (auto& binding : _mouse.bindings[(int)action]) {
+            if (Input::IsMouseButtonDown((Input::MouseButtons)binding.id))
+                return true;
+        }
+
+        return false;
     }
 
-    void GameBindings::RestoreDefaults() {
-        auto setLabel = [this](GameAction action, const string& str) {
-            _labels[(uint)action] = str;
+    float GameBindings::LinearAxis(GameAction action) const {
+        float value = 0;
+
+        for (auto& device : _devices) {
+            if (auto joystick = Input::GetJoystick(device.guid)) {
+                for (auto& binding : device.bindings[(int)action]) {
+                    if (!Seq::inRange(joystick->axes, binding.id)) continue;
+
+                    float invert = binding.invert ? -1.0f : 1.0f;
+                    auto innerDeadzone = binding.innerDeadzone / 255.0f;
+                    auto outerDeadzone = binding.outerDeadzone / 255.0f;
+
+                    if (binding.type == BindType::AxisPlus) {
+                        value += Input::LinearDampen(joystick->axes[binding.id], innerDeadzone, outerDeadzone) * invert;
+                    }
+                    else if (binding.type == BindType::AxisMinus) {
+                        value += Input::LinearDampen(joystick->axes[binding.id], innerDeadzone, outerDeadzone) * invert;
+                    }
+                    else if (binding.type == BindType::Axis) {
+                        if (joystick->type != SDL_GAMEPAD_TYPE_UNKNOWN) {
+                            Vector2 stick;
+
+                            if (binding.id == SDL_GAMEPAD_AXIS_LEFTX || binding.id == SDL_GAMEPAD_AXIS_LEFTY)
+                                stick = Vector2{ joystick->axes[SDL_GAMEPAD_AXIS_LEFTX], joystick->axes[SDL_GAMEPAD_AXIS_LEFTY] };
+                            else if (binding.id == SDL_GAMEPAD_AXIS_RIGHTX || binding.id == SDL_GAMEPAD_AXIS_RIGHTY)
+                                stick = Vector2{ joystick->axes[SDL_GAMEPAD_AXIS_RIGHTX], joystick->axes[SDL_GAMEPAD_AXIS_RIGHTY] };
+
+                            stick = Input::CircularDampen(stick, innerDeadzone, outerDeadzone);
+
+                            if (binding.id == SDL_GAMEPAD_AXIS_LEFTX || binding.id == SDL_GAMEPAD_AXIS_RIGHTX)
+                                value += stick.x * invert;
+                            else
+                                value += stick.y * invert;
+                        }
+                        else {
+                            // Assume the first two axis are combined
+                            //if(binding.id == 0 || binding.id == 1) {
+                            //    
+                            //}
+
+                            value += Input::LinearDampen(joystick->axes[binding.id], innerDeadzone, outerDeadzone) * invert;
+                        }
+
+                        // axes[SDL_GAMEPAD_AXIS_LEFTX] = leftStick.x;
+                        // axes[SDL_GAMEPAD_AXIS_LEFTY] = leftStick.y;
+                    }
+                }
+            }
+        }
+
+        return value;
+
+        //for (auto& joystick : Input::GetJoysticks()) {
+        //    if (joystick.type == SDL_GAMEPAD_TYPE_UNKNOWN && !Settings::Inferno.EnableJoystick) continue;
+        //    if (joystick.type != SDL_GAMEPAD_TYPE_UNKNOWN && !Settings::Inferno.EnableGamepad) continue;
+
+        //    // check all bindings
+        //    if (_ps5bindings.guid == joystick.guid) {
+        //        auto axes = joystick.axes;
+
+        //        // Apply circular dampening to the two sticks
+        //        Vector2 leftStick = { axes[SDL_GAMEPAD_AXIS_LEFTX], axes[SDL_GAMEPAD_AXIS_LEFTY] };
+        //        leftStick = Input::CircularDampen(leftStick, joystick.innerDeadzone, joystick.outerDeadzone);
+        //        axes[SDL_GAMEPAD_AXIS_LEFTX] = leftStick.x;
+        //        axes[SDL_GAMEPAD_AXIS_LEFTY] = leftStick.y;
+
+        //        Vector2 rightStick = { axes[SDL_GAMEPAD_AXIS_RIGHTX], axes[SDL_GAMEPAD_AXIS_RIGHTY] };
+        //        rightStick = Input::CircularDampen(rightStick, joystick.innerDeadzone, joystick.outerDeadzone);
+        //        axes[SDL_GAMEPAD_AXIS_RIGHTX] = rightStick.x;
+        //        axes[SDL_GAMEPAD_AXIS_RIGHTY] = rightStick.y;
+        //    }
+        //}
+    }
+
+    string_view GetActionLabel(GameAction action) {
+        if (action >= GameAction::Count) return "";
+
+        auto setLabel = [](GameAction action, const string& str) {
+            ActionLabels[(uint)action] = str;
         };
 
-        ranges::fill(_labels, string("undefined"));
+        if (ActionLabels[(int)GameAction::FirePrimary].empty()) {
+            ranges::fill(ActionLabels, string("undefined"));
+            setLabel(GameAction::FirePrimary, "Fire primary");
+            setLabel(GameAction::FireSecondary, "Fire secondary");
+            setLabel(GameAction::DropBomb, "Drop bomb");
+            setLabel(GameAction::FireFlare, "Fire flare");
+            setLabel(GameAction::SlideLeft, "Slide left");
+            setLabel(GameAction::SlideRight, "Slide right");
+            setLabel(GameAction::LeftRightAxis, "Slide left/right");
+            setLabel(GameAction::SlideUp, "Slide up");
+            setLabel(GameAction::SlideDown, "Slide down");
+            setLabel(GameAction::UpDownAxis, "Slide up/down");
+            setLabel(GameAction::Forward, "Forward");
+            setLabel(GameAction::Reverse, "Reverse");
+            setLabel(GameAction::ForwardReverseAxis, "Forward/Reverse");
+            setLabel(GameAction::PitchUp, "Pitch up");
+            setLabel(GameAction::PitchDown, "Pitch down");
+            setLabel(GameAction::PitchAxis, "Pitch");
+            setLabel(GameAction::YawLeft, "Yaw left");
+            setLabel(GameAction::YawRight, "Yaw right");
+            setLabel(GameAction::YawAxis, "Yaw");
+            setLabel(GameAction::Afterburner, "Afterburner");
+            setLabel(GameAction::Automap, "Automap");
+            setLabel(GameAction::Converter, "Converter");
+            setLabel(GameAction::CyclePrimary, "Cycle primary");
+            setLabel(GameAction::CycleSecondary, "Cycle secondary");
+            setLabel(GameAction::CycleBomb, "Cycle bomb");
+            setLabel(GameAction::Headlight, "Headlight");
+            setLabel(GameAction::RollLeft, "Roll left");
+            setLabel(GameAction::RollRight, "Roll right");
+            setLabel(GameAction::RollAxis, "Roll");
+            setLabel(GameAction::RearView, "Rear view");
 
-        setLabel(GameAction::FirePrimary, "Fire primary");
-        setLabel(GameAction::FireSecondary, "Fire secondary");
-        setLabel(GameAction::DropBomb, "Drop bomb");
-        setLabel(GameAction::FireFlare, "Fire flare");
-        setLabel(GameAction::SlideLeft, "Slide left");
-        setLabel(GameAction::SlideRight, "Slide right");
-        setLabel(GameAction::SlideLeftRightAxis, "Slide left/right");
-        setLabel(GameAction::SlideUp, "Slide up");
-        setLabel(GameAction::SlideDown, "Slide down");
-        setLabel(GameAction::SlideUpDownAxis, "Slide up/down");
-        setLabel(GameAction::Forward, "Forward");
-        setLabel(GameAction::Reverse, "Reverse");
-        setLabel(GameAction::ForwardReverseAxis, "Forward/Reverse");
-        setLabel(GameAction::PitchUp, "Pitch up");
-        setLabel(GameAction::PitchDown, "Pitch down");
-        setLabel(GameAction::PitchAxis, "Pitch");
-        setLabel(GameAction::YawLeft, "Yaw left");
-        setLabel(GameAction::YawRight, "Yaw right");
-        setLabel(GameAction::YawAxis, "Yaw");
-        setLabel(GameAction::Afterburner, "Afterburner");
-        setLabel(GameAction::Automap, "Automap");
-        setLabel(GameAction::Converter, "Converter");
-        setLabel(GameAction::CyclePrimary, "Cycle primary");
-        setLabel(GameAction::CycleSecondary, "Cycle secondary");
-        setLabel(GameAction::CycleBomb, "Cycle bomb");
-        setLabel(GameAction::Headlight, "Headlight");
-        setLabel(GameAction::RollLeft, "Roll left");
-        setLabel(GameAction::RollRight, "Roll right");
-        setLabel(GameAction::RollAxis, "Roll");
-        setLabel(GameAction::RearView, "Rear view");
+            setLabel(GameAction::Weapon1, "Laser cannon");
+            setLabel(GameAction::Weapon2, "Vulcan/Gauss cannon");
+            setLabel(GameAction::Weapon3, "Spreadfire/Helix cannon");
+            setLabel(GameAction::Weapon4, "Plasma/phoenix cannon");
+            setLabel(GameAction::Weapon5, "fusion/omega cannon");
+            setLabel(GameAction::Weapon6, "concussion/flash missile");
+            setLabel(GameAction::Weapon7, "homing/guided missile");
+            setLabel(GameAction::Weapon8, "proximity bomb/smart mine");
+            setLabel(GameAction::Weapon9, "smart/mercury missile");
+            setLabel(GameAction::Weapon10, "mega/earthshaker missile");
+        }
 
-        setLabel(GameAction::Weapon1, "Laser cannon");
-        setLabel(GameAction::Weapon2, "Vulcan/Gauss cannon");
-        setLabel(GameAction::Weapon3, "Spreadfire/Helix cannon");
-        setLabel(GameAction::Weapon4, "Plasma/phoenix cannon");
-        setLabel(GameAction::Weapon5, "fusion/omega cannon");
-        setLabel(GameAction::Weapon6, "concussion/flash missile");
-        setLabel(GameAction::Weapon7, "homing/guided missile");
-        setLabel(GameAction::Weapon8, "proximity bomb/smart mine");
-        setLabel(GameAction::Weapon9, "smart/mercury missile");
-        setLabel(GameAction::Weapon10, "mega/earthshaker missile");
+        return ActionLabels[(int)action];
+    }
 
-        _bindings.clear();
-        Add({ .Action = GameAction::Forward, .Key = Keys::W });
-        Add({ .Action = GameAction::Reverse, .Key = Keys::S });
-        Add({ .Action = GameAction::SlideLeft, .Key = Keys::A });
-        Add({ .Action = GameAction::SlideRight, .Key = Keys::D });
-        Add({ .Action = GameAction::SlideUp, .Key = Keys::Space });
-        Add({ .Action = GameAction::SlideDown, .Key = Keys::LeftShift });
-        Add({ .Action = GameAction::RollLeft, .Key = Keys::Q });
-        Add({ .Action = GameAction::RollRight, .Key = Keys::E });
+    void ResetKeyboardBindings(InputDeviceBinding& device) {
+        device.bindings = {};
 
-        //Bind({ .Action = GameAction::RollLeft, .Key = Keys::NumPad7 });
-        //Bind({ .Action = GameAction::RollRight, .Key = Keys::NumPad9 });
-        Add({ .Action = GameAction::YawLeft, .Key = Keys::NumPad4 });
-        Add({ .Action = GameAction::YawRight, .Key = Keys::NumPad6 });
-        Add({ .Action = GameAction::PitchUp, .Key = Keys::NumPad5 });
-        Add({ .Action = GameAction::PitchDown, .Key = Keys::NumPad8 });
+        device.Bind({ .action = GameAction::Forward, .id = Keys::W });
+        device.Bind({ .action = GameAction::SlideLeft, .id = Keys::A });
+        device.Bind({ .action = GameAction::Reverse, .id = Keys::S });
+        device.Bind({ .action = GameAction::SlideRight, .id = Keys::D });
+        device.Bind({ .action = GameAction::SlideUp, .id = Keys::Space });
+        device.Bind({ .action = GameAction::SlideDown, .id = Keys::LeftShift });
+        device.Bind({ .action = GameAction::RollLeft, .id = Keys::Q });
+        device.Bind({ .action = GameAction::RollRight, .id = Keys::E });
 
-        Add({ .Action = GameAction::FirePrimary, .Mouse = Mouse::LeftClick });
-        Add({ .Action = GameAction::FireSecondary, .Mouse = Mouse::RightClick });
-        //Bind({ .Action = GameAction::FireFlare, .Mouse = Mouse::X1 });
-        Add({ .Action = GameAction::FireFlare, .Key = Keys::F });
-        Add({ .Action = GameAction::DropBomb, .Mouse = Mouse::MiddleClick });
+        device.Bind({ .action = GameAction::Afterburner, .id = Keys::LeftControl });
 
-        Add({ .Action = GameAction::CyclePrimary, .Mouse = Mouse::WheelUp });
-        Add({ .Action = GameAction::CycleSecondary, .Mouse = Mouse::WheelDown });
-        Add({ .Action = GameAction::CycleBomb, .Key = Keys::X });
-        Add({ .Action = GameAction::Afterburner, .Key = Keys::LeftControl });
+        device.Bind({ .action = GameAction::FireFlare, .id = Keys::F });
+        device.Bind({ .action = GameAction::Automap, .id = Keys::Tab });
+        device.Bind({ .action = GameAction::Pause, .id = Keys::Escape });
+
+        device.Bind({ .action = GameAction::Weapon1, .id = Keys::D1 });
+        device.Bind({ .action = GameAction::Weapon2, .id = Keys::D2 });
+        device.Bind({ .action = GameAction::Weapon3, .id = Keys::D3 });
+        device.Bind({ .action = GameAction::Weapon4, .id = Keys::D4 });
+        device.Bind({ .action = GameAction::Weapon5, .id = Keys::D5 });
+        device.Bind({ .action = GameAction::Weapon6, .id = Keys::D6 });
+        device.Bind({ .action = GameAction::Weapon7, .id = Keys::D7 });
+        device.Bind({ .action = GameAction::Weapon8, .id = Keys::D8 });
+        device.Bind({ .action = GameAction::Weapon9, .id = Keys::D9 });
+        device.Bind({ .action = GameAction::Weapon10, .id = Keys::D0 });
+    }
+
+    void ResetMouseBindings(InputDeviceBinding& device) {
+        device.bindings = {};
+
+        device.Bind({ .action = GameAction::FirePrimary, .id = (int)Input::MouseButtons::LeftClick });
+        device.Bind({ .action = GameAction::FireSecondary, .id = (int)Input::MouseButtons::RightClick });
+
+        device.Bind({ .action = GameAction::DropBomb, .id = (int)Input::MouseButtons::MiddleClick });
+
+        device.Bind({ .action = GameAction::YawAxis, .id = (int)Input::MouseAxis::MouseX, .type = BindType::Axis });
+        device.Bind({ .action = GameAction::PitchAxis, .id = (int)Input::MouseAxis::MouseY, .type = BindType::Axis, .invert = true });
+    }
+
+    void ResetGamepadBindings(InputDeviceBinding& device) {
+        device.bindings = {};
+
+        device.Bind({ .action = GameAction::ForwardReverseAxis, .id = SDL_GAMEPAD_AXIS_LEFTY, .type = BindType::Axis });
+        device.Bind({ .action = GameAction::LeftRightAxis, .id = SDL_GAMEPAD_AXIS_LEFTX, .type = BindType::Axis });
+        device.Bind({ .action = GameAction::PitchAxis, .id = SDL_GAMEPAD_AXIS_RIGHTY, .type = BindType::Axis });
+        device.Bind({ .action = GameAction::YawAxis, .id = SDL_GAMEPAD_AXIS_RIGHTX, .type = BindType::Axis });
+
+        device.Bind({ .action = GameAction::Automap, .id = SDL_GAMEPAD_BUTTON_BACK, .type = BindType::Button });
+        device.Bind({ .action = GameAction::Pause, .id = SDL_GAMEPAD_BUTTON_START, .type = BindType::Button });
+
+        device.Bind({ .action = GameAction::FirePrimary, .id = SDL_GAMEPAD_BUTTON_LEFT_SHOULDER, .type = BindType::Button });
+        device.Bind({ .action = GameAction::FireSecondary, .id = SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER, .type = BindType::Button });
+
+        device.Bind({ .action = GameAction::RollLeft, .id = SDL_GAMEPAD_AXIS_LEFT_TRIGGER, .type = BindType::AxisPlus, .invert = true, .innerDeadzone = 2 });
+        device.Bind({ .action = GameAction::RollRight, .id = SDL_GAMEPAD_AXIS_RIGHT_TRIGGER, .type = BindType::AxisPlus, .innerDeadzone = 2 });
+
+        // Sprint is usually on left stick
+        device.Bind({ .action = GameAction::Afterburner, .id = SDL_GAMEPAD_BUTTON_LEFT_STICK, .type = BindType::Button });
+        device.Bind({ .action = GameAction::Converter, .id = SDL_GAMEPAD_BUTTON_RIGHT_STICK, .type = BindType::Button });
+
+        //device.Bind({ .action = GameAction::FireFlare, .id = SDL_GAMEPAD_AXIS_LEFT_TRIGGER, .type = BindType::AxisButtonPlus }, 1);
+
+        // Face buttons
+        device.Bind({ .action = GameAction::FireFlare, .id = SDL_GAMEPAD_BUTTON_EAST, .type = BindType::Button });
+        device.Bind({ .action = GameAction::DropBomb, .id = SDL_GAMEPAD_BUTTON_NORTH, .type = BindType::Button });
+
+        // Jump is usually on A, thumb can easily toggle between west/south buttons
+        device.Bind({ .action = GameAction::SlideUp, .id = SDL_GAMEPAD_BUTTON_WEST, .type = BindType::Button });
+        device.Bind({ .action = GameAction::SlideDown, .id = SDL_GAMEPAD_BUTTON_SOUTH, .type = BindType::Button });
+
+        // Hold up/down for 1s to select best weapon (top of priority)
+        // Dpad bindings
+        device.Bind({ .action = GameAction::CyclePrimary, .id = SDL_GAMEPAD_BUTTON_DPAD_UP, .type = BindType::Button });
+        device.Bind({ .action = GameAction::CycleSecondary, .id = SDL_GAMEPAD_BUTTON_DPAD_DOWN, .type = BindType::Button });
+        device.Bind({ .action = GameAction::CycleBomb, .id = SDL_GAMEPAD_BUTTON_DPAD_LEFT, .type = BindType::Button });
+        device.Bind({ .action = GameAction::Headlight, .id = SDL_GAMEPAD_BUTTON_DPAD_RIGHT, .type = BindType::Button });
+
+        // Ran out of bindings for xbox, but rear view is rarely used anyway
+        device.Bind({ .action = GameAction::RearView, .id = SDL_GAMEPAD_BUTTON_TOUCHPAD, .type = BindType::Button });
     }
 }

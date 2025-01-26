@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Editor/Bindings.h"
-#include "Game.Bindings.h"
 #include "Settings.h"
 #include "WindowBase.h"
 
@@ -27,14 +26,6 @@ namespace Inferno::Editor {
 
         List<BindingEntry> _bindingEntries;
 
-        struct GameBindingEntry {
-            GameAction Action{};
-            string Label;
-            GameBinding Primary, Secondary;
-        };
-
-        //List<GameBindingEntry> _gameBindings;
-
     public:
         SettingsDialog() : ModalWindowBase("Settings") {
             Width = 800 * Shell::DpiScale;
@@ -45,8 +36,6 @@ namespace Inferno::Editor {
         void MainOptionsTab();
 
         void KeyBindingsTab();
-
-        static void GameBindingsTab();
 
         void DataPathsTab();
 

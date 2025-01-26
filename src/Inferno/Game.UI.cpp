@@ -201,12 +201,6 @@ namespace Inferno::UI {
 
     List<Ptr<ScreenBase>> Screens;
 
-    ScreenBase GetFullScreen() {
-        ScreenBase fullScreen{};
-        fullScreen.ScreenSize = Render::UICanvas->GetSize() / Render::UICanvas->GetScale();
-        return fullScreen;
-    }
-
     // Returns a pointer to the screen
     ScreenBase* ShowScreen(Ptr<ScreenBase> screen) {
         if (screen->Layer == -1) screen->Layer = (int)Screens.size() * 2;
@@ -220,7 +214,6 @@ namespace Inferno::UI {
             screen->SelectFirst();
 
         Input::ResetState(); // Reset input to prevent clicking a control as soon as the screen appears
-        Game::Bindings.ResetState();
         screen->OnShow();
         screen->OnUpdate();
         Screens.push_back(std::move(screen));
@@ -413,13 +406,13 @@ namespace Inferno::UI {
             if (Input::IsKeyPressed(Keys::Right)) OnDownArrow();
         }
 
-        bool HandleMenuAction(Input::MenuAction action) override {
-            if (action == Input::MenuAction::Left) {
+        bool HandleMenuAction(Input::MenuActionState action) override {
+            if (action == MenuAction::Left) {
                 OnUpArrow();
                 return true;
             }
 
-            if (action == Input::MenuAction::Right) {
+            if (action == MenuAction::Right) {
                 OnDownArrow();
                 return true;
             }
@@ -799,11 +792,8 @@ namespace Inferno::UI {
                 if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick))
                     screen->OnMouseClick(Input::MousePosition);
 
-                if (!inputCaptured) {
-                    auto action = Input::GetMenuAction();
-
-                    if (action != Input::MenuAction::None)
-                        screen->HandleMenuAction(action);
+                if (!inputCaptured && Input::MenuActions.HasAction()) {
+                    screen->HandleMenuAction(Input::MenuActions);
                 }
             }
 

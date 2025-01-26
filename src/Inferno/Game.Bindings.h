@@ -4,16 +4,31 @@
 #include "Types.h"
 #include "Utility.h"
 
+/*
+ * Input binding system
+ *
+ * Input is combined all enabled devices and translated them into
+ * game commands. The exception to this is linear axes from joysticks and gamepads.
+ *
+ * Each input device stores raw state for the buttons and axes on it.
+ * The input system updates these each tick.
+ *
+ * Each device stores two bindings for each action. Certain actions can only have an axis assigned to them.
+ * An axis can be assigned as a digital input to any action.
+ *
+ * Gamepad triggers are treated as a half-axis and can only be bound to specific actions.
+ */
+
 namespace Inferno {
     // Bindable in-game actions
-    enum class GameAction {
+    enum class GameAction : uint16 {
         None,
         SlideLeft,
         SlideRight,
-        SlideLeftRightAxis,
+        LeftRightAxis,
         SlideUp,
         SlideDown,
-        SlideUpDownAxis,
+        UpDownAxis,
         Forward,
         Reverse,
         ForwardReverseAxis,
@@ -27,6 +42,7 @@ namespace Inferno {
         YawRight,
         YawAxis,
         Afterburner,
+        Throttle,
 
         FirePrimary,
         FireSecondary,
@@ -34,7 +50,7 @@ namespace Inferno {
 
         FireOnceEventIndex, // Actions past this index are only fired on button down
 
-        FireFlare,
+        FireFlare = FireOnceEventIndex,
         DropBomb,
 
         CyclePrimary,
@@ -56,138 +72,181 @@ namespace Inferno {
         Automap,
         Headlight,
         Converter,
+        Pause,
         Count
     };
-
-    inline bool IsAxisAction(GameAction action) {
-        switch (action) {
-            case GameAction::SlideLeftRightAxis:
-            case GameAction::SlideUpDownAxis:
-            case GameAction::ForwardReverseAxis:
-            case GameAction::PitchAxis:
-            case GameAction::YawAxis:
-            case GameAction::RollAxis:
-                return true;
-            default:
-                return false;
-        }
-    }
 
     struct GameCommand {
         GameAction Id;
         std::function<void()> Action;
     };
 
-    struct GameBinding {
-        GameAction Action = GameAction::None;
-        Input::Keys Key = Input::Keys::None;
-        Input::MouseButtons Mouse = Input::MouseButtons::None;
-        Input::InputAxis Axis = Input::InputAxis::None;
-        Input::MouseAxis MouseAxis = Input::MouseAxis::None;
-        // Gamepad / Joystick?
-        // Controller ID
-        // Controller Button / Axis
+    string_view GetActionLabel(GameAction action);
 
-        string GetShortcutLabel() const;
-
-        void Clear() {
-            Key = {};
-            Mouse = {};
-        }
-
-        bool HasValue() const {
-            return Action != GameAction::None && (Key != Input::Keys::None || Mouse != Input::MouseButtons::None || Axis != Input::InputAxis::None);
-        }
-
-        //bool operator==(const GameBinding& rhs) const {
-        //    return Key == rhs.Key || Mouse == rhs.Mouse;
-        //}
+    enum class BindType {
+        None,
+        Button, // A key or button with a binary state
+        Axis, // Full range axis
+        AxisPlus, // Half range axes like triggers, treat as 0 to 1
+        AxisMinus, // Half range axes like triggers, treat as 0 to -1
+        AxisButtonPlus, // Axis treated as a binary button
+        AxisButtonMinus, // Axis treated as a binary button
+        Hat // an 8-way hat that can only be in a single state
     };
 
+    // Returns the type of binding this action is compatible with
+    inline BindType GetActionBindType(GameAction action) {
+        switch (action) {
+            case GameAction::LeftRightAxis:
+            case GameAction::UpDownAxis:
+            case GameAction::ForwardReverseAxis:
+            case GameAction::PitchAxis:
+            case GameAction::YawAxis:
+            case GameAction::RollAxis:
+            case GameAction::Throttle:
+                return BindType::Axis;
+            case GameAction::RollRight:
+            case GameAction::PitchUp:
+            case GameAction::YawRight:
+            case GameAction::SlideUp:
+            case GameAction::SlideRight:
+            case GameAction::SlideLeft:
+            case GameAction::Forward:
+                return BindType::AxisPlus;
+            case GameAction::RollLeft:
+            case GameAction::PitchDown:
+            case GameAction::YawLeft:
+            case GameAction::SlideDown:
+            case GameAction::Reverse:
+                return BindType::AxisMinus;
+            default:
+                return BindType::Button;
+        }
+    }
+
+    struct GameBinding {
+        GameAction action = GameAction::None;
+        uint8 id = 0; // Axis, Hat, Button, key id
+        BindType type = BindType::None;
+        bool invert = false;
+        uint8 innerDeadzone = 16;
+        uint8 outerDeadzone = 255;
+
+        float GetInvertSign() const { return invert ? -1.0f : 1.0f; }
+
+        bool operator==(const GameBinding& other) const {
+            return type == other.type && action == other.action;
+        }
+
+        static GameBinding EMPTY;
+    };
+
+
+    constexpr uint BIND_SLOTS = 2;
+
+    // Stores the bindings for an input device
+    struct InputDeviceBinding {
+        string guid; // identifies the input device for controllers and joysticks
+        Input::InputType type = Input::InputType::Unknown;
+
+        std::array<std::array<GameBinding, BIND_SLOTS>, (uint)GameAction::Count> bindings = { {} };
+        //const GameBinding& Get(GameAction action) const { return bindings[(int)action]; }
+
+        // Returns true if neither binding is set
+        bool IsUnset(GameAction action) const {
+            if (action >= GameAction::Count) return false;
+            return bindings[(int)action][0].type == BindType::None &&
+                   bindings[(int)action][1].type == BindType::None;
+        }
+
+        // Clear existing bindings using this binding
+        void UnbindOthers(const GameBinding& binding) {
+            for (auto& group : bindings) {
+                for (auto& existing : group) {
+                    if ((existing.type == BindType::Button && binding.type != BindType::Button) ||
+                        (binding.type == BindType::Button && existing.type != BindType::Button))
+                        continue; // skip mismatched types
+
+                    // todo: check for already existing axis bindings
+                    if (existing.id == binding.id &&
+                        //existing.type == binding.type &&
+                        existing.action != binding.action)
+                        existing = {};
+                }
+            }
+        }
+
+        void Bind(GameBinding binding, uint slot = 0) {
+            if (binding.action >= GameAction::Count) return;
+
+            if (binding.type == BindType::None)
+                binding.type = BindType::Button;
+
+            UnbindOthers(binding);
+            auto index = std::clamp(slot, 0u, (uint)GameAction::Count);
+            bindings[(uint)binding.action][index] = binding;
+        }
+
+        // Returns bindings for an action
+        std::span<GameBinding> GetBinding(GameAction action) {
+            if (action >= GameAction::Count) return {};
+            return bindings[(uint)action];
+        }
+
+        GameBinding* GetBinding(GameAction action, int slot) {
+            if (action >= GameAction::Count) return nullptr;
+            return &bindings[(uint)action][slot];
+        }
+
+        // Returns the binding label for an action
+        string GetBindingLabel(GameAction action, int slot);
+    };
 
     class GameBindings {
-        List<GameBinding> _bindings;
-        Array<bool, (uint)GameAction::Count> _state = {};
-        Array<string, (uint)GameAction::Count> _labels = {};
+        List<InputDeviceBinding> _devices;
+        InputDeviceBinding _keyboard{};
+        InputDeviceBinding _mouse{};
 
     public:
-        GameBindings() { RestoreDefaults(); }
+        GameBindings() {
+            _mouse.type = Input::InputType::Mouse;
+            _keyboard.type = Input::InputType::Keyboard;
+        }
 
-        void Clear() { _bindings.clear(); }
+        InputDeviceBinding& GetKeyboard() { return _keyboard; }
+        InputDeviceBinding& GetMouse() { return _mouse; }
 
-        // Adds a new binding and unbinds any existing actions using the same shortcut
-        void Add(const GameBinding& binding);
-        span<GameBinding> GetBindings() { return _bindings; }
-        const string& GetLabel(GameAction action) const;
-
-        // Unbinds any existing usages of this key or mouse button
-        void UnbindExisting(const GameBinding& binding) {
-            using namespace Input;
-
-            for (auto& b : _bindings) {
-                if (&b == &binding) continue;
-
-                if (binding.Key != Keys::None && b.Key == binding.Key)
-                    b.Key = Keys::None;
-
-                if (binding.Mouse != MouseButtons::None && b.Mouse == binding.Mouse)
-                    b.Mouse = MouseButtons::None;
-
-                if (binding.MouseAxis != MouseAxis::None && b.MouseAxis == binding.MouseAxis)
-                    b.MouseAxis = MouseAxis::None;
-
-                if (binding.Axis != InputAxis::None && b.Axis == binding.Axis)
-                    b.Axis = InputAxis::None;
+        InputDeviceBinding* GetDevice(string_view guid) {
+            for (auto& device : _devices) {
+                if (device.guid == guid)
+                    return &device;
             }
+
+            return nullptr;
         }
 
-        GameBinding* TryFind(GameAction action, Input::InputType type) {
-            return Seq::find(_bindings, [&](const GameBinding& b) {
-                if(b.Action != action) return false;
+        span<InputDeviceBinding> GetDevices() { return _devices; }
 
-                using enum Input::InputType;
+        InputDeviceBinding& AddDevice(string_view guid) {
+            if (auto device = GetDevice(guid))
+                return *device;
 
-                switch(type) {
-                    case Keyboard:
-                        return b.Key != Input::Keys::None;
-                    case Mouse:
-                        return b.Mouse != Input::MouseButtons::None || b.MouseAxis != Input::MouseAxis::None;
-                    case Gamepad:
-                        return b.Axis != Input::InputAxis::None; // todo: gamepad buttons
-                    default:
-                        return b.HasValue();
-                }
-            });
+            return _devices.emplace_back(string(guid));
         }
 
-        void Update() {
-            ResetState();
+        bool Pressed(GameAction action);
 
-            // If any bindings are down for the action, set it as true
-            for (auto& binding : _bindings) {
-                if (binding.Action > GameAction::FireOnceEventIndex) {
-                    if (Input::IsKeyPressed(binding.Key) || Input::IsMouseButtonPressed(binding.Mouse))
-                        _state[(uint)binding.Action] = true;
-                }
-                else {
-                    if (Input::IsKeyDown(binding.Key) || Input::IsMouseButtonDown(binding.Mouse))
-                        _state[(uint)binding.Action] = true;
-                }
-            }
-        }
+        bool Held(GameAction action);
 
-        bool Pressed(GameAction action) const {
-            return _state[(uint)action];
-        }
+        bool Released(GameAction action);
 
-        void RestoreDefaults();
-        void ResetState() { ranges::fill(_state, false); }
-
-        static constexpr bool IsReservedKey(Input::Keys key) {
-            using Input::Keys;
-            return key == Keys::Escape || key == Keys::LeftWindows || key == Keys::RightWindows;
-        }
+        // Returns the axis state summed across all controllers, scaled by sensitivity and deadzone
+        float LinearAxis(GameAction action) const;
     };
+
+    void ResetGamepadBindings(InputDeviceBinding& device);
+    void ResetMouseBindings(InputDeviceBinding& device);
+    void ResetKeyboardBindings(InputDeviceBinding& device);
 
     namespace Game {
         inline GameBindings Bindings;

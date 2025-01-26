@@ -24,7 +24,7 @@ public:
     }
 
     void Stop() {
-        assert(_alive);
+        if (!_alive) return;
         _alive = false;
         _workAvailable.notify_all();
         if (_worker.joinable())

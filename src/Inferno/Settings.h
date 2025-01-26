@@ -192,7 +192,7 @@ namespace Inferno {
         bool InvertY = false;
         float MouseSensitivity = 1 / 64.0f;
         float MouseSensitivityX = 1 / 64.0f;
-        bool HalvePitchSpeed = true; // Halves the maximum pitch speed
+        bool HalvePitchSpeed = true; // Halves the maximum pitch speed. This is the original game behavior.
         bool ScreenshotMode = false; // game setting?
         float MasterVolume = 1.0f;
         float EffectVolume = 0.5f;
@@ -212,7 +212,7 @@ namespace Inferno {
         bool StickyRearview = false;
         bool SlowmoFusion = true;
         bool EnableJoystick = false;
-        bool EnableGamepads = true;
+        bool EnableGamepad = true;
         bool EnableMouse = true;
         bool PreferHighResFonts = true;
         uint2 WindowSize;

@@ -164,7 +164,7 @@ namespace Inferno {
 
 
     void ReadMaterialInfo(ryml::NodeRef node, span<MaterialInfo> materials) {
-        if (!node.valid() || node.is_seed()) return;
+        if (!node.readable()) return;
 
         auto texId = TexID::None;
 
@@ -252,7 +252,7 @@ namespace Inferno {
 
             if (root.is_map()) {
                 auto materialNode = root["Materials"];
-                if (materialNode.valid() && !materialNode.is_seed()) {
+                if (materialNode.readable()) {
                     for (const auto& node : materialNode.children()) {
                         ReadMaterialInfo(node, materials);
                         count++;

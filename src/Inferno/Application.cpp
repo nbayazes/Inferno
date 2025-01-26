@@ -116,6 +116,8 @@ void Application::Tick() const {
             return; // spinwait
     }
 
+    UpdateFullscreen();
+
     Inferno::Clock.Update();
 
     auto dt = Inferno::Clock.GetFrameTimeSeconds();

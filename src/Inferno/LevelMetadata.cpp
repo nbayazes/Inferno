@@ -102,7 +102,7 @@ namespace Inferno {
     }
 
     void ReadSideInfo(ryml::NodeRef node, Level& level) {
-        if (!node.valid() || node.is_seed()) return;
+        if (!node.readable()) return;
 
         for (const auto& child : node.children()) {
             Tag tag;
@@ -164,7 +164,7 @@ namespace Inferno {
     }
 
     void ReadSegmentInfo(ryml::NodeRef node, Level& level) {
-        if (!node.valid() || node.is_seed()) return;
+        if (!node.readable()) return;
 
         for (const auto& child : node.children()) {
             int id;
@@ -192,7 +192,7 @@ namespace Inferno {
     }
 
     void ReadWallInfo(ryml::NodeRef node, Level& level) {
-        if (!node.valid() || node.is_seed()) return;
+        if (!node.readable()) return;
 
         for (const auto& child : node.children()) {
             auto id = WallID::None;
@@ -295,7 +295,7 @@ namespace Inferno {
     }
 
     void ReadLevelLighting(ryml::NodeRef node, Level& level) {
-        if (!node.valid() || node.is_seed()) return;
+        if (!node.readable()) return;
 
         int segid = 0;
         for (const auto& child : node.children()) {

@@ -1,6 +1,5 @@
 #pragma once
 #include "Game.UI.Controls.h"
-#include "Game.Bindings.h"
 
 namespace Inferno::UI {
     struct ScoreInfo {
@@ -213,9 +212,9 @@ namespace Inferno::UI {
             }
         }
 
-        bool HandleMenuAction(Input::MenuAction action) override {
+        bool HandleMenuAction(Input::MenuActionState action) override {
             //if (Input::IsKeyPressed(Input::Keys::Escape) || Game::Bindings.Pressed(GameAction::FirePrimary)) {
-            if (action == Input::MenuAction::Confirm || action == Input::MenuAction::Cancel) {
+            if (action == MenuAction::Confirm || action == MenuAction::Cancel) {
                 Game::LoadNextLevel();
                 return true;
             }

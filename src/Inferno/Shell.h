@@ -22,5 +22,7 @@ namespace Inferno {
         inline static bool HasFocus = true;
         static void UpdateWindowTitle(string_view message = {});
     };
+
+    void UpdateFullscreen();
 }
 

@@ -36,20 +36,18 @@ namespace Inferno {
     struct Sound3D {
         Sound3D() = default;
         Sound3D(SoundResource resource) : Resource(std::move(resource)) {}
-        //Sound3D(SoundResource resource, ObjRef source) : Resource(std::move(resource)), Source(source) {}
-        //Sound3D(SoundResource resource, const Vector3& pos, SegID seg) : Resource(std::move(resource)), Position(pos), Segment(seg) {}
 
         SoundResource Resource;
-        float Volume = 1; // Linear volume
+        float Volume = 1; // Linear volume, can be over 1
         float Pitch = 0; // -1 to 1;
-        float Delay = 0; // Delay before playing
+        float Delay = 0; // Delay before playing in seconds
         bool Occlusion = true; // Occludes level geometry when determining volume
         float Radius = DEFAULT_SOUND_RADIUS; // Determines max range and falloff
         Vector3 AttachOffset; // The offset from the Source when attached
         bool Merge = true; // Merge with other sounds played in a similar timeframe
         bool Looped = false;
         uint32 LoopCount = 0;
-        uint32 LoopStart = 0;
-        uint32 LoopEnd = 0;
+        uint32 LoopStart = 0; // Offset in samples
+        uint32 LoopEnd = 0; // Offset in samples
     };
 }

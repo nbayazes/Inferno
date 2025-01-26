@@ -14,10 +14,6 @@ using namespace DirectX::SimpleMath;
 
 namespace Inferno::Input {
     namespace {
-        // Gamepads should store their inputs between each update.
-        // Holding a stick steady should continue that movement
-        Vector2 GamepadLeftStick, GamepadRightStick;
-
         Vector2 MousePrev, DragEnd;
         constexpr float DRAG_WINDOW = 3.0f;
         Vector2 WindowCenter;
@@ -49,11 +45,11 @@ namespace Inferno::Input {
 
             // Call this before handling a frame's input events
             void NextFrame() {
-                if (!Controller) {
-                    pressed.reset();
-                    released.reset();
-                    repeat.reset();
-                }
+                //if (!Controller) {
+                pressed.reset();
+                released.reset();
+                repeat.reset();
+                //}
 
                 previous = current;
                 MouseRecentlyMoved = false;
@@ -78,16 +74,16 @@ namespace Inferno::Input {
                 released[key] = true;
                 current[key] = false;
                 repeat[key] = false;
+                pressed[key] = false;
 
-                if (Controller) {
-                    pressed[key] = false;
-                }
+                //if (Controller) {
+                //}
             }
         };
 
         ButtonState<256> _keyboard;
         ButtonState<8> _mouseButtons;
-        ButtonState<SDL_GAMEPAD_BUTTON_COUNT> _controller = { .Controller = true };
+        //ButtonState<SDL_GAMEPAD_BUTTON_COUNT> _controller = { .Controller = true };
 
         struct InputEvent {
             EventType type;
@@ -138,16 +134,16 @@ namespace Inferno::Input {
                         WheelDelta += static_cast<int>(event.flags);
 
                         if (WheelDelta > 0)
-                            _mouseButtons.Press((uint64)MouseButtons::WheelUp);
+                            _mouseButtons.Press((uint8)MouseButtons::WheelUp);
                         else if (WheelDelta < 0)
-                            _mouseButtons.Press((uint64)MouseButtons::WheelDown);
+                            _mouseButtons.Press((uint8)MouseButtons::WheelDown);
 
                         break;
 
                     case EventType::Reset:
                         _keyboard.Reset();
                         _mouseButtons.Reset();
-                        _controller.Reset();
+                    //_controller.Reset();
                         break;
 
                     case EventType::MouseMoved:
@@ -160,11 +156,390 @@ namespace Inferno::Input {
         }
     }
 
+    Vector2 CircularDampen(const Vector2& input, float innerDeadzone, float outerDeadzone) {
+        float magnitude = input.Length();
+        if (magnitude <= 0.0001f) return Vector2::Zero;
+        float scale = (magnitude - innerDeadzone) / (outerDeadzone - innerDeadzone);
+        return input * Saturate(scale) / magnitude;
+    }
+
+    float LinearDampen(float value, float innerDeadzone, float outerDeadzone) {
+        if (value <= 0.0001f) return 0;
+        float scale = (value - innerDeadzone) / (outerDeadzone - innerDeadzone);
+        return Saturate(scale);
+    }
+
+    // Maps an axis to -1 to 1
+    constexpr float NormalizeAxis(int16 value) {
+        return value < 0 ? -((float)value / SDL_JOYSTICK_AXIS_MIN) : (float)value / SDL_JOYSTICK_AXIS_MAX;
+    }
+
+    string GuidToString(SDL_GUID guid) {
+        char buffer[33];
+        SDL_GUIDToString(guid, buffer, (int)std::size(buffer));
+        return { buffer };
+    }
+
+    bool GuidIsZero(string_view guid) {
+        return ranges::all_of(guid, [](char c) { return c == '0'; });
+    }
+
+    class JoystickManager {
+        //std::list<Joystick> _gamepads;
+        std::list<Joystick> _devices;
+
+    public:
+        Joystick* Get(string_view guid) {
+            for (auto& joystick : _devices) {
+                if (joystick.guid == guid) return &joystick;
+            }
+
+            //for (auto& joystick : _gamepads) {
+            //    if (joystick.guid == guid) return &joystick;
+            //}
+
+            return nullptr;
+        }
+
+        Joystick* Get(SDL_JoystickID id) {
+            for (auto& joystick : _devices) {
+                if (joystick.id == id) return &joystick;
+            }
+
+            return nullptr;
+        }
+
+
+        void Add(SDL_JoystickID id) {
+            if (SDL_IsGamepad(id))
+                AddGamepad(id);
+            else
+                AddJoystick(id);
+        }
+
+        void AddGamepad(SDL_JoystickID id) {
+            auto gamepad = SDL_OpenGamepad(id);
+            bool connected = SDL_GamepadConnected(gamepad);
+
+            if (!gamepad || !connected) {
+                SPDLOG_WARN("Unable to open gamepad {}", id);
+                return;
+            }
+
+            auto guid = GuidToString(SDL_GetGamepadGUIDForID(id));
+            auto name = SDL_GetGamepadNameForID(id);
+
+            if (GuidIsZero(guid) || !name) {
+                SPDLOG_WARN("Ignoring gamepad {} with no name (guid: {})", id, guid);
+                return;
+            }
+
+            auto device = Get(guid); // check if gamepad was already connected
+
+            if (!device) {
+                SPDLOG_INFO("Add gamepad {}: {} - {}", id, name, guid);
+                device = &_devices.emplace_back(); // create a new device
+            }
+            else {
+                SPDLOG_INFO("Using existing gamepad {}: {} - {}", id, name, guid);
+            }
+
+            device->name = name;
+            device->guid = guid;
+            device->id = id;
+            device->type = SDL_GetGamepadType(gamepad);
+
+            static_assert(std::tuple_size_v<decltype(device->axes)> >= SDL_GAMEPAD_AXIS_COUNT);
+            //static_assert(std::tuple_size_v<decltype(device->rawAxes)> >= SDL_GAMEPAD_AXIS_COUNT);
+
+            //device->rawAxes.resize(SDL_GAMEPAD_AXIS_COUNT);
+            //device->axes.resize(SDL_GAMEPAD_AXIS_COUNT);
+            //device->axisSensitivity.resize(SDL_GAMEPAD_AXIS_COUNT);
+            //ranges::fill(device->axisSensitivity, 1.0f);
+
+            if (SDL_SetGamepadSensorEnabled(gamepad, SDL_SENSOR_ACCEL, true))
+                SPDLOG_INFO("Enabled Accel");
+            if (SDL_SetGamepadSensorEnabled(gamepad, SDL_SENSOR_GYRO, true))
+                SPDLOG_INFO("Enabled Gyro");
+        }
+
+        void AddJoystick(SDL_JoystickID id) {
+            auto joystick = SDL_OpenJoystick(id);
+            auto guid = GuidToString(SDL_GetJoystickGUID(joystick));
+            auto name = SDL_GetJoystickNameForID(id);
+            auto connected = SDL_JoystickConnected(joystick);
+
+            if (!joystick || !connected) {
+                SPDLOG_WARN("Unable to open joystick {}", id);
+                return;
+            }
+
+            if (GuidIsZero(guid) || !name) {
+                SPDLOG_WARN("Ignoring joystick {} with no name (guid: {})", id, guid);
+                return;
+            }
+
+            auto device = Get(guid); // check if gamepad was already connected
+            auto numButtons = SDL_GetNumJoystickButtons(joystick);
+            auto numAxes = SDL_GetNumJoystickAxes(joystick);
+            auto numHats = SDL_GetNumJoystickHats(joystick);
+
+            if (!device) {
+                SPDLOG_INFO("Add joystick {}: {} - {}\nButtons: {} Axes: {} Hats: {}", id, name, guid, numButtons, numAxes, numHats);
+                device = &_devices.emplace_back(); // create a new device
+            }
+            else {
+                SPDLOG_INFO("Using existing joystick {}: {} - {}", id, name, guid);
+            }
+
+            // todo: hats
+
+            device->name = name;
+            device->guid = guid;
+            device->id = id;
+            device->numAxes = numAxes;
+            device->numHats = numHats;
+            device->numButtons = numButtons;
+        }
+
+        void Remove(SDL_JoystickID id) {
+            if (SDL_IsGamepad(id)) {
+                SPDLOG_INFO("Remove gamepad {}", id);
+                auto gamepad = SDL_GetGamepadFromID(id);
+                SDL_CloseGamepad(gamepad);
+            }
+            else {
+                SPDLOG_INFO("Remove joystick {}", id);
+                auto joystick = SDL_GetJoystickFromID(id);
+                SDL_CloseJoystick(joystick);
+            }
+
+            _devices.remove_if([id](auto g) { return g.id == id; });
+        }
+
+        List<Joystick> GetJoysticks() {
+            return { _devices.begin(), _devices.end() };
+        }
+
+        void Update() {
+            for (auto& device : _devices) {
+                device.Update();
+            }
+        }
+
+        void ResetState() {
+            for (auto& device : _devices) {
+                device.ResetState();
+            }
+        }
+    };
+
+    JoystickManager Joysticks;
+
+    List<Joystick> GetJoysticks() {
+        return Joysticks.GetJoysticks();
+    }
+
+    Joystick* GetJoystick(string_view guid, bool enabled) {
+        auto device = Joysticks.Get(guid);
+
+        // Filter disabled devices
+        if (enabled && device) {
+            if (device->type == SDL_GAMEPAD_TYPE_UNKNOWN && !Settings::Inferno.EnableJoystick) return nullptr;
+            if (device->type != SDL_GAMEPAD_TYPE_UNKNOWN && !Settings::Inferno.EnableGamepad) return nullptr;
+        }
+
+        return device;
+    }
+
+    void PollSdlEvents() {
+        SDL_Event event;
+        //Pitch = Yaw = Roll = 0;
+        //Input::Thrust = Vector3::Zero;
+
+        while (SDL_PollEvent(&event)) {
+            switch (event.type) {
+                case SDL_EVENT_JOYSTICK_AXIS_MOTION:
+                {
+                    if (SDL_IsGamepad(event.jaxis.which))
+                        break; // Gamepads also fire a joystick event, ignore it
+
+                    if (auto joystick = Joysticks.Get(event.jaxis.which)) {
+                        if (Seq::inRange(joystick->axes, event.jaxis.axis))
+                            joystick->axes[event.jaxis.axis] = NormalizeAxis(event.jaxis.value);
+                    }
+
+                    break;
+                }
+
+                case SDL_EVENT_JOYSTICK_BUTTON_DOWN:
+                {
+                    if (SDL_IsGamepad(event.jbutton.which))
+                        break; // Gamepads also fire a joystick event, ignore it
+
+                    if (auto joystick = Joysticks.Get(event.jbutton.which)) {
+                        joystick->Press(event.jbutton.button);
+                    }
+
+                    //SPDLOG_INFO("Joystick button down {}", event.jbutton.button);
+                    break;
+                }
+
+                case SDL_EVENT_JOYSTICK_BUTTON_UP:
+                {
+                    if (SDL_IsGamepad(event.jbutton.which))
+                        break; // Gamepads also fire a joystick event, ignore it
+
+                    if (auto joystick = Joysticks.Get(event.jbutton.which)) {
+                        joystick->Release(event.jbutton.button);
+                    }
+
+                    //SPDLOG_INFO("Joystick button up {}", event.jbutton.button);
+                    break;
+                }
+
+                case SDL_EVENT_JOYSTICK_HAT_MOTION:
+                {
+                    if (auto joystick = Joysticks.Get(event.jhat.which)) {
+                        joystick->hat = event.jhat.value;
+                    }
+
+                    break;
+                }
+
+                case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
+                {
+                    auto buttonName = SDL_GetGamepadStringForButton((SDL_GamepadButton)event.gbutton.button);
+                    SPDLOG_INFO("Button down {}:{}", event.gbutton.button, buttonName);
+
+                    if (auto joystick = Joysticks.Get(event.gbutton.which)) {
+                        joystick->Press(event.gbutton.button);
+                    }
+
+                    break;
+                }
+
+                case SDL_EVENT_GAMEPAD_BUTTON_UP:
+                {
+                    if (auto joystick = Joysticks.Get(event.gbutton.which)) {
+                        joystick->Release(event.gbutton.button);
+                    }
+
+                    break;
+                }
+
+                case SDL_EVENT_GAMEPAD_SENSOR_UPDATE:
+                {
+                    if (auto joystick = Joysticks.Get(event.gsensor.which)) {
+                        switch (event.gsensor.sensor) {
+                            case SDL_SENSOR_GYRO:
+                                static_assert(std::size(event.gsensor.data) == std::tuple_size_v<decltype(joystick->gyro)>);
+                                ranges::copy(event.gsensor.data, joystick->gyro.data());
+                                break;
+                            case SDL_SENSOR_ACCEL:
+                                static_assert(std::size(event.gsensor.data) == std::tuple_size_v<decltype(joystick->accel)>);
+                                ranges::copy(event.gsensor.data, joystick->accel.data());
+                                break;
+                        }
+                    }
+
+                    //float gyro[3], accel[3];
+                    //if (SDL_GetGamepadSensorData(gamepad, SDL_SENSOR_GYRO, gyro, std::size(gyro))) {
+                    //    //SPDLOG_INFO("Gyro: {}, {}, {}", gyro[0], gyro[1], gyro[1]);
+                    //    Pitch += gyro[0] * .75f;
+                    //    Yaw += -gyro[1] * 1;
+                    //    Roll += -gyro[2] * .125f;
+                    //}
+                    break;
+                }
+
+                case SDL_EVENT_GAMEPAD_AXIS_MOTION:
+                {
+                    if (auto joystick = Joysticks.Get(event.gaxis.which)) {
+                        joystick->axes[event.gaxis.axis] = NormalizeAxis(event.gaxis.value);
+
+                        // Invert axis so y+ is up
+                        if (event.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTY)
+                            joystick->axes[event.gaxis.axis] *= -1;
+
+                        // left and right triggers report 0 to 1
+
+                        //if (event.gaxis.axis == SDL_GAMEPAD_AXIS_LEFT_TRIGGER)
+                        //    SPDLOG_INFO("LEFT TRIGGER {}", joystick->axes[event.gaxis.axis]);
+
+                        //if (event.gaxis.axis == SDL_GAMEPAD_AXIS_RIGHT_TRIGGER)
+                        //    SPDLOG_INFO("RIGHT TRIGGER {}", joystick->axes[event.gaxis.axis]);
+
+                        // Apply dampen / deadzone
+                        //Vector2 leftStick = { joystick->rawAxes[SDL_GAMEPAD_AXIS_LEFTX], joystick->rawAxes[SDL_GAMEPAD_AXIS_LEFTY] };
+                        //leftStick = CircularDampen(leftStick, joystick->innerDeadzone, joystick->outerDeadzone);
+                        //joystick->axes[SDL_GAMEPAD_AXIS_LEFTX] = leftStick.x;
+                        //joystick->axes[SDL_GAMEPAD_AXIS_LEFTY] = leftStick.y;
+
+                        //Vector2 rightStick = { joystick->rawAxes[SDL_GAMEPAD_AXIS_RIGHTX], joystick->rawAxes[SDL_GAMEPAD_AXIS_RIGHTY] };
+                        //rightStick = CircularDampen(leftStick, joystick->innerDeadzone, joystick->outerDeadzone);
+                        //joystick->axes[SDL_GAMEPAD_AXIS_RIGHTX] = rightStick.x;
+                        //joystick->axes[SDL_GAMEPAD_AXIS_RIGHTY] = rightStick.y;
+                    }
+
+                    //auto gamepad = SDL_GetGamepadFromID(event.gdevice.which);
+                    //Vector2 rightStick;
+                    //rightStick.x = NormalizeAxis(SDL_GetGamepadAxis(gamepad, SDL_GAMEPAD_AXIS_RIGHTX));
+                    //rightStick.y = NormalizeAxis(SDL_GetGamepadAxis(gamepad, SDL_GAMEPAD_AXIS_RIGHTY));
+                    //GamepadRightStick = CircularDampen({ rightStick.x, rightStick.y }, 0.1f, 1);
+
+                    //// todo: change based on mappings
+                    //Vector2 leftStick;
+                    //leftStick.x = NormalizeAxis(SDL_GetGamepadAxis(gamepad, SDL_GAMEPAD_AXIS_LEFTX));
+                    //leftStick.y = -NormalizeAxis(SDL_GetGamepadAxis(gamepad, SDL_GAMEPAD_AXIS_LEFTY));
+                    //GamepadLeftStick = CircularDampen({ leftStick.x, leftStick.y }, 0.1f, 1);
+                    // thrust.y = ??; // unknown what to bind slide up/down to
+                    break;
+                }
+
+                //case SDL_EventType::SDL_EVENT_JOYSTICK_ADDED:
+                //{
+                //    Joysticks.Add(event.gdevice.which);
+                //    break;
+                //}
+
+                case SDL_EventType::SDL_EVENT_JOYSTICK_REMOVED:
+                {
+                    Joysticks.Remove(event.gdevice.which);
+                    //RemoveGamepad(event.gdevice.which);
+                    break;
+                }
+
+                case SDL_EventType::SDL_EVENT_JOYSTICK_ADDED:
+                    //case SDL_EventType::SDL_EVENT_GAMEPAD_ADDED:
+                {
+                    //SPDLOG_INFO("Joystick or Gamepad added {}", event.gdevice.which);
+
+                    if (SDL_IsGamepad(event.gdevice.which))
+                        Joysticks.AddGamepad(event.gdevice.which);
+                    else
+                        Joysticks.Add(event.gdevice.which);
+
+                    break;
+                }
+
+                //case SDL_EventType::SDL_EVENT_GAMEPAD_REMOVED:
+                //{
+                //    Joysticks.RemoveGamepad(event.gdevice.which);
+                //    break;
+                //}
+            }
+        }
+    }
+
     void NextFrame() {
         _keyboard.NextFrame();
         _mouseButtons.NextFrame();
-        _controller.NextFrame();
+        //_controller.NextFrame();
         WheelDelta = 0;
+        MenuActions.Reset();
+        Joysticks.Update();
+        PollSdlEvents();
     }
 
     int GetWheelDelta() { return WheelDelta; }
@@ -207,182 +582,14 @@ namespace Inferno::Input {
         _inputEventQueue.push_back({ type, static_cast<uint8_t>(keyCode), flags });
     }
 
-    string GuidToString(SDL_GUID guid) {
-        char buffer[33];
-        SDL_GUIDToString(guid, buffer, (int)std::size(buffer));
-        return { buffer };
-    }
-
-    bool GuidIsZero(string_view guid) {
-        return ranges::all_of(guid, [](char c) { return c == '0'; });
-    }
-
-    class GamepadManager {
-        std::list<Gamepad> _gamepads;
-
-    public:
-        Gamepad* FindGamepad(string_view guid) {
-            for (auto& gamepad : _gamepads) {
-                if (gamepad.guid == guid) return &gamepad;
-            }
-
-            return nullptr;
-        }
-
-        Gamepad* FindGamepad(SDL_JoystickID id) {
-            for (auto& gamepad : _gamepads) {
-                if (gamepad.id == id) return &gamepad;
-            }
-
-            return nullptr;
-        }
-
-        void AddGamepad(SDL_JoystickID id) {
-            if (!SDL_IsGamepad(id)) {
-                SPDLOG_WARN("Tried to add a non-gamepad {}", id);
-                return;
-            }
-
-            auto gamepad = SDL_OpenGamepad(id);
-            if (!gamepad) {
-                SPDLOG_WARN("Unable to open gamepad");
-                return;
-            }
-
-            auto guid = GuidToString(SDL_GetGamepadGUIDForID(id));
-            auto name = SDL_GetGamepadNameForID(id);
-
-            if (GuidIsZero(guid) || !name) {
-                SPDLOG_WARN("Ignoring gamepad {} with no name (guid: {})", id, guid);
-                return;
-            }
-
-            auto device = FindGamepad(guid); // check if gamepad was already connected
-
-            if (!device) {
-                device = &_gamepads.emplace_back(); // create a new device
-            }
-
-            device->connected = SDL_GamepadConnected(gamepad);
-
-            if (!device->connected) {
-                return;
-            }
-
-            device->name = name;
-            device->guid = guid;
-            device->id = id;
-
-            // Name can be empty for wireless PS5 controllers that are turned off
-            SPDLOG_INFO("Add gamepad {}: {} - {}", id, device->name, device->guid);
-
-            if (SDL_SetGamepadSensorEnabled(gamepad, SDL_SENSOR_ACCEL, true))
-                SPDLOG_INFO("Enabled Accel");
-            if (SDL_SetGamepadSensorEnabled(gamepad, SDL_SENSOR_GYRO, true))
-                SPDLOG_INFO("Enabled Gyro");
-        }
-
-        void RemoveGamepad(SDL_JoystickID id) {
-            SPDLOG_INFO("Remove gamepad {}", id);
-            _gamepads.remove_if([id](auto g) { return g.id == id; });
-            auto gamepad = SDL_GetGamepadFromID(id);
-            SDL_CloseGamepad(gamepad);
-        }
-
-        List<Gamepad> GetGamepads() {
-            return { _gamepads.begin(), _gamepads.end() };
-        }
-    };
-
-    GamepadManager Gamepads;
-
-    List<Gamepad> GetGamepads() {
-        return Gamepads.GetGamepads();
-    }
-
-    Vector2 CircularDampen(const Vector2& input, float innerDeadzone, float outerDeadzone) {
-        float magnitude = input.Length();
-        float scale = (magnitude - innerDeadzone) / (outerDeadzone - innerDeadzone);
-        return input * Saturate(scale) / magnitude;
-    }
-
     void Update() {
-        SDL_Event event;
-        Pitch = Yaw = Roll = 0;
-        Input::Thrust = Vector3::Zero;
+        //if (Settings::Inferno.EnableGamepad) {
+        //    Input::Yaw += GamepadRightStick.x;
+        //    Input::Pitch += GamepadRightStick.y;
 
-        while (SDL_PollEvent(&event)) {
-            switch (event.type) {
-                case SDL_EVENT_GAMEPAD_BUTTON_UP:
-                {
-                    _controller.Release(event.gbutton.button);
-                    break;
-                }
-
-                case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
-                {
-                    _controller.Press(event.gbutton.button);
-                    break;
-                }
-
-                case SDL_EVENT_GAMEPAD_SENSOR_UPDATE:
-                {
-                    auto gamepad = SDL_GetGamepadFromID(event.gdevice.which);
-
-                    float gyro[3], accel[3];
-                    if (SDL_GetGamepadSensorData(gamepad, SDL_SENSOR_GYRO, gyro, std::size(gyro))) {
-                        //SPDLOG_INFO("Gyro: {}, {}, {}", gyro[0], gyro[1], gyro[1]);
-                        Pitch += gyro[0] * .75f;
-                        Yaw += -gyro[1] * 1;
-                        Roll += -gyro[2] * .125f;
-                    }
-
-                    if (SDL_GetGamepadSensorData(gamepad, SDL_SENSOR_ACCEL, accel, std::size(accel))) {
-                        //SPDLOG_INFO("Accel: {}, {}, {}", accel[0], accel[1], accel[1]);
-                    }
-                    break;
-                }
-
-                case SDL_EVENT_GAMEPAD_AXIS_MOTION:
-                {
-                    auto gamepad = SDL_GetGamepadFromID(event.gdevice.which);
-                    Vector2 rightStick;
-                    rightStick.x = SDL_GetGamepadAxis(gamepad, SDL_GAMEPAD_AXIS_RIGHTX) / 32767.0f;
-                    rightStick.y = SDL_GetGamepadAxis(gamepad, SDL_GAMEPAD_AXIS_RIGHTY) / 32767.0f;
-                    GamepadRightStick = CircularDampen({ rightStick.x, rightStick.y }, 0.1f, 1);
-
-                    // todo: change based on mappings
-                    Vector2 leftStick;
-                    leftStick.x = SDL_GetGamepadAxis(gamepad, SDL_GAMEPAD_AXIS_LEFTX) / 32767.0f;
-                    leftStick.y = -SDL_GetGamepadAxis(gamepad, SDL_GAMEPAD_AXIS_LEFTY) / 32767.0f;
-                    GamepadLeftStick = CircularDampen({ leftStick.x, leftStick.y }, 0.1f, 1);
-                    // thrust.y = ??; // unknown what to bind slide up/down to
-                    break;
-                }
-
-                case SDL_EventType::SDL_EVENT_GAMEPAD_ADDED:
-                {
-                    Gamepads.AddGamepad(event.gdevice.which);
-                    //AddGamepad(event.gdevice.which);
-                    break;
-                }
-
-                case SDL_EventType::SDL_EVENT_GAMEPAD_REMOVED:
-                {
-                    Gamepads.RemoveGamepad(event.gdevice.which);
-                    //RemoveGamepad(event.gdevice.which);
-                    break;
-                }
-            }
-        }
-
-        if (Settings::Inferno.EnableGamepads) {
-            Input::Yaw += GamepadRightStick.x;
-            Input::Pitch += GamepadRightStick.y;
-
-            Input::Thrust.x += GamepadLeftStick.x;
-            Input::Thrust.z += GamepadLeftStick.y;
-        }
+        //    Input::Thrust.x += GamepadLeftStick.x;
+        //    Input::Thrust.z += GamepadLeftStick.y;
+        //}
 
         if (RequestedMouseMode != ActualMouseMode) {
             ActualMouseMode = RequestedMouseMode;
@@ -438,6 +645,52 @@ namespace Inferno::Input {
             RightDragState = UpdateDragState(MouseButtons::RightClick, RightDragState);
 
         DragState = SelectionState((int)LeftDragState | (int)RightDragState);
+
+        // todo: move to game inputs
+        if (IsKeyPressed(Keys::Enter, true) || IsKeyPressed(Keys::Space))
+            MenuActions.Set(MenuAction::Confirm);
+
+        if (IsKeyPressed(Keys::Escape, true))
+            MenuActions.Set(MenuAction::Cancel);
+
+        if (IsKeyPressed(Keys::Left, true))
+            MenuActions.Set(MenuAction::Left);
+
+        if (IsKeyPressed(Keys::Down, true))
+            MenuActions.Set(MenuAction::Down);
+
+        if (IsKeyPressed(Keys::Up, true))
+            MenuActions.Set(MenuAction::Up);
+
+        if (IsKeyPressed(Keys::Right, true))
+            MenuActions.Set(MenuAction::Right);
+
+        for (auto& device : Joysticks.GetJoysticks()) {
+            if (device.IsGamepad()) {
+                constexpr float threshold = 0.3f;
+                if (device.AxisPressed(SDL_GAMEPAD_AXIS_LEFTX, false, threshold) ||
+                    device.ButtonDown(SDL_GAMEPAD_BUTTON_DPAD_LEFT))
+                    MenuActions.Set(MenuAction::Left);
+
+                if (device.AxisPressed(SDL_GAMEPAD_AXIS_LEFTX, true, threshold) ||
+                    device.ButtonDown(SDL_GAMEPAD_BUTTON_DPAD_RIGHT))
+                    MenuActions.Set(MenuAction::Right);
+
+                if (device.AxisPressed(SDL_GAMEPAD_AXIS_LEFTY, true, threshold) ||
+                    device.ButtonDown(SDL_GAMEPAD_BUTTON_DPAD_UP))
+                    MenuActions.Set(MenuAction::Up);
+
+                if (device.AxisPressed(SDL_GAMEPAD_AXIS_LEFTY, false, threshold) ||
+                    device.ButtonDown(SDL_GAMEPAD_BUTTON_DPAD_DOWN))
+                    MenuActions.Set(MenuAction::Down);
+
+                if(device.ButtonDown(SDL_GAMEPAD_BUTTON_EAST))
+                    MenuActions.Set(MenuAction::Cancel);
+
+                if (device.ButtonDown(SDL_GAMEPAD_BUTTON_SOUTH))
+                    MenuActions.Set(MenuAction::Confirm);
+            }
+        }
     }
 
     void InitRawMouseInput(HWND hwnd);
@@ -455,7 +708,7 @@ namespace Inferno::Input {
         if (!RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE)))
             throw std::system_error(std::error_code(static_cast<int>(GetLastError()), std::system_category()), "RegisterRawInputDevices");
 
-        if (Inferno::Settings::Inferno.EnableGamepads) {
+        if (Inferno::Settings::Inferno.EnableGamepad) {
             SDL_SetGamepadEventsEnabled(true);
 
             int gamepadCount = 0;
@@ -465,7 +718,7 @@ namespace Inferno::Input {
                 SPDLOG_INFO("Connected gamepads:");
 
                 for (size_t i = 0; i < gamepadCount; i++) {
-                    Gamepads.AddGamepad(gamepadIds[i]);
+                    Joysticks.AddGamepad(gamepadIds[i]);
                 }
             }
 
@@ -491,8 +744,9 @@ namespace Inferno::Input {
     std::bitset<256> GetRepeatedKeys() { return _keyboard.repeat; }
 
     bool IsControllerButtonDown(SDL_GamepadButton button) {
-        if (button >= _controller.Size()) return false;
-        return _controller.pressed[button];
+        //if (button >= _controller.Size()) return false;
+        //return _controller.pressed[button] || _controller.previous[button];
+        return false;
     }
 
     bool IsMouseButtonDown(MouseButtons button) {
@@ -541,7 +795,10 @@ namespace Inferno::Input {
     void ResetState() {
         _keyboard.Reset();
         _mouseButtons.Reset();
+        //_controller.Reset();
         _inputEventQueue.clear();
+        MenuActions.Reset();
+        Joysticks.ResetState();
     }
 
     ScopedHandle RelativeModeEvent, RelativeReadEvent;

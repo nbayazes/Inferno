@@ -100,8 +100,10 @@ namespace Inferno::UI {
             panel->VerticalAlignment = AlignV::Top;
 
             panel->AddChild<Checkbox>("Enable Mouse", Settings::Inferno.EnableMouse);
-            //panel->AddChild<Checkbox>("Enable joystick", Settings::Inferno.EnableJoystick);
-            panel->AddChild<Checkbox>("Enable gamepads and joysticks", Settings::Inferno.EnableGamepads);
+            panel->AddChild<Checkbox>("Enable joystick", Settings::Inferno.EnableJoystick);
+            panel->AddChild<Checkbox>("Enable gamepad", Settings::Inferno.EnableGamepad);
+            panel->AddChild<Label>("");
+            panel->AddChild<Checkbox>("Classic pitch speed", Settings::Inferno.HalvePitchSpeed);
 
             {
                 panel->AddChild<Label>("");
@@ -122,15 +124,12 @@ namespace Inferno::UI {
             }
 
             panel->AddChild<Checkbox>("Invert Y-axis", Settings::Inferno.InvertY);
-            panel->AddChild<Checkbox>("Classic pitch speed", Settings::Inferno.HalvePitchSpeed);
 
             panel->AddChild<Label>("");
             panel->AddChild<Button>("Customize bindings", [] {
                 ShowScreen(make_unique<BindingDialog>());
             });
-            panel->AddChild<Button>("Keyboard sensitivity");
-            panel->AddChild<Button>("Mouse sensitivity");
-            panel->AddChild<Button>("Joystick sensitivity");
+            panel->AddChild<Button>("sensitivity");
 
             AddChild(std::move(panel));
         }

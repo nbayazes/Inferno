@@ -8,7 +8,7 @@
 namespace Inferno {
     template <class T>
     bool ReadArray(ryml::NodeRef node, span<T> values) {
-        if (!node.valid() || node.is_seed()) return false;
+        if (!node.readable()) return false;
 
         if (node.has_children()) {
             // Array of values
@@ -52,7 +52,7 @@ namespace Inferno {
 
     template <class T>
     void ReadRange(ryml::NodeRef node, NumericRange<T>& values) {
-        if (!node.valid() || node.is_seed()) return;
+        if (!node.readable()) return;
 
         if (node.has_children()) {
             // Array of values

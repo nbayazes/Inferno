@@ -555,7 +555,6 @@ namespace Inferno::Game {
 
         Game::BriefingVisible = false;
         Input::Update();
-        Bindings.Update();
         CheckGlobalHotkeys();
 
         if (Game::State == GameState::Editor) {
@@ -646,13 +645,6 @@ namespace Inferno::Game {
                         UpdateDeathSequence(dt);
                     else if (!Level.Objects.empty())
                         MoveCameraToObject(Game::MainCamera, Level.Objects[0], LerpAmount);
-                }
-
-                if (Input::IsKeyPressed(Input::Keys::Escape)) {
-                    Game::SetState(GameState::PauseMenu);
-                }
-                else if (Input::IsKeyPressed(Input::Keys::Tab)) {
-                    Game::SetState(GameState::Automap);
                 }
 
                 break;

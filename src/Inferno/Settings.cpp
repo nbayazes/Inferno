@@ -4,6 +4,8 @@
 #define MAGIC_ENUM_RANGE_MAX 256
 
 #include <Settings.h>
+#include <ryml/ryml_std.hpp>
+#include <ryml/ryml.hpp>
 #include <fstream>
 #include <magic_enum/magic_enum.hpp>
 #include <spdlog/spdlog.h>
@@ -251,7 +253,7 @@ namespace Inferno {
             palette[i++] = color;
         };
 
-        if (!node.valid() || node.is_seed()) {
+        if (!node.readable()) {
             return GetDefaultPalette();
         }
 
@@ -338,60 +340,178 @@ namespace Inferno {
         }
     }
 
-    void SaveGameBindings(ryml::NodeRef node) {
-        node |= ryml::SEQ;
+    void SaveGameBindings(ryml::NodeRef root) {
+        root |= ryml::MAP;
 
-        for (auto& binding : Game::Bindings.GetBindings()) {
-            auto child = node.append_child();
-            child |= ryml::MAP;
-            auto action = magic_enum::enum_name(binding.Action);
-            if (binding.Key != Input::Keys::None) {
-                auto key = string(magic_enum::enum_name(binding.Key));
-                child[ryml::to_csubstr(action.data())] << key;
-            }
-            else if (binding.Mouse != Input::MouseButtons::None) {
-                auto btn = string(magic_enum::enum_name(binding.Mouse));
-                child[ryml::to_csubstr(action.data())] << btn;
+        {
+            auto devicesNode = root["InputDevices"];
+            devicesNode |= ryml::SEQ;
+
+            for (auto& device : Game::Bindings.GetDevices()) {
+                auto deviceNode = devicesNode.append_child();
+                deviceNode |= ryml::MAP;
+                deviceNode["guid"] << device.guid;
+
+                auto actionList = deviceNode["actions"];
+                actionList |= ryml::SEQ;
+
+                for (size_t i = 0; i < (int)GameAction::Count; i++) {
+                    if (device.IsUnset((GameAction)i))
+                        continue;
+
+                    auto actionNode = actionList.append_child();
+                    actionNode |= ryml::MAP;
+                    //actionNode["action"] << i;
+                    actionNode["action"] << string(magic_enum::enum_name((GameAction)i));
+
+                    for (size_t j = 0; j < BIND_SLOTS; j++) {
+                        auto& binding = device.bindings[i][j];
+                        if (binding.type == BindType::None) continue;
+
+                        auto bindingNode = actionNode[j == 0 ? "bind" : "bind2"];
+                        bindingNode |= ryml::MAP;
+
+                        bindingNode["id"] << binding.id;
+
+                        if (binding.type != BindType::Button)
+                            bindingNode["type"] << ToUnderlying(binding.type);
+
+                        switch (binding.type) {
+                            case BindType::Axis:
+                            case BindType::AxisPlus:
+                            case BindType::AxisMinus:
+                                if (binding.invert)
+                                    bindingNode["invert"] << binding.invert;
+
+                                bindingNode["innerDeadzone"] << binding.innerDeadzone;
+                                bindingNode["outerDeadzone"] << binding.outerDeadzone;
+                                break;
+                            case BindType::AxisButtonPlus:
+                                break;
+                            case BindType::AxisButtonMinus:
+                                break;
+                            case BindType::Hat:
+                                break;
+                        }
+                    }
+                }
             }
         }
+
+        {
+            auto& keyboard = Game::Bindings.GetKeyboard();
+            auto keyboardNode = root["keyboard"];
+            keyboardNode |= ryml::MAP;
+
+            auto actionList = keyboardNode["actions"];
+            actionList |= ryml::SEQ;
+
+            for (size_t i = 0; i < (int)GameAction::Count; i++) {
+                if (keyboard.IsUnset((GameAction)i)) continue;
+                auto actionNode = actionList.append_child();
+                actionNode |= ryml::MAP;
+                actionNode["action"] << string(magic_enum::enum_name((GameAction)i));
+
+                for (size_t j = 0; j < BIND_SLOTS; j++) {
+                    auto& binding = keyboard.bindings[i][j];
+                    if (binding.type == BindType::None) continue;
+
+                    auto bindingNode = actionNode[j == 0 ? "bind" : "bind2"];
+                    bindingNode |= ryml::MAP;
+                    bindingNode["id"] << binding.id;
+                }
+            }
+        }
+
+        {
+            auto& mouse = Game::Bindings.GetMouse();
+            auto mouseNode = root["mouse"];
+            mouseNode |= ryml::MAP;
+
+            auto actionList = mouseNode["actions"];
+            actionList |= ryml::SEQ;
+
+            for (size_t i = 0; i < (int)GameAction::Count; i++) {
+                if (mouse.IsUnset((GameAction)i)) continue;
+                auto actionNode = actionList.append_child();
+                actionNode |= ryml::MAP;
+                actionNode["action"] << string(magic_enum::enum_name((GameAction)i));
+
+                for (size_t j = 0; j < BIND_SLOTS; j++) {
+                    auto& binding = mouse.bindings[i][j];
+                    if (binding.type == BindType::None) continue;
+
+                    auto bindingNode = actionNode[j == 0 ? "bind" : "bind2"];
+                    bindingNode |= ryml::MAP;
+                    bindingNode["id"] << binding.id;
+
+                    if (binding.type != BindType::Button)
+                        bindingNode["type"] << ToUnderlying(binding.type);
+
+                    if (binding.type == BindType::Axis && binding.invert)
+                        bindingNode["invert"] << binding.invert;
+                }
+            }
+        }
+
+        //for (auto& binding : Game::Bindings.GetBindings()) {
+        //    auto child = node.append_child();
+        //    child |= ryml::MAP;
+        //    auto action = magic_enum::enum_name(binding.Action);
+        //    if (binding.Key != Input::Keys::None) {
+        //        auto key = string(magic_enum::enum_name(binding.Key));
+        //        child[ryml::to_csubstr(action.data())] << key;
+        //    }
+        //    else if (binding.Mouse != Input::MouseButtons::None) {
+        //        auto btn = string(magic_enum::enum_name(binding.Mouse));
+        //        child[ryml::to_csubstr(action.data())] << btn;
+        //    }
+        //}
     }
 
     void LoadGameBindings(ryml::NodeRef node) {
         if (node.is_seed()) return;
 
-        Game::Bindings.Clear(); // we have some bindings to replace defaults!
+        // todo: load real bindings
+        auto& ps5 = Game::Bindings.AddDevice("050057564c050000e60c000000006800");
+        ps5.type = Input::InputType::Gamepad;
+        ResetGamepadBindings(ps5);
+        ResetKeyboardBindings(Game::Bindings.GetKeyboard());
+        ResetMouseBindings(Game::Bindings.GetMouse());
 
-        for (const auto& c : node.children()) {
-            if (c.is_seed() || !c.is_map() || !c.valid() || c.empty() || !c.has_children()) continue;
-            auto kvp = c.child(0);
-            string value, command;
-            if (kvp.has_key()) {
-                auto key = kvp.key();
-                if (key.len > 0)
-                    command = string(key.data(), key.len);
-            }
+        //Game::Bindings.Clear(); // we have some bindings to replace defaults!
 
-            if (kvp.has_val()) {
-                auto val = kvp.val();
-                if (val.len > 0)
-                    value = string(val.data(), val.len);
-            }
+        //for (const auto& c : node.children()) {
+        //    if (!c.is_map() || !c.readable() || c.empty() || !c.has_children()) continue;
+        //    auto kvp = c.child(0);
+        //    string value, command;
+        //    if (kvp.has_key()) {
+        //        auto key = kvp.key();
+        //        if (key.len > 0)
+        //            command = string(key.data(), key.len);
+        //    }
 
-            if (value.empty() || command.empty()) continue;
+        //    if (kvp.has_val()) {
+        //        auto val = kvp.val();
+        //        if (val.len > 0)
+        //            value = string(val.data(), val.len);
+        //    }
 
-            GameBinding binding;
-            if (auto commandName = magic_enum::enum_cast<GameAction>(command))
-                binding.Action = *commandName;
+        //    if (value.empty() || command.empty()) continue;
 
-            // The binding could either be a key or a mouse button
-            if (auto key = magic_enum::enum_cast<Input::Keys>(value))
-                binding.Key = *key;
+        //    GameBinding binding;
+        //    if (auto commandName = magic_enum::enum_cast<GameAction>(command))
+        //        binding.Action = *commandName;
 
-            if (auto btn = magic_enum::enum_cast<Input::MouseButtons>(value))
-                binding.Mouse = *btn;
+        //    // The binding could either be a key or a mouse button
+        //    if (auto key = magic_enum::enum_cast<Input::Keys>(value))
+        //        binding.Key = *key;
 
-            Game::Bindings.Add(binding);
-        }
+        //    if (auto btn = magic_enum::enum_cast<Input::MouseButtons>(value))
+        //        binding.Mouse = *btn;
+
+        //    Game::Bindings.Add(binding);
+        //}
     }
 
     void SaveEditorSettings(ryml::NodeRef node, const EditorSettings& s) {
@@ -612,8 +732,24 @@ namespace Inferno {
                 SaveGameBindings(bindings["Game"]);
             }
 
-            std::ofstream file(path);
-            file << doc;
+            filesystem::path temp = path;
+            temp.replace_filename("temp.cfg");
+
+            // Create a backup
+            //if (filesystem::exists(path)) {
+            //    filesystem::path backup = path;
+            //    backup.replace_extension("cfg.bak");
+            //    filesystem::copy(path, backup, filesystem::copy_options::overwrite_existing);
+            //}
+
+            {
+                std::ofstream file(temp);
+                file << doc;
+            }
+
+            // Write went okay, ovewrite the old file and remove temp
+            filesystem::copy(temp, path, filesystem::copy_options::overwrite_existing);
+            filesystem::remove(temp);
         }
         catch (const std::exception& e) {
             SPDLOG_ERROR("Error saving config file:\n{}", e.what());

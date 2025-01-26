@@ -5,7 +5,7 @@
   "vcpkg-configuration": {
     "default-registry": {
       "kind": "builtin",
-      "baseline": "1a66c32c6f90c2f646529975c3c076ed3dbdae0c"
+      "baseline": "01be99fec01f777c4113ceea192a45115c69cdb7"
     }
   },
   "dependencies": [
@@ -35,7 +35,7 @@
     },
     {
       "name": "sdl3",
-      "version>=": "3.1.6-preview#2"
+      "version>=": "3.2.0"
     }
   ]
 }

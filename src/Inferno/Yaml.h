@@ -35,21 +35,21 @@ namespace Yaml {
     template<class T>
     bool ReadValue(ryml::ConstNodeRef node, T& value) {
         static_assert(!std::is_same_v<T, const char*>, "Must be writable value");
-        if (!node.valid()) return false;
+        if (!node.readable() || !node.has_val() || node.val() == "") return false;
         node >> value;
         return true;
     }
 
     template<Inferno::IsEnum T>
     bool ReadValue(ryml::ConstNodeRef node, T& id) {
-        if (!node.valid()) return false;
+        if (!node.readable() || !node.has_val() || node.val() == "") return false;
         node >> (std::underlying_type_t<T>&)id;
         return true;
     }
 
     template<>
     inline bool ReadValue(ryml::ConstNodeRef node, bool& value) {
-        if (!node.valid()) return false;
+        if (!node.readable() || !node.has_val() || node.val() == "") return false;
         int val = 0;
         node >> val;
         value = (bool)val;
@@ -58,7 +58,7 @@ namespace Yaml {
 
     template<>
     inline bool ReadValue(ryml::ConstNodeRef node, std::filesystem::path& value) {
-        if (!node.valid()) return false;
+        if (!node.readable() || !node.has_val() || node.val() == "") return false;
         std::string path;
         node >> path;
         value = path;
@@ -70,7 +70,7 @@ namespace Yaml {
     }
 
     inline void ReadValue(ryml::ConstNodeRef node, std::array<bool, 4>& a) {
-        if (!node.valid()) return;
+        if (!node.readable() || !node.has_val() || node.val() == "") return;
         std::string str;
         node >> str;
         auto token = Inferno::String::Split(str, ',', true);
@@ -85,7 +85,7 @@ namespace Yaml {
 
     template<>
     inline bool ReadValue(ryml::ConstNodeRef node, DirectX::SimpleMath::Color& value) {
-        if (!node.valid()) return false;
+        if (!node.readable() || !node.has_val() || node.val() == "") return false;
         std::string str;
         node >> str;
         auto token = Inferno::String::Split(str, ',', true);
@@ -106,7 +106,7 @@ namespace Yaml {
 
     template<>
     inline bool ReadValue(ryml::ConstNodeRef node, DirectX::SimpleMath::Vector3& value) {
-        if (!node.valid()) return false;
+        if (!node.readable() || !node.has_val() || node.val() == "") return false;
         std::string str;
         node >> str;
         auto token = Inferno::String::Split(str, ',', true);
@@ -121,7 +121,7 @@ namespace Yaml {
 
     template<>
     inline bool ReadValue(ryml::ConstNodeRef node, Inferno::uint2& value) {
-        if (!node.valid()) return false;
+        if (!node.readable() || !node.has_val() || node.val() == "") return false;
         std::string str;
         node >> str;
         auto token = Inferno::String::Split(str, ',', true);
@@ -144,7 +144,7 @@ namespace Yaml {
 
     template<>
     inline bool ReadValue(ryml::ConstNodeRef node, DirectX::SimpleMath::Vector2& value) {
-        if (!node.valid()) return false;
+        if (!node.readable() || !node.has_val() || node.val() == "") return false;
         std::string str;
         node >> str;
         auto token = Inferno::String::Split(str, ',', true);
@@ -158,7 +158,7 @@ namespace Yaml {
 
     template<>
     inline bool ReadValue(ryml::ConstNodeRef node, Inferno::Tag& value) {
-        if (!node.valid()) return false;
+        if (!node.readable() || !node.has_val() || node.val() == "") return false;
         std::string str;
         node >> str;
         auto token = Inferno::String::Split(str, ':', true);
