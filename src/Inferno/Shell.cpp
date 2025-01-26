@@ -352,27 +352,30 @@ namespace Inferno {
         AppFullscreen = Settings::Inferno.Fullscreen;
 
         if (!Inferno::Settings::Inferno.Fullscreen) {
+            bool maximized = Settings::Inferno.Maximized;
+            SaveWindowSize();
+
             // Restore window position and size
             SetWindowLongPtr(hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW);
             SetWindowLongPtr(hWnd, GWL_EXSTYLE, 0);
 
             auto flags = SWP_NOZORDER | SWP_FRAMECHANGED;
 
-            //if (AppMaximized) flags |= SWP_NOSIZE | SWP_NOMOVE;
             auto size = Settings::Inferno.WindowSize;
             auto pos = Settings::Inferno.WindowPosition;
             ClampWindowPosition(pos, size);
 
-            SaveWindowSize();
-
             // Account for window borders
             RECT windowRect = { 0, 0, (long)size.x, (long)size.y };
-            AdjustWindowRectEx(&windowRect, flags, FALSE, 0);
+            AdjustWindowRectEx(&windowRect, WS_OVERLAPPEDWINDOW, false, 0);
             auto width = windowRect.right - windowRect.left;
             auto height = windowRect.bottom - windowRect.top;
 
             SetWindowPos(hWnd, HWND_TOP, pos.x, pos.y, width, height, flags);
-            ShowWindow(hWnd, Settings::Inferno.Maximized ? SW_SHOWMAXIMIZED : SW_SHOW);
+            ShowWindow(hWnd, maximized ? SW_SHOWMAXIMIZED : SW_SHOW);
+
+            RECT client{};
+            GetClientRect(hWnd, &client);
         }
         else {
             // Windowed fullscreen
