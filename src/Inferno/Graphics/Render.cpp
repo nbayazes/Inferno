@@ -625,12 +625,15 @@ namespace Inferno::Render {
 
         auto gameState = Game::GetState();
 
-        if (gameState == GameState::MainMenu) {
+        if (gameState == GameState::Automap) {
+            DrawAutomap(ctx);
+        }
+        else if (gameState == GameState::MainMenu) {
             DrawMainMenuBackground(ctx);
         }
         else if (gameState == GameState::Game ||
-                 gameState == GameState::PauseMenu || 
-                 gameState == GameState::Editor || 
+                 gameState == GameState::PauseMenu ||
+                 gameState == GameState::Editor ||
                  gameState == GameState::ExitSequence) {
             if (LevelChanged) {
                 Adapter->WaitForGpu();
@@ -662,12 +665,8 @@ namespace Inferno::Render {
 
             UpdateFrameConstants(terrainCamera, Adapter->GetTerrainConstants(), Settings::Graphics.RenderScale);
 
-            if (Game::GetState() == GameState::Automap) {
-                DrawAutomap(ctx);
-            }
-            else {
-                DrawLevel(ctx, Game::Level);
-            }
+
+            DrawLevel(ctx, Game::Level);
         }
 
         EndUpdateEffects();
