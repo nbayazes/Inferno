@@ -4,14 +4,6 @@
 #include "Game.Bindings.h"
 
 namespace Inferno::UI {
-    struct BindingEntry {
-        //GameAction Action{};
-        string Label;
-        GameBinding Binding;
-    };
-
-    enum class BindSource { Any, Keyboard, Mouse, Controller };
-
     class BindingControl : public ControlBase {
         string _label;
         bool _held = false;
@@ -39,7 +31,6 @@ namespace Inferno::UI {
         float Spacing = 2; // Horizontal spacing between boxes
 
         string MenuActionSound = MENU_SELECT_SOUND; // Sound when picking an item in the popup menu
-        BindSource Source = BindSource::Any; // What devices to check for binding
 
         std::function<void()> OnChange; // Called when a binding changes
 
@@ -68,11 +59,23 @@ namespace Inferno::UI {
             _shortcut2 = _device->GetBindingLabel(_action, 1);
         }
 
+
+        ControlBase* HitTestCursor() override {
+            // Ignore due to control storing three internal selection states and being in a list
+            // This is not ideal
+            return nullptr;
+        }
+
         void HandleBindInput(GameBinding& binding) {
             using Input::Keys;
             using Input::MouseButtons;
 
-            if (Input::IsKeyPressed(Keys::Escape)) {
+            bool cancel = Input::IsKeyPressed(Keys::Escape);
+
+            if (auto device = Input::GetDevice(_device->guid); device && device->IsGamepad())
+                cancel |= device->ButtonWasPressed(SDL_GAMEPAD_BUTTON_START);
+
+            if (cancel) {
                 //selectedAction = GameAction::None; // Cancel the assignment
                 _waitingForInput = false;
                 CaptureCursor(false);
@@ -81,16 +84,14 @@ namespace Inferno::UI {
                 return;
             }
 
-            auto finishBinding = [this, &binding](/*const GameBinding& binding*/) {
-                //_device->Bind(binding, _slot);
+            auto finishBinding = [this, &binding] {
                 binding.action = _action;
-                _device->UnbindOthers(binding); // Clear existing
+                _device->UnbindOthers(binding, _slot); // Clear existing
                 _waitingForInput = false;
                 if (OnChange) OnChange();
                 CaptureCursor(false);
                 CaptureInput(false);
                 Sound::Play2D(SoundResource{ ActionSound });
-                // todo: fix scrollwheel moving after binding
                 Input::ResetState();
             };
 
@@ -105,6 +106,7 @@ namespace Inferno::UI {
                             //    continue;
 
                             binding.id = key;
+                            binding.type = BindType::Button;
                             finishBinding();
 
                             break;
@@ -136,49 +138,19 @@ namespace Inferno::UI {
 
                     break;
                 case Input::InputType::Gamepad:
-                    if (auto joystick = Input::GetJoystick(_device->guid)) {
+                    if (auto joystick = Input::GetDevice(_device->guid)) {
                         if (_bindType == BindType::Axis) {
-                            //for (size_t id = 0; id < joystick->axes.size(); id++) {
-                            //    // only bind half-axis actions on triggers
-                            //    if (id == SDL_GAMEPAD_AXIS_LEFT_TRIGGER || id == SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) {
-                            //        if (bindType == BindType::AxisButtonMinus || bindType == BindType::AxisButtonPlus) {
-                            //            binding.id = id;
-                            //            binding.type = bindType;
-                            //            finishBinding();
-                            //        }
-                            //    }
-                            //    else if (joystick->AxisPressed(id, true) || joystick->AxisPressed(id, false)) {
-                            //        if (bindType == BindType::Axis) {
-                            //            binding.id = id;
-                            //            binding.type = BindType::Axis;
-                            //            finishBinding();
-                            //        }
-                            //    }
-                            //}
-
                             if (joystick->CheckAxisPressed(bindId, dir)) {
-                                //bool halfAxis = _bindType == BindType::AxisPlus || _bindType == BindType::AxisMinus;
                                 bool halfAxis = bindId == SDL_GAMEPAD_AXIS_LEFT_TRIGGER || bindId == SDL_GAMEPAD_AXIS_RIGHT_TRIGGER;
 
-                                binding.id = bindId;
-                                binding.type = halfAxis ? _bindType : BindType::Axis;
-                                //binding.type = _bindType;
-                                finishBinding();
-
-
-                                //if (axis == SDL_GAMEPAD_AXIS_LEFT_TRIGGER || axis == SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) {
-                                //}
-                                //else {
-                                //    binding.id = axis;
-                                //    binding.type = halfAxis ? bindType : BindType::Axis;
-                                //    binding.type = bindType;
-                                //    finishBinding();
-                                //}
+                                // Don't allow binding half axis inputs to a full axis action
+                                if (!halfAxis) {
+                                    binding.id = bindId;
+                                    binding.type = BindType::Axis;
+                                    finishBinding();
+                                }
                             }
                         }
-                        /*                       else if(_bindType == BindType::AxisPlus || _bindType == BindType::AxisMinus) {
-                                                   
-                                               }*/
                         else {
                             if (joystick->CheckButtonDown(bindId)) {
                                 binding.id = bindId;
@@ -203,7 +175,7 @@ namespace Inferno::UI {
                     }
                     break;
                 case Input::InputType::Joystick:
-                    if (auto joystick = Input::GetJoystick(_device->guid)) {
+                    if (auto joystick = Input::GetDevice(_device->guid)) {
                         if (_bindType == BindType::Axis) {
                             if (joystick->CheckAxisPressed(bindId, dir)) {
                                 binding.id = bindId;
@@ -234,11 +206,11 @@ namespace Inferno::UI {
                     *_column = 0;
                     SetSelection(this);
                 }
-                else if (_hovered2) {
+                else if (_bindType != BindType::Axis && _hovered2) {
                     *_column = 1;
                     SetSelection(this);
                 }
-                else if (_hovered3) {
+                else if (_bindType == BindType::Axis && _hovered3) {
                     *_column = 2;
                     ToggleInvert();
                     SetSelection(this);
@@ -249,10 +221,17 @@ namespace Inferno::UI {
                 if (auto binding = _device->GetBinding(_action, _slot))
                     HandleBindInput(*binding);
             }
-            else if (((Input::IsKeyPressed(Input::Keys::Enter) && Focused)
-                      || (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick) && _hovered))
-                     && (*_column == 0 || *_column == 1)) {
-                StartBinding(*_column == 1 ? 1 : 0);
+            else if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick)) {
+                if (_bindType == BindType::Axis) {
+                    if (_hovered)
+                        StartBinding(0);
+                }
+                else {
+                    if (_hovered)
+                        StartBinding(0);
+                    else if (_hovered2)
+                        StartBinding(1);
+                }
             }
         }
 
@@ -265,13 +244,6 @@ namespace Inferno::UI {
             Sound::Play2D(SoundResource{ ActionSound });
         }
 
-        void SetColumn(int index) const {
-            int controls = _bindType == BindType::Axis ? 2 : 1;
-            if (index > controls) index = 0;
-            else if (index < 0) index = controls;
-            *_column = index;
-        }
-
         void ToggleInvert() const {
             if (auto binding = _device->GetBinding(_action, 0)) {
                 binding->invert = !binding->invert;
@@ -281,24 +253,38 @@ namespace Inferno::UI {
 
         bool HandleMenuAction(Input::MenuActionState action) override {
             if (!_waitingForInput) {
+                auto& column = *_column;
+
                 if (action == MenuAction::Confirm) {
-                    if (*_column == 2) {
+                    if (_bindType == BindType::Axis && column == 2) {
                         ToggleInvert();
                     }
                     else {
-                        StartBinding(*_column == 1 ? 1 : 0);
+                        StartBinding(column == 1 ? 1 : 0);
                     }
 
                     return true;
                 }
 
                 if (action == MenuAction::Left) {
-                    SetColumn(*_column - 1);
+                    if (_bindType == BindType::Axis) {
+                        column = column <= 0 ? 2 : 0;
+                    }
+                    else {
+                        column = column <= 0 ? 1 : 0;
+                    }
+
                     return true;
                 }
 
                 if (action == MenuAction::Right) {
-                    SetColumn(*_column + 1);
+                    // Skip columns due to axis inputs hiding the second binding
+                    if (_bindType == BindType::Axis) {
+                        column = column >= 2 ? 0 : 2;
+                    }
+                    else {
+                        column = column >= 1 ? 0 : 1;
+                    }
                     return true;
                 }
             }
@@ -307,8 +293,14 @@ namespace Inferno::UI {
         }
 
         void OnSelect() override {
-            if (_bindType != BindType::Axis && *_column > 1)
-                *_column = 1;
+            auto& column = *_column;
+
+            if (_bindType == BindType::Axis) {
+                if (column == 1) column = 0;
+            }
+            else {
+                if (column == 2) column = 1;
+            }
         }
 
         Vector2 GetInvertCheckboxPosition() const {
@@ -371,7 +363,7 @@ namespace Inferno::UI {
 
             {
                 // Value
-                auto valueLabel = _waitingForInput && column == 0 ? _bindType == BindType::Axis ? "move axis" : "press a key" : _shortcut;
+                auto valueLabel = _waitingForInput && column == 0 ? _bindType == BindType::Axis ? "move axis" : "press button" : _shortcut;
                 auto valueSize = MeasureString(valueLabel, FontSize::Small).x;
 
                 Render::DrawTextInfo dti;
@@ -428,17 +420,6 @@ namespace Inferno::UI {
                     cbi.Color.A(1);
                     Render::UICanvas->DrawBitmap(cbi, Layer);
                 }
-
-                //if(_invert) {
-                //    cbi.Position = boxPosition + Vector2(1,1);
-                //    cbi.Position.x += (ValueWidth * 2 + Spacing * 2 + 25) * GetScale();
-
-                //    cbi.Size.x = cbi.Size.y = ScreenSize.y - (Padding.y + 2) * GetScale();
-                //    cbi.Texture = Render::Materials->White().Handle();
-                //    cbi.Color = ACCENT_GLOW;
-                //    cbi.Color.A(1);
-                //    Render::UICanvas->DrawBitmap(cbi, Layer);
-                //}
             }
         }
     };
@@ -544,11 +525,12 @@ namespace Inferno::UI {
 
     class BindingDialog : public DialogBase {
         List<BindingControl*> _bindingControls;
-        List<Input::Joystick> _gamepads;
+        List<Input::InputDevice> _gamepads;
         ListBox2* _bindingList = nullptr;
         ComboSelect* _deviceList = nullptr;
         int _index = 0; // the selected control. 0 is keyboard, 1 is mouse, 1 > is controllers and joysticks
         int _column = 0; // 0 to 2. Binding 1, Binding 2, Invert
+        Label* _footer = nullptr;
 
     public:
         void UpdateBindingList(span<GameAction> actions, InputDeviceBinding& device) {
@@ -557,6 +539,13 @@ namespace Inferno::UI {
             _bindingList->Children.clear();
             _bindingControls.clear();
             _column = 0;
+
+            if (device.type == Input::InputType::Gamepad) {
+                _footer->SetText("start cancels, back clears binding, hold back to clear all");
+            }
+            else {
+                _footer->SetText("esc cancels, ctrl+r resets all, ctrl+d clears binding");
+            }
 
             for (auto& action : actions) {
                 auto child = _bindingList->AddChild<BindingControl>(action, device, _column);
@@ -572,7 +561,7 @@ namespace Inferno::UI {
             List<string> deviceNames = { "Keyboard", "Mouse" };
 
             //if (Settings::Inferno.EnableGamepads) {
-            _gamepads = Input::GetJoysticks(); // Copy the current gamepads
+            _gamepads = Input::GetDevices(); // Copy the current gamepads
 
             for (auto& gamepad : _gamepads) {
                 deviceNames.push_back(gamepad.name);
@@ -599,8 +588,16 @@ namespace Inferno::UI {
                     UpdateBindingList(MouseInputs, Game::Bindings.GetMouse());
                 }
                 else if (index > 1) {
-                    if (auto device = Game::Bindings.GetDevice(_gamepads[index - 2].guid))
-                        UpdateBindingList(GamepadInputs, *device);
+                    auto& device = _gamepads.at(index - 2);
+
+                    if (auto binds = Game::Bindings.GetDevice(device.guid)) {
+                        UpdateBindingList(GamepadInputs, *binds);
+                    }
+                    else {
+                        // No binding entry for this device, add one
+                        auto& newDevice = Game::Bindings.AddDevice(device.guid, device.IsGamepad() ? Input::InputType::Gamepad : Input::InputType::Joystick);
+                        UpdateBindingList(GamepadInputs, newDevice);
+                    }
                 }
             };
 
@@ -627,9 +624,9 @@ namespace Inferno::UI {
                 invertHeader->Color = BLUE_TEXT;
 
                 //auto footer = AddChild<Label>("esc cancels, ctrl+r resets all, ctrl+d clears binding", FontSize::Small);
-                auto footer = AddChild<Label>("esc cancels, ctrl+r resets all, ctrl+d clears binding", FontSize::Small);
-                footer->Color = IDLE_BUTTON;
-                footer->Position = Vector2(DIALOG_PADDING + 5, 425);
+                _footer = AddChild<Label>("esc cancels, ctrl+r resets all, ctrl+d clears binding", FontSize::Small);
+                _footer->Color = IDLE_BUTTON;
+                _footer->Position = Vector2(DIALOG_PADDING + 5, 425);
             }
 
             _bindingList = AddChild<ListBox2>(20, Size.x - DIALOG_PADDING * 3);
@@ -639,27 +636,6 @@ namespace Inferno::UI {
         }
 
         bool HandleMenuAction(Input::MenuActionState action) override {
-            if (action == MenuAction::Left) {
-                _column--;
-                if (_column < 0) _column = 2;
-            }
-
-            if (action == MenuAction::Right) {
-                _column++;
-                if (_column > 2) _column = 0;
-            }
-
-            //if (action == MenuAction::Up) {
-            //    if (_bindingList->GetIndex() > 0) {
-            //        _bindingList->SelectPrevious(); // Navigate within list
-            //    }
-            //}
-
-            //if (action == MenuAction::Down) {
-            //    if (_bindingList->GetIndex() < _bindingList->Children.size() - 1)
-            //        _bindingList->SelectNext(); // Navigate within list
-            //}
-
             if (action == MenuAction::Confirm) {
                 Selection->OnConfirm();
             }

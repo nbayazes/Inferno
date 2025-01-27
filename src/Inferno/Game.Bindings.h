@@ -160,18 +160,23 @@ namespace Inferno {
         }
 
         // Clear existing bindings using this binding
-        void UnbindOthers(const GameBinding& binding) {
+        void UnbindOthers(const GameBinding& binding, uint slot) {
             for (auto& group : bindings) {
-                for (auto& existing : group) {
+                for (size_t g = 0; g < group.size(); g++) {
+                    auto& existing = group[g];
+
                     if ((existing.type == BindType::Button && binding.type != BindType::Button) ||
                         (binding.type == BindType::Button && existing.type != BindType::Button))
-                        continue; // skip mismatched types
+                        continue; // skip mismatched types (only compare buttons to buttons, and non-buttons to other non-buttons)
 
-                    // todo: check for already existing axis bindings
-                    if (existing.id == binding.id &&
-                        //existing.type == binding.type &&
-                        existing.action != binding.action)
-                        existing = {};
+                    if (existing.action == binding.action) {
+                        if (existing.id == binding.id && g != slot)
+                            existing = {}; // Clear other slot
+                    }
+                    else {
+                        if (existing.id == binding.id && existing.action != binding.action)
+                            existing = {}; // Clear binding on other action
+                    }
                 }
             }
         }
@@ -182,7 +187,7 @@ namespace Inferno {
             if (binding.type == BindType::None)
                 binding.type = BindType::Button;
 
-            UnbindOthers(binding);
+            UnbindOthers(binding, slot);
             auto index = std::clamp(slot, 0u, (uint)GameAction::Count);
             bindings[(uint)binding.action][index] = binding;
         }
@@ -201,6 +206,10 @@ namespace Inferno {
         // Returns the binding label for an action
         string GetBindingLabel(GameAction action, int slot);
     };
+
+    void ResetGamepadBindings(InputDeviceBinding& device);
+    void ResetMouseBindings(InputDeviceBinding& device);
+    void ResetKeyboardBindings(InputDeviceBinding& device);
 
     class GameBindings {
         List<InputDeviceBinding> _devices;
@@ -227,11 +236,15 @@ namespace Inferno {
 
         span<InputDeviceBinding> GetDevices() { return _devices; }
 
-        InputDeviceBinding& AddDevice(string_view guid) {
+        InputDeviceBinding& AddDevice(string_view guid, Input::InputType type) {
             if (auto device = GetDevice(guid))
                 return *device;
 
-            return _devices.emplace_back(string(guid));
+            auto& device = _devices.emplace_back(string(guid), type);
+            if (type == Input::InputType::Gamepad)
+                ResetGamepadBindings(device);
+
+            return device;
         }
 
         bool Pressed(GameAction action);
@@ -243,10 +256,6 @@ namespace Inferno {
         // Returns the axis state summed across all controllers, scaled by sensitivity and deadzone
         float LinearAxis(GameAction action) const;
     };
-
-    void ResetGamepadBindings(InputDeviceBinding& device);
-    void ResetMouseBindings(InputDeviceBinding& device);
-    void ResetKeyboardBindings(InputDeviceBinding& device);
 
     namespace Game {
         inline GameBindings Bindings;

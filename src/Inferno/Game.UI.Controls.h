@@ -197,12 +197,12 @@ namespace Inferno::UI {
             if (!Enabled) return;
 
 
-            if ((Selectable ? Focused && Input::MouseMoved() : true) && !IsCursorCaptured()) {
-                Hovered = Contains(Input::MousePosition);
-            }
-
             for (auto& child : Children) {
                 child->OnUpdate();
+            }
+
+            if ((Selectable ? Focused && Input::MouseMoved() : true) && !IsCursorCaptured()) {
+                Hovered = Contains(Input::MousePosition);
             }
         }
 
@@ -319,9 +319,14 @@ namespace Inferno::UI {
 
         Label(string_view text, FontSize font = FontSize::Medium) : _text(text), _font(font) {
             Selectable = false;
-            _textSize = MeasureString(_text, _font);
-            Size = _textSize;
             Size.y = CONTROL_HEIGHT;
+            SetText(text);
+        }
+
+        void SetText(string_view text) {
+            _text = text;
+            _textSize = MeasureString(_text, _font);
+            Size.x = _textSize.x;
         }
 
         void OnDraw() override {
@@ -372,7 +377,7 @@ namespace Inferno::UI {
             _fontHeight = MeasureString("Descent", FontSize::Medium).y;
             AddChild(make_unique<Rectangle>());
             Padding = Vector2(2, 2);
-            ActionSound = MENU_SELECT_SOUND;
+            ActionSound = {};
 
             ClickAction = [this] {
                 if (ClickItemAction) ClickItemAction(_index);
@@ -567,7 +572,6 @@ namespace Inferno::UI {
             ControlBase::OnUpdate();
 
             using Input::Keys;
-            HitTestCursor();
 
             if (/*!Focused && */!IsMouseOver) {
                 ClampRanges(); // clamp in case the items change while the cursor isn't over the list
@@ -585,14 +589,12 @@ namespace Inferno::UI {
             auto wheelDelta = Input::GetWheelDelta();
             _scrollIndex -= wheelDelta / 40;
 
-            //if (wheelDelta != 0)
-            //    HitTestCursor(); // Update index when scrolling
-
             if (Children.size() <= _visibleItems) {
                 _scrollIndex = 0; // Reset scrolling if all items fit on screen
             }
 
             ClampRanges();
+            //HitTestCursor();
         }
 
         void ScrollToIndex(int index) {
@@ -602,6 +604,7 @@ namespace Inferno::UI {
                 _scrollIndex = index - _visibleItems + 2;
 
             ClampRanges();
+            //HitTestCursor();
         }
 
         void OnChildSelected(ControlBase* control) override {
@@ -614,6 +617,9 @@ namespace Inferno::UI {
 
         void OnDraw() override {
             const auto scale = GetScale();
+
+            //if (wheelDelta != 0)
+                //HitTestCursor(); // Update index when scrolling
 
             {
                 Render::CanvasBitmapInfo cbi;
@@ -683,7 +689,7 @@ namespace Inferno::UI {
         }
 
         Button(string_view text, Action&& action, AlignH alignment = AlignH::Left, FontSize font = FontSize::Medium) : _text(text), _alignment(alignment), _font(font) {
-            ClickAction = action;
+            ClickAction = std::move(action);
             _textSize = Size = MeasureString(_text, _font);
             Padding = Vector2{ 2, 2 };
             ActionSound = MENU_SELECT_SOUND;
@@ -721,7 +727,7 @@ namespace Inferno::UI {
     class CloseButton : public ControlBase {
     public:
         CloseButton(Action&& action) {
-            ClickAction = action;
+            ClickAction = std::move(action);
             Size = Vector2(15, 15);
             Selectable = false; // Disable keyboard navigation
             //ActionSound = MENU_BACK_SOUND;

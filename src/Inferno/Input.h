@@ -29,7 +29,7 @@ namespace Inferno::Input {
         "create", "PS", "options",
         "l3", "r3", "l1", "r1",
         "up", "down", "left", "right",
-        "mute", 
+        "mute",
         "paddle2", "paddle3", "paddle4", // unused
         "misc1",
         "touchpad", "misc2", "misc3", "misc4", "misc5"
@@ -39,7 +39,7 @@ namespace Inferno::Input {
 
     enum class HatDirection { Centered, Left, Right, Up, Down };
 
-    struct Joystick {
+    struct InputDevice {
         string guid; // guid used to save and restore bindings
         string name; // display name
         //bool connected = false;
@@ -63,56 +63,84 @@ namespace Inferno::Input {
             return fmt::format("button {}", button);
         }
 
-
         // State for inputs
-        std::array<float, 8> axes, axesPrevious; // axis values, normalized to -1 to 1
+        std::array<float, 8> axes, axesPrevious, axisRepeatTimer; // axis values, normalized to -1 to 1
+        std::bitset<8> axisHeld, axisRepeat;
 
         uint8 hat;
-        std::bitset<32> buttons, pressed, released, previous;
-        std::array<float, 3> gyro{};  // gyroscope
+        std::bitset<32> buttonPressed, buttonHeld, buttonReleased, buttonPrev, buttonRepeat;
+        std::array<float, 32> buttonRepeatTimer;
+        std::array<float, 3> gyro{}; // gyroscope
         std::array<float, 3> accel{}; // accelerometer
 
         float innerDeadzone = 0.1f;
         float outerDeadzone = 1.0f;
+
+        float repeatDelay = 0.5f; // Time before holding a button or axis repeats
+        float repeatSpeed = 0.04f; // Time between repeats
+
+        float axisThreshold = 0.3f; // How far an axis must travel to count as 'pressed'
 
         bool IsGamepad() const {
             return type != SDL_GAMEPAD_TYPE_UNKNOWN;
         }
 
         // true when button is first pressed or held down
-        bool Held(uint8 button) const {
-            if (button > buttons.size()) return false;
-            return buttons[button] || pressed[button];
+        bool ButtonHeld(uint8 button) const {
+            if (button > buttonPressed.size()) return false;
+            return buttonPressed[button] || buttonHeld[button];
         }
 
-        // true when button is first pressed
-        bool ButtonDown(uint8 button) const {
-            if (button > buttons.size()) return false;
-            return buttons[button];
+        // true when button is first pressed. optionally can check for repeats
+        bool ButtonWasPressed(uint8 button, bool repeat = false) const {
+            if (button > buttonPressed.size()) return false;
+            if (repeat && buttonRepeat[button])
+                return true;
+
+            return buttonPressed[button];
+            //return buttonPressed[button] || (repeat && buttonRepeat[button]);
         }
 
         // true when button is released
-        bool ButtonUp(uint8 button) const {
-            if (button > buttons.size()) return false;
-            return released[button];
+        bool ButtonWasReleased(uint8 button) const {
+            if (button > buttonPressed.size()) return false;
+            return buttonReleased[button];
         }
 
         // Returns true when an axis crosses a threshold value
-        bool AxisPressed(uint8 axis, bool positive, float threshold = 0.3f) const {
+        bool AxisPressed(uint8 axis, bool positive, bool repeat = false) const {
             if (axis > axes.size()) return false;
-            threshold = abs(threshold);
+            auto threshold = abs(axisThreshold);
 
             if (positive) {
-                return axes[axis] >= threshold && axesPrevious[axis] < threshold;
+                if (axes[axis] >= threshold) {
+                    if (axesPrevious[axis] < threshold) {
+                        return true; // crossed threshold
+                    }
+                    else if (repeat) {
+                        if (axisRepeat[axis])
+                            return true;
+                    }
+                }
             }
             else {
-                return axes[axis] <= -threshold && axesPrevious[axis] > -threshold;
+                if (axes[axis] <= -threshold) {
+                    if (axesPrevious[axis] > -threshold) {
+                        return true; // crossed threshold
+                    }
+                    else if (repeat) {
+                        if (axisRepeat[axis])
+                            return true;
+                    }
+                }
             }
+
+            return false;
         }
 
-        bool AxisReleased(uint8 axis, bool positive, float threshold = 0.3f) const {
+        bool AxisReleased(uint8 axis, bool positive) const {
             if (axis > axes.size()) return false;
-            threshold = abs(threshold);
+            auto threshold = abs(axisThreshold);
 
             if (positive) {
                 return axes[axis] < threshold && axesPrevious[axis] >= threshold;
@@ -122,7 +150,7 @@ namespace Inferno::Input {
             }
         }
 
-        // Returns true if an axis was pressed. Parameters provide the values.
+        // Returns true if any axis was pressed. Returns state through parameters.
         bool CheckAxisPressed(uint8& axis, bool& dir) const {
             for (uint8 i = 0; i < axes.size(); i++) {
                 if (AxisPressed(i, true)) {
@@ -141,8 +169,8 @@ namespace Inferno::Input {
         }
 
         bool CheckButtonDown(uint8& button) const {
-            for (uint8 i = 0; i < buttons.size(); i++) {
-                if (ButtonDown(i)) {
+            for (uint8 i = 0; i < buttonPressed.size(); i++) {
+                if (ButtonWasPressed(i)) {
                     button = i;
                     return true;
                 }
@@ -168,57 +196,83 @@ namespace Inferno::Input {
             }
         }
 
-        void Update() {
-            buttons.reset();
-            released.reset();
-
-            //axisReleased.reset();
-            //axisPressed.reset();
-            //pressed.reset();
-
-            previous = buttons;
+        void Update(float dt) {
+            buttonReleased.reset();
+            axisRepeat.reset();
+            buttonRepeat.reset();
+            buttonPrev = buttonPressed;
+            buttonPressed.reset();
             axesPrevious = axes;
+
+            for (uint8 i = 0; i < buttonHeld.size(); i++) {
+                if (buttonPrev[i]) {
+                    buttonRepeatTimer[i] = repeatDelay;
+                }
+                else if (buttonHeld[i]) {
+                    buttonRepeatTimer[i] -= dt;
+
+                    if (buttonRepeatTimer[i] <= 0) {
+                        buttonRepeatTimer[i] = repeatSpeed;
+                        buttonRepeat[i] = true;
+                    }
+                }
+            }
+
+            // Update axis hold state
+            for (uint8 i = 0; i < axes.size(); i++) {
+                bool wasHeld = axisHeld[i];
+                axisHeld[i] = axes[i] >= axisThreshold || axes[i] <= -axisThreshold;
+
+                if (axisHeld[i]) {
+                    if (wasHeld) {
+                        // Axis is held for several updates
+                        axisRepeatTimer[i] -= dt;
+
+                        if (axisRepeatTimer[i] <= 0) {
+                            // Trigger a repeat
+                            axisRepeatTimer[i] += repeatSpeed;
+                            axisRepeat[i] = true;
+                        }
+                    }
+                    else {
+                        // Newly moved axis, reset the timer
+                        axisRepeatTimer[i] = repeatDelay;
+                    }
+                }
+                else {
+                    axisRepeatTimer[i] = 0;
+                }
+            }
         }
 
         void ResetState() {
-            buttons.reset();
-            released.reset();
-            pressed.reset();
-            previous.reset();
-
-            //axisPressed.reset();
-            //axisReleased.reset();
-            //axisHeld.reset();
-            //axisPressed.reset();
+            buttonPressed.reset();
+            buttonReleased.reset();
+            buttonHeld.reset();
+            buttonPrev.reset();
+            ranges::fill(buttonRepeatTimer, 0.0f);
+            ranges::fill(axisRepeatTimer, 0.0f);
         }
 
         void Press(uint8 button) {
-            if (button > buttons.size()) return;
-            buttons[button] = true;
-            pressed[button] = true;
+            if (button > buttonPressed.size()) return;
+            buttonPressed[button] = true;
+            buttonHeld[button] = true;
         }
 
         void Release(uint8 button) {
-            if (button > buttons.size()) return;
-            buttons[button] = false;
-            pressed[button] = false;
-            released[button] = true;
+            if (button > buttonPressed.size()) return;
+            buttonPressed[button] = false;
+            buttonHeld[button] = false;
+            buttonReleased[button] = true;
         }
-
-        //string GetAxisLabel(uint8 axis) const {
-        //    
-        //}
-
-        //string GetHatLabel(uint8 hat) const {
-        //    
-        //}
     };
 
-    List<Joystick> GetJoysticks();
+    List<InputDevice> GetDevices();
 
     // Returns the state of a joystick with the given guid.
     // Filters to devices enabled in the global settings by default.
-    Joystick* GetJoystick(string_view guid, bool enabled = true);
+    InputDevice* GetDevice(string_view guid, bool enabled = true);
 
     Vector2 CircularDampen(const Vector2& input, float innerDeadzone, float outerDeadzone);
     float LinearDampen(float value, float innerDeadzone, float outerDeadzone);
@@ -286,24 +340,11 @@ namespace Inferno::Input {
 
     inline MenuActionState MenuActions;
 
-    // Returns the menu action for this update.
-    // Note: Only a single action can be returned at a time which might cause issues for diagonal inputs.
-    //MenuAction GetMenuAction();
-
     inline DirectX::SimpleMath::Vector2 MouseDelta;
     inline DirectX::SimpleMath::Vector2 MousePosition;
     inline DirectX::SimpleMath::Vector2 DragStart; // Mouse drag start position in screen coordinates
 
-    // Sums of all linear inputs (controller, joystick)
-    //inline float Pitch;
-    //inline float Yaw;
-    //inline float Roll;
-
-    //inline Vector3 Thrust; // Sum of all thrust inputs this update. (xyz: left/right, up/down, forward/rev)
-
     int GetWheelDelta();
-    //inline bool ScrolledUp() { return GetWheelDelta() > 0; }
-    //inline bool ScrolledDown() { return GetWheelDelta() < 0; }
 
     // Special conditions that check for left or right modifier keys. Also works reliably in editor mode.
     inline bool ControlDown;
@@ -311,7 +352,7 @@ namespace Inferno::Input {
     inline bool AltDown;
     inline bool HasFocus = true; // Window has focus
 
-    void Update();
+    void Update(float dt);
     void Initialize(HWND);
     void Shutdown();
 
@@ -343,15 +384,15 @@ namespace Inferno::Input {
 
     void ResetState();
 
-    void NextFrame();
+    void NextFrame(float dt);
 
     enum class SelectionState {
         None,
-        Preselect,    // Mouse button pressed
-        BeginDrag,    // Fires after preselect and the cursor moves
-        Dragging,     // Mouse is moving with button down
+        Preselect, // Mouse button pressed
+        BeginDrag, // Fires after preselect and the cursor moves
+        Dragging, // Mouse is moving with button down
         ReleasedDrag, // Mouse button released after dragging
-        Released      // Button released. Does not fire if dragging
+        Released // Button released. Does not fire if dragging
     };
 
     inline SelectionState DragState, LeftDragState, RightDragState;

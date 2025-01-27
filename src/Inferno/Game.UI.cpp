@@ -477,6 +477,8 @@ namespace Inferno::UI {
                         _level = 1; // Use the first level instead of showing selection screen
                         ShowDifficultySelect();
                     }
+
+                    Sound::Play2D(SoundResource{ ActionSound });
                 }
             };
 

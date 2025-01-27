@@ -43,9 +43,20 @@ namespace Inferno {
                 }
                 break;
             case Input::InputType::Gamepad:
-                // todo: check gamepad type
+            {
                 if (binding->type == BindType::Button && binding->id < Input::PS_BUTTON_LABELS.size()) {
-                    return Input::PS_BUTTON_LABELS[binding->id];
+                    auto gamepadType = SDL_GAMEPAD_TYPE_UNKNOWN;
+                    if (auto device = Input::GetDevice(guid))
+                        gamepadType = device->type;
+
+                    switch (gamepadType) {
+                        default:
+                            return Input::XBOX_BUTTON_LABELS[binding->id];
+                        case SDL_GAMEPAD_TYPE_PS3:
+                        case SDL_GAMEPAD_TYPE_PS4:
+                        case SDL_GAMEPAD_TYPE_PS5:
+                            return Input::PS_BUTTON_LABELS[binding->id];
+                    }
                 }
                 else if (binding->type == BindType::Axis) {
                     if (binding->id == SDL_GAMEPAD_AXIS_LEFTX)
@@ -94,6 +105,7 @@ namespace Inferno {
                 break;
             case Input::InputType::Joystick:
                 break;
+            }
         }
 
         return "";
@@ -101,11 +113,11 @@ namespace Inferno {
 
     bool GameBindings::Pressed(GameAction action) {
         for (auto& device : _devices) {
-            if (auto joystick = Input::GetJoystick(device.guid)) {
+            if (auto joystick = Input::GetDevice(device.guid)) {
                 for (auto& binding : device.bindings[(int)action]) {
                     switch (binding.type) {
                         case BindType::Button:
-                            if (joystick->ButtonDown(binding.id))
+                            if (joystick->ButtonWasPressed(binding.id))
                                 return true;
                             break;
                         case BindType::AxisButtonPlus:
@@ -142,11 +154,11 @@ namespace Inferno {
 
     bool GameBindings::Held(GameAction action) {
         for (auto& device : _devices) {
-            if (auto joystick = Input::GetJoystick(device.guid)) {
+            if (auto joystick = Input::GetDevice(device.guid)) {
                 for (auto& binding : device.bindings[(int)action]) {
                     switch (binding.type) {
                         case BindType::Button:
-                            if (joystick->Held(binding.id))
+                            if (joystick->ButtonHeld(binding.id))
                                 return true;
                             break;
                         case BindType::AxisButtonPlus:
@@ -185,7 +197,7 @@ namespace Inferno {
         float value = 0;
 
         for (auto& device : _devices) {
-            if (auto joystick = Input::GetJoystick(device.guid)) {
+            if (auto joystick = Input::GetDevice(device.guid)) {
                 for (auto& binding : device.bindings[(int)action]) {
                     if (!Seq::inRange(joystick->axes, binding.id)) continue;
 
@@ -350,6 +362,9 @@ namespace Inferno {
 
         device.Bind({ .action = GameAction::YawAxis, .id = (int)Input::MouseAxis::MouseX, .type = BindType::Axis });
         device.Bind({ .action = GameAction::PitchAxis, .id = (int)Input::MouseAxis::MouseY, .type = BindType::Axis, .invert = true });
+
+        device.Bind({ .action = GameAction::CyclePrimary, .id = (int)Input::MouseButtons::WheelUp });
+        device.Bind({ .action = GameAction::CycleSecondary, .id = (int)Input::MouseButtons::WheelDown });
     }
 
     void ResetGamepadBindings(InputDeviceBinding& device) {

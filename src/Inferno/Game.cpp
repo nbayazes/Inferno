@@ -554,7 +554,7 @@ namespace Inferno::Game {
             CheckLoadLevel();
 
         Game::BriefingVisible = false;
-        Input::Update();
+        Input::Update(dt);
         CheckGlobalHotkeys();
 
         if (Game::State == GameState::Editor) {
@@ -703,7 +703,7 @@ namespace Inferno::Game {
         LegitProfiler::CpuTasks.clear();
         LegitProfiler::GpuTasks.clear();
 
-        Input::NextFrame();
+        //Input::NextFrame(dt);
 
         if (State == GameState::LoadLevel) {
             Game::CheckLoadLevel(); // block until done loading

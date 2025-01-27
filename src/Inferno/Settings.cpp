@@ -473,8 +473,7 @@ namespace Inferno {
         if (node.is_seed()) return;
 
         // todo: load real bindings
-        auto& ps5 = Game::Bindings.AddDevice("050057564c050000e60c000000006800");
-        ps5.type = Input::InputType::Gamepad;
+        auto& ps5 = Game::Bindings.AddDevice("050057564c050000e60c000000006800", Input::InputType::Gamepad);
         ResetGamepadBindings(ps5);
         ResetKeyboardBindings(Game::Bindings.GetKeyboard());
         ResetMouseBindings(Game::Bindings.GetMouse());
