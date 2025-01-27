@@ -204,7 +204,7 @@ namespace Inferno {
         ShipRollMode ShipRoll = ShipRollMode::Normal;  // Scales the amount of roll to apply to the player when turning
         WindowMode WindowMode = WindowMode::Fullscreen;
         bool Fullscreen = false;
-        bool Maximized = true; // Maximized or windowed
+        bool Maximized = true; // Maximized or windowed when in windowed mode
         bool ShipAutolevel = false;
         bool NoAutoselectWhileFiring = true;
         bool AutoselectAfterFiring = true;

@@ -55,15 +55,15 @@ void SaveWindowSize() {
     GetWindowPlacement(hWnd, &placement);
     Settings::Inferno.Maximized = placement.showCmd == SW_SHOWMAXIMIZED;
 
-    RECT windowRect{};
-    GetWindowRect(hWnd, &windowRect);
-
-    // account for borders
-    RECT client{};
-    GetClientRect(hWnd, &client);
-
     // Only update settings if the window isn't maximized - otherwise it will save garbage
     if (!Settings::Inferno.Maximized) {
+        RECT windowRect{};
+        GetWindowRect(hWnd, &windowRect);
+
+        // account for borders
+        RECT client{};
+        GetClientRect(hWnd, &client);
+
         Settings::Inferno.WindowPosition = { (uint)windowRect.left, (uint)windowRect.top };
         Settings::Inferno.WindowSize = { uint(client.right - client.left), uint(client.bottom - client.top) };
     }
@@ -352,14 +352,9 @@ namespace Inferno {
         AppFullscreen = Settings::Inferno.Fullscreen;
 
         if (!Inferno::Settings::Inferno.Fullscreen) {
-            bool maximized = Settings::Inferno.Maximized;
-            SaveWindowSize();
-
             // Restore window position and size
             SetWindowLongPtr(hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW);
             SetWindowLongPtr(hWnd, GWL_EXSTYLE, 0);
-
-            auto flags = SWP_NOZORDER | SWP_FRAMECHANGED;
 
             auto size = Settings::Inferno.WindowSize;
             auto pos = Settings::Inferno.WindowPosition;
@@ -371,8 +366,8 @@ namespace Inferno {
             auto width = windowRect.right - windowRect.left;
             auto height = windowRect.bottom - windowRect.top;
 
-            SetWindowPos(hWnd, HWND_TOP, pos.x, pos.y, width, height, flags);
-            ShowWindow(hWnd, maximized ? SW_SHOWMAXIMIZED : SW_SHOW);
+            SetWindowPos(hWnd, HWND_TOP, pos.x, pos.y, width, height, SWP_NOZORDER | SWP_FRAMECHANGED);
+            ShowWindow(hWnd, Settings::Inferno.Maximized ? SW_SHOWMAXIMIZED : SW_SHOW);
 
             RECT client{};
             GetClientRect(hWnd, &client);
