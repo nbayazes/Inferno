@@ -179,19 +179,19 @@ namespace Inferno {
         VClipID WallHitVClip = VClipID::None;
         SoundID WallHitSound = SoundID::None;
 
-        bool IsDestroyable = false;     // If true this weapon can be destroyed by another weapon
-        bool IsMatter = false;          // Is a matter weapon if true, energy if false
-        sbyte Bounce = 0;           // 1 always bounces, 2 bounces twice
+        bool IsDestroyable = false; // If true this weapon can be destroyed by another weapon
+        bool IsMatter = false; // Is a matter weapon if true, energy if false
+        sbyte Bounce = 0; // 1 always bounces, 2 bounces twice
         bool IsHoming = false;
 
-        float SpeedVariance = 1;  // Randomized speed multiplier. 0.5 is 50-100%, 1.5 is 150-100%
+        float SpeedVariance = 1; // Randomized speed multiplier. 0.5 is 50-100%, 1.5 is 150-100%
 
         WeaponFlag Flags{};
 
         sbyte FlashStrength = 0; // Blinding flash effect strength
         sbyte TrailSize; // Size of blobs in 1/16 units. Player afterburner size = 2.5.
 
-        WeaponID Spawn = WeaponID::None;  // Weapon to spawn when destroyed
+        WeaponID Spawn = WeaponID::None; // Weapon to spawn when destroyed
         uint SpawnCount = 0; // NEW: number of children to spawn
 
         float EnergyUsage = 0.5f;
@@ -200,7 +200,7 @@ namespace Inferno {
         float PlayerDamageScale = 1; // Scale damage by this amount when hitting a player
 
         TexID BlobBitmap = TexID::None;
-        float BlobSize = 0;  // Size of blob if blob type, used for collision
+        float BlobSize = 0; // Size of blob if blob type, used for collision
 
         float FlashSize; // Muzzle flash radius
         float ImpactSize; // Radius of effect when hitting something
@@ -209,222 +209,15 @@ namespace Inferno {
         float Mass = 1;
         float Drag = 0;
         float Thrust = 0;
-        float ModelSizeRatio = 1;  // Ratio of length / width for models
+        float ModelSizeRatio = 1; // Ratio of length / width for models
         float Light = 0;
         float Lifetime = 20.0f;
         float SplashRadius = 0; // Applies damage in an area. Effectively doubles damage on direct hits.
-        TexID Icon = TexID::None, HiresIcon = TexID::None;  // Texture to use in the cockpit or UI
+        TexID Icon = TexID::None, HiresIcon = TexID::None; // Texture to use in the cockpit or UI
 
         WeaponExtended Extended{};
 
         float GetDecalSize() const { return Extended.DecalRadius ? Extended.DecalRadius : ImpactSize / 3; }
         bool IsExplosive() const { return SplashRadius > 0; }
-    };
-
-    struct ShipInfo {
-        float DamageMultiplier = 1.0f; // Multiplier on damage taken
-        float EnergyMultiplier = 1.0f; // Multiplier for weapon energy costs
-
-        //struct PrimaryAmmo {
-        //    int Max = 10000;
-        //    float DisplayMultiplier = 1;
-        //};
-
-        // Ammo used by primary weapons. Vulcan and Gauss share. Could add Napalm fuel.
-        //List<PrimaryAmmo> PrimaryAmmoTypes;
-
-        struct WeaponBattery {
-            //float EnergyUsage = 0; // Energy per shot
-            //float AmmoUsage = 0; // Ammo per shot
-            //int AmmoType = -1;
-            //int GunpointWeapons[8]{}; // Weapon IDs to use for each gunpoint
-            WeaponID Weapon;
-            //bool Gunpoints[8]{};
-
-            // Crosshair should be determined by gunpoints
-            struct FiringInfo {
-                bool Gunpoints[8]{};
-                float Delay = 0.25f; // Delay between shots
-            };
-
-            List<FiringInfo> Firing; // Cycles through each entry after firing.
-
-            bool QuadGunpoints[8]{}; // Gunpoints to use with quad upgrade
-            uint16 MaxAmmo = 0;
-        };
-
-        WeaponBattery Weapons[20]; // 10 primaries, 10 secondaries
-    };
-
-    inline ShipInfo PyroGX = {
-        .Weapons = {
-            {
-                ShipInfo::WeaponBattery {
-                    .Weapon = WeaponID::Laser1,
-                    .Firing = { {.Gunpoints = { 1, 1 } } },
-                    .QuadGunpoints = { 1, 1, 1, 1 }
-                }
-            },
-            {
-                ShipInfo::WeaponBattery {
-                    .Weapon = WeaponID::Vulcan,
-                    .Firing = {
-                        {.Gunpoints = { 0, 0, 0, 0, 0, 0, 1 } } // 6 is center gunpoint 
-                    },
-                    .MaxAmmo = 20000 // 10000 in D1
-                }
-            },
-            {
-                ShipInfo::WeaponBattery {
-                    .Weapon = WeaponID::Spreadfire,
-                    .Firing = {
-                        {.Gunpoints = { 0, 0, 0, 0, 0, 0, 1 } } // 6 is center gunpoint 
-                    }
-                }
-            },
-            {
-                ShipInfo::WeaponBattery {
-                    .Weapon = WeaponID::Plasma,
-                    .Firing = { {.Gunpoints = { 1, 1 } } }
-                }
-            },
-            {
-                ShipInfo::WeaponBattery {
-                    .Weapon = WeaponID::Fusion,
-                    .Firing = { {.Gunpoints = { 1, 1 } } }
-                }
-            },
-            {
-                ShipInfo::WeaponBattery {
-                    .Weapon = WeaponID::Laser5,
-                    .Firing = { {.Gunpoints = { 1, 1 } } },
-                    .QuadGunpoints = { 1, 1, 1, 1 }
-                }
-            },
-            {
-                ShipInfo::WeaponBattery {
-                    .Weapon = WeaponID::Gauss,
-                    .Firing = {
-                        {.Gunpoints = { 0, 0, 0, 0, 0, 0, 1 } } // 6 is center gunpoint 
-                    }
-                }
-            },
-            {
-                ShipInfo::WeaponBattery {
-                    .Weapon = WeaponID::Helix,
-                    .Firing = {
-                        {.Gunpoints = { 0, 0, 0, 0, 0, 0, 1 } } // 6 is center gunpoint 
-                    }
-                }
-            },
-            {
-                ShipInfo::WeaponBattery {
-                    .Weapon = WeaponID::Phoenix,
-                    .Firing = { {.Gunpoints = { 1, 1 } } }
-                }
-            },
-            {
-                ShipInfo::WeaponBattery {
-                    .Weapon = WeaponID::Omega,
-                    .Firing = { {.Gunpoints = { 0, 1 } } }
-                }
-            },
-            {
-                // Secondaries (Gun 4 and 5 for alternating)
-                ShipInfo::WeaponBattery {
-                    .Weapon = WeaponID::Concussion,
-                    .Firing = {
-                        {.Gunpoints = { 0, 0, 0, 0, 1 } },
-                        {.Gunpoints = { 0, 0, 0, 0, 0, 1 } }
-                    },
-                    .MaxAmmo = 20
-                }
-            },
-            {
-                ShipInfo::WeaponBattery {
-                    .Weapon = WeaponID::Homing,
-                    .Firing = {
-                        {.Gunpoints = { 0, 0, 0, 0, 1 } },
-                        {.Gunpoints = { 0, 0, 0, 0, 0, 1 } }
-                    },
-                    .MaxAmmo = 12 // Was 10. Only carrying 2 and a half packs of missiles is weird.
-                }
-            },
-            {
-                ShipInfo::WeaponBattery {
-                    .Weapon = WeaponID::ProxMine,
-                    .Firing = {
-                        {.Gunpoints = { 0, 0, 0, 0, 0, 0, 0, 1 } } // 7 is rear gunpoint
-                    },
-                    .MaxAmmo = 12
-                }
-            },
-            {
-                ShipInfo::WeaponBattery {
-                    .Weapon = WeaponID::Smart,
-                    .Firing = {
-                        {.Gunpoints = { 0, 0, 0, 0, 0, 0, 1 } } // 6 is center gunpoint
-                    },
-                    .MaxAmmo = 5
-                }
-            },
-            {
-                ShipInfo::WeaponBattery {
-                    .Weapon = WeaponID::Mega,
-                    .Firing = {
-                        {.Gunpoints = { 0, 0, 0, 0, 0, 0, 1 } } // 6 is center gunpoint
-                    },
-                    .MaxAmmo = 5
-                }
-            },
-            {
-                ShipInfo::WeaponBattery {
-                    .Weapon = WeaponID::Flash,
-                    .Firing = {
-                        {.Gunpoints = { 0, 0, 0, 0, 1 } },
-                        {.Gunpoints = { 0, 0, 0, 0, 0, 1 }  }
-                    },
-                    .MaxAmmo = 20
-                }
-            },
-            {
-                ShipInfo::WeaponBattery {
-                    .Weapon = WeaponID::Guided,
-                    .Firing = {
-                        {.Gunpoints = { 0, 0, 0, 0, 1 } },
-                        {.Gunpoints = { 0, 0, 0, 0, 0, 1 } }
-                    },
-                    .MaxAmmo = 20
-                }
-            },
-            {
-                ShipInfo::WeaponBattery {
-                    .Weapon = WeaponID::SmartMine,
-                    .Firing = {
-                        {.Gunpoints = { 0, 0, 0, 0, 0, 0, 0, 1 } } // 7 is rear gunpoint
-                    },
-                    .MaxAmmo = 16 // was 15
-                }
-            },
-            {
-                ShipInfo::WeaponBattery {
-                    .Weapon = WeaponID::Mercury,
-                    .Firing = {
-                        {.Gunpoints = { 0, 0, 0, 0, 1 } },
-                        {.Gunpoints = { 0, 0, 0, 0, 0, 1 } }
-                    },
-                    .MaxAmmo = 10
-                }
-            },
-            {
-                ShipInfo::WeaponBattery {
-                    .Weapon = WeaponID::Shaker,
-                    .Firing = {
-                        {.Gunpoints = { 0, 0, 0, 0, 0, 0, 1 } } // 6 is center gunpoint
-                    },
-                    .MaxAmmo = 10 // Really?
-                }
-            },
-        }
     };
 }

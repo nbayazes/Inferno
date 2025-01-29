@@ -129,6 +129,7 @@
     <ClInclude Include="Robot.h" />
     <ClInclude Include="Room.h" />
     <ClInclude Include="Segment.h" />
+    <ClInclude Include="Ship.h" />
     <ClInclude Include="Sound.h" />
     <ClInclude Include="Streams.h" />
     <ClInclude Include="StringTable.h" />

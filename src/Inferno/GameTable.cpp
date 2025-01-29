@@ -1,11 +1,22 @@
 ﻿#include "pch.h"
 #include <fstream>
+#include <ryml/ryml_std.hpp>
+#include <ryml/ryml.hpp>
+#include "Game.h"
 #include "VisualEffects.h"
 #include "HamFile.h"
 #include "logging.h"
+#include "Resources.h"
+#include "Ship.h"
 #include "Yaml.h"
 
 namespace Inferno {
+    void PrintNode(ryml::NodeRef node) {
+        std::stringstream ss;
+        ss << ryml::as_json(node);
+        string s = ss.str();
+    }
+
     template <class T>
     bool ReadArray(ryml::NodeRef node, span<T> values) {
         if (!node.readable()) return false;
@@ -286,6 +297,74 @@ namespace Inferno {
             tracers[*name] = info;
     }
 
+    void ReadGunpoints(ryml::NodeRef node, std::bitset<MAX_GUNPOINTS>& gunpoints) {
+        if (node.invalid() || node.is_seed()) return;
+        gunpoints.reset();
+
+        if (node.has_val()) {
+            int gunpoint{};
+            Yaml::ReadValue(node, gunpoint);
+            if (gunpoint < MAX_GUNPOINTS)
+                gunpoints[gunpoint] = true;
+        }
+        else if (node.is_seq()) {
+            // Don't make this a const ref, it'll crash if the value is missing
+            for (auto pt : node.children()) {
+                int gunpoint{};
+                Yaml::ReadValue(pt, gunpoint);
+                if (gunpoint < MAX_GUNPOINTS)
+                    gunpoints[gunpoint] = true;
+            }
+        }
+    }
+
+    void ReadShip(ryml::NodeRef node, ShipInfo& ship) {
+#define READ_PROP(name) Yaml::ReadValue(node[#name], ship.##name)
+        READ_PROP(Name);
+        READ_PROP(DamageTaken);
+        READ_PROP(EnergyMultiplier);
+        READ_PROP(Mass);
+        READ_PROP(Drag);
+        READ_PROP(MaxThrust);
+        READ_PROP(MaxRotationalThrust);
+        READ_PROP(Wiggle);
+        READ_PROP(TurnRollRate);
+        READ_PROP(TurnRollScale);
+#undef READ_PROP
+
+        if (!node["Gunpoints"].invalid() && node["Gunpoints"].readable() && node["Gunpoints"].has_children()) {
+            int g = 0;
+            for (auto gunpoint : node["Gunpoints"].children()) {
+                Yaml::ReadValue(gunpoint, ship.Gunpoints[g++]);
+                if (g >= MAX_GUNPOINTS) break;
+            }
+        }
+
+        //Yaml::ReadValue(node["Name"], ship.Name);
+        //Yaml::ReadValue(node["DamageTaken"], ship.DamageTaken);
+        //Yaml::ReadValue(node["Mass"], ship.Mass);
+        //Yaml::ReadValue(node["Drag"], ship.Drag);
+
+        int i = 0;
+        for (auto weaponNode : node["Weapons"].children()) {
+            auto& weapon = ship.Weapons[i++];
+            weapon = {};
+
+            Yaml::ReadValue(weaponNode["Weapon"], weapon.WeaponName);
+            Yaml::ReadValue(weaponNode["MaxAmmo"], weapon.MaxAmmo);
+            Yaml::ReadValue(weaponNode["SequenceResetTime"], weapon.SequenceResetTime);
+
+            ReadGunpoints(weaponNode["QuadGunpoints"], weapon.QuadGunpoints);
+
+            for (auto firingNode : weaponNode["Firing"]) {
+                WeaponBattery::FiringInfo firingInfo;
+                Yaml::ReadValue(firingNode["Delay"], firingInfo.Delay);
+                ReadGunpoints(firingNode["Gunpoints"], firingInfo.Gunpoints);
+                weapon.Firing.push_back(firingInfo);
+            }
+        }
+    }
+
     void ReadRobotInfo(ryml::NodeRef node, HamFile& ham, int& id) {
         Yaml::ReadValue(node["id"], id);
         if (!Seq::inRange(ham.Robots, id)) return;
@@ -511,6 +590,12 @@ namespace Inferno {
                 SPDLOG_INFO("Loaded {} tracers", EffectLibrary.Tracers.size());
             }
 
+
+            if (auto ships = root["Ships"]; !ships.is_seed()) {
+                for (const auto& child : ships.children()) {
+                    ReadShip(child, Resources::GameData.PlayerShip);
+                }
+            }
         }
         catch (const std::exception& e) {
             SPDLOG_ERROR("Error loading game table:\n{}", e.what());

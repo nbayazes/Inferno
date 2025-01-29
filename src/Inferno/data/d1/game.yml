@@ -1328,3 +1328,158 @@ Effects:
       BlobTexture: Tracerblob
       Color: 1, .4, .4, 2
       FadeSpeed: 0.2
+
+Ships:
+  - Name: Pyro-GX
+    Model: 43
+    ExplosionVClip: 58
+    Mass: 4
+    Drag: 0.033
+    MaxThrust: 7.8
+    MaxRotationalThrust: 0.14
+    TurnRollScale: 1.9332 # FixToFloat(0x4ec4) * 2PI
+    TurnRollRate: 0.7854 # FixToFloat(0x2000) * 2PI
+    DamageTaken: 1.0 # Multiplier on damage taken
+    EnergyMultiplier: 1.0
+    Gunpoints:
+      - 2.22798157, -0.911682129, -0.545593262
+      - -2.25032043, -0.913879395, -0.525360107
+      - 3.38757324, -1.80775452, -2.26136780
+      - -3.41001892, -1.80378723, -2.26290894 
+      - 2.33499146, -0.00282287598, 1.39472961
+      - -2.39318848, -0.00282287598, 1.39472961
+      - 0.0245361328, -1.33763123, -2.82254028
+      - -0.0245361328, -1.33763123, 2.91175842
+    Weapons: # NOTE: The order is significant and must equal 20 weapons
+      - Weapon: Laser
+        EnergyUsage: 0.25 # Lower energy cost to make early game less tedious. Quads double the cost.
+        QuadGunpoints: [ 0, 1, 2, 3 ]
+        Firing:
+          - Delay: 0.25
+            Gunpoints: [ 0, 1 ]
+      - Weapon: Vulcan
+        AmmoUsage: 10 # Was around 14
+        Ammo: 10000
+        AmmoType: Vulcan
+        Firing:
+          - Delay: 0.125
+            Gunpoints: 6 # center gunpoint
+      - Weapon: Spreadfire
+        EnergyUsage: 0.5
+        Firing:
+          - Delay: 0.2
+            Gunpoints: 6 # center gunpoint
+      - Weapon: Plasma
+        EnergyUsage: 0.5
+        SequenceResetTime: 0.25 # Resets the firing sequence after this long of not firing
+        Firing:
+          # - Delay: 0.15 # original
+          #   Gunpoints: [ 0, 1 ]
+          - Delay: 0.1
+            Gunpoints: [ 0, 1 ]
+          - Delay: 0.1
+            Gunpoints: [ 0, 1 ]
+          - Delay: 0.1
+            Gunpoints: [ 0, 1 ]
+          - Delay: 0.1
+            Gunpoints: [ 0, 1 ]
+          - Delay: 0.1
+            Gunpoints: [ 0, 1 ]
+          - Delay: .4 # overheat
+            Gunpoints: [ 0, 1 ]
+      - Weapon: Fusion
+        EnergyUsage: 2 # Game was hard coded to subtract 2 cost on charge start
+        Firing:
+          - Delay: 1
+            Gunpoints: [ 0, 1 ]
+      - Weapon: SuperLaser
+        QuadGunpoints: [ 0, 1, 2, 3 ]
+        Firing:
+          - Delay: 0.25
+            Gunpoints: [ 0, 1 ]
+      - Weapon: Gauss
+        Ammo: 10000
+        AmmoType: Vulcan # Share with vulcan
+        Firing:
+          - Delay: 0.15
+            Gunpoints: 6 # center gunpoint
+      - Weapon: Helix
+        Firing:
+          - Delay: 0.15
+            Gunpoints: 6 # center gunpoint
+      - Weapon: Phoenix
+        Firing:
+          - Delay: 0.12
+            Gunpoints: [0, 1]
+      - Weapon: Omega
+        Firing:
+          - Gunpoints: 1 # Left side only
+      - Weapon: Concussion
+        Ammo: 20
+        RackAmmo: 32
+        Firing:
+          - Delay: 0.5
+            Gunpoints: 4
+          - Delay: 0.5
+            Gunpoints: 5
+      - Weapon: Homing
+        Ammo: 12 # Was 10. Only carrying 2 and a half packs of missiles is weird.
+        RackAmmo: 20
+        Firing:
+          - Delay: 0.5
+            Gunpoints: 4
+          - Delay: 0.5
+            Gunpoints: 5
+      - Weapon: ProxMine
+        Ammo: 12 # Was 10
+        RackAmmo: 20
+        Firing:
+          - Delay: 0.25
+            Gunpoints: 7 # rear gunpoint
+      - Weapon: Smart
+        Ammo: 5
+        RackAmmo: 8
+        Firing:
+          - Delay: 0.5
+            Gunpoints: 6 # center gunpoint
+      - Weapon: Mega
+        Ammo: 5
+        RackAmmo: 8
+        Hazardous: 1 # Enables warning behavior when selecting this weapon (sound, trigger lock)
+        Firing:
+          - Delay: 1
+            Gunpoints: 6 # center gunpoint
+      - Weapon: Flash
+        Ammo: 20
+        RackAmmo: 32
+        Firing:
+          - Delay: 0.6
+            Gunpoints: 4
+          - Delay: 0.6
+            Gunpoints: 5
+      - Weapon: Guided
+        Ammo: 20
+        Firing:
+          - Delay: 0.25
+            Gunpoints: 6 # center gunpoint, the original behavior was to alternate
+      - Weapon: SmartMine
+        Ammo: 16 # Was 15. Should this be 12 to match regular mines?
+        RackAmmo: 24
+        Firing:
+          - Delay: 0.25
+            Gunpoints: 7
+      - Weapon: Mercury
+        Ammo: 12 # Was 10
+        RackAmmo: 20
+        Firing:
+          - Delay: 0.25
+            Gunpoints: 4
+          - Delay: 0.25
+            Gunpoints: 5
+      - Weapon: Shaker
+        Ammo: 5 # Was 10. Why? Megas are 5
+        RackAmmo: 8
+        Hazardous: 1
+        Firing:
+          - Delay: 0.25
+            Gunpoints: 6 # center gunpoint

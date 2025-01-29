@@ -902,10 +902,12 @@ namespace Inferno::Game {
 
     bool StartLevel() {
         SPDLOG_INFO("Starting level");
-        auto player = Level.TryGetObject(ObjID(0));
+        Editor::SetPlayerStartIDs(Level);
 
         if (!CheckForPlayerStart(Level))
             return false;
+
+        auto& player = GetPlayerObject();
 
         // todo: disable this when not launched from the editor
         if (Input::ControlDown && Level.SegmentExists(Editor::Selection.Segment)) {
@@ -923,23 +925,9 @@ namespace Inferno::Game {
         Game::ScreenGlow.SetTarget(Color(0, 0, 0, 0), Game::Time, 0);
 
         // Activate game mode
-        InitObject(*player, ObjectType::Player);
-        Player.Reference = { ObjID(0), player->Signature };
-        Player.SpawnPosition = player->Position;
-        Player.SpawnRotation = player->Rotation;
-        Player.SpawnSegment = player->Segment;
-        Player.Stats.HostagesOnLevel = 0;
-        Player.Stats.Kills = 0;
-        Player.Stats.Robots = 0;
-        Player.HostagesOnShip = 0;
-        Player.HostagesRescued = 0;
-        Player.Stats.TotalHostages = 0; // todo: move this to start mission function
-        Player.Lives = PlayerData::INITIAL_LIVES; // todo: move this to start mission function
-        player->Faction = Faction::Player;
-
         State = GameState::Game;
-        Player.LevelStartScore = Player.Score;
 
+        // Reset resources
         ResetCountdown();
         StuckObjects = {};
         Sound::WaitInitialized();
@@ -955,9 +943,31 @@ namespace Inferno::Game {
         PlayLevelMusic();
 
         Automap = AutomapInfo(Level);
-        Editor::SetPlayerStartIDs(Level);
+
+        // Reset player state
+        InitObject(player, ObjectType::Player);
+
+        Player.Reference = { ObjID(0), player.Signature };
+        Player.SpawnPosition = player.Position;
+        Player.SpawnRotation = player.Rotation;
+        Player.SpawnSegment = player.Segment;
+        Player.Stats.HostagesOnLevel = 0;
+        Player.Stats.Kills = 0;
+        Player.Stats.Robots = 0;
+        Player.HostagesOnShip = 0;
+        Player.HostagesRescued = 0;
+        Player.Stats.TotalHostages = 0; // todo: move this to start mission function
+        Player.Lives = PlayerData::INITIAL_LIVES; // todo: move this to start mission function
+        Player.LevelStartScore = Player.Score;
+
         // Default the gravity direction to the player start
-        Gravity = player->Rotation.Up() * -DEFAULT_GRAVITY;
+        Gravity = player.Rotation.Up() * -DEFAULT_GRAVITY;
+        Game::Player.Ship = Resources::GameData.PlayerShip;
+
+        // Copy settings into player object
+        player.Faction = Faction::Player;
+        player.Physics.TurnRollRate = Game::Player.Ship.TurnRollRate;
+        player.Physics.TurnRollScale = Game::Player.Ship.TurnRollScale;
 
         Navigation = NavigationNetwork(Level);
         Level.Rooms = CreateRooms(Level);
@@ -968,7 +978,7 @@ namespace Inferno::Game {
         for (int id = 0; id < Level.Objects.size(); id++) {
             auto& obj = Level.Objects[id];
 
-            if ((obj.IsPlayer() && obj.ID != 0) || obj.IsCoop()) {
+            if ((obj.IsPlayer() && id != 0) || obj.IsCoop()) {
                 obj.Lifespan = -1; // Remove non-player 0 starts (no multiplayer)
                 obj.Render.Type = RenderType::None; // Make invisible
             }

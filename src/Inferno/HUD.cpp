@@ -245,7 +245,7 @@ namespace Inferno {
 
         if (Secondary_weapon_to_gun_num[(int)Game::Player.Secondary] == 7)
             secondaryFrame += 3; //now value is 0,1 or 3,4
-        else if (secondaryFrame && !(Game::Player.MissileFiringIndex & 1))
+        else if (secondaryFrame && !(Game::Player.SecondaryFiringIndex & 1))
             secondaryFrame++;
 
         DrawReticleBitmap(secondaryOffset, Gauges::ReticleSecondary, secondaryFrame, scale);

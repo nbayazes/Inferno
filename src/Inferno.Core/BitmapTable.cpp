@@ -715,7 +715,7 @@ namespace Inferno {
                         // Copy gunpoints
                         if (auto pof = FindModel(ham, model)) {
                             for (size_t i = 0; i < pof->Guns.size(); i++)
-                                ship.GunPoints[i] = pof->Guns[i].Point;
+                                ship.Gunpoints[i] = pof->Guns[i].Point;
                         }
                     }
 

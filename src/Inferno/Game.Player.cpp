@@ -482,7 +482,7 @@ namespace Inferno {
 
         auto id = GetPrimaryWeaponID(Primary);
         auto& weapon = Resources::GetWeapon(id);
-        PrimaryDelay = weapon.FireDelay;
+        PrimaryDelay = GetPrimaryFireDelay();
 
         // Charged weapons drain energy on button down instead of here
         if (!weapon.Extended.Chargable) {
@@ -491,6 +491,11 @@ namespace Inferno {
         }
 
         auto& sequence = Ship.Weapons[(int)Primary].Firing;
+        if (sequence.empty()) {
+            sequence.push_back({ { 1 }, 0.25 });
+            SPDLOG_WARN("Tried firing a weapon with no sequence defined");
+        }
+
         if (FiringIndex >= sequence.size()) FiringIndex = 0;
 
         auto& player = Game::GetPlayerObject();
@@ -499,7 +504,7 @@ namespace Inferno {
         int activeGunpoints = 0;
         Vector3 averageGunPosition;
 
-        for (uint8 i = 0; i < 8; i++) {
+        for (uint8 i = 0; i < MAX_GUNPOINTS; i++) {
             bool quadFire = HasPowerup(PowerupFlag::QuadFire) && Ship.Weapons[(int)Primary].QuadGunpoints[i];
             if (sequence[FiringIndex].Gunpoints[i] || quadFire) {
                 activeGunpoints++;
@@ -507,7 +512,8 @@ namespace Inferno {
             }
         }
 
-        averageGunPosition /= (float)activeGunpoints;
+        if (activeGunpoints > 0)
+            averageGunPosition /= (float)activeGunpoints;
 
         // Make quad lasers slightly louder
         float volume = activeGunpoints >= 4 ? 1.1f : 1.0f;
@@ -517,7 +523,7 @@ namespace Inferno {
         sound.AttachOffset = averageGunPosition;
         Sound::PlayFrom(sound, player);
 
-        for (uint8 i = 0; i < 8; i++) {
+        for (uint8 i = 0; i < MAX_GUNPOINTS; i++) {
             bool quadFire = HasPowerup(PowerupFlag::QuadFire) && Ship.Weapons[(int)Primary].QuadGunpoints[i];
             if (sequence[FiringIndex].Gunpoints[i] || quadFire) {
                 auto& behavior = Game::GetWeaponBehavior(weapon.Extended.Behavior);
@@ -551,19 +557,20 @@ namespace Inferno {
 
         auto id = GetSecondaryWeaponID(Secondary);
         auto& weapon = Resources::GameData.Weapons[(int)id];
-        SecondaryDelay = weapon.FireDelay;
-        auto& ship = PyroGX;
+        SecondaryDelay = GetSecondaryFireDelay();
 
-        auto& sequence = ship.Weapons[10 + (int)Secondary].Firing;
-        if (MissileFiringIndex >= sequence.size()) MissileFiringIndex = 0;
+        auto& sequence = Ship.Weapons[10 + (int)Secondary].Firing;
+        if (SecondaryFiringIndex >= sequence.size()) SecondaryFiringIndex = 0;
 
         for (uint8 i = 0; i < 8; i++) {
-            if (sequence[MissileFiringIndex].Gunpoints[i])
+            if (sequence[SecondaryFiringIndex].Gunpoints[i])
                 Game::FireWeapon(Game::GetPlayerObject(), { .id = id, .gun = i });
         }
 
-        MissileFiringIndex = (MissileFiringIndex + 1) % 2;
+        SecondaryFiringIndex = (SecondaryFiringIndex + 1) % 2;
         SecondaryAmmo[(int)Secondary] -= (uint16)weapon.AmmoUsage;
+        LastSecondaryFireTime = Game::Time;
+
         AlertRobotsOfNoise(Game::GetPlayerObject(), GetWeaponSoundRadius(weapon), weapon.Extended.Noise);
 
         if (!CanFireSecondary(Secondary))
@@ -706,6 +713,7 @@ namespace Inferno {
         Secondary = SecondaryWeaponIndex::Concussion;
         PrimarySwapTime = PrimaryDelay = 0;
         SecondarySwapTime = SecondaryDelay = 0;
+        FiringIndex = SecondaryFiringIndex = 0;
         Shields = 100;
         Energy = 100;
 
@@ -744,6 +752,7 @@ namespace Inferno {
         PrimaryDelay = SecondaryDelay = 0;
         _nextFlareFireTime = 0;
         RefuelSoundTime = 0;
+        LastPrimaryFireTime = LastSecondaryFireTime = 0;
 
         player.Effects = {};
         player.Physics.Wiggle = Resources::GameData.PlayerShip.Wiggle;
@@ -761,7 +770,9 @@ namespace Inferno {
         RelinkObject(Game::Level, player, SpawnSegment == SegID::None ? player.Segment : SpawnSegment);
 
         // Max vulcan ammo changes between D1 and D2
-        PyroGX.Weapons[(int)PrimaryWeaponIndex::Vulcan].MaxAmmo = Game::Level.IsDescent1() ? 10000 : 20000;
+        //PyroGX.Weapons[(int)PrimaryWeaponIndex::Vulcan].MaxAmmo = Game::Level.IsDescent1() ? 10000 : 20000;
+        // Always use a max ammo of 10000 for balance reasons
+        Ship.Weapons[(int)PrimaryWeaponIndex::Vulcan].MaxAmmo = 10000;
 
         if (died) {
             ResetInventory();
@@ -851,8 +862,8 @@ namespace Inferno {
     float Player::GetWeaponEnergyCost(const Weapon& weapon) const {
         bool quadFire = false;
         if (HasPowerup(PowerupFlag::QuadFire)) {
-            for (auto& gp : Ship.Weapons[(int)Primary].QuadGunpoints) {
-                if (gp) {
+            for (uint8 i = 0; i < MAX_GUNPOINTS; i++) {
+                if (Ship.Weapons[(int)Primary].QuadGunpoints[i]) {
                     quadFire = true;
                     break;
                 }
@@ -887,7 +898,7 @@ namespace Inferno {
     int Player::PickUpAmmo(PrimaryWeaponIndex index, uint16 amount) {
         if (amount == 0) return amount;
 
-        auto max = PyroGX.Weapons[(int)index].MaxAmmo;
+        auto max = Ship.Weapons[(int)index].MaxAmmo;
         if (HasPowerup(PowerupFlag::AmmoRack))
             max *= 2;
 
@@ -932,6 +943,38 @@ namespace Inferno {
         return
             weapon.AmmoUsage <= SecondaryAmmo[(int)index] &&
             weapon.EnergyUsage <= Energy;
+    }
+
+    float Player::GetPrimaryFireDelay() {
+        auto& weapon = Ship.Weapons[(int)Primary];
+        if (weapon.Firing.empty()) return 0.25f; // failsafe
+
+        if (FiringIndex >= weapon.Firing.size())
+            FiringIndex = 0;
+
+        // Reset the firing sequence if the weapon hasn't fired recently
+        if (weapon.SequenceResetTime > 0 && 
+            LastPrimaryFireTime + weapon.SequenceResetTime < Game::Time)
+            FiringIndex = 0;
+
+        return weapon.Firing[FiringIndex].Delay;
+    }
+
+    float Player::GetSecondaryFireDelay() {
+        auto& weapon = Ship.Weapons[10 + (int)Secondary];
+        if (weapon.Firing.empty()) return 0.5f; // failsafe
+
+        if (SecondaryFiringIndex >= weapon.Firing.size())
+            SecondaryFiringIndex = 0;
+
+        // Reset the firing sequence if the weapon hasn't fired recently
+        // but only if the reset time is less than the current delay
+        if (weapon.SequenceResetTime > 0 &&
+            weapon.Firing[SecondaryFiringIndex].Delay < weapon.SequenceResetTime &&
+            LastSecondaryFireTime + weapon.SequenceResetTime < Game::Time)
+            FiringIndex = 0;
+
+        return weapon.Firing[SecondaryFiringIndex].Delay;
     }
 
     void Player::TouchPowerup(Object& obj) {
@@ -1312,7 +1355,7 @@ namespace Inferno {
     }
 
     bool Player::PickUpSecondary(SecondaryWeaponIndex index, uint16 count) {
-        auto max = PyroGX.Weapons[10 + (int)index].MaxAmmo;
+        auto max = Ship.Weapons[10 + (int)index].MaxAmmo;
         if (HasPowerup(PowerupFlag::AmmoRack))
             max *= 2;
 

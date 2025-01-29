@@ -5,7 +5,6 @@
 #include "SystemClock.h"
 #include "Graphics/GpuResources.h"
 #include "Graphics/Render.h"
-#include "Convert.h"
 #include "Resources.h"
 
 using namespace std::chrono;

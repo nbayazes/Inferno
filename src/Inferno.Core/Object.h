@@ -180,6 +180,8 @@ namespace Inferno {
         float Wiggle = 0; // Amplitude of wiggle
         float WiggleRate = 1; // How long one wiggle takes
         SecondOrderDynamics<float> BankState = { 1, 1, 0, 0 };
+        float TurnRollScale = 2.0f;
+        float TurnRollRate = 0.8f;
 
         bool CanBounce() const {
             return Bounces > 0 || HasFlag(Flags, PhysicsFlag::Bounce);

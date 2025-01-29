@@ -525,7 +525,7 @@ namespace Inferno::Render {
                 }
             }
             else if (object.IsPlayer()) {
-                for (uint8 gun = 0; gun < Resources::GameData.PlayerShip.GunPoints.size(); gun++) {
+                for (uint8 gun = 0; gun < Resources::GameData.PlayerShip.Gunpoints.size(); gun++) {
                     auto gunSubmodel = GetGunpointSubmodelOffset(object, gun);
                     auto objOffset = GetSubmodelOffset(object, gunSubmodel);
                     auto gunPoint = Vector3::Transform(objOffset, object.GetTransform());

@@ -349,8 +349,8 @@ namespace Inferno {
         DecodeInterpreterData(m, data, palette);
     }
 
-    PlayerShip ReadPlayerShip(StreamReader& r) {
-        PlayerShip ship{};
+    ShipInfo ReadPlayerShip(StreamReader& r) {
+        ShipInfo ship{};
         ship.Model = (ModelID)r.ReadInt32();
         ship.ExplosionVClip = (VClipID)r.ReadInt32();
         ship.Mass = r.ReadFix();
@@ -360,7 +360,7 @@ namespace Inferno {
         ship.Brakes = r.ReadFix();
         ship.Wiggle = r.ReadFix();
         ship.MaxRotationalThrust = r.ReadFix();
-        for (auto& g : ship.GunPoints) {
+        for (auto& g : ship.Gunpoints) {
             g = r.ReadVector();
             g.z *= -1; // flip lh/rh
         }

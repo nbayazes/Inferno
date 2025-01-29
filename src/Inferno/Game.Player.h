@@ -2,6 +2,7 @@
 
 #include "Object.h"
 #include "Player.h"
+#include "Ship.h"
 #include "SoundTypes.h"
 #include "Utility.h"
 #include "Wall.h"
@@ -52,14 +53,15 @@ namespace Inferno {
         bool SpreadfireToggle = false; // horizontal / vertical
         uint8 HelixOrientation = 0; // increments in 22.5 degrees
         float FusionNextSoundDelay = 0;
-        uint8 FiringIndex = 0, MissileFiringIndex = 0;
+        uint8 FiringIndex = 0, SecondaryFiringIndex = 0;
 
         FireState PrimaryState{}, SecondaryState{};
         double RefuelSoundTime = 0; // Next time an energy center can make noise
         bool AfterburnerActive = false;
         int BombIndex = 0; // 0 is proxy, 1 is smart mine
         double LastPrimaryFireTime = 0;
-        ShipInfo Ship = PyroGX;
+        double LastSecondaryFireTime = 0;
+        ShipInfo Ship;
         Color DirectLight;
 
         bool IsDead = false;
@@ -137,6 +139,10 @@ namespace Inferno {
         bool CanFirePrimary(PrimaryWeaponIndex index) const;
 
         bool CanFireSecondary(SecondaryWeaponIndex index) const;
+
+        float GetPrimaryFireDelay();
+
+        float GetSecondaryFireDelay();
 
         // returns the forward thrust multiplier
         float UpdateAfterburner(float dt, bool active);

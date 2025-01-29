@@ -124,7 +124,7 @@ namespace Inferno {
         }
 
         if (obj.Type == ObjectType::Player || obj.Type == ObjectType::Coop) {
-            auto& gunpoint = Resources::GameData.PlayerShip.GunPoints[gun];
+            auto& gunpoint = Resources::GameData.PlayerShip.Gunpoints[gun];
             return { 0, gunpoint };
         }
 
@@ -156,7 +156,7 @@ namespace Inferno {
         }
 
         if (obj.Type == ObjectType::Player || obj.Type == ObjectType::Coop) {
-            return Resources::GameData.PlayerShip.GunPoints[gun];
+            return Resources::GameData.PlayerShip.Gunpoints[gun];
         }
 
         if (obj.Type == ObjectType::Reactor) {

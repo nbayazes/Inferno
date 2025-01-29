@@ -1,4 +1,5 @@
 #pragma once
+#include <bitset>
 #include "EffectClip.h"
 #include "Pig.h"
 #include "Robot.h"
@@ -6,6 +7,7 @@
 #include "Streams.h"
 #include "Utility.h"
 #include "Weapon.h"
+#include "Ship.h"
 
 namespace Inferno {
     enum class TextureFlag : ubyte {
@@ -34,16 +36,6 @@ namespace Inferno {
         bool HasFlag(TextureFlag flag) const { return bool(Flags & flag); }
         bool IsLiquid() const { return HasFlag(TextureFlag::Volatile) || HasFlag(TextureFlag::Water); }
         bool IsForceField() const { return HasFlag(TextureFlag::ForceField); }
-    };
-
-    struct PlayerShip {
-        ModelID Model;
-        VClipID ExplosionVClip{};
-        float Mass, Drag;
-        float MaxThrust, ReverseThrust, Brakes;
-        float Wiggle;
-        float MaxRotationalThrust;
-        Array<Vector3, 8> GunPoints{};
     };
 
     struct Reactor {
@@ -90,7 +82,7 @@ namespace Inferno {
         List<TexID> ObjectBitmaps;
         List<uint16> ObjectBitmapPointers; // Indexes into ObjectBitmaps
 
-        PlayerShip PlayerShip{};
+        ShipInfo PlayerShip{};
         List<TexID> Cockpits;
 
         int FirstMultiplayerBitmap = -1;
