@@ -44,8 +44,9 @@ namespace Inferno {
         float OmegaCharge = 1; // How much charge the omega has stored
         float OmegaRechargeDelay = 0; // Delay before Omega starts recharging after firing
         float FlareDelay = 0;
-        float PrimaryDelay = 0;
-        float SecondaryDelay = 0;
+        float PrimaryDelay = 0; // Time until able to fire priamry weapon
+        float SecondaryDelay = 0; // Time until able to fire secondary weapon
+        float TertiaryDelay = 0; // For bombs
         float AfterburnerCharge = 1; // 0 to 1
         bool HasSpew = false; // has dropped items on death
         bool SpawnInvuln = false; // temporary invuln when spawning

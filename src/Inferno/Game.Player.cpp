@@ -218,6 +218,7 @@ namespace Inferno {
     void Player::Update(float dt) {
         PrimaryDelay -= dt;
         SecondaryDelay -= dt;
+        TertiaryDelay -= dt;
 
         if (Game::Level.Objects.empty()) return;
 
@@ -427,6 +428,8 @@ namespace Inferno {
     }
 
     void Player::DropBomb() {
+        if (TertiaryDelay > 0) return;
+
         auto bomb = GetActiveBomb();
         auto& ammo = SecondaryAmmo[(int)bomb];
         if (ammo == 0) {
@@ -439,6 +442,10 @@ namespace Inferno {
         auto& weapon = Resources::GameData.Weapons[(int)id];
         Game::FireWeapon(Game::GetPlayerObject(), { .id = id, .gun = 7 });
         ammo -= (uint16)weapon.AmmoUsage;
+
+        // Use the weapon delay instead of the ship battery for bombs.
+        // Eventually bombs should be removed from weapon switching
+        TertiaryDelay = weapon.FireDelay;
 
         // Switch active bomb type if ran out of ammo
         if (ammo == 0 && !Game::Level.IsDescent1()) {
@@ -549,6 +556,11 @@ namespace Inferno {
     }
 
     void Player::FireSecondary() {
+        if (Secondary == SecondaryWeaponIndex::ProximityMine || Secondary == SecondaryWeaponIndex::SmartMine) {
+            DropBomb(); // Defer bombs to the specialized bomb function
+            return;
+        }
+
         if (SecondaryDelay > 0) return;
         if (!CanFireSecondary(Secondary)) {
             AutoselectSecondary();
@@ -953,7 +965,7 @@ namespace Inferno {
             FiringIndex = 0;
 
         // Reset the firing sequence if the weapon hasn't fired recently
-        if (weapon.SequenceResetTime > 0 && 
+        if (weapon.SequenceResetTime > 0 &&
             LastPrimaryFireTime + weapon.SequenceResetTime < Game::Time)
             FiringIndex = 0;
 
