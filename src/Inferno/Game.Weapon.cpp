@@ -926,6 +926,7 @@ namespace Inferno::Game {
         auto parentRef = Game::GetObjectRef(parent);
         auto blob = CreateWeaponProjectile(type, parent.Position, dir, parent.Segment, parentRef, 1, 0);
         blob.Control.Weapon.TrackingTarget = targetId;
+        blob.Faction = parent.Faction;
         AddObject(blob);
     }
 
