@@ -878,6 +878,7 @@ namespace Inferno::Render {
         light.normal = Info.Normal;
         light.coneAngle0 = Info.Angle0;
         light.coneAngle1 = Info.Angle1;
+        light.coneSpill = Info.ConeSpill;
 
         auto parent = Game::GetObject(Parent);
         if (Info.Normal != Vector3::Zero && parent && parent->IsAlive()) {

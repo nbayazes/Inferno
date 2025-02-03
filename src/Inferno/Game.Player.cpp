@@ -888,6 +888,7 @@ namespace Inferno {
                     light.Normal = -Vector3::UnitZ;
                     light.Angle0 = info->Angle0;
                     light.Angle1 = info->Angle1;
+                    light.ConeSpill = info->ConeSpill;
 
                     _headlightEffect = AttachLight(light, Reference);
                     PrintHudMessage("Headlight On");
@@ -907,6 +908,7 @@ namespace Inferno {
                     light.Normal = -Vector3::UnitZ;
                     light.Angle0 = info->Angle0;
                     light.Angle1 = info->Angle1;
+                    light.ConeSpill = info->ConeSpill;
 
                     _headlightEffect = AttachLight(light, Reference);
                     PrintHudMessage("Boosted Headlight");

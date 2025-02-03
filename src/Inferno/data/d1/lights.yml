@@ -90,12 +90,14 @@ Lights:
       Radius: 35
       Color: 1, .8, .5, .8
       Angle: 75
-      InnerAngle: 35
+      InnerAngle: 65
 
     - Name: ceil003
       Radius: 35
       Points: 0.5, 0.5
       Color: 1, .8, .5, 0.6
+      Angle: 50
+      InnerAngle: 45
 
     - Name: ceil008 # small square
       Radius: 35
@@ -111,7 +113,7 @@ Lights:
       Radius: 35
       Color: 0.75, 0.75, 1, .6
       Angle: 75
-      InnerAngle: 60
+      InnerAngle: 65
 
     - Name: ceil025 # small round
       Radius: 35
@@ -285,15 +287,17 @@ Lights:
 
     - Name: Headlight # Player ship headlight
       Color: 1, 0.7, 0.4, .5
-      Radius: 100
-      Angle: 35
-      InnerAngle: 30
+      Radius: 180
+      Angle: 22.5
+      InnerAngle: 5
+      ConeSpill: 0.02 # Very slightly illuminate the surrounding area
 
     - Name: Boosted Headlight # Player ship headlight with powerup
       Color: 1, 0.7, 0.4, .35
       Radius: 250
       Angle: 45
       InnerAngle: 40
+      ConeSpill: 0.025 # Very slightly illuminate the surrounding area
 
 #    - Name: 343 # paired monitor
 #      Points:

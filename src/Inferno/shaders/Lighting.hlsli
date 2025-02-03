@@ -7,11 +7,10 @@ static const float SMOL_EPS = .000002;
 static const float PI = 3.14159265f;
 static const float GLOBAL_LIGHT_MULT = 50;
 static const float GLOBAL_SPECULAR_MULT = 0.5;
-static const float METAL_DIFFUSE_FACTOR = 2; // Direct lighting contribution on metal. Setting this too low makes robots look odd.
+static const float METAL_DIFFUSE_FACTOR = 3; // Direct lighting contribution on metal. Setting this too low makes robots look odd.
 static const float METAL_SPECULAR_EXP = 2; // increase to get sharper metal highlights
 static const float METAL_SPECULAR_MULT = 1; // increase to get brighter metal
 static const float FRESNEL_MULT = GLOBAL_LIGHT_MULT;
-static const float SPOTLIGHT_AMBIENT = 0.1; // Amount of 'ambient' light to use in spotlight mode
 
 struct MaterialInfo {
     float NormalStrength;
@@ -153,7 +152,7 @@ float GetConeFalloff(float3 worldPos, float3 lightPos, float3 lightNormal, float
     if (coneAngle0 == 0) return 1;
 
     float falloff = dot(normalize(worldPos - lightPos), lightNormal);
-    return saturate((falloff - coneAngle1) * coneAngle0);
+    return pow(saturate((falloff - coneAngle1) * coneAngle0), 2);
 }
 
 // Old attenuation, has distance issues causing most of the range to contribute very little
@@ -247,7 +246,7 @@ float3 ApplyPointLight(
     //falloff *= coneFalloff;
 
     if (any(light.coneAngle0)) {
-        falloff = falloff * SPOTLIGHT_AMBIENT + falloff * coneFalloff;
+        falloff = falloff * light.coneSpill + falloff * coneFalloff;
     }
 
     float3 specular = max(0, specularFactor * specularColor * specularMask);
@@ -1112,7 +1111,7 @@ float3 ApplyRectLight3(
 
     if (any(light.coneAngle0)) {
         float coneFalloff = GetConeFalloff(worldPos, closestDiffusePoint - light.normal * 1.40, light.normal, light.coneAngle0, light.coneAngle1);
-        falloff = falloff * SPOTLIGHT_AMBIENT + falloff * coneFalloff;
+        falloff = falloff * light.coneSpill + falloff * coneFalloff;
     }
 
     return max(0, 0.15 * falloff * nDotL * lightColor * diffuse * diffCutoff * GLOBAL_LIGHT_MULT + specular * falloff * specPlaneCutoff);

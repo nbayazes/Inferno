@@ -70,8 +70,9 @@ namespace Inferno {
         Color LightColor; // Color of emitted light
         float SpriteMult = 1; // Multiplier when applying to sprites and the player hud
         Vector3 Normal; // Direction of the light. If zero, treat as omnidirectional.
-        float Angle0 = 0; 
-        float Angle1 = 0;
+        float Angle0 = 0; // Spotlight parameter
+        float Angle1 = 0; // Spotlight parameter
+        float ConeSpill = 0; // Spotlight parameter
     };
 
     struct SparkEmitterInfo {

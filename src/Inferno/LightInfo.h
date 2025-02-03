@@ -32,6 +32,7 @@ namespace Inferno {
         float Height = 0.25f; // V Height for rectangular lights. Unused for wrapped lights.
         float Angle0 = 0; // Spotlight parameter. 1 / (cos inner - cos outer)
         float Angle1 = 0; // Spotlight parameter. cos outer
+        float ConeSpill = 0; // Spotlight parameter. How much light spills outside of the code.
         Color Color = LIGHT_UNSET;
         LightWrapMode Wrap = LightWrapMode::None;
 

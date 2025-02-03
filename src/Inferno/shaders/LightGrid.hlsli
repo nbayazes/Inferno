@@ -35,8 +35,8 @@ struct LightData {
     float coneAngle0; // for spotlights. in cos(rads)
 
     float coneAngle1; // for spotlights. in cos(rads)
-    float _pad0, _pad1, _pad2;
-
+    float coneSpill; // how much light 'spills' from a cone, simulating indirect bounces
+    float _pad1, _pad2;
 };
 
 uint2 GetTilePos(float2 pos, float2 invTileDim) {

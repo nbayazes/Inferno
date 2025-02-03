@@ -168,12 +168,12 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
                 {
                     float eyeTerm = pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
-                    lighting += eyeTerm * specularColor * specularMask * 2;
+                    //lighting += eyeTerm * specularColor * specularMask;
                 }
 
                 // second layer of rough gloss based on environment to simulate indirect lighting
                 {
-                    gloss /= 16;
+                    gloss /= 24;
                     float envGloss = pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
                     lighting += envGloss * specularColor * 2;
                 }

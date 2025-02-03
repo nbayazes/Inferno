@@ -39,8 +39,9 @@ namespace Inferno::Graphics {
         Vector3 up;
         float coneAngle0; 
 
-        float coneAngle1; 
-        float _pad0, _pad1, _pad2;
+        float coneAngle1;
+        float coneSpill;
+        float _pad1, _pad2;
     };
 
     struct LightingConstants {

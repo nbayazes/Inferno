@@ -584,11 +584,12 @@ namespace Inferno::Render {
             auto room = level.GetRoom(id);
             if (!room) continue;
 
+            // Gather lights in the room segments
             for (auto& segid : room->Segments) {
                 auto lights = Seq::tryItem(SegmentLights, (int)segid);
                 if (!lights) continue;
 
-                // Add lights on each side
+                // Add lights on each side (from textures)
                 for (auto& sideLights : lights->Sides) {
                     for (int lid = 0; lid < sideLights.Lights.size(); lid++) {
                         auto& light = sideLights.Lights[lid];
@@ -626,7 +627,7 @@ namespace Inferno::Render {
                     }
                 }
 
-                // Add lights inside the segment
+                // Add lights inside the segment (explosions, objects)
                 for (auto& light : lights->Lights) {
                     LightData l = light;
                     l.color *= Game::GlobalDimming;

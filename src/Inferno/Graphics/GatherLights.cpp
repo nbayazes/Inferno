@@ -276,6 +276,7 @@ namespace Inferno::Graphics {
                     light.type = info.Type;
                     light.coneAngle0 = info.Angle0;
                     light.coneAngle1 = info.Angle1;
+                    light.coneSpill = info.ConeSpill;
 
                     if (info.Wrap == LightWrapMode::U || info.Wrap == LightWrapMode::V) {
                         //if (info.IsContinuous()) {
