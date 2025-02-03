@@ -105,8 +105,8 @@ namespace Inferno::Sound {
         bool IsAlive() const { return Alive; }
 
         // Updates the muffle due to occlusion
-        void UpdateOcclusion(const Vector3& listener, float dist, const Vector3& dir) {
-            if (!Info.Sound.Occlusion) return;
+        void UpdateOcclusion(const Vector3& listener, float dist, const Vector3& dir, bool instant) {
+            if (!Info.Sound.Occlusion || !Settings::Inferno.UseSoundOcclusion) return;
 
             constexpr float MUFFLE_MAX = 0.95f;
             constexpr float MUFFLE_MIN = 0.25f;
@@ -122,6 +122,9 @@ namespace Inferno::Sound {
                     // we hit a wall, muffle it based on the distance from the source
                     // a sound coming immediately around the corner shouldn't get muffled much
                     TargetMuffle = std::clamp(1 - hitDist / 60, MUFFLE_MIN, MUFFLE_MAX);
+
+                    if (instant)
+                        Muffle = TargetMuffle;
                 }
             }
         }
@@ -184,7 +187,8 @@ namespace Inferno::Sound {
                     }
                 }
 
-                UpdateOcclusion(listener, dist, dir);
+                if (Settings::Inferno.UseSoundOcclusion)
+                    UpdateOcclusion(listener, dist, dir, false);
             }
             else {
                 // pause looped sounds when going out of range
@@ -602,10 +606,10 @@ namespace Inferno::Sound {
             instance.Delay = sound.Delay;
 
             // Calculate the initial occlusion so there isn't a popping noise
-            if (sound.Occlusion) {
+            if (Settings::Inferno.UseSoundOcclusion && sound.Occlusion) {
                 auto& camera = Game::GetActiveCamera();
                 auto [dist, dir] = instance.GetListenerDistanceAndDir(camera.Position);
-                instance.UpdateOcclusion(camera.Position, dist, dir);
+                instance.UpdateOcclusion(camera.Position, dist, dir, true);
             }
         }
 

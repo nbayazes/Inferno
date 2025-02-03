@@ -83,6 +83,8 @@ namespace Inferno::UI {
             d2Music->LabelWidth = 250;
             panel->AddChild(std::move(d2Music));
 
+            //panel->AddChild<Checkbox>("SFX Occlusion", Settings::Inferno.UseSoundOcclusion);
+
             AddChild(std::move(panel));
         }
     };
@@ -278,7 +280,7 @@ namespace Inferno::UI {
             Size = Vector2(200, 30 * 4 + DIALOG_CONTENT_PADDING + DIALOG_PADDING);
             CloseOnConfirm = false;
             CloseOnClickOutside = true;
-            
+
             //TitleAlignment = AlignH::Left;
 
             auto panel = make_unique<StackPanel>();

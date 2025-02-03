@@ -680,6 +680,7 @@ namespace Inferno {
         node["StickyRearview"] << Settings::Inferno.StickyRearview;
         node["SlowmoFusion"] << Settings::Inferno.SlowmoFusion;
         node["PreferHighResFonts"] << Settings::Inferno.PreferHighResFonts;
+        node["UseSoundOcclusion"] << Settings::Inferno.UseSoundOcclusion;
     }
 
     void LoadGameSettings(ryml::NodeRef node, InfernoSettings& settings) {
@@ -696,6 +697,7 @@ namespace Inferno {
         ReadValue(node["StickyRearview"], settings.StickyRearview);
         ReadValue(node["SlowmoFusion"], settings.SlowmoFusion);
         ReadValue(node["PreferHighResFonts"], settings.PreferHighResFonts);
+        ReadValue(node["UseSoundOcclusion"], settings.UseSoundOcclusion);
 
         Game::Difficulty = (DifficultyLevel)std::clamp((int)Game::Difficulty, 0, 4);
     }

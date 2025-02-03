@@ -221,6 +221,7 @@ namespace Inferno {
         uint2 WindowPosition;
         float GamepadSensitivityX = 8;
         float GamepadSensitivityY = 8;
+        bool UseSoundOcclusion = false;
     };
 
     struct CheatSettings {
