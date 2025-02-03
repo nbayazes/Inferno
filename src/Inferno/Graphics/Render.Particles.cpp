@@ -165,17 +165,23 @@ namespace Inferno::Render {
         if (model.DataSize == 0) return;
         if (!Seq::inRange(model.Submodels, Info.Submodel)) return;
         auto& meshHandle = GetMeshHandle(Info.Model);
-
-        auto& effect = Effects->Object;
-        ctx.ApplyEffect(effect);
-        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
         auto cmdList = ctx.GetCommandList();
-        effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
-        effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
-        effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());
-        effect.Shader->SetLightGrid(cmdList, Render::Adapter->LightGrid);
+        auto& effect = Effects->Object;
 
-        effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
+        if (ctx.ApplyEffect(effect)) {
+            ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+            effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
+            effect.Shader->SetNormalSampler(cmdList, GetNormalSampler());
+            effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
+            effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
+            effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());
+            effect.Shader->SetLightGrid(cmdList, Render::Adapter->LightGrid);
+            auto cubeSrv = Render::Materials->EnvironmentCube.GetCubeSRV().GetGpuHandle();
+            if (!cubeSrv.ptr) cubeSrv = Render::Adapter->NullCube.GetGpuHandle();
+            effect.Shader->SetEnvironmentCube(cmdList, cubeSrv);
+            effect.Shader->SetDissolveTexture(cmdList, Render::Materials->White().Handle());
+        }
+
         auto& seg = Game::Level.GetSegment(Segment);
         ObjectShader::Constants constants = {};
         constants.Ambient = Settings::Editor.RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);

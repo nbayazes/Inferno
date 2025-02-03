@@ -299,7 +299,6 @@ namespace Inferno::Render {
                 if (ctx.ApplyEffect(effect)) {
                     effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
                     effect.Shader->SetNormalSampler(cmdList, GetNormalSampler());
-                    //effect.Shader->SetMaterial(cmd, handle);
                     effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
                     effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
                     effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());
@@ -440,7 +439,7 @@ namespace Inferno::Render {
             effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());
             effect.Shader->SetLightGrid(cmdList, Render::Adapter->LightGrid);
             auto cubeSrv = Render::Materials->EnvironmentCube.GetCubeSRV().GetGpuHandle();
-            if (!cubeSrv.ptr)cubeSrv = Render::Adapter->NullCube.GetGpuHandle();
+            if (!cubeSrv.ptr) cubeSrv = Render::Adapter->NullCube.GetGpuHandle();
             effect.Shader->SetEnvironmentCube(cmdList, cubeSrv);
             effect.Shader->SetDissolveTexture(cmdList, Render::Materials->White().Handle());
         }
@@ -561,7 +560,7 @@ namespace Inferno::Render {
             effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());
             effect.Shader->SetLightGrid(cmdList, Render::Adapter->LightGrid);
             auto cubeSrv = Render::Materials->EnvironmentCube.GetCubeSRV().GetGpuHandle();
-            if (!cubeSrv.ptr)cubeSrv = Render::Adapter->NullCube.GetGpuHandle();
+            if (!cubeSrv.ptr) cubeSrv = Render::Adapter->NullCube.GetGpuHandle();
             effect.Shader->SetEnvironmentCube(cmdList, cubeSrv);
             effect.Shader->SetDissolveTexture(cmdList, Render::Materials->White().Handle());
         }
