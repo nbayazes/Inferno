@@ -454,6 +454,17 @@ namespace Inferno::UI {
         GameAction::CyclePrimary,
         GameAction::CycleSecondary,
         GameAction::CycleBomb,
+
+        GameAction::Weapon1,
+        GameAction::Weapon2,
+        GameAction::Weapon3,
+        GameAction::Weapon4,
+        GameAction::Weapon5,
+        GameAction::Weapon6,
+        GameAction::Weapon7,
+        GameAction::Weapon8,
+        GameAction::Weapon9,
+        GameAction::Weapon10,
     };
 
     inline std::array MouseInputs = {
@@ -482,6 +493,17 @@ namespace Inferno::UI {
         GameAction::SlideRight,
         GameAction::SlideUp,
         GameAction::SlideDown,
+
+        GameAction::Weapon1,
+        GameAction::Weapon2,
+        GameAction::Weapon3,
+        GameAction::Weapon4,
+        GameAction::Weapon5,
+        GameAction::Weapon6,
+        GameAction::Weapon7,
+        GameAction::Weapon8,
+        GameAction::Weapon9,
+        GameAction::Weapon10,
     };
 
     inline std::array GamepadInputs = {
@@ -520,6 +542,17 @@ namespace Inferno::UI {
         GameAction::CyclePrimary,
         GameAction::CycleSecondary,
         GameAction::CycleBomb,
+
+        GameAction::Weapon1,
+        GameAction::Weapon2,
+        GameAction::Weapon3,
+        GameAction::Weapon4,
+        GameAction::Weapon5,
+        GameAction::Weapon6,
+        GameAction::Weapon7,
+        GameAction::Weapon8,
+        GameAction::Weapon9,
+        GameAction::Weapon10,
     };
 
 

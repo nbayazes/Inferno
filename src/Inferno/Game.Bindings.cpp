@@ -308,15 +308,15 @@ namespace Inferno {
             setLabel(GameAction::RearView, "Rear view");
 
             setLabel(GameAction::Weapon1, "Laser cannon");
-            setLabel(GameAction::Weapon2, "Vulcan/Gauss cannon");
-            setLabel(GameAction::Weapon3, "Spreadfire/Helix cannon");
-            setLabel(GameAction::Weapon4, "Plasma/phoenix cannon");
-            setLabel(GameAction::Weapon5, "fusion/omega cannon");
-            setLabel(GameAction::Weapon6, "concussion/flash missile");
-            setLabel(GameAction::Weapon7, "homing/guided missile");
-            setLabel(GameAction::Weapon8, "proximity bomb/smart mine");
-            setLabel(GameAction::Weapon9, "smart/mercury missile");
-            setLabel(GameAction::Weapon10, "mega/earthshaker missile");
+            setLabel(GameAction::Weapon2, "Vulcan/Gauss");
+            setLabel(GameAction::Weapon3, "Spreadfire/Helix");
+            setLabel(GameAction::Weapon4, "Plasma/phoenix");
+            setLabel(GameAction::Weapon5, "fusion/omega");
+            setLabel(GameAction::Weapon6, "concussion/flash");
+            setLabel(GameAction::Weapon7, "homing/guided");
+            setLabel(GameAction::Weapon8, "prox/smart mine");
+            setLabel(GameAction::Weapon9, "smart/mercury");
+            setLabel(GameAction::Weapon10, "mega/earthshaker");
         }
 
         return ActionLabels[(int)action];

@@ -1006,6 +1006,7 @@ namespace Inferno::Input {
             case Keys::D7: return "7";
             case Keys::D8: return "8";
             case Keys::D9: return "9";
+            case Keys::D0: return "0";
 
             default:
                 return "";
