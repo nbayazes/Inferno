@@ -515,7 +515,7 @@ namespace Inferno {
             bool quadFire = HasPowerup(PowerupFlag::QuadFire) && Ship.Weapons[(int)Primary].QuadGunpoints[i];
             if (sequence[FiringIndex].Gunpoints[i] || quadFire) {
                 activeGunpoints++;
-                averageGunPosition += GetGunpointSubmodelOffset(player, i).Offset;
+                averageGunPosition += GetGunpointSubmodelOffset(player, i).offset;
             }
         }
 
@@ -765,6 +765,7 @@ namespace Inferno {
         _nextFlareFireTime = 0;
         RefuelSoundTime = 0;
         LastPrimaryFireTime = LastSecondaryFireTime = 0;
+        _headlight = HeadlightState::Off;
 
         player.Effects = {};
         player.Physics.Wiggle = Resources::GameData.PlayerShip.Wiggle;
@@ -824,7 +825,7 @@ namespace Inferno {
             if (Game::Level.IsDescent2()) {
                 GivePowerup(PowerupFlag::AmmoRack);
                 GivePowerup(PowerupFlag::Headlight);
-                GivePowerup(PowerupFlag::FullMap);
+                //GivePowerup(PowerupFlag::FullMap);
             }
 
             PrimaryWeapons = 0xffff;
@@ -869,6 +870,54 @@ namespace Inferno {
         }
 
         return 1.0f;
+    }
+
+    void Player::ToggleHeadlight() {
+        if (_headlightEffect != EffectID::None) {
+            StopEffect(_headlightEffect);
+            _headlightEffect = EffectID::None;
+        }
+
+        switch (_headlight) {
+            case HeadlightState::Off:
+            {
+                if (auto info = Resources::GetLightInfo("Headlight")) {
+                    LightEffectInfo light;
+                    light.Radius = info->Radius;
+                    light.LightColor = info->Color;
+                    light.Normal = -Vector3::UnitZ;
+                    light.Angle0 = info->Angle0;
+                    light.Angle1 = info->Angle1;
+
+                    _headlightEffect = AttachLight(light, Reference);
+                    PrintHudMessage("Headlight On");
+                    _headlight = HeadlightState::Normal;
+                }
+            }
+            break;
+            case HeadlightState::Normal:
+                if (!HasPowerup(PowerupFlag::Headlight)) {
+                    PrintHudMessage("Headlight Off");
+                    _headlight = HeadlightState::Off;
+                }
+                else if (auto info = Resources::GetLightInfo("Boosted Headlight")) {
+                    LightEffectInfo light;
+                    light.Radius = info->Radius;
+                    light.LightColor = info->Color;
+                    light.Normal = -Vector3::UnitZ;
+                    light.Angle0 = info->Angle0;
+                    light.Angle1 = info->Angle1;
+
+                    _headlightEffect = AttachLight(light, Reference);
+                    PrintHudMessage("Boosted Headlight");
+                    _headlight = HeadlightState::Bright;
+                }
+                break;
+            case HeadlightState::Bright:
+                PrintHudMessage("Headlight Off");
+                _headlight = HeadlightState::Off;
+                break;
+        }
     }
 
     float Player::GetWeaponEnergyCost(const Weapon& weapon) const {

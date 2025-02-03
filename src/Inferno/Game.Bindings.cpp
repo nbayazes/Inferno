@@ -336,9 +336,11 @@ namespace Inferno {
 
         device.Bind({ .action = GameAction::Afterburner, .id = Keys::LeftControl });
 
+        device.Bind({ .action = GameAction::Headlight, .id = Keys::OemTilde });
         device.Bind({ .action = GameAction::FireFlare, .id = Keys::F });
         device.Bind({ .action = GameAction::Automap, .id = Keys::Tab });
         device.Bind({ .action = GameAction::Pause, .id = Keys::Escape });
+        device.Bind({ .action = GameAction::RearView, .id = Keys::R });
 
         device.Bind({ .action = GameAction::Weapon1, .id = Keys::D1 });
         device.Bind({ .action = GameAction::Weapon2, .id = Keys::D2 });

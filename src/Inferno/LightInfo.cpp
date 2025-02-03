@@ -9,9 +9,21 @@ using namespace Yaml;
 namespace Inferno {
     TextureLightInfo ReadLightInfo(ryml::NodeRef node) {
         TextureLightInfo info;
-        ReadValue(node["ID"], (int&)info.Id);
+        ReadValue(node["Name"], info.Name);
+
+        info.Id = Resources::FindLevelTexture(info.Name);
+
         ReadValue(node["Type"], (int&)info.Type);
         ReadValue(node["Wrap"], (int&)info.Wrap);
+
+        float angle = 0, innerAngle = 0;
+        ReadValue(node["Angle"], angle);
+        ReadValue(node["InnerAngle"], innerAngle);
+
+        if (angle > 0) {
+            info.Angle0 = 1.0f / (cosf(DegToRad * innerAngle) - cosf(DegToRad * angle));
+            info.Angle1 = cosf(DegToRad * angle);
+        }
 
         auto pointNode = node["Points"];
         if (pointNode.readable()) {
@@ -60,7 +72,7 @@ namespace Inferno {
         node["Color"] << EncodeColor(info.Color);
     }
 
-    void LoadLightTable(const string& yaml, Dictionary<LevelTexID, TextureLightInfo>& lightInfo) {
+    void LoadLightTable(const string& yaml, List<TextureLightInfo>& lightInfo) {
         try {
             ryml::Tree doc = ryml::parse_in_arena(ryml::to_csubstr(yaml));
             ryml::NodeRef root = doc.rootref();
@@ -71,7 +83,7 @@ namespace Inferno {
                 for (const auto& child : node.children()) {
                     if (!child.readable()) continue;
                     auto info = ReadLightInfo(child);
-                    lightInfo[info.Id] = info;
+                    lightInfo.push_back(info);
                 }
             }
 

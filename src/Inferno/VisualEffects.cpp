@@ -190,7 +190,7 @@ namespace Inferno {
         SparkEmitter emitter(info);
         PremultiplyColor(emitter.Info.Color);
         emitter.Parent = parent;
-        emitter.ParentSubmodel.Offset = offset;
+        emitter.ParentSubmodel.offset = offset;
         emitter.Duration = MAX_OBJECT_LIFE; // Expire when parent dies
         emitter.FadeTime = info.FadeTime;
 

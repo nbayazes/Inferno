@@ -4,10 +4,10 @@
 
 namespace Inferno {
     struct SubmodelRef {
-        short ID = -1; // Submodel index. -1 is unset
-        Vector3 Offset; // Offset relative to submodel origin
+        short id = -1; // Submodel index. -1 is unset
+        Vector3 offset; // Offset relative to submodel origin
 
-        bool IsNull() const { return ID == -1; }
+        bool IsNull() const { return id == -1; }
         explicit operator bool() const { return !IsNull(); }
     };
 

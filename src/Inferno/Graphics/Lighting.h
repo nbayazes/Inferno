@@ -37,7 +37,10 @@ namespace Inferno::Graphics {
         DynamicLightMode mode;
 
         Vector3 up;
-        float _pad2;
+        float coneAngle0; 
+
+        float coneAngle1; 
+        float _pad0, _pad1, _pad2;
     };
 
     struct LightingConstants {

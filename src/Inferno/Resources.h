@@ -49,6 +49,8 @@ namespace Inferno::Resources {
     const LevelTexture& GetLevelTextureInfo(TexID);
 
     TexID FindTexture(string_view name);
+    LevelTexID FindLevelTexture(string_view name);
+
     const PigEntry& GetTextureInfo(TexID);
     const PigEntry& GetTextureInfo(LevelTexID);
     LevelTexID GetDestroyedTexture(LevelTexID);
@@ -140,7 +142,23 @@ namespace Inferno::Resources {
     inline Hog2 Descent3Hog, Mercenary;
     inline Outrage::GameTable GameTable;
     inline List<Outrage::VClip> VClips; // Expanded from OAF headers
-    inline Dictionary<LevelTexID, TextureLightInfo> LightInfoTable;
+    inline List< TextureLightInfo> Lights;
+
+    inline TextureLightInfo* GetLightInfo(string_view name) {
+        for (auto& info : Lights) {
+            if (info.Name == name) return &info;
+        }
+
+        return nullptr;
+    }
+
+    inline TextureLightInfo* GetLightInfo(LevelTexID id) {
+        for (auto& info : Lights) {
+            if (info.Id == id) return &info;
+        }
+
+        return nullptr;
+    }
 
     void MountDescent3();
 

@@ -95,17 +95,17 @@ namespace Inferno {
     Vector3 GetSubmodelOffset(const Object& obj, SubmodelRef submodel) {
         auto& model = Resources::GetModel(obj.Render.Model.ID);
 
-        if (submodel.ID < 0 || submodel.ID >= model.Submodels.size())
+        if (submodel.id < 0 || submodel.id >= model.Submodels.size())
             return Vector3::Zero; // Unset
 
-        auto sm = submodel.ID;
+        auto sm = submodel.id;
         while (sm != ROOT_SUBMODEL) {
             auto rotation = Matrix::CreateFromYawPitchRoll(obj.Render.Model.Angles[sm]);
-            submodel.Offset = Vector3::Transform(submodel.Offset, rotation) + model.Submodels[sm].Offset;
+            submodel.offset = Vector3::Transform(submodel.offset, rotation) + model.Submodels[sm].Offset;
             sm = model.Submodels[sm].Parent;
         }
 
-        return submodel.Offset;
+        return submodel.offset;
     }
 
     SubmodelRef GetGunpointSubmodelOffset(const Object& obj, uint8 gun) {
@@ -129,12 +129,12 @@ namespace Inferno {
         }
 
         if (obj.Type == ObjectType::Reactor) {
-            if (!Seq::inRange(Resources::GameData.Reactors, obj.ID)) return { 0, Vector3::Zero };
+            if (!Seq::inRange(Resources::GameData.Reactors, obj.ID)) return { .id = 0, .offset = Vector3::Zero };
             auto& reactor = Resources::GameData.Reactors[obj.ID];
             return { 0, reactor.GunPoints[gun] };
         }
 
-        return { 0, Vector3::Zero };
+        return { .id = 0, .offset = Vector3::Zero };
     }
 
     Vector3 GetGunpointOffset(const Object& obj, uint8 gun) {
@@ -594,8 +594,8 @@ namespace Inferno {
                 if (obj.ID == 23) {
                     light.LightColor = Color(0.2f, 1, 0.2f, 1.75f);
                     light.Radius = 45;
-                    submodel.ID = 0;
-                    submodel.Offset = Vector3(0, -2.5f, -5);
+                    submodel.id = 0;
+                    submodel.offset = Vector3(0, -2.5f, -5);
                 }
             }
             break;
@@ -604,8 +604,6 @@ namespace Inferno {
                 break;
 
             case ObjectType::Player:
-                light.Radius = PLAYER_ENGINE_GLOW_RADIUS;
-                light.LightColor = PLAYER_ENGINE_GLOW;
                 break;
 
             case ObjectType::Weapon:
@@ -1131,7 +1129,7 @@ namespace Inferno {
         if (obj.Render.Type == RenderType::Model && obj.Render.Model.ID != ModelID::None) {
             auto& model = Resources::GetModel(obj.Render.Model.ID);
             auto sm = (short)RandomInt(std::max((int)model.Submodels.size() - 1, 0));
-            if (sm < 0) return { 0 };
+            if (sm < 0) return { .id = 0 };
             int index = -1;
             if (!model.Submodels[sm].Indices.empty()) {
                 auto i = RandomInt((int)model.Submodels[sm].Indices.size() - 1);
@@ -1142,13 +1140,13 @@ namespace Inferno {
                 index = model.Submodels[sm].FlatIndices[i];
             }
 
-            if (index < 0) return { 0 };
+            if (index < 0) return { .id = 0 };
             Vector3 vert = model.Vertices[index];
             return { sm, vert };
         }
         else {
             auto point = obj.GetPosition(Game::LerpAmount) + RandomPointOnSphere() * obj.Radius;
-            return { 0, point };
+            return { .id = 0, .offset = point };
         }
     }
 

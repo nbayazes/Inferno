@@ -192,7 +192,7 @@ namespace Inferno::Graphics {
 
         // Prioritize overlay texture lights
         if (useOverlay) {
-            if (auto mat2 = TryGetValue(Resources::LightInfoTable, side.TMap2))
+            if (auto mat2 = Resources::GetLightInfo(side.TMap2))
                 return mat2;
             else {
                 if (!Resources::GetTextureInfo(side.TMap2).Transparent)
@@ -201,7 +201,7 @@ namespace Inferno::Graphics {
         }
 
         // Try base texture
-        return TryGetValue(Resources::LightInfoTable, side.TMap);
+        return Resources::GetLightInfo(side.TMap);
     }
 
     void GatherSideLights(const ConstFace& face, TextureLightInfo& info, List<LightData>& sources) {
@@ -274,6 +274,8 @@ namespace Inferno::Graphics {
                     light.radius = info.Radius;
                     light.normal = side.AverageNormal;
                     light.type = info.Type;
+                    light.coneAngle0 = info.Angle0;
+                    light.coneAngle1 = info.Angle1;
 
                     if (info.Wrap == LightWrapMode::U || info.Wrap == LightWrapMode::V) {
                         //if (info.IsContinuous()) {
@@ -511,7 +513,7 @@ namespace Inferno::Graphics {
                 auto len = seg.GetLongestSide();
 
                 auto energyId = level.IsDescent1() ? LevelTexID(328) : LevelTexID(353);
-                auto mat = TryGetValue(Resources::LightInfoTable, energyId);
+                auto mat = Resources::GetLightInfo(energyId);
                 auto color = mat ? mat->Color : Color(0.63f, 0.315f, 0.045f);
 
                 LightData light{};

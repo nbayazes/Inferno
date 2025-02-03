@@ -810,7 +810,7 @@ namespace Inferno::Game {
         // Fire sound
         Sound3D sound(weapon.FlashSound);
         sound.Volume = 0.70f;
-        sound.AttachOffset = gunSubmodel.Offset;
+        sound.AttachOffset = gunSubmodel.offset;
         Sound::PlayFrom(sound, playerObj);
 
         ParticleInfo p{};

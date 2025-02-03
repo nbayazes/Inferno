@@ -233,6 +233,20 @@ namespace Inferno::Resources {
         return index ? TexID(*index) : TexID::None;
     }
 
+    LevelTexID FindLevelTexture(string_view name) {
+        //auto frameIndex = name.find('#');
+
+        //if (frameIndex > 0) {
+        //    return FindTexture(name.substr(0, frameIndex);
+        //}
+
+        if (auto tex = FindTexture(name); tex != TexID::None) {
+            return LookupLevelTexID(tex);
+        }
+
+        return LevelTexID::None;
+    }
+
     const PigEntry& GetTextureInfo(TexID id) {
         if (auto bmp = CustomTextures.Get(id)) return bmp->Info;
         return Pig.Get(id);
@@ -744,7 +758,7 @@ namespace Inferno::Resources {
         Pig = {};
         Hog = {};
         GameData = {};
-        LightInfoTable = {};
+        Lights = {};
         CustomTextures.Clear();
         Textures.clear();
     }
@@ -782,7 +796,7 @@ namespace Inferno::Resources {
         if (FileSystem::TryFindFile(commonPath)) {
             auto data = File::ReadAllText(commonPath);
             SPDLOG_INFO("Reading light table from `{}`", commonPath);
-            LoadLightTable(data, LightInfoTable);
+            LoadLightTable(data, Lights);
         }
 
         auto gamePath = level.IsDescent1() ? "data/d1/lights.yml" : "data/d2/lights.yml";
@@ -790,14 +804,14 @@ namespace Inferno::Resources {
         if (FileSystem::TryFindFile(gamePath)) {
             auto data = File::ReadAllText(gamePath);
             SPDLOG_INFO("Reading light table from `{}`", gamePath);
-            LoadLightTable(data, LightInfoTable);
+            LoadLightTable(data, Lights);
         }
 
         if (Game::Mission) {
             auto data = Game::Mission->TryReadEntryAsString("lights.yml");
 
             if (!data.empty()) {
-                LoadLightTable(data, LightInfoTable);
+                LoadLightTable(data, Lights);
                 SPDLOG_INFO("Reading light table from mission");
             }
         }
@@ -1026,7 +1040,7 @@ namespace Inferno::Resources {
             }
             else if (level.IsDescent1()) {
                 SPDLOG_INFO("Loading Descent 1 level: '{}'\r\n Version: {} Segments: {} Vertices: {}",
-                            level.Name, level.Version, level.Segments.size(), level.Vertices.size());
+                    level.Name, level.Version, level.Segments.size(), level.Vertices.size());
 
                 if (String::ToLower(level.FileName).ends_with(".sdl"))
                     LoadDescent1Shareware();

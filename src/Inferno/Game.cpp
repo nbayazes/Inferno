@@ -360,6 +360,7 @@ namespace Inferno::Game {
                 Game::MainCamera.Position = MenuCameraPosition;
                 Game::MainCamera.Target = MenuCameraTarget;
                 Sound::SetMusicVolume(Settings::Inferno.MusicVolume);
+                Input::SetMouseMode(Input::MouseMode::Normal);
                 PlayMainMenuMusic();
                 UI::ShowMainMenu();
 

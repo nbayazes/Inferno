@@ -10,6 +10,7 @@
 
 namespace Inferno {
     enum class FireState { None, Press, Hold, Release };
+    enum class HeadlightState { Off, Normal, Bright };
 
     constexpr float MAX_ENERGY = 200;
     constexpr float MAX_SHIELDS = 200;
@@ -29,6 +30,8 @@ namespace Inferno {
         SoundUID _fusionChargeSound = SoundUID::None;
         float _prevAfterburnerCharge = 0;
         double _nextFlareFireTime = 0;
+        EffectID _headlightEffect = EffectID::None;
+        HeadlightState _headlight = HeadlightState::Off;
 
     public:
         float RearmTime = 1.0f; // Time to swap between weapons and being able to fire
@@ -178,6 +181,8 @@ namespace Inferno {
 
         void StartNewLevel(bool secret);
         float GetShipVisibility() const;
+
+        void ToggleHeadlight();
 
     private:
         float GetWeaponEnergyCost(const Weapon& weapon) const;

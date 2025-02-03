@@ -22,6 +22,7 @@ namespace Inferno {
 
     // Defines dynamic light sources on a texture
     struct TextureLightInfo {
+        string Name;
         LevelTexID Id = LevelTexID::None;
         LightType Type = LightType::Point;
         List<Vector2> Points = { { 0.5f, 0.5f } }; // UV positions for each light
@@ -29,6 +30,8 @@ namespace Inferno {
         float Radius = 40; // light radius
         float Width = 0.25f; // U Width for rectangular lights. For wrapped lights this is aligned to the wrap direction.
         float Height = 0.25f; // V Height for rectangular lights. Unused for wrapped lights.
+        float Angle0 = 0; // Spotlight parameter. 1 / (cos inner - cos outer)
+        float Angle1 = 0; // Spotlight parameter. cos outer
         Color Color = LIGHT_UNSET;
         LightWrapMode Wrap = LightWrapMode::None;
 
@@ -39,8 +42,8 @@ namespace Inferno {
     };
 
     // Loads light info from a YAML file
-    void LoadLightTable(const string& yaml, Dictionary<LevelTexID, TextureLightInfo>& lightInfo);
+    void LoadLightTable(const string& yaml, List<TextureLightInfo>& lightInfo);
 
-    // Loads material info from a YAML file
+    // Loads light info from a YAML file
     void SaveLightTable(std::ostream& stream, const Dictionary<LevelTexID, TextureLightInfo>& lightInfo);
 }

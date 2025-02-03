@@ -81,7 +81,6 @@ namespace Inferno::Input {
 
         ButtonState<256> _keyboard;
         ButtonState<8> _mouseButtons;
-        //ButtonState<SDL_GAMEPAD_BUTTON_COUNT> _controller = { .Controller = true };
 
         struct InputEvent {
             EventType type;

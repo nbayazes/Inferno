@@ -303,7 +303,7 @@ namespace Inferno::Render {
 
             if (Info.UseParentVertices && Parent) {
                 if (auto parent = Game::GetObject(Parent)) {
-                    auto offset = GetRandomPointOnObject(*parent).Offset;
+                    auto offset = GetRandomPointOnObject(*parent).offset;
                     position = Vector3::Transform(offset, parent->GetTransform(Game::LerpAmount));
                     if (Info.Variance > 0) {
                         auto dir = position - parent->Position;
@@ -531,7 +531,7 @@ namespace Inferno::Render {
                 if (Info.PointGravityVelocity != Vector3::Zero || Info.PointGravityOffset != Vector3::Zero) {
                     auto t = Info.Duration.Max - (Info.Duration.Max - spark.Life);
                     // Offset the gravity center over the lifetime of the particle
-                    center += Info.PointGravityVelocity * t + Info.PointGravityOffset + ParentSubmodel.Offset;
+                    center += Info.PointGravityVelocity * t + Info.PointGravityOffset + ParentSubmodel.offset;
 
                     if (!Info.Relative) {
                         //center = Vector3::Transform(center, parent->Rotation);
@@ -673,11 +673,11 @@ namespace Inferno::Render {
 
         if (Parent && Info.Relative) {
             // Relative positioning directly links the particles to the parent transform
-            position += ParentSubmodel.Offset + Info.Offset;
+            position += ParentSubmodel.offset + Info.Offset;
         }
         else if (auto parent = Game::GetObject(Parent)) {
             // Regular parenting creates particles at the parent position
-            position += Vector3::Transform(ParentSubmodel.Offset + Info.Offset, parent->Rotation);
+            position += Vector3::Transform(ParentSubmodel.offset + Info.Offset, parent->Rotation);
         }
 
         spark.Position = spark.PrevPosition = position;
@@ -875,6 +875,16 @@ namespace Inferno::Render {
         light.color = lightColor;
         light.type = LightType::Point;
         light.pos = Position;
+        light.normal = Info.Normal;
+        light.coneAngle0 = Info.Angle0;
+        light.coneAngle1 = Info.Angle1;
+
+        auto parent = Game::GetObject(Parent);
+        if (Info.Normal != Vector3::Zero && parent && parent->IsAlive()) {
+            auto rotation = parent->GetRotation(Game::LerpAmount);
+            light.normal = Vector3::Transform(Info.Normal, rotation);
+        }
+
         Graphics::Lights.AddLight(light);
 
         if (Game::GetState() == GameState::Editor || Game::GetState() == GameState::PauseMenu || Info.SpriteMult <= 0)

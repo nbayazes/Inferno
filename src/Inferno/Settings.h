@@ -192,6 +192,8 @@ namespace Inferno {
         bool InvertY = false;
         float MouseSensitivity = 1 / 64.0f;
         float MouseSensitivityX = 1 / 64.0f;
+        float MouselookSensitivity = 0.005f; // Different scale from regular ship input
+        bool MouselookInvert = true; // Inverts mouselook Y axis
         bool HalvePitchSpeed = true; // Halves the maximum pitch speed. This is the original game behavior.
         bool ScreenshotMode = false; // game setting?
         float MasterVolume = 1.0f;

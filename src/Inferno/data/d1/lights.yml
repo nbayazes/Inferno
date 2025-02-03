@@ -1,6 +1,6 @@
 Lights:
     # Lab textures
-    - ID: 212
+    - Name: metl078
       Type: 2
       Points: 0.5, 0.22
       Radius: 35
@@ -8,7 +8,7 @@ Lights:
       Wrap: 1
       Color: 0.5, 0.5, 1, 0.4 # cooler
   
-    - ID: 213
+    - Name: metl079
       Type: 2
       Points: 0.70, 0.22
       Width: 0.14
@@ -16,7 +16,7 @@ Lights:
       Radius: 35
       Color: 0.5, 0.5, 1, 0.4 # cooler
   
-    - ID: 214
+    - Name: metl080
       Type: 2
       Points: 0.30, 0.22
       Width: 0.14
@@ -24,7 +24,7 @@ Lights:
       Radius: 35
       Color: 0.5, 0.5, 1, 0.4 # cooler
   
-    - ID: 221
+    - Name: metl089
       Type: 2
       Points: 0.75, 0.25
       Width: 0.25
@@ -32,7 +32,7 @@ Lights:
       Radius: 35
       Color: 0.5, 0.5, 1, 0.4 # cooler
   
-    - ID: 222
+    - Name: metl090
       Type: 2
       Points: 0.25, 0.25
       Width: 0.25
@@ -41,94 +41,112 @@ Lights:
       Color: 0.5, 0.5, 1, 0.4 # cooler
   
     # Door strips
-    - ID: 250 # white
+    - Name: metl126 # white
       Type: 2
       Points: 0.135, 0
       Wrap: 2
       Width: 0.1
       Color: 1, .88, .88, .3
       Radius: 35
-  
-    - ID: 251 # red
+      Angle: 85
+      InnerAngle: 60
+      
+    - Name: metl133 # red
       Type: 2
       Points: 0.135, 0
       Wrap: 2
       Width: 0.1
       Color: 1, .01, .01, .4
       Radius: 35
-  
-    - ID: 252 # blue
+      Angle: 85
+      InnerAngle: 60
+      
+    - Name: metl134 # blue
       Type: 2
       Points: 0.135, 0
       Wrap: 2
       Width: 0.1
       Color: .05, .05, 1, .7 # blue appears dimmer than the others
       Radius: 35
+      Angle: 85
+      InnerAngle: 60
   
-    - ID: 253 # yellow
+    - Name: metl135 # yellow
       Type: 2
       Points: 0.135, 0
       Wrap: 2
       Width: 0.1
       Radius: 35
       Color: 1, 0.75, 0, .4
+      Angle: 85
+      InnerAngle: 60
 
     # Yellow ceiling lights
-    - ID: 264
+    - Name: ceil002
       Type: 2
       Points: 0.5, 0.5
       Width: .2
       Height: .2
       Radius: 35
       Color: 1, .8, .5, .8
+      Angle: 75
+      InnerAngle: 35
 
-    - ID: 265
+    - Name: ceil003
       Radius: 35
       Points: 0.5, 0.5
       Color: 1, .8, .5, 0.6
 
-    - ID: 268 # small square
+    - Name: ceil008 # small square
       Radius: 35
       Points: 0.5, 0.5
       Color: 1, .8, .5, 0.6
     
     # Ceiling lights
-    - ID: 281 # Big rectangle
+    - Name: ceil024 # Big rectangle
       Type: 2
       Points: 0.5, 0.5
       Width: 0.2
       Height: 0.2
       Radius: 35
       Color: 0.75, 0.75, 1, .6
+      Angle: 75
+      InnerAngle: 60
 
-    - ID: 282 # small round
+    - Name: ceil025 # small round
       Radius: 35
       Points: 0.5, 0.5
       Color: 0.8, 0.8, 1, .5
+      Angle: 75
+      InnerAngle: 45
 
-    - ID: 283 # small square
+    - Name: ceil026 # small square
       Radius: 35
       Points: 0.5, 0.5
       Color: 1, .88, .88, .5
+      Angle: 55
+      InnerAngle: 45
 
-    - ID: 284 # small square
+    - Name: ceil027 # small square
       Radius: 35
       Points: 0.5, 0.5
       Color: 0.8, 0.8, 1, .5
+      Angle: 65
+      InnerAngle: 60
 
     # misc lights
-    - ID: 293 # small square
+    - Name: ceil035 # small square
       Radius: 35
       Points: 0.5, 0.5
       Color: 1, .9, .9, .5
 
-    - ID: 294 # rectangle
+    - Name: ceil036 # rectangle
       Radius: 35
       Points: 0.5, 0.5
       Color: 1, .88, .88, .5
-
+      
     # Stacked lights
-    - ID: 285
+    - Name: ceil028
       Type: 2
       Points:
         - 0.5, 0.25
@@ -138,8 +156,10 @@ Lights:
       Color:  .75, .75, 1, 0.5
       #Color: 0.75, 0.833, 1, .5
       Radius: 35
+      Angle: 68
+      InnerAngle: 62
 
-    - ID: 286
+    - Name: ceil029
       Type: 2
       Points:
         - 0.50, 0.24
@@ -151,7 +171,7 @@ Lights:
       Radius: 35
 
     # Double edge wrapped lights
-    - ID: 278 # yellow
+    - Name: ceil020 # yellow
       Type: 2
       Points:
         - 0.05, 0.5
@@ -161,7 +181,7 @@ Lights:
       Color: 1, .8, .5, .35
       Radius: 30
       
-    - ID: 279
+    - Name: ceil021
       Type: 2
       Points:
         - 0.055, 0.5
@@ -172,7 +192,7 @@ Lights:
       Color: 0.666, 0.666, 1, .40
       Radius: 30
   
-    - ID: 280 # End of 279
+    - Name: ceil023 # End of 279
       Type: 2
       Points:
         - 0.055, 0.65
@@ -182,7 +202,7 @@ Lights:
       Color: 0.666, 0.666, 1, .40
   
     # Strip lights with the same heights
-    - ID: 287
+    - Name: ceil030
       Type: 2
       Points: 
         - 0.55, 0.24
@@ -192,7 +212,7 @@ Lights:
       Color: .75, .75, 1, 0.4
       Radius: 25
   
-    - ID: 288
+    - Name: ceil031
       Type: 2
       Points:
         - 0.5, 0.24
@@ -202,7 +222,7 @@ Lights:
       Color: .75, .75, 1, 0.4
       Radius: 25
   
-    - ID: 292
+    - Name: ceil034
       Type: 2
       Points:
         - 0.75, 0.24
@@ -213,15 +233,15 @@ Lights:
       Color: .75, .75, 1, 0.4
 
     # lava
-    - ID: 333
+    - Name: misc11#0
       Points: []
       Color: 1.0, 0.25, .05, .5 # Dim by default to prevent oversaturation
 
-    - ID: 356
+    - Name: lava02#0
       Points: []
       Color: 1, 0.125, 0, .25
 
-    - ID: 355 # lavafall
+    - Name: misc073#0 # lavafall
       Points: []
       Color: 1, 0, 0, .1
       # Points: 0.5, 0.5
@@ -233,63 +253,84 @@ Lights:
 
     # Remove lights from reactor walls as emissives work better. 
     # Allow designer to set lighting if necessary as reactor textures are often densely packed and will oversaturate.
-    - ID: 334
+    - Name: ctrl01#0
       Color: 0, 0, 0, 0
       Points: []
-    - ID: 335
+    - Name: ctrl02#0
       Color: 0, 0, 0, 0
       Points: []
-    - ID: 336
+    - Name: ctrl03#0
       Color: 0, 0, 0, 0
       Points: []
-    - ID: 337
+    - Name: ctrl04#0
       Color: 0, 0, 0, 0
       Points: []
+    # - Name: arw01#0
+    #   Color: 1, 0, 0, .25
+    #   Type: 2
+    #   Points:
+    #     - 0, 0.475
+    #   Width: .08
+    #   Wrap: 1
+    #   Angle: 80
+    #   InnerAngle: 25
 
-    - ID: 289 # blank light texture. only used for ambient lighting
+    - Name: empty # blank light texture. only used for ambient lighting
       Color: 1, 1, 1, 1
       Points: []
 
-    - ID: 328 # energy field
+    - Name: misc17#0 # energy field
       Color: 1, 0.443, 0.027, 0.6
       Points: []      
 
-#    - ID: 343 # paired monitor
+    - Name: Headlight # Player ship headlight
+      Color: 1, 0.7, 0.4, .5
+      Radius: 100
+      Angle: 35
+      InnerAngle: 30
+
+    - Name: Boosted Headlight # Player ship headlight with powerup
+      Color: 1, 0.7, 0.4, .35
+      Radius: 250
+      Angle: 45
+      InnerAngle: 40
+
+#    - Name: 343 # paired monitor
 #      Points:
 #        - 0.29, 0.35
 #        - 0.7, 0.7
 #      Color: 0.00, 0.15, 0.00
 #      Radius: 40
 #
-#    - ID: 341 # monitor
+#    - Name: 341 # monitor
 #      Points:
 #        - 0.5, 0.5
 #      Color: 0.05, 0.25, 0.05
 #      Radius: 20
 #      Offset: 4
 #
-#    - ID: 345 # monitor
+#    - Name: 345 # monitor
 #      Points:
 #        - 0.3, 0.5
 #      Color: 0.1, 0.1, 0.25
 #      Radius: 20
 #      Offset: 4
 #
-#    - ID: 347 # monitor
+#    - Name: 347 # monitor
 #      Points:
 #        - 0.5, 0.55
 #      Color: 0.15, 0.15, 0.15
 #      Radius: 20
 #      Offset: 4
 #
-#    - ID: 349 # monitor
+#    - Name: 349 # monitor
 #      Points:
 #        - 0.5, 0.5
 #      Color: 0.25, 0.25, 0.25
 #      Radius: 20
 #      Offset: 4
 
-    # - ID: 166 # monitor
+    # - Name: 166 # monitor
     #   Points:
     #     - 0.5, 0.5
     #   Color: 0.05, 0.05, 0.05

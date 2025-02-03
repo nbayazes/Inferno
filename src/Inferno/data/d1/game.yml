@@ -1362,7 +1362,7 @@ Ships:
         Ammo: 10000
         AmmoType: Vulcan
         Firing:
-          - Delay: 0.125
+          - Delay: 0.05
             Gunpoints: 6 # center gunpoint
       - Weapon: Spreadfire
         EnergyUsage: 0.5

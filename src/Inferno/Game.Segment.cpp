@@ -342,7 +342,7 @@ namespace Inferno {
 
         Color baseColor(0, 0, 0, 0), overlayColor(0, 0, 0, 0);
 
-        auto lightInfo1 = TryGetValue(Resources::LightInfoTable, side.TMap);
+        auto lightInfo1 = Resources::GetLightInfo(side.TMap);
         if (lightInfo1 && lightInfo1->Color != LIGHT_UNSET) {
             baseColor += lightInfo1->Color;
         }
@@ -351,7 +351,7 @@ namespace Inferno {
         }
 
         if (side.HasOverlay()) {
-            auto lightInfo2 = TryGetValue(Resources::LightInfoTable, side.TMap2);
+            auto lightInfo2 = Resources::GetLightInfo(side.TMap2);
 
             if (lightInfo2 && lightInfo2->Color != LIGHT_UNSET) {
                 overlayColor = lightInfo2->Color;

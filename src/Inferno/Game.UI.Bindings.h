@@ -626,7 +626,7 @@ namespace Inferno::UI {
                 //auto footer = AddChild<Label>("esc cancels, ctrl+r resets all, ctrl+d clears binding", FontSize::Small);
                 _footer = AddChild<Label>("esc cancels, ctrl+r resets all, ctrl+d clears binding", FontSize::Small);
                 _footer->Color = IDLE_BUTTON;
-                _footer->Position = Vector2(DIALOG_PADDING + 5, 425);
+                _footer->Position = Vector2(DIALOG_PADDING + 5, 429);
             }
 
             _bindingList = AddChild<ListBox2>(20, Size.x - DIALOG_PADDING * 3);

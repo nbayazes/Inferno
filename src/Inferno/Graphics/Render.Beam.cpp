@@ -93,7 +93,7 @@ namespace Inferno::Render {
 
         if (!Parent.IsNull() && !HasFlag(Info.Flags, BeamFlag::RandomObjStart)) {
             if (startObj) {
-                if (ParentSubmodel.ID > -1) {
+                if (ParentSubmodel.id > -1) {
                     auto offset = GetSubmodelOffset(*startObj, ParentSubmodel);
                     Start = Vector3::Transform(offset, startObj->GetTransform(Game::LerpAmount));
                 }

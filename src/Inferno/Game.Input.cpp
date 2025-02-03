@@ -106,10 +106,10 @@ namespace Inferno {
     void GenericCameraController(Camera& camera, float speed, bool orbit) {
         auto dt = Clock.GetFrameTimeSeconds();
 
-        if (Game::Bindings.Pressed(GameAction::FirePrimary))
+        if (Game::Bindings.Held(GameAction::FirePrimary))
             camera.Zoom(dt * speed);
 
-        if (Game::Bindings.Pressed(GameAction::FireSecondary))
+        if (Game::Bindings.Held(GameAction::FireSecondary))
             camera.Zoom(dt * -speed);
 
         if (Input::IsMouseButtonPressed(Input::MouseButtons::WheelUp))
@@ -118,39 +118,50 @@ namespace Inferno {
         if (Input::IsMouseButtonPressed(Input::MouseButtons::WheelDown))
             camera.ZoomOut();
 
-        if (Game::Bindings.Pressed(GameAction::Forward))
+        if (Game::Bindings.Held(GameAction::Forward))
             camera.MoveForward(dt * speed);
 
-        if (Game::Bindings.Pressed(GameAction::Reverse))
+        if (Game::Bindings.Held(GameAction::Reverse))
             camera.MoveBack(dt * speed);
 
-        if (Game::Bindings.Pressed(GameAction::SlideLeft))
+        if (Game::Bindings.Held(GameAction::SlideLeft))
             camera.MoveLeft(dt * speed);
 
-        if (Game::Bindings.Pressed(GameAction::SlideRight))
+        if (Game::Bindings.Held(GameAction::SlideRight))
             camera.MoveRight(dt * speed);
 
-        if (Game::Bindings.Pressed(GameAction::SlideDown))
+        if (Game::Bindings.Held(GameAction::SlideDown))
             camera.MoveDown(dt * speed);
 
-        if (Game::Bindings.Pressed(GameAction::SlideUp))
+        if (Game::Bindings.Held(GameAction::SlideUp))
             camera.MoveUp(dt * speed);
 
-        if (Game::Bindings.Pressed(GameAction::RollLeft))
+        if (Game::Bindings.Held(GameAction::RollLeft))
             camera.Roll(dt * 2);
 
-        if (Game::Bindings.Pressed(GameAction::RollRight))
+        if (Game::Bindings.Held(GameAction::RollRight))
             camera.Roll(dt * -2);
 
+         
+        camera.MoveRight(Game::Bindings.LinearAxis(GameAction::LeftRightAxis) * speed * dt);
+        camera.MoveForward(Game::Bindings.LinearAxis(GameAction::ForwardReverseAxis) * speed * dt);
+        camera.MoveUp(Game::Bindings.LinearAxis(GameAction::UpDownAxis) * speed * dt);
 
+        float invert = Settings::Inferno.MouselookInvert ? 1.0f : -1.0f;
         auto& delta = Input::MouseDelta;
+        float linearSensitivity = 3.0f;
+
         if (orbit) {
-            int inv = Settings::Editor.InvertOrbitY ? -1 : 1;
-            camera.Orbit(-delta.x * Settings::Editor.MouselookSensitivity, -delta.y * inv * Settings::Editor.MouselookSensitivity);
+            camera.Orbit(-delta.x * Settings::Inferno.MouselookSensitivity, -delta.y * invert * Settings::Inferno.MouselookSensitivity);
+
+            camera.Orbit(Game::Bindings.LinearAxis(GameAction::YawAxis) * dt * linearSensitivity,
+                         Game::Bindings.LinearAxis(GameAction::PitchAxis) * dt * linearSensitivity);
         }
         else {
-            float yInvert = Settings::Inferno.InvertY ? 1.0f : -1.0f;
-            camera.Rotate(delta.x * Settings::Editor.MouselookSensitivity, delta.y * yInvert * Settings::Editor.MouselookSensitivity);
+            camera.Rotate(delta.x * Settings::Inferno.MouselookSensitivity, delta.y * invert * Settings::Inferno.MouselookSensitivity);
+
+            camera.Rotate(Game::Bindings.LinearAxis(GameAction::YawAxis) * dt * linearSensitivity,
+                          Game::Bindings.LinearAxis(GameAction::PitchAxis) * dt * linearSensitivity);
         }
     }
 
@@ -207,6 +218,9 @@ namespace Inferno {
 
         if (Game::Bindings.Pressed(GameAction::DropBomb))
             player.DropBomb();
+
+        if (Game::Bindings.Pressed(GameAction::Headlight))
+            player.ToggleHeadlight();
     }
 
     bool ConfirmedInput() {
