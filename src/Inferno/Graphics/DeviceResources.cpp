@@ -63,6 +63,7 @@ namespace Inferno {
         WaitForGpu();
     }
 
+#if defined(_DEBUG) && defined(GPU_DEBUG_LAYER)
     // Enable the debug layer (requires the Graphics Tools "optional feature").
     // NOTE: Enabling the debug layer after device creation will invalidate the active device.
     void EnableGpuDebugLayer(DWORD& dxgiFactoryFlags) {
@@ -111,12 +112,13 @@ namespace Inferno {
             std::ignore = dxgiInfoQueue->AddStorageFilterEntries(DXGI_DEBUG_DXGI, &filter);
         }
     }
+#else
+    void EnableGpuDebugLayer(DWORD&) {}
+#endif
 
     // Configures the Direct3D device, and stores handles to it and the device context.
     void DeviceResources::CreateDeviceResources() {
-#if defined(_DEBUG) && defined(GPU_DEBUG_LAYER)
-        EnableGpuDebug(m_dxgiFactoryFlags);
-#endif
+        EnableGpuDebugLayer(m_dxgiFactoryFlags);
 
         ThrowIfFailed(CreateDXGIFactory2(m_dxgiFactoryFlags, IID_PPV_ARGS(m_dxgiFactory.ReleaseAndGetAddressOf())));
 
