@@ -124,6 +124,7 @@ Materials:
     NormalStrength: 0.15
     Metalness: 1
     Roughness: 0.35
+    LightReceived: 0.33
   - Name: rbot007
     Metalness: 1
     Roughness: 0.6
@@ -292,14 +293,13 @@ Materials:
     Roughness: 0.7
   - Name: rock071
     SpecularStrength: 0.612
-    Roughness: 0.474
+    Roughness: 0.501
   - Name: rock002
     NormalStrength: 0.6
     Roughness: 0.9
   - Name: rock004
-    NormalStrength: 0.5
-    SpecularStrength: 0.495
-    Roughness: 0.629
+    SpecularStrength: 0.612
+    Roughness: 0.501
   - Name: rock006
     NormalStrength: 0.75
     Metalness: 0.25
@@ -384,7 +384,6 @@ Materials:
     NormalStrength: -0.713
     Roughness: 0.669
   - Name: rock084
-    NormalStrength: 0.601
     Metalness: 0.25
     Roughness: 0.692
   - Name: rock086
@@ -633,7 +632,7 @@ Materials:
     NormalStrength: 1.1
     Roughness: 0.75
   - Name: rock239
-    NormalStrength: 1.4
+    NormalStrength: 2
     Roughness: 0.832
   - Name: rock245
     NormalStrength: -1
@@ -816,8 +815,7 @@ Materials:
     Roughness: 0.4
     LightReceived: 0.33
   - Name: metl041
-    NormalStrength: 0.1
-    SpecularStrength: 3
+    NormalStrength: 0.15
     Metalness: 1
     Roughness: 0.4
     LightReceived: 0.33
@@ -1172,11 +1170,10 @@ Materials:
     Roughness: 0.363
     LightReceived: 3
   - Name: metl139
-    NormalStrength: 0.1
     SpecularStrength: 0.6
     Metalness: 0.94
     Roughness: 0.45
-    LightReceived: 3
+    LightReceived: 1.5
   - Name: metl140
     NormalStrength: 0.15
     Metalness: 1
@@ -1794,10 +1791,10 @@ Materials:
     Roughness: 0.4
     LightReceived: 0.25
   - Name: 'door04#0'
-    NormalStrength: 0.4
+    NormalStrength: 0.225
     Metalness: 1
     Roughness: 0.55
-    LightReceived: 0.4
+    LightReceived: 0.3
   - Name: 'door04#11'
     NormalStrength: 1.072
     SpecularStrength: 0.14
@@ -1805,8 +1802,10 @@ Materials:
     Roughness: 0.539
   - Name: 'door05#0'
     NormalStrength: 0.225
+    SpecularStrength: 1.5
     Metalness: 1
     Roughness: 0.451
+    LightReceived: 0.75
   - Name: 'door10#0'
     NormalStrength: 0.1
     SpecularStrength: 1.5
@@ -1864,7 +1863,7 @@ Materials:
     SpecularStrength: 0.3
     Roughness: 0.95
   - Name: 'door22#0'
-    NormalStrength: 1.4
+    NormalStrength: 2
     Roughness: 0.832
   - Name: 'door22#1'
     NormalStrength: 0.517

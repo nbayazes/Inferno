@@ -181,6 +181,7 @@ namespace Inferno {
 
         void StartNewLevel(bool secret);
         float GetShipVisibility() const;
+        void TurnOffHeadlight(bool playSound = true);
 
         void ToggleHeadlight();
 

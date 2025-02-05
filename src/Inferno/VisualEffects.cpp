@@ -323,8 +323,8 @@ namespace Inferno {
 
     void FixedUpdateEffects(float dt) {
         if (VisualEffects.size() + 100 > VisualEffects.capacity()) {
-            VisualEffects.resize(VisualEffects.size() + 100);
-            SPDLOG_WARN("Resizing visual effects buffer to {}", VisualEffects.size());
+            VisualEffects.resize(VisualEffects.capacity() + 100);
+            SPDLOG_INFO("Resizing visual effects buffer to {}", VisualEffects.size());
         }
 
         for (size_t effectId = 0; effectId < VisualEffects.size(); effectId++) {

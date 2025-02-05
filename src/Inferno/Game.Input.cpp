@@ -142,7 +142,7 @@ namespace Inferno {
         if (Game::Bindings.Held(GameAction::RollRight))
             camera.Roll(dt * -2);
 
-         
+
         camera.MoveRight(Game::Bindings.LinearAxis(GameAction::LeftRightAxis) * speed * dt);
         camera.MoveForward(Game::Bindings.LinearAxis(GameAction::ForwardReverseAxis) * speed * dt);
         camera.MoveUp(Game::Bindings.LinearAxis(GameAction::UpDownAxis) * speed * dt);
@@ -155,13 +155,13 @@ namespace Inferno {
             camera.Orbit(-delta.x * Settings::Inferno.MouselookSensitivity, -delta.y * invert * Settings::Inferno.MouselookSensitivity);
 
             camera.Orbit(Game::Bindings.LinearAxis(GameAction::YawAxis) * dt * linearSensitivity,
-                         Game::Bindings.LinearAxis(GameAction::PitchAxis) * dt * linearSensitivity);
+                Game::Bindings.LinearAxis(GameAction::PitchAxis) * dt * linearSensitivity);
         }
         else {
             camera.Rotate(delta.x * Settings::Inferno.MouselookSensitivity, delta.y * invert * Settings::Inferno.MouselookSensitivity);
 
             camera.Rotate(Game::Bindings.LinearAxis(GameAction::YawAxis) * dt * linearSensitivity,
-                          Game::Bindings.LinearAxis(GameAction::PitchAxis) * dt * linearSensitivity);
+                Game::Bindings.LinearAxis(GameAction::PitchAxis) * dt * linearSensitivity);
         }
     }
 
@@ -227,13 +227,21 @@ namespace Inferno {
         return Input::IsKeyPressed(Input::Keys::Space) || Game::Bindings.Pressed(GameAction::FirePrimary) || Game::Bindings.Pressed(GameAction::FireSecondary);
     }
 
-    // Keys that should only be enabled in debug builds
-    void HandleDebugKeys() {
+    bool CheckPhotoMode() {
         auto state = Game::GetState();
 
         // Photo mode
-        if (Input::IsKeyPressed(Keys::OemTilde) && Input::AltDown && (state == GameState::Game || state == GameState::PhotoMode))
+        if (Input::IsKeyPressed(Keys::OemTilde) && Input::AltDown && (state == GameState::Game || state == GameState::PhotoMode)) {
             Game::SetState(state == GameState::PhotoMode ? GameState::Game : GameState::PhotoMode);
+            return true;
+        }
+
+        return false;
+    }
+
+    // Keys that should only be enabled in debug builds
+    void HandleDebugKeys() {
+        auto state = Game::GetState();
 
         if (state == GameState::Game) {
             if (Input::IsKeyPressed(Keys::Back) && Input::AltDown)
@@ -402,8 +410,8 @@ namespace Inferno {
     void HandleInput(float dt) {
         switch (Game::GetState()) {
             case GameState::Automap:
-                if (Game::Bindings.Pressed(GameAction::Automap) || Input::MenuActions.IsSet(MenuAction::Cancel)) {
-                    Game::SetState(GameState::Automap);
+                if (Game::Bindings.Pressed(GameAction::Automap) || Game::Bindings.Pressed(GameAction::Pause)) {
+                    Game::SetState(GameState::Game);
                 }
 
                 HandleAutomapInput();
@@ -414,10 +422,14 @@ namespace Inferno {
                 return;
 
             case GameState::PhotoMode:
+                CheckPhotoMode();
                 GenericCameraController(Game::MainCamera, 90);
-                return;
+                break;
 
             case GameState::Game:
+                if (CheckPhotoMode())
+                    return; // return early so other hotkeys don't get executed
+
                 if (Game::Bindings.Pressed(GameAction::Automap)) {
                     Game::SetState(GameState::Automap);
                 }

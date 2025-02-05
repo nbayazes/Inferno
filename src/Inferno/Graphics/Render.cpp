@@ -634,6 +634,7 @@ namespace Inferno::Render {
         else if (gameState == GameState::Game ||
                  gameState == GameState::PauseMenu ||
                  gameState == GameState::Editor ||
+                 gameState == GameState::PhotoMode ||
                  gameState == GameState::ExitSequence) {
             if (LevelChanged) {
                 Adapter->WaitForGpu();

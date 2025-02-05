@@ -301,7 +301,7 @@ namespace Inferno::UI {
         void OnUpdate() override {
             DialogBase::OnUpdate();
 
-            if (Input::IsKeyPressed(Keys::Enter)) {
+            if (Input::MenuActions.IsSet(MenuAction::Confirm)) {
                 State = CloseState::Accept;
             }
         }

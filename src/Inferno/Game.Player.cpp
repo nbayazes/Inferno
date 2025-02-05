@@ -872,11 +872,27 @@ namespace Inferno {
         return 1.0f;
     }
 
-    void Player::ToggleHeadlight() {
-        if (_headlightEffect != EffectID::None) {
-            StopEffect(_headlightEffect);
-            _headlightEffect = EffectID::None;
+    void Player::TurnOffHeadlight(bool playSound) {
+        constexpr auto SWITCH_OFF_SOUND = "data/switch2.wav";
+
+        switch (_headlight) {
+            case HeadlightState::Normal:
+            case HeadlightState::Bright:
+                if (playSound)
+                    Sound::Play2D({ SWITCH_OFF_SOUND });
+
+                _headlight = HeadlightState::Off;
+
+                if (_headlightEffect != EffectID::None) {
+                    StopEffect(_headlightEffect);
+                    _headlightEffect = EffectID::None;
+                }
+                break;
         }
+    }
+
+    void Player::ToggleHeadlight() {
+        constexpr auto SWITCH_ON_SOUND = "data/switch.wav";
 
         switch (_headlight) {
             case HeadlightState::Off:
@@ -890,16 +906,16 @@ namespace Inferno {
                     light.Angle1 = info->Angle1;
                     light.ConeSpill = info->ConeSpill;
 
-                    _headlightEffect = AttachLight(light, Reference);
-                    PrintHudMessage("Headlight On");
+                    _headlightEffect = AttachLight(light, Reference, { .id = 0, .offset = { 0, -1.75f, 0 } });
+                    Sound::Play2D({ SWITCH_ON_SOUND });
+                    //PrintHudMessage("Headlight On");
                     _headlight = HeadlightState::Normal;
                 }
             }
             break;
             case HeadlightState::Normal:
                 if (!HasPowerup(PowerupFlag::Headlight)) {
-                    PrintHudMessage("Headlight Off");
-                    _headlight = HeadlightState::Off;
+                    TurnOffHeadlight();
                 }
                 else if (auto info = Resources::GetLightInfo("Boosted Headlight")) {
                     LightEffectInfo light;
@@ -912,12 +928,12 @@ namespace Inferno {
 
                     _headlightEffect = AttachLight(light, Reference);
                     PrintHudMessage("Boosted Headlight");
+                    Sound::Play2D({ SWITCH_ON_SOUND });
                     _headlight = HeadlightState::Bright;
                 }
                 break;
             case HeadlightState::Bright:
-                PrintHudMessage("Headlight Off");
-                _headlight = HeadlightState::Off;
+                TurnOffHeadlight();
                 break;
         }
     }
@@ -1526,6 +1542,7 @@ namespace Inferno {
         dropPowerup(PowerupFlag::AmmoRack, PowerupID::AmmoRack);
         dropPowerup(PowerupFlag::Converter, PowerupID::Converter);
         dropPowerup(PowerupFlag::Headlight, PowerupID::Headlight);
+        TurnOffHeadlight(false);
 
         auto maybeDropWeapon = [this, &player](PrimaryWeaponIndex weapon, int ammo = 0) {
             if (!HasWeapon(weapon)) return;

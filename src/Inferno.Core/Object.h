@@ -307,7 +307,7 @@ namespace Inferno {
     constexpr double MAX_OBJECT_LIFE = 3600 * 100; // 100 hours
 
     enum class EffectFlags : uint8 {
-        None,
+        None = 0,
         Cloaked = 1 << 0,
         Invulnerable = 1 << 1,
         PhaseIn = 1 << 2, // Becoming solid

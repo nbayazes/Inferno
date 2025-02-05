@@ -297,13 +297,6 @@ namespace Inferno::Game {
             }
         }
 
-        for (int i = 0; i < Level.Objects.size(); i++) {
-            auto& obj = Level.Objects[i];
-            if (obj.Render.Type == RenderType::Hostage || obj.Render.Type == RenderType::Powerup) {
-                obj.Render.VClip.DirectLight = Color();
-            }
-        }
-
         if (Game::ActiveCamera && (State == GameState::Game || State == GameState::ExitSequence))
             TraverseSegments(*Game::ActiveCamera, GetPlayerObject().Segment, TraversalFlag::None);
 
@@ -443,6 +436,8 @@ namespace Inferno::Game {
                 break;
 
             case GameState::ExitSequence:
+                // Turn off the player headlight during exit sequences because 3D art is missing
+                Player.TurnOffHeadlight();
                 break;
 
             case GameState::PhotoMode:
@@ -571,6 +566,17 @@ namespace Inferno::Game {
         CheckGameStateChange();
         g_ImGuiBatch->BeginFrame();
 
+        // Reset direct lighting on sprites. Light effects accumulate on nearby objects each frame.
+        for (int i = 0; i < Level.Objects.size(); i++) {
+            auto& obj = Level.Objects[i];
+            if (obj.Render.Type == RenderType::Hostage || obj.Render.Type == RenderType::Powerup) {
+                obj.Render.VClip.DirectLight = Color();
+            }
+        }
+
+        // Reset direct light on player. Light effects set it.
+        Game::Player.DirectLight = Color{};
+
         switch (State) {
             case GameState::MainMenu:
                 SetActiveCamera(Game::MainCamera);
@@ -688,9 +694,6 @@ namespace Inferno::Game {
         }
 
         //LegitProfiler::Profiler.Render();
-
-        // Reset direct light as rendering effects sets it
-        Game::Player.DirectLight = Color{};
 
         g_ImGuiBatch->EndFrame();
         auto& camera = Game::GetActiveCamera();
@@ -960,6 +963,7 @@ namespace Inferno::Game {
         Player.Stats.TotalHostages = 0; // todo: move this to start mission function
         Player.Lives = PlayerData::INITIAL_LIVES; // todo: move this to start mission function
         Player.LevelStartScore = Player.Score;
+        Player.TurnOffHeadlight(false);
 
         // Default the gravity direction to the player start
         Gravity = player.Rotation.Up() * -DEFAULT_GRAVITY;

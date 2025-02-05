@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Game.Briefing.h"
+#include "Game.Bindings.h"
 #include "Game.h"
 #include "Graphics.h"
 #include "Input.h"
@@ -84,7 +85,7 @@ namespace Inferno {
         // Precache resources so switching pages doesn't cause hitches
         for (auto& screen : _screens) {
             backgrounds.insert(screen.Background);
-            
+
             for (auto& page : screen.Pages) {
                 if (page.Model != ModelID::None)
                     models.push_back(page.Model);
@@ -105,7 +106,6 @@ namespace Inferno {
                         // todo: also search for PNG, PCX, DDS
                         page.Image += ".bbm"; // Assume BBM for now
                     }
-
                 }
 
                 auto& doorClip = Resources::GetDoorClip(page.Door);
@@ -269,21 +269,24 @@ vaporization of the facility.
         using Input::Keys;
 
         if (Input::IsMouseButtonPressed(Input::MouseButtons::RightClick) ||
-            Input::IsKeyPressed(Keys::Left))
+            Input::IsKeyPressed(Keys::Left) ||
+            Input::MenuActions.IsSet(MenuAction::Left))
             Game::Briefing.Back();
 
         bool exitBriefing = false;
 
         if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick) ||
             Input::IsKeyPressed(Keys::Space) ||
-            Input::IsKeyPressed(Keys::Right)) {
+            Input::IsKeyPressed(Keys::Right) ||
+            Input::MenuActions.IsSet(MenuAction::Confirm) ||
+            Input::MenuActions.IsSet(MenuAction::Right)) {
             Game::Briefing.Forward();
             if (!Game::Briefing.GetScreen())
                 exitBriefing = true;
         }
 
-        if (Input::IsKeyPressed(Keys::Escape)) {
-            // todo: show loading screen and load level
+
+        if (Game::Bindings.Pressed(GameAction::Pause)) {
             exitBriefing = true;
         }
 
