@@ -345,23 +345,45 @@ namespace Inferno {
         //Yaml::ReadValue(node["Mass"], ship.Mass);
         //Yaml::ReadValue(node["Drag"], ship.Drag);
 
-        int i = 0;
+        int16 i = 0;
         for (auto weaponNode : node["Weapons"].children()) {
-            auto& weapon = ship.Weapons[i++];
+            auto& weapon = ship.Weapons[i];
             weapon = {};
 
             Yaml::ReadValue(weaponNode["Weapon"], weapon.WeaponName);
-            Yaml::ReadValue(weaponNode["MaxAmmo"], weapon.MaxAmmo);
+            Yaml::ReadValue(weaponNode["Ammo"], weapon.Ammo);
+            Yaml::ReadValue(weaponNode["RackAmmo"], weapon.RackAmmo);
+            Yaml::ReadValue(weaponNode["EnergyUsage"], weapon.EnergyUsage);
+
+            if (!Yaml::ReadValue(weaponNode["AmmoUsage"], weapon.AmmoUsage) && i >= 10) {
+                weapon.AmmoUsage = 1; // Default missiles to using 1 ammo
+            }
+
+            if (!Yaml::ReadValue(weaponNode["AmmoType"], weapon.AmmoType)) {
+                // Default to using the ammo slot of the weapon itself
+                // The only time this isn't true is Gauss
+                weapon.AmmoType = i;
+            }
+
             Yaml::ReadValue(weaponNode["SequenceResetTime"], weapon.SequenceResetTime);
 
             ReadGunpoints(weaponNode["QuadGunpoints"], weapon.QuadGunpoints);
 
+            weapon.Firing = {};
+            weapon.FiringCount = 0;
+
             for (auto firingNode : weaponNode["Firing"]) {
-                WeaponBattery::FiringInfo firingInfo;
-                Yaml::ReadValue(firingNode["Delay"], firingInfo.Delay);
-                ReadGunpoints(firingNode["Gunpoints"], firingInfo.Gunpoints);
-                weapon.Firing.push_back(firingInfo);
+                auto& firing = weapon.Firing[weapon.FiringCount++];
+                Yaml::ReadValue(firingNode["Delay"], firing.Delay);
+                ReadGunpoints(firingNode["Gunpoints"], firing.Gunpoints);
             }
+
+            if (weapon.FiringCount == 0) {
+                SPDLOG_WARN("No firing entries found for weapon {}, defaulting to 1", weapon.WeaponName);
+                weapon.FiringCount = 1;
+            }
+
+            i++;
         }
     }
 

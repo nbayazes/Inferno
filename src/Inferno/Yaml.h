@@ -1,10 +1,5 @@
 #pragma once
 
-#ifndef C4_USE_ASSERT
-// Bad data shouldn't cause an assertion, even in debug
-#define C4_USE_ASSERT 0
-#endif
-
 #include <ryml/ryml_std.hpp>
 #include <ryml/ryml.hpp>
 #include "Types.h"
@@ -32,140 +27,185 @@ namespace Yaml {
     //}
 
     // Tries to read a value from the node. Value is unchanged if node is invalid.
-    template<class T>
+    template <class T>
     bool ReadValue(ryml::ConstNodeRef node, T& value) {
         static_assert(!std::is_same_v<T, const char*>, "Must be writable value");
-        if (!node.readable() || !node.has_val() || node.val() == "") return false;
-        node >> value;
-        return true;
+
+        try {
+            if (!node.readable() || !node.has_val() || node.val() == "") return false;
+            node >> value;
+            return true;
+        }
+        catch (...) {
+            return false;
+        }
     }
 
-    template<Inferno::IsEnum T>
+    template <Inferno::IsEnum T>
     bool ReadValue(ryml::ConstNodeRef node, T& id) {
-        if (!node.readable() || !node.has_val() || node.val() == "") return false;
-        node >> (std::underlying_type_t<T>&)id;
-        return true;
+        try {
+            if (!node.readable() || !node.has_val() || node.val() == "") return false;
+            node >> (std::underlying_type_t<T>&)id;
+            return true;
+        }
+        catch (...) {
+            return false;
+        }
     }
 
-    template<>
+    template <>
     inline bool ReadValue(ryml::ConstNodeRef node, bool& value) {
-        if (!node.readable() || !node.has_val() || node.val() == "") return false;
-        int val = 0;
-        node >> val;
-        value = (bool)val;
-        return true;
+        try {
+            if (!node.readable() || !node.has_val() || node.val() == "") return false;
+
+            int val = 0;
+            node >> val;
+            value = (bool)val;
+            return true;
+        }
+        catch (...) {
+            return false;
+        }
     }
 
-    template<>
+    template <>
     inline bool ReadValue(ryml::ConstNodeRef node, std::filesystem::path& value) {
-        if (!node.readable() || !node.has_val() || node.val() == "") return false;
-        std::string path;
-        node >> path;
-        value = path;
-        return true;
+        try {
+            if (!node.readable() || !node.has_val() || node.val() == "") return false;
+            std::string path;
+            node >> path;
+            value = path;
+            return true;
+        }
+        catch (...) {
+            return false;
+        }
         /*if (std::filesystem::exists(path))
             value = path;
         else
             SPDLOG_WARN("Invalid path in config:\n{}", path);*/
     }
 
-    inline void ReadValue(ryml::ConstNodeRef node, std::array<bool, 4>& a) {
-        if (!node.readable() || !node.has_val() || node.val() == "") return;
-        std::string str;
-        node >> str;
-        auto token = Inferno::String::Split(str, ',', true);
-        if (token.size() != 4)
-            return;
-
-        a[0] = token[0] == "1";
-        a[1] = token[1] == "1";
-        a[2] = token[2] == "1";
-        a[3] = token[3] == "1";
-    }
-
-    template<>
-    inline bool ReadValue(ryml::ConstNodeRef node, DirectX::SimpleMath::Color& value) {
-        if (!node.readable() || !node.has_val() || node.val() == "") return false;
-        std::string str;
-        node >> str;
-        auto token = Inferno::String::Split(str, ',', true);
-        if (token.size() != 4 && token.size() != 3)
-            return false;
-
-        ParseFloat(token[0], value.x);
-        ParseFloat(token[1], value.y);
-        ParseFloat(token[2], value.z);
-
-        if (token.size() == 4)
-            ParseFloat(token[3], value.w);
-        else
-            Inferno::ColorRGBToRGBV(value);
-
-        return true;
-    }
-
-    template<>
-    inline bool ReadValue(ryml::ConstNodeRef node, DirectX::SimpleMath::Vector3& value) {
-        if (!node.readable() || !node.has_val() || node.val() == "") return false;
-        std::string str;
-        node >> str;
-        auto token = Inferno::String::Split(str, ',', true);
-        if (token.size() != 3)
-            return false;
-
-        ParseFloat(token[0], value.x);
-        ParseFloat(token[1], value.y);
-        ParseFloat(token[2], value.z);
-        return true;
-    }
-
-    template<>
-    inline bool ReadValue(ryml::ConstNodeRef node, Inferno::uint2& value) {
-        if (!node.readable() || !node.has_val() || node.val() == "") return false;
-        std::string str;
-        node >> str;
-        auto token = Inferno::String::Split(str, ',', true);
-        if (token.size() != 2)
-            return false;
-
+    inline bool ReadValue(ryml::ConstNodeRef node, std::array<bool, 4>& a) {
         try {
+            if (!node.readable() || !node.has_val() || node.val() == "")
+                return false;
+
+            std::string str;
+            node >> str;
+            auto token = Inferno::String::Split(str, ',', true);
+            if (token.size() != 4)
+                return false;
+
+            a[0] = token[0] == "1";
+            a[1] = token[1] == "1";
+            a[2] = token[2] == "1";
+            a[3] = token[3] == "1";
+            return true;
+        }
+        catch (...) {
+            return false;
+        }
+    }
+
+    template <>
+    inline bool ReadValue(ryml::ConstNodeRef node, DirectX::SimpleMath::Color& value) {
+        try {
+            if (!node.readable() || !node.has_val() || node.val() == "") return false;
+            std::string str;
+            node >> str;
+            auto token = Inferno::String::Split(str, ',', true);
+            if (token.size() != 4 && token.size() != 3)
+                return false;
+
+            ParseFloat(token[0], value.x);
+            ParseFloat(token[1], value.y);
+            ParseFloat(token[2], value.z);
+
+            if (token.size() == 4)
+                ParseFloat(token[3], value.w);
+            else
+                Inferno::ColorRGBToRGBV(value);
+
+            return true;
+        }
+        catch (...) {
+            return false;
+        }
+    }
+
+    template <>
+    inline bool ReadValue(ryml::ConstNodeRef node, DirectX::SimpleMath::Vector3& value) {
+        try {
+            if (!node.readable() || !node.has_val() || node.val() == "") return false;
+            std::string str;
+            node >> str;
+            auto token = Inferno::String::Split(str, ',', true);
+            if (token.size() != 3)
+                return false;
+
+            ParseFloat(token[0], value.x);
+            ParseFloat(token[1], value.y);
+            ParseFloat(token[2], value.z);
+            return true;
+        }
+        catch (...) {
+            return false;
+        }
+    }
+
+    template <>
+    inline bool ReadValue(ryml::ConstNodeRef node, Inferno::uint2& value) {
+        try {
+            if (!node.readable() || !node.has_val() || node.val() == "") return false;
+            std::string str;
+            node >> str;
+            auto token = Inferno::String::Split(str, ',', true);
+            if (token.size() != 2)
+                return false;
+
             auto x = std::stoi(token[0]);
             auto y = std::stoi(token[1]);
             // y might throw, so read both before assignment
             value.x = x;
             value.y = y;
+
+            return true;
         }
         catch (...) {
             return false;
         }
-
-        return true;
     }
 
-    template<>
+    template <>
     inline bool ReadValue(ryml::ConstNodeRef node, DirectX::SimpleMath::Vector2& value) {
-        if (!node.readable() || !node.has_val() || node.val() == "") return false;
-        std::string str;
-        node >> str;
-        auto token = Inferno::String::Split(str, ',', true);
-        if (token.size() != 2)
-            return false;
+        try {
+            if (!node.readable() || !node.has_val() || node.val() == "") return false;
+            std::string str;
+            node >> str;
+            auto token = Inferno::String::Split(str, ',', true);
+            if (token.size() != 2)
+                return false;
 
-        ParseFloat(token[0], value.x);
-        ParseFloat(token[1], value.y);
-        return true;
+            ParseFloat(token[0], value.x);
+            ParseFloat(token[1], value.y);
+            return true;
+        }
+        catch (...) {
+            return false;
+        }
     }
 
-    template<>
+    template <>
     inline bool ReadValue(ryml::ConstNodeRef node, Inferno::Tag& value) {
-        if (!node.readable() || !node.has_val() || node.val() == "") return false;
-        std::string str;
-        node >> str;
-        auto token = Inferno::String::Split(str, ':', true);
-        if (token.size() != 2)
-            return false;
-
         try {
+            if (!node.readable() || !node.has_val() || node.val() == "") return false;
+            std::string str;
+            node >> str;
+            auto token = Inferno::String::Split(str, ':', true);
+            if (token.size() != 2)
+                return false;
+
             value.Segment = (Inferno::SegID)std::stoi(token[0]);
             value.Side = (Inferno::SideID)std::stoi(token[1]);
             return true;
@@ -211,12 +251,11 @@ namespace Yaml {
         return ReadValue<std::string>(node, value);
     }
 
-    template<class T>
+    template <class T>
     void WriteSequence(ryml::NodeRef node, T& src) {
         node |= ryml::SEQ;
 
         for (auto& item : src)
             node.append_child() << item.string();
     }
-
 }

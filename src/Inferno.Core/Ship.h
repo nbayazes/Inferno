@@ -9,9 +9,9 @@ namespace Inferno {
     constexpr auto MAX_WEAPONS = 20;
 
     struct WeaponBattery {
-        //float EnergyUsage = 0; // Energy per shot
-        //float AmmoUsage = 0; // Ammo per shot
-        //int AmmoType = -1;
+        float EnergyUsage = 0; // Energy per shot
+        uint16 AmmoUsage = 0; // Ammo per shot
+        int16 AmmoType = -1; // For primary weapons, ammo type to use
         //int GunpointWeapons[8]{}; // Weapon IDs to use for each gunpoint
         string WeaponName; // Used to resolve weapon id, refer to weapon entry names.
         WeaponID Weapon = WeaponID::None;
@@ -20,14 +20,16 @@ namespace Inferno {
 
         // Crosshair should be determined by gunpoints
         struct FiringInfo {
-            std::bitset<MAX_GUNPOINTS> Gunpoints;
+            std::bitset<MAX_GUNPOINTS> Gunpoints = 0b00000011;
             float Delay = 0.25f; // Delay between shots
         };
 
-        List<FiringInfo> Firing; // Cycles through each entry after firing.
+        uint8 FiringCount = 1; // Number of entries in Firing to use
+        std::array<FiringInfo, 10> Firing; // Cycles through each entry after firing.
 
         std::bitset<MAX_GUNPOINTS> QuadGunpoints; // Gunpoints to use with quad upgrade
-        uint16 MaxAmmo = 0;
+        uint16 Ammo = 0; // Maximum rounds or missiles carried
+        uint16 RackAmmo = 0; // Maximum rounds or missiles carried
     };
 
     struct ShipInfo {

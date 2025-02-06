@@ -186,7 +186,7 @@ namespace Inferno {
         void ToggleHeadlight();
 
     private:
-        float GetWeaponEnergyCost(const Weapon& weapon) const;
+        float GetWeaponEnergyCost(float baseCost) const;
 
         WeaponID GetPrimaryWeaponID(PrimaryWeaponIndex index) const {
             if (index == PrimaryWeaponIndex::Laser) {

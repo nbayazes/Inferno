@@ -257,7 +257,8 @@ namespace Inferno {
                 if (CanFirePrimary(Primary) && PrimaryDelay <= 0) {
                     WeaponCharge = 0.001f;
                     FusionNextSoundDelay = 0.25f;
-                    SubtractEnergy(GetWeaponEnergyCost(weapon));
+                    auto& battery = Ship.Weapons[(int)Primary];
+                    SubtractEnergy(GetWeaponEnergyCost(battery.EnergyUsage));
                 }
             }
             else if (PrimaryState == FireState::Hold && Energy > 0 && WeaponCharge > 0) {
@@ -490,19 +491,15 @@ namespace Inferno {
         auto id = GetPrimaryWeaponID(Primary);
         auto& weapon = Resources::GetWeapon(id);
         PrimaryDelay = GetPrimaryFireDelay();
+        auto& battery = Ship.Weapons[(int)Primary];
 
         // Charged weapons drain energy on button down instead of here
         if (!weapon.Extended.Chargable) {
-            SubtractEnergy(GetWeaponEnergyCost(weapon));
-            PrimaryAmmo[1] -= (uint16)weapon.AmmoUsage; // only vulcan ammo
+            SubtractEnergy(GetWeaponEnergyCost(battery.EnergyUsage));
+            PrimaryAmmo[battery.AmmoType] -= battery.AmmoUsage; // all ammo is treated as vulcan ammo for now
         }
 
-        auto& sequence = Ship.Weapons[(int)Primary].Firing;
-        if (sequence.empty()) {
-            sequence.push_back({ { 1 }, 0.25 });
-            SPDLOG_WARN("Tried firing a weapon with no sequence defined");
-        }
-
+        auto& sequence = battery.Firing;
         if (FiringIndex >= sequence.size()) FiringIndex = 0;
 
         auto& player = Game::GetPlayerObject();
@@ -538,7 +535,7 @@ namespace Inferno {
             }
         }
 
-        FiringIndex = (FiringIndex + 1) % sequence.size();
+        FiringIndex = (FiringIndex + 1) % battery.FiringCount;
         WeaponCharge = 0;
         LastPrimaryFireTime = Game::Time;
 
@@ -571,7 +568,8 @@ namespace Inferno {
         auto& weapon = Resources::GameData.Weapons[(int)id];
         SecondaryDelay = GetSecondaryFireDelay();
 
-        auto& sequence = Ship.Weapons[10 + (int)Secondary].Firing;
+        auto& battery = Ship.Weapons[10 + (int)Secondary];
+        auto& sequence = battery.Firing;
         if (SecondaryFiringIndex >= sequence.size()) SecondaryFiringIndex = 0;
 
         for (uint8 i = 0; i < 8; i++) {
@@ -580,7 +578,7 @@ namespace Inferno {
         }
 
         SecondaryFiringIndex = (SecondaryFiringIndex + 1) % 2;
-        SecondaryAmmo[(int)Secondary] -= (uint16)weapon.AmmoUsage;
+        SecondaryAmmo[(int)Secondary] -= battery.AmmoUsage;
         LastSecondaryFireTime = Game::Time;
 
         AlertRobotsOfNoise(Game::GetPlayerObject(), GetWeaponSoundRadius(weapon), weapon.Extended.Noise);
@@ -612,8 +610,9 @@ namespace Inferno {
 
         for (int i = 0; i < numWeapons; i++) {
             auto idx = (PrimaryWeaponIndex)i;
-            auto& weapon = Resources::GetWeapon(PrimaryToWeaponID[i]);
-            if (weapon.EnergyUsage > 0 && Energy < 1)
+            auto& battery = Ship.Weapons[i];
+
+            if (battery.EnergyUsage > 0 && Energy < 1)
                 continue; // don't switch to energy weapons at low energy
 
             if (!CanFirePrimary(idx)) continue;
@@ -785,7 +784,7 @@ namespace Inferno {
         // Max vulcan ammo changes between D1 and D2
         //PyroGX.Weapons[(int)PrimaryWeaponIndex::Vulcan].MaxAmmo = Game::Level.IsDescent1() ? 10000 : 20000;
         // Always use a max ammo of 10000 for balance reasons
-        Ship.Weapons[(int)PrimaryWeaponIndex::Vulcan].MaxAmmo = 10000;
+        Ship.Weapons[(int)PrimaryWeaponIndex::Vulcan].Ammo = 10000;
 
         if (died) {
             ResetInventory();
@@ -938,7 +937,7 @@ namespace Inferno {
         }
     }
 
-    float Player::GetWeaponEnergyCost(const Weapon& weapon) const {
+    float Player::GetWeaponEnergyCost(float baseCost) const {
         bool quadFire = false;
         if (HasPowerup(PowerupFlag::QuadFire)) {
             for (uint8 i = 0; i < MAX_GUNPOINTS; i++) {
@@ -949,7 +948,7 @@ namespace Inferno {
             }
         }
 
-        float energyUsage = weapon.EnergyUsage * Ship.EnergyMultiplier;
+        float energyUsage = baseCost * Ship.EnergyMultiplier;
 
         // Double the cost of quad fire weapons. Note this expects the base cost to be lowered.
         return quadFire ? energyUsage * 2 : energyUsage;
@@ -977,7 +976,7 @@ namespace Inferno {
     int Player::PickUpAmmo(PrimaryWeaponIndex index, uint16 amount) {
         if (amount == 0) return amount;
 
-        auto max = Ship.Weapons[(int)index].MaxAmmo;
+        auto max = Ship.Weapons[(int)index].Ammo;
         if (HasPowerup(PowerupFlag::AmmoRack))
             max *= 2;
 
@@ -1000,33 +999,35 @@ namespace Inferno {
         if (Game::Level.IsShareware && (index == PrimaryWeaponIndex::Fusion || index == PrimaryWeaponIndex::Plasma))
             return false;
 
-        auto& weapon = Resources::GetWeapon(GetPrimaryWeaponID(index));
         bool canFire = true;
+        auto& battery = Ship.Weapons[(int)Primary];
 
-        if (index == PrimaryWeaponIndex::Vulcan ||
-            index == PrimaryWeaponIndex::Gauss)
-            canFire &= weapon.AmmoUsage <= PrimaryAmmo[(int)PrimaryWeaponIndex::Vulcan];
+        if ((index == PrimaryWeaponIndex::Vulcan ||
+            index == PrimaryWeaponIndex::Gauss) && 
+            Seq::inRange(PrimaryAmmo, battery.AmmoType)) {
+            canFire &= battery.AmmoUsage <= PrimaryAmmo[battery.AmmoType];
+        }
 
         if (index == PrimaryWeaponIndex::Omega)
             canFire &= Energy > 1 || OmegaCharge > OMEGA_CHARGE_COST; // it's annoying to switch to omega with no energy
 
-        canFire &= GetWeaponEnergyCost(weapon) <= Energy;
+        canFire &= GetWeaponEnergyCost(battery.EnergyUsage) <= Energy;
         return canFire;
     }
 
     bool Player::CanFireSecondary(SecondaryWeaponIndex index) const {
-        auto& weapon = Resources::GetWeapon(GetSecondaryWeaponID(index));
         if (Game::Level.IsShareware && index == SecondaryWeaponIndex::Mega)
             return false;
 
+        auto& battery = Ship.Weapons[(int)Secondary + 10];
+
         return
-            weapon.AmmoUsage <= SecondaryAmmo[(int)index] &&
-            weapon.EnergyUsage <= Energy;
+            battery.AmmoUsage <= SecondaryAmmo[(int)index] &&
+            battery.EnergyUsage <= Energy;
     }
 
     float Player::GetPrimaryFireDelay() {
         auto& weapon = Ship.Weapons[(int)Primary];
-        if (weapon.Firing.empty()) return 0.25f; // failsafe
 
         if (FiringIndex >= weapon.Firing.size())
             FiringIndex = 0;
@@ -1434,7 +1435,7 @@ namespace Inferno {
     }
 
     bool Player::PickUpSecondary(SecondaryWeaponIndex index, uint16 count) {
-        auto max = Ship.Weapons[10 + (int)index].MaxAmmo;
+        auto max = Ship.Weapons[10 + (int)index].Ammo;
         if (HasPowerup(PowerupFlag::AmmoRack))
             max *= 2;
 

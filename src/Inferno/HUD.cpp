@@ -352,6 +352,7 @@ namespace Inferno {
         info.Scanline = TEXT_SCANLINE;
         auto weaponName = Resources::GetPrimaryNameShort(weaponIndex);
         string label = string(weaponName), ammo;
+        auto& weapon = player.Ship.Weapons[(int)weaponIndex];
 
         switch (weaponIndex) {
             case PrimaryWeaponIndex::Laser:
@@ -367,8 +368,8 @@ namespace Inferno {
                 break;
 
             case PrimaryWeaponIndex::Vulcan:
-            case PrimaryWeaponIndex::Gauss:
-                ammo = fmt::format("{:05}", player.PrimaryAmmo[1]);
+                case PrimaryWeaponIndex::Gauss:
+                ammo = fmt::format("{:05}", player.PrimaryAmmo[weapon.AmmoType]);
                 break;
 
             case PrimaryWeaponIndex::Omega:

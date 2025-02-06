@@ -52,8 +52,8 @@ namespace Inferno {
         ObjRef KilledBy = {}; // Used for multiplayer kill messages, but also gets set by robots
         uint16 PrimaryWeapons;    // Each bit represents an owned primary weapon
         uint16 SecondaryWeapons;  // Each bit represents an owned secondary weapon
-        uint16 PrimaryAmmo[MAX_PRIMARY_WEAPONS];
-        uint16 SecondaryAmmo[MAX_SECONDARY_WEAPONS];
+        std::array<uint16, MAX_PRIMARY_WEAPONS>  PrimaryAmmo;
+        std::array<uint16, MAX_SECONDARY_WEAPONS> SecondaryAmmo;
 
         int Score, LevelStartScore;
         int64 LevelTime, TotalTime;

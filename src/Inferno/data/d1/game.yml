@@ -1360,7 +1360,6 @@ Ships:
       - Weapon: Vulcan
         AmmoUsage: 10 # Was around 14
         Ammo: 10000
-        AmmoType: Vulcan
         Firing:
           - Delay: 0.05
             Gunpoints: 6 # center gunpoint
@@ -1399,7 +1398,7 @@ Ships:
             Gunpoints: [ 0, 1 ]
       - Weapon: Gauss
         Ammo: 10000
-        AmmoType: Vulcan # Share with vulcan
+        AmmoType: 1 # Share with vulcan
         Firing:
           - Delay: 0.15
             Gunpoints: 6 # center gunpoint
@@ -1410,7 +1409,7 @@ Ships:
       - Weapon: Phoenix
         Firing:
           - Delay: 0.12
-            Gunpoints: [0, 1]
+            Gunpoints: [0, 1] 
       - Weapon: Omega
         Firing:
           - Gunpoints: 1 # Left side only

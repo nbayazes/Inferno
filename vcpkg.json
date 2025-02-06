@@ -18,8 +18,7 @@
       "version>=": "1.12.0"
     },
     {
-      "name": "ryml",
-      "version>=": "0.5.0"
+      "name": "ryml"
     },
     {
       "name": "lodepng",
@@ -36,6 +35,12 @@
     {
       "name": "sdl3",
       "version>=": "3.2.0"
+    }
+  ],
+  "overrides": [
+    {
+      "name": "ryml",
+      "version": "0.7.2"
     }
   ]
 }

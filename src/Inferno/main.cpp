@@ -176,8 +176,8 @@ struct RymlExceptionHandler {
     }
 
     static void ThrowException(const char* msg, size_t /*len*/, ryml::Location /*loc*/, void* /*this_*/) {
-        SPDLOG_WARN("RYML error: {}\n", msg);
-        //throw std::runtime_error(msg);
+        SPDLOG_WARN("RYML error: {}", msg);
+        throw std::runtime_error(msg);
     }
 };
 

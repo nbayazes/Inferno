@@ -444,10 +444,9 @@ Materials:
   - Name: rock134
     Roughness: 0.728
   - Name: rock141
-    NormalStrength: 0.8
     Roughness: 0.75
   - Name: rock146
-    NormalStrength: 2
+    NormalStrength: 3
     Roughness: 0.8
   - Name: rock149
     NormalStrength: 0.675
@@ -615,7 +614,6 @@ Materials:
     SpecularStrength: 0.856
     Roughness: 0.536
   - Name: rock227
-    NormalStrength: 0.346
     Roughness: 0.755
   - Name: rock229
     NormalStrength: 0.468
@@ -1152,7 +1150,7 @@ Materials:
     NormalStrength: 0.15
     Metalness: 0.95
     Roughness: 0.35
-    EmissiveStrength: 5.5
+    EmissiveStrength: 6
   - Name: metl134
     NormalStrength: 0.15
     Metalness: 0.95
@@ -1786,7 +1784,7 @@ Materials:
   - Name: 'eye03#8'
     Roughness: 0.582
   - Name: 'door01#0'
-    NormalStrength: 0.2
+    NormalStrength: 0.4
     Metalness: 1
     Roughness: 0.4
     LightReceived: 0.25
@@ -1801,8 +1799,8 @@ Materials:
     Metalness: 0.516
     Roughness: 0.539
   - Name: 'door05#0'
-    NormalStrength: 0.225
-    SpecularStrength: 1.5
+    NormalStrength: 0.757
+    SpecularStrength: 1.25
     Metalness: 1
     Roughness: 0.451
     LightReceived: 0.75
@@ -1892,7 +1890,7 @@ Materials:
     SpecularStrength: 0.262
     Roughness: 0.708
   - Name: 'door28#0'
-    NormalStrength: 0.15
+    NormalStrength: 0.302
     Metalness: 1
     Roughness: 0.521
   - Name: 'door29#0'
@@ -1904,7 +1902,7 @@ Materials:
   - Name: 'door30#0'
     Roughness: 0.65
   - Name: 'door31#0'
-    NormalStrength: 2
+    NormalStrength: 3
     Roughness: 0.8
   - Name: 'door31#1'
     NormalStrength: 0.225
