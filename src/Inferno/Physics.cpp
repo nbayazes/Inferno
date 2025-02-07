@@ -584,7 +584,7 @@ namespace Inferno {
     void CollideObjects(const LevelHit& hit, const Object& obj, Object& target, float /*dt*/) {
         if (hit.Speed <= 0.1f) return;
 
-        //SPDLOG_INFO("{}-{} impact speed: {}", a.Signature, b.Signature, hit.Speed);
+        //SPDLOG_INFO("{}-{} impact speed: {}", obj.Signature, target.Signature, hit.Speed);
 
         if (target.Type == ObjectType::Powerup || target.Type == ObjectType::Marker)
             return;
@@ -1170,15 +1170,15 @@ namespace Inferno {
                             if ((obj.IsRobot() || obj.IsPlayer()) &&
                                 (other->IsRobot() || other->IsPlayer())) {
                                 auto nDotVel = info.Normal.Dot(obj.Physics.Velocity);
+                                hit.Speed = abs(nDotVel);
                                 obj.Physics.Velocity -= info.Normal * nDotVel; // slide along normal
-                                hit.Speed = obj.Physics.Velocity.Length();
+
                                 obj.Position = info.Point + info.Normal * r1;
-                                //obj.Physics.Velocity += info.Normal * hitSpeed;
                             }
 
                             // Shove player when hit by weapons
                             if (obj.IsWeapon() && other->IsPlayer())
-                                hit.Speed = (obj.Physics.Velocity + other->Physics.Velocity).Length();
+                                hit.Speed = (obj.Physics.Velocity - other->Physics.Velocity).Length();
 
                             CollideObjects(hit, obj, *other, dt);
                         }
@@ -1264,41 +1264,42 @@ namespace Inferno {
     }
 
     // Applies damage and play a sound if object velocity changes suddenly
-    void CheckForImpact(Object& obj, const Vector3& point, const LevelTexture* ti = nullptr) {
+    void CheckForImpact(Object& obj, const LevelHit& hit, const LevelTexture* ti = nullptr) {
         constexpr float DAMAGE_SCALE = 128;
-        constexpr float DAMAGE_THRESHOLD = 1 / 4.0f;
-        auto speed = obj.Physics.Velocity.Length() - obj.Physics.PrevVelocity.Length();
+        constexpr float DAMAGE_THRESHOLD = 0.333f;
+        auto deltaSpeed = obj.Physics.Velocity.Length() - obj.Physics.PrevVelocity.Length();
         bool isForceField = ti && ti->IsForceField();
-        if (speed > 0 && !isForceField) return; // Object sped up
-        speed = abs(speed);
 
-        auto damage = speed / DAMAGE_SCALE;
+        if (obj.IsPlayer() && deltaSpeed >= 10 && !isForceField)
+            return; // Player sped up, don't create impact when moving away from object
+
+        auto damage = hit.Speed / DAMAGE_SCALE;
 
         if (isForceField) {
             damage *= 8;
             if (obj.IsPlayer())
                 Game::AddScreenFlash({ 0, 0, 1 });
 
-            Sound::Play({ SoundID::PlayerHitForcefield }, point, obj.Segment);
+            Sound::Play({ SoundID::PlayerHitForcefield }, hit.Point, obj.Segment);
 
             auto force = Vector3(RandomN11(), RandomN11(), RandomN11()) * 20;
             ApplyRotationForcePlayer(obj, force);
         }
         else if (damage > DAMAGE_THRESHOLD) {
-            auto volume = isForceField ? 1 : std::clamp((speed - DAMAGE_SCALE * DAMAGE_THRESHOLD) / 20, 0.0f, 1.0f);
+            auto volume = isForceField ? 1 : std::clamp((hit.Speed - DAMAGE_SCALE * DAMAGE_THRESHOLD) / 20, 0.0f, 1.0f);
 
             if (volume > 0) {
-                if (obj.IsPlayer())
+                if (hit.PlayerHit())
                     AlertRobotsOfNoise(Game::GetPlayerObject(), Game::PLAYER_HIT_WALL_RADIUS, Game::PLAYER_HIT_WALL_NOISE);
 
-                Sound::Play({ SoundID::PlayerHitWall }, point, obj.Segment);
+                Sound::Play({ SoundID::PlayerHitWall }, hit.Point, obj.Segment);
             }
         }
 
         //SPDLOG_INFO("{} wall hit damage: {}", obj.Signature, damage);
 
         if (damage > DAMAGE_THRESHOLD) {
-            if (obj.Type == ObjectType::Player) {
+            if (hit.PlayerHit()) {
                 if (Game::Player.Shields > 10 || isForceField)
                     Game::Player.ApplyDamage(damage, false);
             }
@@ -1369,12 +1370,23 @@ namespace Inferno {
 
                 if (obj.IsRobot() && hit.HitObj) {
                     RobotTouchObject(obj, *hit.HitObj);
-                    CheckForImpact(obj, hit.Point);
+
+                    if (hit.HitObj->IsPlayer() || hit.HitObj->IsRobot())
+                        CheckForImpact(obj, hit);
+
+                    // tumble robots rammed by the player
+                    if (hit.HitObj->IsPlayer())
+                        ApplyRandomRotationalForce(obj, hit.Point, hit.Normal * hit.Speed);
                 }
 
                 if (hit.HitObj && hit.HitObj->IsRobot()) {
                     RobotTouchObject(*hit.HitObj, obj);
-                    CheckForImpact(*hit.HitObj, hit.Point);
+
+                    if (obj.IsPlayer() || obj.IsRobot())
+                        CheckForImpact(*hit.HitObj, hit);
+
+                    if (obj.IsPlayer())
+                        ApplyRandomRotationalForce(*hit.HitObj, hit.Point, hit.Normal * hit.Speed);
                 }
             }
 
@@ -1406,10 +1418,10 @@ namespace Inferno {
                         if (ti->IsLiquid())
                             ScrapeWall(obj, hit, *ti, dt);
                         else
-                            CheckForImpact(obj, hit.Point, ti);
+                            CheckForImpact(obj, hit, ti);
                     }
                     else {
-                        CheckForImpact(obj, hit.Point, nullptr);
+                        CheckForImpact(obj, hit, nullptr);
                     }
                 }
             }

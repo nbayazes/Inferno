@@ -29,6 +29,14 @@ namespace Inferno {
         float Speed = 0;
         bool Bounced = false;
 
+        // Returns true if either object hit is the player
+        bool PlayerHit() const {
+            bool playerHit = false;
+            if (Source) playerHit |= Source->IsPlayer();
+            if (HitObj) playerHit |= HitObj->IsPlayer();
+            return playerHit;
+        }
+
         void Update(const HitInfo& hit, Object* obj) {
             if (!obj || hit.Distance > Distance) return;
             Distance = hit.Distance;
@@ -115,6 +123,7 @@ namespace Inferno {
     class IntersectContext {
         List<SegID> _visitedSegs;
         const Level* _level;
+
     public:
         IntersectContext(const Level& level) : _level(&level) {}
 
