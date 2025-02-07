@@ -368,8 +368,6 @@ namespace Inferno::Input {
     std::bitset<256> GetPressedKeys();
     std::bitset<256> GetRepeatedKeys();
 
-    bool IsControllerButtonDown(SDL_GamepadButton);
-
     // Returns true while a key is held down
     bool IsMouseButtonDown(MouseButtons);
 

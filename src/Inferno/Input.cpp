@@ -636,7 +636,7 @@ namespace Inferno::Input {
         if (IsKeyPressed(Keys::Enter, true) || IsKeyPressed(Keys::Space))
             MenuActions.Set(MenuAction::Confirm);
 
-        if (IsKeyPressed(Keys::Escape, true))
+        if (IsKeyPressed(Keys::Escape, true) || IsMouseButtonPressed(MouseButtons::X1))
             MenuActions.Set(MenuAction::Cancel);
 
         if (IsKeyPressed(Keys::Left, true))
@@ -713,12 +713,6 @@ namespace Inferno::Input {
 
     std::bitset<256> GetPressedKeys() { return _keyboard.pressed; }
     std::bitset<256> GetRepeatedKeys() { return _keyboard.repeat; }
-
-    bool IsControllerButtonDown(SDL_GamepadButton button) {
-        //if (button >= _controller.Size()) return false;
-        //return _controller.pressed[button] || _controller.previous[button];
-        return false;
-    }
 
     bool IsMouseButtonDown(MouseButtons button) {
         if (button == MouseButtons::None || (int)button > _mouseButtons.Size()) return false;

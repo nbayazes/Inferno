@@ -131,7 +131,6 @@ namespace Inferno {
         Primary = (PrimaryWeaponIndex)weapon;
         PrimaryWasSuper[weapon % SUPER_WEAPON] = weapon >= SUPER_WEAPON;
         PrintHudMessage(fmt::format("{} selected!", Resources::GetPrimaryName(Primary)));
-
         WeaponCharge = 0; // failsafe
     }
 
@@ -176,7 +175,6 @@ namespace Inferno {
         SecondaryDelay = RearmTime;
         Secondary = (SecondaryWeaponIndex)weapon;
         SecondaryWasSuper[weapon % SUPER_WEAPON] = weapon >= SUPER_WEAPON;
-
         PrintHudMessage(fmt::format("{} selected!", Resources::GetSecondaryName(Secondary)));
     }
 
@@ -488,7 +486,7 @@ namespace Inferno {
         }
 
         auto& sequence = battery.Firing;
-        if (FiringIndex >= sequence.size()) FiringIndex = 0;
+        if (FiringIndex >= battery.FiringCount) FiringIndex = 0;
 
         auto& player = Game::GetPlayerObject();
 
@@ -558,14 +556,14 @@ namespace Inferno {
 
         auto& battery = Ship.Weapons[10 + (int)Secondary];
         auto& sequence = battery.Firing;
-        if (SecondaryFiringIndex >= sequence.size()) SecondaryFiringIndex = 0;
+        if (SecondaryFiringIndex >= battery.FiringCount) SecondaryFiringIndex = 0;
 
         for (uint8 i = 0; i < 8; i++) {
             if (sequence[SecondaryFiringIndex].Gunpoints[i])
                 Game::FireWeapon(Game::GetPlayerObject(), { .id = id, .gun = i });
         }
 
-        SecondaryFiringIndex = (SecondaryFiringIndex + 1) % 2;
+        SecondaryFiringIndex = (SecondaryFiringIndex + 1) % battery.FiringCount;
         SecondaryAmmo[(int)Secondary] -= battery.AmmoUsage;
         LastSecondaryFireTime = Game::Time;
 
@@ -628,12 +626,12 @@ namespace Inferno {
 
     void Player::AutoselectSecondary() {
         auto getPriority = [](SecondaryWeaponIndex secondary) {
-            for (int i = 0; i < Settings::Inferno.SecondaryPriority.size(); i++) {
+            for (uint8 i = 0; i < Settings::Inferno.SecondaryPriority.size(); i++) {
                 auto prio = Settings::Inferno.SecondaryPriority[i];
                 if (prio == NO_AUTOSELECT) return NO_AUTOSELECT;
                 if (prio == (int)secondary) return i;
             }
-            return 0;
+            return uint8(0);
         };
 
         int priority = -1;
@@ -944,16 +942,19 @@ namespace Inferno {
 
     int Player::GetWeaponPriority(PrimaryWeaponIndex primary) const {
         for (int i = 0; i < Settings::Inferno.PrimaryPriority.size(); i++) {
+            auto priority = Settings::Inferno.PrimaryPriority[i];
+
             if (i == NO_AUTOSELECT) return NO_AUTOSELECT;
-            if (i == QUAD_SUPER_LASER_PRIORITY && HasPowerup(PowerupFlag::QuadFire) && i == (int)PrimaryWeaponIndex::SuperLaser)
-                return i;
+            if (HasPowerup(PowerupFlag::QuadFire)) {
+                if (priority == QUAD_SUPER_LASER_PRIORITY && primary == PrimaryWeaponIndex::SuperLaser)
+                    return i;
 
-            if (i == QUAD_LASER_PRIORITY && HasPowerup(PowerupFlag::QuadFire) && i == (int)PrimaryWeaponIndex::Laser)
-                return i;
-
-            if (Settings::Inferno.PrimaryPriority[i] == (int)primary) {
-                return i;
+                if (priority == QUAD_LASER_PRIORITY && primary == PrimaryWeaponIndex::Laser)
+                    return i;
             }
+
+            if (priority == (int)primary)
+                return i;
         }
 
         return 0;

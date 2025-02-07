@@ -111,6 +111,13 @@ namespace Inferno {
 
         void GivePowerup(PowerupFlag powerup) {
             SetFlag(Powerups, powerup);
+            if (HasFlag(powerup, PowerupFlag::QuadFire)) {
+                // Select to lasers if they have a higher priority after picking up quad fire powerup
+                auto laserIndex = HasWeapon(PrimaryWeaponIndex::SuperLaser) ? PrimaryWeaponIndex::SuperLaser : PrimaryWeaponIndex::Laser;
+
+                if (GetWeaponPriority(laserIndex) < GetWeaponPriority(Primary) && CanFirePrimary(laserIndex))
+                    SelectPrimary(PrimaryWeaponIndex::Laser);
+            }
         }
 
         bool HasPowerup(PowerupFlag powerup) const {
