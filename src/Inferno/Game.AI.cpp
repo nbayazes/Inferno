@@ -708,6 +708,13 @@ namespace Inferno {
         }
     }
 
+    bool IsAnimating(const Object& robot) {
+        if (!robot.IsRobot()) return false;
+
+        auto& ai = GetAI(robot);
+        return ai.AnimationTimer <= ai.AnimationDuration && ai.AnimationTimer >= 0;
+    }
+
     void AnimateRobot(Object& robot, AIRuntime& ai, float dt) {
         assert(robot.IsRobot());
         auto& model = Resources::GetModel(robot.Render.Model.ID);
@@ -2001,7 +2008,7 @@ namespace Inferno {
             auto duration = (float)std::min(robotInfo.DeathRoll / 2 + 1, 6);
             auto volume = robotInfo.IsBoss ? 2 : robotInfo.DeathRoll / 4.0f;
             bool explode = DeathRoll(robot, duration, ai.DeathRollTimer, robotInfo.DeathRollSound,
-                                     ai.DyingSoundPlaying, volume, dt);
+                ai.DyingSoundPlaying, volume, dt);
 
             if (explode) {
                 AlertAlliesOfDeath(robot);

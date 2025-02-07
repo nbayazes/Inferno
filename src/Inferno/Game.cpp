@@ -160,7 +160,7 @@ namespace Inferno::Game {
     }
 
     constexpr bool ShouldAlwaysUpdate(const Object& obj) {
-        return obj.Type == ObjectType::Weapon || HasFlag(obj.Flags, ObjectFlag::AlwaysUpdate);
+        return obj.Type == ObjectType::Weapon || HasFlag(obj.Flags, ObjectFlag::AlwaysUpdate) || IsAnimating(obj);
     }
 
     Object& GetPlayerObject() {

@@ -357,6 +357,7 @@ namespace Inferno {
     IntersectResult HasFiringLineOfSight(const Object& obj, uint8 gun, const Vector3& target, ObjectMask mask);
     void UpdateCombatAI(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float dt);
     void BeginAIFrame();
+    bool IsAnimating(const Object& robot);
 
     // Helper to get robot info for the current difficulty
     const RobotDifficultyInfo& DifficultyInfo(const RobotInfo& info);
