@@ -103,7 +103,9 @@ Lights:
       Radius: 35
       Points: 0.5, 0.5
       Color: 1, .8, .5, 0.6
-    
+      Angle: 55
+      InnerAngle: 50
+      
     # Ceiling lights
     - Name: ceil024 # Big rectangle
       Type: 2
@@ -173,6 +175,8 @@ Lights:
       Color:  .75, .75, 1, 0.5
       #Color: 0.8, 0.87, 1, .5
       Radius: 35
+      Angle: 75
+      InnerAngle: 65
 
     # Double edge wrapped lights
     - Name: ceil020 # yellow

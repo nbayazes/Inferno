@@ -116,7 +116,7 @@ namespace Inferno {
                 auto laserIndex = HasWeapon(PrimaryWeaponIndex::SuperLaser) ? PrimaryWeaponIndex::SuperLaser : PrimaryWeaponIndex::Laser;
 
                 if (GetWeaponPriority(laserIndex) < GetWeaponPriority(Primary) && CanFirePrimary(laserIndex))
-                    SelectPrimary(PrimaryWeaponIndex::Laser);
+                    SelectPrimary(laserIndex);
             }
         }
 
