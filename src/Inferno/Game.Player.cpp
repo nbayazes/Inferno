@@ -26,18 +26,6 @@ namespace Inferno {
     constexpr Color FLASH_POWERUP = { FLASH, 0, FLASH };
     constexpr Color FLASH_FUSION_CHARGE = { MAX_FLASH * Game::TICK_RATE * 2.0f, 0, MAX_FLASH * Game::TICK_RATE * 2.0f };
 
-    // Returns a value indicating the weapon's priority. Lower values are higher priority. 255 is disabled.
-    int GetWeaponPriority(PrimaryWeaponIndex primary) {
-        for (int i = 0; i < Game::PrimaryPriority.size(); i++) {
-            if (i == 255) return 255;
-            if (Game::PrimaryPriority[i] == (int)primary) {
-                return i;
-            }
-        }
-
-        return 0;
-    }
-
     float GetWeaponSoundRadius(const Weapon& weapon) {
         // Robots use half-linear falloff instead of inverse square because it doesn't require traversing nearly as far.
         float mult = 0.5f + std::min(2, (int)Game::Difficulty) * 0.25f; // hotshot, ace, insane = 1
@@ -618,7 +606,7 @@ namespace Inferno {
             if (!CanFirePrimary(idx)) continue;
 
             auto p = GetWeaponPriority(idx);
-            if (p == 255) continue;
+            if (p == NO_AUTOSELECT) continue;
 
             if (p < priority || priority == -1) {
                 priority = p;
@@ -640,9 +628,9 @@ namespace Inferno {
 
     void Player::AutoselectSecondary() {
         auto getPriority = [](SecondaryWeaponIndex secondary) {
-            for (int i = 0; i < Game::SecondaryPriority.size(); i++) {
-                auto prio = Game::SecondaryPriority[i];
-                if (prio == 255) return 255;
+            for (int i = 0; i < Settings::Inferno.SecondaryPriority.size(); i++) {
+                auto prio = Settings::Inferno.SecondaryPriority[i];
+                if (prio == NO_AUTOSELECT) return NO_AUTOSELECT;
                 if (prio == (int)secondary) return i;
             }
             return 0;
@@ -657,7 +645,7 @@ namespace Inferno {
             if (!CanFireSecondary(idx)) continue;
 
             auto p = getPriority(idx);
-            if (p == 255) continue;
+            if (p == NO_AUTOSELECT) continue;
 
             if (p < priority || priority == -1) {
                 priority = p;
@@ -954,6 +942,23 @@ namespace Inferno {
         return quadFire ? energyUsage * 2 : energyUsage;
     }
 
+    int Player::GetWeaponPriority(PrimaryWeaponIndex primary) const {
+        for (int i = 0; i < Settings::Inferno.PrimaryPriority.size(); i++) {
+            if (i == NO_AUTOSELECT) return NO_AUTOSELECT;
+            if (i == QUAD_SUPER_LASER_PRIORITY && HasPowerup(PowerupFlag::QuadFire) && i == (int)PrimaryWeaponIndex::SuperLaser)
+                return i;
+
+            if (i == QUAD_LASER_PRIORITY && HasPowerup(PowerupFlag::QuadFire) && i == (int)PrimaryWeaponIndex::Laser)
+                return i;
+
+            if (Settings::Inferno.PrimaryPriority[i] == (int)primary) {
+                return i;
+            }
+        }
+
+        return 0;
+    }
+
     bool Player::PickUpEnergy() {
         if (Energy < MAX_ENERGY) {
             AddEnergy(float(3 + 3 * (5 - (int)Game::Difficulty)));
@@ -1003,7 +1008,7 @@ namespace Inferno {
         auto& battery = Ship.Weapons[(int)Primary];
 
         if ((index == PrimaryWeaponIndex::Vulcan ||
-            index == PrimaryWeaponIndex::Gauss) && 
+             index == PrimaryWeaponIndex::Gauss) &&
             Seq::inRange(PrimaryAmmo, battery.AmmoType)) {
             canFire &= battery.AmmoUsage <= PrimaryAmmo[battery.AmmoType];
         }
@@ -1042,7 +1047,6 @@ namespace Inferno {
 
     float Player::GetSecondaryFireDelay() {
         auto& weapon = Ship.Weapons[10 + (int)Secondary];
-        if (weapon.Firing.empty()) return 0.5f; // failsafe
 
         if (SecondaryFiringIndex >= weapon.Firing.size())
             SecondaryFiringIndex = 0;

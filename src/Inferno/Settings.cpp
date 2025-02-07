@@ -666,6 +666,12 @@ namespace Inferno {
         return s;
     }
 
+    void SavePriorities(ryml::NodeRef node, span<const uint8> priorities) {
+        node |= ryml::SEQ;
+        for (auto& i : priorities)
+            node.append_child() << i;
+    }
+
     void SaveGameSettings(ryml::NodeRef node, const InfernoSettings& settings) {
         node |= ryml::MAP;
 
@@ -673,14 +679,30 @@ namespace Inferno {
         node["InvertY"] << settings.InvertY;
         node["MouseSensitivity"] << settings.MouseSensitivity;
         node["Difficulty"] << (int)Game::Difficulty;
-        node["HalvePitchSpeed"] << Settings::Inferno.HalvePitchSpeed;
-        node["ShipAutolevel"] << Settings::Inferno.ShipAutolevel;
-        node["NoAutoselectWhileFiring"] << Settings::Inferno.NoAutoselectWhileFiring;
-        node["AutoselectAfterFiring"] << Settings::Inferno.AutoselectAfterFiring;
-        node["StickyRearview"] << Settings::Inferno.StickyRearview;
-        node["SlowmoFusion"] << Settings::Inferno.SlowmoFusion;
-        node["PreferHighResFonts"] << Settings::Inferno.PreferHighResFonts;
-        node["UseSoundOcclusion"] << Settings::Inferno.UseSoundOcclusion;
+        node["HalvePitchSpeed"] << settings.HalvePitchSpeed;
+        node["ShipAutolevel"] << settings.ShipAutolevel;
+        node["NoAutoselectWhileFiring"] << settings.NoAutoselectWhileFiring;
+        node["AutoselectAfterFiring"] << settings.AutoselectAfterFiring;
+        node["StickyRearview"] << settings.StickyRearview;
+        node["SlowmoFusion"] << settings.SlowmoFusion;
+        node["PreferHighResFonts"] << settings.PreferHighResFonts;
+        node["UseSoundOcclusion"] << settings.UseSoundOcclusion;
+
+        SavePriorities(node["PrimaryPriority"], settings.PrimaryPriority);
+        SavePriorities(node["SecondaryPriority"], settings.SecondaryPriority);
+    }
+
+    void ReadPriorities(ryml::NodeRef node, span<uint8> priorities) {
+        if (!node.is_seed() && node.readable() && node.is_seq()) {
+            uint8 i = 0;
+            for (const auto& child : node.children()) {
+                int value;
+                if (ReadValue(child, value))
+                    priorities[i++] = (uint8)value;
+
+                if (i >= priorities.size()) break;
+            }
+        }
     }
 
     void LoadGameSettings(ryml::NodeRef node, InfernoSettings& settings) {
@@ -698,6 +720,9 @@ namespace Inferno {
         ReadValue(node["SlowmoFusion"], settings.SlowmoFusion);
         ReadValue(node["PreferHighResFonts"], settings.PreferHighResFonts);
         ReadValue(node["UseSoundOcclusion"], settings.UseSoundOcclusion);
+
+        ReadPriorities(node["PrimaryPriority"], settings.PrimaryPriority);
+        ReadPriorities(node["SecondaryPriority"], settings.SecondaryPriority);
 
         Game::Difficulty = (DifficultyLevel)std::clamp((int)Game::Difficulty, 0, 4);
     }

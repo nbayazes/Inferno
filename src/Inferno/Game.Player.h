@@ -188,6 +188,9 @@ namespace Inferno {
     private:
         float GetWeaponEnergyCost(float baseCost) const;
 
+        // Returns a value indicating the weapon's priority. Lower values are higher priority. 255 is disabled.
+        int GetWeaponPriority(PrimaryWeaponIndex primary) const;
+
         WeaponID GetPrimaryWeaponID(PrimaryWeaponIndex index) const {
             if (index == PrimaryWeaponIndex::Laser) {
                 if (LaserLevel < 4) return WeaponID{ (int)WeaponID::Laser1 + LaserLevel };

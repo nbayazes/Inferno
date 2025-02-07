@@ -186,6 +186,12 @@ namespace Inferno {
         Windowed = 2
     };
 
+    constexpr uint8 NO_AUTOSELECT = 255; // Weapons after this aren't autoselected
+    constexpr uint8 QUAD_SUPER_LASER_PRIORITY = 11;
+    constexpr uint8 QUAD_LASER_PRIORITY = 10;
+    constexpr Array<uint8, 13> DEFAULT_PRIMARY_PRIORITY{ QUAD_SUPER_LASER_PRIORITY, 9, 8, 7, 6, 5, QUAD_LASER_PRIORITY, 4, 3, 2, 1, 0, NO_AUTOSELECT };
+    constexpr Array<uint8, 11> DEFAULT_SECONDARY_PRIORITY{ 9, 8, 4, 3, 1, 5, 0, NO_AUTOSELECT, 7, 6, 2 };
+
     struct InfernoSettings {
         List<filesystem::path> DataPaths;
         filesystem::path Descent1Path, Descent2Path;
@@ -222,6 +228,9 @@ namespace Inferno {
         float GamepadSensitivityX = 8;
         float GamepadSensitivityY = 8;
         bool UseSoundOcclusion = false;
+
+        Array<uint8, 13> PrimaryPriority = DEFAULT_PRIMARY_PRIORITY;
+        Array<uint8, 11> SecondaryPriority = DEFAULT_SECONDARY_PRIORITY;
     };
 
     struct CheatSettings {

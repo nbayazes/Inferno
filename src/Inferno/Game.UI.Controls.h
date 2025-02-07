@@ -22,9 +22,12 @@ namespace Inferno::UI {
     constexpr Color HELP_TEXT_COLOR = { 0.75f, 0.75f, 0.75f };
     constexpr Color BLUE_TEXT = { 0.5f, 0.5f, 1.0f };
     constexpr Color WHITE_TEXT = { 0.95f, 0.95f, 0.95f };
+    constexpr Color GREY_TEXT = { 0.5f, 0.5f, 0.5f };
+    constexpr Color GOLD_TEXT = { 1, .75f, .2f };
+    constexpr Color GOLD_TEXT_GLOW = { 2, 1.5f, .4f };
     constexpr Color FOCUSED_BUTTON = { 246.0f / 255, 153.0f / 255, 66.0f / 255 };
     constexpr float DIALOG_PADDING = 15;
-    constexpr float DIALOG_CONTENT_PADDING = DIALOG_PADDING + 30;
+    constexpr float DIALOG_HEADER_PADDING = DIALOG_PADDING + 30;
     constexpr float MENU_TEXT_HEIGHT = 24; // Medium high res font
     constexpr float CONTROL_PADDING = 1;
     constexpr float CONTROL_HEIGHT = MENU_TEXT_HEIGHT + CONTROL_PADDING * 2;
@@ -319,7 +322,7 @@ namespace Inferno::UI {
 
         Label(string_view text, FontSize font = FontSize::Medium) : _text(text), _font(font) {
             Selectable = false;
-            Size.y = CONTROL_HEIGHT;
+            Size.y = font == FontSize::Small ? SMALL_CONTROL_HEIGHT : CONTROL_HEIGHT;
             SetText(text);
         }
 
@@ -619,7 +622,7 @@ namespace Inferno::UI {
             const auto scale = GetScale();
 
             //if (wheelDelta != 0)
-                //HitTestCursor(); // Update index when scrolling
+            //HitTestCursor(); // Update index when scrolling
 
             {
                 Render::CanvasBitmapInfo cbi;
@@ -1992,6 +1995,7 @@ namespace Inferno::UI {
         void OnUpArrow() {
             List<ControlBase*> tree;
             FlattenSelectionTree(tree);
+            if (tree.empty()) return;
             int index = FindSelectionIndex(tree);
 
             if (index == 0 || index == -1)
@@ -2003,6 +2007,7 @@ namespace Inferno::UI {
         void OnDownArrow() {
             List<ControlBase*> tree;
             FlattenSelectionTree(tree);
+            if (tree.empty()) return;
             int index = FindSelectionIndex(tree);
 
             if (index == tree.size() - 1 || index == -1) {

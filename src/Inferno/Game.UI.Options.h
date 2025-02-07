@@ -22,7 +22,7 @@ namespace Inferno::UI {
             auto bombSound = Seq::tryItem(Inferno::Resources::GameDataD1.Sounds, (int)SoundID::DropBomb);
             auto panel = make_unique<StackPanel>();
             panel->Size.x = Size.x - DIALOG_PADDING * 2;
-            panel->Position = Vector2(0, DIALOG_CONTENT_PADDING);
+            panel->Position = Vector2(0, DIALOG_HEADER_PADDING);
             panel->HorizontalAlignment = AlignH::Center;
             panel->VerticalAlignment = AlignV::Top;
             panel->Spacing = 2;
@@ -97,7 +97,7 @@ namespace Inferno::UI {
 
             auto panel = make_unique<StackPanel>();
             panel->Size.x = Size.x - DIALOG_PADDING * 2;
-            panel->Position = Vector2(0, DIALOG_CONTENT_PADDING);
+            panel->Position = Vector2(0, DIALOG_HEADER_PADDING);
             panel->HorizontalAlignment = AlignH::Center;
             panel->VerticalAlignment = AlignV::Top;
 
@@ -148,7 +148,7 @@ namespace Inferno::UI {
 
             auto panel = make_unique<StackPanel>();
             panel->Size.x = Size.x - DIALOG_PADDING * 2;
-            panel->Position = Vector2(0, DIALOG_CONTENT_PADDING);
+            panel->Position = Vector2(0, DIALOG_HEADER_PADDING);
             panel->HorizontalAlignment = AlignH::Center;
             panel->VerticalAlignment = AlignV::Top;
             panel->Spacing = 2;
@@ -238,6 +238,187 @@ namespace Inferno::UI {
         }
     };
 
+    constexpr auto DEFAULT_PRIMARY_NAMES = std::to_array<string_view>({
+        "laser cannon",
+        "vulcan cannon",
+        "spreadfire cannon",
+        "plasma cannon",
+        "fusion cannon",
+        "super laser cannon",
+        "gauss cannon",
+        "helix cannon",
+        "phoenix cannon",
+        "omega cannon",
+        "quad laser cannon",
+        "quad super laser cannon"
+    });
+
+    constexpr auto DEFAULT_SECONDARY_NAMES = std::to_array<string_view>({
+        "concussion missile",
+        "homing missile",
+        "proximity bomb",
+        "smart missile",
+        "mega missile",
+        "flash missile",
+        "guided missile",
+        "smart mine",
+        "mercury missile",
+        "earthshaker missile"
+    });
+
+    constexpr auto NO_AUTOSELECT = "--- NEVER AUTOSELECT BELOW ---";
+
+    class WeaponPriorityList : public ControlBase {
+        span<uint8> _priority;
+        span<const string_view> _labels;
+        int _selection = 0;
+        int _startSelection = 0;
+
+        bool _editing = false;
+        float _rowHeight = 15;
+        FontSize _font;
+
+    public:
+        WeaponPriorityList(span<uint8> priority, const span<const string_view> labels, float rowHeight, FontSize font = FontSize::Small)
+            : _priority(priority), _labels(labels), _rowHeight(rowHeight), _font(font) {
+            Size.y = _rowHeight * priority.size();
+        }
+
+        void OnDraw() override {
+            const float scale = GetScale();
+
+            for (size_t i = 0; i < _priority.size(); i++) {
+                auto priority = _priority[i];
+                if (priority != 255 && priority >= _labels.size()) continue;
+                auto label = priority == 255 ? NO_AUTOSELECT : _labels[priority];
+
+                Render::DrawTextInfo dti;
+                dti.Font = _font;
+                dti.Color = _selection == i ? GOLD_TEXT : GREY_TEXT;
+
+                if (_editing && _startSelection == i) {
+                    dti.Color = GOLD_TEXT_GLOW;
+                }
+
+                dti.Position.x = ScreenPosition.x + Padding.x * scale;
+                dti.Position.y = ScreenPosition.y + _rowHeight * i * scale;
+                Render::UICanvas->DrawRaw(label, dti, Layer + 1);
+
+                // Debugging
+                //Render::CanvasBitmapInfo cbi;
+                //cbi.Position = Vector2{ ScreenPosition.x + Padding.x * GetScale(), ScreenPosition.y + RowHeight * i * GetScale() };
+                //cbi.Size = Vector2{ ScreenSize.x, RowHeight * GetScale() };
+                //cbi.Texture = Render::Materials->White().Handle();
+                //cbi.Color = Color(0, 1, 0, 1);
+                //Render::UICanvas->DrawBitmap(cbi, Layer);
+            }
+
+            {
+                // Background
+                Render::CanvasBitmapInfo cbi;
+                cbi.Position = ScreenPosition - Vector2(5, 5) * scale;
+                cbi.Size = ScreenSize + Vector2(10, 10) * scale;
+                cbi.Texture = Render::Materials->White().Handle();
+                cbi.Color = Color(0, 0, 0, 1);
+                Render::UICanvas->DrawBitmap(cbi, Layer);
+            }
+        }
+
+        void OnUpdate() override {
+            if (Input::MouseMoved()) {
+                for (size_t i = 0; i < _priority.size(); i++) {
+                    Vector2 position = { ScreenPosition.x + Padding.x * GetScale(), ScreenPosition.y + _rowHeight * i * GetScale() };
+                    if (RectangleContains(position, { ScreenSize.x, _rowHeight * GetScale() }, Input::MousePosition)) {
+                        _selection = (int)i;
+                    }
+                }
+            }
+
+            if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick) && Focused) {
+                if (RectangleContains(ScreenPosition, ScreenSize, Input::MousePosition)) {
+                    if (_editing) {
+                        std::swap(_priority[_startSelection], _priority[_selection]);
+                        _editing = false;
+                    }
+                    else {
+                        _editing = true;
+                    }
+
+                    _startSelection = _selection;
+                    Sound::Play2D({ MENU_SELECT_SOUND });
+                }
+            }
+        }
+
+        bool HandleMenuAction(Input::MenuActionState action) override {
+            if (action == MenuAction::Up) {
+                _selection--;
+                if (_selection < 0) _selection = (int)_priority.size() - 1;
+
+                if (_editing) {
+                    std::swap(_priority[_startSelection], _priority[_selection]);
+                }
+
+                _startSelection = _selection;
+                return true;
+            }
+
+            if (action == MenuAction::Down) {
+                _selection++;
+                if (_selection >= (int)_priority.size()) _selection = 0;
+
+                if (_editing) {
+                    std::swap(_priority[_startSelection], _priority[_selection]);
+                }
+
+                _startSelection = _selection;
+                return true;
+            }
+
+            if (action == MenuAction::Confirm) {
+                _editing = !_editing;
+                Sound::Play2D({ MENU_SELECT_SOUND });
+                _startSelection = _selection;
+                return true;
+            }
+
+            return false;
+        }
+    };
+
+    class PriorityMenu : public DialogBase {
+        float _secondaryPosition = 240;
+
+    public:
+        PriorityMenu(string_view title, span<uint8> priorityList, span<const string_view> labels) : DialogBase(title) {
+            float rowHeight = 15;
+            Size = Vector2(400, DIALOG_HEADER_PADDING + rowHeight * priorityList.size() + DIALOG_PADDING + 10);
+
+            auto primaries = AddChild<WeaponPriorityList>(priorityList, labels, rowHeight);
+            primaries->Size.x = Size.x - DIALOG_PADDING * 4;
+            primaries->Position = Vector2(DIALOG_PADDING * 2, DIALOG_HEADER_PADDING + 10);
+        }
+
+        //void OnDraw() override {
+        //    DialogBase::OnDraw();
+
+        //    //auto scale = GetScale();
+
+        //    //{
+        //    //    // Background
+        //    //    Render::CanvasBitmapInfo cbi;
+        //    //    //cbi.Position = ScreenPosition;
+        //    //    //cbi.Size = ScreenSize;
+        //    //    cbi.Position = ScreenPosition + Vector2(DIALOG_PADDING, DIALOG_HEADER_PADDING + 10 - 4) * scale;
+        //    //    cbi.Size.x = ScreenSize.x - DIALOG_PADDING * 2 * scale;
+        //    //    cbi.Size.y = 15 * 13 * scale + 8 * scale;
+        //    //    cbi.Texture = Render::Materials->White().Handle();
+        //    //    cbi.Color = Color(0, 0, 0, 1);
+        //    //    Render::UICanvas->DrawBitmap(cbi, Layer);
+        //    //}
+        //}
+    };
+
     class GameOptionsMenu : public DialogBase {
     public:
         GameOptionsMenu() : DialogBase("Game Options") {
@@ -246,7 +427,7 @@ namespace Inferno::UI {
 
             auto panel = make_unique<StackPanel>();
             panel->Size.x = Size.x - DIALOG_PADDING * 2;
-            panel->Position = Vector2(0, DIALOG_CONTENT_PADDING);
+            panel->Position = Vector2(0, DIALOG_HEADER_PADDING);
             panel->HorizontalAlignment = AlignH::Center;
             panel->VerticalAlignment = AlignV::Top;
             panel->Spacing = 2;
@@ -267,8 +448,13 @@ namespace Inferno::UI {
             panel->AddChild<Checkbox>("charging fusion slows time", Settings::Inferno.SlowmoFusion);
             panel->AddChild<Checkbox>("prefer high res fonts", Settings::Inferno.PreferHighResFonts);
 
-            panel->AddChild<Button>("Primary autoselect ordering");
-            panel->AddChild<Button>("Secondary autoselect ordering");
+            panel->AddChild<Button>("Primary Weapon priority", [] {
+                ShowScreen(make_unique<PriorityMenu>("Primary Priority", Settings::Inferno.PrimaryPriority, DEFAULT_PRIMARY_NAMES));
+            });
+
+            panel->AddChild<Button>("Secondary Weapon priority", [] {
+                ShowScreen(make_unique<PriorityMenu>("Secondary Priority", Settings::Inferno.SecondaryPriority, DEFAULT_SECONDARY_NAMES));
+            });
 
             AddChild(std::move(panel));
         }
@@ -277,7 +463,7 @@ namespace Inferno::UI {
     class OptionsMenu : public DialogBase {
     public:
         OptionsMenu() : DialogBase("Options", false) {
-            Size = Vector2(200, 30 * 4 + DIALOG_CONTENT_PADDING + DIALOG_PADDING);
+            Size = Vector2(200, 30 * 4 + DIALOG_HEADER_PADDING + DIALOG_PADDING);
             CloseOnConfirm = false;
             CloseOnClickOutside = true;
 
@@ -285,7 +471,7 @@ namespace Inferno::UI {
 
             auto panel = make_unique<StackPanel>();
             panel->Size.x = Size.x - DIALOG_PADDING * 2;
-            panel->Position = Vector2(0, DIALOG_CONTENT_PADDING);
+            panel->Position = Vector2(0, DIALOG_HEADER_PADDING);
             panel->HorizontalAlignment = AlignH::Center;
             panel->VerticalAlignment = AlignV::Top;
             panel->Spacing = 2;

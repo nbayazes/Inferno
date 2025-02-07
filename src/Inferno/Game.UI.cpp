@@ -315,13 +315,13 @@ namespace Inferno::UI {
 
     public:
         DifficultyDialog(DifficultyLevel& value) : DialogBase("Difficulty", false), _value(&value) {
-            Size = Vector2(_titleSize.x + DIALOG_PADDING * 2, CONTROL_HEIGHT * 5 + DIALOG_CONTENT_PADDING + DIALOG_PADDING);
+            Size = Vector2(_titleSize.x + DIALOG_PADDING * 2, CONTROL_HEIGHT * 5 + DIALOG_HEADER_PADDING + DIALOG_PADDING);
             CloseOnClickOutside = true;
             ActionSound = ""; // Clear close sound because buttons already have one
 
             auto panel = make_unique<StackPanel>();
             panel->Size.x = Size.x;
-            panel->Position = Vector2(2, DIALOG_CONTENT_PADDING);
+            panel->Position = Vector2(2, DIALOG_HEADER_PADDING);
             panel->HorizontalAlignment = AlignH::Center;
             panel->VerticalAlignment = AlignV::Top;
 
@@ -733,7 +733,7 @@ namespace Inferno::UI {
 
         Screens.clear();
         ShowScreen(make_unique<MainMenu>());
-        ShowScreen(make_unique<BindingDialog>());
+        //ShowScreen(make_unique<PriorityMenu>("Primary Priority", Settings::Inferno.PrimaryPriority, DEFAULT_PRIMARY_NAMES));
     }
 
     void ShowPauseDialog() {

@@ -211,14 +211,6 @@ namespace Inferno::Game {
     constexpr float WEAPON_HIT_WALL_VOLUME = 0.8f; // Reduce volume of wall hits as they drown out everything else
     constexpr float WEAPON_HIT_OBJECT_VOLUME = 1.0f;
 
-    // 255 marks where weapons aren't considered for autoselection
-
-    constexpr Array<uint8, 13> DefaultPrimaryPriority{ 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 255 };
-    constexpr Array<uint8, 11> DefaultSecondaryPriority{ 9, 8, 4, 3, 1, 5, 0, 255, 7, 6, 2 };
-
-    inline Array<uint8, 13> PrimaryPriority = DefaultPrimaryPriority;
-    inline Array<uint8, 11> SecondaryPriority = DefaultSecondaryPriority;
-
     inline bool Cheater = false;
 
     void AddPointsToScore(int points);

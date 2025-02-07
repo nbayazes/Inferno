@@ -612,7 +612,7 @@ namespace Inferno::UI {
             //inputDropdown->ValueWidth = 350;
             _deviceList->Size = Vector2(Size.x - DIALOG_PADDING * 2, CONTROL_HEIGHT);
 
-            _deviceList->Position = Vector2(DIALOG_PADDING, DIALOG_CONTENT_PADDING);
+            _deviceList->Position = Vector2(DIALOG_PADDING, DIALOG_HEADER_PADDING);
             _deviceList->OnChange = [this](int index) {
                 if (index == 0) {
                     UpdateBindingList(KeyboardInputs, Game::Bindings.GetKeyboard());
@@ -638,7 +638,7 @@ namespace Inferno::UI {
 
             // Add headers
             {
-                auto y = DIALOG_CONTENT_PADDING + CONTROL_HEIGHT + 10;
+                auto y = DIALOG_HEADER_PADDING + CONTROL_HEIGHT + 10;
 
                 auto actionHeader = AddChild<Label>("Action", FontSize::Small);
                 actionHeader->Color = BLUE_TEXT;
@@ -663,7 +663,7 @@ namespace Inferno::UI {
             }
 
             _bindingList = AddChild<ListBox2>(20, Size.x - DIALOG_PADDING * 3);
-            _bindingList->Position = Vector2(DIALOG_PADDING, DIALOG_CONTENT_PADDING + CONTROL_HEIGHT * 2 + 8);
+            _bindingList->Position = Vector2(DIALOG_PADDING, DIALOG_HEADER_PADDING + CONTROL_HEIGHT * 2 + 8);
 
             UpdateBindingList(KeyboardInputs, Game::Bindings.GetKeyboard());
         }
