@@ -142,10 +142,22 @@ namespace Inferno {
         if (Game::Bindings.Held(GameAction::RollRight))
             camera.Roll(dt * -2);
 
-
+        // Controller inputs
         camera.MoveRight(Game::Bindings.LinearAxis(GameAction::LeftRightAxis) * speed * dt);
+        camera.MoveRight(-Game::Bindings.LinearAxis(GameAction::SlideLeft) * speed * dt);
+        camera.MoveRight(Game::Bindings.LinearAxis(GameAction::SlideRight) * speed * dt);
+
         camera.MoveForward(Game::Bindings.LinearAxis(GameAction::ForwardReverseAxis) * speed * dt);
+        camera.MoveForward(Game::Bindings.LinearAxis(GameAction::Forward) * speed * dt);
+        camera.MoveForward(-Game::Bindings.LinearAxis(GameAction::Reverse) * speed * dt);
+
         camera.MoveUp(Game::Bindings.LinearAxis(GameAction::UpDownAxis) * speed * dt);
+        camera.MoveUp(Game::Bindings.LinearAxis(GameAction::SlideUp) * speed * dt);
+        camera.MoveUp(-Game::Bindings.LinearAxis(GameAction::SlideDown) * speed * dt);
+
+        camera.Roll(Game::Bindings.LinearAxis(GameAction::RollAxis) * dt);
+        camera.Roll(-Game::Bindings.LinearAxis(GameAction::RollLeft) * dt * 2);
+        camera.Roll(-Game::Bindings.LinearAxis(GameAction::RollRight) * dt * 2);
 
         float invert = Settings::Inferno.MouselookInvert ? 1.0f : -1.0f;
         auto& delta = Input::MouseDelta;
@@ -324,17 +336,24 @@ namespace Inferno {
         thrust.y += Game::Bindings.LinearAxis(GameAction::UpDownAxis) * maxThrust;
         thrust.z += Game::Bindings.LinearAxis(GameAction::ForwardReverseAxis) * maxThrust;
 
-        physics.AngularThrust.z += Game::Bindings.LinearAxis(GameAction::RollLeft) * maxAngularThrust;
-        physics.AngularThrust.z += Game::Bindings.LinearAxis(GameAction::RollRight) * maxAngularThrust;
-
         physics.AngularThrust.x += Game::Bindings.LinearAxis(GameAction::PitchAxis) * maxPitch * -1;
         physics.AngularThrust.y += Game::Bindings.LinearAxis(GameAction::YawAxis) * maxAngularThrust;
         physics.AngularThrust.z += Game::Bindings.LinearAxis(GameAction::RollAxis) * maxAngularThrust;
 
-        //thrust.x += Input::GamepadMovementStick.x * maxThrust;
-        //physics.Thrust.y += 
-        //thrust.z += Input::GamepadMovementStick.y * maxThrust;
+        // Check for triggers bound to movements
+        thrust.x += Game::Bindings.LinearAxis(GameAction::SlideLeft) * maxThrust;
+        thrust.x -= Game::Bindings.LinearAxis(GameAction::SlideRight) * maxThrust;
 
+        thrust.y += Game::Bindings.LinearAxis(GameAction::SlideUp) * maxThrust;
+        thrust.y -= Game::Bindings.LinearAxis(GameAction::SlideDown) * maxThrust;
+
+        thrust.z += Game::Bindings.LinearAxis(GameAction::Forward) * maxThrust;
+        thrust.z -= Game::Bindings.LinearAxis(GameAction::Reverse) * maxThrust;
+
+        physics.AngularThrust.z += Game::Bindings.LinearAxis(GameAction::RollLeft) * maxAngularThrust;
+        physics.AngularThrust.z += Game::Bindings.LinearAxis(GameAction::RollRight) * maxAngularThrust;
+
+        // Afterburner thrust
         bool abActive = Game::Bindings.Held(GameAction::Afterburner);
         float afterburnerThrust = Game::Player.UpdateAfterburner(dt, abActive);
         if (afterburnerThrust > 1)

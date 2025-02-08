@@ -449,7 +449,7 @@ namespace Inferno::UI {
         GameAction::RearView,
 
         GameAction::Headlight,
-        GameAction::Converter,
+        GameAction::EnergyConverter,
 
         GameAction::CyclePrimary,
         GameAction::CycleSecondary,
@@ -482,7 +482,7 @@ namespace Inferno::UI {
         GameAction::CycleBomb,
 
         GameAction::Headlight,
-        GameAction::Converter,
+        GameAction::EnergyConverter,
         GameAction::Automap,
         GameAction::RearView,
         GameAction::Afterburner,
@@ -537,7 +537,7 @@ namespace Inferno::UI {
         GameAction::RearView,
 
         GameAction::Headlight,
-        GameAction::Converter,
+        GameAction::EnergyConverter,
 
         GameAction::CyclePrimary,
         GameAction::CycleSecondary,

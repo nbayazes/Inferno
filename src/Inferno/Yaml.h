@@ -6,6 +6,23 @@
 #include "Utility.h"
 
 namespace Yaml {
+    // Returns a value only if the node exists and is a map
+    inline std::optional<ryml::ConstNodeRef> GetNode(ryml::ConstNodeRef node, ryml::csubstr name) {
+        //return node.has_child(name) ? node[name] : std::optional<ryml::ConstNodeRef>{};
+        if (!node.has_child(name)) return {};
+        auto child = node[name];
+        if (!child.is_map()) return {};
+        return child;
+    }
+
+    // Returns a value only if the node exists and is a sequence
+    inline std::optional<ryml::ConstNodeRef> GetSequenceNode(ryml::ConstNodeRef node, ryml::csubstr name) {
+        if (!node.has_child(name)) return {};
+        auto child = node[name];
+        if (!child.is_seq()) return {};
+        return child;
+    }
+
     inline bool ParseFloat(std::string_view s, float& value) {
         float f = 0;
         auto [p, ec] = std::from_chars(s.data(), s.data() + s.size(), f);
@@ -56,6 +73,38 @@ namespace Yaml {
     template <>
     inline bool ReadValue(ryml::ConstNodeRef node, bool& value) {
         try {
+            if (!node.readable() || !node.has_val() || node.val() == "") return false;
+
+            int val = 0;
+            node >> val;
+            value = (bool)val;
+            return true;
+        }
+        catch (...) {
+            return false;
+        }
+    }
+
+    template <class T>
+    bool ReadValue(ryml::ConstNodeRef parent, ryml::csubstr name, T& value) {
+        static_assert(!std::is_same_v<T, const char*>, "Must be writable value");
+
+        try {
+            if (!parent.has_child(name)) return false;
+            auto node = parent[name];
+            if (!node.readable() || !node.has_val() || node.val() == "") return false;
+            node >> value;
+            return true;
+        }
+        catch (...) {
+            return false;
+        }
+    }
+
+    inline bool ReadValue(ryml::ConstNodeRef parent, ryml::csubstr name, bool& value) {
+        try {
+            if (!parent.has_child(name)) return false;
+            auto node = parent[name];
             if (!node.readable() || !node.has_val() || node.val() == "") return false;
 
             int val = 0;

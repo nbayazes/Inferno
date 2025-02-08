@@ -71,7 +71,7 @@ namespace Inferno {
 
         Automap,
         Headlight,
-        Converter,
+        EnergyConverter,
         Pause,
         Count
     };
@@ -83,7 +83,7 @@ namespace Inferno {
 
     string_view GetActionLabel(GameAction action);
 
-    enum class BindType {
+    enum class BindType : uint8 {
         None,
         Button, // A key or button with a binary state
         Axis, // Full range axis

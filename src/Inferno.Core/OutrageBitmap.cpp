@@ -4,7 +4,7 @@
 namespace Inferno::Outrage {
     enum ImageType {
         OUTRAGE_4444_COMPRESSED_MIPPED = 121, // Only used for textures with specular data
-        OUTRAGE_1555_COMPRESSED_MIPPED = 122
+        OUTRAGE_1555_COMPRESSED_MIPPED = 122 // 1 bit alpha
     };
 
     enum BitmapFlag {
@@ -27,14 +27,14 @@ namespace Inferno::Outrage {
 
     constexpr int Conv5to8(int n) { return (n << 3) | (n >> 2); }
 
-    List<uint> Decompress(span<ushort> data, int width, int height, ImageType type) {
-        List<uint> img(width * height);
+    List<uint32> Decompress(span<uint16> data, int width, int height, ImageType type) {
+        List<uint32> img(width * height);
         const int lastrow = (width - 1) * height;
 
         for (int ofs = 0; ofs <= lastrow; ofs += width) {
             if (type == OUTRAGE_4444_COMPRESSED_MIPPED) {
                 for (int x = 0; x < width; x++) {
-                    const ushort n = data[ofs + x];
+                    const uint16 n = data[ofs + x];
                     //const int a = ((n >> 12) & 0x0f) * 0x11;
                     constexpr int a = 0xff; // ignore alpha for now. it should be extracted as a specular mask
                     const int r = ((n >> 8) & 0x0f) * 0x11;
@@ -43,9 +43,9 @@ namespace Inferno::Outrage {
                     img[ofs + x] = a << 24 | b << 16 | g << 8 | r;
                 }
             }
-            else {
+            else if (type == OUTRAGE_1555_COMPRESSED_MIPPED) {
                 for (int x = 0; x < width; x++) {
-                    const ushort n = data[ofs + x];
+                    const uint16 n = data[ofs + x];
                     img[ofs + x] =
                         ((n & 0x8000) * 0x1fe00) |
                         (Conv5to8((n & 0x7c00) >> 10) << 0) |
@@ -74,7 +74,7 @@ namespace Inferno::Outrage {
 
         ogf.Name = r.ReadCString(BITMAP_NAME_LEN);
         auto mipLevels = r.ReadByte();
-        if (mipLevels > 20) throw ("Invalid mip levels");
+        if (mipLevels > 20) throw Exception("Invalid mip levels");
         ogf.Mips.resize(mipLevels);
 
         for (int i = 0; i < 9; i++)
@@ -100,13 +100,13 @@ namespace Inferno::Outrage {
             auto width = ogf.Width / sz;
             auto height = ogf.Height / sz;
 
-            List<ushort> data(width * height);
+            List<uint16> data(width * height);
 
             int count = 0;
 
             while (count < data.size()) {
                 auto cmd = r.ReadByte();
-                ushort pixel = r.ReadUInt16();
+                uint16 pixel = r.ReadUInt16();
 
                 if (cmd == 0) {
                     data[count++] = pixel;

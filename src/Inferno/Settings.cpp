@@ -351,6 +351,7 @@ namespace Inferno {
                 auto deviceNode = devicesNode.append_child();
                 deviceNode |= ryml::MAP;
                 deviceNode["guid"] << device.guid;
+                deviceNode["type"] << string(magic_enum::enum_name(device.type));
 
                 auto actionList = deviceNode["actions"];
                 actionList |= ryml::SEQ;
@@ -364,11 +365,11 @@ namespace Inferno {
                     //actionNode["action"] << i;
                     actionNode["action"] << string(magic_enum::enum_name((GameAction)i));
 
-                    for (size_t j = 0; j < BIND_SLOTS; j++) {
-                        auto& binding = device.bindings[i][j];
+                    for (size_t slot = 0; slot < BIND_SLOTS; slot++) {
+                        auto& binding = device.bindings[i][slot];
                         if (binding.type == BindType::None) continue;
 
-                        auto bindingNode = actionNode[j == 0 ? "bind" : "bind2"];
+                        auto bindingNode = actionNode[slot == 0 ? "bind" : "bind2"];
                         bindingNode |= ryml::MAP;
 
                         bindingNode["id"] << binding.id;
@@ -400,7 +401,7 @@ namespace Inferno {
 
         {
             auto& keyboard = Game::Bindings.GetKeyboard();
-            auto keyboardNode = root["keyboard"];
+            auto keyboardNode = root["Keyboard"];
             keyboardNode |= ryml::MAP;
 
             auto actionList = keyboardNode["actions"];
@@ -425,7 +426,7 @@ namespace Inferno {
 
         {
             auto& mouse = Game::Bindings.GetMouse();
-            auto mouseNode = root["mouse"];
+            auto mouseNode = root["Mouse"];
             mouseNode |= ryml::MAP;
 
             auto actionList = mouseNode["actions"];
@@ -453,64 +454,86 @@ namespace Inferno {
                 }
             }
         }
-
-        //for (auto& binding : Game::Bindings.GetBindings()) {
-        //    auto child = node.append_child();
-        //    child |= ryml::MAP;
-        //    auto action = magic_enum::enum_name(binding.Action);
-        //    if (binding.Key != Input::Keys::None) {
-        //        auto key = string(magic_enum::enum_name(binding.Key));
-        //        child[ryml::to_csubstr(action.data())] << key;
-        //    }
-        //    else if (binding.Mouse != Input::MouseButtons::None) {
-        //        auto btn = string(magic_enum::enum_name(binding.Mouse));
-        //        child[ryml::to_csubstr(action.data())] << btn;
-        //    }
-        //}
     }
 
-    void LoadGameBindings(ryml::NodeRef node) {
-        if (node.is_seed()) return;
+    void ReadBinding(ryml::ConstNodeRef node, InputDeviceBinding& device) {
+        GameBinding binding;
 
-        // todo: load real bindings
-        auto& ps5 = Game::Bindings.AddDevice("050057564c050000e60c000000006800", Input::InputType::Gamepad);
-        ResetGamepadBindings(ps5);
-        ResetKeyboardBindings(Game::Bindings.GetKeyboard());
-        ResetMouseBindings(Game::Bindings.GetMouse());
+        string action;
+        if (ReadValue(node, "action", action)) {
+            if (auto key = magic_enum::enum_cast<GameAction>(action))
+                binding.action = *key;
+        }
 
-        //Game::Bindings.Clear(); // we have some bindings to replace defaults!
+        auto readBindGroup = [&](ryml::ConstNodeRef root, int slot) {
+            ReadValue(root, "id", binding.id);
+            ReadValue(root, "type", (std::underlying_type_t<BindType>&)binding.type);
+            ReadValue(root, "innerDeadzone", binding.innerDeadzone);
+            ReadValue(root, "outerDeadzone", binding.outerDeadzone);
+            ReadValue(root, "invert", binding.invert);
+            device.Bind(binding, slot);
+        };
 
-        //for (const auto& c : node.children()) {
-        //    if (!c.is_map() || !c.readable() || c.empty() || !c.has_children()) continue;
-        //    auto kvp = c.child(0);
-        //    string value, command;
-        //    if (kvp.has_key()) {
-        //        auto key = kvp.key();
-        //        if (key.len > 0)
-        //            command = string(key.data(), key.len);
-        //    }
+        if (auto bindNode = GetNode(node, "bind"))
+            readBindGroup(*bindNode, 0);
 
-        //    if (kvp.has_val()) {
-        //        auto val = kvp.val();
-        //        if (val.len > 0)
-        //            value = string(val.data(), val.len);
-        //    }
+        if (auto bindNode = GetNode(node, "bind2"))
+            readBindGroup(*bindNode, 1);
+    }
 
-        //    if (value.empty() || command.empty()) continue;
+    void LoadGameBindings(ryml::ConstNodeRef node) {
+        if (auto devices = GetSequenceNode(node, "InputDevices")) {
+            for (const auto& deviceNode : *devices) {
+                string guid;
+                if (!ReadValue(deviceNode, "guid", guid))
+                    continue; // Missing guid!
 
-        //    GameBinding binding;
-        //    if (auto commandName = magic_enum::enum_cast<GameAction>(command))
-        //        binding.Action = *commandName;
+                string type;
+                if (!ReadValue(deviceNode, "type", type))
+                    continue; // Missing type!
 
-        //    // The binding could either be a key or a mouse button
-        //    if (auto key = magic_enum::enum_cast<Input::Keys>(value))
-        //        binding.Key = *key;
+                auto inputType = Input::InputType::Unknown;
+                if (auto key = magic_enum::enum_cast<Input::InputType>(type))
+                    inputType = *key;
 
-        //    if (auto btn = magic_enum::enum_cast<Input::MouseButtons>(value))
-        //        binding.Mouse = *btn;
+                if (inputType == Input::InputType::Unknown)
+                    continue; // Missing type!
 
-        //    Game::Bindings.Add(binding);
-        //}
+                auto& device = Game::Bindings.AddDevice(guid, inputType);
+                auto actions = GetSequenceNode(deviceNode, "actions");
+                if (!actions) continue;
+
+                for (const auto& actionNode : *actions) {
+                    ReadBinding(actionNode, device);
+                }
+            }
+        }
+
+        if (auto keyboardNode = GetNode(node, "Keyboard")) {
+            auto& keyboard = Game::Bindings.GetKeyboard();
+
+            if (auto actions = GetSequenceNode(*keyboardNode, "actions")) {
+                for (const auto& action : *actions) {
+                    ReadBinding(action, keyboard);
+                }
+            }
+        }
+        else {
+            ResetKeyboardBindings(Game::Bindings.GetKeyboard());
+        }
+
+        if (auto keyboardNode = GetNode(node, "Mouse")) {
+            auto& mouse = Game::Bindings.GetMouse();
+
+            if (auto actions = GetSequenceNode(*keyboardNode, "actions")) {
+                for (const auto& action : *actions) {
+                    ReadBinding(action, mouse);
+                }
+            }
+        }
+        else {
+            ResetMouseBindings(Game::Bindings.GetMouse());
+        }
     }
 
     void SaveEditorSettings(ryml::NodeRef node, const EditorSettings& s) {
@@ -592,56 +615,56 @@ namespace Inferno {
             }
         }
 
-        ReadValue(node["EnableWallMode"], s.EnableWallMode);
-        ReadValue(node["EnableTextureMode"], s.EnableTextureMode);
-        ReadValue(node["ObjectRenderDistance"], s.ObjectRenderDistance);
+        ReadValue(node, "EnableWallMode", s.EnableWallMode);
+        ReadValue(node, "EnableTextureMode", s.EnableTextureMode);
+        ReadValue(node, "ObjectRenderDistance", s.ObjectRenderDistance);
 
-        ReadValue(node["TranslationSnap"], s.TranslationSnap);
-        ReadValue(node["RotationSnap"], s.RotationSnap);
+        ReadValue(node, "TranslationSnap", s.TranslationSnap);
+        ReadValue(node, "RotationSnap", s.RotationSnap);
 
-        ReadValue(node["MouselookSensitivity"], s.MouselookSensitivity);
-        ReadValue(node["MoveSpeed"], s.MoveSpeed);
+        ReadValue(node, "MouselookSensitivity", s.MouselookSensitivity);
+        ReadValue(node, "MoveSpeed", s.MoveSpeed);
 
-        ReadValue(node["SelectionMode"], (int&)s.SelectionMode);
-        ReadValue(node["InsertMode"], (int&)s.InsertMode);
+        ReadValue(node, "SelectionMode", (int&)s.SelectionMode);
+        ReadValue(node, "InsertMode", (int&)s.InsertMode);
 
-        ReadValue(node["ShowObjects"], s.ShowObjects);
-        ReadValue(node["ShowWalls"], s.ShowWalls);
-        ReadValue(node["ShowTriggers"], s.ShowTriggers);
-        ReadValue(node["ShowFlickeringLights"], s.ShowFlickeringLights);
-        ReadValue(node["ShowAnimation"], s.ShowAnimation);
-        ReadValue(node["ShowMatcenEffects"], s.ShowMatcenEffects);
-        ReadValue(node["ShowPortals"], s.ShowPortals);
-        ReadValue(node["WireframeOpacity"], s.WireframeOpacity);
+        ReadValue(node, "ShowObjects", s.ShowObjects);
+        ReadValue(node, "ShowWalls", s.ShowWalls);
+        ReadValue(node, "ShowTriggers", s.ShowTriggers);
+        ReadValue(node, "ShowFlickeringLights", s.ShowFlickeringLights);
+        ReadValue(node, "ShowAnimation", s.ShowAnimation);
+        ReadValue(node, "ShowMatcenEffects", s.ShowMatcenEffects);
+        ReadValue(node, "ShowPortals", s.ShowPortals);
+        ReadValue(node, "WireframeOpacity", s.WireframeOpacity);
 
-        ReadValue(node["ShowWireframe"], s.ShowWireframe);
-        ReadValue(node["RenderMode"], (int&)s.RenderMode);
-        ReadValue(node["GizmoSize"], s.GizmoSize);
-        ReadValue(node["CrosshairSize"], s.CrosshairSize);
-        ReadValue(node["InvertY"], s.InvertY);
-        ReadValue(node["InvertOrbitY"], s.InvertOrbitY);
-        ReadValue(node["MiddleMouseMode"], (int&)s.MiddleMouseMode);
-        ReadValue(node["FieldOfView"], s.FieldOfView);
+        ReadValue(node, "ShowWireframe", s.ShowWireframe);
+        ReadValue(node, "RenderMode", (int&)s.RenderMode);
+        ReadValue(node, "GizmoSize", s.GizmoSize);
+        ReadValue(node, "CrosshairSize", s.CrosshairSize);
+        ReadValue(node, "InvertY", s.InvertY);
+        ReadValue(node, "InvertOrbitY", s.InvertOrbitY);
+        ReadValue(node, "MiddleMouseMode", (int&)s.MiddleMouseMode);
+        ReadValue(node, "FieldOfView", s.FieldOfView);
         s.FieldOfView = std::clamp(s.FieldOfView, 45.0f, 130.0f);
-        ReadValue(node["FontSize"], s.FontSize);
+        ReadValue(node, "FontSize", s.FontSize);
         s.FontSize = std::clamp(s.FontSize, 8, 48);
 
-        ReadValue(node["EditBothWallSides"], s.EditBothWallSides);
-        ReadValue(node["ReopenLastLevel"], s.ReopenLastLevel);
-        ReadValue(node["SelectMarkedSegment"], s.SelectMarkedSegment);
-        ReadValue(node["ResetUVsOnAlign"], s.ResetUVsOnAlign);
-        ReadValue(node["WeldTolerance"], s.WeldTolerance);
+        ReadValue(node, "EditBothWallSides", s.EditBothWallSides);
+        ReadValue(node, "ReopenLastLevel", s.ReopenLastLevel);
+        ReadValue(node, "SelectMarkedSegment", s.SelectMarkedSegment);
+        ReadValue(node, "ResetUVsOnAlign", s.ResetUVsOnAlign);
+        ReadValue(node, "WeldTolerance", s.WeldTolerance);
 
-        ReadValue(node["Undos"], s.UndoLevels);
-        ReadValue(node["AutosaveMinutes"], s.AutosaveMinutes);
-        ReadValue(node["CoordinateSystem"], (int&)s.CoordinateSystem);
-        ReadValue(node["EnablePhysics"], s.EnablePhysics);
-        ReadValue(node["PasteSegmentObjects"], s.PasteSegmentObjects);
-        ReadValue(node["PasteSegmentWalls"], s.PasteSegmentWalls);
-        ReadValue(node["PasteSegmentSpecial"], s.PasteSegmentSpecial);
-        ReadValue(node["TexturePreviewSize"], (int&)s.TexturePreviewSize);
-        ReadValue(node["ShowLevelTitle"], s.ShowLevelTitle);
-        ReadValue(node["ShowTerrain"], s.ShowTerrain);
+        ReadValue(node, "Undos", s.UndoLevels);
+        ReadValue(node, "AutosaveMinutes", s.AutosaveMinutes);
+        ReadValue(node, "CoordinateSystem", (int&)s.CoordinateSystem);
+        ReadValue(node, "EnablePhysics", s.EnablePhysics);
+        ReadValue(node, "PasteSegmentObjects", s.PasteSegmentObjects);
+        ReadValue(node, "PasteSegmentWalls", s.PasteSegmentWalls);
+        ReadValue(node, "PasteSegmentSpecial", s.PasteSegmentSpecial);
+        ReadValue(node, "TexturePreviewSize", (int&)s.TexturePreviewSize);
+        ReadValue(node, "ShowLevelTitle", s.ShowLevelTitle);
+        ReadValue(node, "ShowTerrain", s.ShowTerrain);
 
         s.Palette = LoadPalette(node["Palette"]);
         s.Selection = LoadSelectionSettings(node["Selection"]);

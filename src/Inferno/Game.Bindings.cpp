@@ -297,7 +297,7 @@ namespace Inferno {
             setLabel(GameAction::YawAxis, "Yaw");
             setLabel(GameAction::Afterburner, "Afterburner");
             setLabel(GameAction::Automap, "Automap");
-            setLabel(GameAction::Converter, "Converter");
+            setLabel(GameAction::EnergyConverter, "Converter");
             setLabel(GameAction::CyclePrimary, "Cycle primary");
             setLabel(GameAction::CycleSecondary, "Cycle secondary");
             setLabel(GameAction::CycleBomb, "Cycle bomb");
@@ -341,6 +341,7 @@ namespace Inferno {
         device.Bind({ .action = GameAction::Automap, .id = Keys::Tab });
         device.Bind({ .action = GameAction::Pause, .id = Keys::Escape });
         device.Bind({ .action = GameAction::RearView, .id = Keys::R });
+        device.Bind({ .action = GameAction::EnergyConverter, .id = Keys::T });
 
         device.Bind({ .action = GameAction::Weapon1, .id = Keys::D1 });
         device.Bind({ .action = GameAction::Weapon2, .id = Keys::D2 });
@@ -383,12 +384,12 @@ namespace Inferno {
         device.Bind({ .action = GameAction::FirePrimary, .id = SDL_GAMEPAD_BUTTON_LEFT_SHOULDER, .type = BindType::Button });
         device.Bind({ .action = GameAction::FireSecondary, .id = SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER, .type = BindType::Button });
 
-        device.Bind({ .action = GameAction::RollLeft, .id = SDL_GAMEPAD_AXIS_LEFT_TRIGGER, .type = BindType::AxisPlus, .invert = true, .innerDeadzone = 2 });
-        device.Bind({ .action = GameAction::RollRight, .id = SDL_GAMEPAD_AXIS_RIGHT_TRIGGER, .type = BindType::AxisPlus, .innerDeadzone = 2 });
+        device.Bind({ .action = GameAction::SlideDown, .id = SDL_GAMEPAD_AXIS_LEFT_TRIGGER, .type = BindType::AxisPlus, .invert = true, .innerDeadzone = 2 });
+        device.Bind({ .action = GameAction::SlideUp, .id = SDL_GAMEPAD_AXIS_RIGHT_TRIGGER, .type = BindType::AxisPlus, .innerDeadzone = 2 });
 
         // Sprint is usually on left stick
         device.Bind({ .action = GameAction::Afterburner, .id = SDL_GAMEPAD_BUTTON_LEFT_STICK, .type = BindType::Button });
-        device.Bind({ .action = GameAction::Converter, .id = SDL_GAMEPAD_BUTTON_RIGHT_STICK, .type = BindType::Button });
+        device.Bind({ .action = GameAction::EnergyConverter, .id = SDL_GAMEPAD_BUTTON_RIGHT_STICK, .type = BindType::Button });
 
         //device.Bind({ .action = GameAction::FireFlare, .id = SDL_GAMEPAD_AXIS_LEFT_TRIGGER, .type = BindType::AxisButtonPlus }, 1);
 
@@ -396,11 +397,9 @@ namespace Inferno {
         device.Bind({ .action = GameAction::FireFlare, .id = SDL_GAMEPAD_BUTTON_EAST, .type = BindType::Button });
         device.Bind({ .action = GameAction::DropBomb, .id = SDL_GAMEPAD_BUTTON_NORTH, .type = BindType::Button });
 
-        // Jump is usually on A, thumb can easily toggle between west/south buttons
-        device.Bind({ .action = GameAction::SlideUp, .id = SDL_GAMEPAD_BUTTON_WEST, .type = BindType::Button });
-        device.Bind({ .action = GameAction::SlideDown, .id = SDL_GAMEPAD_BUTTON_SOUTH, .type = BindType::Button });
+        device.Bind({ .action = GameAction::RollLeft, .id = SDL_GAMEPAD_BUTTON_WEST, .type = BindType::Button });
+        device.Bind({ .action = GameAction::RollRight, .id = SDL_GAMEPAD_BUTTON_SOUTH, .type = BindType::Button });
 
-        // Hold up/down for 1s to select best weapon (top of priority)
         // Dpad bindings
         device.Bind({ .action = GameAction::CyclePrimary, .id = SDL_GAMEPAD_BUTTON_DPAD_UP, .type = BindType::Button });
         device.Bind({ .action = GameAction::CycleSecondary, .id = SDL_GAMEPAD_BUTTON_DPAD_DOWN, .type = BindType::Button });
