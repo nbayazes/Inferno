@@ -207,7 +207,7 @@ namespace Inferno {
         string GetBindingLabel(GameAction action, int slot);
     };
 
-    void ResetGamepadBindings(InputDeviceBinding& device);
+    void ResetGamepadBindings(InputDeviceBinding& device, uint8 innerDeadzone = 16);
     void ResetMouseBindings(InputDeviceBinding& device);
     void ResetKeyboardBindings(InputDeviceBinding& device);
 

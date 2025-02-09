@@ -85,6 +85,10 @@ namespace Inferno::Input {
             return type != SDL_GAMEPAD_TYPE_UNKNOWN;
         }
 
+        bool IsXBoxController() const {
+            return type == SDL_GAMEPAD_TYPE_XBOX360 || type == SDL_GAMEPAD_TYPE_XBOXONE;
+        }
+
         // true when button is first pressed or held down
         bool ButtonHeld(uint8 button) const {
             if (button > buttonPressed.size()) return false;
@@ -273,6 +277,9 @@ namespace Inferno::Input {
     // Returns the state of a joystick with the given guid.
     // Filters to devices enabled in the global settings by default.
     InputDevice* GetDevice(string_view guid, bool enabled = true);
+
+    // Called when a new input device is added
+    inline std::function<void(InputDevice&)> AddDeviceCallback;
 
     Vector2 CircularDampen(const Vector2& input, float innerDeadzone, float outerDeadzone);
     float LinearDampen(float value, float innerDeadzone, float outerDeadzone);

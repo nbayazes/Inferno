@@ -7,6 +7,7 @@
 #include "imgui_local.h"
 #include "Resources.h"
 #include "Editor/Editor.h"
+#include "Game.Bindings.h"
 #include "SystemClock.h"
 #include "Graphics/Render.h"
 #include "Graphics/Render.MainMenu.h"
@@ -67,6 +68,17 @@ void Application::Initialize(int width, int height) {
     }
 
     SDL_SetAppMetadata(Inferno::APP_TITLE, Inferno::VERSION_STRING, nullptr);
+
+    Input::AddDeviceCallback = [](const Input::InputDevice& device) {
+        // Reset the bindings of a new gamepad, so the user doesn't have to open the config menu
+        if (!Game::Bindings.GetDevice(device.guid) && device.IsGamepad()) {
+            auto& bindings = Game::Bindings.AddDevice(device.guid, Input::InputType::Gamepad);
+
+            // xbox controllers tend to have terrible stick drift and need a higher deadzone
+            uint8 innerDeadzone = device.IsXBoxController() ? 32 : 16;
+            ResetGamepadBindings(bindings, innerDeadzone);
+        }
+    };
 
     Inferno::Input::Initialize(Shell::Hwnd);
     Render::Initialize(Shell::Hwnd, width, height);

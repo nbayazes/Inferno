@@ -8,7 +8,6 @@
 #include "imgui_local.h"
 #include "PlatformHelpers.h"
 #include "Settings.h"
-#include "Shell.h"
 
 using namespace DirectX::SimpleMath;
 
@@ -453,11 +452,17 @@ namespace Inferno::Input {
                 case SDL_EVENT_GAMEPAD_AXIS_MOTION:
                 {
                     if (auto joystick = Devices.Get(event.gaxis.which)) {
-                        joystick->axes[event.gaxis.axis] = NormalizeAxis(event.gaxis.value);
+                        auto value = NormalizeAxis(event.gaxis.value);
 
                         // Invert axis so y+ is up
                         if (event.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTY)
-                            joystick->axes[event.gaxis.axis] *= -1;
+                            value *= -1;
+
+                        // Some controllers report negative values for triggers, take the absolute value
+                        if(event.gaxis.axis == SDL_GAMEPAD_AXIS_LEFT_TRIGGER || event.gaxis.axis == SDL_GAMEPAD_AXIS_RIGHT_TRIGGER)
+                            value = abs(value);
+
+                        joystick->axes[event.gaxis.axis] = value;
 
                         // left and right triggers report 0 to 1
 
@@ -512,6 +517,9 @@ namespace Inferno::Input {
                 {
                     //SPDLOG_INFO("Joystick or Gamepad added {}", event.gdevice.which);
                     Devices.Add(event.gdevice.which);
+                    if (auto device = Devices.Get(event.gdevice.which); device && AddDeviceCallback)
+                        AddDeviceCallback(*device);
+
                     break;
                 }
 

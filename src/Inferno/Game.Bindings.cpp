@@ -370,13 +370,13 @@ namespace Inferno {
         device.Bind({ .action = GameAction::CycleSecondary, .id = (int)Input::MouseButtons::WheelDown });
     }
 
-    void ResetGamepadBindings(InputDeviceBinding& device) {
+    void ResetGamepadBindings(InputDeviceBinding& device, uint8 innerDeadzone) {
         device.bindings = {};
 
-        device.Bind({ .action = GameAction::ForwardReverseAxis, .id = SDL_GAMEPAD_AXIS_LEFTY, .type = BindType::Axis });
-        device.Bind({ .action = GameAction::LeftRightAxis, .id = SDL_GAMEPAD_AXIS_LEFTX, .type = BindType::Axis });
-        device.Bind({ .action = GameAction::PitchAxis, .id = SDL_GAMEPAD_AXIS_RIGHTY, .type = BindType::Axis });
-        device.Bind({ .action = GameAction::YawAxis, .id = SDL_GAMEPAD_AXIS_RIGHTX, .type = BindType::Axis });
+        device.Bind({ .action = GameAction::ForwardReverseAxis, .id = SDL_GAMEPAD_AXIS_LEFTY, .type = BindType::Axis, .innerDeadzone = innerDeadzone });
+        device.Bind({ .action = GameAction::LeftRightAxis, .id = SDL_GAMEPAD_AXIS_LEFTX, .type = BindType::Axis, .innerDeadzone = innerDeadzone });
+        device.Bind({ .action = GameAction::PitchAxis, .id = SDL_GAMEPAD_AXIS_RIGHTY, .type = BindType::Axis, .innerDeadzone = innerDeadzone });
+        device.Bind({ .action = GameAction::YawAxis, .id = SDL_GAMEPAD_AXIS_RIGHTX, .type = BindType::Axis, .innerDeadzone = innerDeadzone });
 
         device.Bind({ .action = GameAction::Automap, .id = SDL_GAMEPAD_BUTTON_BACK, .type = BindType::Button });
         device.Bind({ .action = GameAction::Pause, .id = SDL_GAMEPAD_BUTTON_START, .type = BindType::Button });
@@ -384,7 +384,7 @@ namespace Inferno {
         device.Bind({ .action = GameAction::FirePrimary, .id = SDL_GAMEPAD_BUTTON_LEFT_SHOULDER, .type = BindType::Button });
         device.Bind({ .action = GameAction::FireSecondary, .id = SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER, .type = BindType::Button });
 
-        device.Bind({ .action = GameAction::SlideDown, .id = SDL_GAMEPAD_AXIS_LEFT_TRIGGER, .type = BindType::AxisPlus, .invert = true, .innerDeadzone = 2 });
+        device.Bind({ .action = GameAction::SlideDown, .id = SDL_GAMEPAD_AXIS_LEFT_TRIGGER, .type = BindType::AxisPlus, .innerDeadzone = 2 });
         device.Bind({ .action = GameAction::SlideUp, .id = SDL_GAMEPAD_AXIS_RIGHT_TRIGGER, .type = BindType::AxisPlus, .innerDeadzone = 2 });
 
         // Sprint is usually on left stick
