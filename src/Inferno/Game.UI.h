@@ -5,4 +5,5 @@ namespace Inferno::UI {
     void ShowPauseDialog();
     void ShowScoreScreen();
     void ShowMainMenu();
+    void ShowFailedEscapeDialog();
 }

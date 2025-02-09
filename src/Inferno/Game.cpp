@@ -10,7 +10,6 @@
 #include "VisualEffects.h"
 #include "Game.AI.h"
 #include "Game.Automap.h"
-#include "Game.Bindings.h"
 #include "Game.Cinematics.h"
 #include "Game.Input.h"
 #include "Game.Object.h"
@@ -348,7 +347,6 @@ namespace Inferno::Game {
             {
                 Sound::StopAllSounds();
                 Game::Level = {};
-                Editor::History.Reset();
                 Game::MainCamera.Up = Vector3::UnitY;
                 Game::MainCamera.Position = MenuCameraPosition;
                 Game::MainCamera.Target = MenuCameraTarget;
@@ -362,11 +360,13 @@ namespace Inferno::Game {
 
             case GameState::Briefing:
             {
+                Input::SetMouseMode(Input::MouseMode::Normal);
                 if (!Game::Briefing.IsValid()) return;
                 break;
             }
 
             case GameState::LoadLevel:
+                Input::SetMouseMode(Input::MouseMode::Mouselook);
                 break;
 
             case GameState::ScoreScreen:
@@ -382,7 +382,14 @@ namespace Inferno::Game {
                 }
 
                 UI::ShowScoreScreen();
+                Input::SetMouseMode(Input::MouseMode::Normal);
+                break;
 
+            case GameState::FailedEscape:
+                Game::FailedEscape = true;
+                Game::Player.ResetInventory();
+                UI::ShowFailedEscapeDialog();
+                Input::SetMouseMode(Input::MouseMode::Normal);
                 break;
 
             case GameState::Editor:
@@ -592,6 +599,10 @@ namespace Inferno::Game {
             //GenericCameraController(MainCamera, 300);
                 break;
 
+            case GameState::FailedEscape:
+                Inferno::UI::Update();
+                break;
+
             case GameState::ScoreScreen:
                 Inferno::UI::Update();
                 break;
@@ -643,7 +654,7 @@ namespace Inferno::Game {
 
             case GameState::Game:
                 LerpAmount = GameUpdate(dt);
-            //UpdateCommsMessage();
+                //UpdateCommsMessage();
                 SetActiveCamera(Game::MainCamera);
                 Game::MainCamera.SetFov(Settings::Graphics.FieldOfView);
 
@@ -927,6 +938,7 @@ namespace Inferno::Game {
         Game::Time = Game::FrameTime = 0;
         Settings::Editor.ShowTerrain = false;
         Game::ScreenGlow.SetTarget(Color(0, 0, 0, 0), Game::Time, 0);
+        Game::FailedEscape = false;
 
         // Activate game mode
         State = GameState::Game;

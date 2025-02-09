@@ -23,6 +23,7 @@ namespace Inferno {
         Cutscene, // In-game cutscene, waits for input to cancel
         LoadLevel, // Show a loading screen and load the currently pending level
         ScoreScreen,
+        FailedEscape, // Player failed to escape in time
         Automap,
         Briefing, // Showing a briefing before a level
         MainMenu, // The title menu
@@ -212,6 +213,7 @@ namespace Inferno::Game {
     constexpr float WEAPON_HIT_OBJECT_VOLUME = 1.0f;
 
     inline bool Cheater = false;
+    inline bool FailedEscape = false; // Failed to escape the level in time. Used for scoring and pausing time.
 
     void AddPointsToScore(int points);
 

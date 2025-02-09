@@ -219,11 +219,8 @@ namespace Inferno::Game {
             //float bloom = std::lerp(0.0f, 10.0f, flash);
             //float exposure = std::lerp(0.0f, 60.0f, flash);
 
-            if (CountdownTimer < -4) {
-                // todo: kill player, show "you have died in the mine" message
-                Game::Player.ResetInventory();
-                SetState(GameState::Editor);
-                // todo: show score screen
+            if (CountdownTimer < -4 && !Game::FailedEscape) {
+                Game::SetState(GameState::FailedEscape);
             }
         }
     }

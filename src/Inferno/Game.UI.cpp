@@ -203,6 +203,10 @@ namespace Inferno::UI {
 
     // Returns a pointer to the screen
     ScreenBase* ShowScreen(Ptr<ScreenBase> screen) {
+        if (Screens.empty()) {
+            Screens.reserve(20);
+        }
+
         if (screen->Layer == -1) screen->Layer = (int)Screens.size() * 2;
         screen->OnUpdateLayout();
         screen->OnUpdateLayout(); // Need to calculate layout twice due to sizing
@@ -423,6 +427,61 @@ namespace Inferno::UI {
         bool OnTryClose() override {
             Game::SetState(GameState::Game);
             return true; // Allow closing this dialog with escape
+        }
+    };
+
+    class FailedEscapeDialog : public DialogBase {
+
+    public:
+        FailedEscapeDialog() : DialogBase("You didn't escape in time", false){
+            ActionSound = "";
+            Layer = 1; // 0 Is for white background
+
+            //auto title = AddChild<Label>("You didn't escape in time", FontSize::MediumBlue);
+            //title->HorizontalAlignment = AlignH::Center;
+            //title->Position = Vector2(0, DIALOG_PADDING);
+            //title->TextAlignment = AlignH::Center;
+            //title->Color = DIALOG_TITLE_COLOR;
+
+            auto text = AddChild<Label>("Your ship and its", FontSize::MediumBlue);
+            text->HorizontalAlignment = AlignH::Center;
+            text->Position = Vector2(0, DIALOG_PADDING + CONTROL_HEIGHT * 2);
+            text->TextAlignment = AlignH::Center;
+            text->Color = DIALOG_TITLE_COLOR;
+
+            text = AddChild<Label>("contents were incinerated", FontSize::MediumBlue);
+            text->HorizontalAlignment = AlignH::Center;
+            text->Position = Vector2(0, DIALOG_PADDING + CONTROL_HEIGHT * 3);
+            text->TextAlignment = AlignH::Center;
+            text->Color = DIALOG_TITLE_COLOR;
+
+            Size.x = _titleSize.x + DIALOG_PADDING * 4 + 20;
+            Size.y = CONTROL_HEIGHT * 6 + DIALOG_PADDING * 2;
+
+            auto yesButton = AddChild<Button>("rest in peace");
+            yesButton->VerticalAlignment = AlignV::Bottom;
+            yesButton->HorizontalAlignment = AlignH::Center;
+            yesButton->Position = Vector2(0, -DIALOG_PADDING);
+            yesButton->ClickAction = [this] { State = CloseState::Accept; };
+        }
+
+        bool OnTryClose() override {
+            return true; // Allow closing this dialog with escape
+        }
+
+        void OnClose() override {
+            Game::SetState(GameState::ScoreScreen);
+        }
+
+        void OnDraw() override {
+            DialogBase::OnDraw();
+
+            // White Background
+            Render::CanvasBitmapInfo cbi;
+            cbi.Size = Render::UICanvas->GetSize();
+            cbi.Texture = Render::Materials->White().Handle();
+            cbi.Color = Color(3, 3, 3, 1);
+            Render::UICanvas->DrawBitmap(cbi, 0); // Draw on layer 0
         }
     };
 
@@ -727,20 +786,18 @@ namespace Inferno::UI {
     };
 
     void ShowMainMenu() {
-        if (Screens.empty()) {
-            Screens.reserve(20);
-        }
-
         Screens.clear();
         ShowScreen(make_unique<MainMenu>());
-        //ShowScreen(make_unique<PriorityMenu>("Primary Priority", Settings::Inferno.PrimaryPriority, DEFAULT_PRIMARY_NAMES));
+        //ShowScreen(make_unique<FailedEscapeDialog>());
+    }
+
+    void ShowFailedEscapeDialog() {
+        Screens.clear();
+        Game::ScreenGlow.SetTarget(Color(0, 0, 0, 0), Game::Time, 0);
+        ShowScreen(make_unique<FailedEscapeDialog>());
     }
 
     void ShowPauseDialog() {
-        if (Screens.empty()) {
-            Screens.reserve(20);
-        }
-
         Screens.clear();
         ShowScreen(make_unique<PauseMenu>());
     }
