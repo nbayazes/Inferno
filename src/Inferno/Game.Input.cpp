@@ -24,6 +24,7 @@ namespace Inferno {
                 Game::SetState(GameState::Editor);
             }
             else {
+                Game::StartMission();
                 Game::SetState(Game::GetState() != GameState::Editor ? GameState::Editor : GameState::LoadLevel);
             }
         }
@@ -112,10 +113,10 @@ namespace Inferno {
         if (Game::Bindings.Held(GameAction::FireSecondary))
             camera.Zoom(dt * -speed);
 
-        if (Input::IsMouseButtonPressed(Input::MouseButtons::WheelUp))
+        if (Input::MouseButtonPressed(Input::MouseButtons::WheelUp))
             camera.ZoomIn();
 
-        if (Input::IsMouseButtonPressed(Input::MouseButtons::WheelDown))
+        if (Input::MouseButtonPressed(Input::MouseButtons::WheelDown))
             camera.ZoomOut();
 
         if (Game::Bindings.Held(GameAction::Forward))

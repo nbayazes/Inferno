@@ -1,9 +1,12 @@
 #pragma once
+#include "Game.UI.ScoreScreen.h"
 
 namespace Inferno::UI {
     void Update();
     void ShowPauseDialog();
-    void ShowScoreScreen();
+    void ShowScoreScreen(const ScoreInfo& score);
     void ShowMainMenu();
-    void ShowFailedEscapeDialog();
+
+    // missionFailed indicates the player ran out of lives
+    void ShowFailedEscapeDialog(bool missionFailed);
 }

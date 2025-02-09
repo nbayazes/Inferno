@@ -77,7 +77,7 @@ namespace Inferno {
             if (!state.Exploded) {
                 state.Exploded = true;
                 ResetAITargets();
-                state.Lives--;
+                state.LoseLife();
 
                 GameExplosion explosion;
                 explosion.Damage = 50;
@@ -102,10 +102,10 @@ namespace Inferno {
             }
 
             string message;
-            if (state.HostagesOnShip > 1) {
-                message = fmt::format("Ship destroyed, {} hostages lost!", state.HostagesOnShip);
+            if (state.HostagesOnboard > 1) {
+                message = fmt::format("Ship destroyed, {} hostages lost!", state.HostagesOnboard);
             }
-            else if (state.HostagesOnShip == 1) {
+            else if (state.HostagesOnboard == 1) {
                 message = "ship destroyed, 1 hostage lost!";
             }
             else {

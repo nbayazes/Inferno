@@ -145,7 +145,7 @@ namespace Inferno {
         }
 
         for (auto& binding : _mouse.bindings[(int)action]) {
-            if (Input::IsMouseButtonPressed((Input::MouseButtons)binding.id))
+            if (Input::MouseButtonPressed((Input::MouseButtons)binding.id))
                 return true;
         }
 

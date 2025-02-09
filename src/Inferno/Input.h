@@ -379,11 +379,10 @@ namespace Inferno::Input {
     bool IsMouseButtonDown(MouseButtons);
 
     // Returns true when a key is first pressed
-    bool IsMouseButtonPressed(MouseButtons);
+    bool MouseButtonPressed(MouseButtons);
 
     // Returns true when a key is first released
-    bool IsMouseButtonReleased(MouseButtons);
-
+    bool MouseButtonReleased(MouseButtons);
 
     bool MouseMoved();
 

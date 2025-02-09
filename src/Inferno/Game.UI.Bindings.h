@@ -127,7 +127,7 @@ namespace Inferno::UI {
                     }
                     else {
                         for (auto btn = Input::MouseButtons::LeftClick; btn <= Input::MouseButtons::WheelDown; btn = Input::MouseButtons((uint8)btn + 1)) {
-                            if (Input::IsMouseButtonPressed(btn)) {
+                            if (Input::MouseButtonPressed(btn)) {
                                 binding.id = (uint8)btn;
                                 binding.type = BindType::Button;
                                 finishBinding();
@@ -201,7 +201,7 @@ namespace Inferno::UI {
             _hovered2 = Visible && RectangleContains(boxPosition + Vector2((ValueWidth + Spacing) * GetScale(), 0), Vector2(ValueWidth * GetScale(), ScreenSize.y), Input::MousePosition);
             _hovered3 = Visible && RectangleContains(GetInvertCheckboxPosition(), GetInvertCheckboxSize(), Input::MousePosition);
 
-            if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick)) {
+            if (Input::MouseButtonPressed(Input::MouseButtons::LeftClick)) {
                 if (_hovered) {
                     *_column = 0;
                     SetSelection(this);
@@ -221,7 +221,7 @@ namespace Inferno::UI {
                 if (auto binding = _device->GetBinding(_action, _slot))
                     HandleBindInput(*binding);
             }
-            else if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick)) {
+            else if (Input::MouseButtonPressed(Input::MouseButtons::LeftClick)) {
                 if (_bindType == BindType::Axis) {
                     if (_hovered)
                         StartBinding(0);

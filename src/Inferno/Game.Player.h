@@ -52,7 +52,6 @@ namespace Inferno {
         float TertiaryDelay = 0; // For bombs
         float AfterburnerCharge = 1; // 0 to 1
         bool HasSpew = false; // has dropped items on death
-        bool SpawnInvuln = false; // temporary invuln when spawning
         bool LavafallHissPlaying = false; // checks if a lavafall (or waterfall) sound is already playing
         bool SpreadfireToggle = false; // horizontal / vertical
         uint8 HelixOrientation = 0; // increments in 22.5 degrees
@@ -109,16 +108,7 @@ namespace Inferno {
             //return SecondaryWeapons & (1 << (uint16)weapon);
         }
 
-        void GivePowerup(PowerupFlag powerup) {
-            SetFlag(Powerups, powerup);
-            if (HasFlag(powerup, PowerupFlag::QuadFire)) {
-                // Select to lasers if they have a higher priority after picking up quad fire powerup
-                auto laserIndex = HasWeapon(PrimaryWeaponIndex::SuperLaser) ? PrimaryWeaponIndex::SuperLaser : PrimaryWeaponIndex::Laser;
-
-                if (GetWeaponPriority(laserIndex) < GetWeaponPriority(Primary) && CanFirePrimary(laserIndex))
-                    SelectPrimary(laserIndex);
-            }
-        }
+        void GivePowerup(PowerupFlag powerup);
 
         bool HasPowerup(PowerupFlag powerup) const {
             return HasFlag(Powerups, powerup);
@@ -191,6 +181,7 @@ namespace Inferno {
         void TurnOffHeadlight(bool playSound = true);
 
         void ToggleHeadlight();
+        void LoseLife();
 
     private:
         float GetWeaponEnergyCost(float baseCost) const;

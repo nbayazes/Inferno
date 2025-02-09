@@ -64,16 +64,16 @@ namespace Inferno {
         }
 
         struct {
-            short Kills;            // Robots killed this level. Used to prevent matcens from spawning too many robots.
-            short TotalKills;       // Total kills across all levels. Used for scoring
-            short Robots;           // Number of initial robots this level. Used to prevent matcens from spawning too many robots. Why is this here?
-            short TotalRobots;      // Number of robots total. Used for final score ratio.
-            uint16 TotalHostages;   // Total hostages in all levels. Used for final score ratio
-            uint8 HostagesOnLevel;   // Why is this here?
+            int16 Kills = 0;            // Robots killed this level. Used to prevent matcens from spawning too many robots.
+            int16 TotalKills = 0;       // Total kills across all levels. Used for scoring
+            int16 Robots = 0;           // Number of initial robots this level. Used to prevent matcens from spawning too many robots. Why is this here?
+            int16 TotalRobots = 0;      // Number of robots total. Used for final score ratio.
+            uint16 TotalHostages = 0;   // Total hostages in all levels. Used for final score ratio
+            uint8 HostagesOnLevel = 0;   // Why is this here?
         } Stats;
 
         uint16 HostagesRescued; // Hostages rescued by the player on the current level.
-        uint8 HostagesOnShip;   // How many poor souls get killed when ship is lost
+        uint8 HostagesOnboard;   // How many poor souls get killed when ship is lost
         float HomingObjectDist = -1; // Distance of nearest homing object. Used for lock indicators.
     };
 

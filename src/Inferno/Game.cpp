@@ -96,7 +96,7 @@ namespace Inferno::Game {
         }
     }
 
-    void AddPointsToScore(int points) {
+    uint8 AddPointsToScore(int points) {
         auto score = Player.Score;
 
         Player.Score += points;
@@ -104,10 +104,14 @@ namespace Inferno::Game {
 
         // This doesn't account for negative scoring (which never happens in D2)
         auto lives = Player.Score / EXTRA_LIFE_POINTS - score / EXTRA_LIFE_POINTS;
+        if (lives < 0) lives = 0;
+
         if (lives > 0) {
             Sound::Play2D({ SoundID::ExtraLife });
             Player.GiveExtraLife((uint8)lives);
         }
+
+        return (uint8)lives;
     }
 
     Object* GetObject(ObjRef ref) {
@@ -296,8 +300,8 @@ namespace Inferno::Game {
             }
         }
 
-        if (Game::ActiveCamera && (State == GameState::Game || State == GameState::ExitSequence))
-            TraverseSegments(*Game::ActiveCamera, GetPlayerObject().Segment, TraversalFlag::None);
+        if (State == GameState::Game || State == GameState::ExitSequence)
+            TraverseSegments(GetActiveCamera(), GetPlayerObject().Segment, TraversalFlag::None);
 
         static double accumulator = 0;
         accumulator += dt;
@@ -337,6 +341,82 @@ namespace Inferno::Game {
         Game::GlobalDimming = 1; // Clear dimming
     }
 
+    UI::ScoreInfo CalculateEndLevelScore(int levelNumber, uint totalHostages) {
+        //if (level.Version != 0) {
+        //    return {
+        //        .LevelName = "PLACEHOLDER LEVEL",
+        //        .LevelNumber = 1,
+        //        .Difficulty = Game::Difficulty,
+        //        .Time = "0:00",
+        //        .Secrets = 3,
+        //        .SecretsFound = 1,
+        //        .RobotsDestroyed = 10,
+        //        .ShieldBonus = 1000,
+        //        .EnergyBonus = 1000,
+        //        .HostageBonus = 1000,
+        //        .FullRescue = true,
+        //        .SkillBonus = 0,
+        //        .TotalBonus = 3000,
+        //        .TotalScore = 53000,
+        //        .ExtraLives = 1
+        //    };
+        //}
+
+        //auto levelNumber = levelNumber > 0 ? LevelNumber : -(mission.Levels.size() / mission.SecretLevels.size());
+        auto finalLevel = true; // Standalone
+
+        if (Mission) {
+            if (auto info = TryReadMissionInfo()) {
+                finalLevel = info->Levels.size() == LevelNumber;
+            }
+        }
+
+        auto& player = Game::Player;
+        auto difficulty = (int)Game::Difficulty;
+        auto levelPoints = player.Score - player.LevelStartScore;
+
+        UI::ScoreInfo score;
+        score.FinalLevel = finalLevel;
+
+        if (!Game::Cheater) {
+            if (difficulty > 1) {
+                score.SkillBonus = levelPoints * difficulty / 4;
+                score.SkillBonus -= score.SkillBonus % 100; // round
+            }
+
+            score.ShieldBonus = (int)player.Shields * 5 * levelNumber;
+            score.EnergyBonus = (int)player.Energy * 2 * levelNumber;
+            score.HostageBonus = player.HostagesOnboard * 500 * (difficulty + 1);
+
+            score.ShieldBonus -= score.ShieldBonus % 50;
+            score.EnergyBonus -= score.EnergyBonus % 50;
+
+            if (player.HostagesOnboard == totalHostages) {
+                score.HostageBonus += player.HostagesOnboard * 1000 * (difficulty + 1);
+
+                score.FullRescue = true;
+            }
+
+            // Convert extra lives to points on the final level
+            if (finalLevel) {
+                score.ShipBonus = player.Lives * 10000;
+            }
+        }
+
+        score.Difficulty = Game::Difficulty;
+        score.TotalBonus = score.SkillBonus + score.EnergyBonus + score.ShieldBonus + score.HostageBonus + score.ShipBonus;
+        score.Deaths = Game::LevelDeaths;
+
+        string time = "0:00";
+        int minutes = (int)Time / 60;
+        int seconds = (int)Time % 60;
+        score.Time = fmt::format("{}:{:02}", minutes, seconds);
+
+        score.ExtraLives = Game::AddPointsToScore(score.TotalBonus);
+        score.TotalScore = Player.Score;
+        return score;
+    }
+
     // Changes the game state if a new one is requested
     void CheckGameStateChange() {
         if (State == RequestedState) return;
@@ -370,25 +450,18 @@ namespace Inferno::Game {
                 break;
 
             case GameState::ScoreScreen:
-                if (Level.Version != 0 && Mission) {
-                    // update the score
-                    auto finalLevel = true; // Standalone
-
-                    if (auto info = TryReadMissionInfo()) {
-                        finalLevel = info->Levels.size() == LevelNumber;
-                    }
-
-                    auto scoreInfo = UI::ScoreInfo::CalculateScore(LevelNumber, Level, Game::Player, Game::Difficulty, finalLevel, false);
-                }
-
-                UI::ShowScoreScreen();
+            {
+                auto score = CalculateEndLevelScore(LevelNumber, Level.TotalHostages);
+                UI::ShowScoreScreen(score);
                 Input::SetMouseMode(Input::MouseMode::Normal);
                 break;
+            }
 
             case GameState::FailedEscape:
                 Game::FailedEscape = true;
-                Game::Player.ResetInventory();
-                UI::ShowFailedEscapeDialog();
+                Game::Player.LoseLife();
+
+                UI::ShowFailedEscapeDialog(Game::Player.Lives == 0);
                 Input::SetMouseMode(Input::MouseMode::Normal);
                 break;
 
@@ -654,7 +727,7 @@ namespace Inferno::Game {
 
             case GameState::Game:
                 LerpAmount = GameUpdate(dt);
-                //UpdateCommsMessage();
+            //UpdateCommsMessage();
                 SetActiveCamera(Game::MainCamera);
                 Game::MainCamera.SetFov(Settings::Graphics.FieldOfView);
 
@@ -915,6 +988,10 @@ namespace Inferno::Game {
         Game::SetState(GameState::MainMenu);
     }
 
+    void StartMission() {
+        Player = {};
+    }
+
     bool StartLevel() {
         SPDLOG_INFO("Starting level");
         Editor::SetPlayerStartIDs(Level);
@@ -939,6 +1016,7 @@ namespace Inferno::Game {
         Settings::Editor.ShowTerrain = false;
         Game::ScreenGlow.SetTarget(Color(0, 0, 0, 0), Game::Time, 0);
         Game::FailedEscape = false;
+        Game::LevelDeaths = 0;
 
         // Activate game mode
         State = GameState::Game;
@@ -970,10 +1048,9 @@ namespace Inferno::Game {
         Player.Stats.HostagesOnLevel = 0;
         Player.Stats.Kills = 0;
         Player.Stats.Robots = 0;
-        Player.HostagesOnShip = 0;
+        Player.HostagesOnboard = 0;
         Player.HostagesRescued = 0;
-        Player.Stats.TotalHostages = 0; // todo: move this to start mission function
-        Player.Lives = PlayerData::INITIAL_LIVES; // todo: move this to start mission function
+
         Player.LevelStartScore = Player.Score;
         Player.TurnOffHeadlight(false);
 

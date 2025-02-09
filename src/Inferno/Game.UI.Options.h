@@ -334,7 +334,7 @@ namespace Inferno::UI {
                 }
             }
 
-            if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick) && Focused) {
+            if (Input::MouseButtonPressed(Input::MouseButtons::LeftClick) && Focused) {
                 if (RectangleContains(ScreenPosition, ScreenSize, Input::MousePosition)) {
                     if (_editing) {
                         std::swap(_priority[_startSelection], _priority[_selection]);

@@ -25,6 +25,8 @@ namespace Inferno::UI {
     constexpr Color GREY_TEXT = { 0.5f, 0.5f, 0.5f };
     constexpr Color GOLD_TEXT = { 1, .75f, .2f };
     constexpr Color GOLD_TEXT_GLOW = { 2, 1.5f, .4f };
+    constexpr Color INSANE_TEXT = { 3.0f, 0.4f, 0.4f };
+    constexpr Color INSANE_TEXT_FOCUSED = { 4.0f, 0.4f, 0.4f };
     constexpr Color FOCUSED_BUTTON = { 246.0f / 255, 153.0f / 255, 66.0f / 255 };
     constexpr float DIALOG_PADDING = 15;
     constexpr float DIALOG_HEADER_PADDING = DIALOG_PADDING + 30;
@@ -426,7 +428,7 @@ namespace Inferno::UI {
                 _scrollIndex = 0; // Reset scrolling if all items fit on screen
             }
 
-            bool clicked = Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick);
+            bool clicked = Input::MouseButtonPressed(Input::MouseButtons::LeftClick);
 
             if (clicked && ClickItemAction && HitTestCursor()) {
                 ClickItemAction(_index);
@@ -1037,7 +1039,7 @@ namespace Inferno::UI {
             if (wheelDelta < 0) increment = -1;
 
             // if clicked or the mouse is held down
-            if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick) || Input::IsMouseButtonDown(Input::MouseButtons::LeftClick)) {
+            if (Input::MouseButtonPressed(Input::MouseButtons::LeftClick) || Input::IsMouseButtonDown(Input::MouseButtons::LeftClick)) {
                 // This duplicates the rendering logic
                 auto scale = GetScale();
                 const float size = 15 * scale;
@@ -1087,7 +1089,7 @@ namespace Inferno::UI {
                     }
                 }
 
-                if (Input::IsMouseButtonReleased(Input::MouseButtons::LeftClick)) {
+                if (Input::MouseButtonReleased(Input::MouseButtons::LeftClick)) {
                     _held = false;
                 }
 
@@ -1240,7 +1242,7 @@ namespace Inferno::UI {
             // when clicked, move cursor to nearest increment, and then continue to update as dragged
             // need a global flag to tell focus system to not update while dragging
 
-            if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick) && CheckHover()) {
+            if (Input::MouseButtonPressed(Input::MouseButtons::LeftClick) && CheckHover()) {
                 _dragging = true;
             }
             else if (!Input::IsMouseButtonDown(Input::MouseButtons::LeftClick)) {
@@ -1547,7 +1549,7 @@ namespace Inferno::UI {
 
             auto index = *_index;
 
-            if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick)) {
+            if (Input::MouseButtonPressed(Input::MouseButtons::LeftClick)) {
                 if (CheckArrowHover(GetLeftArrowPosition()))
                     index--;
                 else if (CheckArrowHover(GetRightArrowPosition()))
@@ -1745,7 +1747,7 @@ namespace Inferno::UI {
             if (!Focused) return;
 
             // when clicked, move cursor to nearest increment, and then continue to update as dragged
-            if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick) && CheckHover()) {
+            if (Input::MouseButtonPressed(Input::MouseButtons::LeftClick) && CheckHover()) {
                 _dragging = true;
                 CaptureCursor(true);
             }
@@ -2058,7 +2060,7 @@ namespace Inferno::UI {
             if (IsInputCaptured() || IsCursorCaptured())
                 return;
 
-            if (CloseOnClickOutside && Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick) && !RectangleContains(ScreenPosition, ScreenSize, Input::MousePosition)) {
+            if (CloseOnClickOutside && Input::MouseButtonPressed(Input::MouseButtons::LeftClick) && !RectangleContains(ScreenPosition, ScreenSize, Input::MousePosition)) {
                 State = CloseState::Cancel;
                 //Sound::Play2D(SoundResource{ MENU_BACK_SOUND });
             }
@@ -2338,7 +2340,7 @@ namespace Inferno::UI {
             auto boxPosition = Vector2(ScreenPosition.x + LabelWidth * GetScale(), ScreenPosition.y);
             _hovered = RectangleContains(boxPosition, Vector2(ValueWidth * GetScale(), ScreenSize.y), Input::MousePosition);
 
-            if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick) && _hovered) {
+            if (Input::MouseButtonPressed(Input::MouseButtons::LeftClick) && _hovered) {
                 ShowPopup();
             }
         }

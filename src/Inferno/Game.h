@@ -214,8 +214,11 @@ namespace Inferno::Game {
 
     inline bool Cheater = false;
     inline bool FailedEscape = false; // Failed to escape the level in time. Used for scoring and pausing time.
+    inline uint LevelDeaths = 0; // Number of times player has died this level
 
-    void AddPointsToScore(int points);
+    // Returns the number of extra lives
+    uint8 AddPointsToScore(int points);
+    void StartMission();
 
     inline Color ScreenFlash = { 0, 0, 0 }; // Used when picking up an item or taking damage
     constexpr float MAX_FLASH = 0.4f;

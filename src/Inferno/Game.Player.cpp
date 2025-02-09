@@ -447,6 +447,20 @@ namespace Inferno {
         }
     }
 
+    void Player::GivePowerup(PowerupFlag powerup) {
+        SetFlag(Powerups, powerup);
+        if (HasFlag(powerup, PowerupFlag::QuadFire)) {
+            // Select to lasers if they have a higher priority after picking up quad fire powerup
+            auto laserIndex =
+                Game::Level.IsDescent2() && HasWeapon(PrimaryWeaponIndex::SuperLaser)
+                ? PrimaryWeaponIndex::SuperLaser
+                : PrimaryWeaponIndex::Laser;
+
+            if (GetWeaponPriority(laserIndex) < GetWeaponPriority(Primary) && CanFirePrimary(laserIndex))
+                SelectPrimary(laserIndex);
+        }
+    }
+
     Vector2 GetHelixOffset(int index) {
         switch (index) {
             default:
@@ -737,7 +751,7 @@ namespace Inferno {
         }
 
         auto& player = Game::GetPlayerObject();
-        HostagesOnShip = 0;
+        HostagesOnboard = 0;
         _prevAfterburnerCharge = AfterburnerCharge = 1;
         AfterburnerActive = false;
         WeaponCharge = 0;
@@ -923,6 +937,14 @@ namespace Inferno {
         }
     }
 
+    void Player::LoseLife() {
+        Game::LevelDeaths++;
+        HostagesOnboard = 0;
+
+        if (Lives > 0)
+            Lives--;
+    }
+
     float Player::GetWeaponEnergyCost(float baseCost) const {
         bool quadFire = false;
         if (HasPowerup(PowerupFlag::QuadFire)) {
@@ -946,7 +968,7 @@ namespace Inferno {
 
             if (i == NO_AUTOSELECT) return NO_AUTOSELECT;
             if (HasPowerup(PowerupFlag::QuadFire)) {
-                if (priority == QUAD_SUPER_LASER_PRIORITY && primary == PrimaryWeaponIndex::SuperLaser)
+                if (Game::Level.IsDescent2() && priority == QUAD_SUPER_LASER_PRIORITY && primary == PrimaryWeaponIndex::SuperLaser)
                     return i;
 
                 if (priority == QUAD_LASER_PRIORITY && primary == PrimaryWeaponIndex::Laser)
@@ -1408,7 +1430,7 @@ namespace Inferno {
         if (obj.Type == ObjectType::Hostage) {
             obj.Lifespan = -1;
             Game::AddPointsToScore(Game::HOSTAGE_SCORE);
-            HostagesOnShip++;
+            HostagesOnboard++;
             HostagesRescued++;
             PrintHudMessage("hostage rescued!");
             AddScreenFlash({ 0, 0, MAX_FLASH });

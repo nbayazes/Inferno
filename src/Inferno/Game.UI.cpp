@@ -212,7 +212,7 @@ namespace Inferno::UI {
         screen->OnUpdateLayout(); // Need to calculate layout twice due to sizing
 
         // Set initial selection based on how the screen was shown
-        if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick))
+        if (Input::MouseButtonPressed(Input::MouseButtons::LeftClick))
             screen->SetSelection(screen->HitTestCursor());
         else
             screen->SelectFirst();
@@ -334,8 +334,8 @@ namespace Inferno::UI {
             auto hotshot = panel->AddChild<Button>("Hotshot", [this] { OnPick(DifficultyLevel::Hotshot); }, AlignH::Center);
             auto ace = panel->AddChild<Button>("Ace", [this] { OnPick(DifficultyLevel::Ace); }, AlignH::Center);
             auto insane = panel->AddChild<Button>("Insane", [this] { OnPick(DifficultyLevel::Insane); }, AlignH::Center);
-            insane->TextColor = Color(3.0f, 0.4f, 0.4f);
-            insane->FocusColor = Color(4.0f, 0.4f, 0.4f);
+            insane->TextColor = INSANE_TEXT;
+            insane->FocusColor = INSANE_TEXT_FOCUSED;
 
             //Button lunacy("Lunacy");
             //lunacy.TextColor = Color(4.0f, 0.4f, 0.4f);
@@ -433,7 +433,7 @@ namespace Inferno::UI {
     class FailedEscapeDialog : public DialogBase {
 
     public:
-        FailedEscapeDialog() : DialogBase("You didn't escape in time", false){
+        FailedEscapeDialog(bool missionFailed) : DialogBase("You didn't escape in time", false){
             ActionSound = "";
             Layer = 1; // 0 Is for white background
 
@@ -458,11 +458,21 @@ namespace Inferno::UI {
             Size.x = _titleSize.x + DIALOG_PADDING * 4 + 20;
             Size.y = CONTROL_HEIGHT * 6 + DIALOG_PADDING * 2;
 
-            auto yesButton = AddChild<Button>("rest in peace");
-            yesButton->VerticalAlignment = AlignV::Bottom;
-            yesButton->HorizontalAlignment = AlignH::Center;
-            yesButton->Position = Vector2(0, -DIALOG_PADDING);
-            yesButton->ClickAction = [this] { State = CloseState::Accept; };
+            //if (missionFailed) {
+            //    Size.y += CONTROL_HEIGHT * 2;
+            //    text = AddChild<Label>("mission failed", FontSize::Medium);
+            //    text->HorizontalAlignment = AlignH::Center;
+            //    text->Position = Vector2(0, DIALOG_PADDING + CONTROL_HEIGHT * 5);
+            //    text->TextAlignment = AlignH::Center;
+            //    text->Color = INSANE_TEXT;
+            //}
+
+            auto okay = AddChild<Button>(missionFailed ? "mission failed" : "rest in peace");
+            okay->VerticalAlignment = AlignV::Bottom;
+            okay->HorizontalAlignment = AlignH::Center;
+            okay->Position = Vector2(0, -DIALOG_PADDING);
+            okay->ClickAction = [this] { State = CloseState::Accept; };
+            okay->FocusColor = missionFailed ? INSANE_TEXT_FOCUSED : FOCUS_COLOR;
         }
 
         bool OnTryClose() override {
@@ -562,6 +572,7 @@ namespace Inferno::UI {
 
             screen->CloseCallback = [this](CloseState state) {
                 if (state == CloseState::Accept && _mission) {
+                    Game::StartMission();
                     Game::Difficulty = _difficulty;
                     Game::LoadLevelFromMission(*_mission, _level);
                 }
@@ -787,14 +798,14 @@ namespace Inferno::UI {
 
     void ShowMainMenu() {
         Screens.clear();
-        ShowScreen(make_unique<MainMenu>());
-        //ShowScreen(make_unique<FailedEscapeDialog>());
+        //ShowScreen(make_unique<MainMenu>());
+        ShowScreen(make_unique<FailedEscapeDialog>(true));
     }
 
-    void ShowFailedEscapeDialog() {
+    void ShowFailedEscapeDialog(bool missionFailed) {
         Screens.clear();
         Game::ScreenGlow.SetTarget(Color(0, 0, 0, 0), Game::Time, 0);
-        ShowScreen(make_unique<FailedEscapeDialog>());
+        ShowScreen(make_unique<FailedEscapeDialog>(missionFailed));
     }
 
     void ShowPauseDialog() {
@@ -802,35 +813,13 @@ namespace Inferno::UI {
         ShowScreen(make_unique<PauseMenu>());
     }
 
-    void ShowScoreScreen() {
-        if (Screens.empty()) {
-            Screens.reserve(20);
-        }
-
+    void ShowScoreScreen(const ScoreInfo& score) {
         Screens.clear();
 
         auto textures = std::to_array<const string>({ "menu-bg" });
         Graphics::LoadTextures(textures);
 
-        ScoreInfo info{
-            .LevelName = "Ahayweh Gate",
-            .LevelNumber = 1,
-            .Difficulty = DifficultyLevel::Trainee,
-            .Time = "3:01",
-            .Secrets = 3,
-            .SecretsFound = 1,
-            .RobotsDestroyed = 10,
-            .ShieldBonus = 1000,
-            .EnergyBonus = 1000,
-            .HostageBonus = 1000,
-            .FullRescue = true,
-            .SkillBonus = 0,
-            .TotalBonus = 3000,
-            .TotalScore = 53000,
-            .ExtraLives = 1
-        };
-
-        ShowScreen(make_unique<ScoreScreen>(info));
+        ShowScreen(make_unique<ScoreScreen>(score));
     }
 
     void Update() {
@@ -848,7 +837,7 @@ namespace Inferno::UI {
 
                 screen->OnUpdate(); // only update input for topmost screen
 
-                if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick))
+                if (Input::MouseButtonPressed(Input::MouseButtons::LeftClick))
                     screen->OnMouseClick(Input::MousePosition);
 
                 if (!inputCaptured && Input::MenuActions.HasAction()) {

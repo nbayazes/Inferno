@@ -1,4 +1,5 @@
 #pragma once
+#include "Game.Bindings.h"
 #include "Game.UI.Controls.h"
 
 namespace Inferno::UI {
@@ -14,57 +15,13 @@ namespace Inferno::UI {
         int ShieldBonus = 0;
         int EnergyBonus = 0;
         int HostageBonus = 0;
+        int ShipBonus = 0; // For final level
         bool FullRescue = false;
         int SkillBonus = 0;
         int TotalBonus = 0;
         int TotalScore = 0;
         int ExtraLives = 0;
         bool FinalLevel = false;
-
-        static ScoreInfo CalculateScore(int levelNumber, const Level& level, const Player& player, DifficultyLevel difficulty, bool finalLevel, bool cheater) {
-            //auto levelNumber = levelNumber > 0 ? LevelNumber : -(mission.Levels.size() / mission.SecretLevels.size());
-
-            auto levelPoints = player.Score - player.LevelStartScore;
-            auto skillPoints = 0;
-
-            //auto shieldPoints = 0;
-            //auto energyPoints = 0;
-            //auto hostagePoints = 0;
-            //auto fullRescueBonus = 0;
-            auto endgamePoints = 0;
-
-            ScoreInfo score;
-            score.FinalLevel = finalLevel;
-
-            if (!cheater) {
-                if ((int)difficulty > 1) {
-                    skillPoints = levelPoints * (int)difficulty / 4;
-                    skillPoints -= skillPoints % 100; // round
-                }
-
-                score.ShieldBonus = (int)player.Shields * 5 * levelNumber;
-                score.EnergyBonus = (int)player.Energy * 2 * levelNumber;
-                score.HostageBonus = player.HostagesOnShip * 500 * ((int)difficulty + 1);
-
-                score.ShieldBonus -= score.ShieldBonus % 50;
-                score.EnergyBonus -= score.EnergyBonus % 50;
-
-                if (player.HostagesOnShip == level.TotalHostages) {
-                    score.HostageBonus += player.HostagesOnShip * 1000 * ((int)difficulty + 1);
-
-                    score.FullRescue = true;
-                }
-
-                // Convert extra lives to points on the final level
-                if (finalLevel) {
-                    endgamePoints = player.Lives * 10000;
-                }
-            }
-
-            Game::AddPointsToScore(skillPoints + score.EnergyBonus + score.ShieldBonus + score.HostageBonus + endgamePoints);
-
-            return score;
-        }
     };
 
     inline string_view DifficultyToName(DifficultyLevel difficulty) {
@@ -148,6 +105,9 @@ namespace Inferno::UI {
 
                 auto hostageLabel = info.FullRescue ? "Full Rescue Bonus" : "Hostage Bonus";
                 addLabel(hostageLabel);
+                if (info.ShipBonus > 0)
+                    addLabel("Ship Bonus");
+
                 addLabel("Skill Bonus");
                 addLabel("Total Bonus");
                 addLabel("");
@@ -186,7 +146,12 @@ namespace Inferno::UI {
                 addRightAligned(std::to_string(info.ShieldBonus));
                 addRightAligned(std::to_string(info.EnergyBonus));
                 addRightAligned(std::to_string(info.HostageBonus));
+
+                if (info.ShipBonus > 0)
+                    addRightAligned(std::to_string(info.ShipBonus));
+
                 addRightAligned(std::to_string(info.SkillBonus));
+
                 //panel->AddChild<Label>("");
                 addRightAligned(std::to_string(info.TotalBonus));
                 addRightAligned("");
@@ -212,8 +177,12 @@ namespace Inferno::UI {
             }
         }
 
+        void OnUpdate() override {
+            if (Game::Bindings.Pressed(GameAction::FirePrimary) || Input::MouseButtonPressed(Input::MouseButtons::LeftClick))
+                Game::LoadNextLevel();
+        }
+
         bool HandleMenuAction(Input::MenuActionState action) override {
-            //if (Input::IsKeyPressed(Input::Keys::Escape) || Game::Bindings.Pressed(GameAction::FirePrimary)) {
             if (action == MenuAction::Confirm || action == MenuAction::Cancel) {
                 Game::LoadNextLevel();
                 return true;

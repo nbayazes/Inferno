@@ -268,14 +268,14 @@ vaporization of the facility.
     void HandleBriefingInput() {
         using Input::Keys;
 
-        if (Input::IsMouseButtonPressed(Input::MouseButtons::RightClick) ||
+        if (Input::MouseButtonPressed(Input::MouseButtons::RightClick) ||
             Input::IsKeyPressed(Keys::Left) ||
             Input::MenuActions.IsSet(MenuAction::Left))
             Game::Briefing.Back();
 
         bool exitBriefing = false;
 
-        if (Input::IsMouseButtonPressed(Input::MouseButtons::LeftClick) ||
+        if (Input::MouseButtonPressed(Input::MouseButtons::LeftClick) ||
             Input::IsKeyPressed(Keys::Space) ||
             Input::IsKeyPressed(Keys::Right) ||
             Input::MenuActions.IsSet(MenuAction::Confirm) ||

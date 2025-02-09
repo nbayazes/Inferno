@@ -644,7 +644,7 @@ namespace Inferno::Input {
         if (IsKeyPressed(Keys::Enter, true) || IsKeyPressed(Keys::Space))
             MenuActions.Set(MenuAction::Confirm);
 
-        if (IsKeyPressed(Keys::Escape, true) || IsMouseButtonPressed(MouseButtons::X1))
+        if (IsKeyPressed(Keys::Escape, true) || MouseButtonPressed(MouseButtons::X1))
             MenuActions.Set(MenuAction::Cancel);
 
         if (IsKeyPressed(Keys::Left, true))
@@ -727,12 +727,12 @@ namespace Inferno::Input {
         return _mouseButtons.pressed[(uint64)button] || _mouseButtons.previous[(uint64)button];
     }
 
-    bool IsMouseButtonPressed(MouseButtons button) {
+    bool MouseButtonPressed(MouseButtons button) {
         if (button == MouseButtons::None || (int)button > _mouseButtons.Size()) return false;
         return _mouseButtons.pressed[(uint64)button];
     }
 
-    bool IsMouseButtonReleased(MouseButtons button) {
+    bool MouseButtonReleased(MouseButtons button) {
         if (button == MouseButtons::None || (int)button > _mouseButtons.Size()) return false;
         return _mouseButtons.released[(uint64)button];
     }
