@@ -41,7 +41,6 @@ float4 Specular(float3 lightDir, float3 eyeDir, float3 normal) {
 float4 psmain(PS_INPUT input) : SV_Target {
     float3 lightDir = normalize(float3(-1, -2, 0));
     float4 color = input.col;
-    color *= 0.6 - dot(lightDir, input.normal) * 0.4;
-    //color.a *= 0.75;
+    color *= 0.5 - dot(lightDir, input.normal) * 0.5;
     return saturate(color);
 }

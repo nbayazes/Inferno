@@ -327,7 +327,7 @@ Materials:
   - Name: rock042
     NormalStrength: 0.159
     Metalness: 1
-    Roughness: 0.45
+    Roughness: 0.339
   - Name: rock043
     NormalStrength: 0.15
     Metalness: 1
@@ -534,9 +534,9 @@ Materials:
     NormalStrength: 0.755
     Roughness: 0.829
   - Name: rock191
-    NormalStrength: 0.5
-    SpecularStrength: 0.308
-    Roughness: 1
+    NormalStrength: 0.75
+    SpecularStrength: 0.5
+    Roughness: 0.862
   - Name: rock192
     NormalStrength: 0.5
     Roughness: 0.963
@@ -959,7 +959,7 @@ Materials:
     Metalness: 1
     Roughness: 0.35
     EmissiveStrength: 10
-    LightReceived: 0.333
+    LightReceived: 0.33
   - Name: metl079
     NormalStrength: 0.15
     Metalness: 1
@@ -1181,7 +1181,6 @@ Materials:
     Roughness: 0.45
     LightReceived: 0.5
   - Name: exit01
-    NormalStrength: 0.3
     SpecularStrength: 0.5
     Metalness: 1
     Roughness: 0.396
@@ -1304,7 +1303,9 @@ Materials:
     Roughness: 0.3
     EmissiveStrength: 3
   - Name: ceil034
-    Roughness: 0.6
+    NormalStrength: 0.2
+    Metalness: 0.85
+    Roughness: 0.3
     EmissiveStrength: 3
   - Name: ceil035
     NormalStrength: 0.4
@@ -1313,7 +1314,9 @@ Materials:
     EmissiveStrength: 5
   - Name: ceil036
     NormalStrength: 0.2
-    Roughness: 0.6
+    Metalness: 0.85
+    Roughness: 0.3
+    EmissiveStrength: 5
   - Name: misc001
     NormalStrength: 0.487
     Metalness: 1
@@ -1436,10 +1439,10 @@ Materials:
     Roughness: 0.5
     LightReceived: 0.75
   - Name: misc059
-    NormalStrength: 0.192
+    NormalStrength: 0.5
     SpecularStrength: 2
-    Metalness: 0.51
-    Roughness: 0.417
+    Metalness: 0.511
+    Roughness: 0.404
     LightReceived: 0.5
   - Name: misc063
     NormalStrength: 0.25
@@ -1777,7 +1780,7 @@ Materials:
     Roughness: 0.4
     LightReceived: 0.25
   - Name: 'door04#0'
-    NormalStrength: 0.225
+    NormalStrength: 0.686
     Metalness: 1
     Roughness: 0.55
     LightReceived: 0.3
@@ -1822,9 +1825,9 @@ Materials:
     NormalStrength: 0.516
     Roughness: 0.541
   - Name: 'door12#0'
-    NormalStrength: 0.15
+    NormalStrength: 0.5
     Metalness: 1
-    Roughness: 0.365
+    Roughness: 0.412
     LightReceived: 0.5
   - Name: 'door12#11'
     NormalStrength: 0.245

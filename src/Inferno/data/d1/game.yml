@@ -806,7 +806,7 @@ Robots:
     GetBehind: 1
     Evasion: 1 # Lower evasion so they don't bounce off the walls at higher difficulty
   - id: 22
-    Name: PTMC Defense Prototype
+    Name: Defense Prototype
     DevName: Quad-Laser
     CircleDistance: 40
     Aim: 190 # 255 is perfect aim
