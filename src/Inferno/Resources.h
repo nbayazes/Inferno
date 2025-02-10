@@ -109,16 +109,16 @@ namespace Inferno::Resources {
     string ReadTextFile(const string& name);
 
     enum class LoadFlag {
-        None = 0,
+        SkipMissionAndDxa = 0,
         PreferD1 = 1 << 0, // Load from D1 before D2 (if present)
         //PreferD2 = 1 << 1, // The default
         ReadD3 = 1 << 2,
-        SkipMission = 1 << 3,
+        ReadMission = 1 << 3,
         ReadDxa = 1 << 4
     };
 
     // Tries to read a binary file by checking the mission, the game specific directory, the shared directory, and finally the game HOG
-    List<byte> ReadBinaryFile(const string& name, LoadFlag flags = LoadFlag::ReadDxa);
+    List<byte> ReadBinaryFile(const string& name, LoadFlag flags = Resources::LoadFlag::ReadMission | Resources::LoadFlag::ReadDxa);
 
     void LoadDataTables(const Level& level);
 

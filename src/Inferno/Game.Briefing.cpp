@@ -84,7 +84,18 @@ namespace Inferno {
 
         // Precache resources so switching pages doesn't cause hitches
         for (auto& screen : _screens) {
-            files.insert(screen.Background);
+            filesystem::path background = screen.Background;
+            auto ext = background.extension();
+            background.replace_filename(background.stem().string() + "h");
+            background.replace_extension(ext);
+
+            if (Resources::FileExists(background.string())) {
+                files.insert(background.string()); // Check for high res image
+                screen.Background = background.string();
+            }
+            else {
+                files.insert(screen.Background);
+            }
 
             for (auto& page : screen.Pages) {
                 if (page.Model != ModelID::None)

@@ -657,14 +657,18 @@ namespace Inferno::Render {
                 // Try loading file from D3 data
                 material = UploadOutrageMaterial(batch, *bitmap, Render::StaticTextures->Black);
             }
-            else if (auto data = Resources::ReadBinaryFile(name); !data.empty()) {
-                if (name.ends_with(".bbm")) {
-                    auto bbm = ReadBbm(data);
-                    material = UploadBitmap(batch, name, bbm, Render::StaticTextures->Black);
-                }
-                else if (name.ends_with(".pcx")) {
-                    auto pcx = ReadPCX(data);
-                    material = UploadBitmap(batch, name, pcx, Render::StaticTextures->Black);
+            else {
+                auto data = Resources::ReadBinaryFile(name);
+
+                if (!data.empty()) {
+                    if (name.ends_with(".bbm")) {
+                        auto bbm = ReadBbm(data);
+                        material = UploadBitmap(batch, name, bbm, Render::StaticTextures->Black);
+                    }
+                    else if (name.ends_with(".pcx")) {
+                        auto pcx = ReadPCX(data);
+                        material = UploadBitmap(batch, name, pcx, Render::StaticTextures->Black);
+                    }
                 }
             }
 

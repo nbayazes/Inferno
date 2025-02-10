@@ -196,7 +196,7 @@ namespace Inferno {
 
         CreateEscapePath(level, info);
 
-        if (auto data = Resources::ReadBinaryFile(info.Heightmap); !data.empty()) {
+        if (auto data = Resources::ReadBinaryFile(info.Heightmap, Resources::LoadFlag::ReadMission); !data.empty()) {
             auto bitmap = ReadBbm(data);
             LoadTerrain(bitmap, info, 64);
         }

@@ -624,7 +624,7 @@ namespace Inferno::Resources {
         // Load the custom exit models. Replace with a generic loading approach later.
         {
             auto exit = "exit01.pof";
-            auto modelData = ReadBinaryFile(exit, LoadFlag::SkipMission);
+            auto modelData = ReadBinaryFile(exit, LoadFlag::SkipMissionAndDxa);
             if (!modelData.empty()) {
                 //auto modelData = Game::Mission->ReadEntry(entry);
                 auto model = ReadPof(modelData, &palette);
@@ -637,7 +637,7 @@ namespace Inferno::Resources {
 
         {
             auto exit = "exit01d.pof";
-            auto modelData = ReadBinaryFile(exit, LoadFlag::SkipMission);
+            auto modelData = ReadBinaryFile(exit, LoadFlag::SkipMissionAndDxa);
             if (!modelData.empty()) {
                 //auto modelData = Game::Mission->ReadEntry(entry);
                 auto model = ReadPof(modelData, &palette);
@@ -672,7 +672,7 @@ namespace Inferno::Resources {
 
         for (auto& entry : Game::Mission->Entries) {
             if (entry.Name.ends_with(".pof")) {
-                auto modelData = ReadBinaryFile(entry.Name, LoadFlag::SkipMission);
+                auto modelData = ReadBinaryFile(entry.Name, LoadFlag::SkipMissionAndDxa);
 
                 if (modelData.empty())
                     modelData = ReadBinaryFile(entry.Name);
@@ -868,25 +868,7 @@ namespace Inferno::Resources {
         return false; // Wasn't found
     }
 
-    List<byte> ReadBinaryFile(const string& name, LoadFlag flags) {
-        // current mission
-        if (Game::Mission && !HasFlag(flags, LoadFlag::SkipMission)) {
-            // 'unpacked' folder for the mission
-            auto path = Game::Mission->Path.parent_path();
-            auto unpacked = path / Game::Mission->Path.stem() / name;
-            if (filesystem::exists(unpacked)) {
-                SPDLOG_INFO("Reading {}", unpacked.string());
-                return File::ReadAllBytes(unpacked);
-            }
-
-            auto data = Game::Mission->TryReadEntry(name);
-            if (!data.empty()) {
-                SPDLOG_INFO("Reading {} from mission", name);
-                return data;
-            }
-        }
-
-        // Check for addon (dxa) data
+    List<byte> ReadBinaryFileFromDxa(const string& name) {
         for (auto& file : filesystem::directory_iterator(GetGameDataFolder(Game::Level))) {
             if (!file.is_regular_file()) continue;
 
@@ -901,6 +883,7 @@ namespace Inferno::Resources {
                         if (readBytes > 0) {
                             SPDLOG_INFO("Read addon data: {}:{}", filePath.string(), name);
                             data.assign((byte*)buffer, (byte*)buffer + bufferSize);
+                            return data;
                         }
 
                         zip_entry_close(zip);
@@ -908,9 +891,6 @@ namespace Inferno::Resources {
 
                     zip_close(zip);
                 }
-
-                if (!data.empty())
-                    return data;
 
                 /*auto totalEntries = zip_entries_total(zip);
 
@@ -920,6 +900,33 @@ namespace Inferno::Resources {
                     SPDLOG_INFO("{}", entry);
                     zip_entry_close(zip);
                 }*/
+            }
+        }
+
+        return {};
+    }
+
+    List<byte> ReadBinaryFile(const string& name, LoadFlag flags) {
+        // Check for addon (dxa) data
+        if (HasFlag(flags, LoadFlag::ReadDxa)) {
+            auto data = ReadBinaryFileFromDxa(name);
+            if (!data.empty())
+                return data;
+        }
+
+        if (Game::Mission && HasFlag(flags, LoadFlag::ReadMission)) {
+            // 'unpacked' folder for the mission
+            auto path = Game::Mission->Path.parent_path();
+            auto unpacked = path / Game::Mission->Path.stem() / name;
+            if (filesystem::exists(unpacked)) {
+                SPDLOG_INFO("Reading {}", unpacked.string());
+                return File::ReadAllBytes(unpacked);
+            }
+
+            auto data = Game::Mission->TryReadEntry(name);
+            if (!data.empty()) {
+                SPDLOG_INFO("Reading {} from mission", name);
+                return data;
             }
         }
 
