@@ -166,6 +166,7 @@ namespace Inferno {
         void AutoselectPrimary();
         void AutoselectSecondary();
         void GiveExtraLife(uint8 lives = 1);
+        void LoseLife();
 
         void ApplyDamage(float damage, bool playSound);
 
@@ -181,7 +182,6 @@ namespace Inferno {
         void TurnOffHeadlight(bool playSound = true);
 
         void ToggleHeadlight();
-        void LoseLife();
 
     private:
         float GetWeaponEnergyCost(float baseCost) const;

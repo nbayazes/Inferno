@@ -14,6 +14,7 @@
 
 namespace Inferno {
     constexpr auto METADATA_EXTENSION = ".ied"; // inferno engine data
+    inline const filesystem::path D1_DEMO_PATH = "d1/demo"; // subdirectory containing the d1 demo hog and pig
 }
 
 // Abstraction for game resources
@@ -136,6 +137,7 @@ namespace Inferno::Resources {
     inline bool HasGameData() { return !GameData.Robots.empty() && !GameData.LevelTexIdx.empty(); }
 
     bool FoundDescent1();
+    bool FoundDescent1Demo();
     bool FoundDescent2();
     bool FoundVertigo();
 

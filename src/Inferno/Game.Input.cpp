@@ -236,10 +236,6 @@ namespace Inferno {
             player.ToggleHeadlight();
     }
 
-    bool ConfirmedInput() {
-        return Input::IsKeyPressed(Input::Keys::Space) || Game::Bindings.Pressed(GameAction::FirePrimary) || Game::Bindings.Pressed(GameAction::FireSecondary);
-    }
-
     bool CheckPhotoMode() {
         auto state = Game::GetState();
 

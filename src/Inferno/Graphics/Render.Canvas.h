@@ -417,6 +417,7 @@ namespace Inferno::Render {
         void Render(GraphicsContext& ctx);
         void DrawText(string_view str, const DrawTextInfo& info, int layer = 1);
         void DrawRaw(string_view str, const DrawTextInfo& info, int layer);
+        void DrawRectangle(const CanvasBitmapInfo& info, int layer = 0);
 
         void Draw(const HudCanvasPayload& payload) {
             if (!payload.Texture.ptr) return;

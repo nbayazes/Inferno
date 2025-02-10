@@ -19,7 +19,7 @@ namespace Inferno {
     public:
         BriefingState() = default;
 
-        BriefingState(const Briefing& briefing, int level, bool isDescent1) : IsDescent1(isDescent1) {
+        BriefingState(const Briefing& briefing, int level, bool isDescent1, bool endgame) : IsDescent1(isDescent1) {
             bool foundLevel = false;
 
             for (auto& screen : briefing.Screens) {
@@ -28,7 +28,7 @@ namespace Inferno {
                     _screens.push_back(screen);
                     foundLevel = true;
                 }
-                else if (screen.Level == level) {
+                else if (screen.Level == level || endgame) {
                     _screens.push_back(screen);
                     foundLevel = true;
                 }

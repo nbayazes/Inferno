@@ -219,7 +219,7 @@ namespace Inferno::Render {
         bool inToken = false;
         auto position = info.Position;
         position.x = std::round(position.x);
-        position.y = std::round(position.x);
+        position.y = std::round(position.y);
 
         for (int i = 0; i < str.size(); i++) {
             uchar c = str[i];
@@ -293,5 +293,19 @@ namespace Inferno::Render {
             auto kerning = Atlas.GetKerning(c, next, info.Font) * scale;
             xOffset += charSize.x + kerning;
         }
+    }
+
+    void HudCanvas2D::DrawRectangle(const CanvasBitmapInfo& info, int layer) {
+        HudCanvasPayload payload{};
+        auto& pos = info.Position;
+        auto& size = info.Size;
+
+        payload.V0 = { Vector2{ pos.x, pos.y + size.y }, { 0, 1 }, info.Color }; // bottom left
+        payload.V1 = { Vector2{ pos.x + size.x, pos.y + size.y }, { 1, 1 }, info.Color }; // bottom right
+        payload.V2 = { Vector2{ pos.x + size.x, pos.y }, { 1, 0 }, info.Color }; // top right
+        payload.V3 = { Vector2{ pos.x, pos.y }, { 0, 0 }, info.Color }; // top left
+        payload.Texture = Materials->White().Handles[Material2D::Diffuse];
+        payload.Layer = layer;
+        Draw(payload);
     }
 }

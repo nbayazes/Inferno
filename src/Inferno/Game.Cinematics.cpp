@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "Game.Cinematics.h"
 #include "Game.AI.h"
+#include "Game.Bindings.h"
 #include "Game.h"
 #include "Game.Input.h"
 #include "Game.Text.h"
@@ -12,10 +13,17 @@ namespace Inferno {
     constexpr float PLAYER_DEATH_EXPLODE_TIME = 2.0f;
 
     void DrawCutsceneLetterbox() {
-        auto& size = Render::Canvas->GetSize();
+        auto& size = Render::UICanvas->GetSize();
         auto height = size.y / 8;
-        Render::Canvas->DrawRectangle(Vector2(0, 0), Vector2(size.x, height), Color(0, 0, 0));
-        Render::Canvas->DrawRectangle(Vector2(0, size.y - height), Vector2(size.x, height), Color(0, 0, 0));
+
+        Render::CanvasBitmapInfo cbi;
+        cbi.Position = Vector2(0, 0);
+        cbi.Size = Vector2(size.x, height);
+        cbi.Color = Color(0, 0, 0);
+        Render::UICanvas->DrawRectangle(cbi);
+
+        cbi.Position = Vector2(0, size.y - height);
+        Render::UICanvas->DrawRectangle(cbi);
     }
 
     Vector3 FindDeathCameraPosition(const Vector3& start, SegID startSeg, float preferDist) {
@@ -79,6 +87,9 @@ namespace Inferno {
                 ResetAITargets();
                 state.LoseLife();
 
+                if (Game::ControlCenterDestroyed)
+                    Game::CountdownTimer = 0.01f; // Start fading out immediately, no respawning
+
                 GameExplosion explosion;
                 explosion.Damage = 50;
                 explosion.Force = 150;
@@ -112,7 +123,7 @@ namespace Inferno {
                 message = "ship destroyed!";
             }
 
-            auto height = Render::CANVAS_HEIGHT / 8.0f * Render::Canvas->GetScale();
+            auto height = Render::UICanvas->GetSize().y / 8.0f;
 
             Render::DrawTextInfo info;
             info.Position = Vector2(0, 10 + height);
@@ -120,11 +131,13 @@ namespace Inferno {
             info.VerticalAlign = AlignV::Top;
             info.Font = FontSize::Small;
             info.Color = Color(0, 1, 0);
-            Render::Canvas->DrawGameText(message, info);
+            Render::UICanvas->DrawRaw(message, info, 1);
 
-            info.VerticalAlign = AlignV::Bottom;
-            info.Position = Vector2(0, -10 - height);
-            Render::Canvas->DrawGameText("press fire to continue...", info);
+            if (!Game::ControlCenterDestroyed) {
+                info.VerticalAlign = AlignV::Bottom;
+                info.Position = Vector2(0, -10 - height);
+                Render::UICanvas->DrawRaw("press fire to continue...", info, 1);
+            }
         }
         else {
             player.Render.Type = RenderType::Model; // Camera is in third person, show the player
@@ -167,12 +180,18 @@ namespace Inferno {
             Render::Canvas->DrawGameText("game over", info);
         }
 
-        if (Game::Player.TimeDead > 2 && ConfirmedInput()) {
-            if (Game::Player.Lives == 0)
-                Game::SetState(GameState::Editor); // todo: score screen
-            else
-                Game::Player.Respawn(true); // todo: EndCutscene() with fades
+        if (Game::Player.TimeDead < 2) return;
+
+        if (Input::IsKeyPressed(Input::Keys::Space) ||
+            Game::Bindings.Pressed(GameAction::FirePrimary) ||
+            Game::Bindings.Pressed(GameAction::FireSecondary) ||
+            Input::MouseButtonPressed(Input::MouseButtons::LeftClick)) {
+            if (Game::Player.Lives == 0) {
+                Game::SetState(GameState::MainMenu); // todo: final score screen
+            }
+            else if (!Game::ControlCenterDestroyed) {
+                Game::Player.Respawn(true);
+            }
         }
     }
-
 }

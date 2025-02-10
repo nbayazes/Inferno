@@ -59,7 +59,7 @@ namespace Inferno {
             AfterburnerCharge += chargeUp;
             if (AfterburnerCharge > 1) AfterburnerCharge = 1;
 
-            SubtractEnergy(chargeUp * 100 / 10); // full charge uses 10% energy
+            AddEnergy(-chargeUp * 100 / 10); // full charge uses 10% energy
         }
 
         if (AfterburnerCharge <= 0 && active)
@@ -244,13 +244,12 @@ namespace Inferno {
                     WeaponCharge = 0.001f;
                     FusionNextSoundDelay = 0.25f;
                     auto& battery = Ship.Weapons[(int)Primary];
-                    SubtractEnergy(GetWeaponEnergyCost(battery.EnergyUsage));
+                    AddEnergy(-GetWeaponEnergyCost(battery.EnergyUsage));
                 }
             }
             else if (PrimaryState == FireState::Hold && Energy > 0 && WeaponCharge > 0) {
-                SubtractEnergy(dt); // 1 energy cost per second
+                AddEnergy(-dt); // 1 energy cost per second
                 WeaponCharge += dt;
-                Energy = std::max(Energy, 0.0f);
 
                 FusionNextSoundDelay -= dt;
                 Game::FusionTint.SetTarget(Color(0.6, 0, 1.0f, std::min(WeaponCharge * 0.6f, 1.5f)), Game::Time, 0);
@@ -495,7 +494,7 @@ namespace Inferno {
 
         // Charged weapons drain energy on button down instead of here
         if (!weapon.Extended.Chargable) {
-            SubtractEnergy(GetWeaponEnergyCost(battery.EnergyUsage));
+            AddEnergy(-GetWeaponEnergyCost(battery.EnergyUsage));
             PrimaryAmmo[battery.AmmoType] -= battery.AmmoUsage; // all ammo is treated as vulcan ammo for now
         }
 
@@ -682,6 +681,14 @@ namespace Inferno {
         AddScreenFlash(FLASH_WHITE);
     }
 
+    void Player::LoseLife() {
+        Game::LevelDeaths++;
+        HostagesOnboard = 0;
+
+        if (Lives > 0)
+            Lives--;
+    }
+
     void Player::ApplyDamage(float damage, bool playSound) {
         if (Game::GetState() == GameState::ExitSequence)
             return; // Can't take damage during cutscene
@@ -704,6 +711,8 @@ namespace Inferno {
             if (Shields < 0) {
                 IsDead = true;
                 Input::ResetState(); // Reset state so fusion charging releases
+                Shields = 0;
+                Energy = 0;
             }
 
             player->HitPoints = Shields;
@@ -935,14 +944,6 @@ namespace Inferno {
                 TurnOffHeadlight();
                 break;
         }
-    }
-
-    void Player::LoseLife() {
-        Game::LevelDeaths++;
-        HostagesOnboard = 0;
-
-        if (Lives > 0)
-            Lives--;
     }
 
     float Player::GetWeaponEnergyCost(float baseCost) const {

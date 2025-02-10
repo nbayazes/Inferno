@@ -58,11 +58,6 @@ namespace Inferno {
         int Score, LevelStartScore;
         int64 LevelTime, TotalTime;
 
-        void SubtractEnergy(float energy) {
-            Energy -= energy;
-            if (Energy < 0) Energy = 0;
-        }
-
         struct {
             int16 Kills = 0;            // Robots killed this level. Used to prevent matcens from spawning too many robots.
             int16 TotalKills = 0;       // Total kills across all levels. Used for scoring

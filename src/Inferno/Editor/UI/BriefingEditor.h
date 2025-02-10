@@ -116,18 +116,21 @@ namespace Inferno::Editor {
             auto data = Game::Mission->ReadEntry(entry);
             _briefing = Briefing::Read(data, Game::Level.IsDescent1());
 
+            bool endgame = false;
+
             if (Game::Level.IsDescent1()) {
                 if (entry.Name == "briefing.txb") {
                     SetD1BriefingBackgrounds(_briefing, Game::Level.IsShareware);
                 }
                 else if (entry.Name == "ending.txb") {
                     SetD1EndBriefingBackground(_briefing, Game::Level.IsShareware);
+                    endgame = true;
                 }
             }
 
             _buffer = _briefing.Raw;
             LoadBriefingResources(_briefing);
-            Game::Briefing = BriefingState(_briefing, 0, Game::Level.IsDescent1());
+            Game::Briefing = BriefingState(_briefing, 0, Game::Level.IsDescent1(), endgame);
         }
     };
 }

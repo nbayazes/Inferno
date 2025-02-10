@@ -53,6 +53,8 @@ namespace Inferno::Game {
     constexpr float POWERUP_RADIUS_MULT = 2.00f; // Make powerups easier to pick up
     constexpr float NEARBY_PORTAL_DEPTH = 150.0f; // How far to search when determining 'nearby' rooms
 
+    constexpr auto FIRST_STRIKE_NAME = "Descent: First Strike"; // title of the main mission
+
     inline auto Difficulty = DifficultyLevel::Hotshot; // 0 to 4 for trainee to insane
     inline int LevelNumber = 0; // Index of loaded level starting at 1. Secret levels are negative. 0 means no level loaded.
     inline bool NeedsResourceReload = false; // Indicates that resources should be reloaded, typically due to changes in graphics settings
@@ -244,6 +246,7 @@ namespace Inferno::Game {
     inline BriefingState Briefing;
 
     Object& GetPlayerObject();
+    MissionInfo CreateDescent1Mission(bool isDemo);
 
     constexpr float DEFAULT_BLOOM = 0.35f;
     inline LerpedColor ScreenGlow = Color(0, 0, 0, 0);
@@ -285,6 +288,13 @@ namespace Inferno::Game {
         inline uint LiveObjects = 0;
         inline int ActiveRobots = 0;
         inline uint VisibleSegments = 0;
+    }
+
+    inline bool IsLastLevel() {
+        if (auto mission = TryReadMissionInfo())
+            return LevelNumber >= mission->Levels.size();
+        else
+            return false;
     }
 
     inline Inferno::TerrainInfo Terrain;

@@ -80,11 +80,11 @@ namespace Inferno {
     void BriefingState::LoadResources() {
         List<ModelID> models;
         List<TexID> ids;
-        Set<string> backgrounds;
+        Set<string> files; // files in the hog
 
         // Precache resources so switching pages doesn't cause hitches
         for (auto& screen : _screens) {
-            backgrounds.insert(screen.Background);
+            files.insert(screen.Background);
 
             for (auto& page : screen.Pages) {
                 if (page.Model != ModelID::None)
@@ -105,6 +105,7 @@ namespace Inferno {
                     else if (!String::HasExtension(page.Image)) {
                         // todo: also search for PNG, PCX, DDS
                         page.Image += ".bbm"; // Assume BBM for now
+                        files.insert(page.Image);
                     }
                 }
 
@@ -122,7 +123,7 @@ namespace Inferno {
 
         // Load backgrounds from mission.
         // Force reload in case mission replaces the backgrounds.
-        Graphics::LoadTextures(Seq::ofSet(backgrounds), true);
+        Graphics::LoadTextures(Seq::ofSet(files), true);
         OnPageChanged(); // Setup animations
     }
 
@@ -285,14 +286,16 @@ vaporization of the facility.
                 exitBriefing = true;
         }
 
-
         if (Game::Bindings.Pressed(GameAction::Pause)) {
             exitBriefing = true;
         }
 
         if (exitBriefing) {
             Game::BriefingVisible = false;
-            Game::SetState(GameState::LoadLevel);
+
+            // todo: go to score screen instead of main menu
+            auto state = Game::IsLastLevel() ? GameState::MainMenu : GameState::LoadLevel;
+            Game::SetState(state);
         }
     }
 }

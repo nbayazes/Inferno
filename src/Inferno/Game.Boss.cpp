@@ -96,10 +96,12 @@ namespace Inferno::Game {
                 if (seg->SideIsSolid(sideid, level)) continue;
 
                 auto connection = seg->GetConnection(sideid);
-                auto& isVisited = visited[(int)connection];
-                if (isVisited) continue; // already visited
-                isVisited = true;
-                queue.push_back(connection);
+                if (connection > SegID::None) {
+                    auto& isVisited = visited[(int)connection];
+                    if (isVisited) continue; // already visited
+                    isVisited = true;
+                    queue.push_back(connection);
+                }
             }
         }
 
@@ -220,7 +222,7 @@ namespace Inferno::Game {
 
             BossDyingElapsed += dt;
             bool explode = DeathRoll(boss, BOSS_DEATH_DURATION, BossDyingElapsed, info.DeathRollSound,
-                                     BossDyingSoundPlaying, BOSS_DEATH_SOUND_VOLUME, dt);
+                BossDyingSoundPlaying, BOSS_DEATH_SOUND_VOLUME, dt);
             if (explode) {
                 BeginSelfDestruct();
                 ExplodeObject(boss);

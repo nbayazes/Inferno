@@ -657,13 +657,12 @@ namespace Inferno::Resources {
     }
 
     void LoadDescent1Shareware() {
-        filesystem::path sharewarePath = "data/d1/demo";
         PigFile pig;
-        auto pigData = File::ReadAllBytes(sharewarePath / "descent.pig");
-        auto hog = HogFile::Read(FileSystem::FindFile(sharewarePath / "descent.hog"));
+        auto pigData = File::ReadAllBytes(D1_DEMO_PATH / "descent.pig");
+        auto hog = HogFile::Read(FileSystem::FindFile(D1_DEMO_PATH / "descent.hog"));
         SoundFile sounds;
         ReadD1Pig(pigData, pig, sounds);
-        sounds.Path = pig.Path = sharewarePath / "descent.pig";
+        sounds.Path = pig.Path = D1_DEMO_PATH / "descent.pig";
         sounds.Compressed = true;
 
         auto table = Game::Mission->ReadEntry("bitmaps.bin");
@@ -1096,6 +1095,7 @@ namespace Inferno::Resources {
     }
 
     bool FoundDescent1() { return FileSystem::TryFindFile("descent.hog").has_value(); }
+    bool FoundDescent1Demo() { return filesystem::exists(D1_DEMO_PATH / "descent.hog"); }
     bool FoundDescent2() { return FileSystem::TryFindFile("descent2.hog").has_value(); }
     bool FoundDescent3() { return FileSystem::TryFindFile("d3.hog").has_value(); }
     bool FoundVertigo() { return FileSystem::TryFindFile("d2x.hog").has_value(); }

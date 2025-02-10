@@ -431,9 +431,8 @@ namespace Inferno::UI {
     };
 
     class FailedEscapeDialog : public DialogBase {
-
     public:
-        FailedEscapeDialog(bool missionFailed) : DialogBase("You didn't escape in time", false){
+        FailedEscapeDialog(bool missionFailed) : DialogBase("You didn't escape in time", false) {
             ActionSound = "";
             Layer = 1; // 0 Is for white background
 
@@ -495,7 +494,6 @@ namespace Inferno::UI {
         }
     };
 
-    constexpr auto FIRST_STRIKE_NAME = "Descent: First Strike";
 
     class PlayD1Dialog : public DialogBase {
         List<MissionInfo> _missions;
@@ -510,16 +508,15 @@ namespace Inferno::UI {
 
             _difficulty = Game::Difficulty;
             _missions = Resources::ReadMissionDirectory("d1/missions");
-            MissionInfo firstStrike{ .Name = FIRST_STRIKE_NAME, .Path = "d1/descent.hog" };
-            firstStrike.Levels.resize(27);
-            for (int i = 1; i <= firstStrike.Levels.size(); i++) {
-                // todo: this could also be SDL extension
-                firstStrike.Levels[i - 1] = fmt::format("level{:02}.rdl", i);
-            }
 
-            firstStrike.Metadata["briefing"] = "briefing";
-            firstStrike.Metadata["ending"] = "ending";
-            _missions.insert(_missions.begin(), firstStrike);
+            if (Resources::FoundDescent1()) {
+                SPDLOG_INFO("Adding retail D1 to mission list");
+                _missions.insert(_missions.begin(), Game::CreateDescent1Mission(false));
+            }
+            else if (Resources::FoundDescent1Demo()) {
+                SPDLOG_INFO("Adding D1 demo to mission list");
+                _missions.insert(_missions.begin(), Game::CreateDescent1Mission(true));
+            }
 
             auto title = make_unique<Label>("select mission", FontSize::MediumBlue);
             title->VerticalAlignment = AlignV::Top;
@@ -798,8 +795,8 @@ namespace Inferno::UI {
 
     void ShowMainMenu() {
         Screens.clear();
-        //ShowScreen(make_unique<MainMenu>());
-        ShowScreen(make_unique<FailedEscapeDialog>(true));
+        ShowScreen(make_unique<MainMenu>());
+        //ShowScreen(make_unique<FailedEscapeDialog>(true));
     }
 
     void ShowFailedEscapeDialog(bool missionFailed) {

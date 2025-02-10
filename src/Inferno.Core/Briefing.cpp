@@ -207,12 +207,13 @@ namespace Inferno {
 
     void SetD1EndBriefingBackground(Briefing& briefing, bool shareware) {
         List<Briefing::Screen> screens;
-        screens.push_back({ "end01.pcx", 0, 1, 23, 40, 320, 200 });
 
         if (!shareware) {
             screens.push_back({ "end02.pcx", 0, 1, 5, 5, 300, 200 });
             screens.push_back({ "end01.pcx", 0, 2, 23, 40, 320, 200 });
             screens.push_back({ "end03.pcx", 0, 3, 5, 5, 300, 200 });
+        } else {
+            screens.push_back({ "end01.pcx", 0, 1, 23, 40, 320, 200 });
         }
 
         for (int i = 0; i < screens.size() && i < briefing.Screens.size(); i++) {

@@ -341,6 +341,14 @@ namespace Inferno::Game {
         Game::GlobalDimming = 1; // Clear dimming
     }
 
+    bool IsFinalLevel() {
+        if (auto info = TryReadMissionInfo()) {
+            return info->Levels.size() == LevelNumber;
+        }
+
+        return true; // Standalone level
+    }
+
     UI::ScoreInfo CalculateEndLevelScore(int levelNumber, uint totalHostages) {
         //if (level.Version != 0) {
         //    return {
@@ -362,15 +370,7 @@ namespace Inferno::Game {
         //    };
         //}
 
-        //auto levelNumber = levelNumber > 0 ? LevelNumber : -(mission.Levels.size() / mission.SecretLevels.size());
-        auto finalLevel = true; // Standalone
-
-        if (Mission) {
-            if (auto info = TryReadMissionInfo()) {
-                finalLevel = info->Levels.size() == LevelNumber;
-            }
-        }
-
+        auto finalLevel = IsFinalLevel();
         auto& player = Game::Player;
         auto difficulty = (int)Game::Difficulty;
         auto levelPoints = player.Score - player.LevelStartScore;
@@ -432,6 +432,7 @@ namespace Inferno::Game {
                 Game::MainCamera.Target = MenuCameraTarget;
                 Sound::SetMusicVolume(Settings::Inferno.MusicVolume);
                 Input::SetMouseMode(Input::MouseMode::Normal);
+                Game::ScreenGlow.SetTarget(Color(0, 0, 0, 0), Game::Time, 0);
                 PlayMainMenuMusic();
                 UI::ShowMainMenu();
 
@@ -459,7 +460,8 @@ namespace Inferno::Game {
 
             case GameState::FailedEscape:
                 Game::FailedEscape = true;
-                Game::Player.LoseLife();
+                if (!Game::Player.IsDead)
+                    Game::Player.LoseLife(); // Lose a life if timed out (instead of dying)
 
                 UI::ShowFailedEscapeDialog(Game::Player.Lives == 0);
                 Input::SetMouseMode(Input::MouseMode::Normal);
@@ -603,7 +605,6 @@ namespace Inferno::Game {
     }
 
     void DrawBriefing() {
-        //float scale = std::floor(Render::Canvas->GetScale());
         float scale = Render::Canvas->GetScale();
         Inferno::Render::CanvasBitmapInfo info;
         info.Size = Vector2{ 640, 480 } * scale;
@@ -911,7 +912,35 @@ namespace Inferno::Game {
         return true;
     }
 
-    constexpr auto FIRST_STRIKE_NAME = "Descent: First Strike";
+    void ShowBriefing(const MissionInfo& mission, int levelNumber, const Inferno::Level& level, string briefingName, bool endgame) {
+        if (String::Extension(briefingName).empty())
+            briefingName += ".txb";
+
+        auto entry = Game::Mission->TryReadEntry(briefingName);
+        auto briefing = Briefing::Read(entry, level.IsDescent1());
+
+        auto isShareware = Game::Mission->ContainsFileType(".sdl");
+
+        if (endgame) {
+            SetD1EndBriefingBackground(briefing, isShareware);
+        }
+        else {
+            SetD1BriefingBackgrounds(briefing, isShareware);
+        }
+
+        if (mission.Name == FIRST_STRIKE_NAME && levelNumber == 1) {
+            AddPyroAndReactorPages(briefing);
+        }
+
+        //LoadBriefingResources(briefing);
+        Game::Briefing = BriefingState(briefing, levelNumber, level.IsDescent1(), endgame);
+        Game::Level.Version = level.Version; // hack: due to LoadResources
+        Game::Briefing.LoadResources(); // TODO: Load resources depends on the level being fully loaded to pick the right assets!
+
+        auto music = mission.Levels.size() == levelNumber ? "d1/endgame" : "d1/briefing";
+        Game::PlayMusic(music);
+        Game::SetState(GameState::Briefing);
+    }
 
     void LoadLevelFromMission(const MissionInfo& mission, int levelNumber) {
         try {
@@ -946,24 +975,7 @@ namespace Inferno::Game {
                 auto briefingName = mission.GetValue("briefing");
 
                 if (!briefingName.empty()) {
-                    if (String::Extension(briefingName).empty())
-                        briefingName += ".txb";
-
-                    auto entry = Game::Mission->TryReadEntry(briefingName);
-                    auto briefing = Briefing::Read(entry, level.IsDescent1());
-
-                    SetD1BriefingBackgrounds(briefing, isShareware);
-
-                    if (mission.Name == FIRST_STRIKE_NAME && levelNumber == 1) {
-                        AddPyroAndReactorPages(briefing);
-                    }
-
-                    //LoadBriefingResources(briefing);
-                    Game::Briefing = BriefingState(briefing, levelNumber, true);
-                    Game::Level.Version = level.Version; // hack: due to LoadResources
-                    Game::Briefing.LoadResources(); // TODO: Load resources depends on the level being fully loaded to pick the right assets!
-                    Game::PlayMusic("d1/briefing");
-                    Game::SetState(GameState::Briefing);
+                    ShowBriefing(mission, levelNumber, level, briefingName, false);
                 }
                 else {
                     Game::SetState(GameState::LoadLevel);
@@ -979,13 +991,24 @@ namespace Inferno::Game {
 
     void LoadNextLevel() {
         if (auto mission = TryReadMissionInfo()) {
-            if (Game::LevelNumber + 1 <= mission->Levels.size()) {
-                LoadLevelFromMission(*mission, Game::LevelNumber + 1);
-                return;
+            if (IsFinalLevel()) {
+                auto ending = mission->GetValue("ending");
+                ShowBriefing(*mission, Game::LevelNumber, Game::Level, ending, true);
             }
-        }
+            else {
+                LoadLevelFromMission(*mission, Game::LevelNumber + 1);
+            }
 
-        Game::SetState(GameState::MainMenu);
+            //}
+            //    if (Game::LevelNumber + 1 <= mission->Levels.size()) {
+            //        if (!IsFinalLevel()) {
+            //        LoadLevelFromMission(*mission, Game::LevelNumber + 1);
+            //        return;
+            //    }
+        }
+        else {
+            Game::SetState(GameState::MainMenu);
+        }
     }
 
     void StartMission() {

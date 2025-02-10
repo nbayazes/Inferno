@@ -267,6 +267,36 @@ namespace Inferno::Game {
         }
     }
 
+    // Create a mission listing for Descent 1, as it doesn't store one
+    MissionInfo CreateDescent1Mission(bool isDemo) {
+        if (isDemo) {
+            MissionInfo firstStrike{ .Name = FIRST_STRIKE_NAME, .Path = D1_DEMO_PATH / "descent.hog" };
+            firstStrike.Levels.resize(7);
+
+            for (int i = 1; i <= firstStrike.Levels.size(); i++)
+                firstStrike.Levels[i - 1] = fmt::format("level{:02}.sdl", i);
+
+            firstStrike.Metadata["briefing"] = "briefing";
+            firstStrike.Metadata["ending"] = "ending";
+            return firstStrike;
+        }
+        else {
+            MissionInfo firstStrike{ .Name = FIRST_STRIKE_NAME, .Path = "d1/descent.hog" };
+            firstStrike.Levels.resize(27);
+            firstStrike.SecretLevels.resize(3);
+
+            for (int i = 1; i <= firstStrike.Levels.size(); i++)
+                firstStrike.Levels[i - 1] = fmt::format("level{:02}.rdl", i);
+
+            for (int i = 1; i <= firstStrike.SecretLevels.size(); i++)
+                firstStrike.SecretLevels[i - 1] = fmt::format("levelS{}.rdl", i);
+
+            firstStrike.Metadata["briefing"] = "briefing";
+            firstStrike.Metadata["ending"] = "endreg";
+            return firstStrike;
+        }
+    }
+
     // Tries to read the mission file (msn / mn2) for the loaded mission
     Option<MissionInfo> TryReadMissionInfo() {
         try {
@@ -289,6 +319,12 @@ namespace Inferno::Game {
                 std::stringstream stream(str);
                 mission.Read(stream);
                 return mission;
+            }
+
+            // descent.hog does not have an msn, create a replacement
+            if (String::ToLower(Mission->Path.string()).ends_with("descent.hog")) {
+                auto isDemo = Mission->ContainsFileType(".sdl");
+                return CreateDescent1Mission(isDemo);
             }
 
             return {};

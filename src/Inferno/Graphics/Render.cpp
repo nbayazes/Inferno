@@ -760,7 +760,7 @@ namespace Inferno::Render {
             Adapter->BlurBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         }
 
-        UICanvas->Render(ctx); // todo: update to not use MSAA target
+        UICanvas->Render(ctx);
 
         LegitProfiler::ProfilerTask postProcess("Post process");
 
