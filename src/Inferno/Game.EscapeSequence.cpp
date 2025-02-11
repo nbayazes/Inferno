@@ -3,6 +3,7 @@
 #include "Bezier.h"
 #include "Editor/Editor.h"
 #include "Formats/BBM.h"
+#include "Game.Bindings.h"
 #include "Game.h"
 #include "Game.Object.h"
 #include "Game.Reactor.h"
@@ -376,8 +377,8 @@ namespace Inferno {
             }
         }
 
-        if (State.ScoreScreenTimer.Expired() || Input::IsKeyPressed(Input::Keys::Escape)) {
-            Game::SetState(GameState::ScoreScreen);
+        if (State.ScoreScreenTimer.Expired()) {
+            StopEscapeSequence();
         }
 
         return true;
@@ -523,6 +524,26 @@ namespace Inferno {
         }
     }
 
+    void StopEscapeSequence() {
+        Settings::Editor.ShowTerrain = false;
+        Game::OnTerrain = false;
+        Game::Terrain.ExitModel = Resources::GameData.ExitModel;
+        State = {};
+
+        if (Game::IsLastLevel() && Game::Mission) {
+            // The last level shows the briefing before the score screen
+            auto mission = Game::GetMissionInfo();
+            auto ending = mission.GetValue("ending");
+            if (!ending.empty())
+                Game::ShowBriefing(mission, Game::LevelNumber, Game::Level, ending, true);
+            else
+                Game::SetState(GameState::ScoreScreen);
+        }
+        else {
+            Game::SetState(GameState::ScoreScreen);
+        }
+    }
+
     void StartEscapeSequence() {
         auto exit = FindExit(Game::Level);
         if (!exit) return;
@@ -531,11 +552,9 @@ namespace Inferno {
             CreateEscapePath(Game::Level, Game::Terrain);
         }
 
-        Settings::Editor.ShowTerrain = false;
-        Game::OnTerrain = false;
         Game::Level.Terrain.VolumeLight = Color(.90f, 0.90f, 1.0f, 3);
-        Game::Terrain.ExitModel = Resources::GameData.ExitModel;
 
+        StopEscapeSequence();
         State = { .Scene = EscapeScene::Start };
         State.ExplosionTimer = 0;
         State.ExplosionSoundTimer = 0;

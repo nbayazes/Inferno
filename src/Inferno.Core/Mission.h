@@ -27,6 +27,18 @@ namespace Inferno {
         std::map<string, string> Metadata;
         std::filesystem::path Path; // File the mission info was loaded from
 
+        List<string> GetSecretLevelsWithoutNumber() const {
+            List<string> levels;
+
+            for (auto& level : SecretLevels) {
+                auto tokens = String::Split(level, ',');
+                if (!tokens.empty())
+                    levels.push_back(tokens[0]);
+            }
+
+            return levels;
+        }
+
         void SetBool(const string& key, bool value) {
             Metadata[key] = value ? "yes" : "no";
         }
@@ -56,6 +68,11 @@ namespace Inferno {
                         line = line.substr(0, idx);
 
                     auto tokens = String::Split(line, '=');
+                    if (tokens.size() != 2) {
+                        SPDLOG_WARN("Two tokens expected in: {}", line);
+                        continue;
+                    }
+
                     auto key = String::ToLower(String::Trim(tokens[0]));
                     auto value = String::TrimStart(tokens[1]);
 
@@ -152,6 +169,21 @@ namespace Inferno {
                 while (std::getline(comments, line, '\n'))
                     stream << ';' << line << '\n';
             }
+        }
+
+        // Returns the nearest secret level after the current level
+        Option<int> FindSecretLevel(int currentLevelIndex) const {
+            for (int i = 0; i < SecretLevels.size(); i++) {
+                auto tokens = String::Split(SecretLevels[i], ',');
+
+                if (tokens.size() == 2) {
+                    auto index = std::stoi(tokens[1]);
+                    if (index >= currentLevelIndex)
+                        return -(i + 1); // secret levels are negative
+                }
+            }
+
+            return {}; // Didn't find it
         }
 
     private:

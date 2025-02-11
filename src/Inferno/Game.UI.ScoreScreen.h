@@ -31,7 +31,7 @@ namespace Inferno::UI {
             case DifficultyLevel::Rookie: return "Rookie";
             case DifficultyLevel::Hotshot: return "Hotshot";
             case DifficultyLevel::Ace: return "Ace";
-            case DifficultyLevel::Insane: return "Ace";
+            case DifficultyLevel::Insane: return "Insane";
         }
     }
 
@@ -40,15 +40,16 @@ namespace Inferno::UI {
         static constexpr float statsSpacing = 150;
 
         StackPanel* _panel = nullptr;
+        bool _secretLevel;
 
     public:
-        ScoreScreen(const ScoreInfo& info) {
+        ScoreScreen(const ScoreInfo& info, bool secretLevel) : _secretLevel(secretLevel) {
             constexpr float statsOffset = titleOffset + 70;
             constexpr float statsLineHeight = 20;
 
             {
                 // title
-                auto panel = make_unique<StackPanel>();
+                auto panel = AddChild<StackPanel>();
                 //panel->Size.x = Size.x - DIALOG_PADDING * 2;
                 //panel->Position = Vector2(0, DIALOG_CONTENT_PADDING);
                 panel->HorizontalAlignment = AlignH::Center;
@@ -61,21 +62,17 @@ namespace Inferno::UI {
                 auto titleLabel = panel->AddChild<Label>(title, FontSize::MediumBlue);
                 titleLabel->HorizontalAlignment = AlignH::Center;
                 titleLabel->TextAlignment = AlignH::Center;
-                titleLabel->Color = Color(1.25f, 1.25f, 1.25f);
+                titleLabel->Color = DIALOG_TITLE_COLOR;
 
                 //titleLabel->Size.x = 300;
                 auto levelLabel = panel->AddChild<Label>(fmt::format("{} destroyed!", info.LevelName), FontSize::MediumBlue);
                 levelLabel->HorizontalAlignment = AlignH::Center;
                 levelLabel->TextAlignment = AlignH::Center;
-                levelLabel->Color = titleLabel->Color;
-                //levelLabel->Size.x = 300;
-
-                AddChild(std::move(panel));
+                levelLabel->Color = DIALOG_TITLE_COLOR;
             }
 
-
             {
-                auto panel = make_unique<StackPanel>();
+                auto panel = AddChild<StackPanel>();
                 //panel->Size.x = Size.x - DIALOG_PADDING * 2;
                 //panel->Position = Vector2(0, DIALOG_CONTENT_PADDING);
                 panel->HorizontalAlignment = AlignH::CenterRight;
@@ -93,7 +90,8 @@ namespace Inferno::UI {
                 };
 
                 addLabel("Difficulty");
-                addLabel("Time");
+                addLabel("Time Played");
+                addLabel("Enemies Destroyed");
                 addLabel("Deaths");
                 if (info.Secrets > 0)
                     addLabel("Secrets");
@@ -101,7 +99,7 @@ namespace Inferno::UI {
                 //panel->AddChild<Label>("Robots Destroyed");
                 addLabel("");
                 addLabel("Shield Bonus");
-                addLabel("Energy Bonus");
+                //addLabel("Energy Bonus");
 
                 auto hostageLabel = info.FullRescue ? "Full Rescue Bonus" : "Hostage Bonus";
                 addLabel(hostageLabel);
@@ -112,8 +110,6 @@ namespace Inferno::UI {
                 addLabel("Total Bonus");
                 addLabel("");
                 addLabel("Total Score");
-
-                AddChild(std::move(panel));
             }
 
             {
@@ -137,14 +133,14 @@ namespace Inferno::UI {
 
                 addRightAligned(DifficultyToName(info.Difficulty));
                 addRightAligned(info.Time);
-                //addRightAligned(std::to_string(info.RobotsDestroyed));
+                addRightAligned(std::to_string(info.RobotsDestroyed));
                 addRightAligned(std::to_string(info.Deaths));
                 if (info.Secrets > 0)
                     addRightAligned(fmt::format("{} of {}", info.SecretsFound, info.Secrets));
 
                 addRightAligned("");
                 addRightAligned(std::to_string(info.ShieldBonus));
-                addRightAligned(std::to_string(info.EnergyBonus));
+                //addRightAligned(std::to_string(info.EnergyBonus));
                 addRightAligned(std::to_string(info.HostageBonus));
 
                 if (info.ShipBonus > 0)
@@ -163,6 +159,14 @@ namespace Inferno::UI {
                 // Mission Successful / Failed
                 // Difficulty, Score, Time Played, Robots Destroyed, Shield / Energy Rating,  Number of Deaths
                 // Objectives: Destroy the Reactor: Complete
+            }
+
+            if (secretLevel) {
+                auto secretLabel = AddChild<Label>("Secret level found!", FontSize::Medium);
+                secretLabel->VerticalAlignment = AlignV::Bottom;
+                secretLabel->HorizontalAlignment = AlignH::Center;
+                secretLabel->Position.y = -30;
+                secretLabel->Color = INSANE_TEXT_FOCUSED;
             }
 
             if (info.ExtraLives > 0) {

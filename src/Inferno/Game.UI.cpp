@@ -797,6 +797,7 @@ namespace Inferno::UI {
         Screens.clear();
         ShowScreen(make_unique<MainMenu>());
         //ShowScreen(make_unique<FailedEscapeDialog>(true));
+        //ShowScreen(make_unique<ScoreScreen>(ScoreInfo{ .ExtraLives = 1 }, true));
     }
 
     void ShowFailedEscapeDialog(bool missionFailed) {
@@ -810,13 +811,13 @@ namespace Inferno::UI {
         ShowScreen(make_unique<PauseMenu>());
     }
 
-    void ShowScoreScreen(const ScoreInfo& score) {
+    void ShowScoreScreen(const ScoreInfo& score, bool secretLevel) {
         Screens.clear();
 
         auto textures = std::to_array<const string>({ "menu-bg" });
         Graphics::LoadTextures(textures);
 
-        ShowScreen(make_unique<ScoreScreen>(score));
+        ShowScreen(make_unique<ScoreScreen>(score, secretLevel));
     }
 
     void Update() {

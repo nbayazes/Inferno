@@ -304,8 +304,8 @@ vaporization of the facility.
         if (exitBriefing) {
             Game::BriefingVisible = false;
 
-            // todo: go to score screen instead of main menu
-            auto state = Game::IsLastLevel() ? GameState::MainMenu : GameState::LoadLevel;
+            // the last level shows score screen after briefing
+            auto state = Game::IsLastLevel() ? GameState::ScoreScreen : GameState::LoadLevel;
             Game::SetState(state);
         }
     }

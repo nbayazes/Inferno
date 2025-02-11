@@ -12,6 +12,7 @@ namespace Inferno {
     void UpdateEscapeCamera(float dt);
 
     void StartEscapeSequence();
+    void StopEscapeSequence();
     void DebugEscapeSequence();
 
     TerrainInfo ParseEscapeInfo(Level& level, span<string> lines);

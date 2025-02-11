@@ -49,7 +49,7 @@ namespace Inferno::Game {
     constexpr float CLOAK_FIRING_FLICKER = 0.75f; // How long a cloaked object 'flickers' after firing
     constexpr Color MATCEN_PHASING_COLOR = { 8, 0, 8 };
     constexpr float MATCEN_SOUND_RADIUS = 300;
-    constexpr float FRIENDLY_FIRE_MULT = 0.5f; // Multiplier on damage robots do to each other or themselves
+    constexpr float FRIENDLY_FIRE_MULT = 0.5f; // Damage multiplier robots do to each other or themselves
     constexpr float POWERUP_RADIUS_MULT = 2.00f; // Make powerups easier to pick up
     constexpr float NEARBY_PORTAL_DEPTH = 150.0f; // How far to search when determining 'nearby' rooms
 
@@ -58,6 +58,7 @@ namespace Inferno::Game {
     inline auto Difficulty = DifficultyLevel::Hotshot; // 0 to 4 for trainee to insane
     inline int LevelNumber = 0; // Index of loaded level starting at 1. Secret levels are negative. 0 means no level loaded.
     inline bool NeedsResourceReload = false; // Indicates that resources should be reloaded, typically due to changes in graphics settings
+    inline bool LoadSecretLevel = false; // Indicates the next level loaded should be a secret level
 
     constexpr int DEFAULT_GRAVITY = 30;
     inline Vector3 Gravity = { 0, -DEFAULT_GRAVITY, 0 }; // u/s acceleration
@@ -81,6 +82,7 @@ namespace Inferno::Game {
 
     // The loaded mission. Not always present.
     inline Option<HogFile> Mission;
+    inline MissionInfo MissionLevels = {};
 
     // Only single player for now
     inline class Player Player = {};
@@ -123,8 +125,8 @@ namespace Inferno::Game {
     // Non-level songs include: briefing, credits, descent, endgame, endlevel
     void PlayMusic(string_view song, bool loop = true);
 
-    // Tries to read the mission file (msn / mn2) for the loaded mission
-    Option<MissionInfo> TryReadMissionInfo();
+    // Tries to read the mission file (msn / mn2) for the loaded mission. Returns empty info if not found.
+    MissionInfo GetMissionInfo();
 
     string LevelNameByIndex(int index);
 
@@ -290,12 +292,30 @@ namespace Inferno::Game {
         inline uint VisibleSegments = 0;
     }
 
+
+    //Option<int> GetNextLevel(const MissionInfo& mission, int currentLevel) {
+    //    try {
+    //        if (currentLevel < 0) {
+    //            auto& level = mission.SecretLevels.at(abs(currentLevel) - 1);
+    //            auto tokens = String::Split(level, ',');
+    //            if (tokens.empty()) return {};
+
+    //        }
+    //        else {
+    //            return currentLevel + 1;
+    //        }
+    //    }
+    //    catch (...) {
+    //        return {};
+    //    }
+    //}
+
     inline bool IsLastLevel() {
-        if (auto mission = TryReadMissionInfo())
-            return LevelNumber >= mission->Levels.size();
-        else
-            return false;
+        auto mission = GetMissionInfo();
+        return LevelNumber >= (int)mission.Levels.size();
     }
+
+    void ShowBriefing(const MissionInfo& mission, int levelNumber, const Inferno::Level& level, string briefingName, bool endgame);
 
     inline Inferno::TerrainInfo Terrain;
 

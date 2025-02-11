@@ -41,14 +41,15 @@ namespace Inferno::Game {
         if (Game::Mission) {
             auto filename = Game::Mission->Path.filename().string();
 
-            if (auto info = Game::TryReadMissionInfo()) {
-                if (auto index = Seq::indexOf(info->Levels, levelFile))
-                    return 1 + (int)index.value();
+            auto info = Game::GetMissionInfo();
 
-                if (auto index = Seq::indexOf(info->SecretLevels, levelFile))
-                    return -1 - (int)index.value(); // Secret levels have a negative index
-            }
-            else if (String::ToLower(filename) == "descent.hog") {
+            if (auto index = Seq::indexOf(info.Levels, levelFile))
+                return 1 + (int)index.value();
+
+            if (auto index = Seq::indexOf(info.GetSecretLevelsWithoutNumber(), levelFile))
+                return -1 - (int)index.value(); // Secret levels have a negative index
+
+            if (String::ToLower(filename) == "descent.hog") {
                 // Descent 1 doesn't have a msn file and relies on hard coded values
                 if (levelFile.starts_with("levelS")) {
                     if (int index = 0; String::TryParse(levelFile.substr(6, 1), index))
@@ -283,13 +284,14 @@ namespace Inferno::Game {
         else {
             MissionInfo firstStrike{ .Name = FIRST_STRIKE_NAME, .Path = "d1/descent.hog" };
             firstStrike.Levels.resize(27);
-            firstStrike.SecretLevels.resize(3);
 
             for (int i = 1; i <= firstStrike.Levels.size(); i++)
                 firstStrike.Levels[i - 1] = fmt::format("level{:02}.rdl", i);
 
-            for (int i = 1; i <= firstStrike.SecretLevels.size(); i++)
-                firstStrike.SecretLevels[i - 1] = fmt::format("levelS{}.rdl", i);
+            firstStrike.SecretLevels.resize(3);
+            firstStrike.SecretLevels[0] = fmt::format("levelS1.rdl,10");
+            firstStrike.SecretLevels[1] = fmt::format("levelS2.rdl,21");
+            firstStrike.SecretLevels[2] = fmt::format("levelS3.rdl,24");
 
             firstStrike.Metadata["briefing"] = "briefing";
             firstStrike.Metadata["ending"] = "endreg";
@@ -298,7 +300,7 @@ namespace Inferno::Game {
     }
 
     // Tries to read the mission file (msn / mn2) for the loaded mission
-    Option<MissionInfo> TryReadMissionInfo() {
+    MissionInfo GetMissionInfo() {
         try {
             if (!Mission) return {};
             MissionInfo mission{};

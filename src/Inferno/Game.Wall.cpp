@@ -379,7 +379,11 @@ namespace Inferno {
         return changed;
     }
 
-    void EnterSecretLevel() {}
+    void EnterSecretLevel() {
+        auto mission = Game::GetMissionInfo();
+        if (auto secretLevel = mission.FindSecretLevel(Game::LevelNumber))
+            Game::LoadLevelFromMission(mission, *secretLevel);
+    }
 
     void ToggleWall(Segment& /*seg*/, SideID /*side*/) {}
 
@@ -890,7 +894,7 @@ namespace Inferno {
             // Hit normal wall
             Game::AddWeaponDecal(hit, weapon);
 
-            
+
             // Explosive weapons play their effects on death instead of here
             if (!bounce && splashRadius <= 0) {
                 if (vclip != VClipID::None)
@@ -959,6 +963,14 @@ namespace Inferno {
 
         if (trigger.HasFlag(TriggerFlagD1::Exit)) {
             StartEscapeSequence();
+        }
+
+        if (trigger.HasFlag(TriggerFlagD1::SecretExit)) {
+            auto mission = Game::GetMissionInfo();
+            if (mission.FindSecretLevel(Game::LevelNumber))
+                Game::LoadSecretLevel = true;
+
+            Game::SetState(GameState::ScoreScreen);
         }
 
         if (trigger.HasFlag(TriggerFlagD1::OpenDoor)) {

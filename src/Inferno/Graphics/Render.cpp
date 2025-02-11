@@ -725,18 +725,19 @@ namespace Inferno::Render {
             Adapter->BlurBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         }
 
+        auto state = Game::GetState();
         // Draw UI elements
-        if (((Game::GetState() == GameState::Game || Game::GetState() == GameState::PauseMenu) && !Game::Player.IsDead) ||
-            Game::GetState() == GameState::MainMenu ||
+        if (((state == GameState::Game || state == GameState::PauseMenu) && !Game::Player.IsDead) ||
+            state == GameState::MainMenu ||
             GetEscapeScene() == EscapeScene::Start)
             DrawHud(ctx);
 
-        if (Settings::Inferno.ScreenshotMode || Game::GetState() != GameState::Editor) {
+        if (Settings::Inferno.ScreenshotMode || state != GameState::Editor) {
             //Canvas->DrawGameText(level.Name, 0, 20 * Shell::DpiScale, FontSize::Big, { 1, 1, 1 }, 0.5f, AlignH::Center, AlignV::Top);
-            if (Game::GetState() == GameState::Automap) {
+            if (state == GameState::Automap) {
                 DrawAutomapText(ctx);
             }
-            else if (Game::GetState() != GameState::MainMenu) {
+            else if (state != GameState::MainMenu) {
                 Render::DrawTextInfo info;
                 info.Position = Vector2(-10 * Shell::DpiScale, -10 * Shell::DpiScale);
                 info.HorizontalAlign = AlignH::Right;
@@ -748,7 +749,7 @@ namespace Inferno::Render {
         }
 
         // Create the blurred menu background texture
-        if (Game::GetState() == GameState::PauseMenu) {
+        if (state == GameState::PauseMenu) {
             Adapter->BlurBufferTemp.CopyFrom(cmdList, Adapter->CompositionBuffer);
             Adapter->CompositionBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET); // Copying changes state, reset it back to RT
 

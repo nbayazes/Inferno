@@ -503,6 +503,8 @@ namespace Inferno {
                 else
                     AddKillToHUD(robot.Name);
 
+                Game::Player.Stats.Kills++;
+
                 auto hitForce = obj.LastHitForce * (1.0f + Random() * 0.5f);
                 CreateObjectDebris(obj, robot.Model, hitForce);
 

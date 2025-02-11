@@ -457,6 +457,14 @@ namespace Inferno {
                 HandleShipInput(dt);
                 HandleWeaponKeys();
                 break;
+
+            case GameState::ExitSequence:
+                if (Game::Bindings.Pressed(GameAction::Pause)) {
+                    Sound::StopMusic();
+                    StopEscapeSequence();
+                }
+
+                break;
         }
 
         HandleDebugKeys();

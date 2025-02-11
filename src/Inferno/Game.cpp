@@ -342,14 +342,12 @@ namespace Inferno::Game {
     }
 
     bool IsFinalLevel() {
-        if (auto info = TryReadMissionInfo()) {
-            return info->Levels.size() == LevelNumber;
-        }
-
-        return true; // Standalone level
+        auto info = GetMissionInfo();
+        if (info.Levels.empty()) return true; // standalone level;
+        return info.Levels.size() == LevelNumber;
     }
 
-    UI::ScoreInfo CalculateEndLevelScore(int levelNumber, uint totalHostages) {
+    UI::ScoreInfo CalculateEndLevelScore(int /*levelNumber*/, uint totalHostages) {
         //if (level.Version != 0) {
         //    return {
         //        .LevelName = "PLACEHOLDER LEVEL",
@@ -370,6 +368,10 @@ namespace Inferno::Game {
         //    };
         //}
 
+        // D2 fix for secret levels having negative numbers
+        //if (levelNumber < 0)
+        //    levelNumber *= -(levelCount / secretLevelCount);
+
         auto finalLevel = IsFinalLevel();
         auto& player = Game::Player;
         auto difficulty = (int)Game::Difficulty;
@@ -380,12 +382,22 @@ namespace Inferno::Game {
 
         if (!Game::Cheater) {
             if (difficulty > 1) {
-                score.SkillBonus = levelPoints * difficulty / 4;
+                if (Game::Level.IsDescent1())
+                    score.SkillBonus = levelPoints * (difficulty - 1) / 2; // D1 (0.5 to 1.5x)
+                else
+                    score.SkillBonus = levelPoints * difficulty / 4; // D2 (0.5 to 1x)
+
                 score.SkillBonus -= score.SkillBonus % 100; // round
             }
 
-            score.ShieldBonus = (int)player.Shields * 5 * levelNumber;
-            score.EnergyBonus = (int)player.Energy * 2 * levelNumber;
+            // D2 uses level number for shield and energy bonus, D1 uses difficulty level
+            //score.ShieldBonus = (int)player.Shields * 5 * levelNumber;
+            //score.EnergyBonus = (int)player.Energy * 2 * levelNumber;
+            score.ShieldBonus = (int)player.Shields * 10 * (difficulty + 1);
+
+            // Remove energy bonus, it's kind of lame and rewards guass / backtracking to an energy center
+            //score.EnergyBonus = (int)player.Energy * 5 * (difficulty + 1);
+            //score.EnergyBonus = std::max((int)player.Energy - 100, 0) * 10 * (difficulty + 1);
             score.HostageBonus = player.HostagesOnboard * 500 * (difficulty + 1);
 
             score.ShieldBonus -= score.ShieldBonus % 50;
@@ -406,6 +418,7 @@ namespace Inferno::Game {
         score.Difficulty = Game::Difficulty;
         score.TotalBonus = score.SkillBonus + score.EnergyBonus + score.ShieldBonus + score.HostageBonus + score.ShipBonus;
         score.Deaths = Game::LevelDeaths;
+        score.RobotsDestroyed = Game::Player.Stats.Kills;
 
         string time = "0:00";
         int minutes = (int)Time / 60;
@@ -413,7 +426,11 @@ namespace Inferno::Game {
         score.Time = fmt::format("{}:{:02}", minutes, seconds);
 
         score.ExtraLives = Game::AddPointsToScore(score.TotalBonus);
-        score.TotalScore = Player.Score;
+        // don't show extra lives on the final level (they were just removed for bonus points)
+        if (finalLevel) score.ExtraLives = 0;
+        score.TotalScore = Game::Player.Score;
+        score.LevelNumber = Game::LevelNumber;
+        score.LevelName = Game::Level.Name;
         return score;
     }
 
@@ -453,7 +470,7 @@ namespace Inferno::Game {
             case GameState::ScoreScreen:
             {
                 auto score = CalculateEndLevelScore(LevelNumber, Level.TotalHostages);
-                UI::ShowScoreScreen(score);
+                UI::ShowScoreScreen(score, LoadSecretLevel);
                 Input::SetMouseMode(Input::MouseMode::Normal);
                 break;
             }
@@ -913,6 +930,9 @@ namespace Inferno::Game {
     }
 
     void ShowBriefing(const MissionInfo& mission, int levelNumber, const Inferno::Level& level, string briefingName, bool endgame) {
+        if (!Game::Mission)
+            return;
+
         if (String::Extension(briefingName).empty())
             briefingName += ".txb";
 
@@ -932,12 +952,11 @@ namespace Inferno::Game {
             AddPyroAndReactorPages(briefing);
         }
 
-        //LoadBriefingResources(briefing);
         Game::Briefing = BriefingState(briefing, levelNumber, level.IsDescent1(), endgame);
         Game::Level.Version = level.Version; // hack: due to LoadResources
         Game::Briefing.LoadResources(); // TODO: Load resources depends on the level being fully loaded to pick the right assets!
 
-        auto music = mission.Levels.size() == levelNumber ? "d1/endgame" : "d1/briefing";
+        auto music = IsLastLevel() ? "d1/endgame" : "d1/briefing";
         Game::PlayMusic(music);
         Game::SetState(GameState::Briefing);
     }
@@ -947,7 +966,13 @@ namespace Inferno::Game {
             if (levelNumber == 0)
                 levelNumber = 1;
 
-            if (levelNumber > mission.Levels.size()) {
+            if (levelNumber < 0) {
+                if (abs(levelNumber) > mission.SecretLevels.size()) {
+                    ShowErrorMessage(std::format("Secret level number {} not found", levelNumber));
+                    return;
+                }
+            }
+            else if (levelNumber > mission.Levels.size()) {
                 ShowErrorMessage(std::format("Level number {} not found", levelNumber));
                 return;
             }
@@ -963,13 +988,25 @@ namespace Inferno::Game {
 
             auto isShareware = Game::Mission->ContainsFileType(".sdl");
 
-            if (auto levelEntry = Seq::tryItem(mission.Levels, levelNumber - 1)) {
-                auto data = Game::Mission->ReadEntry(*levelEntry);
+            string levelEntry;
+
+            if (levelNumber < 0) {
+                levelEntry = mission.SecretLevels.at(abs(levelNumber) - 1);
+                auto index = levelEntry.find_first_of(',');
+                if (index > 0)
+                    levelEntry = levelEntry.substr(0, index);
+            }
+            else {
+                levelEntry = mission.Levels.at(levelNumber - 1);
+            }
+
+            if (!levelEntry.empty()) {
+                auto data = Game::Mission->ReadEntry(levelEntry);
                 auto level = isShareware ? Level::DeserializeD1Demo(data) : Level::Deserialize(data);
                 //Game::LoadLevelFromMission(_mission->Levels[_level]);
                 Resources::LoadLevel(level);
                 Graphics::LoadLevel(level);
-                Game::LoadLevel(hogPath, *levelEntry);
+                Game::LoadLevel(hogPath, levelEntry);
                 Render::MaterialsChanged = true;
 
                 auto briefingName = mission.GetValue("briefing");
@@ -989,25 +1026,45 @@ namespace Inferno::Game {
         }
     }
 
-    void LoadNextLevel() {
-        if (auto mission = TryReadMissionInfo()) {
-            if (IsFinalLevel()) {
-                auto ending = mission->GetValue("ending");
-                ShowBriefing(*mission, Game::LevelNumber, Game::Level, ending, true);
-            }
-            else {
-                LoadLevelFromMission(*mission, Game::LevelNumber + 1);
-            }
+    int GetNextLevel(MissionInfo& mission, int levelNumber) {
+        if (LoadSecretLevel) {
+            LoadSecretLevel = false;
 
-            //}
-            //    if (Game::LevelNumber + 1 <= mission->Levels.size()) {
-            //        if (!IsFinalLevel()) {
-            //        LoadLevelFromMission(*mission, Game::LevelNumber + 1);
-            //        return;
-            //    }
+            if (auto secretLevel = mission.FindSecretLevel(levelNumber)) {
+                return *secretLevel;
+            }
+            // Fallback to regular loading if the secret level isn't found
+        }
+
+        // check if current level is a secret level, and if it is, load the level after it
+        if (levelNumber < 0) {
+            if (auto level = Seq::tryItem(mission.SecretLevels, abs(levelNumber) - 1)) {
+                auto tokens = String::Split(*level, ',');
+                if (tokens.size() == 2) {
+                    levelNumber = std::stoi(tokens.at(1));
+                }
+            }
+        }
+
+        return levelNumber + 1;
+    }
+
+    void LoadNextLevel() {
+        auto mission = GetMissionInfo();
+
+        if (mission.Levels.empty()) {
+            Game::SetState(GameState::MainMenu);
+            return;
+        }
+
+        auto levelNumber = Game::GetNextLevel(mission, Game::LevelNumber);
+
+        if (IsFinalLevel()) {
+            SPDLOG_WARN("Called LoadNextLevel() on final level");
+            SetState(GameState::MainMenu);
         }
         else {
-            Game::SetState(GameState::MainMenu);
+            LoadLevelFromMission(mission, levelNumber);
         }
     }
 
@@ -1069,6 +1126,7 @@ namespace Inferno::Game {
         Player.SpawnRotation = player.Rotation;
         Player.SpawnSegment = player.Segment;
         Player.Stats.HostagesOnLevel = 0;
+        Player.Stats.TotalKills += Player.Stats.Kills;
         Player.Stats.Kills = 0;
         Player.Stats.Robots = 0;
         Player.HostagesOnboard = 0;

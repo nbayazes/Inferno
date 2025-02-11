@@ -28,9 +28,7 @@ namespace Inferno::Editor {
 
     protected:
         bool OnOpen() override {
-            auto mission = Game::TryReadMissionInfo();
-            _mission = mission ? *mission : MissionInfo{};
-
+            _mission = Game::GetMissionInfo();
             _entries.clear();
 
             // if there's no levels in the mission, add all levels from the hog
@@ -174,7 +172,7 @@ namespace Inferno::Editor {
             ImGui::EndTabItem();
         }
 
-        void MetadataCheckbox(const char* label, string key) {
+        void MetadataCheckbox(const char* label, const string& key) {
             bool value = _mission.GetBool(key);
             if (ImGui::Checkbox(label, &value))
                 _mission.SetBool(key, value);
