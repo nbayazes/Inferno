@@ -17,6 +17,8 @@
 struct Constants {
     float4x4 WorldMatrix;
     float4 Light;
+    float3 LightDir;
+    float Padding;
 };
 
 ConstantBuffer<FrameConstants> Frame : register(b0);
@@ -90,11 +92,12 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //float3x3 tbn = float3x3(input.tangent, input.bitangent, input.normal);
     //normal = normalize(mul(normal, tbn));
 
-    float3 lightDir = normalize(float3(0.5, -2, 0));
-    //return float4((input.normal + 1) * 0.5f, 1);
+    float3 lightDir = Terrain.LightDir;
 
-    lighting += pow(HalfLambert(input.normal, -lightDir), 12) * 2.0;
-    lighting = pow(1 + lighting, 1.75) - 1;
+    //lighting += pow(HalfLambert(input.normal, -lightDir), 12) * 2.0;
+    lighting += Lambert(input.normal, -lightDir) * 2;
+    lighting += pow(HalfLambert(input.normal, -lightDir), 2) * 1;
+    //lighting = pow(1 + lighting, 1.5) - 1;
     lighting *= light;
     lighting += light * 0.1; // ambient
     //lighting = pow(1 + lighting, 1.5) - 1;

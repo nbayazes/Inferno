@@ -533,6 +533,7 @@ namespace Inferno::Render {
         TerrainShader::Constants constants = {};
         constants.World = Game::Terrain.Transform;
         constants.Light = Game::Terrain.Light;
+        constants.LightDir = Game::Terrain.LightDir;
         effect.Shader->SetConstants(cmdList, constants);
 
         auto& depthBuffer = Adapter->GetDepthBuffer();

@@ -579,6 +579,8 @@ namespace Inferno {
         struct Constants {
             Matrix World;
             Vector4 Light;
+            Vector3 LightDir;
+            float Padding;
         };
 
         TerrainShader(const ShaderInfo& info) : IShader(info) {

@@ -95,11 +95,16 @@ namespace Inferno {
                     auto up = seg.Center - bottom.Center;
                     up.Normalize();
 
-                    info.Transform = VectorToRotation(forward, up);
+                    auto rotation = VectorToRotation(forward, up);
+                    info.Transform = rotation;
                     info.InverseTransform = Matrix3x3(info.Transform.Invert());
                     info.Transform.Translation(bottom.Center);
                     info.ExitTransform = Matrix::CreateRotationY(DirectX::XM_PI) * Matrix::CreateTranslation(Vector3(0, 9, 10)) * info.Transform;
                     info.ExitTag = exitTag;
+
+                    auto lightDir = info.SatelliteDir * 1000 + Vector3(0, info.SatelliteHeight, 0);
+                    lightDir.Normalize();
+                    info.LightDir = Vector3::Transform(-lightDir, rotation);
                     break;
                 }
 
