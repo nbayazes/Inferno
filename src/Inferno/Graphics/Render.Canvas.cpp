@@ -220,6 +220,7 @@ namespace Inferno::Render {
         auto position = info.Position;
         position.x = std::round(position.x);
         position.y = std::round(position.y);
+        auto shadowOffset = (info.Font == FontSize::Small ? 1 : 2) * scale;
 
         for (int i = 0; i < str.size(); i++) {
             uchar c = str[i];
@@ -277,7 +278,7 @@ namespace Inferno::Render {
 
             Vector2 charSize = Vector2(font->GetWidth(c) * font->Scale, font->Height * font->Scale) * scale;
             CanvasBitmapInfo cbi;
-            cbi.Position = Vector2{ x0 - 1 * scale, y0 + 1 * scale };
+            cbi.Position = Vector2{ x0 - shadowOffset, y0 + shadowOffset };
             cbi.Size = charSize;
             cbi.UV0 = Vector2{ ci.X0, ci.Y0 };
             cbi.UV1 = Vector2{ ci.X1, ci.Y1 };

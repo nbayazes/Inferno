@@ -208,7 +208,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //float pole_noise = Noise.Sample(Sampler, uv * float2(3, 2)).r;
     //noise = pole_noise;
 
-    float3 color = float3(1, .7, .05) * 2;
+    float3 color = float3(1, .7, .05) * 1.6;
     const float3 ringColor = float3(1, 0.9, .2) * 1.5;
 
     //return float4(input.uv.y, 0, 0, 1);
@@ -267,7 +267,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
     color *= 0.1;
 
     float ringAlpha = saturate(1 - dot(input.normal, -viewDir));
-    float3 ring2 = pow(ringAlpha, 2);
+    float3 ring2 = pow(ringAlpha, 2) * 0.6;
+    ring2 += ringAlpha;
     ring2 *= float3(1, .15, .05) * 75; // Narrow edge ring
     color = lerp(color, ring2, ringAlpha *.7);
     return float4(color, 1);
