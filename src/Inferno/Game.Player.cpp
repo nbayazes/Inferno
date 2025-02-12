@@ -845,9 +845,9 @@ namespace Inferno {
                     SecondaryAmmo[i] = 99;
                 else
                     SecondaryAmmo[i] = 200;
-
-                PrimaryAmmo[i] = 10000;
             }
+
+            PrimaryAmmo[1] = 10000;
         }
 
         ResetHUD();

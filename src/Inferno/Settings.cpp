@@ -538,7 +538,7 @@ namespace Inferno {
 
     void SaveEditorSettings(ryml::NodeRef node, const EditorSettings& s) {
         node |= ryml::MAP;
-        WriteSequence(node["RecentFiles"], s.RecentFiles);
+        WritePaths(node["RecentFiles"], s.RecentFiles);
 
         node["EnableWallMode"] << s.EnableWallMode;
         node["EnableTextureMode"] << s.EnableTextureMode;
@@ -769,7 +769,7 @@ namespace Inferno {
             doc["WindowPosition"] << EncodeVector(Settings::Inferno.WindowPosition);
 
             SaveGameSettings(doc["Game"], Settings::Inferno);
-            WriteSequence(doc["DataPaths"], Settings::Inferno.DataPaths);
+            WritePaths(doc["DataPaths"], Settings::Inferno.DataPaths);
             SaveEditorSettings(doc["Editor"], Settings::Editor);
             SaveGraphicsSettings(doc["Render"], Settings::Graphics);
             SaveCheatSettings(doc["Cheats"], Settings::Cheats);

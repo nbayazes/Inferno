@@ -15,6 +15,7 @@
 namespace Inferno {
     constexpr auto METADATA_EXTENSION = ".ied"; // inferno engine data
     inline const filesystem::path D1_DEMO_PATH = "d1/demo"; // subdirectory containing the d1 demo hog and pig
+    inline const filesystem::path D1_PATH = "d1"; // subdirectory containing the d1 hog and pig
 }
 
 // Abstraction for game resources

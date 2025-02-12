@@ -55,9 +55,6 @@ namespace Inferno {
         std::array<uint16, MAX_PRIMARY_WEAPONS>  PrimaryAmmo;
         std::array<uint16, MAX_SECONDARY_WEAPONS> SecondaryAmmo;
 
-        int Score, LevelStartScore;
-        int64 LevelTime, TotalTime;
-
         struct {
             int16 Kills = 0;            // Robots killed this level. Used to prevent matcens from spawning too many robots.
             int16 TotalKills = 0;       // Total kills across all levels. Used for scoring

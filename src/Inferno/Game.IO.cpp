@@ -554,6 +554,10 @@ namespace Inferno::Game {
         InitLevel(std::move(level));
     }
 
+    bool HasPendingLoad() {
+        return PendingLoad.has_value();
+    }
+
     void CheckLoadLevel() {
         try {
             if (PendingLoad) {

@@ -714,6 +714,7 @@ namespace Inferno::UI {
 
     class PauseMenu : public DialogBase {
         bool _quitConfirm = false;
+        bool _restartConfirm = false;
         float _topOffset = 150;
         Vector2 _menuSize;
 
@@ -730,8 +731,19 @@ namespace Inferno::UI {
             panel->AddChild<Button>("Resume", [] {
                 Game::SetState(GameState::Game);
             }, AlignH::Center);
-            panel->AddChild<Button>("Save Game", AlignH::Center);
+            //panel->AddChild<Button>("Save Game", AlignH::Center);
+
+            panel->AddChild<Button>("Restart", [this] {
+                auto confirmDialog = make_unique<ConfirmDialog>("Restart the level?", _restartConfirm);
+                confirmDialog->CloseCallback = [this](CloseState state) {
+                    if (state == CloseState::Accept)
+                        Game::RestartLevel();
+                };
+                ShowScreen(std::move(confirmDialog));
+            }, AlignH::Center);
+
             panel->AddChild<Button>("Load Game", AlignH::Center);
+
             panel->AddChild<Button>("Options", [] {
                 ShowScreen(make_unique<OptionsMenu>());
             }, AlignH::Center);

@@ -15,6 +15,7 @@
 #include "Game.Object.h"
 #include "Game.Reactor.h"
 #include "Game.Room.h"
+#include "Game.Save.h"
 #include "Game.Segment.h"
 #include "Game.UI.h"
 #include "Game.UI.ScoreScreen.h"
@@ -41,6 +42,10 @@ namespace Inferno::Game {
         auto ActiveCamera = gsl::strict_not_null(&MainCamera);
         LerpedValue LerpedTimeScale(1);
         Object NULL_PLAYER{ .Type = ObjectType::Player };
+        bool RestartingLevel = false; // restarting the current level
+        int LoadingFrameDelay = 0;
+
+        class Player PlayerLevelStart = {}; // The player state at level start, used for restarting
     }
 
     void SetTimeScale(float scale, float transitionSpeed) {
@@ -56,7 +61,7 @@ namespace Inferno::Game {
     }
 
     bool StartLevel();
-
+    bool HasPendingLoad();
 
     void ResetCountdown() {
         ControlCenterDestroyed = false;
@@ -421,8 +426,8 @@ namespace Inferno::Game {
         score.RobotsDestroyed = Game::Player.Stats.Kills;
 
         string time = "0:00";
-        int minutes = (int)Time / 60;
-        int seconds = (int)Time % 60;
+        int minutes = (int)Game::Player.LevelTime / 60;
+        int seconds = (int)Game::Player.LevelTime % 60;
         score.Time = fmt::format("{}:{:02}", minutes, seconds);
 
         score.ExtraLives = Game::AddPointsToScore(score.TotalBonus);
@@ -632,6 +637,34 @@ namespace Inferno::Game {
         Render::Canvas->DrawBitmap(info);
     }
 
+    void DrawLoadingScreen() {
+        auto scale = Render::Canvas->GetScale();
+
+        //Vector2 bgSize = Vector2(200, lineHeight * 3.5f) * scale;
+        Render::Canvas->DrawRectangle({ 0, 0 }, Render::Canvas->GetSize(), Color(0, 0, 0, 1));
+
+        constexpr auto text = "prepare for descent";
+        const auto size = MeasureString(text, FontSize::Medium);
+
+        {
+            auto borderSize = (size + Vector2(41, 41)) * scale;
+            Vector2 alignment = Render::GetAlignment(borderSize, AlignH::Center, AlignV::Center, Render::Canvas->GetSize());
+            Render::Canvas->DrawRectangle(alignment, borderSize, Color(0.25f, 0.25f, 0.25f, 1));
+        }
+
+        {
+            auto fillSize = (size + Vector2(40, 40)) * scale;
+            Vector2 alignment = Render::GetAlignment(fillSize, AlignH::Center, AlignV::Center, Render::Canvas->GetSize());
+            Render::Canvas->DrawRectangle(alignment, fillSize, Color(0.1f, 0.1f, 0.1f, 1));
+        }
+        Render::DrawTextInfo info;
+        info.HorizontalAlign = AlignH::Center;
+        info.VerticalAlign = AlignV::Center;
+        info.Font = FontSize::Medium;
+        info.Position.y = 3;
+        Render::Canvas->DrawGameText(text, info);
+    }
+
     void Update(float dt) {
         Game::FrameTime = 0;
 
@@ -641,11 +674,17 @@ namespace Inferno::Game {
             Game::FrameTime = dt * Game::TimeScale;
         }
 
+        if (State == GameState::Editor)
+            CheckLoadLevel();
+
+        //if (State == GameState::Game || State == GameState::PauseMenu);
+
+        if (Game::State == GameState::Game) {
+            Player.LevelTime += dt * Game::TimeScale;
+        }
+
         LegitProfiler::ProfilerTask update("Update game", LegitProfiler::Colors::CARROT);
         LegitProfiler::AddCpuTask(std::move(update));
-
-        if (State == GameState::Game || State == GameState::Editor)
-            CheckLoadLevel();
 
         Game::BriefingVisible = false;
         Input::Update(dt);
@@ -662,6 +701,9 @@ namespace Inferno::Game {
         Graphics::BeginFrame(); // enable debug calls during updates
 
         CheckGameStateChange();
+
+        //Input::NextFrame(dt);
+
         g_ImGuiBatch->BeginFrame();
 
         // Reset direct lighting on sprites. Light effects accumulate on nearby objects each frame.
@@ -706,31 +748,7 @@ namespace Inferno::Game {
 
             case GameState::LoadLevel:
             {
-                auto scale = Render::Canvas->GetScale();
-
-                //Vector2 bgSize = Vector2(200, lineHeight * 3.5f) * scale;
-                Render::Canvas->DrawRectangle({ 0, 0 }, Render::Canvas->GetSize(), Color(0, 0, 0, 1));
-
-                constexpr auto text = "prepare for descent";
-                const auto size = MeasureString(text, FontSize::Medium);
-
-                {
-                    auto borderSize = (size + Vector2(41, 41)) * scale;
-                    Vector2 alignment = Render::GetAlignment(borderSize, AlignH::Center, AlignV::Center, Render::Canvas->GetSize());
-                    Render::Canvas->DrawRectangle(alignment, borderSize, Color(0.25f, 0.25f, 0.25f, 1));
-                }
-
-                {
-                    auto fillSize = (size + Vector2(40, 40)) * scale;
-                    Vector2 alignment = Render::GetAlignment(fillSize, AlignH::Center, AlignV::Center, Render::Canvas->GetSize());
-                    Render::Canvas->DrawRectangle(alignment, fillSize, Color(0.1f, 0.1f, 0.1f, 1));
-                }
-                Render::DrawTextInfo info;
-                info.HorizontalAlign = AlignH::Center;
-                info.VerticalAlign = AlignV::Center;
-                info.Font = FontSize::Medium;
-                info.Position.y = 3;
-                Render::Canvas->DrawGameText(text, info);
+                DrawLoadingScreen();
                 break;
             }
 
@@ -809,9 +827,7 @@ namespace Inferno::Game {
         LegitProfiler::CpuTasks.clear();
         LegitProfiler::GpuTasks.clear();
 
-        //Input::NextFrame(dt);
-
-        if (State == GameState::LoadLevel) {
+        if (State == GameState::LoadLevel && LoadingFrameDelay-- <= 0) {
             Game::CheckLoadLevel(); // block until done loading
 
             if (!StartLevel()) {
@@ -1070,6 +1086,7 @@ namespace Inferno::Game {
 
     void StartMission() {
         Player = {};
+        PlayerLevelStart = {};
     }
 
     bool StartLevel() {
@@ -1091,12 +1108,18 @@ namespace Inferno::Game {
             Editor::History.SnapshotLevel("Playtest");
         }
 
+        if (RestartingLevel) {
+            Player = PlayerLevelStart;
+        }
+
         // Reset level timing
         Game::Time = Game::FrameTime = 0;
         Settings::Editor.ShowTerrain = false;
         Game::ScreenGlow.SetTarget(Color(0, 0, 0, 0), Game::Time, 0);
         Game::FailedEscape = false;
         Game::LevelDeaths = 0;
+        Game::Player.TotalTime += Game::Player.LevelTime;
+        Game::Player.LevelTime = 0;
 
         // Activate game mode
         State = GameState::Game;
@@ -1156,6 +1179,7 @@ namespace Inferno::Game {
             if ((obj.IsPlayer() && id != 0) || obj.IsCoop()) {
                 obj.Lifespan = -1; // Remove non-player 0 starts (no multiplayer)
                 obj.Render.Type = RenderType::None; // Make invisible
+                SetFlag(obj.Flags, ObjectFlag::Dead);
             }
 
             if (obj.Type == ObjectType::Robot) {
@@ -1212,6 +1236,10 @@ namespace Inferno::Game {
         Input::SetMouseMode(Input::MouseMode::Mouselook);
         Player.Respawn(false);
         ResetGameTime = true; // Reset game time so objects don't move before fully loaded
+
+        SaveGame("autosave.sav", true);
+        PlayerLevelStart = Player;
+
         return true;
     }
 
@@ -1220,4 +1248,12 @@ namespace Inferno::Game {
     }
 
     GameState GetState() { return State; }
+
+    void RestartLevel() {
+        SPDLOG_INFO("Restarting the current level");
+        RestartingLevel = true;
+        SetState(GameState::LoadLevel);
+        LoadingFrameDelay = 1;
+        LoadLevel(Level.Path, Level.FileName);
+    }
 }

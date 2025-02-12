@@ -222,6 +222,7 @@
     <ClCompile Include="Game.Automap.cpp" />
     <ClCompile Include="Game.Cinematics.cpp" />
     <ClCompile Include="DebugOverlay.cpp" />
+    <ClCompile Include="Game.Save.cpp" />
     <ClCompile Include="Game.Terrain.cpp" />
     <ClCompile Include="Game.UI.cpp" />
     <ClCompile Include="Graphics.Debug.cpp" />
@@ -358,6 +359,7 @@
     <ClInclude Include="Editor\UI\BriefingEditor.h" />
     <ClInclude Include="Editor\UI\DiagnosticWindow.h" />
     <ClInclude Include="Effect.h" />
+    <ClInclude Include="Game.Save.h" />
     <ClInclude Include="Game.Terrain.h" />
     <ClInclude Include="Game.UI.Bindings.h" />
     <ClInclude Include="Game.UI.Controls.h" />

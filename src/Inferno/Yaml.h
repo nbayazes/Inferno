@@ -305,6 +305,14 @@ namespace Yaml {
         node |= ryml::SEQ;
 
         for (auto& item : src)
+            node.append_child() << item;
+    }
+
+    template <class T>
+    void WritePaths(ryml::NodeRef node, T& src) {
+        node |= ryml::SEQ;
+
+        for (auto& item : src)
             node.append_child() << item.string();
     }
 }

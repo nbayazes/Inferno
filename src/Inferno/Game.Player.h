@@ -70,6 +70,8 @@ namespace Inferno {
         bool IsDead = false;
         float TimeDead = 0;
         bool Exploded = false; // Indicates if the player exploded after dying
+        int Score, LevelStartScore;
+        double LevelTime, TotalTime;
 
         SegID SpawnSegment = SegID::None;
         Vector3 SpawnPosition; // Can be moved based on checkpoints

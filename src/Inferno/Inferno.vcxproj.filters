@@ -114,6 +114,7 @@
     <ClCompile Include="Graphics\Render.Briefing.cpp" />
     <ClCompile Include="TextureCache.cpp" />
     <ClCompile Include="Game.UI.Options.cpp" />
+    <ClCompile Include="Game.Save.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\Audio.h" />
@@ -275,6 +276,7 @@
     <ClInclude Include="Game.UI.Options.h" />
     <ClInclude Include="Game.UI.ScoreScreen.h" />
     <ClInclude Include="Game.UI.Bindings.h" />
+    <ClInclude Include="Game.Save.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />

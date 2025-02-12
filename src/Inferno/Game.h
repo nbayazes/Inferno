@@ -82,7 +82,6 @@ namespace Inferno::Game {
 
     // The loaded mission. Not always present.
     inline Option<HogFile> Mission;
-    inline MissionInfo MissionLevels = {};
 
     // Only single player for now
     inline class Player Player = {};
@@ -97,6 +96,8 @@ namespace Inferno::Game {
 
     // is the game level loading?
     inline std::atomic IsLoading = false;
+
+    void RestartLevel();
 
     // Loads a level from a mission or file
     // If levelName is provided, tries to load that level from the mission, otherwise the first level
