@@ -887,6 +887,10 @@ namespace Inferno::Render {
         light.coneSpill = Info.ConeSpill;
 
         auto parent = Game::GetObject(Parent);
+        if (parent && Game::GetState() == GameState::Editor && !Settings::Editor.ShowObjects) {
+            return; // Don't draw object lights when editor has objects disabled
+        }
+
         if (Info.Normal != Vector3::Zero && parent && parent->IsAlive()) {
             auto rotation = parent->GetRotation(Game::LerpAmount);
             light.normal = Vector3::Transform(Info.Normal, rotation);
