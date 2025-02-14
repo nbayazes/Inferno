@@ -39,10 +39,15 @@ namespace Inferno::Editor {
     }
 
     void ClampColor(Color& src, const Color& min = Color(0, 0, 0, 0), const Color& max = Color(1, 1, 1)) {
-        src.x = std::clamp(src.x, min.x, max.x);
-        src.y = std::clamp(src.y, min.y, max.y);
-        src.z = std::clamp(src.z, min.z, max.z);
-        src.w = std::clamp(src.w, min.w, max.w);
+        // regular clamp will fail if max < min
+        src.x = std::min(max.x, std::max(src.x, min.x));
+        src.y = std::min(max.y, std::max(src.y, min.y));
+        src.z = std::min(max.z, std::max(src.z, min.z));
+        src.w = std::min(max.w, std::max(src.w, min.w));
+        //src.x = std::clamp(src.x, min.x, max.x);
+        //src.y = std::clamp(src.y, min.y, max.y);
+        //src.z = std::clamp(src.z, min.z, max.z);
+        //src.w = std::clamp(src.w, min.w, max.w);
     }
 
     float GetBrightness(const Color& color) {
@@ -110,10 +115,13 @@ namespace Inferno::Editor {
 
         void UpdateMaxValueFromPass(float reflectance) {
             Color max;
-            for (auto& values : Pass | views::values)
-                for (auto& color : values.Light)
-                    if (max.ToVector3().Length() < color.ToVector3().Length())
-                        max = color;
+            for (auto& values : Pass | views::values) {
+                for (auto& color : values.Light) {
+                    max.x = std::max(max.x, color.x);
+                    max.y = std::max(max.y, color.y);
+                    max.z = std::max(max.z, color.z);
+                }
+            }
 
             PassMaxValue = max * reflectance;
         }
@@ -360,9 +368,9 @@ namespace Inferno::Editor {
 
                 ctx.CastStats++;
                 if (ray.Intersects(level.Vertices[indices[ri[0]]],
-                                   level.Vertices[indices[ri[1]]],
-                                   level.Vertices[indices[ri[2]]],
-                                   dist)
+                        level.Vertices[indices[ri[1]]],
+                        level.Vertices[indices[ri[2]]],
+                        dist)
                     && dist < minDist) {
                     ctx.HitStats++;
                     return true;
@@ -370,9 +378,9 @@ namespace Inferno::Editor {
 
                 ctx.CastStats++;
                 if (ray.Intersects(level.Vertices[indices[ri[3]]],
-                                   level.Vertices[indices[ri[4]]],
-                                   level.Vertices[indices[ri[5]]],
-                                   dist)
+                        level.Vertices[indices[ri[4]]],
+                        level.Vertices[indices[ri[5]]],
+                        dist)
                     && dist < minDist) {
                     ctx.HitStats++;
                     return true;
