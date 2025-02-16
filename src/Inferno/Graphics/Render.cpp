@@ -486,6 +486,10 @@ namespace Inferno::Render {
         return FrameUploadBuffers[Adapter->GetCurrentFrameIndex()].get();
     }
 
+    uint64 GetFreeUploadBufferMemory() {
+        return GetFrameUploadBuffer()->GetFreeMemory();
+    }
+
     void BindTempConstants(ID3D12GraphicsCommandList* cmdList, const void* data, uint64 size, uint32 rootParameter) {
         auto memory = GetFrameUploadBuffer()->GetMemory(size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
         memcpy(memory.CPU, data, size);
@@ -594,6 +598,8 @@ namespace Inferno::Render {
         ScopedTimer presentTimer(&Metrics::Present);
         Stats::DrawCalls = 0;
         Stats::PolygonCount = 0;
+
+        GetFrameUploadBuffer()->ResetIndex();
 
         auto& ctx = Adapter->GetGraphicsContext();
         ctx.Reset();
@@ -726,9 +732,9 @@ namespace Inferno::Render {
         }
 
         auto state = Game::GetState();
-        // Draw UI elements
+
+        // Draw the HUD
         if (((state == GameState::Game || state == GameState::PauseMenu) && !Game::Player.IsDead) ||
-            state == GameState::MainMenu ||
             GetEscapeScene() == EscapeScene::Start)
             DrawHud(ctx);
 
@@ -775,7 +781,6 @@ namespace Inferno::Render {
 
         LegitProfiler::ProfilerTask present("Present", LegitProfiler::Colors::NEPHRITIS);
         Adapter->Present();
-        GetFrameUploadBuffer()->ResetIndex();
 
         LegitProfiler::AddCpuTask(std::move(present));
         //Adapter->WaitForGpu();

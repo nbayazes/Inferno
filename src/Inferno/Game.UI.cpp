@@ -686,7 +686,7 @@ namespace Inferno::UI {
                 Render::UICanvas->DrawText("software 1994, 1995, 1999", dti);
 
                 dti.Position.y -= 14;
-                Render::HudCanvas->DrawText("portions (c) parallax", dti);
+                Render::UICanvas->DrawText("portions (c) parallax", dti);
             }
         }
     };

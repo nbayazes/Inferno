@@ -53,7 +53,7 @@ namespace Inferno {
             _resource = DirectX::GraphicsMemory::Get().Allocate(size);
         }
 
-        void ResetIndex() { _index =  0; }
+        void ResetIndex() { _index = 0; }
 
         // Adds vertices to the buffer and returns a view at the start of the data
         template <class TVertex>
@@ -349,7 +349,7 @@ namespace Inferno {
         }
 
         bool End() {
-            if (!_inUpdate) 
+            if (!_inUpdate)
                 throw Exception("Must call Begin before End");
 
             _inUpdate = false;
@@ -361,7 +361,7 @@ namespace Inferno {
         }
 
         void Copy(span<T> src) {
-            if (!_inUpdate) 
+            if (!_inUpdate)
                 throw Exception("Must call Begin before Copy");
 
             if (_buffer.size() + src.size() > _gpuCapacity) {
@@ -413,7 +413,7 @@ namespace Inferno {
 
             auto uploadHeap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
             ThrowIfFailed(Render::Device->CreateCommittedResource(&uploadHeap, D3D12_HEAP_FLAG_NONE, &resourceDesc,
-                                                                  D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&_resource)));
+                D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&_resource)));
             ThrowIfFailed(_resource->Map(0, &CPU_READ_NONE, reinterpret_cast<void**>(&_cpuMemory)));
             _gpuMemory = _resource->GetGPUVirtualAddress();
         }
@@ -432,6 +432,9 @@ namespace Inferno {
             if (alignment > 0)
                 offset = AlignTo(offset, alignment);
 
+            if (_allocated > 1024 * 1024 * 2)
+                __debugbreak(); // Detect runaway memory allocations
+
             if (offset + size > _size)
                 throw Exception("Out of memory in frame constant buffer");
 
@@ -441,6 +444,10 @@ namespace Inferno {
             handle.Offset = offset;
             handle.Resource = _resource.Get();
             return handle;
+        }
+
+        uint64 GetFreeMemory() const {
+            return _size - _allocated;
         }
 
         void ResetIndex() {
