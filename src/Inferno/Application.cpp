@@ -122,7 +122,14 @@ void Application::UpdateFpsLimit() {
         _fpsLimitMs = 0;
 }
 
-void Application::Tick() const {
+void Application::Tick() {
+    // Update the FPS limit if foreground limit is enabled but not set
+    if (_isForeground) {
+        if ((Settings::Graphics.EnableForegroundFpsLimit && _fpsLimitMs == 0) ||
+            (!Settings::Graphics.EnableForegroundFpsLimit && _fpsLimitMs > 0))
+            UpdateFpsLimit();
+    }
+
     if (_fpsLimitMs > 0) {
         if (Inferno::Clock.MaybeSleep(_fpsLimitMs))
             return; // spinwait

@@ -17,7 +17,7 @@ namespace Inferno {
         ~Application();
         // Initialization and management
         void Initialize(int width, int height);
-        void Tick() const;
+        void Tick();
         bool OnClose();
         void OnActivated();
         void OnDeactivated();
