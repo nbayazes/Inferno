@@ -535,14 +535,16 @@ namespace Inferno {
         Game::Terrain.ExitModel = Resources::GameData.ExitModel;
         State = {};
 
-        if (Game::IsLastLevel() && Game::Mission) {
+        if (Game::IsFinalLevel() && Game::Mission) {
             // The last level shows the briefing before the score screen
-            auto mission = Game::GetMissionInfo();
-            auto ending = mission.GetValue("ending");
-            if (!ending.empty())
-                Game::ShowBriefing(mission, Game::LevelNumber, Game::Level, ending, true);
-            else
-                Game::SetState(GameState::ScoreScreen);
+            if (auto mission = Game::GetMissionInfo(*Game::Mission)) {
+                auto ending = mission->GetValue("ending");
+
+                if (!ending.empty())
+                    Game::ShowBriefing(*mission, Game::LevelNumber, Game::Level, ending, true);
+                else
+                    Game::SetState(GameState::ScoreScreen);
+            }
         }
         else {
             Game::SetState(GameState::ScoreScreen);

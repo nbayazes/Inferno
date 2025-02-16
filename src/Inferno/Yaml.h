@@ -1,5 +1,6 @@
 #pragma once
 
+#include <c4/substr.hpp>
 #include <ryml/ryml_std.hpp>
 #include <ryml/ryml.hpp>
 #include "Types.h"
@@ -86,12 +87,13 @@ namespace Yaml {
     }
 
     template <class T>
-    bool ReadValue(ryml::ConstNodeRef parent, ryml::csubstr name, T& value) {
+    bool ReadValue2(ryml::ConstNodeRef parent, std::string_view name, T& value) {
         static_assert(!std::is_same_v<T, const char*>, "Must be writable value");
 
         try {
-            if (!parent.has_child(name)) return false;
-            auto node = parent[name];
+            auto bad = ryml::csubstr(name.data(), name.size());
+            if (!parent.has_child(bad)) return false;
+            auto node = parent[bad];
             if (!node.readable() || !node.has_val() || node.val() == "") return false;
             node >> value;
             return true;
@@ -101,15 +103,32 @@ namespace Yaml {
         }
     }
 
-    inline bool ReadValue(ryml::ConstNodeRef parent, ryml::csubstr name, bool& value) {
+    inline bool ReadValue2(ryml::ConstNodeRef parent, std::string_view name, bool& value) {
         try {
-            if (!parent.has_child(name)) return false;
-            auto node = parent[name];
+            auto bad = ryml::csubstr(name.data(), name.size());
+            if (!parent.has_child(bad)) return false;
+            auto node = parent[bad];
             if (!node.readable() || !node.has_val() || node.val() == "") return false;
 
             int val = 0;
             node >> val;
             value = (bool)val;
+            return true;
+        }
+        catch (...) {
+            return false;
+        }
+    }
+
+    template <Inferno::IsEnum T>
+    bool ReadValue2(ryml::ConstNodeRef parent, std::string_view name, T& id) {
+        try {
+            auto bad = ryml::csubstr(name.data(), name.size());
+            if (!parent.has_child(bad)) return false;
+            auto node = parent[bad];
+            if (!node.readable() || !node.has_val() || node.val() == "") return false;
+
+            node >> (std::underlying_type_t<T>&)id;
             return true;
         }
         catch (...) {

@@ -682,7 +682,7 @@ namespace Inferno {
     }
 
     void Player::LoseLife() {
-        Game::LevelDeaths++;
+        LevelDeaths++;
         HostagesOnboard = 0;
 
         if (Lives > 0)

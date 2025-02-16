@@ -23,6 +23,8 @@ namespace Inferno::UI {
     constexpr Color BLUE_TEXT = { 0.5f, 0.5f, 1.0f };
     constexpr Color WHITE_TEXT = { 0.95f, 0.95f, 0.95f };
     constexpr Color GREY_TEXT = { 0.5f, 0.5f, 0.5f };
+    constexpr Color GREEN_TEXT = { 0.05f, 0.85f, 0.05f };
+    constexpr Color GREEN_TEXT_GLOW = { 0.05f, 1.7f, 0.05f };
     constexpr Color GOLD_TEXT = { 1, .75f, .2f };
     constexpr Color GOLD_TEXT_GLOW = { 2, 1.5f, .4f };
     constexpr Color INSANE_TEXT = { 3.0f, 0.4f, 0.4f };
@@ -168,6 +170,7 @@ namespace Inferno::UI {
         void OnMouseClick(const Vector2& position) const {
             for (auto& control : Children) {
                 if (control->Enabled && control->Contains(position)) {
+                    // todo: synthesize a menu action event instead of directly calling confirm
                     if (control->OnConfirm()) return;
                 }
 
@@ -188,7 +191,7 @@ namespace Inferno::UI {
             return false;
         }
 
-        virtual bool HandleMenuAction(Input::MenuActionState action) {
+        virtual bool OnMenuAction(Input::MenuActionState action) {
             if (action.IsSet(MenuAction::Confirm)) {
                 return OnConfirm();
             }
@@ -389,7 +392,7 @@ namespace Inferno::UI {
             };
         }
 
-        bool HandleMenuAction(Input::MenuActionState action) override {
+        bool OnMenuAction(Input::MenuActionState action) override {
             if (action == MenuAction::Up) {
                 _index--;
                 _scrollIndex = std::min(_index, _scrollIndex);
@@ -521,7 +524,6 @@ namespace Inferno::UI {
 
     // A generic listbox contains a stack panel of items, but only a certain number are visible at once
     class ListBox2 : public ControlBase {
-        FontSize _font;
         int _index = 0;
         int _scrollIndex = 0; // top of the list
         int _visibleItems = 10;
@@ -531,9 +533,9 @@ namespace Inferno::UI {
 
         void SetIndex(int index) { _index = index; }
         int GetIndex() const { return _index; }
+        int GetVisibleItemCount() const { return _visibleItems; }
 
         ListBox2(int visibleItems, float width = 300) : _visibleItems(visibleItems) {
-            AddChild(make_unique<Rectangle>());
             Padding = Vector2(2, 2);
             ActionSound = MENU_SELECT_SOUND;
             Selectable = false;
@@ -571,6 +573,15 @@ namespace Inferno::UI {
             _scrollIndex -= _visibleItems;
             ClampRanges();
             SetSelection(Children[_index].get());
+        }
+
+        void OnUpdateLayout() override {
+            for (auto& child : Children) {
+                child->Size.x = Size.x - Padding.x;
+                child->Size.y = RowHeight - Padding.y * 2;
+            }
+
+            ControlBase::OnUpdateLayout();
         }
 
         void OnUpdate() override {
@@ -646,6 +657,8 @@ namespace Inferno::UI {
 
                 item->ScreenPosition = ScreenPosition + Padding * scale;
                 item->ScreenPosition.y += RowHeight * j * scale;
+                item->ScreenSize.x = ScreenSize.x - Padding.x * 2 * scale;
+
                 if (item->Visible)
                     item->OnDraw();
             }
@@ -671,8 +684,13 @@ namespace Inferno::UI {
 
     protected:
         void ClampRanges() {
-            _index = std::clamp(_index, 0, (int)Children.size() - 1);
-            _scrollIndex = std::clamp(_scrollIndex, 0, std::max((int)Children.size() - _visibleItems, 0));
+            if (Children.empty()) {
+                _index = _scrollIndex = 0;
+            }
+            else {
+                _index = std::clamp(_index, 0, (int)Children.size() - 1);
+                _scrollIndex = std::clamp(_scrollIndex, 0, std::max((int)Children.size() - _visibleItems, 0));
+            }
         }
     };
 
@@ -1010,7 +1028,7 @@ namespace Inferno::UI {
             _text = std::to_string(*_value);
         }
 
-        bool HandleMenuAction(Input::MenuActionState action) override {
+        bool OnMenuAction(Input::MenuActionState action) override {
             int increment = 0;
             int mult = Input::ShiftDown ? 10 : 1;
 
@@ -1407,7 +1425,7 @@ namespace Inferno::UI {
 
         std::function<void(int)> OnChange;
 
-        bool HandleMenuAction(Input::MenuActionState action) override {
+        bool OnMenuAction(Input::MenuActionState action) override {
             int value = 0;
 
             if (action == MenuAction::Left)
@@ -1525,7 +1543,7 @@ namespace Inferno::UI {
 
         std::function<void(int)> OnChange;
 
-        bool HandleMenuAction(Input::MenuActionState action) override {
+        bool OnMenuAction(Input::MenuActionState action) override {
             auto value = 0;
 
             if (action == MenuAction::Left)
@@ -1727,7 +1745,7 @@ namespace Inferno::UI {
 
         float GetValueWidth() const { return ShowValue ? ValueWidth : 0; }
 
-        bool HandleMenuAction(Input::MenuActionState action) override {
+        bool OnMenuAction(Input::MenuActionState action) override {
             const float keyboardIncrement = Input::ShiftDown ? 0.01f : 0.1f;
 
             if (action == MenuAction::Left) {
@@ -1966,9 +1984,9 @@ namespace Inferno::UI {
             return -1;
         }
 
-        bool HandleMenuAction(Input::MenuActionState action) override {
+        bool OnMenuAction(Input::MenuActionState action) override {
             // Allow the selected control to handle input first
-            if (Selection && Selection->HandleMenuAction(action))
+            if (Selection && Selection->OnMenuAction(action))
                 return true;
 
             if (action == MenuAction::Confirm) {
@@ -2305,7 +2323,7 @@ namespace Inferno::UI {
             ValueWidth = Size.x - LabelWidth;
         }
 
-        bool HandleMenuAction(Input::MenuActionState action) override {
+        bool OnMenuAction(Input::MenuActionState action) override {
             if (action == MenuAction::Confirm) {
                 SetSelection(this);
                 ShowPopup();

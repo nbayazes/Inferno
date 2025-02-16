@@ -24,7 +24,7 @@ namespace Inferno {
                 Game::SetState(GameState::Editor);
             }
             else {
-                Game::StartMission();
+                //Game::StartMission();
                 Game::SetState(Game::GetState() != GameState::Editor ? GameState::Editor : GameState::LoadLevel);
             }
         }

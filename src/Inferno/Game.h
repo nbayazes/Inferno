@@ -11,35 +11,9 @@
 #include "Level.h"
 #include "Mission.h"
 #include "SystemClock.h"
-
-namespace Inferno {
-    struct LevelHit;
-
-    enum class GameState {
-        Startup,
-        Game, // In first person and running game logic
-        PhotoMode, // In-game photo mode
-        ExitSequence, // exit tunnel sequence
-        Cutscene, // In-game cutscene, waits for input to cancel
-        LoadLevel, // Show a loading screen and load the currently pending level
-        ScoreScreen,
-        FailedEscape, // Player failed to escape in time
-        Automap,
-        Briefing, // Showing a briefing before a level
-        MainMenu, // The title menu
-        PauseMenu, // In-game menu
-        Editor
-    };
-
-    enum class DifficultyLevel {
-        Trainee,
-        Rookie,
-        Hotshot,
-        Ace,
-        Insane,
-        Count
-    };
-}
+#include "Game.State.h"
+#include "Difficulty.h"
+#include "Game.IO.h"
 
 namespace Inferno::Game {
     constexpr float TICK_RATE = 1.0f / 64; // 64 ticks per second
@@ -83,6 +57,9 @@ namespace Inferno::Game {
     // The loaded mission. Not always present.
     inline Option<HogFile> Mission;
 
+    // Timestamp the current mission was started
+    inline int64 MissionTimestamp = 0;
+
     // Only single player for now
     inline class Player Player = {};
     inline ObjRef DeathCamera = {};
@@ -99,37 +76,11 @@ namespace Inferno::Game {
 
     void RestartLevel();
 
-    // Loads a level from a mission or file
-    // If levelName is provided, tries to load that level from the mission, otherwise the first level
-    void LoadLevel(const filesystem::path& path, const string& level = "", bool addToRecent = false);
-
-    // Loads a specific level number from a mission. Shows any briefings if present.
-    // Pass > 0 for normal levels, < 0 for secret.
-    void LoadLevelFromMission(const MissionInfo& mission, int levelNumber);
-
     void LoadNextLevel();
-
-    void NewLevel(Editor::NewLevelInfo& info);
 
     void InitLevel(Inferno::Level&& level);
 
-    // Loads a hog from a path. Returns false on error.
-    bool LoadMission(const filesystem::path& file);
     inline void UnloadMission() { Mission = {}; }
-
-    void CheckLoadLevel();
-
-    // Plays music for the level based on its number
-    void PlayLevelMusic();
-
-    // Plays a specific music file. Extension is optional.
-    // Non-level songs include: briefing, credits, descent, endgame, endlevel
-    void PlayMusic(string_view song, bool loop = true);
-
-    // Tries to read the mission file (msn / mn2) for the loaded mission. Returns empty info if not found.
-    MissionInfo GetMissionInfo();
-
-    string LevelNameByIndex(int index);
 
     inline bool ResetGameTime = false;
     inline double Time = 0; // Elapsed game time since level start in seconds. Stops when paused.
@@ -219,17 +170,10 @@ namespace Inferno::Game {
 
     inline bool Cheater = false;
     inline bool FailedEscape = false; // Failed to escape the level in time. Used for scoring and pausing time.
-    inline uint LevelDeaths = 0; // Number of times player has died this level
 
     // Returns the number of extra lives
     uint8 AddPointsToScore(int points);
     void StartMission();
-
-    inline Color ScreenFlash = { 0, 0, 0 }; // Used when picking up an item or taking damage
-    constexpr float MAX_FLASH = 0.4f;
-    constexpr float FLASH_DECAY_RATE = MAX_FLASH * 0.75f;
-
-    void AddScreenFlash(const Color&);
 
     inline bool ControlCenterDestroyed = false;
     inline float CountdownTimer = -1.0f; // time before reactor goes critical
@@ -241,21 +185,23 @@ namespace Inferno::Game {
     void SetState(GameState);
     GameState GetState();
 
-    void LoadBackgrounds(const HogFile& mission);
-
-    //inline bool InGame() { return GetState() == GameState::Game; }
     inline NavigationNetwork Navigation;
 
     inline BriefingState Briefing;
 
     Object& GetPlayerObject();
-    MissionInfo CreateDescent1Mission(bool isDemo);
 
     constexpr float DEFAULT_BLOOM = 0.35f;
     inline LerpedColor ScreenGlow = Color(0, 0, 0, 0);
     inline LerpedColor FusionTint = Color(0, 0, 0, 0);
     inline LerpedValue Exposure = 1;
     inline LerpedValue BloomStrength = DEFAULT_BLOOM;
+
+    inline Color ScreenFlash = { 0, 0, 0 }; // Used when picking up an item or taking damage
+    constexpr float MAX_FLASH = 0.4f;
+    constexpr float FLASH_DECAY_RATE = MAX_FLASH * 0.75f;
+
+    void AddScreenFlash(const Color&);
 
     //bool ObjectIsInFOV(const Ray& ray, const Object& obj, float fov);
 
@@ -293,27 +239,12 @@ namespace Inferno::Game {
         inline uint VisibleSegments = 0;
     }
 
+    inline bool IsFinalLevel() {
+        if (auto mission = GetCurrentMissionInfo()) {
+            return LevelNumber >= (int)mission->Levels.size();
+        }
 
-    //Option<int> GetNextLevel(const MissionInfo& mission, int currentLevel) {
-    //    try {
-    //        if (currentLevel < 0) {
-    //            auto& level = mission.SecretLevels.at(abs(currentLevel) - 1);
-    //            auto tokens = String::Split(level, ',');
-    //            if (tokens.empty()) return {};
-
-    //        }
-    //        else {
-    //            return currentLevel + 1;
-    //        }
-    //    }
-    //    catch (...) {
-    //        return {};
-    //    }
-    //}
-
-    inline bool IsLastLevel() {
-        auto mission = GetMissionInfo();
-        return LevelNumber >= (int)mission.Levels.size();
+        return false;
     }
 
     void ShowBriefing(const MissionInfo& mission, int levelNumber, const Inferno::Level& level, string briefingName, bool endgame);

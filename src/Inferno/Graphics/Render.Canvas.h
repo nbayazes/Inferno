@@ -6,6 +6,7 @@
 #include "Game.h"
 #include "Game.Text.h"
 #include "MaterialLibrary.h"
+#include "SystemClock.h"
 
 namespace Inferno::Render {
     Vector2 GetAlignment(const Vector2& size, AlignH alignH, AlignV alignV, const Vector2& parentSize, const Vector2& margin = Vector2::Zero);
@@ -363,7 +364,7 @@ namespace Inferno::Render {
             if (finished && showCursor) {
                 double whole{};
 
-                if (std::modf(Clock.GetTotalTimeSeconds(), &whole) > 0.5f)
+                if (std::modf(Inferno::Clock.GetTotalTimeSeconds(), &whole) > 0.5f)
                     DrawCharacter('_', Vector2(info.Position.x, cursor.y + font->Height * font->Scale + FONT_LINE_SPACING), info.Font, color, 1, layer + 1);
             }
 

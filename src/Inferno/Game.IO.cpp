@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Game.IO.h"
 #include "Editor/Editor.h"
 #include "Editor/Editor.IO.h"
 #include "Editor/UI/TextureBrowserUI.h"
@@ -7,7 +8,7 @@
 #include "Game.EscapeSequence.h"
 #include "Game.h"
 #include "Game.Room.h"
-#include "Game.Text.h"
+#include "Game.Save.h"
 #include "Graphics.h"
 #include "LevelMetadata.h"
 #include "Procedural.h"
@@ -23,14 +24,20 @@ namespace Inferno::Game {
             filesystem::path Path; // hog or level path
             string LevelName; // file name in hog, can be empty
             bool AddToRecent = false;
+            bool Autosave = false;
             Option<Editor::NewLevelInfo> NewLevel;
         };
 
         Option<LoadLevelInfo> PendingLoad;
     }
 
-    void LoadLevel(const filesystem::path& path, const string& level, bool addToRecent) {
-        PendingLoad = LoadLevelInfo{ .Path = path, .LevelName = level, .AddToRecent = addToRecent };
+    void LoadLevel(const filesystem::path& path, const string& level, bool addToRecent, bool autosave) {
+        PendingLoad = LoadLevelInfo{
+            .Path = path,
+            .LevelName = level,
+            .AddToRecent = addToRecent,
+            .Autosave = autosave
+        };
     }
 
     void NewLevel(Editor::NewLevelInfo& info) {
@@ -38,15 +45,13 @@ namespace Inferno::Game {
     }
 
     int GetLevelNumber(string_view levelFile) {
-        if (Game::Mission) {
+        if (auto info = GetCurrentMissionInfo()) {
             auto filename = Game::Mission->Path.filename().string();
 
-            auto info = Game::GetMissionInfo();
-
-            if (auto index = Seq::indexOf(info.Levels, levelFile))
+            if (auto index = Seq::indexOf(info->Levels, levelFile))
                 return 1 + (int)index.value();
 
-            if (auto index = Seq::indexOf(info.GetSecretLevelsWithoutNumber(), levelFile))
+            if (auto index = Seq::indexOf(info->GetSecretLevelsWithoutNumber(), levelFile))
                 return -1 - (int)index.value(); // Secret levels have a negative index
 
             if (String::ToLower(filename) == "descent.hog") {
@@ -123,9 +128,9 @@ namespace Inferno::Game {
 
         Graphics::LoadTextures(customHudTextures);
 
-        if (Game::Mission) {
-            LoadBackgrounds(*Game::Mission);
-        }
+        //if (Game::Mission) {
+        //    LoadBackgrounds(*Game::Mission);
+        //}
     }
 
     void LoadBackgrounds(const HogFile& mission) {
@@ -150,8 +155,6 @@ namespace Inferno::Game {
         Inferno::Level backup = Level;
 
         try {
-            //LoadMission(PendingLevel);
-            //auto level = LoadLevel(PendingLevel);
             ASSERT(level.FileName != "");
             bool reload = level.FileName == Level.FileName;
 
@@ -259,7 +262,7 @@ namespace Inferno::Game {
 
     bool LoadMission(const filesystem::path& file) {
         try {
-            Mission = HogFile::Read(file);
+            Game::Mission = HogFile::Read(file);
             return true;
         }
         catch (...) {
@@ -300,32 +303,31 @@ namespace Inferno::Game {
     }
 
     // Tries to read the mission file (msn / mn2) for the loaded mission
-    MissionInfo GetMissionInfo() {
+    Option<MissionInfo> GetMissionInfo(const HogFile& mission) {
         try {
-            if (!Mission) return {};
-            MissionInfo mission{};
+            MissionInfo info{};
 
             // Read mission from filesystem
-            std::ifstream file(Mission->GetMissionPath());
-            if (mission.Read(file)) {
-                mission.Path = Mission->GetMissionPath();
-                return mission;
+            std::ifstream file(mission.GetMissionPath());
+            if (info.Read(file)) {
+                info.Path = mission.GetMissionPath();
+                return info;
             }
 
             // Descent2 stores its mn2 in the hog file
             auto ext = Level.IsDescent1() ? "msn" : "mn2";
 
-            if (auto entry = Mission->FindEntryOfType(ext)) {
-                auto bytes = Mission->ReadEntry(*entry);
+            if (auto entry = mission.FindEntryOfType(ext)) {
+                auto bytes = mission.ReadEntry(*entry);
                 string str((char*)bytes.data(), bytes.size());
                 std::stringstream stream(str);
-                mission.Read(stream);
-                return mission;
+                info.Read(stream);
+                return info;
             }
 
             // descent.hog does not have an msn, create a replacement
-            if (String::ToLower(Mission->Path.string()).ends_with("descent.hog")) {
-                auto isDemo = Mission->ContainsFileType(".sdl");
+            if (String::ToLower(mission.Path.string()).ends_with("descent.hog")) {
+                auto isDemo = mission.ContainsFileType(".sdl");
                 return CreateDescent1Mission(isDemo);
             }
 
@@ -335,6 +337,11 @@ namespace Inferno::Game {
             SPDLOG_ERROR(e.what());
             return {};
         }
+    }
+
+    Option<MissionInfo> GetCurrentMissionInfo() {
+        if (!Game::Mission) return {};
+        return GetMissionInfo(*Game::Mission);
     }
 
     // Returns a level version, 0 for a mission, or -1 for unknown
@@ -437,65 +444,6 @@ namespace Inferno::Game {
         return {};
     }
 
-    //bool LoadLevelByIndex(int index) {
-    //    if (Game::Mission) {
-    //        for (auto& level : Game::Mission->GetLevels()) {
-    //            if (GetLevelNumber(level.Name) == index) {
-    //                LoadLevelFromHOG(level.Name);
-    //                return true;
-    //            }
-    //        }
-    //    }
-
-    //    return false;
-    //}
-
-
-    //bool LoadLevel(const filesystem::path& path) {
-    //    try {
-    //        auto version = FileVersionFromHeader(path);
-    //        if (version > 0 && version <= 8) {
-    //            PendingLevel = path;
-    //            //LoadLevel(path);
-    //        }
-    //        else if (version == 0) {
-    //            // Hog file
-    //            Game::Mission = HogFile::Read(path);
-    //            //Game::LoadMission(path);
-
-    //            LoadLevelByIndex(0);
-    //        }
-    //        else {
-    //            throw Exception("Unknown file type");
-    //        }
-
-    //        //Settings::Editor.AddRecentFile(path);
-    //        return true;
-    //    }
-    //    catch (const std::exception& e) {
-    //        ShowErrorMessage(e);
-    //        return false;
-    //    }
-    //}
-
-
-    // Loads a D1 or D2 Vertigo level (no XL)
-    //struct Level LoadLevel(std::filesystem::path path) {
-    //    std::ifstream file(path, std::ios::binary);
-    //    if (!file) throw Exception("File does not exist");
-
-    //    auto size = filesystem::file_size(path);
-    //    List<ubyte> buffer(size);
-    //    if (!file.read((char*)buffer.data(), size))
-    //        throw Exception("Error reading file");
-
-    //    LoadLevel(buffer, path);
-    //}
-
-    //Level DeserializeLevel(span<byte> data) {
-    //    
-    //}
-
     // Top level
     void OnLoadLevel(const LoadLevelInfo& info) {
         Inferno::Level level;
@@ -520,7 +468,7 @@ namespace Inferno::Game {
                 level.FileName = info.Path.filename().string();
                 level.Path = info.Path;
 
-                // Load metadata
+                // Load metadata from IED file
                 filesystem::path metadataFile = info.Path;
                 metadataFile.replace_extension(METADATA_EXTENSION);
                 if (auto metadata = File::ReadAllText(metadataFile); !metadata.empty()) {
@@ -531,7 +479,6 @@ namespace Inferno::Game {
             else if (version == 0) {
                 // Hog file
                 Game::Mission = HogFile::Read(info.Path);
-                //Game::LoadMission(path);
 
                 auto entry = Game::Mission->TryReadEntry(info.LevelName);
                 if (entry.empty()) {
@@ -552,6 +499,16 @@ namespace Inferno::Game {
         }
 
         InitLevel(std::move(level));
+
+        // Autosaves need updated stats before the next level is fully loaded
+        Game::Player.TotalTime += Game::Player.LevelTime;
+        Game::Player.LevelTime = 0;
+        Game::Player.Stats.TotalKills += Game::Player.Stats.Kills;
+        Game::Player.Stats.Kills = 0;
+        SPDLOG_INFO("Updating total played time to {}", Game::Player.TotalTime);
+
+        if (info.Autosave)
+            Autosave(MissionTimestamp);
     }
 
     bool HasPendingLoad() {

@@ -7,6 +7,10 @@
 #include "Graphics/Render.Level.h"
 
 namespace Inferno {
+    namespace Render {
+        uint64 GetFreeUploadBufferMemory();
+    }
+
     // Performance overlay
     void DrawDebugOverlay(const ImVec2& pos, const ImVec2& pivot) {
         ImGui::SetNextWindowPos(pos, ImGuiCond_Always, pivot);
@@ -15,17 +19,17 @@ namespace Inferno {
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove;
         if (ImGui::Begin("Debug Overlay", nullptr, flags)) {
             static Array<float, 90> values = {};
-            static int values_offset = 0;
-            static double refresh_time = 0.0;
+            static int valuesOffset = 0;
+            static double refreshTime = 0.0;
             static int usedValues = 0;
 
-            if (refresh_time == 0.0)
-                refresh_time = Clock.GetTotalTimeSeconds();
+            if (refreshTime == 0.0)
+                refreshTime = Clock.GetTotalTimeSeconds();
 
-            while (refresh_time < Clock.GetTotalTimeSeconds()) {
-                values[values_offset] = Render::FrameTime;
-                values_offset = (values_offset + 1) % values.size();
-                refresh_time += 1.0f / 60.0f;
+            while (refreshTime < Clock.GetTotalTimeSeconds()) {
+                values[valuesOffset] = Render::FrameTime;
+                valuesOffset = (valuesOffset + 1) % values.size();
+                refreshTime += 1.0f / 60.0f;
                 usedValues = std::min((int)values.size(), usedValues + 1);
             }
 
@@ -36,7 +40,7 @@ namespace Inferno {
 
                 if (usedValues > 0) average /= (float)usedValues;
                 auto overlay = fmt::format("FPS {:.1f} ({:.2f} ms)  Calls: {:d}", 1 / average, average * 1000, Render::Stats::DrawCalls);
-                ImGui::PlotLines("##FrameTime", values.data(), (int)values.size(), values_offset, overlay.c_str(), 0, 1 / 20.0f, ImVec2(0, 120.0f));
+                ImGui::PlotLines("##FrameTime", values.data(), (int)values.size(), valuesOffset, overlay.c_str(), 0, 1 / 20.0f, ImVec2(0, 120.0f));
             }
         }
         ImGui::End();
@@ -77,6 +81,8 @@ namespace Inferno {
             ImGui::Text("Queue Size (T): %d", Render::GetTransparentQueueSize());
             ImGui::Text("Collision segs: %d", Debug::SegmentsChecked);
             ImGui::Text("Dynamic Lights: %d", Graphics::Lights.GetCount());
+
+            ImGui::Text("Free upload memory: %d kb", Render::GetFreeUploadBufferMemory() / 1024);
         }
         ImGui::End();
 

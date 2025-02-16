@@ -45,7 +45,7 @@ namespace Inferno {
         PowerupFlag Powerups;
         float Energy = 100;
         float Shields = 100;
-        uint8 Lives = INITIAL_LIVES;
+        uint Lives = INITIAL_LIVES;
         int8 Level;             // Level the player is in. Negative for secret levels
         uint8 LaserLevel;       // 0 to 5
         int8 StartingLevel;     // Level the player started the mission on. Used for final score screen.
@@ -57,11 +57,11 @@ namespace Inferno {
 
         struct {
             int16 Kills = 0;            // Robots killed this level. Used to prevent matcens from spawning too many robots.
-            int16 TotalKills = 0;       // Total kills across all levels. Used for scoring
+            int TotalKills = 0;       // Total kills across all levels. Used for scoring
             int16 Robots = 0;           // Number of initial robots this level. Used to prevent matcens from spawning too many robots. Why is this here?
-            int16 TotalRobots = 0;      // Number of robots total. Used for final score ratio.
+            //int16 TotalRobots = 0;      // Number of robots total. Used for final score ratio.
             uint16 TotalHostages = 0;   // Total hostages in all levels. Used for final score ratio
-            uint8 HostagesOnLevel = 0;   // Why is this here?
+            uint8 HostagesOnLevel = 0;
         } Stats;
 
         uint16 HostagesRescued; // Hostages rescued by the player on the current level.

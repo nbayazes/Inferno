@@ -201,12 +201,12 @@ namespace Inferno::UI {
             panel->AddChild<Label>("Framerate limits", FontSize::MediumBlue);
             panel->AddChild<Checkbox>("Enable Foreground Limit", Inferno::Settings::Graphics.EnableForegroundFpsLimit);
 
-            auto foreground = panel->AddChild<Slider>("Foreground", 20, 240, Inferno::Settings::Graphics.ForegroundFpsLimit);
+            auto foreground = panel->AddChild<Slider>("Foreground", 30, 240, Inferno::Settings::Graphics.ForegroundFpsLimit);
             foreground->ShowValue = true;
             foreground->LabelWidth = 200;
             foreground->ValueWidth = 40;
 
-            auto background = panel->AddChild<Slider>("Background", 20, 60, Inferno::Settings::Graphics.BackgroundFpsLimit);
+            auto background = panel->AddChild<Slider>("Background", 10, 60, Inferno::Settings::Graphics.BackgroundFpsLimit);
             background->ShowValue = true;
             background->LabelWidth = 200;
             background->ValueWidth = 40;
@@ -350,7 +350,7 @@ namespace Inferno::UI {
             }
         }
 
-        bool HandleMenuAction(Input::MenuActionState action) override {
+        bool OnMenuAction(Input::MenuActionState action) override {
             if (action == MenuAction::Up) {
                 _selection--;
                 if (_selection < 0) _selection = (int)_priority.size() - 1;

@@ -61,7 +61,7 @@ namespace Inferno {
         FireState PrimaryState{}, SecondaryState{};
         double RefuelSoundTime = 0; // Next time an energy center can make noise
         bool AfterburnerActive = false;
-        int BombIndex = 0; // 0 is proxy, 1 is smart mine
+        uint8 BombIndex = 0; // 0 is proxy, 1 is smart mine
         double LastPrimaryFireTime = 0;
         double LastSecondaryFireTime = 0;
         ShipInfo Ship;
@@ -72,6 +72,7 @@ namespace Inferno {
         bool Exploded = false; // Indicates if the player exploded after dying
         int Score, LevelStartScore;
         double LevelTime, TotalTime;
+        uint LevelDeaths = 0; // Number of times player has died this level
 
         SegID SpawnSegment = SegID::None;
         Vector3 SpawnPosition; // Can be moved based on checkpoints

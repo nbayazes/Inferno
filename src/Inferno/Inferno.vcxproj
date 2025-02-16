@@ -346,6 +346,7 @@
     <ClInclude Include="Audio\WAVFileReader.h" />
     <ClInclude Include="BitmapCache.h" />
     <ClInclude Include="Colors.h" />
+    <ClInclude Include="Difficulty.h" />
     <ClInclude Include="Editor\UI\TerrainEditor.h" />
     <ClInclude Include="Game.Automap.h" />
     <ClInclude Include="Game.Cinematics.h" />
@@ -359,11 +360,14 @@
     <ClInclude Include="Editor\UI\BriefingEditor.h" />
     <ClInclude Include="Editor\UI\DiagnosticWindow.h" />
     <ClInclude Include="Effect.h" />
+    <ClInclude Include="Game.IO.h" />
     <ClInclude Include="Game.Save.h" />
+    <ClInclude Include="Game.State.h" />
     <ClInclude Include="Game.Terrain.h" />
     <ClInclude Include="Game.UI.Bindings.h" />
     <ClInclude Include="Game.UI.Controls.h" />
     <ClInclude Include="Game.UI.h" />
+    <ClInclude Include="Game.UI.LoadDialog.h" />
     <ClInclude Include="Game.UI.Options.h" />
     <ClInclude Include="Game.UI.ScoreScreen.h" />
     <ClInclude Include="Graphics.Debug.h" />

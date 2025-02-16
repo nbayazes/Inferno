@@ -331,12 +331,14 @@ void Inferno::Shell::UpdateWindowTitle(string_view message) {
         SetWindowTextW(Hwnd, L"Escaping the mine!");
     }
     else {
-        auto info = Game::GetMissionInfo();
+        string title;
 
-        string title =
-            info.Levels.empty()
-            ? fmt::format("{} - {}", String::ToUpper(Game::Level.Name), APP_TITLE)
-            : fmt::format("{} [{}] - {}", String::ToUpper(Game::Level.Name), info.Name, APP_TITLE);
+        if (auto info = Game::GetCurrentMissionInfo()) {
+            title = fmt::format("{} [{}] - {}", String::ToUpper(Game::Level.Name), info->Name, APP_TITLE);
+        }
+        else {
+            title = fmt::format("{} - {}", String::ToUpper(Game::Level.Name), APP_TITLE);
+        }
 
         SetWindowTextW(Hwnd, Widen(title).c_str());
     }

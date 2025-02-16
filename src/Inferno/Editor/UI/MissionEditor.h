@@ -28,7 +28,10 @@ namespace Inferno::Editor {
 
     protected:
         bool OnOpen() override {
-            _mission = Game::GetMissionInfo();
+            if (auto info = Game::GetMissionInfo(*Game::Mission)) {
+                _mission = *info;
+            }
+
             _entries.clear();
 
             // if there's no levels in the mission, add all levels from the hog
@@ -244,7 +247,7 @@ namespace Inferno::Editor {
             auto levels = mission.GetContents(filter);
 
             for (auto& level : levels) {
-                if (Seq::find(_entries, [&level](MissionEntry& e) { return e.File == level; }))
+                if (Seq::find(_entries, [&level](const MissionEntry& e) { return e.File == level; }))
                     continue;
 
                 MissionEntry entry = { level, false };

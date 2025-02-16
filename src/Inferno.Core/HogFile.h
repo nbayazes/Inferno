@@ -78,7 +78,7 @@ namespace Inferno {
         }
 
         // Returns the first file with the provided extension
-        Option<HogEntry> FindEntryOfType(string_view extension) {
+        Option<HogEntry> FindEntryOfType(string_view extension) const {
             for (auto& entry : Entries) {
                 if (entry.Name.ends_with(extension)) return entry;
             }

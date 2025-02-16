@@ -217,7 +217,6 @@ namespace Inferno {
             Game::LoadBackgrounds(*Game::Mission);
     }
 
-
     void AddPyroAndReactorPages(Briefing& briefing) {
         auto screen = Seq::tryItem(briefing.Screens, 2);
         if (!screen) return;
@@ -305,7 +304,7 @@ vaporization of the facility.
             Game::BriefingVisible = false;
 
             // the last level shows score screen after briefing
-            auto state = Game::IsLastLevel() ? GameState::ScoreScreen : GameState::LoadLevel;
+            auto state = Game::IsFinalLevel() ? GameState::ScoreScreen : GameState::LoadLevel;
             Game::SetState(state);
         }
     }

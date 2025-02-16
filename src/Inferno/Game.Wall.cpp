@@ -380,9 +380,13 @@ namespace Inferno {
     }
 
     void EnterSecretLevel() {
-        auto mission = Game::GetMissionInfo();
-        if (auto secretLevel = mission.FindSecretLevel(Game::LevelNumber))
-            Game::LoadLevelFromMission(mission, *secretLevel);
+        if (auto mission = Game::GetCurrentMissionInfo()) {
+            if (auto secretLevel = mission->FindSecretLevel(Game::LevelNumber))
+                Game::LoadLevelFromMission(*mission, *secretLevel);
+        }
+        else {
+            PrintHudMessage("Cannot enter secret level: not a misson");
+        }
     }
 
     void ToggleWall(Segment& /*seg*/, SideID /*side*/) {}
@@ -966,9 +970,10 @@ namespace Inferno {
         }
 
         if (trigger.HasFlag(TriggerFlagD1::SecretExit)) {
-            auto mission = Game::GetMissionInfo();
-            if (mission.FindSecretLevel(Game::LevelNumber))
-                Game::LoadSecretLevel = true;
+            if (auto mission = Game::GetCurrentMissionInfo()) {
+                if (mission->FindSecretLevel(Game::LevelNumber))
+                    Game::LoadSecretLevel = true;
+            }
 
             Game::SetState(GameState::ScoreScreen);
         }

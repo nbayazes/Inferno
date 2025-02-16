@@ -346,12 +346,6 @@ namespace Inferno::Game {
         Game::GlobalDimming = 1; // Clear dimming
     }
 
-    bool IsFinalLevel() {
-        auto info = GetMissionInfo();
-        if (info.Levels.empty()) return true; // standalone level;
-        return info.Levels.size() == LevelNumber;
-    }
-
     UI::ScoreInfo CalculateEndLevelScore(int /*levelNumber*/, uint totalHostages) {
         //if (level.Version != 0) {
         //    return {
@@ -422,7 +416,7 @@ namespace Inferno::Game {
 
         score.Difficulty = Game::Difficulty;
         score.TotalBonus = score.SkillBonus + score.EnergyBonus + score.ShieldBonus + score.HostageBonus + score.ShipBonus;
-        score.Deaths = Game::LevelDeaths;
+        score.Deaths = Game::Player.LevelDeaths;
         score.RobotsDestroyed = Game::Player.Stats.Kills;
 
         string time = "0:00";
@@ -970,14 +964,16 @@ namespace Inferno::Game {
 
         Game::Briefing = BriefingState(briefing, levelNumber, level.IsDescent1(), endgame);
         Game::Level.Version = level.Version; // hack: due to LoadResources
-        Game::Briefing.LoadResources(); // TODO: Load resources depends on the level being fully loaded to pick the right assets!
+        // TODO: Rework to not require loading the level first
+        // LoadResources depends on the level being fully loaded to pick the right assets!
+        Game::Briefing.LoadResources();
 
-        auto music = IsLastLevel() ? "d1/endgame" : "d1/briefing";
+        auto music = IsFinalLevel() ? "d1/endgame" : "d1/briefing";
         Game::PlayMusic(music);
         Game::SetState(GameState::Briefing);
     }
 
-    void LoadLevelFromMission(const MissionInfo& mission, int levelNumber) {
+    void LoadLevelFromMission(const MissionInfo& mission, int levelNumber, bool showBriefing, bool autosave) {
         try {
             if (levelNumber == 0)
                 levelNumber = 1;
@@ -1019,15 +1015,14 @@ namespace Inferno::Game {
             if (!levelEntry.empty()) {
                 auto data = Game::Mission->ReadEntry(levelEntry);
                 auto level = isShareware ? Level::DeserializeD1Demo(data) : Level::Deserialize(data);
-                //Game::LoadLevelFromMission(_mission->Levels[_level]);
                 Resources::LoadLevel(level);
                 Graphics::LoadLevel(level);
-                Game::LoadLevel(hogPath, levelEntry);
+                Game::LoadLevel(hogPath, levelEntry, false, autosave);
                 Render::MaterialsChanged = true;
 
                 auto briefingName = mission.GetValue("briefing");
 
-                if (!briefingName.empty()) {
+                if (showBriefing && !briefingName.empty()) {
                     ShowBriefing(mission, levelNumber, level, briefingName, false);
                 }
                 else {
@@ -1066,27 +1061,33 @@ namespace Inferno::Game {
     }
 
     void LoadNextLevel() {
-        auto mission = GetMissionInfo();
-
-        if (mission.Levels.empty()) {
+        if (!Game::Mission) {
             Game::SetState(GameState::MainMenu);
             return;
         }
 
-        auto levelNumber = Game::GetNextLevel(mission, Game::LevelNumber);
+        auto mission = GetMissionInfo(*Game::Mission);
+
+        if (!mission) {
+            Game::SetState(GameState::MainMenu);
+            return;
+        }
+
+        auto levelNumber = Game::GetNextLevel(*mission, Game::LevelNumber);
 
         if (IsFinalLevel()) {
             SPDLOG_WARN("Called LoadNextLevel() on final level");
             SetState(GameState::MainMenu);
         }
         else {
-            LoadLevelFromMission(mission, levelNumber);
+            LoadLevelFromMission(*mission, levelNumber, true, true);
         }
     }
 
     void StartMission() {
         Player = {};
         PlayerLevelStart = {};
+        MissionTimestamp = GetTimestamp();
     }
 
     bool StartLevel() {
@@ -1117,9 +1118,8 @@ namespace Inferno::Game {
         Settings::Editor.ShowTerrain = false;
         Game::ScreenGlow.SetTarget(Color(0, 0, 0, 0), Game::Time, 0);
         Game::FailedEscape = false;
-        Game::LevelDeaths = 0;
-        Game::Player.TotalTime += Game::Player.LevelTime;
-        Game::Player.LevelTime = 0;
+        Game::Player.LevelDeaths = 0;
+        Game::ScreenFlash = Color(0, 0, 0);
 
         // Activate game mode
         State = GameState::Game;
@@ -1237,9 +1237,7 @@ namespace Inferno::Game {
         Player.Respawn(false);
         ResetGameTime = true; // Reset game time so objects don't move before fully loaded
 
-        SaveGame("autosave.sav", true);
         PlayerLevelStart = Player;
-
         return true;
     }
 

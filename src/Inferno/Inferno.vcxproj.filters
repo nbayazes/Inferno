@@ -91,10 +91,7 @@
     <ClCompile Include="Game.Bindings.cpp" />
     <ClCompile Include="Graphics\Render.Beam.cpp" />
     <ClCompile Include="Editor\UI\SettingsDialog.cpp" />
-    <ClCompile Include="Audio\pcm\impl.cpp" />
-    <ClCompile Include="Audio\pcm\stb_vorbis.c" />
     <ClCompile Include="Audio\Music.cpp" />
-    <ClCompile Include="zip\zip.c" />
     <ClCompile Include="Game.IO.cpp" />
     <ClCompile Include="Formats\PCX.cpp" />
     <ClCompile Include="Formats\BBM.cpp" />
@@ -115,6 +112,9 @@
     <ClCompile Include="TextureCache.cpp" />
     <ClCompile Include="Game.UI.Options.cpp" />
     <ClCompile Include="Game.Save.cpp" />
+    <ClCompile Include="Audio\pcm\impl.cpp" />
+    <ClCompile Include="Audio\pcm\stb_vorbis.c" />
+    <ClCompile Include="zip\zip.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\Audio.h" />
@@ -246,11 +246,6 @@
     <ClInclude Include="Render.Effect.h" />
     <ClInclude Include="Debug.h" />
     <ClInclude Include="Audio\Music.h" />
-    <ClInclude Include="Audio\pcm\dr_mp3.h" />
-    <ClInclude Include="Audio\pcm\dr_flac.h" />
-    <ClInclude Include="Audio\pcm\stb_vorbis.h" />
-    <ClInclude Include="zip\zip.h" />
-    <ClInclude Include="zip\miniz.h" />
     <ClInclude Include="Formats\PCX.h" />
     <ClInclude Include="Formats\BBM.h" />
     <ClInclude Include="Game.Briefing.h" />
@@ -277,6 +272,15 @@
     <ClInclude Include="Game.UI.ScoreScreen.h" />
     <ClInclude Include="Game.UI.Bindings.h" />
     <ClInclude Include="Game.Save.h" />
+    <ClInclude Include="Game.State.h" />
+    <ClInclude Include="Game.UI.LoadDialog.h" />
+    <ClInclude Include="Difficulty.h" />
+    <ClInclude Include="Audio\pcm\dr_flac.h" />
+    <ClInclude Include="Audio\pcm\dr_mp3.h" />
+    <ClInclude Include="Audio\pcm\stb_vorbis.h" />
+    <ClInclude Include="zip\miniz.h" />
+    <ClInclude Include="zip\zip.h" />
+    <ClInclude Include="Game.IO.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />
@@ -326,8 +330,6 @@
     <None Include="shaders\Terrain.hlsl" />
     <None Include="shaders\Stars.hlsl" />
     <None Include="shaders\Sun.hlsl" />
-    <None Include="gsl\assert.h" />
-    <None Include="gsl\pointers.h" />
     <None Include="shaders\Automap.hlsl" />
     <None Include="shaders\AutomapOutline.hlsl" />
     <None Include="shaders\AutomapObject.hlsl" />
@@ -336,5 +338,7 @@
     <None Include="shaders\MenuSun.hlsl" />
     <None Include="shaders\DownsampleCS.hlsl" />
     <None Include="shaders\Compose.hlsl" />
+    <None Include="gsl\assert.h" />
+    <None Include="gsl\pointers.h" />
   </ItemGroup>
 </Project>

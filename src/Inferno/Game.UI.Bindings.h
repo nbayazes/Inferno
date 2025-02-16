@@ -251,7 +251,7 @@ namespace Inferno::UI {
             }
         }
 
-        bool HandleMenuAction(Input::MenuActionState action) override {
+        bool OnMenuAction(Input::MenuActionState action) override {
             if (!_waitingForInput) {
                 auto& column = *_column;
 
@@ -668,13 +668,13 @@ namespace Inferno::UI {
             UpdateBindingList(KeyboardInputs, Game::Bindings.GetKeyboard());
         }
 
-        bool HandleMenuAction(Input::MenuActionState action) override {
+        bool OnMenuAction(Input::MenuActionState action) override {
             if (action == MenuAction::Confirm) {
                 Selection->OnConfirm();
             }
 
             // let regular navigation move out of this control
-            return DialogBase::HandleMenuAction(action);
+            return DialogBase::OnMenuAction(action);
         }
 
     private:

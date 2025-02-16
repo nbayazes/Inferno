@@ -2,6 +2,7 @@
 #include "Game.UI.h"
 #include "Game.UI.Controls.h"
 #include "Game.Text.h"
+#include "Game.UI.LoadDialog.h"
 #include "Game.UI.Options.h"
 #include "Game.UI.ScoreScreen.h"
 #include "Graphics.h"
@@ -410,7 +411,7 @@ namespace Inferno::UI {
             if (Input::IsKeyPressed(Keys::Right)) OnDownArrow();
         }
 
-        bool HandleMenuAction(Input::MenuActionState action) override {
+        bool OnMenuAction(Input::MenuActionState action) override {
             if (action == MenuAction::Left) {
                 OnUpArrow();
                 return true;
@@ -421,7 +422,7 @@ namespace Inferno::UI {
                 return true;
             }
 
-            return DialogBase::HandleMenuAction(action);
+            return DialogBase::OnMenuAction(action);
         }
 
         bool OnTryClose() override {
@@ -604,7 +605,9 @@ namespace Inferno::UI {
                 ShowScreen(make_unique<PlayD1Dialog>());
             });
             panel->AddChild<Button>("Play Descent 2");
-            panel->AddChild<Button>("Load Game");
+            panel->AddChild<Button>("Load Game", [] {
+                ShowScreen(make_unique<LoadDialog>());
+            });
             panel->AddChild<Button>("Options", [] {
                 ShowScreen(make_unique<OptionsMenu>());
             });
@@ -615,9 +618,10 @@ namespace Inferno::UI {
             panel->AddChild<Button>("Level Editor", [] {
                 Game::SetState(GameState::Editor);
             });
-            panel->AddChild<Button>("Quit", [] {
+            auto quitButton = panel->AddChild<Button>("Quit", [] {
                 PostMessage(Shell::Hwnd, WM_CLOSE, 0, 0);
             });
+            quitButton->ActionSound = ""; // clear the sound because quitting interrupts it
 
             AddChild(std::move(panel));
         }
@@ -691,26 +695,26 @@ namespace Inferno::UI {
         }
     };
 
-    void DrawTestText(const Vector2& position, FontSize font, uchar lineLen = 32) {
-        Render::DrawTextInfo dti;
-        dti.Font = font;
+    //void DrawTestText(const Vector2& position, FontSize font, uchar lineLen = 32) {
+    //    Render::DrawTextInfo dti;
+    //    dti.Font = font;
 
-        auto drawRange = [&](uchar min, uchar max, float yOffset) {
-            string text;
-            for (uchar i = min; i < max; i++)
-                text += i;
+    //    auto drawRange = [&](uchar min, uchar max, float yOffset) {
+    //        string text;
+    //        for (uchar i = min; i < max; i++)
+    //            text += i;
 
-            dti.Position = position;
-            dti.Position.y += yOffset;
-            Render::HudCanvas->DrawText(text, dti);
-        };
+    //        dti.Position = position;
+    //        dti.Position.y += yOffset;
+    //        Render::HudCanvas->DrawText(text, dti);
+    //    };
 
-        auto lineHeight = MeasureString("M", font).y;
+    //    auto lineHeight = MeasureString("M", font).y;
 
-        for (uchar i = 0; i < uchar(255) / lineLen; i++) {
-            drawRange(i * lineLen, (i + 1) * lineLen, float(i * (lineHeight + 2)));
-        }
-    }
+    //    for (uchar i = 0; i < uchar(255) / lineLen; i++) {
+    //        drawRange(i * lineLen, (i + 1) * lineLen, float(i * (lineHeight + 2)));
+    //    }
+    //}
 
     class PauseMenu : public DialogBase {
         bool _quitConfirm = false;
@@ -742,7 +746,9 @@ namespace Inferno::UI {
                 ShowScreen(std::move(confirmDialog));
             }, AlignH::Center);
 
-            panel->AddChild<Button>("Load Game", AlignH::Center);
+            panel->AddChild<Button>("Load Game", [] {
+                ShowScreen(make_unique<LoadDialog>());
+            }, AlignH::Center);
 
             panel->AddChild<Button>("Options", [] {
                 ShowScreen(make_unique<OptionsMenu>());
@@ -808,6 +814,7 @@ namespace Inferno::UI {
     void ShowMainMenu() {
         Screens.clear();
         ShowScreen(make_unique<MainMenu>());
+        ShowScreen(make_unique<LoadDialog>());
         //ShowScreen(make_unique<FailedEscapeDialog>(true));
         //ShowScreen(make_unique<ScoreScreen>(ScoreInfo{ .ExtraLives = 1 }, true));
     }
@@ -851,7 +858,7 @@ namespace Inferno::UI {
                     screen->OnMouseClick(Input::MousePosition);
 
                 if (!inputCaptured && Input::MenuActions.HasAction()) {
-                    screen->HandleMenuAction(Input::MenuActions);
+                    screen->OnMenuAction(Input::MenuActions);
                 }
             }
 

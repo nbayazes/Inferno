@@ -147,9 +147,9 @@ namespace Inferno {
             stream.WriteUInt8(entry.Mips);
 
             // Write data lengths
-            stream.WriteUInt32((uint32)entry.Diffuse.size() * sizeof Palette::Color);
+            stream.WriteUInt32((uint32)entry.Diffuse.size() * sizeof(Palette::Color));
             stream.WriteUInt32((uint32)entry.Specular.size());
-            stream.WriteUInt32((uint32)entry.Normal.size() * sizeof Palette::Color);
+            stream.WriteUInt32((uint32)entry.Normal.size() * sizeof(Palette::Color));
             stream.WriteUInt32((uint32)entry.Mask.size());
         };
 
@@ -161,9 +161,9 @@ namespace Inferno {
         for (auto& entry : entries) {
             entry.DataOffset = stream.Position() - dataStart;
 
-            stream.WriteBytes({ (ubyte*)entry.Diffuse.data(), entry.Diffuse.size() * sizeof Palette::Color });
+            stream.WriteBytes({ (ubyte*)entry.Diffuse.data(), entry.Diffuse.size() * sizeof(Palette::Color) });
             stream.WriteBytes(entry.Specular);
-            stream.WriteBytes({ (ubyte*)entry.Normal.data(), entry.Normal.size() * sizeof Palette::Color });
+            stream.WriteBytes({ (ubyte*)entry.Normal.data(), entry.Normal.size() * sizeof(Palette::Color) });
             stream.WriteBytes(entry.Mask);
         }
 

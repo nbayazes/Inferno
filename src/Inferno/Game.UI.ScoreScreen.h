@@ -24,17 +24,6 @@ namespace Inferno::UI {
         bool FinalLevel = false;
     };
 
-    inline string_view DifficultyToName(DifficultyLevel difficulty) {
-        switch (difficulty) {
-            default:
-            case DifficultyLevel::Trainee: return "Trainee";
-            case DifficultyLevel::Rookie: return "Rookie";
-            case DifficultyLevel::Hotshot: return "Hotshot";
-            case DifficultyLevel::Ace: return "Ace";
-            case DifficultyLevel::Insane: return "Insane";
-        }
-    }
-
     class ScoreScreen : public ScreenBase {
         static constexpr float titleOffset = 30;
         static constexpr float statsSpacing = 150;
@@ -131,7 +120,7 @@ namespace Inferno::UI {
                     child->Size.y = statsLineHeight;
                 };
 
-                addRightAligned(DifficultyToName(info.Difficulty));
+                addRightAligned(DifficultyToString(info.Difficulty));
                 addRightAligned(info.Time);
                 addRightAligned(std::to_string(info.RobotsDestroyed));
                 addRightAligned(std::to_string(info.Deaths));
@@ -186,7 +175,7 @@ namespace Inferno::UI {
                 Game::LoadNextLevel();
         }
 
-        bool HandleMenuAction(Input::MenuActionState action) override {
+        bool OnMenuAction(Input::MenuActionState action) override {
             if (action == MenuAction::Confirm || action == MenuAction::Cancel) {
                 Game::LoadNextLevel();
                 return true;

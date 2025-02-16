@@ -460,17 +460,17 @@ namespace Inferno {
         GameBinding binding;
 
         string action;
-        if (ReadValue(node, "action", action)) {
+        if (ReadValue2(node, "action", action)) {
             if (auto key = magic_enum::enum_cast<GameAction>(action))
                 binding.action = *key;
         }
 
         auto readBindGroup = [&](ryml::ConstNodeRef root, int slot) {
-            ReadValue(root, "id", binding.id);
-            ReadValue(root, "type", (std::underlying_type_t<BindType>&)binding.type);
-            ReadValue(root, "innerDeadzone", binding.innerDeadzone);
-            ReadValue(root, "outerDeadzone", binding.outerDeadzone);
-            ReadValue(root, "invert", binding.invert);
+            ReadValue2(root, "id", binding.id);
+            ReadValue2(root, "type", (std::underlying_type_t<BindType>&)binding.type);
+            ReadValue2(root, "innerDeadzone", binding.innerDeadzone);
+            ReadValue2(root, "outerDeadzone", binding.outerDeadzone);
+            ReadValue2(root, "invert", binding.invert);
             device.Bind(binding, slot);
         };
 
@@ -485,11 +485,11 @@ namespace Inferno {
         if (auto devices = GetSequenceNode(node, "InputDevices")) {
             for (const auto& deviceNode : *devices) {
                 string guid;
-                if (!ReadValue(deviceNode, "guid", guid))
+                if (!ReadValue2(deviceNode, "guid", guid))
                     continue; // Missing guid!
 
                 string type;
-                if (!ReadValue(deviceNode, "type", type))
+                if (!ReadValue2(deviceNode, "type", type))
                     continue; // Missing type!
 
                 auto inputType = Input::InputType::Unknown;
@@ -615,56 +615,56 @@ namespace Inferno {
             }
         }
 
-        ReadValue(node, "EnableWallMode", s.EnableWallMode);
-        ReadValue(node, "EnableTextureMode", s.EnableTextureMode);
-        ReadValue(node, "ObjectRenderDistance", s.ObjectRenderDistance);
+        ReadValue2(node, "EnableWallMode", s.EnableWallMode);
+        ReadValue2(node, "EnableTextureMode", s.EnableTextureMode);
+        ReadValue2(node, "ObjectRenderDistance", s.ObjectRenderDistance);
 
-        ReadValue(node, "TranslationSnap", s.TranslationSnap);
-        ReadValue(node, "RotationSnap", s.RotationSnap);
+        ReadValue2(node, "TranslationSnap", s.TranslationSnap);
+        ReadValue2(node, "RotationSnap", s.RotationSnap);
 
-        ReadValue(node, "MouselookSensitivity", s.MouselookSensitivity);
-        ReadValue(node, "MoveSpeed", s.MoveSpeed);
+        ReadValue2(node, "MouselookSensitivity", s.MouselookSensitivity);
+        ReadValue2(node, "MoveSpeed", s.MoveSpeed);
 
-        ReadValue(node, "SelectionMode", (int&)s.SelectionMode);
-        ReadValue(node, "InsertMode", (int&)s.InsertMode);
+        ReadValue2(node, "SelectionMode", (int&)s.SelectionMode);
+        ReadValue2(node, "InsertMode", (int&)s.InsertMode);
 
-        ReadValue(node, "ShowObjects", s.ShowObjects);
-        ReadValue(node, "ShowWalls", s.ShowWalls);
-        ReadValue(node, "ShowTriggers", s.ShowTriggers);
-        ReadValue(node, "ShowFlickeringLights", s.ShowFlickeringLights);
-        ReadValue(node, "ShowAnimation", s.ShowAnimation);
-        ReadValue(node, "ShowMatcenEffects", s.ShowMatcenEffects);
-        ReadValue(node, "ShowPortals", s.ShowPortals);
-        ReadValue(node, "WireframeOpacity", s.WireframeOpacity);
+        ReadValue2(node, "ShowObjects", s.ShowObjects);
+        ReadValue2(node, "ShowWalls", s.ShowWalls);
+        ReadValue2(node, "ShowTriggers", s.ShowTriggers);
+        ReadValue2(node, "ShowFlickeringLights", s.ShowFlickeringLights);
+        ReadValue2(node, "ShowAnimation", s.ShowAnimation);
+        ReadValue2(node, "ShowMatcenEffects", s.ShowMatcenEffects);
+        ReadValue2(node, "ShowPortals", s.ShowPortals);
+        ReadValue2(node, "WireframeOpacity", s.WireframeOpacity);
 
-        ReadValue(node, "ShowWireframe", s.ShowWireframe);
-        ReadValue(node, "RenderMode", (int&)s.RenderMode);
-        ReadValue(node, "GizmoSize", s.GizmoSize);
-        ReadValue(node, "CrosshairSize", s.CrosshairSize);
-        ReadValue(node, "InvertY", s.InvertY);
-        ReadValue(node, "InvertOrbitY", s.InvertOrbitY);
-        ReadValue(node, "MiddleMouseMode", (int&)s.MiddleMouseMode);
-        ReadValue(node, "FieldOfView", s.FieldOfView);
+        ReadValue2(node, "ShowWireframe", s.ShowWireframe);
+        ReadValue2(node, "RenderMode", (int&)s.RenderMode);
+        ReadValue2(node, "GizmoSize", s.GizmoSize);
+        ReadValue2(node, "CrosshairSize", s.CrosshairSize);
+        ReadValue2(node, "InvertY", s.InvertY);
+        ReadValue2(node, "InvertOrbitY", s.InvertOrbitY);
+        ReadValue2(node, "MiddleMouseMode", (int&)s.MiddleMouseMode);
+        ReadValue2(node, "FieldOfView", s.FieldOfView);
         s.FieldOfView = std::clamp(s.FieldOfView, 45.0f, 130.0f);
-        ReadValue(node, "FontSize", s.FontSize);
+        ReadValue2(node, "FontSize", s.FontSize);
         s.FontSize = std::clamp(s.FontSize, 8, 48);
 
-        ReadValue(node, "EditBothWallSides", s.EditBothWallSides);
-        ReadValue(node, "ReopenLastLevel", s.ReopenLastLevel);
-        ReadValue(node, "SelectMarkedSegment", s.SelectMarkedSegment);
-        ReadValue(node, "ResetUVsOnAlign", s.ResetUVsOnAlign);
-        ReadValue(node, "WeldTolerance", s.WeldTolerance);
+        ReadValue2(node, "EditBothWallSides", s.EditBothWallSides);
+        ReadValue2(node, "ReopenLastLevel", s.ReopenLastLevel);
+        ReadValue2(node, "SelectMarkedSegment", s.SelectMarkedSegment);
+        ReadValue2(node, "ResetUVsOnAlign", s.ResetUVsOnAlign);
+        ReadValue2(node, "WeldTolerance", s.WeldTolerance);
 
-        ReadValue(node, "Undos", s.UndoLevels);
-        ReadValue(node, "AutosaveMinutes", s.AutosaveMinutes);
-        ReadValue(node, "CoordinateSystem", (int&)s.CoordinateSystem);
-        ReadValue(node, "EnablePhysics", s.EnablePhysics);
-        ReadValue(node, "PasteSegmentObjects", s.PasteSegmentObjects);
-        ReadValue(node, "PasteSegmentWalls", s.PasteSegmentWalls);
-        ReadValue(node, "PasteSegmentSpecial", s.PasteSegmentSpecial);
-        ReadValue(node, "TexturePreviewSize", (int&)s.TexturePreviewSize);
-        ReadValue(node, "ShowLevelTitle", s.ShowLevelTitle);
-        ReadValue(node, "ShowTerrain", s.ShowTerrain);
+        ReadValue2(node, "Undos", s.UndoLevels);
+        ReadValue2(node, "AutosaveMinutes", s.AutosaveMinutes);
+        ReadValue2(node, "CoordinateSystem", (int&)s.CoordinateSystem);
+        ReadValue2(node, "EnablePhysics", s.EnablePhysics);
+        ReadValue2(node, "PasteSegmentObjects", s.PasteSegmentObjects);
+        ReadValue2(node, "PasteSegmentWalls", s.PasteSegmentWalls);
+        ReadValue2(node, "PasteSegmentSpecial", s.PasteSegmentSpecial);
+        ReadValue2(node, "TexturePreviewSize", (int&)s.TexturePreviewSize);
+        ReadValue2(node, "ShowLevelTitle", s.ShowLevelTitle);
+        ReadValue2(node, "ShowTerrain", s.ShowTerrain);
 
         s.Palette = LoadPalette(node["Palette"]);
         s.Selection = LoadSelectionSettings(node["Selection"]);
@@ -684,8 +684,8 @@ namespace Inferno {
         CheatSettings s;
         if (node.is_seed()) return s;
 
-        ReadValue(node["DisableAI"], s.DisableAI);
-        ReadValue(node["DisableWeaponDamage"], s.DisableWeaponDamage);
+        ReadValue2(node, "DisableAI", s.DisableAI);
+        ReadValue2(node, "DisableWeaponDamage", s.DisableWeaponDamage);
         return s;
     }
 
@@ -731,18 +731,18 @@ namespace Inferno {
     void LoadGameSettings(ryml::NodeRef node, InfernoSettings& settings) {
         if (node.is_seed()) return;
 
-        ReadValue(node["ShipWiggle"], settings.ShipWiggle);
-        ReadValue(node["InvertY"], settings.InvertY);
-        ReadValue(node["MouseSensitivity"], settings.MouseSensitivity);
-        ReadValue(node["Difficulty"], Game::Difficulty);
-        ReadValue(node["HalvePitchSpeed"], settings.HalvePitchSpeed);
-        ReadValue(node["ShipAutolevel"], settings.ShipAutolevel);
-        ReadValue(node["NoAutoselectWhileFiring"], settings.NoAutoselectWhileFiring);
-        ReadValue(node["AutoselectAfterFiring"], settings.AutoselectAfterFiring);
-        ReadValue(node["StickyRearview"], settings.StickyRearview);
-        ReadValue(node["SlowmoFusion"], settings.SlowmoFusion);
-        ReadValue(node["PreferHighResFonts"], settings.PreferHighResFonts);
-        ReadValue(node["UseSoundOcclusion"], settings.UseSoundOcclusion);
+        ReadValue2(node, "ShipWiggle", settings.ShipWiggle);
+        ReadValue2(node, "InvertY", settings.InvertY);
+        ReadValue2(node, "MouseSensitivity", settings.MouseSensitivity);
+        ReadValue2(node, "Difficulty", Game::Difficulty);
+        ReadValue2(node, "HalvePitchSpeed", settings.HalvePitchSpeed);
+        ReadValue2(node, "ShipAutolevel", settings.ShipAutolevel);
+        ReadValue2(node, "NoAutoselectWhileFiring", settings.NoAutoselectWhileFiring);
+        ReadValue2(node, "AutoselectAfterFiring", settings.AutoselectAfterFiring);
+        ReadValue2(node, "StickyRearview", settings.StickyRearview);
+        ReadValue2(node, "SlowmoFusion", settings.SlowmoFusion);
+        ReadValue2(node, "PreferHighResFonts", settings.PreferHighResFonts);
+        ReadValue2(node, "UseSoundOcclusion", settings.UseSoundOcclusion);
 
         ReadPriorities(node["PrimaryPriority"], settings.PrimaryPriority);
         ReadPriorities(node["SecondaryPriority"], settings.SecondaryPriority);
