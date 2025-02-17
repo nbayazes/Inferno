@@ -212,13 +212,13 @@ namespace Inferno::Editor {
         // Find angle between the two edges
         auto srcAngle = [side = srcSide, edge = srcEdge] {
             return atan2(side.UVs[(edge + 1) % 4].y - side.UVs[edge].y,
-                         side.UVs[(edge + 1) % 4].x - side.UVs[edge].x);
+                side.UVs[(edge + 1) % 4].x - side.UVs[edge].x);
         }();
 
         // Dest goes in opposite direction
         auto destAngle = [side = destSide, edge = destEdge] {
             return atan2(side.UVs[edge].y - side.UVs[(edge + 1) % 4].y,
-                         side.UVs[edge].x - side.UVs[(edge + 1) % 4].x);
+                side.UVs[edge].x - side.UVs[(edge + 1) % 4].x);
         }();
 
         auto angle = destAngle - srcAngle;
@@ -281,6 +281,12 @@ namespace Inferno::Editor {
             if (tmap1 != LevelTexID::None) {
                 side.TMap = tmap1;
                 wclip = Resources::GetWallClipID(tmap1);
+
+                if (auto wci = Resources::TryGetWallClip(wclip)) {
+                    if (HasFlag(wci->Flags, WallClipFlag::TMap1)) {
+                        side.TMap2 = LevelTexID::Unset; // Unset overlay when a door using tmap1 is set
+                    }
+                }
             }
 
             if (side.TMap == side.TMap2)
