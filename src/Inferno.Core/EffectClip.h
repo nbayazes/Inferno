@@ -77,7 +77,7 @@ namespace Inferno {
     enum class DoorClipFlag : int16 {
         Explodes = 1, // door explodes when opening (hostage door)
         Blastable = 2, // this is a blastable wall
-        TMap1 = 4, // this uses primary tmap, not tmap2
+        TMap1 = 4, // Door uses primary tmap, not tmap2
         Secret = 8 // Secret door. Hidden on automap and prevents guidebot pathing in D2.
     };
 

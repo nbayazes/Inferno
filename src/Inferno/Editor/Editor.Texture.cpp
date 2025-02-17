@@ -283,6 +283,10 @@ namespace Inferno::Editor {
             if (tmap1 != LevelTexID::None) {
                 side.TMap = tmap1;
                 dclip = Resources::GetDoorClipID(tmap1);
+
+                auto& dclipInfo = Resources::GetDoorClip(dclip);
+                if (HasFlag(dclipInfo.Flags, DoorClipFlag::TMap1))
+                    side.TMap2 = LevelTexID::Unset; // Unset overlay when a door using tmap1 is set
             }
 
             if (side.TMap == side.TMap2)
@@ -338,7 +342,7 @@ namespace Inferno::Editor {
                     if (gizmo.SelectedAxis == GizmoAxis::Z) {
                         if (tag == selection) {
                             // do a nice rotation around the selected point if face is selected
-                            Vector3 origin = Vector3(side.UVs[Editor::Selection.Point]);
+                            auto origin = Vector3(side.UVs[Editor::Selection.Point]);
                             auto transform = Matrix::CreateTranslation(-origin) * Matrix::CreateRotationZ(-gizmo.Delta) * Matrix::CreateTranslation(origin);
                             for (auto& uv : side.UVs)
                                 uv = Vector2::Transform(uv, transform);
