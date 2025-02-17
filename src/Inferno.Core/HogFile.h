@@ -1,5 +1,4 @@
 #pragma once
-#include <variant>
 #include "Types.h"
 #include "Utility.h"
 #include <fstream>
@@ -62,9 +61,12 @@ namespace Inferno {
         bool Exists(string_view entry) const;
         const HogEntry& FindEntry(string_view entry) const;
 
-        bool ContainsFileType(string_view extension) const {
+        bool ContainsFileType(const string& extension) const {
+            const auto ext = String::ToLower(extension);
+
             for (auto& entry : Entries) {
-                if (entry.Name.ends_with(extension)) return true;
+                if (String::ToLower(entry.Name).ends_with(ext))
+                    return true;
             }
 
             return false;
@@ -94,7 +96,7 @@ namespace Inferno {
             return Seq::map(Entries, [](const auto& e) { return e.Name; });
         }
 
-        List<string> GetContents(string filter) const {
+        List<string> GetContents(const string& filter) const {
             auto entries = Seq::map(Entries, [](const HogEntry& e) { return e.Name; });
             return Seq::filter(entries, filter, true);
         }
@@ -109,8 +111,9 @@ namespace Inferno {
         StreamWriter _writer;
         int _entries = 0;
         static constexpr int MAX_ENTRIES = 250;
+
     public:
-        HogWriter(filesystem::path path) : _stream(path, std::ios::binary), _writer(_stream) {
+        HogWriter(const filesystem::path& path) : _stream(path, std::ios::binary), _writer(_stream) {
             _writer.WriteString("DHF", 3);
         }
 

@@ -363,3 +363,5 @@ dxc.exe
 *.wav
 /src/Inferno/d1
 /src/Inferno/d2
+*.bak
+*.flac

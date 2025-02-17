@@ -35,7 +35,7 @@ namespace Inferno {
             return Metadata[key] == "yes";
         }
 
-        bool Read(std::filesystem::path path) {
+        bool Read(const std::filesystem::path& path) {
             std::ifstream file(path);
             if (!file) return false;
 
@@ -43,7 +43,7 @@ namespace Inferno {
             while (std::getline(file, line)) {
                 if (String::Contains(line, "=")) {
                     // trim trailing comments (only applies to very old files)
-                    if (auto idx = line.find_first_of(';'); idx > -1)
+                    if (auto idx = line.find_first_of(';'); idx != string::npos)
                         line = line.substr(0, idx);
 
                     auto tokens = String::Split(line, '=');
