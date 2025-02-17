@@ -1,6 +1,6 @@
 {
   "name": "inferno",
-  "version": "1.0.19",
+  "version": "1.0.27",
   "description": "Inferno Engine",
   "vcpkg-configuration": {
     "default-registry": {
