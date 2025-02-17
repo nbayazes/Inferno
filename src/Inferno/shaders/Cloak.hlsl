@@ -62,5 +62,5 @@ float4 psmain(PS_INPUT input) : SV_Target {
     sample += FrameTexture.SampleLevel(LinearBorder, samplePos + float2(-scale.x, -scale.y), 0).rgb * 0.5;
     sample += FrameTexture.SampleLevel(LinearBorder, samplePos + float2(scale.x, scale.y), 0).rgb * 0.5;
     sample /= 8;
-    return float4(sample.rgb * noise, 0.80);
+    return float4(sample.rgb * noise, 0.90);
 }

@@ -208,7 +208,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //float pole_noise = Noise.Sample(Sampler, uv * float2(3, 2)).r;
     //noise = pole_noise;
 
-    float3 color = float3(1, .7, .05) * 1.6;
+    float3 color = float3(1, 1.2, .1) * 1.6;
     const float3 ringColor = float3(1, 0.9, .2) * 1.5;
 
     //return float4(input.uv.y, 0, 0, 1);
@@ -216,8 +216,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
     //color *= pow(1 + saturate(NoiseLayer2(input.uv, 0.25)) * 4, 4);
 
-    color *= 1 + SurfaceNoise(input.uv, float2(0.001, 0.0001) * 4);
-    color += SurfaceNoise2(input.uv, float2(0.002, 0.0002) * 2) * float3(1, .3, 0) * 1.5;
+    color *= 1 + SurfaceNoise(input.uv, float2(0.001, 0.0001) * 4) * 1.9;
+    color += SurfaceNoise2(input.uv, float2(0.002, 0.0003) * 2) * float3(1, .3, 0) * 2;
 
     //color = pow(color, 2);
     //    pow(1 + saturate(NoiseLayer2(input.uv + .25, 0.25, .11) * NoiseLayer2(input.uv + .5, .5, 3.14 / 2.44)) * 4, 2) * 2;
@@ -262,16 +262,18 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
     // outer ring
     float ring = saturate(dot(input.normal, -viewDir));
-    color *= 1 + pow(ring, 3) * 1.5; // Curvature highlight so sphere isn't flat
+    color *= 1 + pow(ring, 2) * 1.5; // Curvature highlight so sphere isn't flat
     //color *= 1 + ring * 1.5 * ringColor; // Curvature highlight so sphere isn't flat
     color *= 0.1;
 
-    float ringAlpha = saturate(1 - dot(input.normal, -viewDir));
-    float3 ring2 = pow(ringAlpha, 2) * 0.6;
-    ring2 += ringAlpha;
-    ring2 *= float3(1, .15, .05) * 75; // Narrow edge ring
-    color = lerp(color, ring2, ringAlpha *.7);
-    return float4(color, 1);
+
+    float ringAlpha = saturate(1 - ring);
+    float3 ring2 = pow(ringAlpha, 4) * 75;
+    ring2 *= float3(1, .125, .05); // Narrow edge ring
+    //color = lerp(color * .75, ring2, ringAlpha);
+    color = lerp(color * .75, ring2, smoothstep(0, 1, ringAlpha));
+    //color *= 1 - pow(ring, 4) * .6; // darken center
+    return float4(pow(color, 1.2) * 0.7, 1);
 }
 
 //float4 psmain(PS_INPUT input) : SV_Target {

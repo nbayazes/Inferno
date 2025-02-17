@@ -66,7 +66,7 @@ Lights:
       Points: 0.135, 0
       Wrap: 2
       Width: 0.1
-      Color: .05, .05, 1, .7 # blue appears dimmer than the others
+      Color: .05, .05, 1, .6 # blue is perceptually darker than green and blue
       Radius: 35
       Angle: 85
       InnerAngle: 60

@@ -10,7 +10,7 @@ static const float GLOBAL_SPECULAR_MULT = 0.5;
 static const float METAL_DIFFUSE_FACTOR = 3; // Direct lighting contribution on metal. Setting this too low makes robots look odd.
 static const float METAL_SPECULAR_EXP = 2; // increase to get sharper metal highlights
 static const float METAL_SPECULAR_MULT = 1; // increase to get brighter metal
-static const float FRESNEL_MULT = GLOBAL_LIGHT_MULT;
+static const float FRESNEL_MULT = GLOBAL_LIGHT_MULT * 1.75;
 
 struct MaterialInfo {
     float NormalStrength;
