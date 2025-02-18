@@ -19,7 +19,6 @@ namespace Inferno::Game {
     constexpr float TICK_RATE = 1.0f / 64; // 64 ticks per second
     constexpr float HOMING_TICK_RATE = 1.0f / 32; // ticks per second for homing weapons
     constexpr float WEAPON_HOMING_DELAY = 1 / 8.0f; // Delay before homing weapons start turning
-    constexpr float DEFAULT_WEAPON_VOLUME = 1.0f; // Default volume when firing weapons
     constexpr float CLOAK_FIRING_FLICKER = 0.75f; // How long a cloaked object 'flickers' after firing
     constexpr Color MATCEN_PHASING_COLOR = { 8, 0, 8 };
     constexpr float MATCEN_SOUND_RADIUS = 300;
@@ -103,14 +102,14 @@ namespace Inferno::Game {
         WeaponID id;
         uint8 gun;
         Vector3* customDir = nullptr;
-        float volume = DEFAULT_WEAPON_VOLUME;
+        float volume = 1;
         float damageMultiplier = 1;
         bool showFlash = true;
     };
 
     void PlayWeaponSound(WeaponID id, float volume, SegID segment, const Vector3& position);
 
-    // Plays a weapon sound, attached to an object. If gun = 255 the object center is used.
+    // Plays a weapon sound attached to an object. If gun = 255 the object center is used.
     void PlayWeaponSound(WeaponID id, float volume, const Object& parent, uint8 gun = 255);
 
     Sound3D InitWeaponSound(WeaponID id, float volume);
@@ -150,7 +149,7 @@ namespace Inferno::Game {
 
     using GunIndex = uint8;
     // 4th parameter is volume
-    using WeaponBehavior = std::function<void(Inferno::Player&, GunIndex, WeaponID, float)>;
+    using WeaponBehavior = std::function<void(Inferno::Player&, GunIndex, WeaponID)>;
     WeaponBehavior& GetWeaponBehavior(const string& name);
 
     constexpr float DOOR_WAIT_TIME = 5; // How long a door stays open before automatically closing

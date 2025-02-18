@@ -325,11 +325,13 @@ namespace Inferno {
 
     void Player::FireFlare() {
         if (_nextFlareFireTime > Game::Time) return;
-        Game::FireWeaponInfo info = { .id = WeaponID::Flare, .gun = 6 };
+        Game::FireWeaponInfo info = { .id = WeaponID::Flare, .gun = FLARE_GUN_ID };
         Game::FireWeapon(Game::GetPlayerObject(), info);
         auto& weapon = Resources::GetWeapon(WeaponID::Flare);
         _nextFlareFireTime = Game::Time + weapon.FireDelay;
-        AlertRobotsOfNoise(Game::GetPlayerObject(), GetWeaponSoundRadius(weapon), weapon.Extended.Noise);
+        auto& player = Game::GetPlayerObject();
+        Game::PlayWeaponSound(WeaponID::Flare, weapon.Extended.FireVolume, player, FLARE_GUN_ID);
+        AlertRobotsOfNoise(player, GetWeaponSoundRadius(weapon), weapon.Extended.Noise);
     }
 
     void Player::GiveWeapon(PrimaryWeaponIndex weapon) {
@@ -424,9 +426,12 @@ namespace Inferno {
             return;
         }
 
+        auto& player = Game::GetPlayerObject();
         auto id = GetSecondaryWeaponID(bomb);
         auto& weapon = Resources::GameData.Weapons[(int)id];
-        Game::FireWeapon(Game::GetPlayerObject(), { .id = id, .gun = 7 });
+
+        Game::PlayWeaponSound(id, weapon.Extended.FireVolume, player, BOMB_GUN_ID);
+        Game::FireWeapon(player, { .id = id, .gun = BOMB_GUN_ID });
         ammo -= (uint16)weapon.AmmoUsage;
 
         // Use the weapon delay instead of the ship battery for bombs.
@@ -447,8 +452,7 @@ namespace Inferno {
     }
 
     void Player::GivePowerup(PowerupFlag powerup) {
-        SetFlag(Powerups, powerup);
-        if (HasFlag(powerup, PowerupFlag::QuadFire)) {
+        if (HasFlag(powerup, PowerupFlag::QuadFire) && !HasFlag(Powerups, PowerupFlag::QuadFire)) {
             // Select to lasers if they have a higher priority after picking up quad fire powerup
             auto laserIndex =
                 Game::Level.IsDescent2() && HasWeapon(PrimaryWeaponIndex::SuperLaser)
@@ -458,6 +462,8 @@ namespace Inferno {
             if (GetWeaponPriority(laserIndex) < GetWeaponPriority(Primary) && CanFirePrimary(laserIndex))
                 SelectPrimary(laserIndex);
         }
+
+        SetFlag(Powerups, powerup);
     }
 
     Vector2 GetHelixOffset(int index) {
@@ -518,8 +524,10 @@ namespace Inferno {
         if (activeGunpoints > 0)
             averageGunPosition /= (float)activeGunpoints;
 
+        float volume = weapon.Extended.FireVolume;
+
         // Make quad lasers slightly louder
-        float volume = activeGunpoints >= 4 ? 1.1f : 1.0f;
+        if (activeGunpoints >= 4) volume *= 1.1f;
 
         // Directly play sounds on the player, otherwise mixing gets too complicated to keep a consistent volume
         auto sound = Game::InitWeaponSound(id, volume);
@@ -530,7 +538,7 @@ namespace Inferno {
             bool quadFire = HasPowerup(PowerupFlag::QuadFire) && Ship.Weapons[(int)Primary].QuadGunpoints[i];
             if (sequence[FiringIndex].Gunpoints[i] || quadFire) {
                 auto& behavior = Game::GetWeaponBehavior(weapon.Extended.Behavior);
-                behavior(*this, i, id, 0); // no volume, we handled sound playback earlier
+                behavior(*this, i, id);
             }
         }
 
@@ -570,10 +578,18 @@ namespace Inferno {
         auto& battery = Ship.Weapons[10 + (int)Secondary];
         auto& sequence = battery.Firing;
         if (SecondaryFiringIndex >= battery.FiringCount) SecondaryFiringIndex = 0;
+        auto& player = Game::GetPlayerObject();
 
-        for (uint8 i = 0; i < 8; i++) {
-            if (sequence[SecondaryFiringIndex].Gunpoints[i])
-                Game::FireWeapon(Game::GetPlayerObject(), { .id = id, .gun = i });
+        for (uint8 gun = 0; gun < MAX_GUNPOINTS; gun++) {
+            if (sequence[SecondaryFiringIndex].Gunpoints[gun]) {
+                Game::FireWeapon(Game::GetPlayerObject(), { .id = id, .gun = gun });
+
+                auto sound = Game::InitWeaponSound(id, weapon.Extended.FireVolume);
+                auto gunSubmodel = GetGunpointSubmodelOffset(player, gun);
+                //sound.AttachOffset = GetSubmodelOffset(player, gunSubmodel);
+                sound.AttachOffset = gunSubmodel.offset;
+                Sound::PlayFrom(sound, player);
+            }
         }
 
         SecondaryFiringIndex = (SecondaryFiringIndex + 1) % battery.FiringCount;
@@ -1532,8 +1548,7 @@ namespace Inferno {
                     armChance *= 0.5f;
                     Game::FireWeaponInfo info = {
                         .id = WeaponID::ProxMine,
-                        .gun = 7,
-                        .volume = 0,
+                        .gun = BOMB_GUN_ID,
                         .showFlash = false
                     };
                     auto mineRef = Game::FireWeapon(player, info);

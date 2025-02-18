@@ -115,6 +115,8 @@ namespace Inferno {
         float ExplosionTime = 0.4f; // How long the explosion takes to fade out
         string ExplosionSound; // Sound to play when exploding. Overrides base sound.
         float ExplosionSoundRadius = 250; // Sound radius when exploding
+        string FireSound; // Sound to play when firing. Overrides base sound.
+        float FireVolume = 1.0f; // How loud the fire sound is
 
         PowerupID PowerupType; // Powerup when dropped
         int WeaponID; // Icon shown in cockpit, the time between shots and energy usage. Mainly for lasers.

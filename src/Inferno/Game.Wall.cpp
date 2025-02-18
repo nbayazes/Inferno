@@ -898,7 +898,6 @@ namespace Inferno {
             // Hit normal wall
             Game::AddWeaponDecal(hit, weapon);
 
-
             // Explosive weapons play their effects on death instead of here
             if (!bounce && splashRadius <= 0) {
                 if (vclip != VClipID::None)

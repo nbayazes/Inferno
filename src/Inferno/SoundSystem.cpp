@@ -198,9 +198,11 @@ namespace Inferno::Sound {
                 }
             }
 
-            auto diff = TargetMuffle - Muffle;
-            auto sign = Sign(diff);
-            Muffle += std::min(abs(diff), dt * 3) * sign; // Take 1/3 a second to reach muffle target
+            if (Settings::Inferno.UseSoundOcclusion) {
+                auto diff = TargetMuffle - Muffle;
+                auto sign = Sign(diff);
+                Muffle += std::min(abs(diff), dt * 3) * sign; // Take 1/3 a second to reach muffle target
+            }
 
             //auto falloff = std::powf(1 - ratio, 3); // cubic falloff
             //auto falloff = 1 - ratio; // linear falloff
@@ -458,11 +460,11 @@ namespace Inferno::Sound {
             auto stats = _engine->GetStatistics();
 
             SPDLOG_INFO("Audio stats:\nPlaying: {} / {}\nInstances: {}\nVoices {} / {} / {} / {}\n{} audio bytes",
-                stats.playingOneShots, stats.playingInstances,
-                stats.allocatedInstances,
-                stats.allocatedVoices, stats.allocatedVoices3d,
-                stats.allocatedVoicesOneShot, stats.allocatedVoicesIdle,
-                stats.audioBytes);
+                        stats.playingOneShots, stats.playingInstances,
+                        stats.allocatedInstances,
+                        stats.allocatedVoices, stats.allocatedVoices3d,
+                        stats.allocatedVoicesOneShot, stats.allocatedVoicesIdle,
+                        stats.audioBytes);
         }
 
         void CopySoundIds() {
@@ -930,8 +932,10 @@ namespace Inferno::Sound {
             if (_soundsD3[fileName]) return _soundsD3[fileName].get();
 
             // Check data folder first
-            if (auto data = LoadWav(fileName))
-                return (_soundsD3[fileName] = std::move(data)).get();
+            {
+                if (auto data = LoadWav(fmt::format("data/{}.wav", fileName)))
+                    return (_soundsD3[fileName] = std::move(data)).get();
+            }
 
             auto info = Resources::ReadOutrageSoundInfo(fileName);
             if (!info) return nullptr;
@@ -969,17 +973,36 @@ namespace Inferno::Sound {
     }
 
     SoundUID Play(const Sound3D& sound, const Vector3& position, SegID seg, SideID side) {
-        PlaySound3DInfo info{ sound, position, seg, side };
+        PlaySound3DInfo info{
+            .Sound = sound,
+            .Position = position,
+            .Segment = seg,
+            .Side = side
+        };
         return SoundThread->PlaySound3D(info);
     }
 
     SoundUID Play(const Sound3D& sound, const Object& source) {
-        PlaySound3DInfo info{ sound, source.Position, source.Segment };
+        PlaySound3DInfo info{
+            .Sound = sound,
+            .Position = source.Position,
+            .Segment = source.Segment
+        };
+
         return SoundThread->PlaySound3D(info);
     }
 
     SoundUID PlayFrom(const Sound3D& sound, const Object& source) {
-        PlaySound3DInfo info{ sound, source.Position, source.Segment, {}, Game::GetObjectRef(source) };
+        if (sound.Volume <= 0) return SoundUID::None;
+
+        PlaySound3DInfo info{
+            .Sound = sound,
+            .Position = source.Position,
+            .Segment = source.Segment,
+            .Side = {},
+            .Source = Game::GetObjectRef(source)
+        };
+
         return SoundThread->PlaySound3D(info);
     }
 

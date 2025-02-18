@@ -168,6 +168,11 @@ Weapons:
   - id: 11
     Name: vulcan
     Behavior: vulcan
+    # FireSound: barrett-taper
+    # FireSound: MG4
+    # FireSound: L7A2-behind
+    # FireSound: L110A2-LMG
+    FireVolume: 1.0
     Decal: BulletHole01
     DecalRadius: 1
     ExplosionTexture: vaussimpact

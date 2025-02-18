@@ -144,6 +144,8 @@ namespace Inferno {
 
         READ_PROP_EXT(ExplosionSize);
         READ_PROP_EXT(ExplosionSound);
+        READ_PROP_EXT(FireSound);
+        READ_PROP_EXT(FireVolume);
         READ_PROP_EXT(ExplosionTexture);
         READ_PROP_EXT(ExplosionTime);
 

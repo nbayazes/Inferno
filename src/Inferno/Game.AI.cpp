@@ -543,6 +543,7 @@ namespace Inferno {
         // Fire the weapon
         Game::FireWeaponInfo info = { .id = weaponId, .gun = gun, .customDir = &targetDir };
         Game::FireWeapon(robot, info);
+        Game::PlayWeaponSound(weaponId, weapon.Extended.FireVolume, robot, gun);
 
         if (primary)
             CycleGunpoint(robot, ai, robotInfo);

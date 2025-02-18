@@ -8,8 +8,8 @@
 #include "Input.h"
 
 namespace Inferno::UI {
-    constexpr auto MENU_SELECT_SOUND = "data/menu-select3.wav";
-    constexpr auto MENU_BACK_SOUND = "data/menu-back1.wav";
+    constexpr auto MENU_SELECT_SOUND = "menu-select3";
+    constexpr auto MENU_BACK_SOUND = "menu-back1";
     constexpr Color HOVER_COLOR = { 1, .9f, 0.9f };
     const auto FOCUS_COLOR = HOVER_COLOR * 1.7f;
     constexpr Color ACCENT_COLOR = { 1, .75f, .2f };

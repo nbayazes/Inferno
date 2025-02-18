@@ -314,7 +314,9 @@ namespace Inferno::Game {
 
     Sound3D InitWeaponSound(WeaponID id, float volume) {
         auto& weapon = Resources::GetWeapon(id);
-        Sound3D sound(weapon.FlashSound);
+        auto resource = weapon.Extended.FireSound.empty() ? SoundResource{ weapon.FlashSound } : SoundResource{ weapon.Extended.FireSound };
+
+        Sound3D sound(resource);
         sound.Volume = volume;
         sound.Radius = weapon.Extended.SoundRadius;
 
@@ -349,8 +351,7 @@ namespace Inferno::Game {
     }
 
     Object CreateWeaponProjectile(WeaponID id, const Vector3& position, const Vector3& direction,
-                                  SegID segment, ObjRef parentRef,
-                                  float damageMultiplier, float volume, uint8 gun = 255) {
+                                  SegID segment, ObjRef parentRef, float damageMultiplier = 1) {
         auto parent = Game::Level.TryGetObject(parentRef);
 
         auto& weapon = Resources::GetWeapon(id);
@@ -473,11 +474,6 @@ namespace Inferno::Game {
         else
             bullet.NextThinkTime = 0;
 
-        if (parent)
-            PlayWeaponSound(id, volume, *parent, gun);
-        else
-            PlayWeaponSound(id, volume, bullet.Segment, bullet.Position);
-
         bullet.Rotation.Normalize();
         bullet.PrevRotation = bullet.Rotation;
 
@@ -496,7 +492,7 @@ namespace Inferno::Game {
         auto objOffset = GetSubmodelOffset(obj, gunSubmodel);
         auto position = Vector3::Transform(objOffset, obj.GetTransform());
         Vector3 direction = info.customDir ? *info.customDir : obj.Rotation.Forward();
-        auto projectile = CreateWeaponProjectile(info.id, position, direction, obj.Segment, ref, info.damageMultiplier, info.volume, info.gun);
+        auto projectile = CreateWeaponProjectile(info.id, position, direction, obj.Segment, ref, info.damageMultiplier);
         auto& weapon = Resources::GetWeapon(info.id);
         projectile.Faction = obj.Faction;
         bool showFlash = info.showFlash;
@@ -549,17 +545,19 @@ namespace Inferno::Game {
         return objRef;
     }
 
-    void SpreadfireBehavior(Inferno::Player& player, uint8 gun, WeaponID wid, float volume) {
+    void SpreadfireBehavior(Inferno::Player& player, uint8 gun, WeaponID wid) {
         //constexpr float SPREAD_ANGLE = 1 / 16.0f * RadToDeg;
         auto spread = Resources::GetWeapon(wid).Extended.Spread * DegToRad;
         auto& obj = Game::GetPlayerObject();
 
-        FireWeaponInfo info = { .id = wid, .gun = gun, .volume = volume };
+        auto& weapon = Resources::GetWeapon(wid);
+        FireWeaponInfo info = { .id = wid, .gun = gun, .volume = weapon.Extended.FireVolume };
 
         if (player.SpreadfireToggle) {
             // Vertical
             FireSpreadWeapon(obj, info);
             info.showFlash = false;
+            info.volume = 0;
             FireSpreadWeapon(obj, info, { 0, -spread });
             FireSpreadWeapon(obj, info, { 0, spread });
         }
@@ -567,6 +565,7 @@ namespace Inferno::Game {
             // Horizontal
             FireSpreadWeapon(obj, info);
             info.showFlash = false;
+            info.volume = 0;
             FireSpreadWeapon(obj, info, { -spread, 0 });
             FireSpreadWeapon(obj, info, { spread, 0 });
         }
@@ -588,11 +587,12 @@ namespace Inferno::Game {
         }
     }
 
-    void HelixBehavior(Inferno::Player& player, uint8 gun, WeaponID wid, float volume) {
+    void HelixBehavior(Inferno::Player& player, uint8 gun, WeaponID wid) {
         auto& obj = Game::GetPlayerObject();
         player.HelixOrientation = (player.HelixOrientation + 1) % 8;
         auto offset = GetHelixOffset(player.HelixOrientation);
-        FireWeaponInfo info = { .id = wid, .gun = gun, .volume = volume };
+        auto& weapon = Resources::GetWeapon(wid);
+        FireWeaponInfo info = { .id = wid, .gun = gun, .volume = weapon.Extended.FireVolume };
 
         FireSpreadWeapon(obj, info);
         info.showFlash = false;
@@ -603,22 +603,23 @@ namespace Inferno::Game {
         FireSpreadWeapon(obj, info, -offset * 2);
     }
 
-    void VulcanBehavior(const Inferno::Player& /*player*/, uint8 gun, WeaponID wid, float volume) {
+    void VulcanBehavior(const Inferno::Player& /*player*/, uint8 gun, WeaponID wid) {
         //constexpr float SPREAD_ANGLE = 1 / 32.0f * RadToDeg; // -0.03125 to 0.03125 spread
-        auto spread = Resources::GetWeapon(wid).Extended.Spread * DegToRad;
+        auto& weapon = Resources::GetWeapon(wid);
+        auto spread = weapon.Extended.Spread * DegToRad;
         auto point = RandomPointInCircle(spread);
-        FireWeaponInfo info = { .id = wid, .gun = gun, .volume = volume };
+        FireWeaponInfo info = { .id = wid, .gun = gun, .volume = weapon.Extended.FireVolume };
         FireSpreadWeapon(Game::GetPlayerObject(), info, { point.x, point.y });
     }
 
-    void ShotgunBehavior(const Inferno::Player& /*player*/, uint8 gun, WeaponID wid, float volume) {
+    void ShotgunBehavior(const Inferno::Player& /*player*/, uint8 gun, WeaponID wid) {
         auto& weapon = Resources::GetWeapon(wid);
         auto spread = weapon.Extended.Spread * DegToRad;
 
         bool flash = true;
         for (size_t i = 0; i < weapon.FireCount; i++) {
             auto point = RandomPointInCircle(spread);
-            FireWeaponInfo info = { .id = wid, .gun = gun, .volume = volume, .showFlash = flash };
+            FireWeaponInfo info = { .id = wid, .gun = gun, .volume = weapon.Extended.FireVolume, .showFlash = flash };
             FireSpreadWeapon(Game::GetPlayerObject(), info, { point.x, point.y });
             flash = false;
         }
@@ -668,7 +669,7 @@ namespace Inferno::Game {
         return target;
     }
 
-    void OmegaBehavior(Inferno::Player& player, uint8 gun, WeaponID wid, float /*volume*/) {
+    void OmegaBehavior(Inferno::Player& player, uint8 gun, WeaponID wid) {
         constexpr auto FOV = 12.5f * DegToRad;
         constexpr auto MAX_DIST = 60;
         constexpr auto MAX_TARGETS = 3;
@@ -821,7 +822,7 @@ namespace Inferno::Game {
         AttachParticle(p, player.Reference, gunSubmodel);
     }
 
-    void FusionBehavior(const Inferno::Player& player, uint8 gun, WeaponID wid, float volume) {
+    void FusionBehavior(const Inferno::Player& player, uint8 gun, WeaponID wid) {
         // Fixes original behavior of fusion jumping from 2.9x to 4x damage at 4 seconds charge.
         // This is believed to be a logic error.
         // Self-damage starts after two seconds, at which the original damage multiplier is 2x.
@@ -831,19 +832,21 @@ namespace Inferno::Game {
         float multiplier = MAX_FUSION_CHARGE_MULT * player.WeaponCharge / MAX_FUSION_CHARGE_TIME;
         if (multiplier > MAX_FUSION_CHARGE_MULT) multiplier = MAX_FUSION_CHARGE_MULT;
 
+        auto& weapon = Resources::GetWeapon(wid);
+
         FireWeaponInfo info = {
             .id = wid,
             .gun = gun,
-            .volume = volume,
-            .damageMultiplier = 1 + multiplier,
+            .volume = weapon.Extended.FireVolume,
+            .damageMultiplier = 1 + multiplier
         };
 
         FireWeapon(Game::GetPlayerObject(), info);
     }
 
     // default weapon firing behavior
-    void DefaultBehavior(const Inferno::Player& /*player*/, uint8 gun, WeaponID wid, float volume) {
-        FireWeaponInfo info = { .id = wid, .gun = gun, .volume = volume };
+    void DefaultBehavior(const Inferno::Player& /*player*/, uint8 gun, WeaponID wid) {
+        FireWeaponInfo info = { .id = wid, .gun = gun };
         FireWeapon(Game::GetPlayerObject(), info);
     }
 
@@ -924,7 +927,8 @@ namespace Inferno::Game {
 
         //SPDLOG_INFO("Tracking: {} dir: {}", targetId, dir);
         auto parentRef = Game::GetObjectRef(parent);
-        auto blob = CreateWeaponProjectile(type, parent.Position, dir, parent.Segment, parentRef, 1, 0);
+        auto blob = CreateWeaponProjectile(type, parent.Position, dir, parent.Segment, parentRef);
+
         blob.Control.Weapon.TrackingTarget = targetId;
         blob.Faction = parent.Faction;
         AddObject(blob);
@@ -943,7 +947,7 @@ namespace Inferno::Game {
         const Weapon& spawnWeapon = Resources::GetWeapon(spawn);
         auto targets = GetNearbyLockTargets(missile, spawnWeapon.Extended.HomingDistance, targetCount, mask);
         Sound3D sound(spawnWeapon.FlashSound);
-        sound.Volume = DEFAULT_WEAPON_VOLUME * 1.5f;
+        sound.Volume = spawnWeapon.Extended.FireVolume;
         sound.Radius = spawnWeapon.Extended.SoundRadius;
         Sound::Play(sound, missile.Position, missile.Segment);
 
