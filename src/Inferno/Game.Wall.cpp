@@ -598,7 +598,9 @@ namespace Inferno {
 
         if (wall.Type == WallType::Destroyable && isPlayerSource && src.Type == ObjectType::Weapon) {
             auto& weapon = Resources::GetWeapon((WeaponID)src.ID);
-            DamageWall(level, wall.Tag, GetDamage(weapon));
+            float damage = GetDamage(weapon);
+            if (weapon.SplashRadius > 0) damage *= 2; // Explosive weapons should deal double damage, as splash doesn't affect walls
+            DamageWall(level, wall.Tag, damage);
         }
         else if (wall.Type == WallType::Door) {
             if (pRobot && RobotCanOpenDoor(level, wall, *pRobot)) {
@@ -655,7 +657,6 @@ namespace Inferno {
         //light.Segment = hit.Tag.Segment;
         //Render::AddDynamicLight(light);
     }
-
 
     // returns true if overlay was destroyed
     bool CheckDestroyableOverlay(Level& level, const Vector3& point, Tag tag, int tri, bool isPlayer) {
