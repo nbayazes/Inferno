@@ -25,6 +25,8 @@ namespace Inferno {
     constexpr float SLOWMO_UP_RATE = 1.0f; // How fast time speeds up (u/s)
     constexpr int8 FLARE_GUN_ID = 6;
     constexpr int BOMB_GUN_ID = 7;
+    constexpr auto HEADLIGHT_OFF_SOUND = "switch2";
+    constexpr auto HEADLIGHT_ON_SOUND = "switch";
 
     // Extracted player state that was scattered across methods or globals as static variables
     class Player : public PlayerData {

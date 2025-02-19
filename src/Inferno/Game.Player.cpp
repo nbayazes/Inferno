@@ -897,13 +897,11 @@ namespace Inferno {
     }
 
     void Player::TurnOffHeadlight(bool playSound) {
-        constexpr auto SWITCH_OFF_SOUND = "data/switch2.wav";
-
         switch (_headlight) {
             case HeadlightState::Normal:
             case HeadlightState::Bright:
                 if (playSound)
-                    Sound::Play2D({ SWITCH_OFF_SOUND });
+                    Sound::Play2D({ HEADLIGHT_OFF_SOUND });
 
                 _headlight = HeadlightState::Off;
 
@@ -916,8 +914,6 @@ namespace Inferno {
     }
 
     void Player::ToggleHeadlight() {
-        constexpr auto SWITCH_ON_SOUND = "data/switch.wav";
-
         switch (_headlight) {
             case HeadlightState::Off:
             {
@@ -931,7 +927,7 @@ namespace Inferno {
                     light.ConeSpill = info->ConeSpill;
 
                     _headlightEffect = AttachLight(light, Reference, { .id = 0, .offset = { 0, -1.75f, 0 } });
-                    Sound::Play2D({ SWITCH_ON_SOUND });
+                    Sound::Play2D({ HEADLIGHT_ON_SOUND });
                     //PrintHudMessage("Headlight On");
                     _headlight = HeadlightState::Normal;
                 }
@@ -952,7 +948,7 @@ namespace Inferno {
 
                     _headlightEffect = AttachLight(light, Reference);
                     PrintHudMessage("Boosted Headlight");
-                    Sound::Play2D({ SWITCH_ON_SOUND });
+                    Sound::Play2D({ HEADLIGHT_ON_SOUND });
                     _headlight = HeadlightState::Bright;
                 }
                 break;
