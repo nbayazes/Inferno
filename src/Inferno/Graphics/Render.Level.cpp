@@ -54,7 +54,7 @@ namespace Inferno::Render {
         if (mode == DynamicLightMode::Flicker || mode == DynamicLightMode::StrongFlicker || mode == DynamicLightMode::WeakFlicker) {
             int index = mode == DynamicLightMode::WeakFlicker ? 0 : mode == DynamicLightMode::Flicker ? 1 : 2;
             float flickerSpeeds[] = { 1.2f, 1.9f, 2.25f };
-            float mults[] = { .25f, .4f, .55f };
+            float mults[] = { .35f, .5f, .65f }; // how much to dim
 
             auto noise = OpenSimplex2::Noise2((uint)side.Tag.Segment, Game::Time * flickerSpeeds[index], hash);
             //const float flickerRadius = lt.mode == DynamicLightMode::Flicker ? 0.05f : (lt.mode == DynamicLightMode::StrongFlicker ? 0.08f : 0.0125f);
