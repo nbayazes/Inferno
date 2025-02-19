@@ -59,6 +59,7 @@ namespace Inferno {
         bool SkipFirstPass = false;
         float LightPlaneTolerance = -0.45f;
         bool Multithread = true;
+        bool SmoothLightDirs = true;
 
         // Retired settings
         bool CheckCoplanar = true;

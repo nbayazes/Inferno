@@ -103,6 +103,8 @@ namespace Inferno::Editor {
             ImGui::Checkbox("Multithread", &settings.Multithread);
             ImGui::HelpMarker("Enables multithread calculations");
 
+            //ImGui::Checkbox("Smooth dirs", &settings.SmoothLightDirs);
+
             /*ImGui::Checkbox("Check Coplanar", &_settings.CheckCoplanar);
                 ImGui::HelpMarker("Causes co-planar light sources to have a consistent brightness");*/
         }

@@ -178,44 +178,6 @@ namespace Inferno::Editor {
         return color.x + color.y + color.z >= 0.001f;
     }
 
-    // Returns sides that are coplanar to the source within an angle
-    List<Tag> FindCoplanarSides(const Level& level, Tag src, float thresholdAngle = 10.0f, bool sameTexture = false) {
-        Set<Tag> coplanar;
-        Set<Tag> scanned;
-        Stack<Tag> toScan;
-        toScan.push(src);
-
-        while (!toScan.empty()) {
-            auto& tag = toScan.top();
-            toScan.pop();
-            coplanar.insert(tag); // if we're scanning it, it must be planar
-            scanned.insert(tag);
-            auto& seg = level.GetSegment(tag.Segment);
-            auto& side = seg.GetSide(tag.Side);
-
-            for (auto& cid : seg.Connections) {
-                if (cid == SegID::None || cid == SegID::Exit) continue;
-                auto& conn = level.GetSegment(cid);
-
-                for (auto& csid : SIDE_IDS) {
-                    Tag target{ cid, csid };
-                    if (scanned.contains(target)) continue; // skip already scanned sides
-
-                    auto& cside = conn.GetSide(csid);
-                    float angle = acos(side.AverageNormal.Dot(cside.AverageNormal)) * RadToDeg;
-                    if (angle < thresholdAngle) {
-                        if (sameTexture && !(side.TMap == cside.TMap && side.TMap2 == cside.TMap2))
-                            continue;
-
-                        toScan.push(target);
-                    }
-                }
-            }
-        }
-
-        return Seq::ofSet(coplanar);
-    }
-
     constexpr float Attenuate1(float dist, float a = 0, float b = 1) {
         return 1.0f / (1.0f + a * dist + b * dist * dist);
     }
@@ -277,6 +239,60 @@ namespace Inferno::Editor {
                 return transparent;
             }
         }
+    }
+
+
+    // Returns sides that are coplanar to the source within an angle
+    List<Tag> FindCoplanarSides(const Level& level, Tag src, float thresholdAngle = 10.0f, bool sameTexture = false) {
+        Set<Tag> coplanar;
+        Set<Tag> scanned;
+        Stack<Tag> toScan;
+        toScan.push(src);
+
+        const float thresholdCos = std::cos(thresholdAngle * DegToRad);
+
+        while (!toScan.empty()) {
+            auto& tag = toScan.top();
+            toScan.pop();
+
+            auto& seg = level.GetSegment(tag.Segment);
+            auto& side = seg.GetSide(tag.Side);
+
+            if (seg.SideHasConnection(tag.Side) && !seg.SideIsWall(tag.Side))
+                continue; // Skip open sides
+
+            coplanar.insert(tag); // if we're scanning it, it must be planar
+            scanned.insert(tag);
+
+            for (auto& sideid : SIDE_IDS) {
+                auto cid = seg.GetConnection(sideid);
+
+                if (!LightPassesThroughSide(level, seg, sideid))
+                    continue; // Opaque wall
+
+                if (cid <= SegID::None || cid == SegID::Terrain)
+                    continue;
+
+                auto& conn = level.GetSegment(cid);
+
+                for (auto& csid : SIDE_IDS) {
+                    Tag target{ cid, csid };
+                    if (scanned.contains(target)) continue; // skip already scanned sides
+
+                    auto& cside = conn.GetSide(csid);
+                    auto dot = side.AverageNormal.Dot(cside.AverageNormal);
+
+                    if (dot > thresholdCos) {
+                        if (sameTexture && !(side.TMap == cside.TMap && side.TMap2 == cside.TMap2))
+                            continue;
+
+                        toScan.push(target);
+                    }
+                }
+            }
+        }
+
+        return Seq::ofSet(coplanar);
     }
 
     bool SideIsVisible(const Level& level, const Segment& seg, SideID sideId) {
@@ -368,9 +384,9 @@ namespace Inferno::Editor {
 
                 ctx.CastStats++;
                 if (ray.Intersects(level.Vertices[indices[ri[0]]],
-                        level.Vertices[indices[ri[1]]],
-                        level.Vertices[indices[ri[2]]],
-                        dist)
+                                   level.Vertices[indices[ri[1]]],
+                                   level.Vertices[indices[ri[2]]],
+                                   dist)
                     && dist < minDist) {
                     ctx.HitStats++;
                     return true;
@@ -378,9 +394,9 @@ namespace Inferno::Editor {
 
                 ctx.CastStats++;
                 if (ray.Intersects(level.Vertices[indices[ri[3]]],
-                        level.Vertices[indices[ri[4]]],
-                        level.Vertices[indices[ri[5]]],
-                        dist)
+                                   level.Vertices[indices[ri[4]]],
+                                   level.Vertices[indices[ri[5]]],
+                                   dist)
                     && dist < minDist) {
                     ctx.HitStats++;
                     return true;
@@ -902,6 +918,61 @@ namespace Inferno::Editor {
         return tree;
     }
 
+    void SmoothLightDirs(Level& level) {
+        Set<Tag> scanned;
+
+        struct DirInfo {
+            Vector3 direction;
+            uint16 count;
+        };
+
+        for (size_t id = 0; id < level.Segments.size(); id++) {
+            for (auto& sideid : SIDE_IDS) {
+                Tag tag(SegID(id), sideid);
+                List<Tag> coplanars = FindCoplanarSides(level, tag, 10.0f);
+
+                Seq::insert(scanned, coplanars);
+
+                if (coplanars.size() <= 1) continue; // No shared sides!
+
+                Dictionary<PointID, DirInfo> cache;
+
+                // Add each side's point to the cache
+                for (auto& coplanar : coplanars) {
+                    auto& seg = level.GetSegment(coplanar);
+                    auto indices = seg.GetVertexIndices(coplanar.Side);
+                    auto& side = seg.GetSide(coplanar.Side);
+
+                    // match this side's indices with other coplanar sides
+                    for (uint16 i = 0; i < 4; i++) {
+                        auto& entry = cache[indices[i]];
+                        entry.count++;
+                        entry.direction += side.LightDirs[i];
+                    }
+                }
+
+                // Average the entries
+                for (auto& entry : cache | views::values) {
+                    if (entry.count > 1)
+                        entry.direction.Normalize();
+                }
+
+                // copy values to matching indices
+                for (auto& coplanar : coplanars) {
+                    auto& seg = level.GetSegment(coplanar);
+                    auto indices = seg.GetVertexIndices(coplanar.Side);
+                    auto& side = seg.GetSide(coplanar.Side);
+
+                    for (uint16 i = 0; i < 4; i++) {
+                        if (cache.contains(indices[i]) && cache[indices[i]].count > 1) {
+                            side.LightDirs[i] = cache[indices[i]].direction;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     void LightWorker(Level level, const LightSettings& settings) {
         try {
             RequestCancelLighting = false;
@@ -1064,6 +1135,10 @@ namespace Inferno::Editor {
                         }
                     }
                 }
+            }
+
+            if (settings.SmoothLightDirs) {
+                SmoothLightDirs(level);
             }
 
             SPDLOG_INFO("Delta lights: {} of {}; Indices: {} of {}", level.LightDeltaIndices.size(), MAX_DYNAMIC_LIGHTS, level.LightDeltas.size(), MAX_LIGHT_DELTAS);

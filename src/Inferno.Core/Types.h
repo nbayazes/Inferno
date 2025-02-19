@@ -530,7 +530,10 @@ namespace Inferno {
     };
 
     // Tags a point on a segment side
-    struct PointTag : Tag { uint16 Point; };
+    struct PointTag : Tag {
+        uint16 Point;
+        auto operator<=>(const PointTag&) const = default;
+    };
 
     // Connection between rooms
     struct Portal {
