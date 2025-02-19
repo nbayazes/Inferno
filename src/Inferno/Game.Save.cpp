@@ -156,7 +156,8 @@ namespace Inferno {
         return save;
     }
 
-    void SaveGame(const filesystem::path& path, const SaveGameInfo& save) {
+    void WriteSave(const filesystem::path& path, const SaveGameInfo& save) {
+        ASSERT(!save.saveFilePath.empty());
         ryml::Tree doc(128, 128);
         doc.rootref() |= ryml::MAP;
 
@@ -257,7 +258,7 @@ namespace Inferno {
             if (missionTimestamp > 0)
                 save.missionTimestamp = missionTimestamp > 0 ? missionTimestamp : save.timestamp;
 
-            SaveGame(saveFolder / name, save);
+            WriteSave(saveFolder / name, save);
             return save.timestamp;
         }
         catch (const std::exception& e) {
@@ -265,6 +266,14 @@ namespace Inferno {
             ShowErrorMessage(message);
             SPDLOG_ERROR(message);
             return 0;
+        }
+    }
+    void DeleteSave(const SaveGameInfo& save) {
+        filesystem::path path = save.saveFilePath;
+
+        if (filesystem::exists(path)) {
+            SPDLOG_INFO("Deleting save {}", path.string());
+            filesystem::remove(path);
         }
     }
 
@@ -278,13 +287,7 @@ namespace Inferno {
             });
 
             while (autosaves.size() > maxAutosaves) {
-                filesystem::path path = autosaves.back().saveFilePath;
-
-                if (filesystem::exists(path)) {
-                    SPDLOG_INFO("Pruning autosave {}", path.string());
-                    filesystem::remove(path);
-                }
-
+                DeleteSave(autosaves.back());
                 autosaves.pop_back();
             }
         }
@@ -327,7 +330,7 @@ namespace Inferno {
     List<SaveGameInfo> ReadAllSaves() {
         try {
             List<SaveGameInfo> saves;
-            
+
             for (auto& file : filesystem::directory_iterator(GetSaveFolder())) {
                 if (!file.is_regular_file()) continue;
 

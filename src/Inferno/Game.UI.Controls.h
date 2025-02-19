@@ -594,11 +594,11 @@ namespace Inferno::UI {
                 return;
             }
 
-            if (Input::IsKeyPressed(Keys::PageDown, true)) {
+            if (Input::OnKeyPressed(Keys::PageDown, true)) {
                 PageDown();
             }
 
-            if (Input::IsKeyPressed(Keys::PageUp, true)) {
+            if (Input::OnKeyPressed(Keys::PageUp, true)) {
                 PageUp();
             }
 
@@ -614,10 +614,16 @@ namespace Inferno::UI {
         }
 
         void ScrollToIndex(int index) {
-            if (index < _scrollIndex + 1)
-                _scrollIndex = index - 1;
-            else if (index >= _scrollIndex + _visibleItems - 1)
-                _scrollIndex = index - _visibleItems + 2;
+            // This scrolls at the edges but is annoying when trying to pick the last item with a mouse
+            //if (index < _scrollIndex + 1)
+            //    _scrollIndex = index - 1;
+            //else if (index >= _scrollIndex + _visibleItems - 1)
+            //    _scrollIndex = index - _visibleItems + 2;
+
+            if (index < _scrollIndex)
+                _scrollIndex = index;
+            else if (index >= _scrollIndex + _visibleItems)
+                _scrollIndex = index - _visibleItems + 1;
 
             ClampRanges();
             //HitTestCursor();
@@ -2146,6 +2152,59 @@ namespace Inferno::UI {
         }
     };
 
+
+    class ConfirmDialog : public DialogBase {
+    public:
+        ConfirmDialog(string_view message) : DialogBase("", false) {
+            ActionSound = "";
+            auto label = AddChild<Label>(message, FontSize::MediumBlue);
+            label->HorizontalAlignment = AlignH::Center;
+            label->Position = Vector2(0, DIALOG_PADDING);
+
+            Size = MeasureString(message, FontSize::Medium);
+            Size.x += DIALOG_PADDING * 2 + 20;
+            Size.y = Size.y * 2 + DIALOG_PADDING * 2 + 10;
+
+            auto yesButton = AddChild<Button>("yes");
+            yesButton->VerticalAlignment = AlignV::Bottom;
+            yesButton->HorizontalAlignment = AlignH::Center;
+            yesButton->Position = Vector2(-50, -DIALOG_PADDING);
+            yesButton->ClickAction = [this] { State = CloseState::Accept; };
+
+            auto noButton = AddChild<Button>("no");
+            noButton->VerticalAlignment = AlignV::Bottom;
+            noButton->HorizontalAlignment = AlignH::Center;
+            noButton->Position = Vector2(50, -DIALOG_PADDING);
+            noButton->ActionSound = "";
+            noButton->ClickAction = [this] { State = CloseState::Cancel; };
+        }
+
+        //void OnUpdate() override {
+        //    DialogBase::OnUpdate();
+
+        //    if (Input::IsKeyPressed(Input::Keys::Left)) OnUpArrow();
+        //    if (Input::IsKeyPressed(Input::Keys::Right)) OnDownArrow();
+        //}
+
+        bool OnMenuAction(Input::MenuActionState action) override {
+            if (action == MenuAction::Left) {
+                OnUpArrow();
+                return true;
+            }
+
+            if (action == MenuAction::Right) {
+                OnDownArrow();
+                return true;
+            }
+
+            return DialogBase::OnMenuAction(action);
+        }
+
+        bool OnTryClose() override {
+            Game::SetState(GameState::Game);
+            return true; // Allow closing this dialog with escape
+        }
+    };
 
     // Centered selection popup using a medium font size
     class MediumSelectionPopup : public DialogBase {

@@ -43,6 +43,7 @@ namespace Inferno {
 
     string GetSaveName();
 
+
     uint64 GetTimestamp();
 
     // Saves the current game state to a given file name.
@@ -50,11 +51,14 @@ namespace Inferno {
     // Returns the timestamp of the save
     int64 SaveGame(string_view name, int64 missionTimestamp = 0, bool autosave = false);
 
+    void DeleteSave(const SaveGameInfo& save);
+
     // Prunes autosaves in the save folder to a maximum
     void PruneAutosaves(uint maxAutosaves);
 
     int64 Autosave(int64 missionTimestamp = 0, uint maxAutosaves = 3);
 
+    void WriteSave(const filesystem::path& path, const SaveGameInfo& save);
     Option<SaveGameInfo> ReadSave(string_view name);
     List<SaveGameInfo> ReadAllSaves();
     void LoadSave(const SaveGameInfo& save);

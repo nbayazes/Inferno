@@ -46,6 +46,40 @@ namespace Inferno::UI {
             return true;
         }
 
+        void RequestDelete() const {
+            auto confirmDialog = make_unique<ConfirmDialog>("Delete save?");
+            confirmDialog->Layer = Layer + 1;
+
+            confirmDialog->CloseCallback = [this](CloseState state) {
+                if (state == CloseState::Accept) {
+                    DeleteSave(_save);
+                    if (SaveChangedHandler) SaveChangedHandler();
+                }
+            };
+
+            ShowScreen(std::move(confirmDialog));
+        }
+
+        void OnUpdate() override {
+            if (!Focused) return;
+
+            if (Input::OnKeyPressed(Input::Keys::Delete) || Input::OnControllerButtonPressed(SDL_GAMEPAD_BUTTON_NORTH)) {
+                Sound::Play2D(SoundResource{ MENU_SELECT_SOUND });
+                RequestDelete();
+            }
+
+            if (Input::OnKeyPressed(Input::Keys::S) || Input::OnControllerButtonPressed(SDL_GAMEPAD_BUTTON_WEST)) {
+                if (_save.autosave && !_save.saveFilePath.empty()) {
+                    _save.autosave = false;
+                    WriteSave(_save.saveFilePath, _save);
+                    Sound::Play2D({ MENU_SELECT_SOUND });
+                    if (SaveChangedHandler) SaveChangedHandler();
+                }
+            }
+        }
+
+        Action SaveChangedHandler;
+
         void OnDraw() override {
             Render::DrawTextInfo dti;
             dti.Font = FontSize::Small;
@@ -129,15 +163,28 @@ namespace Inferno::UI {
         ListBox2* _saveList;
         static constexpr auto ROW_HEIGHT = SMALL_CONTROL_HEIGHT * 5;
         static constexpr auto VISIBLE_ROWS = 6;
+        Label* _footer = nullptr;
+
+        //void OnSavesChanged() {
+        //    RefreshSaveList();
+        //}
+
+        void RefreshSaveList() {
+            auto saves = ReadAllSaves();
+            _saveList->Children.clear();
+
+            for (auto& save : saves) {
+                auto ctrl = _saveList->AddChild<SaveGameControl>(save);
+                ctrl->SaveChangedHandler = std::bind_front(&LoadDialog::RefreshSaveList, this);
+            }
+        }
 
     public:
         LoadDialog() : DialogBase("Load Game") {
-            auto saves = ReadAllSaves();
-
             //auto visibleRows = int((Size.y - DIALOG_PADDING - DIALOG_HEADER_PADDING) / rowHeight);
 
             Size.x = 600;
-            Size.y = VISIBLE_ROWS * ROW_HEIGHT + DIALOG_PADDING + DIALOG_HEADER_PADDING;
+            Size.y = VISIBLE_ROWS * ROW_HEIGHT + DIALOG_PADDING + DIALOG_HEADER_PADDING + 20;
 
             auto saveList = AddChild<ListBox2>(VISIBLE_ROWS, Size.x - DIALOG_PADDING * 3);
             saveList->Size.x = Size.x - 20 * 2;
@@ -145,13 +192,10 @@ namespace Inferno::UI {
             saveList->Position.y = DIALOG_HEADER_PADDING;
             saveList->Position.x = 20;
             saveList->RowHeight = ROW_HEIGHT;
-
-            for (auto& save : saves) {
-                saveList->AddChild<SaveGameControl>(save);
-            }
+            _saveList = saveList;
 
             //saveList->AddChild<SaveGameControl>(SaveGameInfo());
-            _saveList = saveList;
+            RefreshSaveList();
         }
 
         void OnDraw() override {
@@ -175,6 +219,14 @@ namespace Inferno::UI {
                     Render::UICanvas->DrawBitmap(cbi, Layer + 1);
                 }
             }
+
+            Render::DrawTextInfo dti;
+            dti.Font = FontSize::Small;
+            dti.Color = IDLE_BUTTON;
+            dti.HorizontalAlign = AlignH::Center;
+            dti.Position.y = ScreenPosition.y + ScreenSize.y - 22 * GetScale();
+            //dti.Position = ScreenPosition + Vector2(DIALOG_PADDING + 30, ScreenSize.y - 22 * GetScale());
+            Render::UICanvas->DrawRaw("del to delete, S to keep autosave", dti, Layer);
         }
     };
 }

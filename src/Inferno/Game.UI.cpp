@@ -376,61 +376,6 @@ namespace Inferno::UI {
         }
     };
 
-    class ConfirmDialog : public DialogBase {
-        gsl::strict_not_null<bool*> _result;
-
-    public:
-        ConfirmDialog(string_view message, bool& result) : DialogBase("", false), _result(&result) {
-            ActionSound = "";
-            auto label = AddChild<Label>(message, FontSize::MediumBlue);
-            label->HorizontalAlignment = AlignH::Center;
-            label->Position = Vector2(0, DIALOG_PADDING);
-
-            Size = MeasureString(message, FontSize::Medium);
-            Size.x += DIALOG_PADDING * 2 + 20;
-            Size.y = Size.y * 2 + DIALOG_PADDING * 2 + 10;
-
-            auto yesButton = AddChild<Button>("yes");
-            yesButton->VerticalAlignment = AlignV::Bottom;
-            yesButton->HorizontalAlignment = AlignH::Center;
-            yesButton->Position = Vector2(-50, -DIALOG_PADDING);
-            yesButton->ClickAction = [this] { State = CloseState::Accept; };
-
-            auto noButton = AddChild<Button>("no");
-            noButton->VerticalAlignment = AlignV::Bottom;
-            noButton->HorizontalAlignment = AlignH::Center;
-            noButton->Position = Vector2(50, -DIALOG_PADDING);
-            noButton->ActionSound = "";
-            noButton->ClickAction = [this] { State = CloseState::Cancel; };
-        }
-
-        void OnUpdate() override {
-            DialogBase::OnUpdate();
-
-            if (Input::IsKeyPressed(Keys::Left)) OnUpArrow();
-            if (Input::IsKeyPressed(Keys::Right)) OnDownArrow();
-        }
-
-        bool OnMenuAction(Input::MenuActionState action) override {
-            if (action == MenuAction::Left) {
-                OnUpArrow();
-                return true;
-            }
-
-            if (action == MenuAction::Right) {
-                OnDownArrow();
-                return true;
-            }
-
-            return DialogBase::OnMenuAction(action);
-        }
-
-        bool OnTryClose() override {
-            Game::SetState(GameState::Game);
-            return true; // Allow closing this dialog with escape
-        }
-    };
-
     class FailedEscapeDialog : public DialogBase {
     public:
         FailedEscapeDialog(bool missionFailed) : DialogBase("You didn't escape in time", false) {
@@ -717,8 +662,6 @@ namespace Inferno::UI {
     //}
 
     class PauseMenu : public DialogBase {
-        bool _quitConfirm = false;
-        bool _restartConfirm = false;
         float _topOffset = 150;
         Vector2 _menuSize;
 
@@ -738,7 +681,7 @@ namespace Inferno::UI {
             //panel->AddChild<Button>("Save Game", AlignH::Center);
 
             panel->AddChild<Button>("Restart", [this] {
-                auto confirmDialog = make_unique<ConfirmDialog>("Restart the level?", _restartConfirm);
+                auto confirmDialog = make_unique<ConfirmDialog>("Restart the level?");
                 confirmDialog->CloseCallback = [this](CloseState state) {
                     if (state == CloseState::Accept)
                         Game::RestartLevel();
@@ -754,7 +697,7 @@ namespace Inferno::UI {
                 ShowScreen(make_unique<OptionsMenu>());
             }, AlignH::Center);
             panel->AddChild<Button>("Quit", [this] {
-                auto confirmDialog = make_unique<ConfirmDialog>("are you sure?", _quitConfirm);
+                auto confirmDialog = make_unique<ConfirmDialog>("are you sure?");
                 confirmDialog->CloseCallback = [this](CloseState state) {
                     if (state == CloseState::Accept)
                         Game::SetState(GameState::MainMenu);
