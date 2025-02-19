@@ -292,9 +292,10 @@ float4 psmain(PS_INPUT input) : SV_Target {
             ambient *= Frame.GlobalDimming;
         }
 
-        //ambient *= HalfLambert(normal, normalize(float3(1, 0, 0)));
         if (any(input.lightDir))
-            ambient *= pow(Lambert(normal, input.lightDir), 2); // Apply ambient light directions
+            ambient *= pow(Lambert(normal, input.lightDir) * 1.3, 3); // Apply ambient light directions (stronger directionality)
+            //ambient *= pow(Lambert(normal, input.lightDir), 2); // Apply ambient light directions
+
         //return float4(ambient, 1);
 
         // remove specular from emissive areas, as they are typically lights or screens and will oversaturate

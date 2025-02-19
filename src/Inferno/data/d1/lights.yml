@@ -77,7 +77,7 @@ Lights:
       Wrap: 2
       Width: 0.1
       Radius: 35
-      Color: 1, 0.75, 0, .4
+      Color: 1, 0.75, 0, .33 # yellow has more energy than blue and red
       Angle: 85
       InnerAngle: 60
 
@@ -177,6 +177,7 @@ Lights:
       Radius: 35
       Angle: 75
       InnerAngle: 65
+      ConeSpill: 0.15
 
     # Double edge wrapped lights
     - Name: ceil020 # yellow
@@ -199,7 +200,10 @@ Lights:
       Wrap: 2
       Color: 0.666, 0.666, 1, .40
       Radius: 30
-  
+      Angle: 80
+      InnerAngle: 50
+      ConeSpill: 0.1
+
     - Name: ceil023 # End of 279
       Type: 2
       Points:
@@ -219,7 +223,7 @@ Lights:
       Height: .04
       Color: .75, .75, 1, 0.4
       Radius: 25
-  
+
     - Name: ceil031
       Type: 2
       Points:
