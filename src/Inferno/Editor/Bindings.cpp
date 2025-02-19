@@ -295,7 +295,7 @@ namespace Inferno::Editor::Bindings {
                     binding.Action == EditorAction::SideMode ||
                     binding.Action == EditorAction::SegmentMode;
 
-                if (Input::IsKeyPressed(binding.Key) &&
+                if (Input::OnKeyPressed(binding.Key) &&
                     (binding.Shift == Input::ShiftDown || shiftOverride) &&
                     binding.Alt == Input::AltDown &&
                     binding.Control == Input::ControlDown) {
