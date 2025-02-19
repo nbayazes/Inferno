@@ -1730,6 +1730,10 @@ namespace Inferno::UI {
 
         float LabelWidth = 0;
         float ValueWidth = 25;
+        float Step = 0.01f;
+        float BigStep = 0.1f;
+        bool Snap = false;
+
         SoundResource ChangeSound; // MENU_SELECT_SOUND
         bool ShowValue = false;
 
@@ -1752,7 +1756,7 @@ namespace Inferno::UI {
         float GetValueWidth() const { return ShowValue ? ValueWidth : 0; }
 
         bool OnMenuAction(Input::MenuActionState action) override {
-            const float keyboardIncrement = Input::ShiftDown ? 0.01f : 0.1f;
+            const float keyboardIncrement = Input::ShiftDown ? BigStep : Step;
 
             if (action == MenuAction::Left) {
                 UpdatePercent(GetPercent() - keyboardIncrement);
@@ -1780,6 +1784,9 @@ namespace Inferno::UI {
                     _dragging = false;
                     CaptureCursor(false);
                     Sound::Play2D(ChangeSound);
+                    if (Snap) {
+                        *_value = Step * std::round(*_value / Step);
+                    }
                 }
             }
 

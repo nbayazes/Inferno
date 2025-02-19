@@ -146,7 +146,7 @@ namespace Inferno::UI {
             Size = Vector2(620, 460);
             CloseOnConfirm = false;
 
-            auto panel = make_unique<StackPanel>();
+            auto panel = AddChild<StackPanel>();
             panel->Size.x = Size.x - DIALOG_PADDING * 2;
             panel->Position = Vector2(0, DIALOG_HEADER_PADDING);
             panel->HorizontalAlignment = AlignH::Center;
@@ -158,9 +158,8 @@ namespace Inferno::UI {
             _useVsync = Settings::Graphics.UseVsync;
             panel->AddChild<Checkbox>("VSync", _useVsync);
             panel->AddChild<Checkbox>("Procedural textures", Settings::Graphics.EnableProcedurals);
-            panel->AddChild<Label>("");
 
-            auto renderScale = make_unique<SliderFloat>("Render scale", 0.25f, 1.0f, Settings::Graphics.RenderScale, 2);
+            auto renderScale = panel->AddChild<SliderFloat>("Render scale", 0.25f, 1.0f, Settings::Graphics.RenderScale, 2);
             //renderScale->LabelWidth = 300;
             renderScale->ShowValue = true;
             renderScale->LabelWidth = 250;
@@ -168,20 +167,23 @@ namespace Inferno::UI {
             renderScale->OnChange = [](float value) {
                 Settings::Graphics.RenderScale = std::floor(value * 20) / 20;
             };
-            panel->AddChild(std::move(renderScale));
+
+            auto brightness = panel->AddChild<SliderFloat>("Brightness", 0.5f, 1.5f, Inferno::Settings::Graphics.Brightness, 2);
+            brightness->ShowValue = true;
+            brightness->Snap = true;
+            brightness->LabelWidth = 250;
+            brightness->ValueWidth = 50;
 
             auto fov = panel->AddChild<SliderFloat>("Field of view", 60.0f, 90.0f, Inferno::Settings::Graphics.FieldOfView, 0);
             fov->ShowValue = true;
             fov->LabelWidth = 250;
             fov->ValueWidth = 50;
 
-            auto upscaleFilter = make_unique<OptionSpinner>("upscale filtering", std::initializer_list<string_view>{ "Sharp", "Smooth" }, (int&)Settings::Graphics.UpscaleFilter);
+            auto upscaleFilter = panel->AddChild<OptionSpinner>("upscale filtering", std::initializer_list<string_view>{ "Sharp", "Smooth" }, (int&)Settings::Graphics.UpscaleFilter);
             upscaleFilter->LabelWidth = 340;
-            panel->AddChild(std::move(upscaleFilter));
 
-            auto filterMode = make_unique<OptionSpinner>("Texture Filtering", std::initializer_list<string_view>{ "None", "Enhanced", "Smooth" }, (int&)Settings::Graphics.FilterMode);
+            auto filterMode = panel->AddChild<OptionSpinner>("Texture Filtering", std::initializer_list<string_view>{ "None", "Enhanced", "Smooth" }, (int&)Settings::Graphics.FilterMode);
             filterMode->LabelWidth = 340;
-            panel->AddChild(std::move(filterMode));
 
             _msaaSamples = [] {
                 switch (Settings::Graphics.MsaaSamples) {
@@ -193,9 +195,8 @@ namespace Inferno::UI {
                 }
             }();
 
-            auto msaa = make_unique<OptionSpinner>("MSAA", std::initializer_list<string_view>{ "None", "2x", "4x", "8x" }, _msaaSamples);
+            auto msaa = panel->AddChild<OptionSpinner>("MSAA", std::initializer_list<string_view>{ "None", "2x", "4x", "8x" }, _msaaSamples);
             msaa->LabelWidth = 340;
-            panel->AddChild(std::move(msaa));
 
             panel->AddChild<Label>("");
             panel->AddChild<Label>("Framerate limits", FontSize::MediumBlue);
@@ -210,8 +211,6 @@ namespace Inferno::UI {
             background->ShowValue = true;
             background->LabelWidth = 200;
             background->ValueWidth = 40;
-
-            AddChild(std::move(panel));
         }
 
         void OnClose() override {

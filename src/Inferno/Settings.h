@@ -174,6 +174,7 @@ namespace Inferno {
 
         float FieldOfView = 70; // Game FOV in degrees. Descent uses 60, but a higher value feels better for input.
         float RenderScale = 1; // Scale of 3D render target
+        float Brightness = 1;
 
         // Debugging
 

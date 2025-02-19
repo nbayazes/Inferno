@@ -56,6 +56,8 @@ struct Constants {
     bool EnableDirt;
     bool EnableBloom;
     float4 Tint;
+    float Brightness;
+    float pad0, pad1, pad2;
 };
 
 ConstantBuffer<Constants> Args : register(b0);
@@ -99,8 +101,21 @@ float3 reinhard_extended_luminance(float3 v, float max_white_l) {
 }
 
 float3 GammaRamp(float3 color, float gamma) {
-    return pow(color, 1 / gamma);
+    return pow(abs(color), 1 / gamma);
 }
+
+/**
+ Converts the given spectrum from (linear) RGB to sRGB space.
+
+ @param[in]		rgb
+				The spectrum in (linear) RGB space.
+ @return		The spectrum in sRGB space.
+ */
+//float3 RGBtoSRGB_Accurate(float3 rgb, float gamma = 2.4) {
+//	const float3 low  = rgb * 12.92f;
+//	const float3 high = GammaRamp(rgb, gamma) * 1.055f - 0.055f;
+//	return select(0.0031308f >= rgb, low, high);
+//}
 
 float3 Uncharted2ToneMapping(float3 color) {
     float A = 0.15;
@@ -218,6 +233,8 @@ void main(uint3 DTid : SV_DispatchThreadID) {
         //    sdrColor = AdjustTint(sdrColor, mapBlackTo, mapWhiteTo, saturate(Args.Tint.a));
         //}
     }
+
+    sdrColor = GammaRamp(sdrColor, Args.Brightness);
 
 #if SUPPORT_TYPED_UAV_LOADS
     ColorRW[DTid.xy] = sdrColor;

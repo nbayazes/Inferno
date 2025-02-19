@@ -161,6 +161,8 @@ namespace Inferno::PostFx {
             HlslBool EnableDirt;
             HlslBool EnableBloom;
             Color Tint;
+            float Brightness = 1;
+            float pad0, pad1, pad2;
         };
 
         Color screenTint = Game::ScreenGlow;
@@ -174,14 +176,15 @@ namespace Inferno::PostFx {
         tint.w = gameState == GameState::Game || gameState == GameState::ExitSequence ? 1.0f : 0.0f;
 
         ToneMapConstants constants = {
-            { 1.0f / (float)colorDest.GetWidth(), 1.0f / (float)colorDest.GetHeight() },
-            BloomStrength /** Settings::Graphics.RenderScale*/, // Lower resolution blurs more, so reduce the intensity
-            Exposure,
-            (HlslBool)Settings::Graphics.NewLightMode,
-            Settings::Graphics.ToneMapper,
-            (HlslBool)(dirt && (gameState == GameState::Game || gameState == GameState::PauseMenu)),
-            (HlslBool)Settings::Graphics.EnableBloom,
-            tint
+            .RcpBufferDim = { 1.0f / (float)colorDest.GetWidth(), 1.0f / (float)colorDest.GetHeight() },
+            .BloomStrength = BloomStrength /** Settings::Graphics.RenderScale*/, // Lower resolution blurs more, so reduce the intensity
+            .Exposure = Exposure,
+            .NewLightMode = (HlslBool)Settings::Graphics.NewLightMode,
+            .ToneMapper = Settings::Graphics.ToneMapper,
+            .EnableDirt = (HlslBool)(dirt && (gameState == GameState::Game || gameState == GameState::PauseMenu)),
+            .EnableBloom = (HlslBool)Settings::Graphics.EnableBloom,
+            .Tint = tint,
+            .Brightness = Settings::Graphics.Brightness
         };
 
         commandList->SetPipelineState(_pso.Get());

@@ -19,11 +19,14 @@ namespace Inferno::Editor {
 
             float bloom = Game::BloomStrength;
             float exposure = Game::Exposure;
-            if(ImGui::SliderFloat("Bloom Strength", &bloom, 0.0f, 5.0f))
+
+            if (ImGui::SliderFloat("Bloom Strength", &bloom, 0.0f, 5.0f))
                 Game::BloomStrength = bloom;
 
-            if(ImGui::SliderFloat("Tone Map Exposure", &exposure, 0.0f, 3.0f))
+            if (ImGui::SliderFloat("Tone Map Exposure", &exposure, 0.0f, 3.0f))
                 Game::Exposure = exposure;
+
+            ImGui::SliderFloat("Brightness", &Settings::Graphics.Brightness, 0.0f, 3.0f);
 
             ImGui::Checkbox("Debug Emissive", &Render::DebugEmissive);
         }
