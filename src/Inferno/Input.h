@@ -367,10 +367,10 @@ namespace Inferno::Input {
     bool IsKeyDown(Keys);
 
     // Returns true when a key is first pressed or on OS repeat with a flag.
-    bool IsKeyPressed(Keys, bool onRepeat = false);
+    bool OnKeyPressed(Keys, bool onRepeat = false);
 
     // Returns true when a key is first released
-    bool IsKeyReleased(Keys);
+    bool OnKeyReleased(Keys);
 
     std::bitset<256> GetPressedKeys();
     std::bitset<256> GetRepeatedKeys();
@@ -383,6 +383,9 @@ namespace Inferno::Input {
 
     // Returns true when a key is first released
     bool MouseButtonReleased(MouseButtons);
+
+    // Returns true when a gamepad button is first pressed, or on repeat.
+    bool OnControllerButtonPressed(SDL_GamepadButton, bool onRepeat = false);
 
     bool MouseMoved();
 

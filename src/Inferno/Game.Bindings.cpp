@@ -140,7 +140,7 @@ namespace Inferno {
         }
 
         for (auto& binding : _keyboard.bindings[(int)action]) {
-            if (Input::IsKeyPressed((Input::Keys)binding.id))
+            if (Input::OnKeyPressed((Input::Keys)binding.id))
                 return true;
         }
 

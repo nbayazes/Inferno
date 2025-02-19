@@ -16,10 +16,10 @@ namespace Inferno {
     using Keys = Input::Keys;
 
     void CheckGlobalHotkeys() {
-        if (Input::IsKeyPressed(Keys::F1))
+        if (Input::OnKeyPressed(Keys::F1))
             Game::ShowDebugOverlay = !Game::ShowDebugOverlay;
 
-        if (Input::IsKeyPressed(Keys::F2)) {
+        if (Input::OnKeyPressed(Keys::F2)) {
             if (Game::GetState() == GameState::MainMenu) {
                 Game::SetState(GameState::Editor);
             }
@@ -29,28 +29,28 @@ namespace Inferno {
             }
         }
 
-        if (Input::IsKeyPressed(Keys::F3))
+        if (Input::OnKeyPressed(Keys::F3))
             Settings::Inferno.ScreenshotMode = !Settings::Inferno.ScreenshotMode;
 
-        if (Input::IsKeyPressed(Keys::F5)) {
+        if (Input::OnKeyPressed(Keys::F5)) {
             Resources::LoadDataTables(Game::Level);
             Graphics::ReloadResources();
             Editor::Events::LevelChanged();
         }
 
-        if (Input::IsKeyPressed(Keys::F6))
+        if (Input::OnKeyPressed(Keys::F6))
             Graphics::ReloadTextures();
 
-        if (Input::IsKeyPressed(Keys::F7)) {
+        if (Input::OnKeyPressed(Keys::F7)) {
             Settings::Graphics.HighRes = !Settings::Graphics.HighRes;
             Graphics::ReloadTextures();
         }
 
-        if (Input::IsKeyPressed(Keys::F9)) {
+        if (Input::OnKeyPressed(Keys::F9)) {
             Settings::Graphics.NewLightMode = !Settings::Graphics.NewLightMode;
         }
 
-        if (Input::IsKeyPressed(Keys::F10)) {
+        if (Input::OnKeyPressed(Keys::F10)) {
             Settings::Graphics.ToneMapper++;
             if (Settings::Graphics.ToneMapper > 2) Settings::Graphics.ToneMapper = 0;
         }
@@ -240,7 +240,7 @@ namespace Inferno {
         auto state = Game::GetState();
 
         // Photo mode
-        if (Input::IsKeyPressed(Keys::OemTilde) && Input::AltDown && (state == GameState::Game || state == GameState::PhotoMode)) {
+        if (Input::OnKeyPressed(Keys::OemTilde) && Input::AltDown && (state == GameState::Game || state == GameState::PhotoMode)) {
             Game::SetState(state == GameState::PhotoMode ? GameState::Game : GameState::PhotoMode);
             return true;
         }
@@ -253,16 +253,16 @@ namespace Inferno {
         auto state = Game::GetState();
 
         if (state == GameState::Game) {
-            if (Input::IsKeyPressed(Keys::Back) && Input::AltDown)
+            if (Input::OnKeyPressed(Keys::Back) && Input::AltDown)
                 Game::BeginSelfDestruct();
 
-            if (Input::IsKeyPressed(Keys::M) && Input::AltDown) {
+            if (Input::OnKeyPressed(Keys::M) && Input::AltDown) {
                 Game::Automap.RevealFullMap();
                 PrintHudMessage("full map!");
                 Inferno::Sound::Play2D({ SoundID::Cheater });
             }
 
-            if (Input::IsKeyPressed(Keys::R)) {
+            if (Input::OnKeyPressed(Keys::R)) {
                 static bool toggle = false;
 
                 if (toggle)

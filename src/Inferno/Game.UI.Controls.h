@@ -413,13 +413,13 @@ namespace Inferno::UI {
 
             using Input::Keys;
 
-            if (Input::IsKeyPressed(Keys::PageDown, true)) {
+            if (Input::OnKeyPressed(Keys::PageDown, true)) {
                 _index += VisibleItems;
                 if (_scrollIndex + VisibleItems < Items.size())
                     _scrollIndex += VisibleItems;
             }
 
-            if (Input::IsKeyPressed(Keys::PageUp, true)) {
+            if (Input::OnKeyPressed(Keys::PageUp, true)) {
                 _index -= VisibleItems;
                 _scrollIndex -= VisibleItems;
             }

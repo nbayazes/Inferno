@@ -280,15 +280,15 @@ vaporization of the facility.
         using Input::Keys;
 
         if (Input::MouseButtonPressed(Input::MouseButtons::RightClick) ||
-            Input::IsKeyPressed(Keys::Left) ||
+            Input::OnKeyPressed(Keys::Left) ||
             Input::MenuActions.IsSet(MenuAction::Left))
             Game::Briefing.Back();
 
         bool exitBriefing = false;
 
         if (Input::MouseButtonPressed(Input::MouseButtons::LeftClick) ||
-            Input::IsKeyPressed(Keys::Space) ||
-            Input::IsKeyPressed(Keys::Right) ||
+            Input::OnKeyPressed(Keys::Space) ||
+            Input::OnKeyPressed(Keys::Right) ||
             Input::MenuActions.IsSet(MenuAction::Confirm) ||
             Input::MenuActions.IsSet(MenuAction::Right)) {
             Game::Briefing.Forward();

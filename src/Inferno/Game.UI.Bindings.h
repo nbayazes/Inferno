@@ -70,7 +70,7 @@ namespace Inferno::UI {
             using Input::Keys;
             using Input::MouseButtons;
 
-            bool cancel = Input::IsKeyPressed(Keys::Escape);
+            bool cancel = Input::OnKeyPressed(Keys::Escape);
 
             if (auto device = Input::GetDevice(_device->guid); device && device->IsGamepad())
                 cancel |= device->ButtonWasPressed(SDL_GAMEPAD_BUTTON_START);
@@ -101,7 +101,7 @@ namespace Inferno::UI {
             switch (_device->type) {
                 case Input::InputType::Keyboard:
                     for (Keys key = Keys::Back; key <= Keys::OemClear; key = Keys((unsigned char)key + 1)) {
-                        if (Input::IsKeyPressed(key)) {
+                        if (Input::OnKeyPressed(key)) {
                             //if (GameBindings::IsReservedKey(key))
                             //    continue;
 

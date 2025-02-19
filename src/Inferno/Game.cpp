@@ -750,7 +750,7 @@ namespace Inferno::Game {
                 SetActiveCamera(Game::AutomapCamera);
                 Game::AutomapCamera.SetFov(Settings::Graphics.FieldOfView);
 
-                if (Input::IsKeyPressed(Input::Keys::Tab) || Input::IsKeyPressed(Input::Keys::Escape))
+                if (Input::OnKeyPressed(Input::Keys::Tab) || Input::OnKeyPressed(Input::Keys::Escape))
                     Game::SetState(GameState::Game);
 
                 break;

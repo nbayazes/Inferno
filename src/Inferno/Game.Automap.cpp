@@ -525,13 +525,13 @@ namespace Inferno {
         if (Game::Bindings.Pressed(GameAction::Afterburner))
             ResetAutomapCamera(false);
 
-        if (Input::IsKeyPressed(Keys::D1))
+        if (Input::OnKeyPressed(Keys::D1))
             NavigateToEnergy();
 
-        if (Input::IsKeyPressed(Keys::D2))
+        if (Input::OnKeyPressed(Keys::D2))
             NavigateToReactor();
 
-        if (Input::IsKeyPressed(Keys::D3))
+        if (Input::OnKeyPressed(Keys::D3))
             NavigateToExit();
     }
 }

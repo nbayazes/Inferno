@@ -459,7 +459,7 @@ namespace Inferno::Input {
                             value *= -1;
 
                         // Some controllers report negative values for triggers, take the absolute value
-                        if(event.gaxis.axis == SDL_GAMEPAD_AXIS_LEFT_TRIGGER || event.gaxis.axis == SDL_GAMEPAD_AXIS_RIGHT_TRIGGER)
+                        if (event.gaxis.axis == SDL_GAMEPAD_AXIS_LEFT_TRIGGER || event.gaxis.axis == SDL_GAMEPAD_AXIS_RIGHT_TRIGGER)
                             value = abs(value);
 
                         joystick->axes[event.gaxis.axis] = value;
@@ -641,22 +641,22 @@ namespace Inferno::Input {
         DragState = SelectionState((int)LeftDragState | (int)RightDragState);
 
         // todo: move to game inputs
-        if (IsKeyPressed(Keys::Enter, true) || IsKeyPressed(Keys::Space))
+        if (OnKeyPressed(Keys::Enter, true) || OnKeyPressed(Keys::Space))
             MenuActions.Set(MenuAction::Confirm);
 
-        if (IsKeyPressed(Keys::Escape, true) || MouseButtonPressed(MouseButtons::X1))
+        if (OnKeyPressed(Keys::Escape, true) || MouseButtonPressed(MouseButtons::X1))
             MenuActions.Set(MenuAction::Cancel);
 
-        if (IsKeyPressed(Keys::Left, true))
+        if (OnKeyPressed(Keys::Left, true))
             MenuActions.Set(MenuAction::Left);
 
-        if (IsKeyPressed(Keys::Down, true))
+        if (OnKeyPressed(Keys::Down, true))
             MenuActions.Set(MenuAction::Down);
 
-        if (IsKeyPressed(Keys::Up, true))
+        if (OnKeyPressed(Keys::Up, true))
             MenuActions.Set(MenuAction::Up);
 
-        if (IsKeyPressed(Keys::Right, true))
+        if (OnKeyPressed(Keys::Right, true))
             MenuActions.Set(MenuAction::Right);
 
         for (auto& device : Devices.GetAll()) {
@@ -711,11 +711,11 @@ namespace Inferno::Input {
         return _keyboard.pressed[key] || _keyboard.previous[key];
     }
 
-    bool IsKeyPressed(Keys key, bool onRepeat) {
+    bool OnKeyPressed(Keys key, bool onRepeat) {
         return onRepeat ? _keyboard.repeat[key] : _keyboard.pressed[key];
     }
 
-    bool IsKeyReleased(Keys key) {
+    bool OnKeyReleased(Keys key) {
         return _keyboard.released[key];
     }
 
@@ -735,6 +735,16 @@ namespace Inferno::Input {
     bool MouseButtonReleased(MouseButtons button) {
         if (button == MouseButtons::None || (int)button > _mouseButtons.Size()) return false;
         return _mouseButtons.released[(uint64)button];
+    }
+
+    bool OnControllerButtonPressed(SDL_GamepadButton button, bool onRepeat) {
+        for (auto& device : Devices.GetAll()) {
+            if (device.IsGamepad() && device.ButtonWasPressed((uint8)button, onRepeat)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     bool MouseMoved() {
