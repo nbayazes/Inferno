@@ -1388,6 +1388,28 @@ namespace Inferno::Editor {
                 addSlider("X", point.x);
                 addSlider("Y", point.y);
                 addSlider("Z", point.z);
+
+                ImGui::TableRowLabel("Index");
+                auto index = seg.GetVertexIndex(Editor::Selection.Side, Editor::Selection.Point);
+                ImGui::Text("%i", index);
+
+#ifdef _DEBUG
+                // only enable vertex override UI in debug builds. regular users shouldn't need this.
+                ImGui::TableRowLabel("Override");
+
+                auto override = level.VertexOverrides.contains(index);
+                if (ImGui::Checkbox("##override", &override)) {
+                    if (override) {
+                        level.VertexOverrides[index] = point;
+                    }
+                    else {
+                        auto i = level.VertexOverrides.find(index);
+                        if (i != level.VertexOverrides.end())
+                            level.VertexOverrides.erase(i);
+                    }
+                }
+#endif
+
                 break;
             }
         }

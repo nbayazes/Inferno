@@ -787,13 +787,6 @@ namespace Inferno {
             filesystem::path temp = path;
             temp.replace_filename("temp.cfg");
 
-            // Create a backup
-            //if (filesystem::exists(path)) {
-            //    filesystem::path backup = path;
-            //    backup.replace_extension("cfg.bak");
-            //    filesystem::copy(path, backup, filesystem::copy_options::overwrite_existing);
-            //}
-
             {
                 std::ofstream file(temp);
                 file << doc;

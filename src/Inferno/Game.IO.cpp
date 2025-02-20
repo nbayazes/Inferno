@@ -367,14 +367,13 @@ namespace Inferno::Game {
         if (metadata.empty()) {
             auto mission = String::ToLower(Game::Mission->Path.filename().string());
 
-            // todo: remove `data` from paths
             // Read IED from data directories for official missions
             if (mission == "descent.hog")
-                path = "data/d1/" + metadataFile;
+                path = "d1/" + metadataFile;
             else if (mission == "descent2.hog")
-                path = "data/d2/" + metadataFile;
+                path = "d2/" + metadataFile;
             else if (mission == "d2x.hog")
-                path = "data/d2/vertigo" + metadataFile; // Vertigo
+                path = "d2/vertigo" + metadataFile; // Vertigo
 
             if (filesystem::exists(path))
                 metadata = File::ReadAllText(path);

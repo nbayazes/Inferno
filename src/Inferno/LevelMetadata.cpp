@@ -4,6 +4,7 @@
 #include "Yaml.h"
 #include "Resources.h"
 #include "Settings.h"
+#include "WindowsDialogs.h"
 
 using namespace Yaml;
 
@@ -353,6 +354,47 @@ namespace Inferno {
         }
     }
 
+    void ReadVertexOverrides(ryml::ConstNodeRef node, Level& level) {
+        if (!node.readable() || !node.is_seq()) return;
+
+        for (const auto& child : node.children()) {
+            Vector3 position;
+            PointID index;
+
+            ReadValue2(child, "Position", position);
+            if (ReadValue2(child, "Index", index)) {
+                level.VertexOverrides[index] = position;
+            }
+        }
+    }
+
+    void WriteVertexOverrides(ryml::NodeRef node, const Level& level) {
+        node |= ryml::SEQ;
+
+        struct Override {
+            PointID id;
+            Vector3 pos;
+        };
+
+        List<Override> overrides;
+
+        for (auto& i : level.VertexOverrides | views::keys) {
+            if (Seq::inRange(level.Vertices, i)) {
+                // Use the latest vertex position if this value is overriden
+                overrides.push_back({ i, level.Vertices[i] });
+            }
+        }
+
+        Seq::sortBy(overrides, [](const auto& a, const auto& b) { return a.id < b.id; });
+
+        for (const auto& item : overrides) {
+            auto child = node.append_child();
+            child |= ryml::MAP;
+            child["Index"] << item.id;
+            child["Position"] << EncodeVector(item.pos);
+        }
+    }
+
     void SaveLevelMetadata(const Level& level, std::ostream& stream, const LightSettings& lightSettings) {
         try {
             ryml::Tree doc(30, 128);
@@ -370,6 +412,7 @@ namespace Inferno {
                 doc["CameraUp"] << EncodeVector(level.CameraUp);
             }
 
+            WriteVertexOverrides(doc["VertexOverrides"], level);
             SaveLevelLighting(doc["LevelLighting"], level);
 
             stream << doc;
@@ -377,6 +420,22 @@ namespace Inferno {
         catch (const std::exception& e) {
             SPDLOG_ERROR("Error saving level metadata:\n{}", e.what());
         }
+    }
+
+    void SaveLevelMetadata(const Level& level, std::filesystem::path path, const LightSettings& lightSettings) {
+        path.replace_extension(METADATA_EXTENSION);
+
+        filesystem::path temp = path;
+        temp.replace_filename("temp.ied");
+
+        {
+            std::ofstream file(temp);
+            SaveLevelMetadata(level, file, lightSettings);
+        }
+
+        // Write went okay, ovewrite the old file and remove temp
+        filesystem::copy(temp, path, filesystem::copy_options::overwrite_existing);
+        filesystem::remove(temp);
     }
 
     void LoadLevelMetadata(Level& level, const string& data, LightSettings& lightSettings) {
@@ -393,12 +452,22 @@ namespace Inferno {
                 ReadValue(root["CameraPosition"], level.CameraPosition);
                 ReadValue(root["CameraTarget"], level.CameraTarget);
                 ReadValue(root["CameraUp"], level.CameraUp);
+                ReadVertexOverrides(root["VertexOverrides"], level);
                 ReadLevelLighting(root["LevelLighting"], level);
+
+                for (auto& [i, v] : level.VertexOverrides) {
+                    if (Seq::inRange(level.Vertices, i)) {
+                        SPDLOG_INFO("Loading override for vertex {}", i);
+                        level.Vertices[i] = v;
+                    }
+                }
             }
             SPDLOG_INFO("Finished loading level metadata");
         }
         catch (const std::exception& e) {
-            SPDLOG_ERROR("Error loading level metadata:\n{}", e.what());
+            auto message = fmt::format("Error loading level metadata:\n{}", e.what());
+            ShowErrorMessage(message);
+            SPDLOG_ERROR(message);
         }
     }
 }

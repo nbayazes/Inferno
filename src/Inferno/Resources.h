@@ -81,11 +81,11 @@ namespace Inferno::Resources {
     }
 
     inline const char* GetMaterialTablePath(const Level& level) {
-        return level.IsDescent1() ? "data/d1/material.yml" : "data/d2/material.yml";
+        return level.IsDescent1() ? "d1/material.yml" : "d2/material.yml";
     }
 
     inline const char* GetGameDataFolder(const Level& level) {
-        return level.IsDescent1() ? "data/d1/" : "data/d2/";
+        return level.IsDescent1() ? "d1/" : "d2/";
     }
 
     // Returns true if the id corresponds to a level texture

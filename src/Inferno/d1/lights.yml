@@ -304,10 +304,10 @@ Lights:
       ConeSpill: 0.015 # Very slightly illuminate the surrounding area
 
     - Name: Boosted Headlight # Player ship headlight with powerup
-      Color: 1, 0.7, 0.4, .35
-      Radius: 250
-      Angle: 45
-      InnerAngle: 40
+      Color: 0.6, 0.6, 1, .6
+      Radius: 300
+      Angle: 35
+      InnerAngle: 5
       ConeSpill: 0.025 # Very slightly illuminate the surrounding area
 
 #    - Name: 343 # paired monitor

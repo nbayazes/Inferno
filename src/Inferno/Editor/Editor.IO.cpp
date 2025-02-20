@@ -56,13 +56,10 @@ namespace Inferno::Editor {
         filesystem::copy_file(temp, path, filesystem::copy_options::overwrite_existing);
         filesystem::remove(temp);
 
-        filesystem::path metadataPath = path;
-        metadataPath.replace_extension(METADATA_EXTENSION);
-        std::ofstream metadata(metadataPath);
         level.CameraPosition = Editor::EditorCamera.Position;
         level.CameraTarget = Editor::EditorCamera.Target;
         level.CameraUp = Editor::EditorCamera.Up;
-        SaveLevelMetadata(level, metadata, EditorLightSettings);
+        SaveLevelMetadata(level, path, EditorLightSettings);
         SetStatusMessage("Saved level to {}", path.string());
 
         // Save custom textures

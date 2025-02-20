@@ -248,7 +248,7 @@ Weapons:
 
   - id: 8
     Name: concussion missile
-    StunMult: 1.5 # It's called a concussion missile, it should stun things
+    StunMult: 2 # It's called a concussion missile, it should stun things
     Speed: 115 # Original speed of 90 feels weak. Mercuries are 400. Lasers are 120
     Decal: scorchC
     DecalRadius: 4
@@ -262,6 +262,7 @@ Weapons:
   - id: 22
     Name: robot concussion missile
     Decal: scorchC
+    StunMult: 2
     DecalRadius: 4
     LightRadius: 14
     LightColor: 1, .5, .25, 2
@@ -276,6 +277,7 @@ Weapons:
   - id: 15
     Name: homing missile
     Decal: scorchC
+    StunMult: 1.5
     DecalRadius: 4
     LightRadius: 14
     LightColor: 0.25, 0.25, 0.75, 2
@@ -288,6 +290,7 @@ Weapons:
   - id: 21
     Name: robot homing missile
     Decal: scorchC
+    StunMult: 1.5
     DecalRadius: 4
     LightRadius: 14
     LightColor: 0.25, 0.25, 0.75, 2
@@ -326,7 +329,7 @@ Weapons:
     ModelName: smartmissile.OOF
     Decal: scorchC
     DecalRadius: 4
-    LightRadius: 14
+    LightRadius: 18
     LightColor: 0.25, 0.75, 0, 1.5
     SpawnCount: 6
     Spawn: 19
@@ -381,13 +384,14 @@ Weapons:
     Mass: 2
     ExplosionColor: 15, 0.5, 0.5
     LightRadius: 40
-    LightColor: 1, 0.08, 0.08, 2
+    LightColor: 1, 0.08, 0.08, 0.6
     Size: 1.25 # was 0.2 due odd length ratio
     Recoil: 175
     HomingFov: 45
     HomingDistance: 300
     FlashColor: 0.75, 0.125, 0.125, 15
     SoundRadius: 500
+    StunMult: 2 # Max stun whatever we hit
 
   - id: 28
     Name: robot mega missile
@@ -404,6 +408,7 @@ Weapons:
     FlashSize: 12
     FlashColor: 0.75, 0.125, 0.125, 15
     SoundRadius: 500 # Large radius so player hears them coming
+    StunMult: 2 # Max stun whatever we hit
 
   - id: 20 
     Name: robot spreadfire
@@ -481,6 +486,7 @@ Weapons:
     ExplosionSound: # ExpHardBullet
     Model: -1
     FlashColor: 1, 1, 1, 15
+    StunMult: 0.5 
 
   - id: 33
     Name: helix
@@ -530,6 +536,7 @@ Weapons:
     Name: guided missile
     Decal: scorchC
     DecalRadius: 4
+    StunMult: 1.5
 
   - id: 38
     Name: smart mine
@@ -541,6 +548,7 @@ Weapons:
     Name: mercury
     Decal: scorchC
     DecalRadius: 5            
+    StunMult: 1.5
 
   - id: 40
     Name: earthshaker
@@ -548,6 +556,7 @@ Weapons:
     DecalRadius: 8
     ExplosionColor: .05, .05, 1, 100
     LightRadius: 120
+    StunMult: 2
 
   - id: 51
     Name: level mine
@@ -734,6 +743,7 @@ Robots:
     ChaseChance: 0
     SuppressChance: 0.2
     Curiosity: 0 # Don't investigate sounds
+    StunResist: 1.6 # immune to stuns from concussion missiles
     # DeathRollSound: 185 # d1
   - id: 16
     Name: Red Hulk

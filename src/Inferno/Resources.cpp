@@ -773,7 +773,7 @@ namespace Inferno::Resources {
             LoadGameTable(data, GameData);
         }
 
-        auto gamePath = level.IsDescent1() ? "data/d1/game.yml" : "data/d2/game.yml";
+        auto gamePath = level.IsDescent1() ? "d1/game.yml" : "d2/game.yml";
 
         if (FileSystem::TryFindFile(gamePath)) {
             auto data = File::ReadAllText(gamePath);
@@ -798,7 +798,7 @@ namespace Inferno::Resources {
             LoadLightTable(data, Lights);
         }
 
-        auto gamePath = level.IsDescent1() ? "data/d1/lights.yml" : "data/d2/lights.yml";
+        auto gamePath = level.IsDescent1() ? "d1/lights.yml" : "d2/lights.yml";
 
         if (FileSystem::TryFindFile(gamePath)) {
             auto data = File::ReadAllText(gamePath);

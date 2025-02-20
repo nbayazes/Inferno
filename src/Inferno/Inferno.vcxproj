@@ -226,6 +226,9 @@
     <ClCompile Include="Game.Terrain.cpp" />
     <ClCompile Include="Game.UI.cpp" />
     <ClCompile Include="Graphics.Debug.cpp" />
+    <None Include="d1\game.yml" />
+    <None Include="d1\lights.yml" />
+    <None Include="d1\material.yml" />
     <None Include="shaders\AutomapOutline.hlsl">
       <DeploymentContent>true</DeploymentContent>
       <FileType>Document</FileType>
@@ -519,10 +522,6 @@
     <ClInclude Include="Yaml.h" />
     <ClInclude Include="zip\miniz.h" />
     <ClInclude Include="zip\zip.h" />
-    <None Include="data\d2\game.yml">
-      <FileType>Text</FileType>
-      <DeploymentContent>true</DeploymentContent>
-    </None>
     <None Include="shaders\Utility.hlsli">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='DebugGpu|x64'">true</DeploymentContent>
@@ -558,28 +557,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="data\d1\game.yml">
-      <FileType>Text</FileType>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='DebugGpu|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-    </None>
-    <None Include="data\d1\lights.yml">
-      <DeploymentContent>true</DeploymentContent>
-      <FileType>Text</FileType>
-    </None>
-    <None Include="data\d2\lights.yml">
-      <DeploymentContent>true</DeploymentContent>
-      <FileType>Text</FileType>
-    </None>
-    <None Include="data\d1\material.yml">
-      <DeploymentContent>true</DeploymentContent>
-      <FileType>Text</FileType>
-    </None>
-    <None Include="data\d2\material.yml">
-      <DeploymentContent>true</DeploymentContent>
-      <FileType>Text</FileType>
-    </None>
     <None Include="packages.config" />
     <None Include="shaders\Common.hlsli">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>

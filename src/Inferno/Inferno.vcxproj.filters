@@ -295,11 +295,6 @@
   <ItemGroup>
     <None Include="packages.config" />
     <None Include="shaders\compile.bat" />
-    <None Include="data\d1\material.yml" />
-    <None Include="data\d1\lights.yml" />
-    <None Include="data\d1\game.yml" />
-    <None Include="data\d2\lights.yml" />
-    <None Include="data\d2\material.yml" />
     <None Include="shaders\BlurCS.hlsl" />
     <None Include="shaders\Common.hlsli" />
     <None Include="shaders\Depth.hlsl" />
@@ -324,7 +319,6 @@
     <None Include="shaders\UpsampleAndBlurCS.hlsl" />
     <None Include="shaders\Utility.hlsli" />
     <None Include="shaders\BloomExtractDownsampleCS.hlsl" />
-    <None Include="data\d2\game.yml" />
     <None Include="shaders\UnpackBufferCS.hlsl" />
     <None Include="shaders\BriefingObject.hlsl" />
     <None Include="shaders\Terrain.hlsl" />
@@ -340,5 +334,8 @@
     <None Include="shaders\Compose.hlsl" />
     <None Include="gsl\assert.h" />
     <None Include="gsl\pointers.h" />
+    <None Include="d1\game.yml" />
+    <None Include="d1\lights.yml" />
+    <None Include="d1\material.yml" />
   </ItemGroup>
 </Project>

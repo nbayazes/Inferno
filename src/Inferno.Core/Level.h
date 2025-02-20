@@ -129,6 +129,7 @@ namespace Inferno {
         List<Matcen> Matcens;
         List<FlickeringLight> FlickeringLights; // Vertigo flickering lights
         List<Room> Rooms;
+        Dictionary<PointID, Vector3> VertexOverrides;
 
         // Reactor stuff
         int BaseReactorCountdown = DEFAULT_REACTOR_COUNTDOWN;
