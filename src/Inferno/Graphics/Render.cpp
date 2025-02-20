@@ -442,7 +442,7 @@ namespace Inferno::Render {
         frameConstants.Size = Vector2{ size.x * renderScale, size.y * renderScale };
         frameConstants.RenderScale = renderScale;
         frameConstants.GlobalDimming = Game::GlobalDimming;
-        frameConstants.NewLightMode = Settings::Graphics.NewLightMode;
+        frameConstants.NewLightMode = Settings::Graphics.NewLightMode && Settings::Editor.RenderMode == RenderMode::Shaded;
         frameConstants.FilterMode = Settings::Graphics.FilterMode;
 
         dest.Begin();
