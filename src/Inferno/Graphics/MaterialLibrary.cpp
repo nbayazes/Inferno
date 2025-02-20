@@ -325,7 +325,7 @@ namespace Inferno::Render {
         const auto height = upload.Bitmap->Info.Height;
 
         //SPDLOG_INFO("Loading texture `{}` to heap index: {}", ti->Name, material.Index);
-        if (Settings::Graphics.HighRes) {
+        if (Settings::Graphics.HighRes || String::Contains(baseName, "gauge")) {
             if (auto path = FileSystem::TryFindFile(material.Name + ".dds"))
                 material.Textures[Material2D::Diffuse].LoadDDS(batch, *path, true);
 
@@ -494,8 +494,13 @@ namespace Inferno::Render {
                 if (!upload.Bitmap || upload.Bitmap->Info.Width == 0 || upload.Bitmap->Info.Height == 0 || upload.Bitmap->Data.empty())
                     continue;
 
-                if (auto material = UploadMaterial(batch, upload, cache, buffer))
-                    uploads.emplace_back(std::move(material.value()));
+                try {
+                    if (auto material = UploadMaterial(batch, upload, cache, buffer))
+                        uploads.emplace_back(std::move(material.value()));
+                }
+                catch (const std::exception& e) {
+                    ShowErrorMessage(fmt::format("Error loading texture {}.\nStatus: {}", upload.Bitmap->Info.Name, e.what()));
+                }
             }
 
             EndTextureUpload(batch, Render::Adapter->AsyncBatchUploadQueue->Get());

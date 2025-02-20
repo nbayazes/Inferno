@@ -486,20 +486,26 @@ namespace Inferno {
                 return false;
             }
 
-            auto loadFlags = srgb ? DirectX::DDS_LOADER_FORCE_SRGB : DirectX::DDS_LOADER_DEFAULT;
 
-            ThrowIfFailed(DirectX::CreateDDSTextureFromFileEx(Render::Device, batch, path.c_str(), 0, D3D12_RESOURCE_FLAG_NONE, loadFlags, _resource.ReleaseAndGetAddressOf()));
-            _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE; // CreateDDS transitions state
-            //Transition(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-            batch.Transition(_resource.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-            _desc = _resource->GetDesc();
+            try {
+                auto loadFlags = srgb ? DirectX::DDS_LOADER_FORCE_SRGB : DirectX::DDS_LOADER_DEFAULT;
+                ThrowIfFailed(DirectX::CreateDDSTextureFromFileEx(Render::Device, batch, path.c_str(), 0, D3D12_RESOURCE_FLAG_NONE, loadFlags, _resource.ReleaseAndGetAddressOf()));
+                _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE; // CreateDDS transitions state
+                //Transition(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+                batch.Transition(_resource.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+                _desc = _resource->GetDesc();
 
-            _srvDesc.Format = _desc.Format;
-            _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-            _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-            _srvDesc.Texture2D.MostDetailedMip = 0;
-            _srvDesc.Texture2D.MipLevels = _desc.MipLevels;
-            return true;
+                _srvDesc.Format = _desc.Format;
+                _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+                _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+                _srvDesc.Texture2D.MostDetailedMip = 0;
+                _srvDesc.Texture2D.MipLevels = _desc.MipLevels;
+                return true;
+            }
+            catch (const std::exception& e) {
+                SPDLOG_ERROR(fmt::format("Error loading texture {}\nStatus: {}", path.string(), e.what()));
+                return false;
+            }
         }
 
         // this creates a new texture resource on the default heap in copy_dest state, but hasn't copied anything to it.

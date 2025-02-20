@@ -581,6 +581,19 @@ namespace Inferno {
             else
                 DrawShipBitmap({ 0, -40 }, Render::Materials->Get(ship), 1, alpha);
 
+            /*{
+                Inferno::Render::CanvasBitmapInfo info;
+                info.Position = Vector2{ 0, -43 };
+                info.Size = Vector2{ 55, 55 };
+                info.Texture = Render::Materials->Get(ship).Handles[Material2D::Diffuse];
+                info.HorizontalAlign = AlignH::Center;
+                info.VerticalAlign = AlignV::Bottom;
+                info.Scanline = IMAGE_SCANLINE;
+                info.Color = Color{ MONITOR_BRIGHTNESS, MONITOR_BRIGHTNESS, MONITOR_BRIGHTNESS, alpha };
+                ApplyAmbient(info.Color, Ambient + Direct * GLARE);
+                Render::HudGlowCanvas->DrawBitmapScaled(info);
+            }*/
+
             int frame = std::clamp((int)((100 - player.Shields) / 10), 0, 9);
 
             if (playerObj.IsInvulnerable()) {
