@@ -844,11 +844,11 @@ namespace Inferno {
         if (Settings::Cheats.FullyLoaded) {
             GivePowerup(PowerupFlag::Afterburner);
             GivePowerup(PowerupFlag::QuadFire);
+            GivePowerup(PowerupFlag::Headlight);
             LaserLevel = Game::Level.IsDescent2() ? 5 : 3;
 
             if (Game::Level.IsDescent2()) {
                 GivePowerup(PowerupFlag::AmmoRack);
-                GivePowerup(PowerupFlag::Headlight);
                 //GivePowerup(PowerupFlag::FullMap);
             }
 
@@ -936,8 +936,15 @@ namespace Inferno {
             case HeadlightState::Normal:
                 if (!HasPowerup(PowerupFlag::Headlight)) {
                     TurnOffHeadlight();
+                    _headlight = HeadlightState::Off;
                 }
                 else if (auto info = Resources::GetLightInfo("Boosted Headlight")) {
+                    // Remove the existing effect if there is one
+                    if (_headlightEffect != EffectID::None) {
+                        StopEffect(_headlightEffect);
+                        _headlightEffect = EffectID::None;
+                    }
+
                     LightEffectInfo light;
                     light.Radius = info->Radius;
                     light.LightColor = info->Color;
@@ -947,7 +954,6 @@ namespace Inferno {
                     light.ConeSpill = info->ConeSpill;
 
                     _headlightEffect = AttachLight(light, Reference);
-                    PrintHudMessage("Boosted Headlight");
                     Sound::Play2D({ HEADLIGHT_ON_SOUND });
                     _headlight = HeadlightState::Bright;
                 }
