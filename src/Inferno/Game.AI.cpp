@@ -799,7 +799,8 @@ namespace Inferno {
         }
         else {
             // Apply slow
-            float damageScale = 1 - (info.HitPoints - damage * stunMult) / info.HitPoints; // percentage of life dealt
+            float ehp = info.HitPoints * info.StunResist;
+            float damageScale = 1 - (ehp - damage * stunMult) / ehp; // percentage of life dealt
             float slowTime = std::lerp(0.0f, 1.0f, damageScale / MAX_SLOW_THRESHOLD);
             if (ai.RemainingSlow > 0) slowTime += ai.RemainingSlow;
             ai.RemainingSlow = std::clamp(slowTime, 0.1f, MAX_SLOW_TIME);

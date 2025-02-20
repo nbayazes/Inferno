@@ -106,5 +106,6 @@ namespace Inferno {
         bool GetBehind = false; // Robot tries to get behind the target by strafing
 
         float BurstDelay = 1 / 8.0f; // Delay between burst shots (shots fired per FireDelay). D1 and D2 used 0.125.
+        float StunResist = 1.0; // Multiplier on life for purposes of resisting stuns and slows
     };
 }

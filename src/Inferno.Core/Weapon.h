@@ -148,7 +148,7 @@ namespace Inferno {
         Color FlashColor = { 1, 1, 1 }; // Color for muzzle flash sprites and lighting
         float Noise = 1; // How much noise (awareness) weapon creates when firing
         float SoundRadius = 240; // Sound radius when firing
-        float StunMult = 1; // how effective this weapon is at stunning robots. 0.5 would halve stun duration.
+        float StunMult = 1; // how effective this weapon is at stunning robots. 0.5 would halve stun duration. Also affects knockback.
         Array<float, 5> InitialSpeed; // Speed to spawn with
         bool PointCollideWalls = true; // Use raycasting against level geometry. Otherwise use spheres.
         float Recoil = 0; // How much backwards force to apply when firing

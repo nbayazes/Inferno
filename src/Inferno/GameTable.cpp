@@ -453,6 +453,7 @@ namespace Inferno {
         READ_PROP(BurstDelay);
         READ_PROP(Name);
         READ_PROP(DevName);
+        READ_PROP(StunResist);
 #undef READ_PROP
 
         Array<float, 5> fov{}, fireDelay{}, fireDelay2{}, turnTime{}, speed{}, circleDistance{}, meleeDamage{};
