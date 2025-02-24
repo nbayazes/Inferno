@@ -273,7 +273,7 @@ namespace Inferno::Editor {
         static void OpenLevel(const HogEntry& entry) {
             if (!entry.IsLevel()) return;
             if (!Editor::CanCloseCurrentFile()) return;
-            Game::LoadLevel(Game::Mission->Path, entry.Name);
+            Game::EditorLoadLevel(Game::Mission->Path, entry.Name);
         }
 
         int GetSelection() const {

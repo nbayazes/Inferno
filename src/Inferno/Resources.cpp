@@ -4,7 +4,6 @@
 #include <mutex>
 #include <zip/zip.h>
 #include "BitmapTable.h"
-#include "Briefing.h"
 #include "FileSystem.h"
 #include "Game.h"
 #include "GameTable.h"
@@ -15,19 +14,11 @@
 #include "SoundSystem.h"
 
 namespace Inferno::Resources {
-    SoundFile SoundsD1, SoundsD2;
-
     namespace {
         List<string> RobotNames;
         List<string> PowerupNames;
-        HogFile Hog; // Main hog file (descent.hog, descent2.hog)
-        Palette LevelPalette;
-        PigFile Pig;
-        //Dictionary<TexID, PigBitmap> CustomTextures;
-        List<PigBitmap> Textures;
         List<string> StringTable; // Text for the UI
 
-        std::mutex PigMutex;
         List<PaletteInfo> AvailablePalettes;
 
         constexpr VClip DEFAULT_VCLIP{};
@@ -45,8 +36,8 @@ namespace Inferno::Resources {
         List<ModelEntry> OutrageModels;
     }
 
-    int GetTextureCount() { return (int)Textures.size(); }
-    const Palette& GetPalette() { return LevelPalette; }
+    int GetTextureCount() { return (int)GameData.pig.Entries.size(); } // Current.bitmaps.size()?;
+    const Palette& GetPalette() { return GameData.palette; }
 
     void LoadRobotNames(const filesystem::path& path) {
         try {
@@ -87,10 +78,15 @@ namespace Inferno::Resources {
         return GameData.Powerups[(int)id];
     }
 
-    void Init() {
+    bool Init() {
         // Load some default resources.
         LoadPowerupNames("powerups.txt");
         LoadRobotNames("robots.txt");
+
+        bool foundData = Resources::LoadDescent2Data();
+        if (!foundData) foundData = Resources::LoadDescent1Data();
+        if (!foundData) foundData = Resources::LoadDescent1DemoData();
+        return foundData;
     }
 
     const DoorClip& GetDoorClip(DClipID id) {
@@ -229,7 +225,7 @@ namespace Inferno::Resources {
     PigEntry DefaultPigEntry = { .Name = "Unknown", .Width = 64, .Height = 64 };
 
     TexID FindTexture(string_view name) {
-        auto index = Seq::findIndex(Pig.Entries, [name](const PigEntry& entry) { return entry.Name == name; });
+        auto index = Seq::findIndex(GameData.pig.Entries, [name](const PigEntry& entry) { return entry.Name == name; });
         return index ? TexID(*index) : TexID::None;
     }
 
@@ -249,17 +245,17 @@ namespace Inferno::Resources {
 
     const PigEntry& GetTextureInfo(TexID id) {
         if (auto bmp = CustomTextures.Get(id)) return bmp->Info;
-        return Pig.Get(id);
+        return GameData.pig.Get(id);
     }
 
     const PigEntry* TryGetTextureInfo(TexID id) {
-        if (id <= TexID::Invalid || (int)id >= Pig.Entries.size()) return nullptr;
+        if (id <= TexID::Invalid || (int)id >= GameData.pig.Entries.size()) return nullptr;
         if (auto bmp = CustomTextures.Get(id)) return &bmp->Info;
-        return &Pig.Get(id);
+        return &GameData.pig.Get(id);
     }
 
     const PigEntry& GetTextureInfo(LevelTexID id) {
-        return Pig.Get(LookupTexID(id));
+        return GameData.pig.Get(LookupTexID(id));
     }
 
     string_view GetSoundName(SoundID id) {
@@ -267,15 +263,15 @@ namespace Inferno::Resources {
         auto index = GameData.Sounds[(int)id];
         if (index == 255) return "None";
 
-        if (Game::Level.IsDescent1())
-            return SoundsD1.Sounds[index].Name;
+        if (auto sound = Seq::tryItem(GameData.sounds.Sounds, index))
+            return sound->Name;
         else
-            return SoundsD2.Sounds[index].Name;
+            return "Unknown";
     }
 
     TexID LookupModelTexID(const Model& m, int16 i) {
         if (i >= m.TextureCount || m.FirstTexture + i >= (int16)GameData.ObjectBitmapPointers.size()) return TexID::None;
-        //if (i < 0 || i >= m.TextureCount || m.FirstTexture + i >= GameData.ObjectBitmapPointers.size()) return TexID::None;
+        //if (i < 0 || i >= m.TextureCount || m.FirstTexture + i >= Current.ObjectBitmapPointers.size()) return TexID::None;
         auto ptr = GameData.ObjectBitmapPointers[m.FirstTexture + i];
         return GameData.ObjectBitmaps[ptr];
     }
@@ -308,7 +304,9 @@ namespace Inferno::Resources {
         return GameData.Weapons[(int)id];
     }
 
-    string ReplaceExtension(string src, string ext) {
+    string ReplaceExtension(string_view source, string_view extension) {
+        auto src = string(source);
+        auto ext = string(extension);
         auto offset = src.find('.');
         if (!ext.starts_with('.')) ext = "." + ext;
         if (offset == string::npos) return src + ext;
@@ -318,7 +316,7 @@ namespace Inferno::Resources {
     void UpdateAverageTextureColor() {
         SPDLOG_INFO("Update average texture color");
 
-        for (auto& entry : Pig.Entries) {
+        for (auto& entry : GameData.pig.Entries) {
             auto& bmp = GetBitmap(entry.ID);
             entry.AverageColor = GetAverageColor(bmp.Data);
             entry.AverageColor.AdjustSaturation(2); // boost saturation to look nicer
@@ -348,8 +346,8 @@ namespace Inferno::Resources {
             return Game::Mission->ReadEntry(file);
 
         // Then main hog file
-        if (Hog.Exists(file))
-            return Hog.ReadEntry(file);
+        if (GameData.hog.Exists(file))
+            return GameData.hog.ReadEntry(file);
 
         // Then the filesystem
         if (auto path = FileSystem::TryFindFile(file))
@@ -358,104 +356,6 @@ namespace Inferno::Resources {
         auto msg = fmt::format("Required game resource file not found: {}", file);
         SPDLOG_ERROR(msg);
         throw Exception(msg);
-    }
-
-    void LoadDescent2Resources(Level& level) {
-        std::scoped_lock lock(PigMutex);
-        auto hamData = ReadGameResource("descent2.ham");
-        StreamReader reader(hamData);
-        auto ham = ReadHam(reader);
-        auto hog = HogFile::Read(FileSystem::FindFile("descent2.hog"));
-
-        // Find the 256 for the palette first. In most cases it is located inside of the hog.
-        // But for custom palettes it is on the filesystem
-        auto paletteData = hog.TryReadEntry(level.Palette);
-        auto pigName = ReplaceExtension(level.Palette, ".pig");
-        auto pigPath = FileSystem::FindFile(pigName);
-
-        if (paletteData.empty()) {
-            // Wasn't in hog, find on filesystem
-            if (auto path256 = FileSystem::TryFindFile(level.Palette)) {
-                paletteData = File::ReadAllBytes(*path256);
-                pigPath = path256->replace_extension(".pig");
-            }
-            else {
-                // Give up and load groupa
-                paletteData = hog.ReadEntry("GROUPA.256");
-            }
-        }
-
-        auto pig = ReadPigFile(pigPath);
-        auto palette = ReadPalette(paletteData);
-        auto textures = ReadAllBitmaps(pig, palette);
-
-        if (level.IsVertigo()) {
-            std::filesystem::path vhamPath = Game::Mission->Path;
-            vhamPath.replace_extension(".ham");
-            auto vham = TryReadMissionFile(vhamPath);
-            if (!vham.empty()) {
-                StreamReader vReader(vham);
-                AppendVHam(vReader, ham);
-            }
-        }
-
-        filesystem::path folder = level.Path;
-        folder.remove_filename();
-
-        auto pog = ReplaceExtension(level.FileName, ".pog");
-        auto pogData = TryReadMissionFile(folder / pog);
-        if (!pogData.empty()) {
-            SPDLOG_INFO("Loading POG data");
-            CustomTextures.LoadPog(pig.Entries, pogData, palette);
-        }
-
-
-        // Everything loaded okay, set the internal data
-        LevelPalette = std::move(palette);
-        Pig = std::move(pig);
-        Hog = std::move(hog);
-        GameData = std::move(ham);
-        Textures = std::move(textures);
-
-        //FixVClipTimes(GameData.Effects);
-
-        // Read hxm
-        auto hxm = ReplaceExtension(level.FileName, ".hxm");
-        auto hxmData = TryReadMissionFile(folder / hxm);
-        if (!hxmData.empty()) {
-            SPDLOG_INFO("Loading HXM data");
-            StreamReader hxmReader(hxmData);
-            ReadHXM(hxmReader, GameData);
-        }
-    }
-
-    // Loads info for all available sounds
-    void LoadSounds() {
-        if (FoundDescent1()) {
-            try {
-                // Unfortunately have to parse the whole pig file because there's no specialized method
-                // for just reading sounds
-                auto hog = HogFile::Read(FileSystem::FindFile("descent.hog"));
-                auto paletteData = hog.ReadEntry("palette.256");
-                auto palette = ReadPalette(paletteData);
-
-                auto path = FileSystem::FindFile("descent.pig");
-                auto bytes = File::ReadAllBytes(path);
-
-                PigFile pig;
-                SoundFile sounds;
-                ReadDescent1GameData(bytes, palette, pig, sounds);
-                sounds.Path = path;
-                SoundsD1 = std::move(sounds);
-            }
-            catch (const std::exception&) {
-                SPDLOG_ERROR("Unable to read D1 sound data");
-            }
-        }
-
-        if (auto s22 = FileSystem::TryFindFile("descent2.s22")) {
-            SoundsD2 = ReadSoundFile(*s22);
-        }
     }
 
     List<PaletteInfo> FindAvailablePalettes() {
@@ -538,90 +438,8 @@ namespace Inferno::Resources {
         }
     }
 
-    void LoadDescent1Resources() {
-        std::scoped_lock lock(PigMutex);
-        auto hog = HogFile::Read(FileSystem::FindFile("descent.hog"));
-        auto paletteData = hog.ReadEntry("palette.256");
-        auto palette = ReadPalette(paletteData);
-
-        auto path = FileSystem::FindFile("descent.pig");
-        auto pigData = File::ReadAllBytes(path);
-
-        PigFile pig;
-        SoundFile sounds;
-        auto ham = ReadDescent1GameData(pigData, palette, pig, sounds);
-        pig.Path = path;
-        sounds.Path = path;
-
-        //ReadBitmap(pig, palette, TexID(61)); // cockpit
-        auto textures = ReadAllBitmaps(pig, palette);
-
-        // Everything loaded okay, set the internal data
-        Textures = std::move(textures);
-        LevelPalette = std::move(palette);
-        Pig = std::move(pig);
-        Hog = std::move(hog);
-        GameData = std::move(ham);
-    }
-
-    void LoadDescent1GameData() {
-        auto hogPath = FileSystem::TryFindFile("descent.hog");
-        auto pigPath = FileSystem::TryFindFile("descent.pig");
-
-        if (!hogPath)
-            throw Exception("descent.hog not found");
-
-        if (!pigPath)
-            throw Exception("descent.pig not found");
-
-        auto hog = HogFile::Read(*hogPath);
-        auto paletteData = hog.ReadEntry("palette.256");
-        auto palette = ReadPalette(paletteData);
-        auto pigData = File::ReadAllBytes(*pigPath);
-
-        GameDataD1 = ReadDescent1GameData(pigData, palette);
-    }
-
-    void LoadDescent2GameData() {
-        auto hamPath = FileSystem::TryFindFile("descent2.ham");
-        if (!hamPath)
-            throw Exception("descent2.ham not found");
-
-        auto hamData = File::ReadAllBytes(*hamPath);
-        StreamReader reader(hamData);
-        GameDataD2 = ReadHam(reader);
-    }
-
-    void LoadDescent1Resources(Level& level) {
-        std::scoped_lock lock(PigMutex);
-        auto hog = HogFile::Read(FileSystem::FindFile("descent.hog"));
-        auto paletteData = hog.ReadEntry("palette.256");
-        auto palette = ReadPalette(paletteData);
-
-        auto path = FileSystem::FindFile("descent.pig");
-        auto pigData = File::ReadAllBytes(path);
-
-        PigFile pig;
-        SoundFile sounds;
-        auto ham = ReadDescent1GameData(pigData, palette, pig, sounds);
-        pig.Path = path;
-        sounds.Path = path;
-
-        //ReadBitmap(pig, palette, TexID(61)); // cockpit
-        auto textures = ReadAllBitmaps(pig, palette);
-
-        filesystem::path folder = level.Path;
-        folder.remove_filename();
-        auto dtx = ReplaceExtension(level.FileName, ".dtx");
-        auto dtxData = TryReadMissionFile(folder / dtx);
-        if (!dtxData.empty()) {
-            SPDLOG_INFO("DTX data found");
-            CustomTextures.LoadDtx(pig.Entries, dtxData, palette);
-        }
-
-        FixD1ReactorModel(level);
-
-        // Load the custom exit models. Replace with a generic loading approach later.
+    // Load the custom exit models
+    void LoadCustomExitModels(HamFile& ham, const Palette& palette) {
         {
             auto exit = "exit01.pof";
             auto modelData = ReadBinaryFile(exit, LoadFlag::SkipMissionAndDxa);
@@ -647,93 +465,269 @@ namespace Inferno::Resources {
                 ham.Models[(int)ham.DestroyedExitModel].FirstTexture = firstTexture;
             }
         }
-
-        // Everything loaded okay, set the internal data
-        Textures = std::move(textures);
-        LevelPalette = std::move(palette);
-        Pig = std::move(pig);
-        Hog = std::move(hog);
-        GameData = std::move(ham);
     }
 
-    void LoadDescent1Shareware() {
-        PigFile pig;
-        auto pigData = File::ReadAllBytes(D1_DEMO_PATH / "descent.pig");
-        auto hog = HogFile::Read(FileSystem::FindFile(D1_DEMO_PATH / "descent.hog"));
-        SoundFile sounds;
-        ReadD1Pig(pigData, pig, sounds);
-        sounds.Path = pig.Path = D1_DEMO_PATH / "descent.pig";
-        sounds.Compressed = true;
+    bool LoadDescent1Data() {
+        try {
+            if (Descent1.source != FullGameData::Unknown) {
+                SPDLOG_INFO("Descent 1 data already loaded");
+                return true;
+            }
 
-        auto table = Game::Mission->ReadEntry("bitmaps.bin");
-        HamFile ham;
-        auto paletteData = Game::Mission->ReadEntry("palette.256");
-        auto palette = ReadPalette(paletteData);
+            SPDLOG_INFO("Loading Descent 1 data");
+            auto hogPath = FileSystem::TryFindFile("descent.hog");
+            auto pigPath = FileSystem::TryFindFile("descent.pig");
 
-        for (auto& entry : Game::Mission->Entries) {
-            if (entry.Name.ends_with(".pof")) {
-                auto modelData = ReadBinaryFile(entry.Name, LoadFlag::SkipMissionAndDxa);
+            if (!hogPath) {
+                SPDLOG_WARN("descent.hog not found");
+                return false;
+            }
 
-                if (modelData.empty())
-                    modelData = ReadBinaryFile(entry.Name);
+            if (!pigPath) {
+                SPDLOG_WARN("descent.pig not found");
+                return false;
+            }
 
-                //auto modelData = ReadBinaryFile(entry.Name);
+            auto hog = HogFile::Read(*hogPath);
+            auto paletteData = hog.ReadEntry("palette.256");
+            auto palette = ReadPalette(paletteData);
+            auto pigData = File::ReadAllBytes(*pigPath);
 
-                //auto modelData = Game::Mission->ReadEntry(entry);
-                auto model = ReadPof(modelData, &palette);
-                model.FileName = entry.Name;
+            PigFile pig;
+            SoundFile sounds;
 
-                //if (/*entry.Name == "exit01.pof" ||*/ entry.Name == "exit01d.pof") {
-                //    for (auto& sm : model.Submodels) {
-                //        for (auto& v : sm.ExpandedPoints) {
-                //            v.Point.z -= 1.0f;
-                //        }
-                //    }
-                //}
+            auto ham = ReadDescent1GameData(pigData, palette, pig, sounds);
+            sounds.Path = pig.Path = *pigPath;
 
-                // Rest and fire animations are swapped on the green lifter in demo
-                if (entry.Name == "robot17.pof")
-                    std::swap(model.Animation[(int)Animation::Rest], model.Animation[(int)Animation::Fire]);
+            LoadCustomExitModels(ham, palette);
+            WriteD1TextureCache(ham, pig, palette, D1_CACHE);
 
-                // Shift the flare so it is centered better. Retail does not have this problem.
-                if (entry.Name == "flare.pof") {
-                    for (auto& sm : model.Submodels) {
-                        for (auto& v : sm.ExpandedPoints) {
-                            v.Point.z -= 1.5f;
+            // Everything loaded okay, set data
+            Descent1 = FullGameData(std::move(ham), FullGameData::Descent1);
+            Descent1.bitmaps = ReadAllBitmaps(pig, palette);
+            Descent1.palette = std::move(palette);
+            Descent1.pig = std::move(pig);
+            Descent1.hog = std::move(hog);
+            Descent1.sounds = std::move(sounds);
+            SPDLOG_INFO("Descent 1 data loaded");
+            return true;
+        }
+        catch (...) {
+            SPDLOG_WARN("Error reading Descent 1 data");
+            return false;
+        }
+    }
+
+    bool LoadDescent1DemoData() {
+        try {
+            if (Descent1Demo.source != FullGameData::Unknown) {
+                SPDLOG_INFO("Descent 1 Demo data already loaded");
+                return true;
+            }
+
+            SPDLOG_INFO("Loading Descent 1 Demo data");
+            const auto hogPath = D1_DEMO_FOLDER / "descent.hog";
+            const auto pigPath = D1_DEMO_FOLDER / "descent.pig";
+
+            if (!filesystem::exists(hogPath)) {
+                SPDLOG_WARN("{} not found", hogPath.string());
+                return false;
+            }
+
+            if (!filesystem::exists(pigPath)) {
+                SPDLOG_WARN("{} not found", pigPath.string());
+                return false;
+            }
+
+            PigFile pig;
+            SoundFile sounds;
+            HamFile ham;
+
+            auto pigData = File::ReadAllBytes(pigPath);
+            auto hog = HogFile::Read(FileSystem::FindFile(hogPath));
+            ReadD1Pig(pigData, pig, sounds);
+            sounds.Path = pig.Path = pigPath;
+            sounds.Compressed = true;
+
+            auto table = hog.ReadEntry("bitmaps.bin");
+            auto paletteData = hog.ReadEntry("palette.256");
+            auto palette = ReadPalette(paletteData);
+
+            // Load and fix raw POF files from HOG
+            for (auto& entry : hog.Entries) {
+                if (entry.Name.ends_with(".pof")) {
+                    auto modelData = hog.TryReadEntry(entry.Name);
+                    if (modelData.empty()) {
+                        SPDLOG_WARN("No model data found for {}", entry.Name);
+                        continue;
+                    }
+
+                    //auto modelData = ReadBinaryFile(entry.Name, LoadFlag::SkipMissionAndDxa);
+
+                    //if (modelData.empty())
+                    //    modelData = ReadBinaryFile(entry.Name);
+
+                    auto model = ReadPof(modelData, &palette);
+                    model.FileName = entry.Name;
+
+                    // Rest and fire animations are swapped on the green lifter in demo
+                    if (entry.Name == "robot17.pof")
+                        std::swap(model.Animation[(int)Animation::Rest], model.Animation[(int)Animation::Fire]);
+
+                    // Shift the flare so it is centered better. Retail does not have this problem.
+                    if (entry.Name == "flare.pof") {
+                        for (auto& sm : model.Submodels) {
+                            for (auto& v : sm.ExpandedPoints) {
+                                v.Point.z -= 1.5f;
+                            }
                         }
                     }
-                }
 
-                ham.Models.push_back(model);
-
-                // Workaround for red and brown hulk sharing the same model with different texture indices.
-                // Due to the way object meshes are generated we need separate models.
-                if (entry.Name == HULK_MODEL_NAME) {
-                    model.FileName = RED_HULK_MODEL_NAME;
                     ham.Models.push_back(model);
+
+                    // Workaround for red and brown hulk sharing the same model with different texture indices.
+                    // Due to the way object meshes are generated we need separate models.
+                    if (entry.Name == HULK_MODEL_NAME) {
+                        model.FileName = RED_HULK_MODEL_NAME;
+                        ham.Models.push_back(model);
+                    }
                 }
+            }
+
+            ham.DeadModels.resize(ham.Models.size());
+
+            ReadBitmapTable(table, pig, sounds, ham);
+            WriteD1TextureCache(ham, pig, palette, D1_DEMO_CACHE);
+
+            // Everything loaded okay, set data
+            Descent1Demo = FullGameData(std::move(ham), FullGameData::Descent1Demo);
+            Descent1Demo.bitmaps = ReadAllBitmaps(pig, palette);
+            Descent1Demo.palette = std::move(palette);
+            Descent1Demo.pig = std::move(pig);
+            Descent1Demo.hog = std::move(hog);
+            Descent1Demo.sounds = std::move(sounds);
+            SPDLOG_INFO("Descent 1 demo data loaded");
+            return true;
+        }
+        catch (...) {
+            SPDLOG_WARN("Error reading Descent 1 demo data");
+            return false;
+        }
+    }
+
+    struct TextureSource {
+        PigFile pig;
+        Palette palette;
+        filesystem::path path;
+    };
+
+
+    //class PigCache {
+    //    Dictionary<filesystem::path, TextureSource> _sources;
+
+    //public:
+    //    void Load(const string& palette, const HogFile& hog) {
+    //        // Find the 256 for the palette first. In most cases it is located inside of the d2 hog.
+    //        // But for custom palettes it is on the filesystem
+    //        auto paletteData = hog.TryReadEntry(palette);
+    //        auto pigName = ReplaceExtension(palette, ".pig");
+    //        auto pigPath = FileSystem::FindFile(pigName);
+
+    //        if (paletteData.empty()) {
+    //            // Wasn't in hog, find on filesystem
+    //            if (auto path256 = FileSystem::TryFindFile(palette)) {
+    //                paletteData = File::ReadAllBytes(*path256);
+    //                pigPath = path256->replace_extension(".pig");
+    //            }
+    //            else {
+    //                // Give up and load groupa
+    //                paletteData = hog.ReadEntry("GROUPA.256");
+    //            }
+    //        }
+
+    //        //_sources[];
+    //    }
+    //};
+
+    void LoadPalette(FullGameData& data, string_view palette) {
+        // Find the 256 for the palette first. In most cases it is located inside of the hog.
+        // But for custom palettes it is on the filesystem
+        auto paletteData = data.hog.TryReadEntry(palette);
+        auto pigName = ReplaceExtension(palette, ".pig");
+        auto pigPath = FileSystem::FindFile(pigName);
+
+        if (paletteData.empty()) {
+            // Wasn't in hog, find on filesystem
+            if (auto path256 = FileSystem::TryFindFile(palette)) {
+                paletteData = File::ReadAllBytes(*path256);
+                pigPath = path256->replace_extension(".pig");
+            }
+            else {
+                // Give up and load groupa
+                paletteData = data.hog.ReadEntry("GROUPA.256");
             }
         }
 
-        ham.DeadModels.resize(ham.Models.size());
-
-        ReadBitmapTable(table, pig, ham, sounds);
-        SPDLOG_INFO("Loaded D1 shareware pig and bitmaps.bin");
-        auto textures = ReadAllBitmaps(pig, palette);
-
-        // Everything loaded okay, set the internal data
-        Textures = std::move(textures);
-        LevelPalette = std::move(palette);
-        Pig = std::move(pig);
-        Hog = std::move(hog);
-        GameData = std::move(ham);
-        SoundsD1 = std::move(sounds);
+        data.pig = ReadPigFile(pigPath);
+        data.palette = ReadPalette(paletteData);
     }
 
-    void LoadStringTable() {
+    bool LoadDescent2Data() {
+        try {
+            if (Descent2.source != FullGameData::Unknown) {
+                SPDLOG_INFO("Descent 2 data already loaded");
+                return true;
+            }
+
+            auto hamPath = FileSystem::TryFindFile("descent2.ham");
+            if (!hamPath) {
+                SPDLOG_WARN("descent2.ham not found");
+                return false;
+            }
+
+            auto hamData = File::ReadAllBytes(*hamPath);
+            StreamReader reader(hamData);
+
+            auto ham = ReadHam(reader);
+            auto hog = HogFile::Read(FileSystem::FindFile("descent2.hog"));
+
+            // Everything loaded okay, set data
+            Descent2 = FullGameData(ham, FullGameData::Descent2);
+            Descent2.hog = std::move(hog);
+
+            if (auto s22 = FileSystem::TryFindFile("descent2.s22")) {
+                Descent2.sounds = ReadSoundFile(*s22);
+            }
+
+            LoadPalette(Descent2, "groupa.256"); // default to groupa
+            Descent2.bitmaps = ReadAllBitmaps(Descent2.pig, Descent2.palette);
+
+            //FixVClipTimes(Current.Effects);
+            SPDLOG_INFO("Descent 2 data loaded");
+            return true;
+        }
+        catch (...) {
+            SPDLOG_WARN("Error reading descent2.ham");
+            return false;
+        }
+    }
+
+    // Loads DTX data (if present) onto the pig
+    void LoadDtx(const Level& level, const Palette& palette, PigFile& pig) {
+        filesystem::path folder = level.Path;
+        folder.remove_filename();
+        auto dtx = ReplaceExtension(level.FileName, ".dtx");
+        auto dtxData = TryReadMissionFile(folder / dtx);
+        if (!dtxData.empty()) {
+            SPDLOG_INFO("DTX data found");
+            CustomTextures.LoadDtx(pig.Entries, dtxData, palette);
+        }
+    }
+
+    void LoadStringTable(const HogFile& hog) {
         StringTable.clear();
         StringTable.reserve(700);
-        auto data = Hog.ReadEntry("descent.txb");
+        auto data = hog.ReadEntry("descent.txb");
         auto text = DecodeText(data);
 
         std::stringstream ss(text);
@@ -753,70 +747,56 @@ namespace Inferno::Resources {
 
     void ResetResources() {
         AvailablePalettes = {};
-        LevelPalette = {};
-        Pig = {};
-        Hog = {};
-        GameData = {};
         Lights = {};
+        GameData = {};
         CustomTextures.Clear();
-        Textures.clear();
+    }
+
+    // Searches the mission HOG, then the game data folder, then the common data folder
+    string ReadTextFile(string_view file, bool descent1) {
+        auto commonPath = DATA_FOLDER / file;
+        auto gamePath = (descent1 ? D1_FOLDER : D2_FOLDER) / file;
+        string data;
+
+        if (Game::Mission) {
+            data = Game::Mission->TryReadEntryAsString(file);
+            if (!data.empty()) {
+                SPDLOG_INFO("Reading {} from mission", file);
+                return data;
+            }
+        }
+
+        if (FileSystem::TryFindFile(gamePath)) {
+            SPDLOG_INFO("Reading game table from `{}`", gamePath.string());
+            data = File::ReadAllText(gamePath);
+        }
+        else if (FileSystem::TryFindFile(commonPath)) {
+            SPDLOG_INFO("Reading game table from `{}`", commonPath.string());
+            data = File::ReadAllText(commonPath);
+        }
+
+        if (data.empty())
+            SPDLOG_WARN("Unable to find `{}`", file);
+
+        return data;
     }
 
     void LoadGameTables(const Level& level) {
         // Load order matters. Changes get layered onto each other (root, game, mission)
-        // Should we reload data from the HAM?
-
-        auto commonPath = "data/game.yml";
-        if (FileSystem::TryFindFile(commonPath)) {
-            auto data = File::ReadAllText(commonPath);
-            SPDLOG_INFO("Reading game table from `{}`", commonPath);
+        auto data = ReadTextFile(GAME_TABLE_FILE, level.IsDescent1());
+        if (!data.empty())
             LoadGameTable(data, GameData);
-        }
-
-        auto gamePath = level.IsDescent1() ? "d1/game.yml" : "d2/game.yml";
-
-        if (FileSystem::TryFindFile(gamePath)) {
-            auto data = File::ReadAllText(gamePath);
-            SPDLOG_INFO("Reading game table from `{}`", gamePath);
-            LoadGameTable(data, GameData);
-        }
-
-        if (Game::Mission) {
-            auto data = Game::Mission->TryReadEntryAsString("game.yml");
-            SPDLOG_INFO("Reading game table from mission");
-
-            if (!data.empty())
-                LoadGameTable(data, GameData);
-        }
     }
 
     void LoadLightTables(const Level& level) {
-        auto commonPath = "data/lights.yml";
-        if (FileSystem::TryFindFile(commonPath)) {
-            auto data = File::ReadAllText(commonPath);
-            SPDLOG_INFO("Reading light table from `{}`", commonPath);
+        auto data = ReadTextFile(LIGHT_TABLE_FILE, level.IsDescent1());
+        if (!data.empty())
             LoadLightTable(data, Lights);
-        }
-
-        auto gamePath = level.IsDescent1() ? "d1/lights.yml" : "d2/lights.yml";
-
-        if (FileSystem::TryFindFile(gamePath)) {
-            auto data = File::ReadAllText(gamePath);
-            SPDLOG_INFO("Reading light table from `{}`", gamePath);
-            LoadLightTable(data, Lights);
-        }
-
-        if (Game::Mission) {
-            auto data = Game::Mission->TryReadEntryAsString("lights.yml");
-
-            if (!data.empty()) {
-                LoadLightTable(data, Lights);
-                SPDLOG_INFO("Reading light table from mission");
-            }
-        }
     }
 
-    bool FileExists(string_view name) {
+    bool FileExists(string_view fileName) {
+        auto name = string(fileName);
+
         // current HOG file
         if (Game::Mission) {
             // Check unpacked data folder for mission
@@ -862,7 +842,7 @@ namespace Inferno::Resources {
             return true;
 
         // Base HOG file
-        if (Hog.Exists(name))
+        if (GameData.hog.Exists(name))
             return true;
 
         return false; // Wasn't found
@@ -952,16 +932,16 @@ namespace Inferno::Resources {
 
         // game specific data folder
         // todo: there might not be a level loaded
-        auto path = GetGameDataFolder(Game::Level) + name;
+        auto path = GetGameDataFolder(Game::Level) / name;
         if (filesystem::exists(path)) {
-            SPDLOG_INFO("Reading {}", path);
+            SPDLOG_INFO("Reading {}", path.string());
             return File::ReadAllBytes(path);
         }
 
         // Common data folder
-        path = "data/" + name;
+        path = DATA_FOLDER / name;
         if (filesystem::exists(path)) {
-            SPDLOG_INFO("Reading {}", path);
+            SPDLOG_INFO("Reading {}", path.string());
             return File::ReadAllBytes(path);
         }
 
@@ -987,18 +967,18 @@ namespace Inferno::Resources {
     }
 
     void LoadMaterialTables(const Level& level) {
-        auto commonPath = "data/material.yml";
+        auto commonPath = DATA_FOLDER / "material.yml";
         if (FileSystem::TryFindFile(commonPath)) {
             auto data = File::ReadAllText(commonPath);
-            SPDLOG_INFO("Reading material table from `{}`", commonPath);
+            SPDLOG_INFO("Reading material table from `{}`", commonPath.string());
             LoadMaterialTable(data, Resources::Materials.GetAllMaterialInfo());
         }
 
-        auto gamePath = GetMaterialTablePath(level);
+        auto& gamePath = GetMaterialTablePath(level);
 
         if (FileSystem::TryFindFile(gamePath)) {
             auto data = File::ReadAllText(gamePath);
-            SPDLOG_INFO("Reading material table from `{}`", gamePath);
+            SPDLOG_INFO("Reading material table from `{}`", gamePath.string());
             LoadMaterialTable(data, Resources::Materials.GetAllMaterialInfo());
         }
 
@@ -1037,28 +1017,117 @@ namespace Inferno::Resources {
     void LoadLevel(Level& level) {
         try {
             ResetResources();
-            Resources::LoadSounds();
+            //Resources::LoadSounds();
 
             if (level.IsDescent2()) {
                 SPDLOG_INFO("Loading Descent 2 level: '{}'\r\n Version: {} Segments: {} Vertices: {}", level.Name, level.Version, level.Segments.size(), level.Vertices.size());
-                LoadDescent2Resources(level);
+                //LoadDescent2Resources(level);
+                if (Descent2.source == FullGameData::Unknown) {
+                    if (!LoadDescent2Data()) {
+                        ShowErrorMessage("Unable to load level, Descent 2 data not found");
+                        return;
+                    }
+                }
+
                 AvailablePalettes = FindAvailablePalettes();
+                GameData = FullGameData(Descent2);
+                // todo: switch palette based on level
+
+                // todo: it is not ideal to reload palettes and their textures each time. Cache them.
+                // Find the 256 for the palette first. In most cases it is located inside of the d2 hog.
+                // But for custom palettes it is on the filesystem
+                auto paletteData = Descent2.hog.TryReadEntry(level.Palette);
+                auto pigName = ReplaceExtension(level.Palette, ".pig");
+                auto pigPath = FileSystem::FindFile(pigName);
+
+                if (paletteData.empty()) {
+                    // Wasn't in hog, find on filesystem
+                    if (auto path256 = FileSystem::TryFindFile(level.Palette)) {
+                        paletteData = File::ReadAllBytes(*path256);
+                        pigPath = path256->replace_extension(".pig");
+                    }
+                    else {
+                        // Give up and load groupa
+                        paletteData = Descent2.hog.ReadEntry("GROUPA.256");
+                    }
+                }
+
+                GameData.pig = ReadPigFile(pigPath); // todo: pick the correct pre-loaded pig
+                auto palette = ReadPalette(paletteData);
+                auto bitmaps = ReadAllBitmaps(GameData.pig, palette); // todo: pick texture cache
+
+                // Load VHAMs
+                if (level.IsVertigo()) {
+                    std::filesystem::path vhamPath = Game::Mission->Path;
+                    vhamPath.replace_extension(".ham");
+                    auto vham = TryReadMissionFile(vhamPath);
+                    if (!vham.empty()) {
+                        StreamReader vReader(vham);
+                        AppendVHam(vReader, GameData);
+                    }
+                }
+
+                {
+                    // Load HXMs
+                    auto hxm = ReplaceExtension(level.FileName, ".hxm");
+                    filesystem::path folder = level.Path;
+                    folder.remove_filename();
+                    auto hxmData = TryReadMissionFile(folder / hxm);
+                    if (!hxmData.empty()) {
+                        SPDLOG_INFO("Loading HXM data");
+                        StreamReader hxmReader(hxmData);
+                        ReadHXM(hxmReader, GameData);
+                    }
+                }
+
+                // Load custom textures
+                {
+                    filesystem::path folder = level.Path;
+                    folder.remove_filename();
+
+                    auto pog = ReplaceExtension(level.FileName, ".pog");
+                    auto pogData = TryReadMissionFile(folder / pog);
+                    if (!pogData.empty()) {
+                        SPDLOG_INFO("Loading POG data");
+                        CustomTextures.LoadPog(GameData.pig.Entries, pogData, GameData.palette);
+                    }
+                }
             }
             else if (level.IsDescent1()) {
                 SPDLOG_INFO("Loading Descent 1 level: '{}'\r\n Version: {} Segments: {} Vertices: {}",
-                    level.Name, level.Version, level.Segments.size(), level.Vertices.size());
+                            level.Name, level.Version, level.Segments.size(), level.Vertices.size());
 
-                if (String::ToLower(level.FileName).ends_with(".sdl"))
-                    LoadDescent1Shareware();
-                else
-                    LoadDescent1Resources(level);
+                if (level.IsShareware) {
+                    if (Descent1Demo.source == FullGameData::Unknown) {
+                        if (!LoadDescent1DemoData()) {
+                            ShowErrorMessage("Unable to load level, Descent 1 demo data not found");
+                            return;
+                        }
+                    }
+
+                    if (D1DemoTextureCache.Entries.empty())
+                        D1DemoTextureCache = TextureMapCache(D1_DEMO_CACHE, 1800);
+
+                    GameData = FullGameData(Descent1Demo);
+                }
+                else {
+                    if (Descent1.source == FullGameData::Unknown) {
+                        if (!LoadDescent1Data()) {
+                            ShowErrorMessage("Unable to load level, Descent 1 data not found");
+                            return;
+                        }
+                    }
+
+                    GameData = FullGameData(Descent1);
+                    LoadDtx(level, GameData.palette, GameData.pig);
+                }
             }
             else {
                 throw Exception("Unsupported level version");
             }
 
             // Read replacement models
-            //for (auto& model : GameData.Models) {
+            //for (auto& model : Current.Models) {
             //    if (model.FileName.empty()) continue;
             //    auto modelData = ReadBinaryFile(model.FileName, true);
             //    if (!modelData.empty()) {
@@ -1074,7 +1143,7 @@ namespace Inferno::Resources {
             }
 
             LoadDataTables(level);
-            LoadStringTable();
+            LoadStringTable(GameData.hog);
             UpdateAverageTextureColor();
 
             Inferno::Sound::CopySoundIds();
@@ -1086,27 +1155,44 @@ namespace Inferno::Resources {
         }
     }
 
-    const PigBitmap DEFAULT_BITMAP = { PigEntry{ "default", 64, 64 } };
+    const PigBitmap DEFAULT_BITMAP = { PigEntry{ .Name = "default", .Width = 64, .Height = 64 } };
 
     const PigBitmap& GetBitmap(TexID id) {
-        if (Textures.empty())
+        if (GameData.bitmaps.empty())
             return DEFAULT_BITMAP;
 
         if (auto bmp = CustomTextures.Get(id)) return *bmp;
-        if (!Seq::inRange(Textures, (int)id)) id = (TexID)0;
-        return Textures[(int)id];
+        if (!Seq::inRange(GameData.bitmaps, (int)id)) id = (TexID)0;
+        return GameData.bitmaps[(int)id];
     }
 
     const PigBitmap& GetBitmap(LevelTexID tid) {
         return GetBitmap(LookupTexID(tid));
     }
 
-    bool FoundDescent1() { return FileSystem::TryFindFile("descent.hog").has_value(); }
-    bool FoundDescent1Demo() { return filesystem::exists(D1_DEMO_PATH / "descent.hog"); }
-    bool FoundDescent2() { return FileSystem::TryFindFile("descent2.hog").has_value(); }
-    bool FoundDescent3() { return FileSystem::TryFindFile("d3.hog").has_value(); }
-    bool FoundVertigo() { return FileSystem::TryFindFile("d2x.hog").has_value(); }
-    bool FoundMercenary() { return FileSystem::TryFindFile("merc.hog").has_value(); }
+    bool FoundDescent1() {
+        return FileSystem::TryFindFile("descent.hog").has_value();
+    }
+
+    bool FoundDescent1Demo() {
+        return filesystem::exists(D1_DEMO_FOLDER / "descent.hog");
+    }
+
+    bool FoundDescent2() {
+        return FileSystem::TryFindFile("descent2.hog").has_value();
+    }
+
+    bool FoundDescent3() {
+        return FileSystem::TryFindFile("d3.hog").has_value();
+    }
+
+    bool FoundVertigo() {
+        return FileSystem::TryFindFile("d2x.hog").has_value();
+    }
+
+    bool FoundMercenary() {
+        return FileSystem::TryFindFile("merc.hog").has_value();
+    }
 
     // Opens a file stream from the data paths or the loaded hogs
     Option<StreamReader> OpenFile(const string& name) {

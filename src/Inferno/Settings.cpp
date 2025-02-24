@@ -755,6 +755,8 @@ namespace Inferno {
 
     void Settings::Save(const filesystem::path& path) {
         try {
+            SPDLOG_INFO("Saving settings to {}", path.string());
+
             ryml::Tree doc(128, 128);
             doc.rootref() |= ryml::MAP;
 
@@ -805,6 +807,8 @@ namespace Inferno {
         try {
             std::ifstream file(path);
             if (!file) return;
+
+            SPDLOG_INFO("Loading settings from {}", path.string());
 
             std::stringstream buffer;
             buffer << file.rdbuf();

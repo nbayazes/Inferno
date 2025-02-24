@@ -80,16 +80,6 @@ void Application::Initialize(int width, int height) {
         }
     };
 
-    Inferno::Input::Initialize(Shell::Hwnd);
-    Render::Initialize(Shell::Hwnd, width, height);
-    Sound::Init(Shell::Hwnd);
-
-    Resources::LoadSounds();
-    Sound::CopySoundIds();
-
-    // Set color picker to use wheel and HDR by default
-    ImGui::SetColorEditOptions(ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_PickerHueWheel);
-
     if (Settings::Inferno.Descent3Enhanced)
         Resources::MountDescent3();
 
@@ -99,16 +89,22 @@ void Application::Initialize(int width, int height) {
     Game::MainCamera.Position = MenuCameraPosition;
     Game::MainCamera.Target = MenuCameraTarget;
 
-    Resources::LoadDescent1GameData();
-    Resources::LoadDescent2GameData();
+    Inferno::Input::Initialize(Shell::Hwnd);
+    Render::Initialize(Shell::Hwnd, width, height);
+
+    Sound::Init(Shell::Hwnd);
+    //Resources::LoadSounds();
+    Sound::CopySoundIds();
+
+    LoadTextureCaches();
     LoadFonts();
 
     Events::SettingsChanged += [this] {
         UpdateFpsLimit();
     };
 
-    BuildTextureMapCache();
-    LoadTextureCaches();
+    // Set color picker to use wheel and HDR by default
+    ImGui::SetColorEditOptions(ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_PickerHueWheel);
 
     // todo: check for editor command line option
     Game::SetState(GameState::MainMenu);

@@ -39,7 +39,7 @@ namespace Inferno::Editor {
             try {
                 SPDLOG_INFO("Saving materials");
                 // todo: save materials to hog toggle?
-                auto path = Resources::GetMaterialTablePath(Game::Level);
+                auto& path = Resources::GetMaterialTablePath(Game::Level);
                 std::ofstream stream(path);
                 auto materials = Resources::Materials.GetAllMaterialInfo();
                 SaveMaterialTable(stream, materials);

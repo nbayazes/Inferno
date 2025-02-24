@@ -450,6 +450,11 @@ namespace Inferno::Game {
                 Input::SetMouseMode(Input::MouseMode::Normal);
                 Game::ScreenGlow.SetTarget(Color(0, 0, 0, 0), Game::Time, 0);
                 PlayMainMenuMusic();
+
+                Graphics::UnloadTextures();
+                string extraTextures[] = { "noise" };
+                Graphics::LoadTextures(extraTextures);
+
                 UI::ShowMainMenu();
 
                 break;
@@ -926,8 +931,6 @@ namespace Inferno::Game {
         Render::Materials->LoadMaterials(Resources::GameData.Gauges, false, true);
     }
 
-    void PreloadTextures();
-
     bool CheckForPlayerStart(Inferno::Level& level) {
         auto player = level.TryGetObject(ObjID(0));
 
@@ -1017,7 +1020,7 @@ namespace Inferno::Game {
                 auto level = isShareware ? Level::DeserializeD1Demo(data) : Level::Deserialize(data);
                 Resources::LoadLevel(level);
                 Graphics::LoadLevel(level);
-                Game::LoadLevel(hogPath, levelEntry, false, autosave);
+                Game::LoadLevel(hogPath, levelEntry, autosave);
                 Render::MaterialsChanged = true;
 
                 auto briefingName = mission.GetValue("briefing");
@@ -1090,6 +1093,47 @@ namespace Inferno::Game {
         MissionTimestamp = GetTimestamp();
     }
 
+    // Loads textures used only in-game
+    void LoadGameTextures() {
+        string gameTextures[] = {
+            "cockpit-ctr",
+            "cockpit-left",
+            "cockpit-right",
+            "gauge01b#0",
+            "gauge01b#1",
+            "gauge01b#2",
+            "gauge01b#3",
+            "gauge01b#4",
+            "gauge01b#5",
+            "gauge01b#6",
+            "gauge01b#7",
+            "gauge01b#8",
+            "gauge01b#10",
+            "gauge01b#11",
+            "gauge01b#12",
+            "gauge01b#13",
+            "gauge01b#14",
+            "gauge01b#15",
+            "gauge01b#16",
+            "gauge01b#17",
+            "gauge01b#18",
+            "gauge01b#19",
+            "gauge02b",
+            "gauge03b",
+            //"gauge16b", // lock
+            "Hilite",
+            "SmHilite",
+            "tracer",
+            "Lightning",
+            "Lightning3",
+            "noise",
+            "menu-bg"
+        };
+
+        Graphics::LoadTextures(gameTextures);
+    }
+
+
     bool StartLevel() {
         SPDLOG_INFO("Starting level");
         Editor::SetPlayerStartIDs(Level);
@@ -1136,7 +1180,7 @@ namespace Inferno::Game {
         InitObjects(Level);
         InitializeMatcens(Level);
         LoadHUDTextures();
-        PreloadTextures();
+        LoadGameTextures();
         PlayLevelMusic();
 
         Automap = AutomapInfo(Level);

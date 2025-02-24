@@ -1,9 +1,10 @@
 ﻿#include "pch.h"
 #include "TextureCache.h"
-#include "FileSystem.h"
+#include "BitmapTable.h"
 #include "HamFile.h"
 #include "HogFile.h"
 #include "NormalMap.h"
+#include "Resources.h"
 #include "Streams.h"
 
 namespace Inferno {
@@ -296,6 +297,7 @@ namespace Inferno {
     }
 
     TextureMapCache::TextureMapCache(filesystem::path path, uint size): _size(size), Path(std::move(path)) {
+        SPDLOG_INFO("Reading texture cache {}", Path.string());
         _stream = make_unique<StreamReader>(Path);
         Entries.resize(_size);
         Deserialize(*_stream);
@@ -316,9 +318,7 @@ namespace Inferno {
         }
     }
 
-    constexpr auto D1_CACHE = "cache/d1.cache";
-
-    bool CacheFileIsValid(string_view path) {
+    bool CacheFileIsValid(const filesystem::path& path) {
         try {
             if (!std::filesystem::exists(path)) return false;
 
@@ -336,42 +336,27 @@ namespace Inferno {
         }
     }
 
-    void BuildTextureMapCache() {
-        if (CacheFileIsValid(D1_CACHE)) {
-            SPDLOG_INFO("{} already exists", D1_CACHE);
-            return;
+    bool WriteD1TextureCache(const HamFile& ham, const PigFile& pig, const Palette& palette, const filesystem::path& destination) {
+        if (CacheFileIsValid(destination)) {
+            SPDLOG_INFO("{} already exists", destination.string());
+            return true;
         }
-
-        if (!filesystem::exists("d1/descent.hog")) {
-            SPDLOG_WARN("d1/descent.hog is missing");
-            return;
-        }
-
-        if (!filesystem::exists("d1/descent.pig")) {
-            SPDLOG_WARN("d1/descent.pig is missing");
-            return;
-        }
-
-        auto hog = HogFile::Read("d1/descent.hog");
-        auto paletteData = hog.ReadEntry("palette.256");
-        auto palette = ReadPalette(paletteData);
-        auto pigData = File::ReadAllBytes("d1/descent.pig");
-
-        PigFile pig;
-        SoundFile sounds;
-        auto ham = ReadDescent1GameData(pigData, palette, pig, sounds);
-        pig.Path = "d1/descent.pig";
 
         TextureMapCache cache;
         SPDLOG_INFO("Generating D1 texture cache");
         cache.GenerateTextures(ham, pig, palette);
-        SPDLOG_INFO("Writing {} textures to cache {}", cache.Entries.size(), D1_CACHE);
-        cache.Write(D1_CACHE);
+        SPDLOG_INFO("Writing {} textures to cache {}", cache.Entries.size(), destination.string());
+        cache.Write(destination);
+        return true;
     }
 
+    // Tries to load textures so the menu will have something to display
     void LoadTextureCaches() {
         if (filesystem::exists(D1_CACHE))
             D1TextureCache = TextureMapCache(D1_CACHE, 1800);
-        //D2TextureCache = TextureMapCache::Read(D2_CACHE, 2700);
+        else if (filesystem::exists(D2_CACHE))
+            D1DemoTextureCache = TextureMapCache(D2_CACHE, 2700);
+        else if (filesystem::exists(D1_DEMO_CACHE))
+            D1DemoTextureCache = TextureMapCache(D1_DEMO_CACHE, 1800); // Demo data is fallback
     }
 }

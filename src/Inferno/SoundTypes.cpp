@@ -5,29 +5,30 @@
 
 namespace Inferno {
     SoundResource::SoundResource(SoundID id) {
-        if (!Seq::inRange(Resources::GameDataD1.Sounds, (int)id))
-            return;
+        auto& table = Resources::ResolveGameData(Game::Level.IsDescent1() ? FullGameData::Descent1 : FullGameData::Descent2);
 
-        if (Game::Level.IsDescent1()) {
-            D1 = Resources::GameDataD1.Sounds[(int)id];
-        }
-        else {
-            D2 = Resources::GameDataD2.Sounds[(int)id];
+        if (auto item = Seq::tryItem(table.Sounds, (int)id)) {
+            if (Game::Level.IsDescent1())
+                D1 = *item;
+            else
+                D2 = *item;
         }
     }
 
-    SoundResource::SoundResource(string name) : D3(std::move(name)) { }
+    SoundResource::SoundResource(string name) : D3(std::move(name)) {}
 
     float SoundResource::GetDuration() const {
         if (!D3.empty()) {
             ASSERT(false); // no way to get the duration without reading the wav?
-            if (auto info = Resources::ReadOutrageSoundInfo(D3)) { }
+            if (auto info = Resources::ReadOutrageSoundInfo(D3)) {}
         }
         else if (D1 != -1) {
-            return (float)Resources::SoundsD1.Sounds[D1].Length / Resources::SoundsD1.Frequency;
+            if (auto sound = Seq::tryItem(Resources::GameData.sounds.Sounds, D1))
+                return (float)sound->Length / Resources::GameData.sounds.Frequency;
         }
         else if (D2 != -1) {
-            return (float)Resources::SoundsD2.Sounds[D2].Length / Resources::SoundsD2.Frequency;
+            if (auto sound = Seq::tryItem(Resources::GameData.sounds.Sounds, D2))
+                return (float)sound->Length / Resources::GameData.sounds.Frequency;
         }
 
         return 0;

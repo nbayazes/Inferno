@@ -607,7 +607,7 @@ namespace Inferno::Editor {
         if (Settings::Editor.ReopenLastLevel &&
             !Settings::Editor.RecentFiles.empty() &&
             filesystem::exists(Settings::Editor.RecentFiles.front())) {
-            Game::LoadLevel(Settings::Editor.RecentFiles.front(), "", true);
+            Game::EditorLoadLevel(Settings::Editor.RecentFiles.front());
         }
         else {
             int16 version = 7; // Default to D2 levels

@@ -564,7 +564,7 @@ namespace Inferno::UI {
                 Game::SetState(GameState::Editor);
             });
             auto quitButton = panel->AddChild<Button>("Quit", [] {
-                PostMessage(Shell::Hwnd, WM_CLOSE, 0, 0);
+                Shell::Quit();
             });
             quitButton->ActionSound = ""; // clear the sound because quitting interrupts it
 

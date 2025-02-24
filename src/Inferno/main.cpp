@@ -286,7 +286,15 @@ int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
         Inferno::Editor::InitEditor();
         Settings::Load();
         FileSystem::Init();
-        Resources::Init();
+
+        if (!Resources::Init()) {
+            ShowErrorMessage(
+                "Cannot find Descent retail, Descent shareware, or Descent 2 retail data.\n\n"
+                "descent.hog and descent.pig should be placed in the /d1 or /d1/demo folder.\n"
+                "descent2.hog, descent2.ham, and groupa.pig should be placed in the /d2 folder.");
+            return -1;
+        }
+
         Inferno::InitShaderCompiler();
 
         auto cmdShow = Settings::Inferno.Maximized ? SW_SHOWMAXIMIZED : SW_SHOW;

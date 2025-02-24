@@ -20,7 +20,9 @@ namespace Inferno {
         inline static HWND Hwnd = nullptr;
         inline static float DpiScale = 1;
         inline static bool HasFocus = true;
+
         static void UpdateWindowTitle(string_view message = {});
+        static void Quit();
     };
 
     void UpdateFullscreen();

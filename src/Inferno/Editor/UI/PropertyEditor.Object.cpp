@@ -438,7 +438,7 @@ namespace Inferno::Editor {
             auto soundRow = [&imId](const char* label, SoundID id) {
                 ImGui::PushID(imId++);
                 ImGui::TableRowLabel(label);
-                if (ImGui::Button(Resources::GetSoundName(id).data(), { -1, 0 }))
+                if (ImGui::Button(string(Resources::GetSoundName(id)).c_str(), { -1, 0 }))
                     Sound::Play2D({ id });
                 ImGui::PopID();
             };

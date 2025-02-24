@@ -501,7 +501,8 @@ namespace Inferno {
         // Charged weapons drain energy on button down instead of here
         if (!weapon.Extended.Chargable) {
             AddEnergy(-GetWeaponEnergyCost(battery.EnergyUsage));
-            PrimaryAmmo[battery.AmmoType] -= battery.AmmoUsage; // all ammo is treated as vulcan ammo for now
+            if (Seq::inRange(PrimaryAmmo, battery.AmmoType))
+                PrimaryAmmo[battery.AmmoType] -= battery.AmmoUsage; // all ammo is treated as vulcan ammo for now
         }
 
         auto& sequence = battery.Firing;

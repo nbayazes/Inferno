@@ -32,7 +32,7 @@ void EnableDarkMode(HWND hwnd) {
     //IsWindowsVersionOrGreater(); 
     // support for this attribute was added in Windows 10 20H1, whatever version that was
     DwmSetWindowAttribute(hwnd, DWMWINDOWATTRIBUTE::DWMWA_USE_IMMERSIVE_DARK_MODE,
-        &useDarkMode, sizeof(useDarkMode));
+                          &useDarkMode, sizeof(useDarkMode));
 }
 
 void ClampWindowPosition(uint2& pos, uint2& size) {
@@ -267,10 +267,10 @@ int Inferno::Shell::Show(uint2 position, uint2 size, int nCmdShow) const {
     auto height = windowRect.bottom - windowRect.top;
 
     HWND hwnd = CreateWindowEx(0, WindowClass, Widen(APP_TITLE).c_str(),
-        WS_OVERLAPPEDWINDOW,
-        position.x, position.y,
-        width, height,
-        nullptr, nullptr, _hInstance, nullptr);
+                               WS_OVERLAPPEDWINDOW,
+                               position.x, position.y,
+                               width, height,
+                               nullptr, nullptr, _hInstance, nullptr);
 
     if (!hwnd)
         throw std::exception("Failed to create window");
@@ -342,6 +342,10 @@ void Inferno::Shell::UpdateWindowTitle(string_view message) {
 
         SetWindowTextW(Hwnd, Widen(title).c_str());
     }
+}
+
+void Inferno::Shell::Quit() {
+    PostMessage(Shell::Hwnd, WM_CLOSE, 0, 0);
 }
 
 namespace Inferno {

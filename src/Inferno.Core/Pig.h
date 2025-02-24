@@ -204,19 +204,18 @@ namespace Inferno {
         PigBitmap(PigEntry entry) : Info(std::move(entry)) {}
 
         ~PigBitmap() = default;
-        PigBitmap(const PigBitmap&) = delete;
+        explicit PigBitmap(const PigBitmap&) = default;
         PigBitmap(PigBitmap&&) = default;
         PigBitmap& operator=(const PigBitmap&) = delete;
         PigBitmap& operator=(PigBitmap&&) = default;
     };
 
 
-    // A texture file
+    // PIGs contain bitmaps and their headers
     struct PigFile {
         filesystem::path Path;
         size_t DataStart = 0;
         List<PigEntry> Entries;
-
 
         const PigEntry& Get(TexID id) const {
             if (!Seq::inRange(Entries, (int)id)) return _defaultEntry;
@@ -230,7 +229,7 @@ namespace Inferno {
 
         PigFile() = default;
         ~PigFile() = default;
-        PigFile(const PigFile&) = delete;
+        explicit PigFile(const PigFile&) = default;
         PigFile(PigFile&&) = default;
         PigFile& operator=(const PigFile&) = delete;
         PigFile& operator=(PigFile&&) = default;

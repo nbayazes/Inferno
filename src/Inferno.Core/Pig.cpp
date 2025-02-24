@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Pig.h"
 #include <ranges>
+#include <spdlog/spdlog.h>
 #include "Sound.h"
 #include "Streams.h"
 #include "Utility.h"
@@ -387,12 +388,14 @@ namespace Inferno {
     }
 
     List<PigBitmap> ReadAllBitmaps(const PigFile& pig, const Palette& palette) {
+        SPDLOG_INFO("Reading bitmaps from {}", pig.Path.string());
         List<PigBitmap> bitmaps;
 
         StreamReader reader(pig.Path);
         for (auto& entry : pig.Entries)
             bitmaps.push_back(ReadBitmapEntry(reader, pig.DataStart, entry, palette));
 
+        SPDLOG_INFO("Read {} bitmaps", bitmaps.size());
         return bitmaps;
     }
 

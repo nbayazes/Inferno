@@ -2,6 +2,7 @@
 #include "CustomTextureLibrary.h"
 #include "HamFile.h"
 #include "Hog2.h"
+#include "HogFile.h"
 #include "Level.h"
 #include "LightInfo.h"
 #include "MaterialInfo.h"
@@ -14,24 +15,63 @@
 
 namespace Inferno {
     constexpr auto METADATA_EXTENSION = ".ied"; // inferno engine data
-    inline const filesystem::path D1_DEMO_PATH = "d1/demo"; // subdirectory containing the d1 demo hog and pig
-    inline const filesystem::path D1_PATH = "d1"; // subdirectory containing the d1 hog and pig
+    inline const filesystem::path DATA_FOLDER = "data"; // subdirectory containing the d1 hog and pig
+    inline const filesystem::path D1_FOLDER = "d1"; // subdirectory containing the d1 hog and pig
+    inline const filesystem::path D1_DEMO_FOLDER = "d1/demo"; // subdirectory containing the d1 demo hog and pig
+    inline const filesystem::path D2_FOLDER = "d2"; // subdirectory containing the d2 hog and pig
+    inline const filesystem::path D1_MATERIAL_FILE = D1_FOLDER / "material.yml";
+    inline const filesystem::path D2_MATERIAL_FILE = D1_FOLDER / "material.yml";
+    constexpr auto GAME_TABLE_FILE = "game.yml";
+    constexpr auto LIGHT_TABLE_FILE = "lights.yml";
+
+    struct FullGameData : HamFile {
+        SoundFile sounds;
+        HogFile hog; // Archive
+        Palette palette;
+        PigFile pig; // texture headers and data
+        List<PigBitmap> bitmaps; // loaded texture data
+
+        enum Source {
+            Unknown, Descent1, Descent1Demo, Descent2
+        };
+
+        Source source = Unknown;
+
+        FullGameData() = default;
+        explicit FullGameData(const HamFile& ham, Source source) : HamFile(ham), source(source) {}
+    };
 }
 
 // Abstraction for game resources
 namespace Inferno::Resources {
-    inline HamFile GameData = {};
-    inline HamFile GameDataD1 = {};
-    inline HamFile GameDataD2 = {};
+    inline SoundFile Sounds = {}; // sounds for the current level
+    inline FullGameData Descent1, Descent1Demo, Descent2, Vertigo;
+    inline FullGameData GameData; // Resources for the current level
 
-    void LoadDescent1GameData();
-    void LoadDescent2GameData();
+    // Returns the game data for the particular type of game
+    inline FullGameData& ResolveGameData(FullGameData::Source source) {
+        if (source == FullGameData::Descent1 || source == FullGameData::Descent1Demo) {
+            if (Resources::GameData.source == FullGameData::Descent1 || Resources::GameData.source == FullGameData::Descent1Demo)
+                return Resources::GameData; // use sounds from the current level
+            else
+                return Resources::Descent1;
+        }
+        else {
+            if (Resources::GameData.source == FullGameData::Descent2)
+                return Resources::GameData; // use sounds from the current level
+            else
+                return Resources::Descent2;
+        }
+    }
 
-    void Init();
+    bool LoadDescent1Data();
+    bool LoadDescent1DemoData();
+    bool LoadDescent2Data();
+
+    bool Init();
 
     inline CustomTextureLibrary CustomTextures;
 
-    extern SoundFile SoundsD1, SoundsD2;
     string_view GetSoundName(SoundID);
     const Palette& GetPalette();
 
@@ -80,12 +120,12 @@ namespace Inferno::Resources {
         return GameData.LevelTexIdx[(int)id];
     }
 
-    inline const char* GetMaterialTablePath(const Level& level) {
-        return level.IsDescent1() ? "d1/material.yml" : "d2/material.yml";
+    inline const filesystem::path& GetMaterialTablePath(const Level& level) {
+        return level.IsDescent1() ? D1_MATERIAL_FILE : D2_MATERIAL_FILE;
     }
 
-    inline const char* GetGameDataFolder(const Level& level) {
-        return level.IsDescent1() ? "d1/" : "d2/";
+    inline const filesystem::path& GetGameDataFolder(const Level& level) {
+        return level.IsDescent1() ? D1_FOLDER : D2_FOLDER;
     }
 
     // Returns true if the id corresponds to a level texture
@@ -104,7 +144,7 @@ namespace Inferno::Resources {
     // Can return none if the powerup is unused
     Option<string> GetPowerupName(uint id);
 
-    bool FileExists(string_view name);
+    bool FileExists(string_view fileName);
 
     // Tries to read a text file by checking the mission, the game specific directory, the shared directory, and finally the game HOG
     string ReadTextFile(const string& name);
@@ -145,7 +185,7 @@ namespace Inferno::Resources {
     inline Hog2 Descent3Hog, Mercenary;
     inline Outrage::GameTable GameTable;
     inline List<Outrage::VClip> VClips; // Expanded from OAF headers
-    inline List< TextureLightInfo> Lights;
+    inline List<TextureLightInfo> Lights;
 
     inline TextureLightInfo* GetLightInfo(string_view name) {
         for (auto& info : Lights) {

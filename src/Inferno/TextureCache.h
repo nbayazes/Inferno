@@ -3,6 +3,10 @@
 #include "HamFile.h"
 
 namespace Inferno {
+    constexpr auto D1_CACHE = "cache/d1.cache";
+    constexpr auto D2_CACHE = "cache/d2.cache";
+    constexpr auto D1_DEMO_CACHE = "cache/d1-demo.cache";
+
     // Saves and loads generated textures for specular and normal maps
     class TextureMapCache {
         uint _size = 0;
@@ -64,10 +68,10 @@ namespace Inferno {
         void Deserialize(StreamReader& stream);
     };
 
-    void BuildTextureMapCache();
+    bool WriteD1TextureCache(const HamFile& ham, const PigFile& pig, const Palette& palette, const filesystem::path& destination);
     void LoadTextureCaches();
 
     void ExpandMask(const PigEntry& bmp, List<uint8>& data);
 
-    inline TextureMapCache D1TextureCache, D2TextureCache;
+    inline TextureMapCache D1TextureCache, D1DemoTextureCache, D2TextureCache;
 }

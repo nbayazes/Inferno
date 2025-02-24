@@ -37,7 +37,7 @@ namespace Inferno {
         constexpr int MAX_LINE_LEN = 600;
         auto line = reader.ReadStringToNewline(MAX_LINE_LEN);
         DecodeText(span((ubyte*)line.data(), line.length()));
-        
+
         if (auto index = line.find(';'); index > -1)
             line = line.substr(0, index);
 
@@ -94,7 +94,8 @@ namespace Inferno {
         }
     }
 
-    void ReadBitmapTable(span<byte> data, const PigFile& pig, HamFile& ham, const SoundFile& sounds) {
+    void ReadBitmapTable(span<byte> data, const PigFile& pig, const SoundFile& sounds, HamFile& ham) {
+        ASSERT(!pig.Entries.empty()); // Load the pig first!
         StreamReader reader(data);
 
         ham.DyingModels.resize(ham.Models.size());
@@ -442,8 +443,7 @@ namespace Inferno {
                         readLineValue(lineTokens, "damage", levelTexture->Damage);
                     }
 
-                    SPDLOG_INFO("{} {}", String::Split(bmLine, ' ')[0], (int)id);
-                    //    continue; // Don't allocate object clips
+                    //SPDLOG_INFO("{} {}", String::Split(bmLine, ' ')[0], (int)id);
 
                     if (!skip) {
                         readTokenValue("time", clip.VClip.PlayTime);
@@ -481,7 +481,7 @@ namespace Inferno {
                             clip.DestroyedTexture = ltid;
                             levelTexture->DestroyedTexture = ltid;
 
-                            SPDLOG_INFO("tid: {} destroyed tid: {}", id, (int)clip.DestroyedTexture);
+                            //SPDLOG_INFO("tid: {} destroyed tid: {}", id, (int)clip.DestroyedTexture);
                             auto& texture = ham.LevelTextures.emplace_back();
                             texture.ID = ltid;
                             texture.TexID = pig.Find(destroyedBitmap);
@@ -658,7 +658,8 @@ namespace Inferno {
                         }
 
                         if (string deadModel; readTokenValue("dead_pof", deadModel))
-                            ham.DeadModels[(int)reactor.Model] = FindModelID(ham, deadModel);
+                            if (auto model = Seq::tryItem(ham.DeadModels, (int)reactor.Model))
+                                *model = FindModelID(ham, deadModel);
 
                         // Copy gunpoints
                         if (auto pof = FindModel(ham, tokens[1])) {
@@ -723,7 +724,8 @@ namespace Inferno {
                         auto& deadModel = models.emplace_back();
                         deadModel.name = model;
                         deadModel.textures = shipModel.textures;
-                        ham.DyingModels[(int)ship.Model] = FindModelID(ham, model);
+                        if (auto dyingModel = Seq::tryItem(ham.DyingModels, (int)ship.Model))
+                            *dyingModel = FindModelID(ham, model);
                     }
 
                     break;

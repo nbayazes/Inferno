@@ -468,10 +468,10 @@ namespace Inferno::Sound {
         }
 
         void CopySoundIds() {
-            SPDLOG_INFO("Copied sound ids");
             std::scoped_lock lock(_threadMutex);
-            _soundsD1 = Resources::SoundsD1;
-            _soundsD2 = Resources::SoundsD2;
+            _soundsD1 = Resources::ResolveGameData(FullGameData::Descent1).sounds;
+            _soundsD2 = Resources::ResolveGameData(FullGameData::Descent2).sounds;
+            SPDLOG_INFO("Copied sound ids");
         }
 
     private:
@@ -739,24 +739,9 @@ namespace Inferno::Sound {
                 //    instance.Emitter.Position = _listener.Position;
             }
 
-            if (RequestUnloadD1) {
-                SPDLOG_INFO("Unloading D1 sounds");
-                for (auto& sound : _soundInstances) {
-                    sound.Effect->Stop();
-                    sound.Effect = {};
-                }
-
-                _engine->TrimVoicePool();
-
-                for (auto& sound : _effectsD1) {
-                    if (sound) sound.reset();
-                }
-
-                RequestUnloadD1 = false;
-            }
 
             if (_requestStopMusic) OnStopMusic();
-            if (_requestStopSounds) OnStopAllSounds();
+            if (_requestStopSounds || RequestUnloadD1) OnStopAllSounds();
 
             if (_requestPauseSounds) {
                 for (auto& instance : _soundInstances) {
@@ -770,6 +755,18 @@ namespace Inferno::Sound {
                     if (instance.Effect)
                         instance.Effect->Resume();
                 }
+            }
+
+            if (RequestUnloadD1) {
+                SPDLOG_INFO("Unloading D1 sounds");
+
+                _engine->TrimVoicePool();
+
+                for (auto& sound : _effectsD1) {
+                    if (sound) sound.reset();
+                }
+
+                RequestUnloadD1 = false;
             }
 
             _requestPauseSounds = false;
@@ -1015,6 +1012,7 @@ namespace Inferno::Sound {
         //RequestStopSounds = true;
         //RequestUnloadD1 = true;
         if (SoundThread) SoundThread->RequestUnloadD1 = true;
+        SoundThread->WaitIdle(); // Block caller until worker thread clears state
     }
 
     void PrintStatistics() {

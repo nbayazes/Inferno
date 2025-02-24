@@ -94,7 +94,7 @@ namespace Inferno {
 
         HamFile() = default;
         ~HamFile() = default;
-        HamFile(const HamFile&) = delete;
+        explicit HamFile(const HamFile&) = default;
         HamFile(HamFile&&) = default;
         HamFile& operator=(const HamFile&) = delete;
         HamFile& operator=(HamFile&&) = default;

@@ -168,8 +168,5 @@ namespace Inferno {
 
     void CreateMainMenuResources() {
         GenerateAsteroids();
-
-        string extraTextures[] = { "noise" };
-        Graphics::LoadTextures(extraTextures);
     }
 }

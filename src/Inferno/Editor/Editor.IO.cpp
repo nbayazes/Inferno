@@ -522,7 +522,7 @@ namespace Inferno::Editor {
                 };
 
                 if (auto file = OpenFileDialog(filter, "Open Mission"))
-                    Game::LoadLevel(*file, "", true);
+                    Game::EditorLoadLevel(*file);
             },
             .Name = "Open..."
         };

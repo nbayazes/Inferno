@@ -98,7 +98,7 @@ namespace Inferno {
 
         HogFile() = default;
         ~HogFile() = default;
-        HogFile(const HogFile&) = delete;
+        explicit HogFile(const HogFile&) = default;
         HogFile(HogFile&&) = default;
         HogFile& operator=(const HogFile&) = delete;
         HogFile& operator=(HogFile&&) = default;

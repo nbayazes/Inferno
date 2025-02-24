@@ -22,21 +22,30 @@ namespace Inferno::Game {
     namespace {
         struct LoadLevelInfo {
             filesystem::path Path; // hog or level path
-            string LevelName; // file name in hog, can be empty
-            bool AddToRecent = false;
-            bool Autosave = false;
+            string HogEntry; // file name in hog, can be empty
+            bool EditorLoad = false; // Loading into the level editor. Skips game init.
+            bool Autosave = false; // Creates a player autosave after loading
             Option<Editor::NewLevelInfo> NewLevel;
         };
 
         Option<LoadLevelInfo> PendingLoad;
     }
 
-    void LoadLevel(const filesystem::path& path, const string& level, bool addToRecent, bool autosave) {
+    void LoadLevel(const filesystem::path& path, string_view hogEntry, bool autosave) {
         PendingLoad = LoadLevelInfo{
             .Path = path,
-            .LevelName = level,
-            .AddToRecent = addToRecent,
+            .HogEntry = string(hogEntry),
+            .EditorLoad = false,
             .Autosave = autosave
+        };
+    }
+
+    void EditorLoadLevel(const filesystem::path& path, string_view hogEntry) {
+        PendingLoad = LoadLevelInfo{
+            .Path = path,
+            .HogEntry = string(hogEntry),
+            .EditorLoad = true,
+            .Autosave = false
         };
     }
 
@@ -88,51 +97,6 @@ namespace Inferno::Game {
         }
     }
 
-
-    // Preloads textures for a level
-    void PreloadTextures() {
-        string customHudTextures[] = {
-            "cockpit-ctr",
-            "cockpit-left",
-            "cockpit-right",
-            "gauge01b#0",
-            "gauge01b#1",
-            "gauge01b#2",
-            "gauge01b#3",
-            "gauge01b#4",
-            "gauge01b#5",
-            "gauge01b#6",
-            "gauge01b#7",
-            "gauge01b#8",
-            "gauge01b#10",
-            "gauge01b#11",
-            "gauge01b#12",
-            "gauge01b#13",
-            "gauge01b#14",
-            "gauge01b#15",
-            "gauge01b#16",
-            "gauge01b#17",
-            "gauge01b#18",
-            "gauge01b#19",
-            "gauge02b",
-            "gauge03b",
-            //"gauge16b", // lock
-            "Hilite",
-            "SmHilite",
-            "tracer",
-            "Lightning",
-            "Lightning3",
-            "noise",
-            "menu-bg"
-        };
-
-        Graphics::LoadTextures(customHudTextures);
-
-        //if (Game::Mission) {
-        //    LoadBackgrounds(*Game::Mission);
-        //}
-    }
-
     void LoadBackgrounds(const HogFile& mission) {
         List<string> bbms;
 
@@ -170,8 +134,10 @@ namespace Inferno::Game {
                 Resources::CustomTextures.Any() ||
                 !String::InvariantEquals(level.Palette, Level.Palette);
 
-            if (sharewareReload)
+            if (sharewareReload) {
                 Sound::UnloadD1Sounds();
+                //Sound::CopySoundIds();
+            }
 
             NeedsResourceReload = false;
             //Rooms.clear();
@@ -182,7 +148,7 @@ namespace Inferno::Game {
             Level = std::move(level); // Move to global so resource loading works properly
             FreeProceduralTextures();
             Resources::LoadLevel(Level);
-            PreloadTextures();
+
             Level.Rooms = CreateRooms(Level);
             Navigation = NavigationNetwork(Level);
             LevelNumber = GetLevelNumber(Level.FileName);
@@ -216,9 +182,6 @@ namespace Inferno::Game {
                 Game::Terrain = ParseEscapeInfo(Level, lines);
                 Graphics::LoadTerrain(Game::Terrain);
             }
-
-            //Render::Materials->LoadMaterials(Resources::GameData.HiResGauges, false);
-            //Render::Materials->LoadMaterials(Resources::GameData.Gauges, false);
 
             // Check if we travelled to or from a secret level in D2
             bool secretFlag = false;
@@ -274,7 +237,7 @@ namespace Inferno::Game {
     // Create a mission listing for Descent 1, as it doesn't store one
     MissionInfo CreateDescent1Mission(bool isDemo) {
         if (isDemo) {
-            MissionInfo firstStrike{ .Name = FIRST_STRIKE_NAME, .Path = D1_DEMO_PATH / "descent.hog" };
+            MissionInfo firstStrike{ .Name = FIRST_STRIKE_NAME, .Path = D1_DEMO_FOLDER / "descent.hog" };
             firstStrike.Levels.resize(7);
 
             for (int i = 1; i <= firstStrike.Levels.size(); i++)
@@ -479,7 +442,7 @@ namespace Inferno::Game {
                 // Hog file
                 Game::Mission = HogFile::Read(info.Path);
 
-                auto entry = Game::Mission->TryReadEntry(info.LevelName);
+                auto entry = Game::Mission->TryReadEntry(info.HogEntry);
                 if (entry.empty()) {
                     auto name = LevelNameByIndex(1);
                     // no levels in mission, create an empty level
@@ -489,7 +452,7 @@ namespace Inferno::Game {
                         level = LoadLevelFromMission(name);
                 }
                 else {
-                    level = LoadLevelFromMission(info.LevelName);
+                    level = LoadLevelFromMission(info.HogEntry);
                 }
             }
             else {
@@ -499,12 +462,14 @@ namespace Inferno::Game {
 
         InitLevel(std::move(level));
 
-        // Autosaves need updated stats before the next level is fully loaded
-        Game::Player.TotalTime += Game::Player.LevelTime;
-        Game::Player.LevelTime = 0;
-        Game::Player.Stats.TotalKills += Game::Player.Stats.Kills;
-        Game::Player.Stats.Kills = 0;
-        SPDLOG_INFO("Updating total played time to {}", Game::Player.TotalTime);
+        if (!info.EditorLoad) {
+            // Autosaves need updated stats before the next level is fully loaded
+            Game::Player.TotalTime += Game::Player.LevelTime;
+            Game::Player.LevelTime = 0;
+            Game::Player.Stats.TotalKills += Game::Player.Stats.Kills;
+            Game::Player.Stats.Kills = 0;
+            SPDLOG_INFO("Updating total played time to {}", Game::Player.TotalTime);
+        }
 
         if (info.Autosave)
             Autosave(MissionTimestamp);
@@ -520,7 +485,7 @@ namespace Inferno::Game {
                 OnLoadLevel(*PendingLoad);
 
                 // Editor requested the level load
-                if (PendingLoad->AddToRecent) {
+                if (PendingLoad->EditorLoad) {
                     Settings::Editor.AddRecentFile(PendingLoad->Path);
 
                     Editor::SetStatusMessage("Loaded file {}", PendingLoad->Path.string());

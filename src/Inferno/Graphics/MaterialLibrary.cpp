@@ -1,11 +1,9 @@
 #include "pch.h"
 #include "MaterialLibrary.h"
-#include "Convert.h"
 #include "FileSystem.h"
 #include "Formats/BBM.h"
 #include "Formats/PCX.h"
 #include "Game.h"
-#include "NormalMap.h"
 #include "Procedural.h"
 #include "Render.h"
 #include "Resources.h"
@@ -334,6 +332,12 @@ namespace Inferno::Render {
                     material.Textures[Material2D::SuperTransparency].LoadDDS(batch, *path);
         }
 
+        //if (auto path = FileSystem::TryFindFile(baseName + "_n.dds")) {
+        //    //auto normalMap = CreateNormalMap(*upload.Bitmap);
+        //    //material.Textures[Material2D::Normal].Load(batch, normalMap.data(), width, height, material.Name + "_n", true, DXGI_FORMAT_R8G8B8A8_UNORM);
+        //    material.Textures[Material2D::Normal].LoadDDS(batch, *path);
+        //}
+
         auto cached = cache.GetEntry(upload.ID);
 
         if (!material.Textures[Material2D::Diffuse]) {
@@ -487,7 +491,8 @@ namespace Inferno::Render {
             _lib->_requestedUploads.Clear();
 
             List<Material2D> uploads;
-            auto& cache = Game::Level.IsDescent1() ? D1TextureCache : D2TextureCache;
+
+            auto& cache = Game::Level.IsDescent1() ? Game::Level.IsShareware ? D1DemoTextureCache : D1TextureCache : D2TextureCache;
             List<ubyte> buffer;
 
             for (auto& upload : queuedUploads) {
@@ -540,7 +545,7 @@ namespace Inferno::Render {
         List<Material2D> uploads;
         auto batch = BeginTextureUpload();
 
-        auto& cache = Game::Level.IsDescent1() ? D1TextureCache : D2TextureCache;
+        auto& cache = Game::Level.IsDescent1() ? Game::Level.IsShareware ? D1DemoTextureCache : D1TextureCache : D2TextureCache;
         List<ubyte> buffer;
 
         for (auto& id : tids) {
@@ -765,12 +770,13 @@ namespace Inferno::Render {
             ResetMaterial(material);
         }
 
-        _looseTexId = LOOSE_TEXID_START;
+        _looseTexId = NAMED_TEXID_START;
+        _namedMaterials.clear();
         Render::Adapter->PrintMemoryUsage();
     }
 
     void MaterialLibrary::UnloadNamedTextures() {
-        SPDLOG_INFO("Unloading extended textures");
+        SPDLOG_INFO("Unloading named textures");
         Render::Adapter->WaitForGpu();
 
         for (auto& id : _namedMaterials | views::values) {
@@ -780,7 +786,7 @@ namespace Inferno::Render {
         }
 
         _namedMaterials.clear();
-        _looseTexId = LOOSE_TEXID_START;
+        _looseTexId = NAMED_TEXID_START;
         Render::Adapter->PrintMemoryUsage();
     }
 
