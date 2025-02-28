@@ -281,6 +281,7 @@
     <ClInclude Include="zip\miniz.h" />
     <ClInclude Include="zip\zip.h" />
     <ClInclude Include="Game.IO.h" />
+    <ClInclude Include="Resources.Common.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />

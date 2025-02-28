@@ -7,7 +7,8 @@ namespace Inferno {
     constexpr auto D2_CACHE = "cache/d2.cache";
     constexpr auto D1_DEMO_CACHE = "cache/d1-demo.cache";
 
-    // Saves and loads generated textures for specular and normal maps
+    // Saves and loads generated textures for specular and normal maps.
+    // Keeps the file open so textures can be quickly read
     class TextureMapCache {
         uint _size = 0;
         Ptr<StreamReader> _stream;
@@ -68,7 +69,7 @@ namespace Inferno {
         void Deserialize(StreamReader& stream);
     };
 
-    bool WriteD1TextureCache(const HamFile& ham, const PigFile& pig, const Palette& palette, const filesystem::path& destination);
+    bool WriteTextureCache(const HamFile& ham, const PigFile& pig, const Palette& palette, const filesystem::path& destination);
     void LoadTextureCaches();
 
     void ExpandMask(const PigEntry& bmp, List<uint8>& data);

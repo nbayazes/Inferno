@@ -20,7 +20,6 @@ namespace Inferno::Editor {
         }
 
     protected:
-        
         void OnUpdate() override {
             if (!Game::Mission) {
                 ImGui::Text("Current file is not a mission (HOG)");
@@ -116,21 +115,31 @@ namespace Inferno::Editor {
             auto data = Game::Mission->ReadEntry(entry);
             _briefing = Briefing::Read(data, Game::Level.IsDescent1());
 
+            string briefing = "briefing.txb";
+            string ending = "ending.txb";
+
+            if (auto missionInfo = Game::GetCurrentMissionInfo()) {
+                briefing = missionInfo->GetValue("briefing");
+                ending = missionInfo->GetValue("ending");
+                if (!String::HasExtension(briefing)) briefing += ".txb";
+                if (!String::HasExtension(ending)) ending += ".txb";
+            }
+
             bool endgame = false;
 
             if (Game::Level.IsDescent1()) {
-                if (entry.Name == "briefing.txb") {
+                if (entry.Name == briefing) {
                     SetD1BriefingBackgrounds(_briefing, Game::Level.IsShareware);
                 }
-                else if (entry.Name == "ending.txb") {
+                else if (entry.Name == ending) {
                     SetD1EndBriefingBackground(_briefing, Game::Level.IsShareware);
                     endgame = true;
                 }
             }
 
             _buffer = _briefing.Raw;
-            LoadBriefingResources(_briefing);
             Game::Briefing = BriefingState(_briefing, 0, Game::Level.IsDescent1(), endgame);
+            LoadBriefingResources(Game::Briefing, GetLevelLoadFlag(Game::Level));
         }
     };
 }

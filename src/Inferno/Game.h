@@ -32,6 +32,7 @@ namespace Inferno::Game {
     inline int LevelNumber = 0; // Index of loaded level starting at 1. Secret levels are negative. 0 means no level loaded.
     inline bool NeedsResourceReload = false; // Indicates that resources should be reloaded, typically due to changes in graphics settings
     inline bool LoadSecretLevel = false; // Indicates the next level loaded should be a secret level
+    inline bool DemoMode = false; // When true, game started using demo data instead of retail
 
     constexpr int DEFAULT_GRAVITY = 30;
     inline Vector3 Gravity = { 0, -DEFAULT_GRAVITY, 0 }; // u/s acceleration
@@ -245,8 +246,6 @@ namespace Inferno::Game {
 
         return false;
     }
-
-    void ShowBriefing(const MissionInfo& mission, int levelNumber, const Inferno::Level& level, string briefingName, bool endgame);
 
     inline Inferno::TerrainInfo Terrain;
 

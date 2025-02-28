@@ -77,19 +77,50 @@ namespace Inferno {
         }
     }
 
-    void BriefingState::LoadResources() {
+    void BriefingState::OnPageChanged() {
+        _elapsed = 0;
+        _animation = {};
+        _animation.Animation = Animation::Alert; // robots start in the "alert" position
+
+        if (auto page = GetPage()) {
+            if (page->Robot != -1) {
+                InitObject(_object, ObjectType::Robot, (int8)page->Robot, true);
+            }
+
+            if (page->Model != ModelID::None) {
+                InitObject(_object, ObjectType::Player, 0, true);
+                Graphics::LoadModel(page->Model);
+                _object.Render.Model.ID = page->Model;
+            }
+
+            {
+                auto& doorClip = Resources::GetDoorClip(page->Door);
+                auto wids = Seq::map(doorClip.GetFrames(), Resources::LookupTexID);
+                Graphics::LoadTextures(wids);
+            }
+
+            _object.Rotation = Matrix3x3(Matrix::CreateRotationY(-3.14f / 4)); // start facing left
+        }
+    }
+
+
+    void LoadBriefingResources(BriefingState& briefing, LoadFlag loadFlags) {
         List<ModelID> models;
         List<TexID> ids;
-        Set<string> files; // files in the hog
+        Set<string> files; // bitmaps used in the briefing
 
         // Precache resources so switching pages doesn't cause hitches
-        for (auto& screen : _screens) {
+        for (auto& screen : briefing.GetScreens()) {
             filesystem::path background = screen.Background;
             auto ext = background.extension();
             background.replace_filename(background.stem().string() + "h");
             background.replace_extension(ext);
 
-            if (Resources::FileExists(background.string())) {
+            if (Game::Mission && !Game::Mission->IsRetailMission() && Game::Mission->TryFindEntry(screen.Background)) {
+                // search user mission HOG before checking high res in case it provides custom backgrounds
+                files.insert(screen.Background);
+            }
+            else if (Resources::Find(background.string(), LoadFlag::Mission | LoadFlag::Dxa | LoadFlag::BaseHog | loadFlags)) {
                 files.insert(background.string()); // Check for high res image
                 screen.Background = background.string();
             }
@@ -132,89 +163,11 @@ namespace Inferno {
             Graphics::LoadModel(model);
         }
 
-        // Load backgrounds from mission.
-        // Force reload in case mission replaces the backgrounds.
-        Graphics::LoadTextures(Seq::ofSet(files), true);
-        OnPageChanged(); // Setup animations
-    }
-
-    void BriefingState::OnPageChanged() {
-        _elapsed = 0;
-        _animation = {};
-        _animation.Animation = Animation::Alert; // robots start in the "alert" position
-
-        if (auto page = GetPage()) {
-            if (page->Robot != -1) {
-                InitObject(_object, ObjectType::Robot, (int8)page->Robot, true);
-            }
-
-            if (page->Model != ModelID::None) {
-                InitObject(_object, ObjectType::Player, 0, true);
-                Graphics::LoadModel(page->Model);
-                _object.Render.Model.ID = page->Model;
-            }
-
-            {
-                auto& doorClip = Resources::GetDoorClip(page->Door);
-                auto wids = Seq::map(doorClip.GetFrames(), Resources::LookupTexID);
-                Graphics::LoadTextures(wids);
-            }
-
-            _object.Rotation = Matrix3x3(Matrix::CreateRotationY(-3.14f / 4)); // start facing left
-        }
-    }
-
-
-    void LoadBriefingResources(Briefing& briefing) {
-        List<ModelID> models;
-
-        for (auto& screen : briefing.Screens) {
-            for (auto& page : screen.Pages) {
-                if (page.Model != ModelID::None)
-                    models.push_back(page.Model);
-
-                if (page.Robot != -1) {
-                    auto& info = Resources::GetRobotInfo(page.Robot);
-                    models.push_back(info.Model);
-                }
-
-                if (!page.Image.empty()) {
-                    if (String::Contains(page.Image, "#")) {
-                        if (auto tid = Resources::LookupLevelTexID(Resources::FindTexture(page.Image)); tid != LevelTexID::None) {
-                            page.Door = Resources::GetDoorClipID(tid);
-                            page.Image = {}; // Clear source image
-                        }
-                    }
-                    else if (!String::Contains(page.Image, ".")) {
-                        // todo: also search for PNG, PCX, DDS
-                        page.Image += ".bbm"; // Assume BBM for now
-                    }
-                }
-            }
-        }
-
-        // Precache resources so switching pages doesn't cause hitches
-        List<TexID> ids;
-
-        for (auto& screen : briefing.Screens) {
-            for (auto& page : screen.Pages) {
-                auto& doorClip = Resources::GetDoorClip(page.Door);
-                auto wids = Seq::map(doorClip.GetFrames(), Resources::LookupTexID);
-                Seq::append(ids, wids);
-            }
-        }
-
-        Graphics::LoadTextures(ids);
-
-        for (auto& model : models) {
-            Graphics::LoadModel(model);
-        }
-
-        // Load backgrounds from mission.
-        // Technically this should only load the relevant images,
-        // but it doesn't take long to load them all anyway.
-        if (Game::Mission)
-            Game::LoadBackgrounds(*Game::Mission);
+        // Search mission HOG, then DXA (high res), then base hog
+        auto f = Seq::ofSet(files);
+        Graphics::LoadTextures(f, LoadFlag::Mission | loadFlags);
+        Graphics::LoadTextures(f, LoadFlag::Dxa | loadFlags);
+        Graphics::LoadTextures(f, LoadFlag::BaseHog | loadFlags);
     }
 
     void AddPyroAndReactorPages(Briefing& briefing) {
@@ -307,5 +260,41 @@ vaporization of the facility.
             auto state = Game::IsFinalLevel() ? GameState::ScoreScreen : GameState::LoadLevel;
             Game::SetState(state);
         }
+    }
+
+
+    void ShowBriefing(const MissionInfo& mission, int levelNumber, const Inferno::Level& level, string briefingName, bool endgame) {
+        if (!Game::Mission)
+            return;
+
+        if (!String::HasExtension(briefingName))
+            briefingName += ".txb";
+
+        auto entry = Game::Mission->TryReadEntry(briefingName);
+        if (!entry) return;
+
+        auto briefing = Briefing::Read(*entry, level.IsDescent1());
+
+        auto isShareware = Game::Mission->IsShareware();
+
+        if (level.IsDescent1()) {
+            if (endgame) {
+                SetD1EndBriefingBackground(briefing, isShareware);
+            }
+            else {
+                SetD1BriefingBackgrounds(briefing, isShareware);
+            }
+
+            if (mission.Name == Game::FIRST_STRIKE_NAME && levelNumber == 1) {
+                AddPyroAndReactorPages(briefing);
+            }
+
+            auto music = Game::IsFinalLevel() ? "d1/endgame" : "d1/briefing";
+            Game::PlayMusic(music);
+        }
+
+        Game::Briefing = BriefingState(briefing, levelNumber, level.IsDescent1(), endgame);
+        LoadBriefingResources(Game::Briefing, GetLevelLoadFlag(level));
+        Game::SetState(GameState::Briefing);
     }
 }

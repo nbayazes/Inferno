@@ -336,7 +336,7 @@ namespace Inferno {
         }
     }
 
-    bool WriteD1TextureCache(const HamFile& ham, const PigFile& pig, const Palette& palette, const filesystem::path& destination) {
+    bool WriteTextureCache(const HamFile& ham, const PigFile& pig, const Palette& palette, const filesystem::path& destination) {
         if (CacheFileIsValid(destination)) {
             SPDLOG_INFO("{} already exists", destination.string());
             return true;
@@ -350,13 +350,14 @@ namespace Inferno {
         return true;
     }
 
-    // Tries to load textures so the menu will have something to display
     void LoadTextureCaches() {
-        if (filesystem::exists(D1_CACHE))
+        if (filesystem::exists(D1_CACHE) && D1TextureCache.Entries.empty())
             D1TextureCache = TextureMapCache(D1_CACHE, 1800);
-        else if (filesystem::exists(D2_CACHE))
-            D1DemoTextureCache = TextureMapCache(D2_CACHE, 2700);
-        else if (filesystem::exists(D1_DEMO_CACHE))
-            D1DemoTextureCache = TextureMapCache(D1_DEMO_CACHE, 1800); // Demo data is fallback
+
+        if (filesystem::exists(D2_CACHE) && D2TextureCache.Entries.empty())
+            D2TextureCache = TextureMapCache(D2_CACHE, 2700);
+
+        if (filesystem::exists(D1_DEMO_CACHE) && D1TextureCache.Entries.empty())
+            D1DemoTextureCache = TextureMapCache(D1_DEMO_CACHE, 1800);
     }
 }

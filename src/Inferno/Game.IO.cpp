@@ -176,9 +176,9 @@ namespace Inferno::Game {
             Game::Terrain = {};
 
             auto exitConfig = String::NameWithoutExtension(Level.FileName) + ".txb";
-            if (auto data = Resources::ReadBinaryFile(exitConfig); !data.empty()) {
-                DecodeText(data);
-                auto lines = String::ToLines(String::OfBytes(data));
+            if (auto data = Resources::ReadBinaryFile(exitConfig)) {
+                DecodeText(*data);
+                auto lines = String::ToLines(String::OfBytes(*data));
                 Game::Terrain = ParseEscapeInfo(Level, lines);
                 Graphics::LoadTerrain(Game::Terrain);
             }
@@ -442,8 +442,8 @@ namespace Inferno::Game {
                 // Hog file
                 Game::Mission = HogFile::Read(info.Path);
 
-                auto entry = Game::Mission->TryReadEntry(info.HogEntry);
-                if (entry.empty()) {
+                if (!Game::Mission->TryReadEntry(info.HogEntry)) {
+                    // No level specified, try loading the first one
                     auto name = LevelNameByIndex(1);
                     // no levels in mission, create an empty level
                     if (name.empty())
@@ -505,6 +505,7 @@ namespace Inferno::Game {
         }
         catch (const std::exception& e) {
             SPDLOG_ERROR("Unable to load level:\n{}", e.what());
+            PendingLoad = {};
         }
     }
 
@@ -558,7 +559,7 @@ namespace Inferno::Game {
         //PlayMusic("endlevel.hmp");
 
         // Try playing the given file name if it exists (ignore hmp / midi for now)
-        if (!song.ends_with(".hmp") && Resources::FileExists(song)) {
+        if (!song.ends_with(".hmp") && Resources::Find(song)) {
             Sound::PlayMusic(song);
             return;
         }
@@ -579,9 +580,8 @@ namespace Inferno::Game {
 
             for (auto& ext : extensions) {
                 base.replace_extension(ext);
-                auto entry = Game::Mission->TryReadEntry(base.string());
-                if (!entry.empty()) {
-                    Sound::PlayMusic(std::move(entry), loop);
+                if (auto entry = Game::Mission->TryReadEntry(base.string())) {
+                    Sound::PlayMusic(std::move(*entry), loop);
                     return;
                 }
             }
@@ -591,15 +591,15 @@ namespace Inferno::Game {
         filesystem::path path(song);
 
         path.replace_extension(".ogg");
-        if (Resources::FileExists(path.string()))
+        if (Resources::Find(path.string()))
             Sound::PlayMusic(path.string(), loop);
 
         path.replace_extension(".mp3");
-        if (Resources::FileExists(path.string()))
+        if (Resources::Find(path.string()))
             Sound::PlayMusic(path.string(), loop);
 
         path.replace_extension(".flac");
-        if (Resources::FileExists(path.string()))
+        if (Resources::Find(path.string()))
             Sound::PlayMusic(path.string(), loop);
 
         // todo: play the original midi if no replacement music

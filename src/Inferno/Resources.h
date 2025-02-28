@@ -12,35 +12,8 @@
 #include "OutrageTable.h"
 #include "Pig.h"
 #include "StringTable.h"
+#include "Resources.Common.h"
 
-namespace Inferno {
-    constexpr auto METADATA_EXTENSION = ".ied"; // inferno engine data
-    inline const filesystem::path DATA_FOLDER = "data"; // subdirectory containing the d1 hog and pig
-    inline const filesystem::path D1_FOLDER = "d1"; // subdirectory containing the d1 hog and pig
-    inline const filesystem::path D1_DEMO_FOLDER = "d1/demo"; // subdirectory containing the d1 demo hog and pig
-    inline const filesystem::path D2_FOLDER = "d2"; // subdirectory containing the d2 hog and pig
-    inline const filesystem::path D1_MATERIAL_FILE = D1_FOLDER / "material.yml";
-    inline const filesystem::path D2_MATERIAL_FILE = D1_FOLDER / "material.yml";
-    constexpr auto GAME_TABLE_FILE = "game.yml";
-    constexpr auto LIGHT_TABLE_FILE = "lights.yml";
-
-    struct FullGameData : HamFile {
-        SoundFile sounds;
-        HogFile hog; // Archive
-        Palette palette;
-        PigFile pig; // texture headers and data
-        List<PigBitmap> bitmaps; // loaded texture data
-
-        enum Source {
-            Unknown, Descent1, Descent1Demo, Descent2
-        };
-
-        Source source = Unknown;
-
-        FullGameData() = default;
-        explicit FullGameData(const HamFile& ham, Source source) : HamFile(ham), source(source) {}
-    };
-}
 
 // Abstraction for game resources
 namespace Inferno::Resources {
@@ -120,12 +93,12 @@ namespace Inferno::Resources {
         return GameData.LevelTexIdx[(int)id];
     }
 
-    inline const filesystem::path& GetMaterialTablePath(const Level& level) {
-        return level.IsDescent1() ? D1_MATERIAL_FILE : D2_MATERIAL_FILE;
+    inline const filesystem::path& GetMaterialTablePath(bool descent1) {
+        return descent1 ? D1_MATERIAL_FILE : D2_MATERIAL_FILE;
     }
 
-    inline const filesystem::path& GetGameDataFolder(const Level& level) {
-        return level.IsDescent1() ? D1_FOLDER : D2_FOLDER;
+    inline const filesystem::path& GetGameDataFolder(bool descent1) {
+        return descent1 ? D1_FOLDER : D2_FOLDER;
     }
 
     // Returns true if the id corresponds to a level texture
@@ -144,24 +117,15 @@ namespace Inferno::Resources {
     // Can return none if the powerup is unused
     Option<string> GetPowerupName(uint id);
 
-    bool FileExists(string_view fileName);
+    Option<ResourceHandle> Find(string_view fileName, LoadFlag flags = LoadFlag::Default);
+
+    //bool FileExists(string_view fileName, LoadFlag flags = LoadFlag::Default);
 
     // Tries to read a text file by checking the mission, the game specific directory, the shared directory, and finally the game HOG
-    string ReadTextFile(const string& name);
-
-    enum class LoadFlag {
-        SkipMissionAndDxa = 0,
-        PreferD1 = 1 << 0, // Load from D1 before D2 (if present)
-        //PreferD2 = 1 << 1, // The default
-        ReadD3 = 1 << 2,
-        ReadMission = 1 << 3,
-        ReadDxa = 1 << 4
-    };
+    string ReadTextFile(string_view name,LoadFlag flags = LoadFlag::Default);
 
     // Tries to read a binary file by checking the mission, the game specific directory, the shared directory, and finally the game HOG
-    List<byte> ReadBinaryFile(const string& name, LoadFlag flags = Resources::LoadFlag::ReadMission | Resources::LoadFlag::ReadDxa);
-
-    void LoadDataTables(const Level& level);
+    Option<List<byte>> ReadBinaryFile(string_view fileName, LoadFlag flags = LoadFlag::Default);
 
     // Loads the corresponding resources for a level
     void LoadLevel(Level&);
@@ -217,16 +181,17 @@ namespace Inferno::Resources {
 
     List<Inferno::MissionInfo> ReadMissionDirectory(const filesystem::path& directory);
 
-    // Loads D1 and D2 sounds
-    void LoadSounds();
-
     const string_view GetString(GameString);
     const string_view GetPrimaryName(PrimaryWeaponIndex id);
     const string_view GetSecondaryName(SecondaryWeaponIndex id);
     const string_view GetPrimaryNameShort(PrimaryWeaponIndex id);
     const string_view GetSecondaryNameShort(SecondaryWeaponIndex id);
 
-    void LoadGameTables(const Level& level);
+    bool LoadGameTables(LoadFlag flags);
+    bool LoadLightTables(LoadFlag flags);
+    bool LoadMaterialTables(LoadFlag flags);
+    void LoadDataTables(LoadFlag flags);
+
     span<JointPos> GetRobotJoints(int robotId, int gun, Animation state);
 
     inline MaterialInfoLibrary Materials;

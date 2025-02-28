@@ -36,14 +36,14 @@ namespace Inferno {
         }
     }
 
-    List<ubyte> HogFile::TryReadEntry(int index) const {
+    Option<List<ubyte>>HogFile::TryReadEntry(int index) const {
         if (auto entry = Seq::tryItem(Entries, index))
             return ReadFileToMemory(Path, entry->Offset, entry->Size);
         else
             return {};
     }
 
-    List<ubyte> HogFile::TryReadEntry(string_view entry) const {
+    Option<List<ubyte>> HogFile::TryReadEntry(string_view entry) const {
         for (auto& e : Entries)
             if (String::InvariantEquals(e.Name, entry)) 
                 return ReadFileToMemory(Path, e.Offset, e.Size);

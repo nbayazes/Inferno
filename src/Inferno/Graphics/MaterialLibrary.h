@@ -4,6 +4,7 @@
 #include "Level.h"
 #include "Material2D.h"
 #include "OutrageBitmap.h"
+#include "Resources.Common.h"
 #include "TextureCache.h"
 
 namespace Inferno::Render {
@@ -13,7 +14,7 @@ namespace Inferno::Render {
     struct MaterialUpload {
         TexID ID = TexID::None;
         Outrage::Bitmap Outrage;
-        const PigBitmap* Bitmap;
+        PigBitmap Bitmap;
         bool SuperTransparent = false;
         bool ForceLoad = false;
     };
@@ -38,6 +39,12 @@ namespace Inferno::Render {
 
     public:
         MaterialLibrary(size_t size);
+
+        ~MaterialLibrary() = default;
+        MaterialLibrary(const MaterialLibrary&) = delete;
+        MaterialLibrary(MaterialLibrary&&) = delete;
+        MaterialLibrary& operator=(const MaterialLibrary&) = delete;
+        MaterialLibrary& operator=(MaterialLibrary&&) = delete;
 
         void Shutdown();
 
@@ -80,7 +87,7 @@ namespace Inferno::Render {
         }
 
         void LoadLevelTextures(const Inferno::Level& level, bool force);
-        void LoadTextures(span<const string> names, bool force = false);
+        void LoadTextures(span<const string> names, LoadFlag loadFlags = LoadFlag::Default, bool force = false);
         void LoadGameTextures();
 
         // Tries to load a texture and returns true if it exists
@@ -116,8 +123,9 @@ namespace Inferno::Render {
 
         void LoadDefaults();
 
-        static constexpr auto LOOSE_TEXID_START = TexID(2905);
-        TexID _looseTexId = LOOSE_TEXID_START;
+        static constexpr auto NAMED_TEXID_START = TexID(2905);
+        TexID _looseTexId = TexID(2905);
+
         // returns a texid reserved for loose textures
         TexID GetUnusedTexID() {
             _looseTexId = TexID((int)_looseTexId + 1);

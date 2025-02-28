@@ -514,7 +514,7 @@ namespace Inferno::Sound {
         bool PlayMusic(string file, bool loop) {
             auto data = Resources::ReadBinaryFile(file);
 
-            if (data.empty()) {
+            if (!data) {
                 SPDLOG_WARN("Music file {} not found", file);
                 return false;
             }
@@ -524,7 +524,7 @@ namespace Inferno::Sound {
                 return false;
             }
 
-            _musicStream = CreateMusicStream(std::move(data));
+            _musicStream = CreateMusicStream(std::move(*data));
 
             if (!_musicStream) {
                 SPDLOG_WARN("Unable to create music stream from {}", file);

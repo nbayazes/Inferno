@@ -19,7 +19,7 @@ namespace Inferno::UI {
             CloseOnConfirm = false;
             Size = Vector2(620, 460);
 
-            auto bombSound = Seq::tryItem(Inferno::Resources::GameDataD1.Sounds, (int)SoundID::DropBomb);
+            auto bombSound = Seq::tryItem(Inferno::Resources::Descent1.Sounds, (int)SoundID::DropBomb);
             auto panel = make_unique<StackPanel>();
             panel->Size.x = Size.x - DIALOG_PADDING * 2;
             panel->Position = Vector2(0, DIALOG_HEADER_PADDING);

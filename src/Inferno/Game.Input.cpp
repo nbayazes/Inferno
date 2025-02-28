@@ -33,7 +33,7 @@ namespace Inferno {
             Settings::Inferno.ScreenshotMode = !Settings::Inferno.ScreenshotMode;
 
         if (Input::OnKeyPressed(Keys::F5)) {
-            Resources::LoadDataTables(Game::Level);
+            Resources::LoadDataTables(LoadFlag::Default | GetLevelLoadFlag(Game::Level));
             Graphics::ReloadResources();
             Editor::Events::LevelChanged();
         }
@@ -168,13 +168,13 @@ namespace Inferno {
             camera.Orbit(-delta.x * Settings::Inferno.MouselookSensitivity, -delta.y * invert * Settings::Inferno.MouselookSensitivity);
 
             camera.Orbit(Game::Bindings.LinearAxis(GameAction::YawAxis) * dt * linearSensitivity,
-                Game::Bindings.LinearAxis(GameAction::PitchAxis) * dt * linearSensitivity);
+                         Game::Bindings.LinearAxis(GameAction::PitchAxis) * dt * linearSensitivity);
         }
         else {
             camera.Rotate(delta.x * Settings::Inferno.MouselookSensitivity, delta.y * invert * Settings::Inferno.MouselookSensitivity);
 
             camera.Rotate(Game::Bindings.LinearAxis(GameAction::YawAxis) * dt * linearSensitivity,
-                Game::Bindings.LinearAxis(GameAction::PitchAxis) * dt * linearSensitivity);
+                          Game::Bindings.LinearAxis(GameAction::PitchAxis) * dt * linearSensitivity);
         }
     }
 

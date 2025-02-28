@@ -80,7 +80,7 @@ namespace Inferno {
         Array<Color, PALETTE_SIZE> Palette; // User color palette
         LightSettings Lighting;
         float MouselookSensitivity = 0.005f; // Editor mouselook
-        float MoveSpeed = 120.0f; // Editor move speed
+        float MoveSpeed = 140.0f; // Editor move speed
         bool EditBothWallSides = true;
         bool ReopenLastLevel = true;
 

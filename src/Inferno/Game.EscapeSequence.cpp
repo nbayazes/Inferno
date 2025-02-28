@@ -202,8 +202,8 @@ namespace Inferno {
 
         CreateEscapePath(level, info);
 
-        if (auto data = Resources::ReadBinaryFile(info.Heightmap, Resources::LoadFlag::ReadMission); !data.empty()) {
-            auto bitmap = ReadBbm(data);
+        if (auto data = Resources::ReadBinaryFile(info.Heightmap, LoadFlag::Mission)) {
+            auto bitmap = ReadBbm(*data);
             LoadTerrain(bitmap, info, 64);
         }
 
@@ -541,7 +541,7 @@ namespace Inferno {
                 auto ending = mission->GetValue("ending");
 
                 if (!ending.empty())
-                    Game::ShowBriefing(*mission, Game::LevelNumber, Game::Level, ending, true);
+                    ShowBriefing(*mission, Game::LevelNumber, Game::Level, ending, true);
                 else
                     Game::SetState(GameState::ScoreScreen);
             }

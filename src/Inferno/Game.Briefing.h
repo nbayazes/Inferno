@@ -2,7 +2,9 @@
 
 #include "Briefing.h"
 #include "Game.Object.h"
+#include "Mission.h"
 #include "Polymodel.h"
+#include "Resources.Common.h"
 #include "Utility.h"
 
 namespace Inferno {
@@ -36,9 +38,13 @@ namespace Inferno {
                     break; // stop after level number changes to skip test screens
                 }
             }
+
+            OnPageChanged(); // init animations
         }
 
         bool IsDescent1 = false; // Enables coordinate scaling for D1
+
+        span<Briefing::Screen> GetScreens() { return _screens; }
 
         float GetElapsed() const { return _elapsed; }
 
@@ -72,16 +78,17 @@ namespace Inferno {
             return nullptr;
         }
 
-        void LoadResources();
-
     private:
         void OnPageChanged();
     };
 
     // Converts image names into resources
-    void LoadBriefingResources(Briefing& briefing);
+    void LoadBriefingResources(BriefingState& briefing, LoadFlag loadFlags);
     void HandleBriefingInput();
 
     // Adds pyro and reactor description pages to the D1 briefing
     void AddPyroAndReactorPages(Briefing& briefing);
+
+    // Changes the game state to show a briefing
+    void ShowBriefing(const MissionInfo& mission, int levelNumber, const Inferno::Level& level, string briefingName, bool endgame);
 }

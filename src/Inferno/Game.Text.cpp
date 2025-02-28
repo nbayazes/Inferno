@@ -63,13 +63,19 @@ namespace Inferno {
         };
 
         for (auto& [name, size] : fonts) {
-            List<byte> data;
+            Option<List<byte>> data;
             float scale = 1;
 
             if (Settings::Inferno.PreferHighResFonts) {
-                data = Resources::ReadBinaryFile(name + "h.fnt");
+                // Check for D1 highres DXA first
+                data = Resources::ReadBinaryFile(name + "h.fnt", LoadFlag::Dxa | LoadFlag::Descent1);
 
-                if (data.empty()) {
+                // check D2
+                if (!data)
+                    data = Resources::ReadBinaryFile(name + "h.fnt", LoadFlag::Dxa | LoadFlag::Descent2);
+
+                // fallback to D1
+                if (!data) {
                     data = Resources::ReadBinaryFile(name + ".fnt");
                     scale = 2;
                 }
@@ -78,17 +84,16 @@ namespace Inferno {
                 data = Resources::ReadBinaryFile(name + ".fnt");
                 scale = 2;
 
-                if (data.empty()) {
+                if (!data) {
                     data = Resources::ReadBinaryFile(name + "h.fnt");
                 }
             }
 
-            if (data.empty()) {
-                //SPDLOG_WARN("Font data for {} not found", name);
+            if (!data) {
                 continue;
             }
 
-            auto font = Font::Read(data);
+            auto font = Font::Read(*data);
             font.Scale = scale;
             Atlas.AddFont(buffer, font, size, 2);
         }

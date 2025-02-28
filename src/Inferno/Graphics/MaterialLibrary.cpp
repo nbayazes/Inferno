@@ -4,6 +4,7 @@
 #include "Formats/BBM.h"
 #include "Formats/PCX.h"
 #include "Game.h"
+#include "NormalMap.h"
 #include "Procedural.h"
 #include "Render.h"
 #include "Resources.h"
@@ -307,7 +308,7 @@ namespace Inferno::Render {
         if (upload.ID <= TexID::Invalid) return {};
         Material2D material;
         material.ID = upload.ID;
-        material.Name = upload.Bitmap->Info.Name;
+        material.Name = upload.Bitmap.Info.Name;
         material.UploadIndex = Render::Uploads->AllocateIndex();
 
         // allocate a new heap range for the material
@@ -319,8 +320,8 @@ namespace Inferno::Render {
         if (auto i = baseName.find("#"); i > 0)
             baseName = baseName.substr(0, i);
 
-        const auto width = upload.Bitmap->Info.Width;
-        const auto height = upload.Bitmap->Info.Height;
+        const auto width = upload.Bitmap.Info.Width;
+        const auto height = upload.Bitmap.Info.Height;
 
         //SPDLOG_INFO("Loading texture `{}` to heap index: {}", ti->Name, material.Index);
         if (Settings::Graphics.HighRes || String::Contains(baseName, "gauge")) {
@@ -346,7 +347,7 @@ namespace Inferno::Render {
                 material.Textures[Material2D::Diffuse].LoadMipped(batch, buffer.data(), width, height, material.Name, cached->Mips);
             }
             else {
-                material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap->Data.data(), width, height, material.Name);
+                material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap.Data.data(), width, height, material.Name);
             }
         }
 
@@ -356,8 +357,8 @@ namespace Inferno::Render {
                 material.Textures[Material2D::SuperTransparency].LoadMipped(batch, buffer.data(), width, height, material.Name, cached->Mips, DXGI_FORMAT_R8_UNORM);
             }
             else {
-                List<uint8> mask = upload.Bitmap->Mask;
-                ExpandMask(upload.Bitmap->Info, mask);
+                List<uint8> mask = upload.Bitmap.Mask;
+                ExpandMask(upload.Bitmap.Info, mask);
                 material.Textures[Material2D::SuperTransparency].Load(batch, mask.data(), width, height, material.Name, true, DXGI_FORMAT_R8_UNORM);
             }
         }
@@ -368,18 +369,31 @@ namespace Inferno::Render {
         if (auto path = FileSystem::TryFindFile(baseName + "_s.dds"))
             material.Textures[Material2D::Specular].LoadDDS(batch, *path);
 
-        if (!material.Textures[Material2D::Specular] && !upload.Bitmap->Data.empty()) {
+        if (!material.Textures[Material2D::Specular] && !upload.Bitmap.Data.empty()) {
             if (cached && cached->SpecularLength) {
                 cache.ReadSpecularMap(*cached, buffer);
                 material.Textures[Material2D::Specular].LoadMipped(batch, buffer.data(), width, height, material.Name + "_s", cached->Mips, DXGI_FORMAT_R8_UNORM);
             }
         }
 
-        if (!material.Textures[Material2D::Normal] && !upload.Bitmap->Data.empty()) {
+        if (!material.Textures[Material2D::Normal] && !upload.Bitmap.Data.empty()) {
             if (cached && cached->NormalLength) {
                 cache.ReadNormalMap(*cached, buffer);
                 material.Textures[Material2D::Normal].Load(batch, buffer.data(), width, height, material.Name + "_n", true, DXGI_FORMAT_R8G8B8A8_UNORM);
             }
+        }
+
+        // Generate maps if none were found
+        bool genMaps = (Resources::IsLevelTexture(material.ID) || Resources::IsObjectTexture(material.ID)) && Settings::Inferno.GenerateMaps;
+
+        if (!material.Textures[Material2D::Specular] && genMaps && !upload.Bitmap.Data.empty()) {
+            auto specular = CreateSpecularMap(upload.Bitmap);
+            material.Textures[Material2D::Specular].Load(batch, specular.data(), width, height, material.Name, true, DXGI_FORMAT_R8_UNORM);
+        }
+
+        if (!material.Textures[Material2D::Normal] && genMaps && !upload.Bitmap.Data.empty()) {
+            auto normal = CreateNormalMap(upload.Bitmap);
+            material.Textures[Material2D::Normal].Load(batch, normal.data(), width, height, material.Name, true, DXGI_FORMAT_R8G8B8A8_UNORM);
         }
 
         for (uint i = 0; i < std::size(material.Textures); i++) {
@@ -496,7 +510,7 @@ namespace Inferno::Render {
             List<ubyte> buffer;
 
             for (auto& upload : queuedUploads) {
-                if (!upload.Bitmap || upload.Bitmap->Info.Width == 0 || upload.Bitmap->Info.Height == 0 || upload.Bitmap->Data.empty())
+                if (upload.Bitmap.Info.Width == 0 || upload.Bitmap.Info.Height == 0 || upload.Bitmap.Data.empty())
                     continue;
 
                 try {
@@ -504,7 +518,7 @@ namespace Inferno::Render {
                         uploads.emplace_back(std::move(material.value()));
                 }
                 catch (const std::exception& e) {
-                    ShowErrorMessage(fmt::format("Error loading texture {}.\nStatus: {}", upload.Bitmap->Info.Name, e.what()));
+                    ShowErrorMessage(fmt::format("Error loading texture {}.\nStatus: {}", upload.Bitmap.Info.Name, e.what()));
                 }
             }
 
@@ -586,12 +600,13 @@ namespace Inferno::Render {
         if (!forceLoad && slot.State == TextureState::Resident) return {};
         if (slot.State == TextureState::PagingIn) return {};
 
-        auto& bitmap = Resources::GetBitmap(id);
-        if (bitmap.Info.Width == 0 || bitmap.Info.Height == 0)
+        MaterialUpload upload;
+
+        // Copy the bitmap data. Not ideal but fixing this for multithreading is a pain due to the source possibly being unloaded
+        upload.Bitmap = PigBitmap(Resources::GetBitmap(id));
+        if (upload.Bitmap.Info.Width == 0 || upload.Bitmap.Info.Height == 0)
             return {};
 
-        MaterialUpload upload;
-        upload.Bitmap = &bitmap;
         upload.ID = id;
         upload.SuperTransparent = Resources::GetTextureInfo(id).SuperTransparent;
         slot.State = TextureState::PagingIn;
@@ -641,7 +656,7 @@ namespace Inferno::Render {
         LoadMaterials(tids, force);
     }
 
-    void MaterialLibrary::LoadTextures(span<const string> names, bool force) {
+    void MaterialLibrary::LoadTextures(span<const string> names, LoadFlag loadFlags, bool force) {
         bool hasUnloaded = false;
         for (auto& name : names) {
             if (!name.empty() && !_namedMaterials.contains(name)) {
@@ -668,25 +683,23 @@ namespace Inferno::Render {
                 material = UploadOutrageMaterial(batch, *bitmap, Render::StaticTextures->Black);
             }
             else {
-                auto data = Resources::ReadBinaryFile(name);
-
-                if (!data.empty()) {
+                if (auto data = Resources::ReadBinaryFile(name, loadFlags)) {
                     if (name.ends_with(".bbm")) {
-                        auto bbm = ReadBbm(data);
+                        auto bbm = ReadBbm(*data);
                         material = UploadBitmap(batch, name, bbm, Render::StaticTextures->Black);
                     }
                     else if (name.ends_with(".pcx")) {
-                        auto pcx = ReadPCX(data);
+                        auto pcx = ReadPCX(*data);
                         material = UploadBitmap(batch, name, pcx, Render::StaticTextures->Black);
                     }
                 }
             }
 
-            if (material.Name.empty()) {
-                // Add entries that aren't found so they are skipped in future loads
-                _namedMaterials[name] = {};
-            }
-            else {
+            //if (material.Name.empty()) {
+            //    // Add entries that aren't found so they are skipped in future loads
+            //    _namedMaterials[name] = {};
+            //}
+            if (!material.Name.empty()) {
                 _namedMaterials[name] = material.ID = GetUnusedTexID();
                 uploads.emplace_back(std::move(material));
             }

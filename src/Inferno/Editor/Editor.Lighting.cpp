@@ -1185,6 +1185,12 @@ namespace Inferno::Editor {
             }
         }
 
+        // Update object lighting
+        for (auto& obj : level.Objects) {
+            auto& seg = level.GetSegment(obj.Segment);
+            obj.Ambient.SetTarget(seg.VolumeLight, Game::Time, 0);
+        }
+
         LightLevelResults = {}; // Clear for next run
         level.Rooms = Game::CreateRooms(level); // Update rooms because dynamic lighting depends on it
         Editor::History.SnapshotLevel("Light Level");

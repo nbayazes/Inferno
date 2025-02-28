@@ -13,6 +13,12 @@
 #include "Sound.h"
 #include "SoundSystem.h"
 
+namespace Inferno {
+    LoadFlag GetLevelLoadFlag(const Level& level) {
+        return level.IsDescent1() ? LoadFlag::Descent1 : LoadFlag::Descent2;
+    }
+}
+
 namespace Inferno::Resources {
     namespace {
         List<string> RobotNames;
@@ -438,14 +444,17 @@ namespace Inferno::Resources {
         }
     }
 
-    // Load the custom exit models
+    // Load the custom exit models. Note this requires the D1 ham for proper texturing.
     void LoadCustomExitModels(HamFile& ham, const Palette& palette) {
+        // Don't search the HOG files because it would find the original models
+        auto flags = LoadFlag::Filesystem | LoadFlag::Descent1 | LoadFlag::Dxa;
+
         {
             auto exit = "exit01.pof";
-            auto modelData = ReadBinaryFile(exit, LoadFlag::SkipMissionAndDxa);
-            if (!modelData.empty()) {
+            auto modelData = ReadBinaryFile(exit, flags);
+            if (modelData) {
                 //auto modelData = Game::Mission->ReadEntry(entry);
-                auto model = ReadPof(modelData, &palette);
+                auto model = ReadPof(*modelData, &palette);
                 model.FileName = exit;
                 auto firstTexture = ham.Models[(int)ham.ExitModel].FirstTexture;
                 ham.Models[(int)ham.ExitModel] = model;
@@ -455,10 +464,10 @@ namespace Inferno::Resources {
 
         {
             auto exit = "exit01d.pof";
-            auto modelData = ReadBinaryFile(exit, LoadFlag::SkipMissionAndDxa);
-            if (!modelData.empty()) {
+            auto modelData = ReadBinaryFile(exit, flags);
+            if (modelData) {
                 //auto modelData = Game::Mission->ReadEntry(entry);
-                auto model = ReadPof(modelData, &palette);
+                auto model = ReadPof(*modelData, &palette);
                 model.FileName = exit;
                 auto firstTexture = ham.Models[(int)ham.DestroyedExitModel].FirstTexture;
                 ham.Models[(int)ham.DestroyedExitModel] = model;
@@ -500,7 +509,10 @@ namespace Inferno::Resources {
             sounds.Path = pig.Path = *pigPath;
 
             LoadCustomExitModels(ham, palette);
-            WriteD1TextureCache(ham, pig, palette, D1_CACHE);
+
+            D1TextureCache = {}; // Unmount cache
+            WriteTextureCache(ham, pig, palette, D1_CACHE);
+            D1TextureCache = TextureMapCache(D1_CACHE, 1800);
 
             // Everything loaded okay, set data
             Descent1 = FullGameData(std::move(ham), FullGameData::Descent1);
@@ -557,7 +569,7 @@ namespace Inferno::Resources {
             for (auto& entry : hog.Entries) {
                 if (entry.Name.ends_with(".pof")) {
                     auto modelData = hog.TryReadEntry(entry.Name);
-                    if (modelData.empty()) {
+                    if (!modelData) {
                         SPDLOG_WARN("No model data found for {}", entry.Name);
                         continue;
                     }
@@ -567,7 +579,7 @@ namespace Inferno::Resources {
                     //if (modelData.empty())
                     //    modelData = ReadBinaryFile(entry.Name);
 
-                    auto model = ReadPof(modelData, &palette);
+                    auto model = ReadPof(*modelData, &palette);
                     model.FileName = entry.Name;
 
                     // Rest and fire animations are swapped on the green lifter in demo
@@ -597,7 +609,10 @@ namespace Inferno::Resources {
             ham.DeadModels.resize(ham.Models.size());
 
             ReadBitmapTable(table, pig, sounds, ham);
-            WriteD1TextureCache(ham, pig, palette, D1_DEMO_CACHE);
+
+            D1DemoTextureCache = {}; // Unmount cache
+            WriteTextureCache(ham, pig, palette, D1_DEMO_CACHE);
+            D1DemoTextureCache = TextureMapCache(D1_DEMO_CACHE, 1800);
 
             // Everything loaded okay, set data
             Descent1Demo = FullGameData(std::move(ham), FullGameData::Descent1Demo);
@@ -656,7 +671,7 @@ namespace Inferno::Resources {
         auto pigName = ReplaceExtension(palette, ".pig");
         auto pigPath = FileSystem::FindFile(pigName);
 
-        if (paletteData.empty()) {
+        if (!paletteData) {
             // Wasn't in hog, find on filesystem
             if (auto path256 = FileSystem::TryFindFile(palette)) {
                 paletteData = File::ReadAllBytes(*path256);
@@ -669,7 +684,7 @@ namespace Inferno::Resources {
         }
 
         data.pig = ReadPigFile(pigPath);
-        data.palette = ReadPalette(paletteData);
+        data.palette = ReadPalette(*paletteData);
     }
 
     bool LoadDescent2Data() {
@@ -701,6 +716,11 @@ namespace Inferno::Resources {
 
             LoadPalette(Descent2, "groupa.256"); // default to groupa
             Descent2.bitmaps = ReadAllBitmaps(Descent2.pig, Descent2.palette);
+
+            // todo: write other caches?
+            D2TextureCache = {}; // Unmount cache
+            WriteTextureCache(ham, Descent2.pig, Descent2.palette, D2_CACHE);
+            D2TextureCache = TextureMapCache(D2_CACHE, 2700);
 
             //FixVClipTimes(Current.Effects);
             SPDLOG_INFO("Descent 2 data loaded");
@@ -753,248 +773,440 @@ namespace Inferno::Resources {
     }
 
     // Searches the mission HOG, then the game data folder, then the common data folder
-    string ReadTextFile(string_view file, bool descent1) {
-        auto commonPath = DATA_FOLDER / file;
-        auto gamePath = (descent1 ? D1_FOLDER : D2_FOLDER) / file;
-        string data;
+    //string ReadTextFile(string_view file, bool descent1) {
+    //    auto commonPath = DATA_FOLDER / file;
+    //    auto gamePath = (descent1 ? D1_FOLDER : D2_FOLDER) / file;
+    //    string data;
 
-        if (Game::Mission) {
-            data = Game::Mission->TryReadEntryAsString(file);
-            if (!data.empty()) {
-                SPDLOG_INFO("Reading {} from mission", file);
-                return data;
-            }
-        }
+    //    if (Game::Mission) {
+    //        data = Game::Mission->TryReadEntryAsString(file);
+    //        if (!data.empty()) {
+    //            SPDLOG_INFO("Reading {} from mission", file);
+    //            return data;
+    //        }
+    //    }
 
-        if (FileSystem::TryFindFile(gamePath)) {
-            SPDLOG_INFO("Reading game table from `{}`", gamePath.string());
-            data = File::ReadAllText(gamePath);
-        }
-        else if (FileSystem::TryFindFile(commonPath)) {
-            SPDLOG_INFO("Reading game table from `{}`", commonPath.string());
-            data = File::ReadAllText(commonPath);
-        }
+    //    if (FileSystem::TryFindFile(gamePath)) {
+    //        SPDLOG_INFO("Reading game table from `{}`", gamePath.string());
+    //        data = File::ReadAllText(gamePath);
+    //    }
+    //    else if (FileSystem::TryFindFile(commonPath)) {
+    //        SPDLOG_INFO("Reading game table from `{}`", commonPath.string());
+    //        data = File::ReadAllText(commonPath);
+    //    }
 
-        if (data.empty())
-            SPDLOG_WARN("Unable to find `{}`", file);
+    //    if (data.empty())
+    //        SPDLOG_WARN("Unable to find `{}`", file);
 
-        return data;
-    }
+    //    return data;
+    //}
 
-    void LoadGameTables(const Level& level) {
+    bool LoadGameTables(LoadFlag flags) {
         // Load order matters. Changes get layered onto each other (root, game, mission)
-        auto data = ReadTextFile(GAME_TABLE_FILE, level.IsDescent1());
-        if (!data.empty())
+        auto data = ReadTextFile(GAME_TABLE_FILE, flags);
+        if (!data.empty()) {
             LoadGameTable(data, GameData);
+            return true;
+        }
+
+        return false;
     }
 
-    void LoadLightTables(const Level& level) {
-        auto data = ReadTextFile(LIGHT_TABLE_FILE, level.IsDescent1());
-        if (!data.empty())
+    bool LoadLightTables(LoadFlag flags) {
+        auto data = ReadTextFile(LIGHT_TABLE_FILE, flags);
+        if (!data.empty()) {
             LoadLightTable(data, Lights);
-    }
-
-    bool FileExists(string_view fileName) {
-        auto name = string(fileName);
-
-        // current HOG file
-        if (Game::Mission) {
-            // Check unpacked data folder for mission
-            auto path = Game::Mission->Path.parent_path();
-            auto unpacked = path / Game::Mission->Path.stem() / name;
-            if (filesystem::exists(unpacked))
-                return true;
-
-            if (Game::Mission->Exists(name))
-                return true;
+            return true;
         }
 
-        {
-            // Check for addon (dxa) data
-            for (auto& file : filesystem::directory_iterator(GetGameDataFolder(Game::Level))) {
-                if (!file.is_regular_file()) continue;
-                bool found = false;
-
-                auto& filePath = file.path();
-                if (String::ToLower(filePath.extension().string()) == ".dxa") {
-                    if (auto zip = zip_open(filePath.string().c_str(), 0, 'r')) {
-                        if (zip_entry_open(zip, name.data()) == 0) {
-                            found = true;
-                            zip_entry_close(zip);
-                        }
-
-                        zip_close(zip);
-                    }
-                }
-
-                if (found) return true;
-            }
-        }
-
-        // game specific data folder
-        auto path = filesystem::path(GetGameDataFolder(Game::Level)) / name;
-        if (filesystem::exists(path))
-            return true;
-
-        // Common data folder
-        path = filesystem::path("data") / name;
-        if (filesystem::exists(path) || filesystem::exists(name))
-            return true;
-
-        // Base HOG file
-        if (GameData.hog.Exists(name))
-            return true;
-
-        return false; // Wasn't found
+        return false;
     }
 
-    List<byte> ReadBinaryFileFromDxa(const string& name) {
-        for (auto& file : filesystem::directory_iterator(GetGameDataFolder(Game::Level))) {
-            if (!file.is_regular_file()) continue;
+    //class ZipFile {
+    //    zip_t* _zip;
 
-            auto& filePath = file.path();
-            if (String::ToLower(filePath.extension().string()) == ".dxa") {
-                List<byte> data;
-                if (auto zip = zip_open(filePath.string().c_str(), 0, 'r')) {
+    //public:
+    //    static Option<ZipFile> Open(const filesystem::path& path) {
+    //        ZipFile file;
+
+    //        file._zip = zip_open(path.string().c_str(), 0, 'r');
+    //        if (!file._zip) return {};
+    //        return file;
+    //    }
+
+    //    ~ZipFile() {
+    //        zip_close(_zip);
+    //    }
+
+    //    ResourceHandle Find(string_view fileName) {
+    //        
+    //    }
+
+    //    ZipFile(const ZipFile&) = delete;
+    //    ZipFile(ZipFile&&) = default;
+    //    ZipFile& operator=(const ZipFile&) = delete;
+    //    ZipFile& operator=(ZipFile&&) = default;
+
+    //private:
+    //    ZipFile() = default;
+    //};
+
+    Option<ResourceHandle> FindDxaEntryInFolder(const filesystem::path& folder, string_view fileName) {
+        Option<ResourceHandle> handle;
+
+        for (auto& folderItem : filesystem::directory_iterator(folder)) {
+            auto name = string(fileName);
+            auto& itemPath = folderItem.path();
+
+            if (String::InvariantEquals(itemPath.extension().string(), ".dxa")) {
+                if (auto zip = zip_open(itemPath.string().c_str(), 0, 'r')) {
                     if (zip_entry_open(zip, name.c_str()) == 0) {
-                        void* buffer;
-                        size_t bufferSize;
-                        auto readBytes = zip_entry_read(zip, &buffer, &bufferSize);
-                        if (readBytes > 0) {
-                            SPDLOG_INFO("Read addon data: {}:{}", filePath.string(), name);
-                            data.assign((byte*)buffer, (byte*)buffer + bufferSize);
-                            return data;
-                        }
-
+                        handle = ResourceHandle(itemPath, string(fileName));
                         zip_entry_close(zip);
                     }
 
                     zip_close(zip);
                 }
-
-                /*auto totalEntries = zip_entries_total(zip);
-
-                for (size_t i = 0; i < totalEntries; i++) {
-                    zip_entry_openbyindex(zip, i);
-                    auto entry = zip_entry_name(zip);
-                    SPDLOG_INFO("{}", entry);
-                    zip_entry_close(zip);
-                }*/
             }
+
+            if (handle) break; // found
+        }
+
+        return handle;
+    }
+
+    Option<ResourceHandle> Find(string_view fileName, LoadFlag flags) {
+        auto file = string(fileName);
+
+        // current HOG file
+        if (Game::Mission && HasFlag(flags, LoadFlag::Mission)) {
+            //if (HasFlag(flags, LoadFlag::Filesystem)) {
+            // Check unpacked data folder for mission
+            auto path = Game::Mission->Path.parent_path();
+            auto unpacked = path / Game::Mission->Path.stem() / fileName;
+            if (filesystem::exists(unpacked))
+                return ResourceHandle::FromFilesystem(unpacked);
+            //}
+
+            if (Game::Mission->Exists(file))
+                return ResourceHandle::FromHog(unpacked, fileName);
+        }
+
+        if (HasFlag(flags, LoadFlag::Dxa)) {
+            // Check for addon (dxa) data
+            if (HasFlag(flags, LoadFlag::Descent1))
+                if (auto handle = FindDxaEntryInFolder(D1_FOLDER, fileName))
+                    return handle;
+
+            if (HasFlag(flags, LoadFlag::Descent2))
+                if (auto handle = FindDxaEntryInFolder(D2_FOLDER, fileName))
+                    return handle;
+
+            if (HasFlag(flags, LoadFlag::Common))
+                if (auto handle = FindDxaEntryInFolder(COMMON_FOLDER, fileName))
+                    return handle;
+        }
+
+        if (HasFlag(flags, LoadFlag::Filesystem)) {
+            if (HasFlag(flags, LoadFlag::Descent1) && filesystem::exists(D1_FOLDER / file))
+                return ResourceHandle::FromFilesystem(D1_FOLDER / fileName);
+
+            if (HasFlag(flags, LoadFlag::Descent2) && filesystem::exists(D2_FOLDER / file))
+                return ResourceHandle::FromFilesystem(D2_FOLDER / fileName);
+
+            if (HasFlag(flags, LoadFlag::Common) && filesystem::exists(COMMON_FOLDER / file))
+                return ResourceHandle::FromFilesystem(COMMON_FOLDER / fileName);
+        }
+
+        // Base HOG file
+        if (HasFlag(flags, LoadFlag::BaseHog)) {
+            if (HasFlag(flags, LoadFlag::Descent1) && Descent1.hog.Exists(file))
+                return ResourceHandle{ Descent1.hog.Path, string(fileName) };
+
+            if (HasFlag(flags, LoadFlag::Descent2) && Descent2.hog.Exists(file))
+                return ResourceHandle{ Descent2.hog.Path, string(fileName) };
+        }
+
+        return {}; // Wasn't found
+    }
+
+    //bool FileExists(string_view fileName, LoadFlag flags) {
+    //    auto name = string(fileName);
+
+    //    // current HOG file
+    //    if (Game::Mission && HasFlag(flags, LoadFlag::Mission)) {
+    //        // Check unpacked data folder for mission
+    //        auto path = Game::Mission->Path.parent_path();
+    //        auto unpacked = path / Game::Mission->Path.stem() / name;
+    //        if (filesystem::exists(unpacked))
+    //            return true;
+
+    //        if (Game::Mission->Exists(name))
+    //            return true;
+    //    }
+
+    //    if (HasFlag(flags, LoadFlag::Dxa)) {
+    //        // Check for addon (dxa) data
+    //        if (HasFlag(flags, LoadFlag::Descent1) && FindDxaEntryInFolder(D1_FOLDER, fileName))
+    //            return true;
+
+    //        if (HasFlag(flags, LoadFlag::Descent2) && FindDxaEntryInFolder(D2_FOLDER, fileName))
+    //            return true;
+
+    //        if (HasFlag(flags, LoadFlag::Common) && FindDxaEntryInFolder(COMMON_FOLDER, fileName))
+    //            return true;
+    //    }
+
+    //    if (HasFlag(flags, LoadFlag::Filesystem)) {
+    //        if (HasFlag(flags, LoadFlag::Descent1) && filesystem::exists(D1_FOLDER / name))
+    //            return true;
+
+    //        if (HasFlag(flags, LoadFlag::Descent2) && filesystem::exists(D2_FOLDER / name))
+    //            return true;
+
+    //        if (HasFlag(flags, LoadFlag::Common) && filesystem::exists(COMMON_FOLDER / name))
+    //            return true;
+    //    }
+
+    //    // Base HOG file
+    //    if (HasFlag(flags, LoadFlag::BaseHog)) {
+    //        if (HasFlag(flags, LoadFlag::Descent1) && Descent1.hog.Exists(name))
+    //            return true;
+
+    //        if (HasFlag(flags, LoadFlag::Descent2) && Descent2.hog.Exists(name))
+    //            return true;
+    //    }
+
+    //    return false; // Wasn't found
+    //}
+
+    Option<List<byte>> ReadBinaryFileFromZip(const filesystem::path& filePath, string_view name) {
+        try {
+            List<byte> data;
+            if (auto zip = zip_open(filePath.string().c_str(), 0, 'r')) {
+                if (zip_entry_open(zip, string(name).c_str()) == 0) {
+                    void* buffer;
+                    size_t bufferSize;
+                    auto readBytes = zip_entry_read(zip, &buffer, &bufferSize);
+                    if (readBytes > 0) {
+                        SPDLOG_INFO("Read file from {}:{}", filePath.string(), name);
+                        data.assign((byte*)buffer, (byte*)buffer + bufferSize);
+                    }
+
+                    zip_entry_close(zip);
+                }
+
+                zip_close(zip);
+            }
+
+            if (!data.empty())
+                return data;
+            /*auto totalEntries = zip_entries_total(zip);
+
+            for (size_t i = 0; i < totalEntries; i++) {
+                zip_entry_openbyindex(zip, i);
+                auto entry = zip_entry_name(zip);
+                SPDLOG_INFO("{}", entry);
+                zip_entry_close(zip);
+            }*/
+        }
+        catch (const std::exception& e) {
+            SPDLOG_ERROR("Error reading {}: {}", filePath.string(), e.what());
         }
 
         return {};
     }
 
-    List<byte> ReadBinaryFile(const string& name, LoadFlag flags) {
-        // Check for addon (dxa) data
-        if (HasFlag(flags, LoadFlag::ReadDxa)) {
-            auto data = ReadBinaryFileFromDxa(name);
-            if (!data.empty())
-                return data;
-        }
 
-        if (Game::Mission && HasFlag(flags, LoadFlag::ReadMission)) {
-            // 'unpacked' folder for the mission
-            auto path = Game::Mission->Path.parent_path();
-            auto unpacked = path / Game::Mission->Path.stem() / name;
-            if (filesystem::exists(unpacked)) {
-                SPDLOG_INFO("Reading {}", unpacked.string());
-                return File::ReadAllBytes(unpacked);
+    // GetGameDataFolder(Game::Level)
+    Option<List<byte>> ReadFromDxaFolder(const filesystem::path& folder, string_view name) {
+        for (auto& file : filesystem::directory_iterator(folder)) {
+            if (!file.is_regular_file()) continue;
+
+            auto& filePath = file.path();
+
+            if (String::InvariantEquals(filePath.extension().string(), ".dxa")) {
+                if (auto data = ReadBinaryFileFromZip(filePath, name))
+                    return data;
             }
 
-            auto data = Game::Mission->TryReadEntry(name);
-            if (!data.empty()) {
-                SPDLOG_INFO("Reading {} from mission", name);
+            //    List<byte> data;
+            //    if (auto zip = zip_open(filePath.string().c_str(), 0, 'r')) {
+            //        if (zip_entry_open(zip, string(name).c_str()) == 0) {
+            //            void* buffer;
+            //            size_t bufferSize;
+            //            auto readBytes = zip_entry_read(zip, &buffer, &bufferSize);
+            //            if (readBytes > 0) {
+            //                SPDLOG_INFO("Read addon data: {}:{}", filePath.string(), name);
+            //                data.assign((byte*)buffer, (byte*)buffer + bufferSize);
+            //                return data;
+            //            }
+
+            //            zip_entry_close(zip);
+            //        }
+
+            //        zip_close(zip);
+            //    }
+
+            //    /*auto totalEntries = zip_entries_total(zip);
+
+            //    for (size_t i = 0; i < totalEntries; i++) {
+            //        zip_entry_openbyindex(zip, i);
+            //        auto entry = zip_entry_name(zip);
+            //        SPDLOG_INFO("{}", entry);
+            //        zip_entry_close(zip);
+            //    }*/
+            //}
+        }
+
+        return {};
+    }
+
+    //Option<List<byte>> ReadFileFromFolder(filesystem::path& folder, string_view name) {
+    //    for (auto& file : filesystem::directory_iterator(folder)) {}
+
+    //    return {};
+    //}
+
+    Option<List<byte>> ReadBinaryFile(string_view fileName, LoadFlag flags) {
+        auto file = string(fileName);
+
+        // current HOG file
+        if (Game::Mission && HasFlag(flags, LoadFlag::Mission)) {
+            // Check unpacked data folder for mission
+            //auto path = Game::Mission->Path.parent_path();
+            //auto unpacked = path / Game::Mission->Path.stem() / fileName;
+            //if (filesystem::exists(unpacked)) {
+            //    SPDLOG_INFO("Reading {}", unpacked.string());
+            //    return File::ReadAllBytes(unpacked);
+            //}
+
+            if (auto data = Game::Mission->TryReadEntry(file)) {
+                SPDLOG_INFO("Reading {} from mission", file);
                 return data;
             }
         }
 
-        const auto readHogEntry = [](string_view fileName, string_view hogName) {
-            auto hog = HogFile::Read(FileSystem::FindFile(hogName));
-            return hog.TryReadEntry(fileName);
-            //if (!entry.empty())
-            //    return entry;
-        };
+        // Check for DXA (zip) data
+        if (HasFlag(flags, LoadFlag::Dxa)) {
+            if (HasFlag(flags, LoadFlag::Descent1))
+                if (auto data = ReadFromDxaFolder(D1_FOLDER, fileName))
+                    return data;
 
-        if (HasFlag(flags, LoadFlag::PreferD1)) {
-            auto entry = readHogEntry(name, "descent.hog");
-            if (!entry.empty()) return entry;
-            entry = readHogEntry(name, "descent2.hog");
-            if (!entry.empty()) return entry;
-        }
-        else /*if (HasFlag(flags, LoadFlag::PreferD2))*/ {
-            auto entry = readHogEntry(name, "descent2.hog");
-            if (!entry.empty()) return entry;
-            entry = readHogEntry(name, "descent.hog");
-            if (!entry.empty()) return entry;
+            if (HasFlag(flags, LoadFlag::Descent2))
+                if (auto data = ReadFromDxaFolder(D2_FOLDER, fileName))
+                    return data;
+
+            if (HasFlag(flags, LoadFlag::Common))
+                if (auto data = ReadFromDxaFolder(COMMON_FOLDER, fileName))
+                    return data;
         }
 
-        // game specific data folder
-        // todo: there might not be a level loaded
-        auto path = GetGameDataFolder(Game::Level) / name;
-        if (filesystem::exists(path)) {
-            SPDLOG_INFO("Reading {}", path.string());
-            return File::ReadAllBytes(path);
-        }
+        if (HasFlag(flags, LoadFlag::Filesystem)) {
+            if (HasFlag(flags, LoadFlag::Descent1) && filesystem::exists(D1_FOLDER / file)) {
+                SPDLOG_INFO("Reading {}", (D1_FOLDER / fileName).string());
+                return File::ReadAllBytes(D1_FOLDER / fileName);
+            }
 
-        // Common data folder
-        path = DATA_FOLDER / name;
-        if (filesystem::exists(path)) {
-            SPDLOG_INFO("Reading {}", path.string());
-            return File::ReadAllBytes(path);
-        }
-
-        if (filesystem::exists(name)) {
-            SPDLOG_INFO("Reading {}", name);
-            return File::ReadAllBytes(name);
+            if (HasFlag(flags, LoadFlag::Descent2) && filesystem::exists(D2_FOLDER / file)) {
+                SPDLOG_INFO("Reading {}", (D2_FOLDER / fileName).string());
+                return File::ReadAllBytes(D2_FOLDER / fileName);
+            }
+            if (HasFlag(flags, LoadFlag::Common) && filesystem::exists(COMMON_FOLDER / file)) {
+                SPDLOG_INFO("Reading {}", (COMMON_FOLDER / fileName).string());
+                return File::ReadAllBytes(COMMON_FOLDER / fileName);
+            }
         }
 
         // Base HOG file
+        if (HasFlag(flags, LoadFlag::BaseHog)) {
+            if (HasFlag(flags, LoadFlag::Descent1) && Descent1.hog.Exists(file)) {
+                SPDLOG_INFO("Reading {} from descent1.hog", file);
+                return Descent1.hog.TryReadEntry(file);
+            }
 
-        // Check data directories
-        //if (auto file = FileSystem::TryFindFile(name)) {
-        //    return File::ReadAllBytes(*file);
-        //}
+            if (HasFlag(flags, LoadFlag::Descent2) && Descent2.hog.Exists(file)) {
+                SPDLOG_INFO("Reading {} from descent2.hog", file);
+                return Descent1.hog.TryReadEntry(file);
+            }
+        }
 
         return {}; // Wasn't found
+
+        //auto resource = Find(name, flags);
+        //if (!resource) return {};
+
+        //switch (resource->source) {
+        //    case Filesystem:
+        //        break;
+        //    case Hog:
+        //    {
+        //        auto hog = HogFile::Read(resource->path);
+        //        //hog.ReadEntry(
+        //    }
+
+        //        if (HasFlag(flags, LoadFlag::Descent1)) {
+        //            if (auto data = Resources::Descent1.hog.TryReadEntry(name)) {
+        //                SPDLOG_INFO("Reading {} from descent1.hog", name);
+        //                return *data;
+        //            }
+        //        }
+        //        else if (HasFlag(flags, LoadFlag::Descent2)) {
+        //            if (auto data = Resources::Descent2.hog.TryReadEntry(name)) {
+        //                SPDLOG_INFO("Reading {} from descent2.hog", name);
+        //                return *data;
+        //            }
+        //        }
+        //        break;
+        //    case Zip:
+        //        return ReadBinaryFileFromZip(resource->path, name);
+        //}
     }
 
-    string ReadTextFile(const string& name) {
-        auto bytes = ReadBinaryFile(name);
-        string str((char*)bytes.data(), bytes.size());
-        return str;
+    string ReadTextFile(string_view name, LoadFlag flags) {
+        if (auto bytes = ReadBinaryFile(name, flags)) {
+            string str((char*)bytes->data(), bytes->size());
+            return str;
+        }
+
+        return {};
     }
 
-    void LoadMaterialTables(const Level& level) {
-        auto commonPath = DATA_FOLDER / "material.yml";
-        if (FileSystem::TryFindFile(commonPath)) {
-            auto data = File::ReadAllText(commonPath);
-            SPDLOG_INFO("Reading material table from `{}`", commonPath.string());
-            LoadMaterialTable(data, Resources::Materials.GetAllMaterialInfo());
-        }
+    bool LoadMaterialTables(LoadFlag flags) {
+        // todo: replace with Find()
+        //auto commonPath = COMMON_FOLDER / "material.yml";
+        //if (FileSystem::TryFindFile(commonPath)) {
+        //    auto data = File::ReadAllText(commonPath);
+        //    SPDLOG_INFO("Reading material table from `{}`", commonPath.string());
+        //    LoadMaterialTable(data, Resources::Materials.GetAllMaterialInfo());
+        //}
 
-        auto& gamePath = GetMaterialTablePath(level);
-
-        if (FileSystem::TryFindFile(gamePath)) {
-            auto data = File::ReadAllText(gamePath);
-            SPDLOG_INFO("Reading material table from `{}`", gamePath.string());
-            LoadMaterialTable(data, Resources::Materials.GetAllMaterialInfo());
-        }
+        auto& gamePath = GetMaterialTablePath(HasFlag(flags, LoadFlag::Descent1));
 
         if (Game::Mission) {
             auto data = Game::Mission->TryReadEntryAsString("material.yml");
             SPDLOG_INFO("Reading material table from mission");
 
-            if (!data.empty())
+            if (!data.empty()) {
                 LoadMaterialTable(data, Resources::Materials.GetAllMaterialInfo());
+                return true;
+            }
         }
+
+        if (FileSystem::TryFindFile(gamePath)) {
+            auto data = File::ReadAllText(gamePath);
+            SPDLOG_INFO("Reading material table from `{}`", gamePath.string());
+            LoadMaterialTable(data, Resources::Materials.GetAllMaterialInfo());
+            return true;
+        }
+
+        return false;
     }
 
-    void LoadDataTables(const Level& level) {
-        LoadLightTables(level);
-        LoadMaterialTables(level);
-        LoadGameTables(level);
+    void LoadDataTables(LoadFlag flags) {
+        LoadLightTables(flags);
+        LoadMaterialTables(flags);
+        LoadGameTables(flags);
     }
 
     span<JointPos> GetRobotJoints(int robotId, int gun, Animation state) {
@@ -1008,6 +1220,7 @@ namespace Inferno::Resources {
     }
 
     // Resets all object sizes to their resource defined values
+    // NOTE: Hostage sizes should be left alone due to certain gimmick levels messing with their size
     //void ResetObjectSizes(Level& level) {
     //    for (auto& obj : level.Objects) {
     //        obj.Radius = Editor::GetObjectRadius(obj);
@@ -1040,7 +1253,7 @@ namespace Inferno::Resources {
                 auto pigName = ReplaceExtension(level.Palette, ".pig");
                 auto pigPath = FileSystem::FindFile(pigName);
 
-                if (paletteData.empty()) {
+                if (!paletteData) {
                     // Wasn't in hog, find on filesystem
                     if (auto path256 = FileSystem::TryFindFile(level.Palette)) {
                         paletteData = File::ReadAllBytes(*path256);
@@ -1053,7 +1266,7 @@ namespace Inferno::Resources {
                 }
 
                 GameData.pig = ReadPigFile(pigPath); // todo: pick the correct pre-loaded pig
-                auto palette = ReadPalette(paletteData);
+                auto palette = ReadPalette(*paletteData);
                 auto bitmaps = ReadAllBitmaps(GameData.pig, palette); // todo: pick texture cache
 
                 // Load VHAMs
@@ -1142,7 +1355,8 @@ namespace Inferno::Resources {
                     level.TotalHostages++;
             }
 
-            LoadDataTables(level);
+            // it should prioritize the current mission then the data folder
+            LoadDataTables(LoadFlag::Filesystem | LoadFlag::Mission | GetLevelLoadFlag(level));
             LoadStringTable(GameData.hog);
             UpdateAverageTextureColor();
 

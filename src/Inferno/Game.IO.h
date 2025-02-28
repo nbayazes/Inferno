@@ -35,9 +35,6 @@ namespace Inferno::Game {
 
     string LevelNameByIndex(int index);
 
-    // Loads briefing backgrounds from a hog
-    void LoadBackgrounds(const HogFile& mission);
-
     // Plays music for the level based on its number
     void PlayLevelMusic();
 

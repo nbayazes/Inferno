@@ -55,14 +55,14 @@ namespace Inferno {
         }
 
         // Tries to read an entry, returns empty data if invalid.
-        List<ubyte> TryReadEntry(int index) const;
-        List<ubyte> TryReadEntry(string_view entry) const;
+        Option<List<ubyte>> TryReadEntry(int index) const;
+        Option<List<ubyte>> TryReadEntry(string_view entry) const;
 
         // Returns an empty string if entry is not found
         string TryReadEntryAsString(string_view entry) const {
             auto data = TryReadEntry(entry);
-            if (data.empty()) return {};
-            return string((char*)data.data(), data.size());
+            if (!data) return {};
+            return string((char*)data->data(), data->size());
         }
 
         bool Exists(string_view entry) const;
@@ -86,8 +86,14 @@ namespace Inferno {
             return {};
         }
 
-        bool IsDescent1() const { return ContainsFileType("rdl"); }
+        bool IsDescent1() const { return ContainsFileType("rdl") || ContainsFileType("sdl"); }
         bool IsDescent2() const { return ContainsFileType("rl2"); }
+        bool IsShareware() const { return ContainsFileType("sdl"); }
+
+        // Returns true if the HOG is descent.hog or descent2.hog
+        bool IsRetailMission() const {
+            return String::InvariantEquals(Path.filename().string(), "descent.hog") || String::InvariantEquals(Path.filename().string(), "descent2.hog");
+        }
 
         // Gets the path to the corresponding mission description file
         std::filesystem::path GetMissionPath() const {

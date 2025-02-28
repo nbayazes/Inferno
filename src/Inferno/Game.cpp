@@ -942,40 +942,6 @@ namespace Inferno::Game {
         return true;
     }
 
-    void ShowBriefing(const MissionInfo& mission, int levelNumber, const Inferno::Level& level, string briefingName, bool endgame) {
-        if (!Game::Mission)
-            return;
-
-        if (String::Extension(briefingName).empty())
-            briefingName += ".txb";
-
-        auto entry = Game::Mission->TryReadEntry(briefingName);
-        auto briefing = Briefing::Read(entry, level.IsDescent1());
-
-        auto isShareware = Game::Mission->ContainsFileType(".sdl");
-
-        if (endgame) {
-            SetD1EndBriefingBackground(briefing, isShareware);
-        }
-        else {
-            SetD1BriefingBackgrounds(briefing, isShareware);
-        }
-
-        if (mission.Name == FIRST_STRIKE_NAME && levelNumber == 1) {
-            AddPyroAndReactorPages(briefing);
-        }
-
-        Game::Briefing = BriefingState(briefing, levelNumber, level.IsDescent1(), endgame);
-        Game::Level.Version = level.Version; // hack: due to LoadResources
-        // TODO: Rework to not require loading the level first
-        // LoadResources depends on the level being fully loaded to pick the right assets!
-        Game::Briefing.LoadResources();
-
-        auto music = IsFinalLevel() ? "d1/endgame" : "d1/briefing";
-        Game::PlayMusic(music);
-        Game::SetState(GameState::Briefing);
-    }
-
     void LoadLevelFromMission(const MissionInfo& mission, int levelNumber, bool showBriefing, bool autosave) {
         try {
             if (levelNumber == 0)
@@ -1001,7 +967,7 @@ namespace Inferno::Game {
                 return;
             }
 
-            auto isShareware = Game::Mission->ContainsFileType(".sdl");
+            auto isShareware = Game::Mission->IsShareware();
 
             string levelEntry;
 
@@ -1173,7 +1139,7 @@ namespace Inferno::Game {
         StuckObjects = {};
         Sound::WaitInitialized();
         Sound::StopAllSounds();
-        Resources::LoadGameTables(Level);
+        Resources::LoadGameTables(LoadFlag::Default | GetLevelLoadFlag(Level));
         ResetEffects();
         Render::Materials->UnloadNamedTextures();
         Render::Materials->LoadGameTextures();
