@@ -686,6 +686,11 @@ namespace Inferno {
             InitObject(obj, obj.Type, obj.ID, false);
             if (auto seg = level.TryGetSegment(obj.Segment)) {
                 obj.Ambient.SetTarget(seg->VolumeLight, Game::Time, 0);
+
+                if (!SegmentContainsPoint(level, obj.Segment, obj.Position)) {
+                    SPDLOG_WARN("Object {} was outside of its segment. Moving to center", obj.Signature);
+                    obj.Position = seg->Center;
+                }
             }
 
             obj.Rotation.Normalize();
@@ -1086,8 +1091,8 @@ namespace Inferno {
                 obj.Control.Type = ControlType::Reactor;
                 obj.Render.Type = RenderType::Model;
 
-                // Reset shareware reactor id
-                if (Game::Level.IsShareware) obj.ID = 0;
+                // Reset D1 reactor id so the correct model is used.
+                if (Game::Level.IsDescent1()) obj.ID = 0;
 
                 if (auto reactor = Seq::tryItem(Resources::GameData.Reactors, obj.ID))
                     obj.Render.Model = { .ID = reactor->Model };

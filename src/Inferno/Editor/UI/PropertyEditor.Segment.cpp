@@ -1393,9 +1393,9 @@ namespace Inferno::Editor {
                 auto index = seg.GetVertexIndex(Editor::Selection.Side, Editor::Selection.Point);
                 ImGui::Text("%i", index);
 
-#ifdef _DEBUG
+//#ifdef _DEBUG
                 // only enable vertex override UI in debug builds. regular users shouldn't need this.
-                ImGui::TableRowLabel("Override");
+                ImGui::TableRowLabelEx("Override", "Saves vertex position as an 'override'.\nOnly useful for tweaking geometry in official levels.");
 
                 auto override = level.VertexOverrides.contains(index);
                 if (ImGui::Checkbox("##override", &override)) {
@@ -1408,7 +1408,7 @@ namespace Inferno::Editor {
                             level.VertexOverrides.erase(i);
                     }
                 }
-#endif
+//#endif
 
                 break;
             }
