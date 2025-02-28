@@ -37,9 +37,15 @@ namespace Inferno::Editor {
 
         void OnSave() {
             try {
+                if (Game::Level.IsShareware) {
+                    // Disable saving materials for shareware levels. It causes all non-shareware textures to be lost.
+                    ShowErrorMessage("Cannot save materials for shareware level.");
+                    return;
+                }
+
                 SPDLOG_INFO("Saving materials");
                 // todo: save materials to hog toggle?
-                auto& path = Resources::GetMaterialTablePath(Game::Level);
+                auto& path = Resources::GetMaterialTablePath(Game::Level.IsDescent1());
                 std::ofstream stream(path);
                 auto materials = Resources::Materials.GetAllMaterialInfo();
                 SaveMaterialTable(stream, materials);
@@ -67,6 +73,7 @@ namespace Inferno::Editor {
             //ImGui::Checkbox("Enable loading", &_enableLoading);
 
             ImGui::SameLine(contentMax.x - 150);
+
             if (ImGui::Button("Save Materials", { 150 * Shell::DpiScale, 0 }))
                 OnSave();
 
@@ -112,7 +119,7 @@ namespace Inferno::Editor {
                         ImGui::TableNextRow();
 
                         auto cursor = ImGui::GetCursorScreenPos();
-                        ImRect rowRect = { cursor, { cursor.x + tileSize.x, cursor.y + tileSize.y} };
+                        ImRect rowRect = { cursor, { cursor.x + tileSize.x, cursor.y + tileSize.y } };
 
                         ImGui::TableNextColumn();
                         ImGui::PushID((int)id);
