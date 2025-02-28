@@ -32,14 +32,20 @@ namespace Inferno {
         Briefing::Screen screen;
         Briefing::Page page;
 
+        bool firstLine = true;
+
         for (auto& line : lines) {
             bool inToken = false;
 
-            // Skip empty lines on the first page of D1 briefings.
-            // There is an odd case of user missions adding blank lines to try and position the text,
-            // but D1 uses hard coded text offsets for each screen
-            if (d1 && screen.Number == 1 && line.empty()) {
+            // Skip empty lines at the start of the first page of D1 briefings.
+            // There is an odd case of user missions adding blank lines to try and position the text (Omicron Project)
+            // but D1 uses hard coded text start positions for each screen.
+            // This should probably apply to the start of every page
+            if (d1 && screen.Number == 1 && screen.Pages.empty() && line.empty() && firstLine) {
                 continue;
+            }
+            else {
+                firstLine = false;
             }
 
             for (int i = 0; i < line.size(); i++) {
@@ -81,6 +87,7 @@ namespace Inferno {
 
                                 screens.push_back(screen);
                                 screen = {};
+                                firstLine = true;
                             }
 
                             if (token.size() > 2)
@@ -212,7 +219,8 @@ namespace Inferno {
             screens.push_back({ "end02.pcx", 0, 1, 5, 5, 300, 200 });
             screens.push_back({ "end01.pcx", 0, 2, 23, 40, 320, 200 });
             screens.push_back({ "end03.pcx", 0, 3, 5, 5, 300, 200 });
-        } else {
+        }
+        else {
             screens.push_back({ "end01.pcx", 0, 1, 23, 40, 320, 200 });
         }
 
