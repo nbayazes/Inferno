@@ -3,7 +3,6 @@
 #include "Types.h"
 
 namespace Inferno {
-
     // Must match MaterialInfo HLSL
     struct MaterialInfo {
         float NormalStrength = 1; // multiplier on normal map
@@ -15,7 +14,7 @@ namespace Inferno {
         float LightReceived = 1; // 0 for unlit
         int32 ID = -1; // TexID
         int32 Additive = false; // Additive blending
-        float EnvStrength = 1; // Environment mapping strength
+        Color SpecularColor = Color(1, 1, 1, 1);
     };
 
     class MaterialInfoLibrary {
@@ -23,7 +22,7 @@ namespace Inferno {
         List<MaterialInfo> _materialInfo;
 
     public:
-        MaterialInfoLibrary(size_t capacity = 0) : _materialInfo(capacity) { }
+        MaterialInfoLibrary(size_t capacity = 0) : _materialInfo(capacity) {}
 
         span<MaterialInfo> GetAllMaterialInfo() { return _materialInfo; }
         MaterialInfo& GetMaterialInfo(TexID id);

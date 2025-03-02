@@ -267,6 +267,21 @@ namespace Inferno::Editor {
                             onMaterialChanged();
                         }
 
+                        ImGui::TableRowLabel("Specular Color");
+                        ImGui::SetNextItemWidth(-1);
+
+                        if (ImGui::ColorEdit3("##Specular Color", &material.SpecularColor.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float)) {
+                            //material.SpecularColor.x
+                            onMaterialChanged();
+                        }
+
+                        ImGui::TableRowLabel("Envmap Strength");
+                        ImGui::SetNextItemWidth(-1);
+                        if (ImGui::SliderFloat("##EnvPct", &material.SpecularColor.w, 0, 1)) {
+                            material.SpecularColor.w = std::max(material.SpecularColor.w, 0.0f);
+                            onMaterialChanged();
+                        }
+
                         //ImGui::TableRowLabel("Environment Strength");
                         //ImGui::SetNextItemWidth(-1);
                         //if (ImGui::SliderFloat("##EnvStrength", &material.EnvStrength, 0, 2)) {

@@ -95,8 +95,8 @@ Lights:
     - Name: ceil003
       Radius: 35
       Points: 0.5, 0.5
-      Color: 1, .8, .5, 0.6
-      Angle: 50
+      Color: 1, .8, .5, 0.5
+      Angle: 75
       InnerAngle: 45
 
     - Name: ceil008 # small square
@@ -150,6 +150,8 @@ Lights:
       Radius: 35
       Points: 0.5, 0.5
       Color: 1, .88, .88, .5
+      Angle: 65
+      InnerAngle: 60
       
     # Stacked lights
     - Name: ceil028
@@ -189,6 +191,9 @@ Lights:
       Wrap: 2
       Color: 1, .8, .5, .35
       Radius: 30
+      Angle: 80
+      InnerAngle: 50
+      ConeSpill: 0.1
       
     - Name: ceil021
       Type: 2
@@ -198,21 +203,24 @@ Lights:
       Width: 0.025
       # Height: 10
       Wrap: 2
-      Color: 0.666, 0.666, 1, .40
+      Color: 0.4, 0.4, 1, .40
       Radius: 30
       Angle: 80
       InnerAngle: 50
       ConeSpill: 0.1
 
-    - Name: ceil023 # End of 279
+    - Name: ceil023 # end of ceil021
       Type: 2
       Points:
         - 0.055, 0.65
         - 0.945, 0.65
       Width: 0.025
       Height: 0.3
-      Color: 0.666, 0.666, 1, .40
-  
+      Color: 0.4, 0.4, 1, .40
+      Angle: 80
+      InnerAngle: 50
+      ConeSpill: 0.1
+
     # Strip lights with the same heights
     - Name: ceil030
       Type: 2
@@ -247,11 +255,11 @@ Lights:
     # lava
     - Name: misc11#0
       Points: []
-      Color: 1.0, 0.25, .05, .5 # Dim by default to prevent oversaturation
+      Color: 1.0, 0.25, .05, .5 # Dim to prevent oversaturation
 
     - Name: lava02#0
       Points: []
-      Color: 1, 0.125, 0, .25
+      Color: 1, 0.43, 0, .5
 
     - Name: misc073#0 # lavafall
       Points: []
@@ -262,6 +270,10 @@ Lights:
       # Wrap: 2
       # Radius: 10
       #Radius: 50
+
+    # - Name: misc14#0 # matcen tendrils
+    #   Points: []
+    #   Color: 0.4, 0, 1, .4
 
     # Remove lights from reactor walls as emissives work better. 
     # Allow designer to set lighting if necessary as reactor textures are often densely packed and will oversaturate.

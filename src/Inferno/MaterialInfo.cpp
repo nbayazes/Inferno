@@ -146,6 +146,9 @@ namespace Inferno {
         if (info.Additive != 0)
             node["Additive"] << info.Additive;
 
+        if (info.SpecularColor != Color(1, 1, 1, 1))
+            node["SpecularColor"] << EncodeColor(info.SpecularColor);
+
         if (auto proc = GetProcedural(id)) {
             auto procNode = node["Procedural"];
             procNode |= ryml::MAP;
@@ -189,6 +192,7 @@ namespace Inferno {
         ReadValue(node["EmissiveStrength"], info.EmissiveStrength);
         ReadValue(node["LightReceived"], info.LightReceived);
         ReadValue(node["Additive"], info.Additive);
+        ReadValue(node["SpecularColor"], info.SpecularColor);
 
         materials[info.ID] = info;
 
