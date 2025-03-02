@@ -233,7 +233,7 @@ namespace Inferno::Graphics {
 
         float overlayAngle = useOverlay ? GetOverlayRotationAngle(side.OverlayRotation) : 0;
 
-        constexpr float SAMPLE_DIST = 0.1f;
+        constexpr float SAMPLE_DIST = 0.01f;
         auto getUVScale = [&face](const Vector3& pos, Vector2 uv) {
             auto rightPos = FaceContainsUV(face, uv + Vector2(SAMPLE_DIST, 0));
             auto upPos = FaceContainsUV(face, uv + Vector2(0, SAMPLE_DIST));
@@ -520,6 +520,7 @@ namespace Inferno::Graphics {
                 LightData light{};
                 light.color = color;
                 light.radius = len * 2.0f;
+                light.radius = std::min(60.0f, light.radius); // Prevent excessively large lights
                 light.type = LightType::Point;
                 light.pos = seg.Center;
                 segLights.Lights.push_back(light);
