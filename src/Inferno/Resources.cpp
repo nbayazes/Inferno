@@ -10,6 +10,7 @@
 #include "Graphics/MaterialLibrary.h"
 #include "logging.h"
 #include "Pig.h"
+#include "Settings.h"
 #include "Sound.h"
 #include "SoundSystem.h"
 
@@ -510,9 +511,10 @@ namespace Inferno::Resources {
 
             LoadCustomExitModels(ham, palette);
 
-            D1TextureCache = {}; // Unmount cache
-            WriteTextureCache(ham, pig, palette, D1_CACHE);
-            D1TextureCache = TextureMapCache(D1_CACHE, 1800);
+            if (Inferno::Settings::Inferno.UseTextureCaching) {
+                WriteTextureCache(ham, pig, palette, D1_CACHE);
+                D1TextureCache = TextureMapCache(D1_CACHE, 1800);
+            }
 
             // Everything loaded okay, set data
             Descent1 = FullGameData(std::move(ham), FullGameData::Descent1);
@@ -610,9 +612,10 @@ namespace Inferno::Resources {
 
             ReadBitmapTable(table, pig, sounds, ham);
 
-            D1DemoTextureCache = {}; // Unmount cache
-            WriteTextureCache(ham, pig, palette, D1_DEMO_CACHE);
-            D1DemoTextureCache = TextureMapCache(D1_DEMO_CACHE, 1800);
+            if (Inferno::Settings::Inferno.UseTextureCaching) {
+                WriteTextureCache(ham, pig, palette, D1_DEMO_CACHE);
+                D1DemoTextureCache = TextureMapCache(D1_DEMO_CACHE, 1800);
+            }
 
             // Everything loaded okay, set data
             Descent1Demo = FullGameData(std::move(ham), FullGameData::Descent1Demo);
@@ -718,9 +721,10 @@ namespace Inferno::Resources {
             Descent2.bitmaps = ReadAllBitmaps(Descent2.pig, Descent2.palette);
 
             // todo: write other caches?
-            D2TextureCache = {}; // Unmount cache
-            WriteTextureCache(ham, Descent2.pig, Descent2.palette, D2_CACHE);
-            D2TextureCache = TextureMapCache(D2_CACHE, 2700);
+            if (Inferno::Settings::Inferno.UseTextureCaching) {
+                WriteTextureCache(ham, Descent2.pig, Descent2.palette, D2_CACHE);
+                D2TextureCache = TextureMapCache(D2_CACHE, 2700);
+            }
 
             //FixVClipTimes(Current.Effects);
             SPDLOG_INFO("Descent 2 data loaded");
