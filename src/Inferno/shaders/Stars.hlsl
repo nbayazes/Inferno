@@ -2,10 +2,11 @@
 
 #include "Common.hlsli"
 
-#define RS "RootFlags(0), CBV(b0), RootConstants(b1, num32BitConstants = 6)"
+#define RS "RootFlags(0), CBV(b0), RootConstants(b1, num32BitConstants = 10)"
 
 struct Arguments {
     float4 AtmosphereColor;
+    float4 StarColor;
     float SkyRadius;
     float Scale;
 };
@@ -55,7 +56,7 @@ float3 Starfield(in float3 p, float scale, float density) {
         p *= 1.5; // Increases density
     }
 
-    return c * c * 75;
+    return c * c * 75 * Args.StarColor.rgb;
     //return pow(1 + c * c, 5) - 1;
 }
 
@@ -74,9 +75,11 @@ float3 Atmosphere(float3 origin, float3 rd) {
     float3 col = float3(0, 0, 0);
     //col += pow(horizon, 500.) * float3(0.15, 0.4, 1) * 3.0;
     //col += pow(horizon, 200.) * float3(0.15, 0.4, 1) * 3.0;
-    col += pow(horizon, 11.) * 0.5; // float3(0.4, 0.5, 1) 
-    col += pow(horizon, 1.5) * 0.015; // float3(0.6, 0.7, 1)
-    //col += pow(horizon, 1.);
+    //col += pow(horizon, 11.) * 0.5; // float3(0.4, 0.5, 1) 
+    //col += pow(horizon, 1.5) * 0.015; // float3(0.6, 0.7, 1)
+    col += linstep(0., 1200, dtp) * .25;
+    col += linstep(-200., 1200, dtp) * .1;
+    col += linstep(-500., 1200, dtp) * .1;
     return col;
 }
 

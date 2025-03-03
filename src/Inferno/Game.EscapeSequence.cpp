@@ -148,6 +148,33 @@ namespace Inferno {
         info.LookbackPathIndex = info.SurfacePathIndex / 3;
     }
 
+    TerrainInfo CreateRandomTerrain(Level& level) {
+        TerrainInfo info{};
+        info.SurfaceTexture = "moon01.bbm";
+        info.SatelliteTexture = "sun.bbm";
+        info.SatelliteAdditive = true;
+        info.SatelliteColor = Color(3, 3, 3);
+        info.SatelliteDir = Vector3(0.5f, 0.1f, 0.5f);
+        info.SatelliteDir.Normalize();
+        info.ExitModel = Resources::GameData.ExitModel; // todo: hard code?
+
+        TerrainGenerationInfo args;
+        args.Height = 31;
+        args.NoiseScale = 3.1f;
+        args.Height2 = -10;
+        args.NoiseScale2 = 9.3f;
+        args.Size = 1200;
+        args.FlattenRadius = 120;
+        args.CraterStrength = 80;
+        args.Density = 48;
+        args.TextureScale = 80;
+        args.Seed = String::Hash(level.Name);
+        GenerateTerrain(info, args);
+        CreateEscapePath(level, info);
+
+        return info;
+    }
+
     TerrainInfo ParseEscapeInfo(Level& level, span<string> lines) {
         if (lines.size() < 7)
             throw Exception("Not enough lines in level escape data. 7 required");

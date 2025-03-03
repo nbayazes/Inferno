@@ -278,9 +278,6 @@ namespace Inferno::Editor {
 
             ImGui::Separator();
 
-            ImGui::ColorEdit4("Atmosphere", &Game::Terrain.AtmosphereColor.x);
-            ImGui::ColorEdit4("Ambient", &Game::Terrain.Light.x);
-
             Color tint = Game::ScreenGlow;
             if(ImGui::ColorEdit4("Tint", &tint.x))
                 Game::ScreenGlow.SetValue(tint);

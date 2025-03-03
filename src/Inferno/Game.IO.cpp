@@ -180,8 +180,25 @@ namespace Inferno::Game {
                 DecodeText(*data);
                 auto lines = String::ToLines(String::OfBytes(*data));
                 Game::Terrain = ParseEscapeInfo(Level, lines);
-                Graphics::LoadTerrain(Game::Terrain);
             }
+            else {
+                Game::Terrain = {};
+                Game::Terrain.SurfaceTexture = "moon01.bbm";
+                Game::Terrain.SatelliteTexture = "sun.bbm";
+                Game::Terrain.SatelliteAdditive = true;
+                Game::Terrain.SatelliteColor = Color(3, 3, 3);
+                Game::Terrain.SatelliteDir = Vector3(-0.93f, 0, -0.34f);
+                Game::Terrain.SatelliteDir.Normalize();
+                Game::Terrain.SatelliteSize = 250;
+                Game::Terrain.ExitModel = Resources::GameData.ExitModel; // todo: hard code?
+                CreateEscapePath(Level, Game::Terrain);
+            }
+
+            // Replace heightmap based terrain with random large terrain
+            TerrainGenInfo.Seed = String::Hash(Level.Name);
+            GenerateTerrain(Game::Terrain, TerrainGenInfo);
+
+            Graphics::LoadTerrain(Game::Terrain);
 
             // Check if we travelled to or from a secret level in D2
             bool secretFlag = false;
@@ -454,6 +471,8 @@ namespace Inferno::Game {
                 else {
                     level = LoadLevelFromMission(info.HogEntry);
                 }
+
+                level.Path = info.Path;
             }
             else {
                 throw Exception("Unknown file type");

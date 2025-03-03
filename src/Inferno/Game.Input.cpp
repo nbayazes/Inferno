@@ -35,7 +35,8 @@ namespace Inferno {
         if (Input::OnKeyPressed(Keys::F5)) {
             Resources::LoadDataTables(LoadFlag::Default | GetLevelLoadFlag(Game::Level));
             Graphics::ReloadResources();
-            Editor::Events::LevelChanged();
+            //Editor::Events::LevelChanged();
+            Editor::Events::MaterialsChanged();
         }
 
         if (Input::OnKeyPressed(Keys::F6))

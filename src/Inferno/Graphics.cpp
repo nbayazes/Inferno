@@ -49,7 +49,8 @@ namespace Inferno::Graphics {
 
     void LoadTerrain(const TerrainInfo& info) {
         Array textures = { info.SatelliteTexture, info.SurfaceTexture };
-        Render::Materials->LoadTextures(textures);
+        // Terrain data is only in D1
+        Render::Materials->LoadTextures(textures, LoadFlag::Default | LoadFlag::Descent1);
 
         Set<TexID> ids;
         Render::GetTexturesForModel(Resources::GameData.ExitModel, ids);

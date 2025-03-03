@@ -564,6 +564,7 @@ namespace Inferno::Render {
 
         StarShader::Parameters parameters {
             .AtmosphereColor = Game::Terrain.AtmosphereColor,
+            .StarColor = Game::Terrain.StarColor,
             .SkyRadius = 1.7f
         };
 

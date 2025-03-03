@@ -171,6 +171,7 @@ namespace Inferno {
         return m1 / mWeight;
     }
 
+    // Generates a terrain mesh with 0,0 at the bottom left
     void GenerateTerrain(TerrainInfo& info, const TerrainGenerationInfo& args) {
         auto& vertices = info.Vertices;
         auto& indices = info.Indices;
@@ -222,15 +223,31 @@ namespace Inferno {
             }
         }
 
-        if (args.CraterStrength > 0) {
+
+        // Flatten area in front of exit
+        if (args.FrontFlattenRadius > 0) {
+            auto flattenCenter = center + Vector3(0, 0, 120); // shift flatten in front of exit
+
+            for (uint y = 0; y < density; y++) {
+                for (uint x = 0; x < density; x++) {
+                    auto dist = Vector3::Distance(Vector3(x * cellSize, 0, y * cellSize), flattenCenter);
+                    auto& vert = getVertex(x, y);
+                    auto heightDiff = flattenCenter.y - vert.y;
+
+                    // lower points 'above' the flatten radius
+                    if (dist < args.FrontFlattenRadius && heightDiff < 0) {
+                        vert.y += heightDiff * (1 - powf(dist / args.FrontFlattenRadius, 3));
+                    }
+                }
+            }
+        }
+
+        if (args.CraterStrength != 0) {
             for (uint y = 0; y < density; y++) {
                 for (uint x = 0; x < density; x++) {
                     auto dist = Vector3::Distance(Vector3(x * cellSize, 0, y * cellSize), { center.x, 0, center.z });
                     auto& vert = getVertex(x, y);
-                    //auto heightDiff = center.y - vert.y;
-                    //auto maxHeight = args.Height + args.Height2;
-                    vert.y += args.CraterStrength * SmoothStep(0, 1, dist / args.Size);
-                    //if (vert.y > maxHeight) vert.y = maxHeight;
+                    vert.y += args.CraterStrength * SmoothStep(0, 1, Saturate(dist / (args.Size / 2 * 0.9f)));
                 }
             }
         }

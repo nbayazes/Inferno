@@ -265,6 +265,7 @@ namespace Inferno {
     public:
         struct Parameters {
             Color AtmosphereColor;
+            Color StarColor;
             float SkyRadius = 1.7f;
             float Scale = 1.0f;
         };

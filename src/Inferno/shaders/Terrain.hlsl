@@ -99,15 +99,17 @@ float4 psmain(PS_INPUT input) : SV_Target {
     lighting += pow(HalfLambert(input.normal, -lightDir), 2) * 1;
     //lighting = pow(1 + lighting, 1.5) - 1;
     lighting *= light;
-    lighting += light * 0.1; // ambient
+    lighting += light * 0.025; // ambient
     //lighting = pow(1 + lighting, 1.5) - 1;
 
-    float nDotH = Lambert(input.normal, -viewDir);
     //return float4(nDotL, 0, 0, 1);
     //float nDotH = HalfLambert(float3(0, 1, 0), -viewDir);
-    float gloss = RoughnessToGloss(0.85);
+    float gloss = RoughnessToGloss(0.7);
+    float3 halfVec = normalize(-lightDir - viewDir);
+    float nDotH = Lambert(input.normal, halfVec);
     float eyeTerm = pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
     //lighting += eyeTerm * input.col.rgb;
+    lighting += eyeTerm * light * 2;
     //lighting += nDotH * 3;
 
     // saturate metallic diffuse. It looks better and removes white highlights. Causes yellow to look orange.

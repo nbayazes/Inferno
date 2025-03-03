@@ -1,14 +1,12 @@
 #pragma once
 
 #include "Game.h"
-#include "Resources.h"
 #include "Settings.h"
 #include "WindowBase.h"
 
 namespace Inferno::Editor {
     class TerrainEditor : public WindowBase {
         bool _randomSeed = true;
-        TerrainGenerationInfo _args;
 
     public:
         TerrainEditor() : WindowBase("Terrain Editor", &Settings::Editor.Windows.TerrainEditor) {}
@@ -17,28 +15,37 @@ namespace Inferno::Editor {
         void OnUpdate() override {
             bool changed = false;
 
-            changed |= ImGui::DragFloat("Height", &_args.Height, 1, -512, 512, "%.2f");
-            changed |= ImGui::DragFloat("Noise", &_args.NoiseScale, 0.01f, 0.01f, 0, "%.2f");
+            auto& args = TerrainGenInfo; // Use state of current level
+            changed |= ImGui::DragFloat("Height", &args.Height, 1, -512, 512, "%.2f");
+            changed |= ImGui::DragFloat("Noise", &args.NoiseScale, 0.01f, 0.01f, 0, "%.2f");
 
-            changed |= ImGui::DragFloat("Height 2", &_args.Height2, 1, -512, 512, "%.2f");
-            changed |= ImGui::DragFloat("Noise 2", &_args.NoiseScale2, 0.01f, 0.01f, 0, "%.2f");
+            changed |= ImGui::DragFloat("Height 2", &args.Height2, 1, -512, 512, "%.2f");
+            changed |= ImGui::DragFloat("Noise 2", &args.NoiseScale2, 0.01f, 0.01f, 0, "%.2f");
 
             ImGui::Separator();
 
-            changed |= ImGui::DragFloat("Size", &_args.Size, 1, 1);
-            changed |= ImGui::DragFloat("Flatten radius", &_args.FlattenRadius, 1, 0);
-            changed |= ImGui::DragFloat("Crater", &_args.CraterStrength, 1, 0);
+            changed |= ImGui::DragFloat("Size", &args.Size, 1, 1);
+            changed |= ImGui::DragFloat("Flatten radius", &args.FlattenRadius, 1, 0);
+            changed |= ImGui::DragFloat("Front flatten radius", &args.FrontFlattenRadius, 1, 0);
+            changed |= ImGui::DragFloat("Crater", &args.CraterStrength, 1, 0);
 
             constexpr uint64 step = 1;
-            changed |= ImGui::InputScalar("Detail", ImGuiDataType_U32, &_args.Density, &step, &step);
+            changed |= ImGui::InputScalar("Detail", ImGuiDataType_U32, &args.Density, &step, &step);
 
-            changed |= ImGui::DragFloat("Texture scale", &_args.TextureScale, 1, 1);
+            changed |= ImGui::DragFloat("Texture scale", &args.TextureScale, 1, 1);
 
-            changed |= ImGui::InputScalar("Seed", ImGuiDataType_U64, &_args.Seed, &step, &step);
+            changed |= ImGui::InputScalar("Seed", ImGuiDataType_U64, &args.Seed, &step, &step);
+            ImGui::Separator();
+
+
+            ImGui::ColorEdit3("Atmosphere", &Game::Terrain.AtmosphereColor.x);
+            ImGui::ColorEdit3("Ambient", &Game::Terrain.Light.x);
+            ImGui::ColorEdit3("Star color", &Game::Terrain.StarColor.x);
+
             ImGui::Separator();
 
             if (ImGui::Button("Reset")) {
-                _args = {};
+                args = {};
                 changed = true;
             }
 
@@ -47,12 +54,11 @@ namespace Inferno::Editor {
             //    changed = true;
             //}
 
-
             if (changed) {
                 //if (ImGui::Button("Generate")) {
-                _args.Density = std::clamp(_args.Density, 16u, 64u);
-                if (_args.FlattenRadius < 0) _args.FlattenRadius = 0;
-                GenerateTerrain(Game::Terrain, _args);
+                args.Density = std::clamp(args.Density, 16u, 64u);
+                if (args.FlattenRadius < 0) args.FlattenRadius = 0;
+                GenerateTerrain(Game::Terrain, args);
                 Render::TerrainChanged = true;
             }
         }

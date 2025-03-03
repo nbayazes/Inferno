@@ -876,6 +876,7 @@ namespace Inferno::Resources {
     }
 
     Option<ResourceHandle> Find(string_view fileName, LoadFlag flags) {
+        if (fileName.empty()) return {};
         auto file = string(fileName);
 
         // current HOG file
@@ -1069,6 +1070,7 @@ namespace Inferno::Resources {
     //}
 
     Option<List<byte>> ReadBinaryFile(string_view fileName, LoadFlag flags) {
+        if (fileName.empty()) return {};
         auto file = string(fileName);
 
         // current HOG file

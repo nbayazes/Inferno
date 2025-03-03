@@ -129,6 +129,7 @@ namespace Inferno {
         ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
         StarShader::Parameters parameters{
             .AtmosphereColor = Color(0, 0, 0),
+            .StarColor = Color(1, 1, 1, 1),
             .SkyRadius = 0.4f,
             .Scale = 2.5f
         };
