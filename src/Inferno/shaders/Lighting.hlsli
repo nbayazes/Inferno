@@ -21,7 +21,7 @@ struct MaterialInfo {
     float LightReceived; // 0 for unlit
     int ID; // texid
     int VClip; // Effect clip
-    float EnvStrength;
+    float4 SpecularColor;
     //float pad0; // Pad to 32 bytes
 };
 
@@ -224,7 +224,7 @@ float3 ApplyPointLight(
         // Adjust multipliers to change plane position
         planeFactor = -dot(light.normal, (lightPos + normal * 1) - worldPos) * 1;
         lightPos += light.normal * 4;
-        coneFalloff = GetConeFalloff(worldPos, lightPos - light.normal * 5, light.normal, light.coneAngle0, light.coneAngle1);
+        coneFalloff = GetConeFalloff(worldPos, lightPos - light.normal * 4, light.normal, light.coneAngle0, light.coneAngle1);
     }
 
     float3 lightDir = lightPos - worldPos;
@@ -1124,11 +1124,15 @@ float3 GetMetalDiffuse(float3 diffuse) {
 
 void GetLightColors(LightData light, MaterialInfo material, float3 diffuse, out float3 specularColor, out float3 lightColor) {
     const float3 lightRgb = light.color.rgb * light.color.a;
-    lightColor = lerp(lightRgb, lightRgb * diffuse * METAL_DIFFUSE_FACTOR, material.Metalness); // Allow some diffuse contribution even at max metal for visibility reasons
+    lightColor = lerp(lightRgb, lightRgb * diffuse * METAL_DIFFUSE_FACTOR * material.SpecularColor.rgb, material.Metalness); // Allow some diffuse contribution even at max metal for visibility reasons
     //float3 metalDiffuse = GetMetalDiffuse(diffuse);
-
-    specularColor = lerp(lightColor, (pow(diffuse + 1, METAL_SPECULAR_EXP) - 1) * lightRgb, material.Metalness);
-    specularColor *= GLOBAL_SPECULAR_MULT * (1 + material.Metalness * METAL_SPECULAR_MULT);
+    //specularColor = lerp(lightColor, (pow(diffuse + 1, METAL_SPECULAR_EXP) - 1) * lightRgb, material.Metalness);
+    specularColor = lerp(lightColor, (pow(diffuse + 1 , METAL_SPECULAR_EXP) - 1) * lightRgb, material.Metalness) * material.SpecularColor.rgb * .5;
+    //specularColor *= GLOBAL_SPECULAR_MULT * (1 + material.Metalness * METAL_SPECULAR_MULT);
+    //specularColor *= GLOBAL_SPECULAR_MULT * (1 + material.Metalness * METAL_SPECULAR_MULT) * material.SpecularColor.rgb;
+    //specularColor = lerp(lightColor, material.SpecularColor.rgb, material.Metalness);
+    //specularColor = lerp(lightColor, material.SpecularColor.rgb, material.Metalness /*material.SpecularColor.a*/);
+    //specularColor = lerp(lightColor, diffuse * lightRgb , material.Metalness) * material.SpecularStrength;
     //specularColor = lerp(lightColor, diffuse * lightRgb, material.Metalness) * material.SpecularStrength;
     //specularColor = clamp(specularColor, 0, 10); // clamp overly bright specular as it causes bloom flickering
 }
