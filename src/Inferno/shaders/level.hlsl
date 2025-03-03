@@ -151,8 +151,8 @@ float Noise(float2 st) {
 
     // Mix 4 coorners percentages
     return lerp(a, b, u.x) +
-        (c - a) * u.y * (1.0 - u.x) +
-        (d - b) * u.x * u.y;
+           (c - a) * u.y * (1.0 - u.x) +
+           (d - b) * u.x * u.y;
 }
 
 float3 hash(float3 p) // replace this by something better
@@ -227,55 +227,14 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float3 viewDir = normalize(input.world - Frame.Eye);
     float2 uvs = Args.IsOverlay ? input.uv2 : input.uv;
     float4 diffuse = Sample2D(Diffuse, uvs, Sampler, Frame.FilterMode);
-    float3 normal = SampleNormal(Normal1, uvs, Sampler, Frame.FilterMode);
-
-    MaterialInfo material = Materials[Args.Tex1];
-    normal.xy *= material.NormalStrength;
-    normal = normalize(normal);
-
-    //material.SpecularStrength *= 1 + material.Metalness * 2;
-    //material.LightReceived *= 1 - material.Metalness * 0.91;
-
-    float specularMask = Sample2D(Specular1, uvs, Sampler, Frame.FilterMode).r;
-    specularMask *= material.SpecularStrength;
-
-    float emissiveMask = Sample2D(Emissive, uvs, Sampler, Frame.FilterMode).r;
-    float3 emissive = emissiveMask.rrr * material.EmissiveStrength;
-    //float emissive = Sample2D(GetTexture(input.Tex1, MAT_EMIS), input.uv, Sampler, Frame.FilterMode).r * mat1.EmissiveStrength;
-    bool fullbright = any(emissive) && material.LightReceived == 0;
-
-    if (fullbright) {
-        emissive = emissive + 1; // make lava and forcefields full bright
-    }
-    else if (any(Args.LightColor.rgb)) {
-        // Boost the brightness of color lights to match white lights
-        float colorMult = 1 + (1 - dot(Args.LightColor.rgb, float3(1, 1, 1)) * .333) * 4;
-        emissive *= Args.LightColor.rgb * Args.LightColor.a * colorMult;
-    }
-
-    if (Args.HasOverlay) {
-        float overlay = Sample2D(Diffuse2, input.uv2, Sampler, Frame.FilterMode).a;
-        float mask = Sample2D(StMask, input.uv2, Sampler, Frame.FilterMode).r;
-        //return float4(mask, 0, 0, 1);
-
-        if (mask > 0 || overlay == 1)
-            discard; // Don't draw opaque pixels under overlay
-    }
-
-    if (diffuse.a <= 0.1) // comparing to 0 causes flickering on transparent edges
-        discard; // discard transparent areas
-
-    // align normals
-    float3x3 tbn = float3x3(input.tangent, input.bitangent, input.normal);
-    normal = normalize(mul(normal, tbn));
-    //return float4((input.normal + 1) * 0.5f, 1);
-
-    //return ApplyLinearFog(base * lighting, input.pos, 10, 500, float4(0.25, 0.35, 0.75, 1));
     float3 lighting = float3(0, 0, 0);
 
     float3 ambient = max(0, input.col.rgb);
     ambient.rgb = pow(ambient.rgb, 2.2); // sRGB to linear
     ambient = lerp(1, ambient, Args.LightingScale);
+
+    //if (diffuse.a <= 0.1) // comparing to 0 causes flickering on transparent edges
+    //    discard; // discard transparent areas
 
     if (!Frame.NewLightMode) {
         lighting.rgb += ambient;
@@ -283,6 +242,50 @@ float4 psmain(PS_INPUT input) : SV_Target {
         return float4(diffuse.rgb * lighting.rgb * Frame.GlobalDimming, diffuse.a);
     }
     else {
+        float3 normal = SampleNormal(Normal1, uvs, Sampler, Frame.FilterMode);
+
+        //if (normal.z == 0)
+        //normal.z = sqrt(1 - saturate(dot(normal.xy, normal.xy)));
+        MaterialInfo material = Materials[Args.Tex1];
+        normal.xy *= material.NormalStrength;
+        normal = normalize(normal);
+
+        // align normals
+        float3x3 tbn = float3x3(input.tangent, input.bitangent, input.normal);
+        normal = normalize(mul(normal, tbn));
+        //return float4((input.normal + 1) * 0.5f, 1);
+        //return ApplyLinearFog(base * lighting, input.pos, 10, 500, float4(0.25, 0.35, 0.75, 1));
+
+        //material.SpecularStrength *= 1 + material.Metalness * 2;
+        //material.LightReceived *= 1 - material.Metalness * 0.91;
+
+        float specularMask = Sample2D(Specular1, uvs, Sampler, Frame.FilterMode).r;
+        specularMask *= material.SpecularStrength;
+
+        float emissiveMask = Sample2D(Emissive, uvs, Sampler, Frame.FilterMode).r;
+        float3 emissive = emissiveMask.rrr * material.EmissiveStrength * diffuse.a;
+        //float emissive = Sample2D(GetTexture(input.Tex1, MAT_EMIS), input.uv, Sampler, Frame.FilterMode).r * mat1.EmissiveStrength;
+        bool fullbright = any(emissive) && material.LightReceived == 0;
+
+        if (fullbright) {
+            emissive += 1; // make lava and forcefields full bright
+        }
+        else if (any(Args.LightColor.rgb)) {
+            // Boost the brightness of color lights to match white lights
+            // Reduce the brightness of green and increase blue
+            //float colorMult = 1 + (1 - dot(Args.LightColor.rgb, float3(1, 2, 0.25)) * .333) * 3;
+            float colorMult = 1 + (1 - dot(Args.LightColor.rgb, float3(1, 1, 1)) * .333) * 4;
+            emissive *= Args.LightColor.rgb * Args.LightColor.a * colorMult * 2;
+        }
+
+        if (Args.HasOverlay) {
+            float overlay = Sample2D(Diffuse2, input.uv2, Sampler, Frame.FilterMode).a;
+            float mask = Sample2D(StMask, input.uv2, Sampler, Frame.FilterMode).r;
+
+            if (mask > 0 || overlay == 1)
+                discard; // Don't draw opaque pixels under overlay
+        }
+
         float3 directLight = float3(0, 0, 0);
         uint2 pixelPos = uint2(input.pos.xy);
 
@@ -293,8 +296,9 @@ float4 psmain(PS_INPUT input) : SV_Target {
         }
 
         if (any(input.lightDir))
-            ambient *= pow(Lambert(normal, input.lightDir) * 1.3, 3); // Apply ambient light directions (stronger directionality)
-            //ambient *= pow(Lambert(normal, input.lightDir), 2); // Apply ambient light directions
+            ambient *= pow(Lambert(normal, input.lightDir) * 1, 3); // Apply ambient light directions (stronger directionality)
+            //ambient *= pow(Lambert(normal, input.lightDir) * 1.3, 3); // Apply ambient light directions (stronger directionality)
+            //ambient *= pow(Lambert(normal, input.lightDir) * 1.3, 2); // Apply ambient light directions
 
         //return float4(ambient, 1);
 
@@ -307,20 +311,35 @@ float4 psmain(PS_INPUT input) : SV_Target {
         // allow light contribution to fullbright, otherwise lava looks odd
         lighting += directLight * (fullbright ? 1 : material.LightReceived);
 
+        const float AMBIENT_MULT = 1;
+
         // boost specular ambient contribution from dynamic lighting, so the specular effect is still visible in range of lights
         // setting this too high causes sparkling on doors
-        float3 specularAmbient = ambient + lighting * 20 /** saturate(1 - emissive)*/;
-        specularAmbient *= material.SpecularStrength * material.LightReceived;
+        //float3 ramp = pow(ambient * AMBIENT_MULT, 1 / 2.5);
+        float3 specularAmbient = ambient * AMBIENT_MULT + lighting * 20 /** saturate(1 - emissive)*/;
+        //specularAmbient *= material.SpecularStrength * material.LightReceived;
 
-        const float AMBIENT_MULT = 0.6;
-        lighting += emissive * diffuse.rgb; // emissive
-        // also tint emissive by ambient, has the effect of making light glows stronger
-        lighting += emissive * diffuse.rgb * ambient * AMBIENT_MULT * material.LightReceived; 
+        emissive *= diffuse.rgb;
+
+        // tint emissive by ambient, has the effect of making light glows stronger
+        // needed to make monitors look correct
+        emissive += emissive * ambient * AMBIENT_MULT * material.LightReceived * diffuse.rgb;
+        lighting += emissive;
+        //lighting += emissive + emissive * ambient * AMBIENT_MULT * material.LightReceived * diffuse.rgb;
 
         // add ambient, but lower contribution to metallic surfaces to keep highlights stronger
         lighting += diffuse.rgb * ambient * AMBIENT_MULT * material.LightReceived * (1 - material.Metalness * .90);
 
-        lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, specularAmbient, diffuse.rgb, .8) * diffuse.a;
+        {
+            float envBias = lerp(0, 9, saturate(material.Roughness - .3)); // this causes artifacts between pixel edges. find a different way to blur
+            float3 reflected = normalize(reflect(Frame.EyeDir + viewDir, normal));
+            float env = Environment.SampleLevel(Sampler, reflected, envBias).r;
+            env = saturate((env - .3)); // fix range of cubemap
+            float3 highlight = env * diffuse.rgb * material.LightReceived * material.SpecularStrength * material.Metalness * specularAmbient;
+            lighting += max(highlight * material.SpecularColor.rgb * material.SpecularColor.a, 0);
+        }
+
+        //lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, specularAmbient, diffuse.rgb, .8) * diffuse.a * 2;
         return float4(lighting, diffuse.a);
     }
 }
