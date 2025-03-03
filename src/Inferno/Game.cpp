@@ -541,6 +541,7 @@ namespace Inferno::Game {
             case GameState::ExitSequence:
                 // Turn off the player headlight during exit sequences because 3D art is missing
                 Player.TurnOffHeadlight();
+                Player.StopAfterburner();
                 break;
 
             case GameState::PhotoMode:

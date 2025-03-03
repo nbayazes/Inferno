@@ -922,6 +922,10 @@ namespace Inferno {
         }
     }
 
+    void Player::StopAfterburner() {
+        UpdateAfterburner(Game::TICK_RATE, false);
+    }
+
     void Player::ToggleHeadlight() {
         switch (_headlight) {
             case HeadlightState::Off:
