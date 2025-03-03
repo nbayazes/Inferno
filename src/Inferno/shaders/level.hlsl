@@ -73,13 +73,13 @@ struct LevelVertex {
 struct PS_INPUT {
     float4 pos : SV_POSITION;
     centroid float4 col : COLOR0; // Ambient light color. Centroid fixes edge flickering artfiacts.
-    float2 uv : TEXCOORD0;
-    float2 uv2 : TEXCOORD1;
+    centroid float2 uv : TEXCOORD0;
+    centroid float2 uv2 : TEXCOORD1;
     centroid float3 normal : NORMAL;
     centroid float3 tangent : TANGENT;
     centroid float3 bitangent : BITANGENT;
     float3 world : TEXCOORD2;
-    centroid float3 lightDir: LIGHTDIR; // Light direction for ambient
+    float3 lightDir: LIGHTDIR; // Light direction for ambient
     //nointerpolation int Tex1 : BASE;
     //nointerpolation int Tex2 : OVERLAY;
 };
