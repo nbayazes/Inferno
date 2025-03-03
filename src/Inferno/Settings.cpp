@@ -713,6 +713,7 @@ namespace Inferno {
         node["SlowmoFusion"] << settings.SlowmoFusion;
         node["PreferHighResFonts"] << settings.PreferHighResFonts;
         node["UseSoundOcclusion"] << settings.UseSoundOcclusion;
+        node["UseTextureCaching"] << settings.UseTextureCaching;
 
         SavePriorities(node["PrimaryPriority"], settings.PrimaryPriority);
         SavePriorities(node["SecondaryPriority"], settings.SecondaryPriority);
@@ -746,6 +747,7 @@ namespace Inferno {
         ReadValue2(node, "SlowmoFusion", settings.SlowmoFusion);
         ReadValue2(node, "PreferHighResFonts", settings.PreferHighResFonts);
         ReadValue2(node, "UseSoundOcclusion", settings.UseSoundOcclusion);
+        ReadValue2(node, "UseTextureCaching", settings.UseTextureCaching);
 
         ReadPriorities(node["PrimaryPriority"], settings.PrimaryPriority);
         ReadPriorities(node["SecondaryPriority"], settings.SecondaryPriority);

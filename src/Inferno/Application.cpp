@@ -96,7 +96,9 @@ void Application::Initialize(int width, int height) {
     //Resources::LoadSounds();
     Sound::CopySoundIds();
 
-    LoadTextureCaches();
+    if (Settings::Inferno.UseTextureCaching)
+        LoadTextureCaches();
+
     LoadFonts();
 
     Events::SettingsChanged += [this] {
