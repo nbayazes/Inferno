@@ -300,6 +300,7 @@ namespace Inferno::UI {
             closeButton->HorizontalAlignment = AlignH::Center;
             closeButton->VerticalAlignment = AlignV::Bottom;
             closeButton->Margin = Vector2(0, DIALOG_PADDING);
+            closeButton->ActionSound = ""; // closes the dialog, no need for sound
             AddChild(std::move(closeButton));
         }
 

@@ -690,9 +690,10 @@ namespace Inferno {
     }
 
     Tag FindExit(Level& level) {
-        if (auto tid = Seq::findIndex(level.Triggers, [&level](const Trigger& trigger) { return IsExit(level, trigger); })) {
-            if (auto wall = level.TryGetWall((TriggerID)*tid)) {
-                return wall->Tag;
+        for (auto& wall : level.Walls) {
+            if (auto trigger = level.TryGetTrigger(wall.Trigger)) {
+                if (IsExit(level, *trigger))
+                    return wall.Tag;
             }
         }
 
