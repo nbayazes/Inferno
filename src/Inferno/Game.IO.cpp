@@ -491,7 +491,7 @@ namespace Inferno::Game {
         }
 
         if (info.Autosave)
-            Autosave(MissionTimestamp);
+            CreateAutosave(MissionTimestamp);
     }
 
     bool HasPendingLoad() {

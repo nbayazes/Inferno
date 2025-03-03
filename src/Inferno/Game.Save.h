@@ -56,10 +56,10 @@ namespace Inferno {
     // Prunes autosaves in the save folder to a maximum
     void PruneAutosaves(uint maxAutosaves);
 
-    int64 Autosave(int64 missionTimestamp = 0, uint maxAutosaves = 3);
+    int64 CreateAutosave(int64 missionTimestamp = 0, uint maxAutosaves = 3);
 
     void WriteSave(const filesystem::path& path, const SaveGameInfo& save);
     Option<SaveGameInfo> ReadSave(string_view name);
     List<SaveGameInfo> ReadAllSaves();
-    void LoadSave(const SaveGameInfo& save);
+    bool LoadSave(const SaveGameInfo& save);
 }

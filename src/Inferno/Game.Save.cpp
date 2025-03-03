@@ -75,7 +75,9 @@ namespace Inferno {
 
         if (auto mission = Game::GetCurrentMissionInfo()) {
             save.missionName = mission->Name;
-            save.missionPath = mission->Path.string();
+            ASSERT(Game::Mission);
+            if (Game::Mission)
+                save.missionPath = Game::Mission->Path.string();
         }
 
         save.difficulty = Game::Difficulty;
@@ -157,7 +159,6 @@ namespace Inferno {
     }
 
     void WriteSave(const filesystem::path& path, const SaveGameInfo& save) {
-        ASSERT(!save.saveFilePath.empty());
         ryml::Tree doc(128, 128);
         doc.rootref() |= ryml::MAP;
 
@@ -248,6 +249,11 @@ namespace Inferno {
 
     int64 SaveGame(string_view name, int64 missionTimestamp, bool autosave) {
         try {
+            if (!Game::Mission) {
+                SPDLOG_ERROR("Can only create saves when a mission is loaded");
+                return 0;
+            }
+
             auto saveFolder = GetSaveFolder();
 
             if (!filesystem::exists(saveFolder))
@@ -268,6 +274,7 @@ namespace Inferno {
             return 0;
         }
     }
+
     void DeleteSave(const SaveGameInfo& save) {
         filesystem::path path = save.saveFilePath;
 
@@ -293,7 +300,7 @@ namespace Inferno {
         }
     }
 
-    int64 Autosave(int64 missionTimestamp, uint maxAutosaves) {
+    int64 CreateAutosave(int64 missionTimestamp, uint maxAutosaves) {
         auto saveName = GetSaveName();
         auto timestamp = SaveGame(saveName, missionTimestamp, true);
         PruneAutosaves(maxAutosaves);
@@ -355,7 +362,7 @@ namespace Inferno {
         }
     }
 
-    void LoadSave(const SaveGameInfo& save) {
+    bool LoadSave(const SaveGameInfo& save) {
         Game::Difficulty = save.difficulty;
 
         auto& player = Game::Player;
@@ -381,7 +388,7 @@ namespace Inferno {
         try {
             if (!filesystem::exists(save.missionPath)) {
                 ShowErrorMessage(fmt::format("Unable to find {}", save.missionPath));
-                return;
+                return false;
             }
 
             if (Game::LoadMission(save.missionPath)) {
@@ -389,16 +396,22 @@ namespace Inferno {
                 auto info = Game::GetMissionInfo(*Game::Mission);
                 if (!info) {
                     ShowErrorMessage(fmt::format("Mission info for {} not found", save.missionPath));
-                    return;
+                    return false;
                 }
 
                 Game::LoadLevelFromMission(*info, save.levelNumber, false);
                 Game::MissionTimestamp = save.missionTimestamp;
                 SPDLOG_INFO("Loading save with mission timestamp of {}", save.missionTimestamp);
+                return true;
+            }
+            else {
+                ShowErrorMessage(fmt::format("Error loading {}", save.missionPath));
+                return false;
             }
         }
         catch (const std::exception& e) {
             ShowErrorMessage(fmt::format("Error loading save:\n{}", e.what()));
+            return false;
         }
     }
 }
