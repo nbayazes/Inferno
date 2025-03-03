@@ -67,21 +67,29 @@ namespace Inferno {
 
         // AB button held
         if (active && !AfterburnerActive) {
-            Sound3D sound(SoundID::AfterburnerIgnite);
-            sound.Radius = 125;
-            sound.LoopStart = 32027;
-            sound.LoopEnd = 48452;
-            sound.Looped = true;
-            _afterburnerSoundSig = Sound::PlayFrom(sound, Game::GetPlayerObject());
-            //Render::Camera.Shake(2.0f);
+            if (auto soundId = Seq::tryItem(Resources::Descent2.Sounds, (int)SoundID::AfterburnerIgnite)) {
+                SoundResource resource;
+                resource.D2 = *soundId;
+                Sound3D sound(resource);
+                sound.Radius = 125;
+                sound.LoopStart = 32027;
+                sound.LoopEnd = 48452;
+                sound.Looped = true;
+                _afterburnerSoundSig = Sound::PlayFrom(sound, Game::GetPlayerObject());
+                //Render::Camera.Shake(2.0f);
+            }
         }
 
         // AB button released
         if (!active && AfterburnerActive) {
             Sound::Stop(_afterburnerSoundSig);
-            Sound3D sound(SoundID::AfterburnerStop);
-            sound.Radius = 125;
-            Sound::PlayFrom(sound, Game::GetPlayerObject());
+            if (auto soundId = Seq::tryItem(Resources::Descent2.Sounds, (int)SoundID::AfterburnerStop)) {
+                SoundResource resource;
+                resource.D2 = *soundId;
+                Sound3D sound(resource);
+                sound.Radius = 125;
+                Sound::PlayFrom(sound, Game::GetPlayerObject());
+            }
         }
 
         AfterburnerActive = active;
