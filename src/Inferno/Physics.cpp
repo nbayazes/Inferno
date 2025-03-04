@@ -632,6 +632,12 @@ namespace Inferno {
 
         // Only apply rotational velocity when something hits a robot. Feels bad if a player being hit loses aim.
         if (/*a.Type == ObjectType::Weapon &&*/ target.Type == ObjectType::Robot) {
+            if (obj.Type == ObjectType::Player) {
+                // Use the player velocity for rotational force
+                obj.Physics.Velocity.Normalize(normal);
+                force = normal * speed * m1 / m2;
+            }
+
             //if (obj.Type == ObjectType::Weapon) force *= 2; // make weapon hits apply more rotation force
             //if (obj.Type == ObjectType::Player) force *= 0.25f; // Less rotation from players
             ApplyRotationalForce(target, hit.Point, force);
@@ -1384,9 +1390,6 @@ namespace Inferno {
 
                     if (obj.IsPlayer() || obj.IsRobot())
                         CheckForImpact(*hit.HitObj, hit);
-
-                    if (obj.IsPlayer())
-                        ApplyRandomRotationalForce(*hit.HitObj, hit.Point, hit.Normal * hit.Speed);
                 }
             }
 
