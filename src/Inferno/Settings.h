@@ -231,6 +231,7 @@ namespace Inferno {
         float GamepadSensitivityY = 8;
         bool UseSoundOcclusion = false;
         bool UseTextureCaching = false;
+        string RecentMission; // Path of the most recently played mission
 
         Array<uint8, 13> PrimaryPriority = DEFAULT_PRIMARY_PRIORITY;
         Array<uint8, 11> SecondaryPriority = DEFAULT_SECONDARY_PRIORITY;

@@ -472,15 +472,25 @@ namespace Inferno::UI {
             title->Color = DIALOG_TITLE_COLOR;
             AddChild(std::move(title));
 
-            auto missionList = std::make_unique<ListBox>(14);
+            auto missionList = AddChild<ListBox>(14);
 
+            // Add missions
             for (auto& mission : _missions) {
                 missionList->Items.push_back(mission.Name);
+            }
+
+            // Then select and scroll to recent one
+            for (size_t i = 0; i < _missions.size(); i++) {
+                if (_missions[i].Path == Settings::Inferno.RecentMission) {
+                    missionList->SetIndex(i);
+                    missionList->ScrollItemToTop(i);
+                }
             }
 
             missionList->ClickItemAction = [this](int index) {
                 if (auto mission = Seq::tryItem(_missions, index)) {
                     SPDLOG_INFO("Mission: {}", mission->Path.string());
+                    Settings::Inferno.RecentMission = mission->Path.string();
                     _mission = mission;
 
                     if (mission->Levels.size() > 1) {
@@ -498,7 +508,6 @@ namespace Inferno::UI {
             missionList->Position = Vector2(30, 60);
             missionList->Size.x = 425;
             missionList->Padding = Vector2(10, 5);
-            AddChild(std::move(missionList));
         }
 
     private:
@@ -758,7 +767,6 @@ namespace Inferno::UI {
     void ShowMainMenu() {
         Screens.clear();
         ShowScreen(make_unique<MainMenu>());
-        ShowScreen(make_unique<LoadDialog>());
         //ShowScreen(make_unique<FailedEscapeDialog>(true));
         //ShowScreen(make_unique<ScoreScreen>(ScoreInfo{ .ExtraLives = 1 }, true));
     }

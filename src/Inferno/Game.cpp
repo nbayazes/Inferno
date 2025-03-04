@@ -1112,6 +1112,11 @@ namespace Inferno::Game {
 
         // todo: disable this when not launched from the editor
         if (Input::ControlDown && Level.SegmentExists(Editor::Selection.Segment)) {
+            auto& seg = Level.GetSegment(Editor::Selection.Segment);
+            // Remove any objects in the segment so the player doesn't get stuck in a robot
+            for (auto& obj : seg.Objects)
+                Editor::DeleteObject(Level, obj);
+
             // Move player to selected segment if control is held down
             Editor::Selection.Object = ObjID(0);
             Editor::Commands::MoveObjectToSegment();

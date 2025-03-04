@@ -375,6 +375,18 @@ namespace Inferno::UI {
 
         void SetIndex(int index) {
             _index = index;
+
+            if (index < _scrollIndex)
+                _scrollIndex = index;
+            else if (index >= _scrollIndex + VisibleItems)
+                _scrollIndex = index - VisibleItems + 1;
+
+            ClampRanges();
+        }
+
+        void ScrollItemToTop(int index) {
+            _scrollIndex = index;
+            ClampRanges();
         }
 
         List<string> Items;

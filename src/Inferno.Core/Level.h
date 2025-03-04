@@ -176,7 +176,7 @@ namespace Inferno {
 #pragma endregion
         bool IsShareware = false;
 
-        bool IsDescent1() const { return Version == 1; }
+        bool IsDescent1() const { return Version <= 1; }
         // Includes vertigo and non-vertigo
         bool IsDescent2() const { return Version > 1 && Version <= 8; }
         // D2 level not enhanced
