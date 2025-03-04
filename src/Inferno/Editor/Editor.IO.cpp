@@ -268,7 +268,7 @@ namespace Inferno::Editor {
 
     void OnSaveAs() {
         if (Game::Level.IsShareware) {
-            ShowErrorMessage(SHAREWARE_SAVE_ERROR);
+            ShowErrorMessage(SHAREWARE_SAVE_ERROR, "Inferno Editor");
             return;
         }
 
@@ -471,7 +471,7 @@ namespace Inferno::Editor {
     }
 
     void CheckForAutosave() {
-        if (Game::Level.IsShareware) return; // Don't autosave shareware levels
+        if (Game::Level.IsShareware || Game::DemoMode) return; // Don't autosave shareware levels
 
         if (Clock.GetTotalTimeSeconds() > _nextAutosave && Game::GetState() == GameState::Editor) {
             try {
@@ -506,13 +506,25 @@ namespace Inferno::Editor {
         Command ConvertToVertigo{ .Action = Editor::ConvertToVertigo, .CanExecute = CanConvertToVertigo, .Name = "Convert to Vertigo" };
 
         Command NewLevel{
-            .Action = [] { Events::ShowDialog(DialogType::NewLevel); },
+            .Action = [] {
+                if (Game::DemoMode) {
+                    ShowErrorMessage("Cannot create new levels in demo mode", "Inferno Editor");
+                    return;
+                }
+
+                Events::ShowDialog(DialogType::NewLevel);
+            },
             .Name = "New Level..."
         };
 
         Command Open{
             .Action = [] {
                 if (!CanCloseCurrentFile()) return;
+
+                if (Game::DemoMode) {
+                    ShowErrorMessage("Cannot open levels in demo mode", "Inferno Editor");
+                    return;
+                }
 
                 static constexpr COMDLG_FILTERSPEC filter[] = {
                     { L"Descent Levels", L"*.hog;*.rl2;*.rdl" },

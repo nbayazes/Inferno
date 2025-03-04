@@ -92,7 +92,14 @@ namespace Inferno::Resources {
 
         bool foundData = Resources::LoadDescent2Data();
         if (!foundData) foundData = Resources::LoadDescent1Data();
-        if (!foundData) foundData = Resources::LoadDescent1DemoData();
+
+        if (!foundData) {
+            foundData = Resources::LoadDescent1DemoData();
+            Game::DemoMode = true;
+        }
+
+        //Game::DemoMode = true; // TESTING
+
         return foundData;
     }
 

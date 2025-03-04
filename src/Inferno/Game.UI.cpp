@@ -442,6 +442,42 @@ namespace Inferno::UI {
     };
 
 
+    List<MissionInfo> GetDescent1MissionList() {
+        List<MissionInfo> missions = Resources::ReadMissionDirectory("d1/missions");
+
+        if (Resources::FoundDescent1()) {
+            SPDLOG_INFO("Adding retail D1 to mission list");
+            missions.insert(missions.begin(), Game::CreateDescent1Mission(false));
+        }
+        else if (Resources::FoundDescent1Demo()) {
+            SPDLOG_INFO("Adding D1 demo to mission list");
+            missions.insert(missions.begin(), Game::CreateDescent1Mission(true));
+        }
+
+        return missions;
+    }
+
+    void ShowDifficultySelect(MissionInfo& mission, int& level, DifficultyLevel& difficulty) {
+        auto screen = ShowScreen(make_unique<DifficultyDialog>(difficulty));
+
+        screen->CloseCallback = [&mission, difficulty, level](CloseState state) {
+            if (state == CloseState::Accept) {
+                Game::StartMission();
+                Game::Difficulty = difficulty;
+                Game::LoadLevelFromMission(mission, level);
+            }
+        };
+    }
+
+    void ShowLevelSelect(MissionInfo& mission, int& level, DifficultyLevel& difficulty) {
+        auto screen = ShowScreenT(make_unique<LevelSelectDialog>((int)mission.Levels.size(), level));
+
+        screen->CloseCallback = [&mission, &difficulty, &level](CloseState state) {
+            if (state == CloseState::Accept)
+                ShowDifficultySelect(mission, level, difficulty);
+        };
+    }
+
     class PlayD1Dialog : public DialogBase {
         List<MissionInfo> _missions;
         DifficultyLevel _difficulty{};
@@ -449,21 +485,10 @@ namespace Inferno::UI {
         MissionInfo* _mission = nullptr;
 
     public:
-        PlayD1Dialog() {
+        PlayD1Dialog(const List<MissionInfo>& missions) : _missions(missions) {
             Size = Vector2(500, 460);
             CloseOnConfirm = false;
-
             _difficulty = Game::Difficulty;
-            _missions = Resources::ReadMissionDirectory("d1/missions");
-
-            if (Resources::FoundDescent1()) {
-                SPDLOG_INFO("Adding retail D1 to mission list");
-                _missions.insert(_missions.begin(), Game::CreateDescent1Mission(false));
-            }
-            else if (Resources::FoundDescent1Demo()) {
-                SPDLOG_INFO("Adding D1 demo to mission list");
-                _missions.insert(_missions.begin(), Game::CreateDescent1Mission(true));
-            }
 
             auto title = make_unique<Label>("select mission", FontSize::MediumBlue);
             title->VerticalAlignment = AlignV::Top;
@@ -480,7 +505,7 @@ namespace Inferno::UI {
             }
 
             // Then select and scroll to recent one
-            for (size_t i = 0; i < _missions.size(); i++) {
+            for (int i = 0; i < _missions.size(); i++) {
                 if (_missions[i].Path == Settings::Inferno.RecentMission) {
                     missionList->SetIndex(i);
                     missionList->ScrollItemToTop(i);
@@ -492,13 +517,13 @@ namespace Inferno::UI {
                     SPDLOG_INFO("Mission: {}", mission->Path.string());
                     Settings::Inferno.RecentMission = mission->Path.string();
                     _mission = mission;
+                    _level = 1;
 
                     if (mission->Levels.size() > 1) {
-                        ShowLevelSelect((int)mission->Levels.size());
+                        ShowLevelSelect(*mission, _level, _difficulty);
                     }
                     else {
-                        _level = 1; // Use the first level instead of showing selection screen
-                        ShowDifficultySelect();
+                        ShowDifficultySelect(*mission, _level, _difficulty); // Use the first level instead of showing selection screen
                     }
 
                     Sound::Play2D(SoundResource{ ActionSound });
@@ -509,67 +534,58 @@ namespace Inferno::UI {
             missionList->Size.x = 425;
             missionList->Padding = Vector2(10, 5);
         }
-
-    private:
-        void ShowLevelSelect(int levels) {
-            auto screen = ShowScreenT(make_unique<LevelSelectDialog>(levels, _level));
-
-            screen->CloseCallback = [this](CloseState state) {
-                if (state == CloseState::Accept)
-                    ShowDifficultySelect();
-            };
-        }
-
-        void ShowDifficultySelect() {
-            auto screen = ShowScreen(make_unique<DifficultyDialog>(_difficulty));
-
-            screen->CloseCallback = [this](CloseState state) {
-                if (state == CloseState::Accept && _mission) {
-                    Game::StartMission();
-                    Game::Difficulty = _difficulty;
-                    Game::LoadLevelFromMission(*_mission, _level);
-                }
-
-                _mission = nullptr;
-            };
-        }
     };
 
     class MainMenu : public ScreenBase {
+        DifficultyLevel _difficulty{};
+        int _level = 1;
+        MissionInfo _mission;
+
     public:
         MainMenu() {
             CloseOnConfirm = false;
 
-            auto panel = make_unique<StackPanel>();
-            panel->Position = Vector2(45, 140);
+            auto panel = AddChild<StackPanel>();
+            panel->Position = Vector2(50, 180);
+            //panel->Position = Vector2(45, 140);
             panel->HorizontalAlignment = AlignH::CenterRight;
             panel->VerticalAlignment = AlignV::Top;
 
-            //TextBox tb;
-            //tb.Size = Vector2{ 200, 20 };
-            //tb.Margin = Vector2{ 2, 2 };
-            //tb.SetText("Hello");
-            //panel->AddChild<TextBox>(std::move(tb));
+            panel->AddChild<Button>("Play Descent", [this] {
+                if (Game::DemoMode) {
+                    _mission = Game::CreateDescent1Mission(true);
+                    ShowLevelSelect(_mission, _level, _difficulty); // Demo has 7 levels
+                }
+                else {
+                    auto missions = GetDescent1MissionList();
 
-            //Spinner spinner(0, 33, _spinnerValue);
-            //spinner.Margin = Vector2{ 2, 2 };
-            //spinner.SetValue(10);
-            //panel->AddChild<Spinner>(std::move(spinner));
-
-            panel->AddChild<Button>("Play Descent 1", [] {
-                ShowScreen(make_unique<PlayD1Dialog>());
+                    if (missions.size() == 1) {
+                        _mission = missions[0];
+                        if (_mission.Levels.size() > 1) {
+                            ShowLevelSelect(_mission, _level, _difficulty);
+                        }
+                        else {
+                            _level = 1;
+                            ShowDifficultySelect(_mission, _level, _difficulty); // Use the first level instead of showing selection screen
+                        }
+                    }
+                    else {
+                        ShowScreen(make_unique<PlayD1Dialog>(missions));
+                    }
+                }
             });
-            panel->AddChild<Button>("Play Descent 2");
+
+            //panel->AddChild<Button>("Play Descent 2");
             panel->AddChild<Button>("Load Game", [] {
                 ShowScreen(make_unique<LoadDialog>());
             });
             panel->AddChild<Button>("Options", [] {
                 ShowScreen(make_unique<OptionsMenu>());
             });
-            panel->AddChild<Button>("High Scores", [] {
-                Game::SetState(GameState::ScoreScreen);
-            });
-            panel->AddChild<Button>("Credits");
+            //panel->AddChild<Button>("High Scores", [] {
+            //    Game::SetState(GameState::ScoreScreen);
+            //});
+            //panel->AddChild<Button>("Credits");
             panel->AddChild<Button>("Level Editor", [] {
                 Game::SetState(GameState::Editor);
             });
@@ -577,8 +593,6 @@ namespace Inferno::UI {
                 Shell::Quit();
             });
             quitButton->ActionSound = ""; // clear the sound because quitting interrupts it
-
-            AddChild(std::move(panel));
         }
 
         void OnDraw() override {
@@ -587,16 +601,19 @@ namespace Inferno::UI {
             float titleX = 167;
             float titleY = 50;
             float titleScale = 1.25f;
-            //auto logoHeight = MeasureString("inferno", FontSize::Big).y * titleScale;
+            float anim = (((float)sin(Clock.GetTotalTimeSeconds()) + 1) * 0.5f * 0.25f) + 0.6f;
+            auto titleColor = Color(1, .5f, .2f) * abs(anim) * 4;
 
-            {
-                //Render::DrawTextInfo dti;
-                //dti.Font = FontSize::Small;
-                //dti.HorizontalAlign = AlignH::Center;
-                //dti.VerticalAlign = AlignV::Top;
-                //dti.Position = Vector2(titleX, titleY + logoHeight);
-                ////dti.Color = Color(0.5f, 0.5f, 1);
-                ////dti.Color = Color(0.5f, 0.5f, 1);
+            if (Game::DemoMode) {
+                //auto logoHeight = MeasureString("inferno", FontSize::Big).y * titleScale;
+                Render::DrawTextInfo dti;
+                dti.Font = FontSize::Big;
+                dti.HorizontalAlign = AlignH::Center;
+                dti.VerticalAlign = AlignV::Top;
+                dti.Position = Vector2(titleX, titleY + 45);
+                dti.Color = titleColor;
+                dti.Scale = 0.75f;
+                Render::UICanvas->DrawText("demo", dti);
                 //dti.Color = Color(1, 0.7f, 0.54f);
 
                 //Render::UICanvas->DrawGameText("descent remastered", dti);
@@ -626,8 +643,7 @@ namespace Inferno::UI {
 
                 //anim += 0.6f;
 
-                float anim = (((float)sin(Clock.GetTotalTimeSeconds()) + 1) * 0.5f * 0.25f) + 0.6f;
-                dti.Color = Color(1, .5f, .2f) * abs(anim) * 4;
+                dti.Color = titleColor;
                 dti.Scale = titleScale;
                 Render::UICanvas->DrawText("inferno", dti);
             }

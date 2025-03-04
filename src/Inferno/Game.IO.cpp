@@ -429,6 +429,7 @@ namespace Inferno::Game {
         Inferno::Level level;
 
         if (info.NewLevel) {
+            if (Game::DemoMode) return;
             level = Editor::CreateNewLevel(*info.NewLevel);
         }
         else {

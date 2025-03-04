@@ -42,6 +42,7 @@ namespace Inferno {
         BaseHog = 1 << 7, // descent1.hog or descent2.hog. Only valid when Descent1 or Descent2 is also set.
         Common = 1 << 8, // Search common data folder
         Default = Mission | Dxa | Filesystem | BaseHog | Common
+        // todo: add a flag to use the current level type (D1 or D2)
     };
 
     struct Level;

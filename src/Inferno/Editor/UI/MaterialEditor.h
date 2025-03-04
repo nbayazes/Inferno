@@ -37,7 +37,7 @@ namespace Inferno::Editor {
 
         void OnSave() {
             try {
-                if (Game::Level.IsShareware) {
+                if (Game::Level.IsShareware || Game::DemoMode) {
                     // Disable saving materials for shareware levels. It causes all non-shareware textures to be lost.
                     ShowErrorMessage("Cannot save materials for shareware level.");
                     return;

@@ -489,10 +489,16 @@ namespace Inferno::Game {
                 break;
 
             case GameState::Editor:
-                if (Level.Version == 0) {
-                    // Null file
-                    //Shell::UpdateWindowTitle("Loading editor");
-                    Editor::OpenRecentOrEmpty();
+                if(Game::DemoMode) {
+                    ShowOkMessage("Editor cannot save or open custom levels in demo mode.\nPlease purchase Descent 1 or Descent 2 for full functionality.", "Inferno Editor");
+                    Game::EditorLoadLevel(D1_DEMO_FOLDER / "descent.hog");
+                }
+                else {
+                    if (Level.Version == 0) {
+                        // Null file
+                        //Shell::UpdateWindowTitle("Loading editor");
+                        Editor::OpenRecentOrEmpty();
+                    }
                 }
 
                 if (State == GameState::ExitSequence) {

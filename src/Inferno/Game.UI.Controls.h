@@ -406,14 +406,11 @@ namespace Inferno::UI {
 
         bool OnMenuAction(Input::MenuActionState action) override {
             if (action == MenuAction::Up) {
-                _index--;
-                _scrollIndex = std::min(_index, _scrollIndex);
+                SetIndex(_index - 1);
                 return true;
             }
             else if (action == MenuAction::Down) {
-                _index++;
-                if (_index > _scrollIndex + VisibleItems - 1)
-                    _scrollIndex++;
+                SetIndex(_index + 1);
                 return true;
             }
 
