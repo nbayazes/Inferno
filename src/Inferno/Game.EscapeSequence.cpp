@@ -595,7 +595,7 @@ namespace Inferno {
         State.ShipRollSign = RandomInt(1) ? 1 : -1;
         Game::SetState(GameState::ExitSequence);
 
-        Game::PlayMusic("endlevel", false);
+        Game::PlayMusic("endlevel", LoadFlag::Default | GetLevelLoadFlag(Game::Level), false);
     }
 
     void DebugEscapeSequence() {
@@ -639,6 +639,6 @@ namespace Inferno {
         State.ExplosionTimer = 0;
         State.ExplosionSoundTimer = 0;
 
-        Game::PlayMusic("endlevel", false);
+        Game::PlayMusic("endlevel", LoadFlag::Default | GetLevelLoadFlag(Game::Level), false);
     }
 }

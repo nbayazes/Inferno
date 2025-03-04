@@ -1,6 +1,7 @@
 #pragma once
 #include "HogFile.h"
 #include "Mission.h"
+#include "Resources.Common.h"
 
 namespace Inferno::Editor {
     struct NewLevelInfo;
@@ -40,6 +41,6 @@ namespace Inferno::Game {
 
     // Plays a specific music file. Extension is optional.
     // Non-level songs include: briefing, credits, descent, endgame, endlevel
-    void PlayMusic(string_view song, bool loop = true);
+    void PlayMusic(string_view song, LoadFlag flag = LoadFlag::Default, bool loop = true);
 
 }

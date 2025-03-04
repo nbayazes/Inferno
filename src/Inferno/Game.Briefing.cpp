@@ -289,8 +289,8 @@ vaporization of the facility.
                 AddPyroAndReactorPages(briefing);
             }
 
-            auto music = Game::IsFinalLevel() ? "d1/endgame" : "d1/briefing";
-            Game::PlayMusic(music);
+            auto music = Game::IsFinalLevel() ? "endgame" : "briefing";
+            Game::PlayMusic(music, LoadFlag::Default | GetLevelLoadFlag(level));
         }
 
         Game::Briefing = BriefingState(briefing, levelNumber, level.IsDescent1(), endgame);

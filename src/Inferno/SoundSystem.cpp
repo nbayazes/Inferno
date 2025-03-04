@@ -512,7 +512,7 @@ namespace Inferno::Sound {
         }
 
         bool PlayMusic(string file, bool loop) {
-            auto data = Resources::ReadBinaryFile(file);
+            auto data = Resources::ReadBinaryFile(file, LoadFlag::Default | GetLevelLoadFlag(Game::Level));
 
             if (!data) {
                 SPDLOG_WARN("Music file {} not found", file);

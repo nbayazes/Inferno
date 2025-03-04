@@ -127,7 +127,7 @@ namespace Inferno::Game {
     }
 
     void PlayMainMenuMusic() {
-        Game::PlayMusic("d1/descent");
+        Game::PlayMusic("descent", LoadFlag::Default | LoadFlag::Descent1);
     }
 
     void UpdateEffects(Object& obj, float dt) {

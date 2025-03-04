@@ -255,6 +255,7 @@ namespace Inferno::Game {
     MissionInfo CreateDescent1Mission(bool isDemo) {
         if (isDemo) {
             MissionInfo firstStrike{ .Name = FIRST_STRIKE_NAME, .Path = D1_DEMO_FOLDER / "descent.hog" };
+            firstStrike.Name += " (DEMO)";
             firstStrike.Levels.resize(7);
 
             for (int i = 1; i <= firstStrike.Levels.size(); i++)
@@ -548,8 +549,10 @@ namespace Inferno::Game {
     }
 
     void PlayLevelMusic() {
+        auto flags = LoadFlag::Default | GetLevelLoadFlag(Game::Level);
+
         // Determine the correct song to play based on the level number
-        auto sng = Resources::ReadTextFile("descent.sng");
+        auto sng = Resources::ReadTextFile("descent.sng", flags);
         if (sng.empty()) {
             SPDLOG_WARN("No SNG file found!");
             return;
@@ -567,10 +570,12 @@ namespace Inferno::Game {
         auto songIndex = FirstLevelSong + std::abs(LevelNumber - 1) % availableLevelSongs;
         string song = songs[songIndex];
 
-        PlayMusic(song);
+        PlayMusic(song, flags);
     }
 
-    void PlayMusic(string_view song, bool loop) {
+    void PlayMusic(string_view song, LoadFlag flag, bool loop) {
+        SPDLOG_INFO("Trying to play {}", song);
+
         //Sound::PlayMusic("Resignation.mp3");
         //Sound::PlayMusic("Title.ogg");
         //Sound::PlayMusic("Hostility.flac");
@@ -578,7 +583,7 @@ namespace Inferno::Game {
         //PlayMusic("endlevel.hmp");
 
         // Try playing the given file name if it exists (ignore hmp / midi for now)
-        if (!song.ends_with(".hmp") && Resources::Find(song)) {
+        if (!song.ends_with(".hmp") && Resources::Find(song, flag)) {
             Sound::PlayMusic(song);
             return;
         }
@@ -610,17 +615,25 @@ namespace Inferno::Game {
         filesystem::path path(song);
 
         path.replace_extension(".ogg");
-        if (Resources::Find(path.string()))
+        if (Resources::Find(path.string(), flag)) {
             Sound::PlayMusic(path.string(), loop);
+            return;
+        }
 
         path.replace_extension(".mp3");
-        if (Resources::Find(path.string()))
+        if (Resources::Find(path.string(), flag)) {
             Sound::PlayMusic(path.string(), loop);
+            return;
+        }
 
         path.replace_extension(".flac");
-        if (Resources::Find(path.string()))
+        if (Resources::Find(path.string(), flag)) {
             Sound::PlayMusic(path.string(), loop);
+            return;
+        }
 
         // todo: play the original midi if no replacement music
+
+        Sound::StopMusic(); // Stop playing existing music in case the requested song isn't found
     }
 }
