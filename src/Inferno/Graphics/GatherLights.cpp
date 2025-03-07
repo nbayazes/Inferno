@@ -243,8 +243,57 @@ namespace Inferno::Graphics {
             return Vector2(widthScale, heightScale);
         };
 
-        Vector2 centerUv = (side.UVs[0] + side.UVs[1] + side.UVs[2] + side.UVs[3]) / 4;
-        auto uvScale = getUVScale(side.Center, centerUv);
+        Vector2 uvScale(20, 20);
+
+        auto verts = face.CopyPoints();
+        auto& indices = side.GetRenderIndices();
+        auto& v0 = verts[indices[0]];
+        auto& v1 = verts[indices[1]];
+        auto& v2 = verts[indices[2]];
+        //auto& v3 = verts[indices[3]];
+
+        //auto n0 = v2 - v0;
+        //auto n1 = v3 - v1;
+        //n0.Normalize();
+        //n1.Normalize();
+        //auto trueNormal = n1.Cross(n0);
+        //auto trueCenter = side.Type == SideSplitType::Tri02 ? (v2 + v0) / 2 : (v3 + v1) / 2;
+
+        Vector2 size = {
+            Vector3::Distance(face.GetEdgeMidpoint(0), face.GetEdgeMidpoint(2)),
+            Vector3::Distance(face.GetEdgeMidpoint(1), face.GetEdgeMidpoint(3))
+        };
+
+        //float trueOffset = 0;
+        bool isPlanar = side.Normals[0].Dot(side.Normals[1]) > 0.99f;
+
+        {
+            auto& uv0 = side.UVs[indices[0]];
+            auto& uv1 = side.UVs[indices[1]];
+            auto& uv2 = side.UVs[indices[2]];
+            auto uvcenter = (uv0 + uv1 + uv2) / 3;
+            auto vcenter = (v0 + v1 + v2) / 3;
+            uvScale = getUVScale(vcenter, uvcenter);
+
+            // This was supposed to calculate the distance of the light position to a plane and offset it
+            //if (!isPlanar) {
+            //    if (side.Type == SideSplitType::Tri02) {
+            //        n0 = v1 - v0;
+            //        n1 = v3 - v0;
+            //        n0.Normalize();
+            //        n1.Normalize();
+            //        trueOffset = DistanceFromPlane(side.Center, v0, n1.Cross(n0));
+            //    }
+            //    else {
+            //        n0 = v0 - v1;
+            //        n1 = v2 - v1;
+            //        n0.Normalize();
+            //        n1.Normalize();
+            //        trueOffset = DistanceFromPlane(side.Center, v0, n1.Cross(n0));
+            //    }
+            //}
+        }
+
         if (useOverlay && overlayAngle != 0) {
             constexpr Vector2 offset(0.5, 0.5);
             uvScale = RotateVector(uvScale - offset, -overlayAngle) + offset;
@@ -253,10 +302,7 @@ namespace Inferno::Graphics {
         Vector2 prevIntersects[2];
 
         float offset = info.Offset;
-        bool isPlanar = side.Normals[0].Dot(side.Normals[1]) > 0.99f;
         auto lightMode = side.LightMode;
-        //if (side.Normals[0].Dot(side.Normals[1]) < 0.9f)
-        //    offset += 2.0f; // Move lights of non-planar surfaces outward to prevent intersection with the wall
 
         struct SurfaceLight {
             Vector2 UV;
@@ -369,15 +415,25 @@ namespace Inferno::Graphics {
                         // Sample points near the light position to determine UV scale
                         auto rightPos = FaceContainsUV(face, uv + Vector2(SAMPLE_DIST, 0));
 
-                        if (info.Type == LightType::Point && !isPlanar) {
-                            // use the triangle the point is on as normal
-                            if (TriangleContainsUV(face, 0, uv))
-                                light.normal = side.Normals[0];
-                            else if (TriangleContainsUV(face, 1, uv))
-                                light.normal = side.Normals[1];
-                        }
-
                         if (pos && rightPos) {
+                            if (!isPlanar) {
+                                if (info.Type == LightType::Point) {
+                                    // use the triangle the point is on as normal
+                                    if (TriangleContainsUV(face, 0, uv))
+                                        light.normal = side.Normals[0];
+                                    else if (TriangleContainsUV(face, 1, uv))
+                                        light.normal = side.Normals[1];
+                                }
+                                else if (info.Type == LightType::Rectangle) {
+                                    // If the face size is small, assume the light is crossing it.
+                                    if (size.x < 30 && size.y < 30)
+                                        // todo: calculate exact distance instead of hard coding it
+                                        offset += -2.0f;
+                                        //offset += trueOffset;
+                                        //    light.normal = trueNormal;
+                                }
+                            }
+
                             auto rightVec = *rightPos - *pos;
                             rightVec.Normalize();
 

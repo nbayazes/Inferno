@@ -1051,7 +1051,7 @@ float3 ApplyRectLight3(
     float2 nearestDiffPoint = float2(clamp(diffPlanePoint.x, -vWidth, vWidth),
         clamp(diffPlanePoint.y, -vHeight, vHeight));
     float3 closestDiffusePoint = light.pos + lightRight * nearestDiffPoint.x + lightUp * nearestDiffPoint.y;
-    closestDiffusePoint += light.normal * 1.5; // Surface offset of 1.5 needed for uneven surfaces
+    closestDiffusePoint -= light.normal * 0.05; // Offset light slightly to prevent z-fighting
     float lightDist = distance(closestDiffusePoint, worldPos);
 
     float3 specular = float3(0, 0, 0);
