@@ -95,6 +95,12 @@ namespace Inferno {
 
             auto font = Font::Read(*data);
             font.Scale = scale;
+
+            if (size == FontSize::Big) {
+                Kerning kerning{ .FirstChar = 't', .SecondChar = 'a', .NewWidth = 20 };
+                font.Kernings.push_back(kerning);
+            }
+
             Atlas.AddFont(buffer, font, size, 2);
         }
 
