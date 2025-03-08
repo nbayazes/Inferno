@@ -460,7 +460,10 @@ namespace Inferno {
     }
 
     void Player::GivePowerup(PowerupFlag powerup) {
-        if (HasFlag(powerup, PowerupFlag::QuadFire) && !HasFlag(Powerups, PowerupFlag::QuadFire)) {
+        bool newQuadLasers = HasFlag(powerup, PowerupFlag::QuadFire) && !HasFlag(Powerups, PowerupFlag::QuadFire);
+        SetFlag(Powerups, powerup);
+
+        if (newQuadLasers) {
             // Select to lasers if they have a higher priority after picking up quad fire powerup
             auto laserIndex =
                 Game::Level.IsDescent2() && HasWeapon(PrimaryWeaponIndex::SuperLaser)
@@ -470,8 +473,6 @@ namespace Inferno {
             if (GetWeaponPriority(laserIndex) < GetWeaponPriority(Primary) && CanFirePrimary(laserIndex))
                 SelectPrimary(laserIndex);
         }
-
-        SetFlag(Powerups, powerup);
     }
 
     Vector2 GetHelixOffset(int index) {
@@ -998,7 +999,9 @@ namespace Inferno {
         for (int i = 0; i < Settings::Inferno.PrimaryPriority.size(); i++) {
             auto priority = Settings::Inferno.PrimaryPriority[i];
 
-            if (i == NO_AUTOSELECT) return NO_AUTOSELECT;
+            if (priority == NO_AUTOSELECT)
+                return NO_AUTOSELECT; // skip all weapons after autoselect
+
             if (HasPowerup(PowerupFlag::QuadFire)) {
                 if (Game::Level.IsDescent2() && priority == QUAD_SUPER_LASER_PRIORITY && primary == PrimaryWeaponIndex::SuperLaser)
                     return i;
@@ -1041,6 +1044,8 @@ namespace Inferno {
             max *= 2;
 
         auto& ammo = PrimaryAmmo[(int)index];
+        bool wasEmpty = ammo == 0;
+
         if (ammo >= max)
             return 0;
 
@@ -1050,6 +1055,10 @@ namespace Inferno {
             amount += max - ammo;
             ammo = max;
         }
+
+        // If picking up ammo allows player to fire a higher priority weapon, switch to it
+        if (wasEmpty)
+            AutoselectPrimary();
 
         return amount;
     }
