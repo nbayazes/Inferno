@@ -664,6 +664,8 @@ namespace Inferno {
         if (!ai.TargetPosition) return;
 
         auto circleDistance = DifficultyInfo(robotInfo).CircleDistance;
+        if (circleDistance < 0) return; // hold position
+
         auto [dir, dist] = GetDirectionAndDistance(ai.TargetPosition->Position, robot.Position);
         auto minDist = std::min(circleDistance * 0.75f, circleDistance - 10);
         auto maxDist = std::max(circleDistance * 1.25f, circleDistance + 10);
@@ -916,14 +918,14 @@ namespace Inferno {
         }
 
         //if (ai.WeaponCharge >= Difficulty(info).FireDelay * 2) {
-        if (ai.WeaponCharge >= 1) {
+        if (ai.WeaponCharge >= robotInfo.ChargeTime) {
             Sound::Stop(ai.SoundHandle);
             // Release shot even if target has moved out of view
             auto target = ai.TargetPosition ? ai.TargetPosition->Position : robot.Position + robot.Rotation.Forward() * 40;
-            bool blind = false; // this is not correct
-            FireRobotPrimary(robot, ai, robotInfo, target, blind);
+            FireRobotPrimary(robot, ai, robotInfo, target, true);
 
             ai.WeaponCharge = 0;
+            ai.ChargingWeapon = false;
         }
     }
 
@@ -1042,7 +1044,12 @@ namespace Inferno {
                 ? ai.LastSeenTargetPosition->Position
                 : ai.TargetPosition->Position;
 
-            if (ai.AnimationState != Animation::Fire && ai.FireDelay < 0.25f) {
+            if (ai.ChargingWeapon) {
+                WeaponChargeBehavior(robot, ai, robotInfo, dt); // Charge up during fire animation
+            }
+            else if (ai.AnimationState != Animation::Fire && ai.FireDelay < 0.25f) {
+                // Start firing
+
                 if (ai.CombatState != AICombatState::BlindFire) {
                     // Check if an ally robot is in the way and try strafing if it is
                     auto sight = HasFiringLineOfSight(robot, ai.GunIndex, ai.TargetPosition->Position, ObjectMask::Robot);
@@ -1061,9 +1068,9 @@ namespace Inferno {
                     // Target is within the cone of the weapon, start firing
                     PlayRobotAnimation(robot, Animation::Fire, ai.FireDelay.Remaining() * 0.8f);
                 }
-            }
-            else if (ai.AnimationState == Animation::Fire && weapon.Extended.Chargable) {
-                WeaponChargeBehavior(robot, ai, robotInfo, dt); // Charge up during fire animation
+
+                if (weapon.Extended.Chargable) 
+                    ai.ChargingWeapon = true;
             }
             else if (ai.FireDelay <= 0 && !ai.PlayingAnimation()) {
                 // Check that the target hasn't gone out of LOS when using explosive weapons.
@@ -1483,6 +1490,8 @@ namespace Inferno {
             Chat(robot, "Holding position");
             return;
         }
+
+        if (ai.ChargingWeapon) return; // keep charging weapon
 
         // Chase and suppress chance are percentages to perform those actions. If less than 1, can choose to do nothing.
 
@@ -2010,7 +2019,7 @@ namespace Inferno {
             auto duration = (float)std::min(robotInfo.DeathRoll / 2 + 1, 6);
             auto volume = robotInfo.IsBoss ? 2 : robotInfo.DeathRoll / 4.0f;
             bool explode = DeathRoll(robot, duration, ai.DeathRollTimer, robotInfo.DeathRollSound,
-                ai.DyingSoundPlaying, volume, dt);
+                                     ai.DyingSoundPlaying, volume, dt);
 
             if (explode) {
                 AlertAlliesOfDeath(robot);

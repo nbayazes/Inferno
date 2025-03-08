@@ -107,5 +107,7 @@ namespace Inferno {
 
         float BurstDelay = 1 / 8.0f; // Delay between burst shots (shots fired per FireDelay). D1 and D2 used 0.125.
         float StunResist = 1.0; // Multiplier on life for purposes of resisting stuns and slows
+
+        float ChargeTime = 1.0; // How long to charge the primary weapon
     };
 }
