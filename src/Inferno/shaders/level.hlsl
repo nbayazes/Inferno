@@ -335,8 +335,16 @@ float4 psmain(PS_INPUT input) : SV_Target {
             float3 reflected = normalize(reflect(Frame.EyeDir + viewDir, normal));
             float env = Environment.SampleLevel(Sampler, reflected, envBias).r;
             env = saturate((env - .3)); // fix range of cubemap
-            float3 highlight = env * diffuse.rgb * material.LightReceived * material.SpecularStrength * material.Metalness * specularAmbient;
-            lighting += max(highlight * material.SpecularColor.rgb * material.SpecularColor.a, 0);
+            float3 highlight = diffuse.rgb * material.LightReceived * material.SpecularStrength * material.Metalness
+                               * specularAmbient * material.SpecularColor.rgb * material.SpecularColor.a;
+
+            lighting += max(env * highlight, 0); // cubemap highlight
+
+            // make metal surfaces parallel to the camera brighter. they look oddly dark otherwise.
+            // fakes GI from ambient.
+            float3 viewspaceNormal = mul((float3x3)Frame.ViewMatrix, normal);
+            float3 xn = 1 - dot(viewspaceNormal, float3(0, 0, -1));
+            lighting += xn * highlight * .1; 
         }
 
         //lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, specularAmbient, diffuse.rgb, .8) * diffuse.a * 2;
