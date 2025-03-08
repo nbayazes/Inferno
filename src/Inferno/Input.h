@@ -73,9 +73,6 @@ namespace Inferno::Input {
         std::array<float, 3> gyro{}; // gyroscope
         std::array<float, 3> accel{}; // accelerometer
 
-        float innerDeadzone = 0.1f;
-        float outerDeadzone = 1.0f;
-
         float repeatDelay = 0.5f; // Time before holding a button or axis repeats
         float repeatSpeed = 0.04f; // Time between repeats
 

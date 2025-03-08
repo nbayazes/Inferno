@@ -367,9 +367,8 @@ namespace Inferno {
         physics.Thrust += player.Rotation.Forward() * thrust.z;
 
         if (Settings::Inferno.EnableMouse) {
-            // todo: separate axis sensitivity
-
             auto& mouse = Game::Bindings.GetMouse();
+            constexpr auto mouseSensitivityMultiplier = 0.012f; // Sensitivity is saved between 0 and 2, scale it down.
 
             for (auto& binding : mouse.GetBinding(GameAction::YawAxis)) {
                 if (binding.type == BindType::None) continue;
@@ -380,11 +379,10 @@ namespace Inferno {
                 if (binding.id == (int)Input::MouseAxis::MouseY)
                     value = Input::MouseDelta.y;
 
-                float sensitivity = Settings::Inferno.MouseSensitivity * Game::TICK_RATE / dt;
+                float sensitivity = mouse.sensitivity.rotation.y * Game::TICK_RATE / dt * mouseSensitivityMultiplier;
 
                 physics.AngularThrust.y += value * binding.GetInvertSign() * sensitivity; // yaw
             }
-
 
             for (auto& binding : mouse.GetBinding(GameAction::PitchAxis)) {
                 if (binding.type == BindType::None) continue;
@@ -395,7 +393,7 @@ namespace Inferno {
                 if (binding.id == (int)Input::MouseAxis::MouseY)
                     value = Input::MouseDelta.y;
 
-                float sensitivity = Settings::Inferno.MouseSensitivity * Game::TICK_RATE / dt;
+                float sensitivity = mouse.sensitivity.rotation.x * Game::TICK_RATE / dt * mouseSensitivityMultiplier;
                 physics.AngularThrust.x += value * binding.GetInvertSign() * sensitivity; // pitch
             }
         }

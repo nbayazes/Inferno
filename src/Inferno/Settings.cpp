@@ -343,6 +343,28 @@ namespace Inferno {
         }
     }
 
+    void WriteSensitivity(ryml::NodeRef parent, const InputDeviceBinding::Sensitivity& sensitivity) {
+        auto node = parent["sensitivity"];
+        node |= ryml::MAP;
+
+        node["thrust"] << EncodeVector(sensitivity.thrust);
+        node["rotation"] << EncodeVector(sensitivity.rotation);
+
+        node["thrustDeadzone"] << EncodeVector(sensitivity.thrustDeadzone);
+        node["rotationDeadzone"] << EncodeVector(sensitivity.rotationDeadzone);
+    }
+
+    void ReadSensitivity(ryml::ConstNodeRef parent, InputDeviceBinding::Sensitivity& sensitivity) {
+        if (!parent.has_child("sensitivity")) return;
+
+        auto node = parent["sensitivity"];
+
+        ReadValue2(node, "thrust", sensitivity.thrust);
+        ReadValue2(node, "rotation", sensitivity.rotation);
+        ReadValue2(node, "thrustDeadzone", sensitivity.thrustDeadzone);
+        ReadValue2(node, "rotationDeadzone", sensitivity.rotationDeadzone);
+    }
+
     void SaveGameBindings(ryml::NodeRef root) {
         root |= ryml::MAP;
 
@@ -355,6 +377,8 @@ namespace Inferno {
                 deviceNode |= ryml::MAP;
                 deviceNode["guid"] << device.guid;
                 deviceNode["type"] << string(magic_enum::enum_name(device.type));
+
+                WriteSensitivity(deviceNode, device.sensitivity);
 
                 auto actionList = deviceNode["actions"];
                 actionList |= ryml::SEQ;
@@ -387,8 +411,6 @@ namespace Inferno {
                                 if (binding.invert)
                                     bindingNode["invert"] << binding.invert;
 
-                                bindingNode["innerDeadzone"] << binding.innerDeadzone;
-                                bindingNode["outerDeadzone"] << binding.outerDeadzone;
                                 break;
                             case BindType::AxisButtonPlus:
                                 break;
@@ -406,6 +428,8 @@ namespace Inferno {
             auto& keyboard = Game::Bindings.GetKeyboard();
             auto keyboardNode = root["Keyboard"];
             keyboardNode |= ryml::MAP;
+
+            WriteSensitivity(keyboardNode, keyboard.sensitivity);
 
             auto actionList = keyboardNode["actions"];
             actionList |= ryml::SEQ;
@@ -431,6 +455,8 @@ namespace Inferno {
             auto& mouse = Game::Bindings.GetMouse();
             auto mouseNode = root["Mouse"];
             mouseNode |= ryml::MAP;
+
+            WriteSensitivity(mouseNode, mouse.sensitivity);
 
             auto actionList = mouseNode["actions"];
             actionList |= ryml::SEQ;
@@ -471,8 +497,6 @@ namespace Inferno {
         auto readBindGroup = [&](ryml::ConstNodeRef root, int slot) {
             ReadValue2(root, "id", binding.id);
             ReadValue2(root, "type", (std::underlying_type_t<BindType>&)binding.type);
-            ReadValue2(root, "innerDeadzone", binding.innerDeadzone);
-            ReadValue2(root, "outerDeadzone", binding.outerDeadzone);
             ReadValue2(root, "invert", binding.invert);
             device.Bind(binding, slot);
         };
@@ -503,6 +527,8 @@ namespace Inferno {
                     continue; // Missing type!
 
                 auto& device = Game::Bindings.AddDevice(guid, inputType);
+                ReadSensitivity(deviceNode, device.sensitivity);
+
                 auto actions = GetSequenceNode(deviceNode, "actions");
                 if (!actions) continue;
 
@@ -515,6 +541,8 @@ namespace Inferno {
         if (auto keyboardNode = GetNode(node, "Keyboard")) {
             auto& keyboard = Game::Bindings.GetKeyboard();
 
+            ReadSensitivity(*keyboardNode, keyboard.sensitivity);
+
             if (auto actions = GetSequenceNode(*keyboardNode, "actions")) {
                 for (const auto& action : *actions) {
                     ReadBinding(action, keyboard);
@@ -525,10 +553,11 @@ namespace Inferno {
             ResetKeyboardBindings(Game::Bindings.GetKeyboard());
         }
 
-        if (auto keyboardNode = GetNode(node, "Mouse")) {
+        if (auto mouseNode = GetNode(node, "Mouse")) {
             auto& mouse = Game::Bindings.GetMouse();
+            ReadSensitivity(*mouseNode, mouse.sensitivity);
 
-            if (auto actions = GetSequenceNode(*keyboardNode, "actions")) {
+            if (auto actions = GetSequenceNode(*mouseNode, "actions")) {
                 for (const auto& action : *actions) {
                     ReadBinding(action, mouse);
                 }
@@ -703,7 +732,6 @@ namespace Inferno {
 
         node["ShipWiggle"] << (int)settings.ShipWiggle;
         node["InvertY"] << settings.InvertY;
-        node["MouseSensitivity"] << settings.MouseSensitivity;
         node["Difficulty"] << (int)Game::Difficulty;
         node["HalvePitchSpeed"] << settings.HalvePitchSpeed;
         node["ShipAutolevel"] << settings.ShipAutolevel;
@@ -738,7 +766,6 @@ namespace Inferno {
 
         ReadValue2(node, "ShipWiggle", settings.ShipWiggle);
         ReadValue2(node, "InvertY", settings.InvertY);
-        ReadValue2(node, "MouseSensitivity", settings.MouseSensitivity);
         ReadValue2(node, "Difficulty", Game::Difficulty);
         ReadValue2(node, "HalvePitchSpeed", settings.HalvePitchSpeed);
         ReadValue2(node, "ShipAutolevel", settings.ShipAutolevel);

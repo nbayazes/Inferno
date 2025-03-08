@@ -89,6 +89,108 @@ namespace Inferno::UI {
         }
     };
 
+    class SensitivityDialog : public DialogBase {
+        float _secondaryPosition = 240;
+        List<Input::InputDevice> _devices;
+        ComboSelect* _deviceList = nullptr;
+        int _index = 0; // the selected control. 0 is keyboard, 1 is mouse, 1 > is controllers and joysticks
+        StackPanel* _stack = nullptr;
+
+    public:
+        SensitivityDialog() : DialogBase("sensitivity and deadzone") {
+            Size = Vector2(620, 460);
+
+            _deviceList = AddChild<ComboSelect>("Input Device", GetDeviceNames(), _index);
+            _deviceList->LabelWidth = 225;
+            _deviceList->Size = Vector2(Size.x - DIALOG_PADDING * 2, CONTROL_HEIGHT);
+
+            _deviceList->Position = Vector2(DIALOG_PADDING, DIALOG_HEADER_PADDING);
+            _deviceList->OnChange = [this](int /*index*/) {
+                UpdateList();
+            };
+
+            _stack = AddChild<StackPanel>();
+            _stack->Position = Vector2(DIALOG_PADDING, DIALOG_HEADER_PADDING + CONTROL_HEIGHT + 8);
+            _stack->Size.x = Size.x - DIALOG_PADDING * 3;
+
+            UpdateList();
+        }
+
+    private:
+        void UpdateList() {
+            _stack->Children.clear();
+
+            const auto addSlider = [this](string_view name, float min, float max, float& value) {
+                auto slider = _stack->AddChild<SliderFloat>(name, min, max, value, 2);
+                slider->LabelWidth = 150;
+                slider->ShowValue = true;
+                slider->ValueWidth = 60;
+            };
+
+            if (_index == 0) {
+                // keyboard
+                auto& bindings = Game::Bindings.GetKeyboard();
+                auto& rotation = bindings.sensitivity.rotation;
+                addSlider("Pitch", 0.0f, 1.0f, rotation.x);
+                addSlider("Yaw", 0.0f, 1.0f, rotation.y);
+                addSlider("Roll", 0.0f, 1.0f, rotation.z);
+            }
+            else if (_index == 1) {
+                // mouse
+                auto& bindings = Game::Bindings.GetMouse();
+                auto& rotation = bindings.sensitivity.rotation;
+                addSlider("Pitch", 0.0f, 2.0f, rotation.x);
+                addSlider("Yaw", 0.0f, 2.0f, rotation.y);
+                addSlider("Roll", 0.0f, 2.0f, rotation.z);
+            }
+            else {
+                // input device
+
+                if (auto device = Seq::tryItem(_devices, _index - 2)) {
+                    if (auto bindings = Game::Bindings.GetDevice(device->guid)) {
+                        auto& rotation = bindings->sensitivity.rotation;
+                        addSlider("Pitch", 0.0f, 2.0f, rotation.x);
+                        addSlider("Yaw", 0.0f, 2.0f, rotation.y);
+                        addSlider("Roll", 0.0f, 2.0f, rotation.z);
+
+                        auto& thrust = bindings->sensitivity.thrust;
+                        addSlider("fwd/Rev", 0.0f, 2.0f, thrust.z);
+                        addSlider("Slide L/R", 0.0f, 2.0f, thrust.x);
+                        addSlider("Slide U/D", 0.0f, 2.0f, thrust.y);
+
+                        _stack->AddChild<Label>("");
+                        auto label = _stack->AddChild<Label>("Deadzone");
+                        label->Color = GREY_TEXT;
+                        auto& rotationdz = bindings->sensitivity.rotationDeadzone;
+                        addSlider("Pitch", 0.0f, 1.0f, rotationdz.x);
+                        addSlider("Yaw", 0.0f, 1.0f, rotationdz.y);
+                        addSlider("Roll", 0.0f, 1.0f, rotationdz.z);
+
+                        auto& thrustdz = bindings->sensitivity.thrustDeadzone;
+                        addSlider("fwd/Rev", 0.0f, 1.0f, thrustdz.z);
+                        addSlider("Slide L/R", 0.0f, 1.0f, thrustdz.x);
+                        addSlider("Slide U/D", 0.0f, 1.0f, thrustdz.y);
+                    }
+                }
+            }
+
+            // fix flicker when adding controls
+            OnUpdateLayout();
+        }
+
+        List<string> GetDeviceNames() {
+            List<string> deviceNames = { "Keyboard", "Mouse" };
+
+            _devices = Input::GetDevices(); // Copy the current devices
+
+            for (auto& device : _devices) {
+                deviceNames.push_back(device.name);
+            }
+
+            return deviceNames;
+        }
+    };
+
     class InputMenu : public DialogBase {
     public:
         InputMenu() : DialogBase("Input Options") {
@@ -107,31 +209,15 @@ namespace Inferno::UI {
             panel->AddChild<Label>("");
             panel->AddChild<Checkbox>("Classic pitch speed", Settings::Inferno.HalvePitchSpeed);
 
-            {
-                panel->AddChild<Label>("");
-                panel->AddChild<Label>("Mouse Settings", FontSize::MediumBlue);
 
-                //_value4 = (int)std::floor(Settings::Inferno.MouseSensitivity * 1000);
-                auto mouseXAxis = make_unique<SliderFloat>("X-Axis", 0.001f, 0.050f, Settings::Inferno.MouseSensitivity);
-                mouseXAxis->LabelWidth = 100;
-                mouseXAxis->ShowValue = true;
-                mouseXAxis->ValueWidth = 60;
-                panel->AddChild(std::move(mouseXAxis));
-
-                auto mouseYAxis = make_unique<SliderFloat>("Y-Axis", 0.001f, 0.050f, Settings::Inferno.MouseSensitivityX);
-                mouseYAxis->LabelWidth = 100;
-                mouseYAxis->ShowValue = true;
-                mouseYAxis->ValueWidth = 60;
-                panel->AddChild(std::move(mouseYAxis));
-            }
-
-            panel->AddChild<Checkbox>("Invert Y-axis", Settings::Inferno.InvertY);
 
             panel->AddChild<Label>("");
             panel->AddChild<Button>("Customize bindings", [] {
                 ShowScreen(make_unique<BindingDialog>());
             });
-            panel->AddChild<Button>("sensitivity");
+            panel->AddChild<Button>("sensitivity and deadzone", [] {
+                ShowScreen(make_unique<SensitivityDialog>());
+            });
 
             AddChild(std::move(panel));
         }
@@ -439,13 +525,13 @@ namespace Inferno::UI {
             roll->LabelWidth = 320;
             panel->AddChild(std::move(roll));
 
-            panel->AddChild<Checkbox>("ship auto-leveling", Settings::Inferno.ShipAutolevel);
+            //panel->AddChild<Checkbox>("ship auto-leveling", Settings::Inferno.ShipAutolevel);
 
-            panel->AddChild<Checkbox>("no weapon autoselect while firing", Settings::Inferno.NoAutoselectWhileFiring);
-            panel->AddChild<Checkbox>("only cycle autoselect weapons", Settings::Inferno.OnlyCycleAutoselectWeapons);
-            panel->AddChild<Checkbox>("sticky rearview", Settings::Inferno.StickyRearview);
+            //panel->AddChild<Checkbox>("no weapon autoselect while firing", Settings::Inferno.NoAutoselectWhileFiring);
+            //panel->AddChild<Checkbox>("only cycle autoselect weapons", Settings::Inferno.OnlyCycleAutoselectWeapons);
+            //panel->AddChild<Checkbox>("sticky rearview", Settings::Inferno.StickyRearview);
             panel->AddChild<Checkbox>("charging fusion slows time", Settings::Inferno.SlowmoFusion);
-            panel->AddChild<Checkbox>("prefer high res fonts", Settings::Inferno.PreferHighResFonts);
+            //panel->AddChild<Checkbox>("prefer high res fonts", Settings::Inferno.PreferHighResFonts);
 
             panel->AddChild<Button>("Primary Weapon priority", [] {
                 ShowScreen(make_unique<PriorityMenu>("Primary Priority", Settings::Inferno.PrimaryPriority, DEFAULT_PRIMARY_NAMES));

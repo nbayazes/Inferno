@@ -198,8 +198,6 @@ namespace Inferno {
         List<filesystem::path> DataPaths;
         filesystem::path Descent1Path, Descent2Path;
         bool InvertY = false;
-        float MouseSensitivity = 1 / 64.0f;
-        float MouseSensitivityX = 1 / 64.0f;
         float MouselookSensitivity = 0.005f; // Different scale from regular ship input
         bool MouselookInvert = true; // Inverts mouselook Y axis
         bool HalvePitchSpeed = true; // Halves the maximum pitch speed. This is the original game behavior.
@@ -227,8 +225,6 @@ namespace Inferno {
         bool PreferHighResFonts = true;
         uint2 WindowSize;
         uint2 WindowPosition;
-        float GamepadSensitivityX = 8;
-        float GamepadSensitivityY = 8;
         bool UseSoundOcclusion = false;
         bool UseTextureCaching = false;
         string RecentMission; // Path of the most recently played mission

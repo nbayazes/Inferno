@@ -196,31 +196,34 @@ namespace Inferno {
     float GameBindings::LinearAxis(GameAction action) const {
         float value = 0;
 
-        for (auto& device : _devices) {
-            if (auto joystick = Input::GetDevice(device.guid)) {
-                for (auto& binding : device.bindings[(int)action]) {
-                    if (!Seq::inRange(joystick->axes, binding.id)) continue;
+        for (auto& deviceBindings : _devices) {
+            if (auto device = Input::GetDevice(deviceBindings.guid)) {
+                for (auto& binding : deviceBindings.bindings[(int)action]) {
+                    if (!Seq::inRange(device->axes, binding.id)) continue;
+                    if (binding.type == BindType::None) continue;
 
                     float invert = binding.invert ? -1.0f : 1.0f;
-                    auto innerDeadzone = binding.innerDeadzone / 255.0f;
-                    auto outerDeadzone = binding.outerDeadzone / 255.0f;
+
+                    auto deadzone = deviceBindings.sensitivity.GetDeadzone(action);
+                    auto sensitivity = deviceBindings.sensitivity.GetSensitivity(action);
 
                     if (binding.type == BindType::AxisPlus) {
-                        value += Input::LinearDampen(joystick->axes[binding.id], innerDeadzone, outerDeadzone) * invert;
+                        value += Input::LinearDampen(device->axes[binding.id], deadzone, 1) * invert * sensitivity;
                     }
                     else if (binding.type == BindType::AxisMinus) {
-                        value += Input::LinearDampen(joystick->axes[binding.id], innerDeadzone, outerDeadzone) * invert;
+                        value += Input::LinearDampen(device->axes[binding.id], deadzone, 1) * invert * sensitivity;
                     }
                     else if (binding.type == BindType::Axis) {
-                        if (joystick->type != SDL_GAMEPAD_TYPE_UNKNOWN) {
+                        if (device->type != SDL_GAMEPAD_TYPE_UNKNOWN) {
+                            // Playstation or Xbox controllers. Merge together and use circular dampening
                             Vector2 stick;
 
                             if (binding.id == SDL_GAMEPAD_AXIS_LEFTX || binding.id == SDL_GAMEPAD_AXIS_LEFTY)
-                                stick = Vector2{ joystick->axes[SDL_GAMEPAD_AXIS_LEFTX], joystick->axes[SDL_GAMEPAD_AXIS_LEFTY] };
+                                stick = Vector2{ device->axes[SDL_GAMEPAD_AXIS_LEFTX], device->axes[SDL_GAMEPAD_AXIS_LEFTY] };
                             else if (binding.id == SDL_GAMEPAD_AXIS_RIGHTX || binding.id == SDL_GAMEPAD_AXIS_RIGHTY)
-                                stick = Vector2{ joystick->axes[SDL_GAMEPAD_AXIS_RIGHTX], joystick->axes[SDL_GAMEPAD_AXIS_RIGHTY] };
+                                stick = Vector2{ device->axes[SDL_GAMEPAD_AXIS_RIGHTX], device->axes[SDL_GAMEPAD_AXIS_RIGHTY] };
 
-                            stick = Input::CircularDampen(stick, innerDeadzone, outerDeadzone);
+                            stick = Input::CircularDampen(stick, deadzone, 1) * sensitivity;
 
                             if (binding.id == SDL_GAMEPAD_AXIS_LEFTX || binding.id == SDL_GAMEPAD_AXIS_RIGHTX)
                                 value += stick.x * invert;
@@ -228,16 +231,8 @@ namespace Inferno {
                                 value += stick.y * invert;
                         }
                         else {
-                            // Assume the first two axis are combined
-                            //if(binding.id == 0 || binding.id == 1) {
-                            //    
-                            //}
-
-                            value += Input::LinearDampen(joystick->axes[binding.id], innerDeadzone, outerDeadzone) * invert;
+                            value += Input::LinearDampen(device->axes[binding.id], deadzone, 1) * invert * sensitivity;
                         }
-
-                        // axes[SDL_GAMEPAD_AXIS_LEFTX] = leftStick.x;
-                        // axes[SDL_GAMEPAD_AXIS_LEFTY] = leftStick.y;
                     }
                 }
             }
@@ -370,13 +365,14 @@ namespace Inferno {
         device.Bind({ .action = GameAction::CycleSecondary, .id = (int)Input::MouseButtons::WheelDown });
     }
 
-    void ResetGamepadBindings(InputDeviceBinding& device, uint8 innerDeadzone) {
+    void ResetGamepadBindings(InputDeviceBinding& device, float deadzone) {
         device.bindings = {};
+        device.sensitivity.rotationDeadzone = Vector3{ deadzone, deadzone, deadzone };
 
-        device.Bind({ .action = GameAction::ForwardReverseAxis, .id = SDL_GAMEPAD_AXIS_LEFTY, .type = BindType::Axis, .innerDeadzone = innerDeadzone });
-        device.Bind({ .action = GameAction::LeftRightAxis, .id = SDL_GAMEPAD_AXIS_LEFTX, .type = BindType::Axis, .innerDeadzone = innerDeadzone });
-        device.Bind({ .action = GameAction::PitchAxis, .id = SDL_GAMEPAD_AXIS_RIGHTY, .type = BindType::Axis, .innerDeadzone = innerDeadzone });
-        device.Bind({ .action = GameAction::YawAxis, .id = SDL_GAMEPAD_AXIS_RIGHTX, .type = BindType::Axis, .innerDeadzone = innerDeadzone });
+        device.Bind({ .action = GameAction::ForwardReverseAxis, .id = SDL_GAMEPAD_AXIS_LEFTY, .type = BindType::Axis });
+        device.Bind({ .action = GameAction::LeftRightAxis, .id = SDL_GAMEPAD_AXIS_LEFTX, .type = BindType::Axis });
+        device.Bind({ .action = GameAction::PitchAxis, .id = SDL_GAMEPAD_AXIS_RIGHTY, .type = BindType::Axis });
+        device.Bind({ .action = GameAction::YawAxis, .id = SDL_GAMEPAD_AXIS_RIGHTX, .type = BindType::Axis });
 
         device.Bind({ .action = GameAction::Automap, .id = SDL_GAMEPAD_BUTTON_BACK, .type = BindType::Button });
         device.Bind({ .action = GameAction::Pause, .id = SDL_GAMEPAD_BUTTON_START, .type = BindType::Button });
@@ -384,8 +380,8 @@ namespace Inferno {
         device.Bind({ .action = GameAction::FirePrimary, .id = SDL_GAMEPAD_BUTTON_LEFT_SHOULDER, .type = BindType::Button });
         device.Bind({ .action = GameAction::FireSecondary, .id = SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER, .type = BindType::Button });
 
-        device.Bind({ .action = GameAction::SlideDown, .id = SDL_GAMEPAD_AXIS_LEFT_TRIGGER, .type = BindType::AxisPlus, .innerDeadzone = 2 });
-        device.Bind({ .action = GameAction::SlideUp, .id = SDL_GAMEPAD_AXIS_RIGHT_TRIGGER, .type = BindType::AxisPlus, .innerDeadzone = 2 });
+        device.Bind({ .action = GameAction::SlideDown, .id = SDL_GAMEPAD_AXIS_LEFT_TRIGGER, .type = BindType::AxisPlus });
+        device.Bind({ .action = GameAction::SlideUp, .id = SDL_GAMEPAD_AXIS_RIGHT_TRIGGER, .type = BindType::AxisPlus });
 
         // Sprint is usually on left stick
         device.Bind({ .action = GameAction::Afterburner, .id = SDL_GAMEPAD_BUTTON_LEFT_STICK, .type = BindType::Button });

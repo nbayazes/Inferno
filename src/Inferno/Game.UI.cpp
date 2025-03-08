@@ -589,10 +589,27 @@ namespace Inferno::UI {
             panel->AddChild<Button>("Level Editor", [] {
                 Game::SetState(GameState::Editor);
             });
-            auto quitButton = panel->AddChild<Button>("Quit", [] {
-                Shell::Quit();
+            panel->AddChild<Button>("Quit", [] {
+                std::array messages = {
+                    "dravis has a mission for you",
+                    "quitting means you won't\ncollect that paycheck",
+                    "PTMC needs you\nmaterial defender",
+                    "another class 1 driller\nneeds dismantling",
+                    "I promise the next\nlevel has fewer drillers",
+                    "Are you sure?\nJosh will miss you",
+                    //"Guide-bot is coming back to get you"
+                };
+
+                auto random = RandomInt((int)messages.size() - 1);
+                auto confirmDialog = make_unique<ConfirmDialog>(messages[random], "resign", "enlist");
+                confirmDialog->ActionSound = ""; // clear the sound because quitting interrupts it
+                confirmDialog->CloseCallback = [](CloseState state) {
+                    if (state == CloseState::Accept)
+                        Shell::Quit();
+                };
+
+                ShowScreen(std::move(confirmDialog));
             });
-            quitButton->ActionSound = ""; // clear the sound because quitting interrupts it
         }
 
         void OnDraw() override {
@@ -604,8 +621,8 @@ namespace Inferno::UI {
             float anim = (((float)sin(Clock.GetTotalTimeSeconds()) + 1) * 0.5f * 0.25f) + 0.6f;
             auto titleColor = Color(1, .5f, .2f) * abs(anim) * 4;
 
-            if (Game::DemoMode) {
-                //auto logoHeight = MeasureString("inferno", FontSize::Big).y * titleScale;
+            //auto logoHeight = MeasureString("inferno", FontSize::Big).y * titleScale;
+            {
                 Render::DrawTextInfo dti;
                 dti.Font = FontSize::Big;
                 dti.HorizontalAlign = AlignH::Center;
@@ -613,15 +630,15 @@ namespace Inferno::UI {
                 dti.Position = Vector2(titleX, titleY + 45);
                 dti.Color = titleColor;
                 dti.Scale = 0.75f;
-                Render::UICanvas->DrawText("demo", dti);
-                //dti.Color = Color(1, 0.7f, 0.54f);
-
-                //Render::UICanvas->DrawGameText("descent remastered", dti);
-                //dti.Position.y += 15;
-                //Render::UICanvas->DrawGameText("descent II", dti);
-                //dti.Position.y += 15;
-                //Render::UICanvas->DrawGameText("descent 3 enhancements enabled", dti);
+                Render::UICanvas->DrawText(Game::DemoMode ? "demo" : "beta", dti);
             }
+            //dti.Color = Color(1, 0.7f, 0.54f);
+
+            //Render::UICanvas->DrawGameText("descent remastered", dti);
+            //dti.Position.y += 15;
+            //Render::UICanvas->DrawGameText("descent II", dti);
+            //dti.Position.y += 15;
+            //Render::UICanvas->DrawGameText("descent 3 enhancements enabled", dti);
 
             {
                 Render::DrawTextInfo dti;
@@ -723,7 +740,7 @@ namespace Inferno::UI {
                 ShowScreen(make_unique<OptionsMenu>());
             }, AlignH::Center);
             panel->AddChild<Button>("Quit", [this] {
-                auto confirmDialog = make_unique<ConfirmDialog>("are you sure?");
+                auto confirmDialog = make_unique<ConfirmDialog>("abort mission?");
                 confirmDialog->CloseCallback = [this](CloseState state) {
                     if (state == CloseState::Accept)
                         Game::SetState(GameState::MainMenu);
@@ -783,7 +800,7 @@ namespace Inferno::UI {
     void ShowMainMenu() {
         Screens.clear();
         ShowScreen(make_unique<MainMenu>());
-        //ShowScreen(make_unique<FailedEscapeDialog>(true));
+        ShowScreen(make_unique<SensitivityDialog>());
         //ShowScreen(make_unique<ScoreScreen>(ScoreInfo{ .ExtraLives = 1 }, true));
     }
 

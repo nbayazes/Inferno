@@ -555,7 +555,6 @@ namespace Inferno::UI {
         GameAction::Weapon10,
     };
 
-
     class BindingDialog : public DialogBase {
         List<BindingControl*> _bindingControls;
         List<Input::InputDevice> _gamepads;
@@ -588,20 +587,6 @@ namespace Inferno::UI {
                     RefreshBindings();
                 };
             }
-        }
-
-        List<string> GetDeviceNames() {
-            List<string> deviceNames = { "Keyboard", "Mouse" };
-
-            //if (Settings::Inferno.EnableGamepads) {
-            _gamepads = Input::GetDevices(); // Copy the current gamepads
-
-            for (auto& gamepad : _gamepads) {
-                deviceNames.push_back(gamepad.name);
-            }
-            //}
-
-            return deviceNames;
         }
 
         BindingDialog() : DialogBase("customize bindings") {
@@ -679,13 +664,21 @@ namespace Inferno::UI {
 
     private:
         void RefreshBindings() const {
-            //for (size_t i = 0; i < _bindingControls.size(); i++) {
-            //    _bindingControls[i]->RefreshBinding();
-            //}
-
             for (auto& control : _bindingControls) {
                 control->RefreshBinding();
             }
+        }
+
+        List<string> GetDeviceNames() {
+            List<string> deviceNames = { "Keyboard", "Mouse" };
+
+            _gamepads = Input::GetDevices(); // Copy the current gamepads
+
+            for (auto& gamepad : _gamepads) {
+                deviceNames.push_back(gamepad.name);
+            }
+
+            return deviceNames;
         }
     };
 }

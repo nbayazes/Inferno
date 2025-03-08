@@ -2170,37 +2170,38 @@ namespace Inferno::UI {
 
 
     class ConfirmDialog : public DialogBase {
+        string _message;
+        float _textSize = 0;
+
     public:
-        ConfirmDialog(string_view message) : DialogBase("", false) {
+        ConfirmDialog(string_view message, string_view accept = "yes", string_view cancel = "no") : DialogBase("", false) {
             ActionSound = "";
-            auto label = AddChild<Label>(message, FontSize::MediumBlue);
-            label->HorizontalAlignment = AlignH::Center;
-            label->Position = Vector2(0, DIALOG_PADDING);
+            _message = message;
 
-            Size = MeasureString(message, FontSize::Medium);
-            Size.x += DIALOG_PADDING * 2 + 20;
-            Size.y = Size.y * 2 + DIALOG_PADDING * 2 + 10;
+            Padding = Vector2(DIALOG_PADDING, DIALOG_PADDING);
+            auto stringSize = MeasureString(message, FontSize::Medium);
+            Size.x = stringSize.x + DIALOG_PADDING * 2 + 20;
+            Size.y = stringSize.y + DIALOG_PADDING * 2 + CONTROL_HEIGHT + 10;
+            _textSize = stringSize.x;
 
-            auto yesButton = AddChild<Button>("yes");
+            auto size0 = MeasureString(accept, FontSize::Medium);
+            auto size1 = MeasureString(cancel, FontSize::Medium);
+
+            auto spacing = std::max(size0.x, size1.x) * .75f;
+
+            auto yesButton = AddChild<Button>(accept);
             yesButton->VerticalAlignment = AlignV::Bottom;
             yesButton->HorizontalAlignment = AlignH::Center;
-            yesButton->Position = Vector2(-50, -DIALOG_PADDING);
+            yesButton->Position = Vector2(-spacing, -DIALOG_PADDING);
             yesButton->ClickAction = [this] { State = CloseState::Accept; };
 
-            auto noButton = AddChild<Button>("no");
+            auto noButton = AddChild<Button>(cancel);
             noButton->VerticalAlignment = AlignV::Bottom;
             noButton->HorizontalAlignment = AlignH::Center;
-            noButton->Position = Vector2(50, -DIALOG_PADDING);
+            noButton->Position = Vector2(spacing, -DIALOG_PADDING);
             noButton->ActionSound = "";
             noButton->ClickAction = [this] { State = CloseState::Cancel; };
         }
-
-        //void OnUpdate() override {
-        //    DialogBase::OnUpdate();
-
-        //    if (Input::IsKeyPressed(Input::Keys::Left)) OnUpArrow();
-        //    if (Input::IsKeyPressed(Input::Keys::Right)) OnDownArrow();
-        //}
 
         bool OnMenuAction(Input::MenuActionState action) override {
             if (action == MenuAction::Left) {
@@ -2219,6 +2220,20 @@ namespace Inferno::UI {
         bool OnTryClose() override {
             Game::SetState(GameState::Game);
             return true; // Allow closing this dialog with escape
+        }
+
+        void OnDraw() override {
+            DialogBase::OnDraw();
+
+            Render::DrawTextInfo dti;
+            dti.Font = FontSize::MediumBlue;
+            dti.Color = Color(1, 1, 1);
+
+            // Center text
+            dti.Position.x = ScreenPosition.x + ScreenSize.x / 2 - _textSize / 2 * GetScale();
+            dti.Position.y = ScreenPosition.y + Padding.y * GetScale();
+
+            Render::UICanvas->DrawRaw(_message, dti, Layer);
         }
     };
 

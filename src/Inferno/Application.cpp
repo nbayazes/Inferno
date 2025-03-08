@@ -76,7 +76,7 @@ void Application::Initialize(int width, int height) {
             auto& bindings = Game::Bindings.AddDevice(device.guid, Input::InputType::Gamepad);
 
             // xbox controllers tend to have terrible stick drift and need a higher deadzone
-            uint8 innerDeadzone = device.IsXBoxController() ? 32 : 16;
+            float innerDeadzone = device.IsXBoxController() ? 0.12f : 0.5f;
             ResetGamepadBindings(bindings, innerDeadzone);
         }
     };
