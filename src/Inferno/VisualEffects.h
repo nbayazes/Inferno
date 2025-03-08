@@ -79,8 +79,7 @@ namespace Inferno {
         float FadeTime = 0;
         string Texture = "tracer";
         Color Color = { 3.0, 3.0, 3.0 };
-        float Width = 0.35f;
-
+        NumericRange<float> Width = { 0.35f, 0.35f };
         NumericRange<float> Duration = { 1.0, 2.4f }; // Range for individual spark lifespans 
         NumericRange<uint> Count = { 80, 100 };
         NumericRange<float> Velocity = { 50, 75 };

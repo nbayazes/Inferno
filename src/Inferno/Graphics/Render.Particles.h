@@ -55,6 +55,7 @@ namespace Inferno::Render {
         Vector3 Velocity, PrevVelocity;
         Vector3 Position, PrevPosition;
         SegID Segment = SegID::None;
+        float Width = 1;
         bool IsAlive() const { return Life > 0; }
     };
 

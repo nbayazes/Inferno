@@ -240,7 +240,6 @@ namespace Inferno {
         READ_PROP(Color);
         READ_PROP(Restitution);
         READ_PROP(Texture);
-        READ_PROP(Width);
         READ_PROP(FadeTime);
         READ_PROP(Drag);
         READ_PROP(VelocitySmear);
@@ -254,6 +253,7 @@ namespace Inferno {
         READ_PROP(FadeSize);
         READ_PROP(Relative);
         READ_PROP(Physics);
+        ReadRange(node["Width"], info.Width);
         ReadRange(node["Duration"], info.Duration);
         ReadRange(node["Interval"], info.Interval);
         ReadRange(node["Velocity"], info.Velocity);
@@ -454,6 +454,7 @@ namespace Inferno {
         READ_PROP(Name);
         READ_PROP(DevName);
         READ_PROP(StunResist);
+        READ_PROP(ChargeTime);
 #undef READ_PROP
 
         Array<float, 5> fov{}, fireDelay{}, fireDelay2{}, turnTime{}, speed{}, circleDistance{}, meleeDamage{};

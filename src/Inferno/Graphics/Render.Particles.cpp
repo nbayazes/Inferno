@@ -616,7 +616,7 @@ namespace Inferno::Render {
         effect.Shader->SetSampler(cmdList, Render::GetClampedTextureSampler());
         auto& material = Render::Materials->Get(Info.Texture);
         effect.Shader->SetDiffuse(cmdList, material.Handle());
-        effect.Shader->SetDepthBias(cmdList, Info.Width * 0.5f);
+        effect.Shader->SetDepthBias(cmdList, Info.Width.Max * 0.5f);
         g_SpriteBatch->Begin(cmdList);
 
         auto remaining = GetRemainingTime();
@@ -642,14 +642,14 @@ namespace Inferno::Render {
                 velocity = Vector3::Transform(velocity, parentRotation);
             }
 
-            Vector3 head = pos + vec * Info.Width * 0.5;
-            Vector3 tail = pos - vec * Info.Width * 0.5;
+            Vector3 head = pos + vec * spark.Width * .5;
+            Vector3 tail = pos - vec * spark.Width * .5;
 
             auto size = velocity * Info.VelocitySmear;
             head += size;
             tail -= size;
 
-            auto tangent = GetBeamNormal(head, tail, ctx.Camera) * Info.Width * 0.5f;
+            auto tangent = GetBeamNormal(head, tail, ctx.Camera) * spark.Width * .5;
 
             auto color = Info.Color;
             if (FadeTime > 0) {
@@ -703,6 +703,7 @@ namespace Inferno::Render {
             spark.Velocity = direction * Info.Velocity.GetRandom();
         }
 
+        spark.Width = Info.Width.GetRandom();
         _sparks.Add(spark);
     }
 
