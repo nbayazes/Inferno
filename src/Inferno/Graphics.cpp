@@ -34,6 +34,16 @@ namespace Inferno::Graphics {
         }
     }
 
+    void LoadMatcap(string_view name) {
+        if (auto path = FileSystem::TryFindFile(name)) {
+            DirectX::ResourceUploadBatch batch(Render::Device);
+            batch.Begin();
+            Render::Materials->Matcap.LoadDDS(batch, *path);
+            Render::Materials->Matcap.AddShaderResourceView();
+            batch.End(Render::Adapter->BatchUploadQueue->Get());
+        }
+    }
+
     void PrintMemoryUsage() {
         Render::Adapter->PrintMemoryUsage();
     }

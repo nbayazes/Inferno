@@ -14,6 +14,7 @@ static const int VCLIP_RANGE = 10000;
 
 struct FrameConstants {
     float4x4 ViewProjectionMatrix;
+    float4x4 ViewMatrix;
     float3 Eye; // Camera position
     float Time; // elapsed game time in seconds
     float2 Size; // Frame width and height

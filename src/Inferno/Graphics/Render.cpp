@@ -434,6 +434,7 @@ namespace Inferno::Render {
             ? (float)Inferno::Clock.GetTotalTimeSeconds()
             : (float)Game::Time;
         frameConstants.ViewProjection = camera.ViewProjection;
+        frameConstants.View = camera.View;
         frameConstants.NearClip = camera.GetNearClip();
         frameConstants.FarClip = camera.GetFarClip();
         frameConstants.Eye = camera.Position;

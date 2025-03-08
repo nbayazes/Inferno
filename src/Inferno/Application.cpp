@@ -8,6 +8,7 @@
 #include "Resources.h"
 #include "Editor/Editor.h"
 #include "Game.Bindings.h"
+#include "Graphics.h"
 #include "SystemClock.h"
 #include "Graphics/Render.h"
 #include "Graphics/Render.MainMenu.h"
@@ -101,6 +102,10 @@ void Application::Initialize(int width, int height) {
 
     LoadFonts();
 
+    // Load global textures
+    Graphics::LoadEnvironmentMap("env.dds");
+    Graphics::LoadMatcap("matcap.dds");
+
     Events::SettingsChanged += [this] {
         UpdateFpsLimit();
     };
@@ -158,7 +163,7 @@ void Application::Tick() {
     Game::Update(dt);
 }
 
-bool Inferno::Application::OnClose() {
+bool Application::OnClose() {
     return Editor::CanCloseCurrentFile();
 }
 

@@ -17,6 +17,7 @@ namespace Inferno::Graphics {
     void LoadTextures(span<const string> names, LoadFlag loadFlags = LoadFlag::Default, bool force = false);
     void LoadTextures(span<TexID> ids);
     void LoadEnvironmentMap(string_view name);
+    void LoadMatcap(string_view name);
 
     void LoadModel(ModelID);
     void LoadTexture(TexID);

@@ -29,6 +29,7 @@ namespace Inferno {
 
     struct FrameConstants {
         Matrix ViewProjection;
+        Matrix View;
         Vector3 Eye;
         float ElapsedTime;
         Vector2 Size;
@@ -474,7 +475,7 @@ namespace Inferno {
             FrameConstants, // b0
             TextureTable, // t0, space1
             RootConstants, // b1
-            Material, // t0 - t4
+            Matcap, // t0
             MaterialInfoBuffer, // t5
             VClipTable, // t6
             DissolveTexture, // t7
@@ -504,6 +505,10 @@ namespace Inferno {
 
         static void SetVClipTable(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE start) {
             commandList->SetGraphicsRootDescriptorTable(VClipTable, start);
+        }
+
+        static void SetMatcap(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
+            commandList->SetGraphicsRootDescriptorTable(Matcap, texture);
         }
 
         static void SetDissolveTexture(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {

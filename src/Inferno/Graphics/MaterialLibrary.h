@@ -57,6 +57,7 @@ namespace Inferno::Render {
         const Material2D& Missing() const { return _materials[(int)MISSING_MATERIAL]; }
 
         TextureCube EnvironmentCube;
+        Texture2D Matcap;
 
         // Gets a material based on a D1/D2 texture ID
         const Material2D& Get(TexID id) const {

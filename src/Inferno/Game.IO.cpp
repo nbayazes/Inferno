@@ -159,7 +159,6 @@ namespace Inferno::Game {
             Graphics::LoadLevelTextures(Level, forceReload);
             string extraTextures[] = { "noise" };
             Graphics::LoadTextures(extraTextures);
-            Graphics::LoadEnvironmentMap("env.dds");
 
             for (auto& seg : Level.Segments) {
                 // Clamp volume light if overly bright segments are saved
