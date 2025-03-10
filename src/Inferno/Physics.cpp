@@ -119,7 +119,7 @@ namespace Inferno {
             }
 
             if (mult > 0)
-                WiggleObject(obj, Game::Time + offset, dt, obj.Physics.Wiggle * mult, obj.Physics.WiggleRate);
+                WiggleObject(obj, obj.Lifespan + offset, dt, obj.Physics.Wiggle * mult, obj.Physics.WiggleRate);
         }
 
         if (pd.Velocity == Vector3::Zero && pd.Thrust == Vector3::Zero)
@@ -631,10 +631,13 @@ namespace Inferno {
         target.LastHitForce = force * resitution;
 
         // Only apply rotational velocity when something hits a robot. Feels bad if a player being hit loses aim.
-        if (/*a.Type == ObjectType::Weapon &&*/ target.Type == ObjectType::Robot) {
-            if (obj.Type == ObjectType::Player) {
-                // Use the player velocity for rotational force
-                obj.Physics.Velocity.Normalize(normal);
+        if (target.Type == ObjectType::Robot) {
+            if (obj.Type == ObjectType::Player || obj.Type == ObjectType::Robot) {
+                // Use the source velocity for rotational force between spheres.
+                // This is because the normal between spheres always points to the center of the other object
+                // which results in no rotation.
+                // Use previous velocity because the velocity for this tick has already changed due to the collision.
+                obj.Physics.PrevVelocity.Normalize(normal);
                 force = normal * speed * m1 / m2;
             }
 
@@ -643,7 +646,6 @@ namespace Inferno {
             ApplyRotationalForce(target, hit.Point, force);
         }
     }
-
 
     // Performs intersection checks between an object's sphere and another object's model mesh.
     // Target is repositioned based on the intersections.
