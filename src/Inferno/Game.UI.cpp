@@ -800,7 +800,7 @@ namespace Inferno::UI {
     void ShowMainMenu() {
         Screens.clear();
         ShowScreen(make_unique<MainMenu>());
-        ShowScreen(make_unique<SensitivityDialog>());
+        //ShowScreen(make_unique<SensitivityDialog>());
         //ShowScreen(make_unique<ScoreScreen>(ScoreInfo{ .ExtraLives = 1 }, true));
     }
 

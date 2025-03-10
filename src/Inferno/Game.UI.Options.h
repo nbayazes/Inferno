@@ -75,13 +75,13 @@ namespace Inferno::UI {
                 SPDLOG_ERROR("Error getting sound devices");
             }
 
-            auto d1Music = OptionSpinner::Create("D1 Music", { "Mission", "Jukebox" }, _musicIndexD1);
-            d1Music->LabelWidth = 250;
-            panel->AddChild(std::move(d1Music));
+            //auto d1Music = OptionSpinner::Create("D1 Music", { "Mission", "Jukebox" }, _musicIndexD1);
+            //d1Music->LabelWidth = 250;
+            //panel->AddChild(std::move(d1Music));
 
-            auto d2Music = OptionSpinner::Create("D2 Music", { "Mission", "Jukebox" }, _musicIndexD2);
-            d2Music->LabelWidth = 250;
-            panel->AddChild(std::move(d2Music));
+            //auto d2Music = OptionSpinner::Create("D2 Music", { "Mission", "Jukebox" }, _musicIndexD2);
+            //d2Music->LabelWidth = 250;
+            //panel->AddChild(std::move(d2Music));
 
             //panel->AddChild<Checkbox>("SFX Occlusion", Settings::Inferno.UseSoundOcclusion);
 

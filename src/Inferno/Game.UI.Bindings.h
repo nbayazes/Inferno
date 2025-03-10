@@ -59,7 +59,6 @@ namespace Inferno::UI {
             _shortcut2 = _device->GetBindingLabel(_action, 1);
         }
 
-
         ControlBase* HitTestCursor() override {
             // Ignore due to control storing three internal selection states and being in a list
             // This is not ideal
@@ -231,6 +230,14 @@ namespace Inferno::UI {
                         StartBinding(0);
                     else if (_hovered2)
                         StartBinding(1);
+                }
+            }
+            else if (Input::ControlDown && Input::OnKeyPressed(Input::Keys::D) && Focused) {
+                // Delete binding
+                if (auto binding = _device->GetBinding(_action, *_column)) {
+                    *binding = {}; // clear
+                    Sound::Play2D(SoundResource{ ActionSound });
+                    if (OnChange) OnChange();
                 }
             }
         }
@@ -660,6 +667,33 @@ namespace Inferno::UI {
 
             // let regular navigation move out of this control
             return DialogBase::OnMenuAction(action);
+        }
+
+        void OnUpdate() override {
+            DialogBase::OnUpdate();
+
+            if (Input::ControlDown && Input::OnKeyPressed(Input::Keys::R)) {
+                // Reset all bindings
+                if (_index == 0) {
+                    auto& keyboard = Game::Bindings.GetKeyboard();
+                    ResetKeyboardBindings(keyboard);
+                    UpdateBindingList(KeyboardInputs, keyboard);
+                }
+                else if (_index == 1) {
+                    auto& mouse = Game::Bindings.GetMouse();
+                    ResetMouseBindings(mouse);
+                    UpdateBindingList(MouseInputs, mouse);
+                }
+                else if (_index > 1) {
+                    auto& device = _gamepads.at(_index - 2);
+
+                    if (auto binds = Game::Bindings.GetDevice(device.guid)) {
+                        ResetGamepadBindings(*binds);
+                        UpdateBindingList(GamepadInputs, *binds);
+                    }
+                }
+                Sound::Play2D(SoundResource{ ActionSound });
+            }
         }
 
     private:
