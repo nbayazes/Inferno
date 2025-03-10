@@ -42,6 +42,10 @@ TextureCube Environment : register(t15);
 static const float PIDIV2 = PI / 2;
 static const float GAME_UNIT = 20; // value of 1 UV tiling in game units
 
+static const float DIRECT_LIGHT_MULT = 1.1; // Multiplier on direct (dynamic) lighting
+static const float EMISSIVE_MULT = 1; // Multiplier on emissive lighting
+static const float AMBIENT_MULT = 1; // Multiplier on ambient (baked static) lighting
+
 struct InstanceConstants {
     float2 Scroll, Scroll2; // base and decal scrolling
     float LightingScale; // for unlit mode
@@ -275,7 +279,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
             // Reduce the brightness of green and increase blue
             //float colorMult = 1 + (1 - dot(Args.LightColor.rgb, float3(1, 2, 0.25)) * .333) * 3;
             float colorMult = 1 + (1 - dot(Args.LightColor.rgb, float3(1, 1, 1)) * .333) * 4;
-            emissive *= Args.LightColor.rgb * Args.LightColor.a * colorMult * 2;
+            emissive *= Args.LightColor.rgb * Args.LightColor.a * colorMult * EMISSIVE_MULT;
         }
 
         if (Args.HasOverlay) {
@@ -297,8 +301,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
         if (any(input.lightDir))
             ambient *= pow(Lambert(normal, input.lightDir) * 1, 3); // Apply ambient light directions (stronger directionality)
-            //ambient *= pow(Lambert(normal, input.lightDir) * 1.3, 3); // Apply ambient light directions (stronger directionality)
-            //ambient *= pow(Lambert(normal, input.lightDir) * 1.3, 2); // Apply ambient light directions
+        //ambient *= pow(Lambert(normal, input.lightDir) * 1.3, 3); // Apply ambient light directions (stronger directionality)
+        //ambient *= pow(Lambert(normal, input.lightDir) * 1.3, 2); // Apply ambient light directions
 
         //return float4(ambient, 1);
 
@@ -309,14 +313,9 @@ float4 psmain(PS_INPUT input) : SV_Target {
         ShadeLights(directLight, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
 
         // allow light contribution to fullbright, otherwise lava looks odd
-        lighting += directLight * (fullbright ? 1 : material.LightReceived);
+        lighting += directLight * (fullbright ? 1 : material.LightReceived) * DIRECT_LIGHT_MULT;
 
-        const float AMBIENT_MULT = 1;
 
-        // boost specular ambient contribution from dynamic lighting, so the specular effect is still visible in range of lights
-        // setting this too high causes sparkling on doors
-        //float3 ramp = pow(ambient * AMBIENT_MULT, 1 / 2.5);
-        float3 specularAmbient = ambient * AMBIENT_MULT + lighting * 20 /** saturate(1 - emissive)*/;
         //specularAmbient *= material.SpecularStrength * material.LightReceived;
 
         emissive *= diffuse.rgb;
@@ -331,20 +330,26 @@ float4 psmain(PS_INPUT input) : SV_Target {
         lighting += diffuse.rgb * ambient * AMBIENT_MULT * material.LightReceived * (1 - material.Metalness * .90);
 
         {
-            float envBias = lerp(0, 9, saturate(material.Roughness - .3)); // this causes artifacts between pixel edges. find a different way to blur
+            // boost specular ambient contribution from dynamic lighting, so the specular effect is still visible in range of lights
+            // setting this too high causes sparkling on doors
+            //float3 ramp = pow(ambient * AMBIENT_MULT, 1 / 2.5);
+            float3 specularAmbient = ambient * AMBIENT_MULT + lighting * 40 /** saturate(1 - emissive)*/;
+   
+            float envBias = lerp(0, 9, saturate(material.Roughness - .3)  * 1.4); // this causes artifacts between pixel edges. find a different way to blur
             float3 reflected = normalize(reflect(Frame.EyeDir + viewDir, normal));
             float env = Environment.SampleLevel(Sampler, reflected, envBias).r;
-            env = saturate((env - .3)); // fix range of cubemap
+            //env = pow(1 + saturate(env - 0.05), 2) - 1;
+            env = pow(1 + env * 0.5, 2) - 1;
             float3 highlight = diffuse.rgb * material.LightReceived * material.SpecularStrength * material.Metalness
                                * specularAmbient * material.SpecularColor.rgb * material.SpecularColor.a;
 
-            lighting += max(env * highlight, 0); // cubemap highlight
+            lighting += max(env * highlight * .5, 0); // cubemap highlight
 
             // make metal surfaces parallel to the camera brighter. they look oddly dark otherwise.
             // fakes GI from ambient.
             float3 viewspaceNormal = mul((float3x3)Frame.ViewMatrix, normal);
             float3 xn = 1 - dot(viewspaceNormal, float3(0, 0, -1));
-            lighting += xn * highlight * .1; 
+            //lighting += xn * highlight * .1; 
         }
 
         //lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, specularAmbient, diffuse.rgb, .8) * diffuse.a * 2;
