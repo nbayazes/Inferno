@@ -21,9 +21,9 @@ SamplerState LinearBorder : register(s0);
 
 struct PS_INPUT {
     float4 pos : SV_POSITION;
-    float2 uv : TEXCOORD0;
+    centroid float2 uv : TEXCOORD0;
     centroid float4 col : COLOR0;
-    centroid float3 normal : NORMAL;
+    //centroid float3 normal : NORMAL;
 };
 
 [RootSignature(RS)]
@@ -35,7 +35,7 @@ PS_INPUT vsmain(ObjectVertex input) {
     output.uv = input.uv;
 
     // transform from object space to world space
-    output.normal = normalize(mul((float3x3)Instance.WorldMatrix, input.normal));
+    //output.normal = normalize(mul((float3x3)Instance.WorldMatrix, input.normal));
     //output.normal =  normalize(mul((float3x3)wvp, input.normal));
     //output.tangent = normalize(mul((float3x3)Instance.WorldMatrix, input.tangent));
     //output.bitangent = normalize(mul((float3x3)Instance.WorldMatrix, input.bitangent));
@@ -44,23 +44,26 @@ PS_INPUT vsmain(ObjectVertex input) {
 }
 
 float4 psmain(PS_INPUT input) : SV_Target {
+    const float NORMAL_STRENGTH = 150;
+    const float BLUR_STRENGTH = 10;
     float3 deltax = ddx(input.pos.xyz);
     float3 deltay = ddy(input.pos.xyz);
-    float3 normal = normalize(cross(deltax, deltay));
-    float2 scale = 5 / Frame.Size * Frame.RenderScale * Frame.RenderScale;
+    float3 normal = normalize(cross(deltax, deltay) );
+    float noise = 1 - (Instance.Noise * 0.2);
+    float2 scale = noise * BLUR_STRENGTH / Frame.Size * Frame.RenderScale * Frame.RenderScale;
 
-    float noise = 0.98 - (Instance.Noise * 0.4);
     float time = Frame.Time + Instance.TimeOffset;
     float2 offset = float2(sin(input.pos.y * scale.y + time), cos(input.pos.x * scale.x + time) * 3);
     float2 samplePos = (input.pos.xy + offset) / Frame.Size * Frame.RenderScale;
-    samplePos = saturate(samplePos + normal.xy * 30 * noise * Frame.RenderScale);
+    samplePos = saturate(samplePos + normal.xy * NORMAL_STRENGTH * noise * Frame.RenderScale);
 
     float3 sample = float3(0, 0, 0);
     sample += FrameTexture.SampleLevel(LinearBorder, samplePos, 0).rgb;
-    sample += FrameTexture.SampleLevel(LinearBorder, samplePos + float2(scale.x, -scale.y), 0).rgb * 0.5;
-    sample += FrameTexture.SampleLevel(LinearBorder, samplePos + float2(-scale.x, -scale.y), 0).rgb * 0.5;
-    sample += FrameTexture.SampleLevel(LinearBorder, samplePos + float2(-scale.x, -scale.y), 0).rgb * 0.5;
-    sample += FrameTexture.SampleLevel(LinearBorder, samplePos + float2(scale.x, scale.y), 0).rgb * 0.5;
+    sample += FrameTexture.SampleLevel(LinearBorder, samplePos + float2(scale.x, -scale.y), 0).rgb * 0.25;
+    sample += FrameTexture.SampleLevel(LinearBorder, samplePos + float2(-scale.x, -scale.y), 0).rgb * 0.25;
+    sample += FrameTexture.SampleLevel(LinearBorder, samplePos + float2(-scale.x, -scale.y), 0).rgb * 0.25;
+    sample += FrameTexture.SampleLevel(LinearBorder, samplePos + float2(scale.x, scale.y), 0).rgb * 0.25;
+
     sample /= 8;
-    return float4(sample.rgb * noise, 0.90);
+    return float4(sample.rgb * noise, 1);
 }
