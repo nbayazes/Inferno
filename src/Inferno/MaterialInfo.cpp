@@ -268,10 +268,10 @@ namespace Inferno {
             if (materials.size() >= (int)Render::SHINY_FLAT_MATERIAL) {
                 auto& flat = materials[(int)Render::SHINY_FLAT_MATERIAL];
                 flat.ID = (int)Render::SHINY_FLAT_MATERIAL;
-                flat.Metalness = 0.97f;
+                flat.Metalness = 1.0f;
                 flat.Roughness = 0.375f;
                 flat.LightReceived = 0.5f;
-                flat.SpecularStrength = .20f;
+                flat.SpecularStrength = 0.8f;
             }
 
             SPDLOG_INFO("Loaded {} material definitions", count);

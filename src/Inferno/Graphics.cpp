@@ -28,7 +28,7 @@ namespace Inferno::Graphics {
         if (auto path = FileSystem::TryFindFile(name)) {
             DirectX::ResourceUploadBatch batch(Render::Device);
             batch.Begin();
-            Render::Materials->EnvironmentCube.LoadDDS(batch, *path);
+            Render::Materials->EnvironmentCube.LoadDDS(batch, *path, true);
             Render::Materials->EnvironmentCube.CreateCubeSRV();
             batch.End(Render::Adapter->BatchUploadQueue->Get());
         }
@@ -38,7 +38,7 @@ namespace Inferno::Graphics {
         if (auto path = FileSystem::TryFindFile(name)) {
             DirectX::ResourceUploadBatch batch(Render::Device);
             batch.Begin();
-            Render::Materials->Matcap.LoadDDS(batch, *path);
+            Render::Materials->Matcap.LoadDDS(batch, *path, true);
             Render::Materials->Matcap.AddShaderResourceView();
             batch.End(Render::Adapter->BatchUploadQueue->Get());
         }

@@ -105,8 +105,8 @@ namespace Inferno::Editor {
 
             //ImGui::Checkbox("Smooth dirs", &settings.SmoothLightDirs);
 
-            /*ImGui::Checkbox("Check Coplanar", &_settings.CheckCoplanar);
-                ImGui::HelpMarker("Causes co-planar light sources to have a consistent brightness");*/
+            //ImGui::Checkbox("Check Coplanar", &settings.CheckCoplanar);
+            //    ImGui::HelpMarker("Causes co-planar light sources to have a consistent brightness");
         }
 
 

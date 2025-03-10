@@ -486,7 +486,6 @@ namespace Inferno {
                 return false;
             }
 
-
             try {
                 auto loadFlags = srgb ? DirectX::DDS_LOADER_FORCE_SRGB : DirectX::DDS_LOADER_DEFAULT;
                 ThrowIfFailed(DirectX::CreateDDSTextureFromFileEx(Render::Device, batch, path.c_str(), 0, D3D12_RESOURCE_FLAG_NONE, loadFlags, _resource.ReleaseAndGetAddressOf()));
@@ -503,6 +502,8 @@ namespace Inferno {
                 return true;
             }
             catch (const std::exception& e) {
+                // if HRESULT = 80070057, the texture does not have an even number of pixels
+                __debugbreak();
                 SPDLOG_ERROR(fmt::format("Error loading texture {}\nStatus: {}", path.string(), e.what()));
                 return false;
             }

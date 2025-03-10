@@ -3,7 +3,7 @@ Lights:
     - Name: metl078
       Type: 2
       Points: 0.5, 0.22
-      Radius: 35
+      Radius: 40
       Width: 0.04
       Wrap: 1
       Color: 0.5, 0.5, 1, 0.4 # cooler
@@ -13,7 +13,7 @@ Lights:
       Points: 0.70, 0.22
       Width: 0.14
       Height: 0.04
-      Radius: 35
+      Radius: 40
       Color: 0.5, 0.5, 1, 0.4 # cooler
   
     - Name: metl080
@@ -21,7 +21,7 @@ Lights:
       Points: 0.30, 0.22
       Width: 0.14
       Height: 0.04
-      Radius: 35
+      Radius: 40
       Color: 0.5, 0.5, 1, 0.4 # cooler
   
     - Name: metl089
@@ -29,7 +29,7 @@ Lights:
       Points: 0.75, 0.25
       Width: 0.25
       Height: 0.01
-      Radius: 35
+      Radius: 40
       Color: 0.5, 0.5, 1, 0.4 # cooler
   
     - Name: metl090
@@ -37,7 +37,7 @@ Lights:
       Points: 0.25, 0.25
       Width: 0.25
       Height: 0.05
-      Radius: 35
+      Radius: 40
       Color: 0.5, 0.5, 1, 0.4 # cooler
   
     # Door strips
@@ -47,7 +47,7 @@ Lights:
       Wrap: 2
       Width: 0.1
       Color: 1, .88, .88, .3
-      Radius: 35
+      Radius: 40
       Angle: 85
       InnerAngle: 60
       
@@ -57,7 +57,7 @@ Lights:
       Wrap: 2
       Width: 0.1
       Color: 1, .01, .01, .4
-      Radius: 35
+      Radius: 40
       Angle: 85
       InnerAngle: 60
       
@@ -67,7 +67,7 @@ Lights:
       Wrap: 2
       Width: 0.1
       Color: .05, .05, 1, .6 # blue is perceptually darker than green and blue
-      Radius: 35
+      Radius: 40
       Angle: 85
       InnerAngle: 60
   
@@ -76,7 +76,7 @@ Lights:
       Points: 0.135, 0
       Wrap: 2
       Width: 0.1
-      Radius: 35
+      Radius: 40
       Color: 1, 0.75, 0, .33 # yellow has more energy than blue and red
       Angle: 85
       InnerAngle: 60
@@ -87,20 +87,20 @@ Lights:
       Points: 0.5, 0.5
       Width: .2
       Height: .2
-      Radius: 35
+      Radius: 40
       Color: 1, .8, .5, .6
       Angle: 75
       InnerAngle: 65
 
     - Name: ceil003
-      Radius: 35
+      Radius: 40
       Points: 0.5, 0.5
       Color: 1, .8, .5, 0.5
       Angle: 75
       InnerAngle: 45
 
     - Name: ceil008 # small square
-      Radius: 35
+      Radius: 40
       Points: 0.5, 0.5
       Color: 1, .8, .5, 0.6
       Angle: 55
@@ -112,47 +112,47 @@ Lights:
       Points: 0.5, 0.5
       Width: 0.2
       Height: 0.2
-      Radius: 35
+      Radius: 40
       Color: 0.75, 0.75, 1, .6
       Angle: 75
       InnerAngle: 65
 
     - Name: ceil025 # small round
-      Radius: 35
+      Radius: 40
       Points: 0.5, 0.5
       Color: 0.8, 0.8, 1, .5
       Angle: 75
       InnerAngle: 45
 
     - Name: ceil026 # small square
-      Radius: 35
+      Radius: 40
       Points: 0.5, 0.5
       Color: 1, .88, .88, .5
       Angle: 55
-      InnerAngle: 45
+      InnerAngle: 40
 
     - Name: ceil027 # small square
-      Radius: 35
+      Radius: 40
       Points: 0.5, 0.5
       Color: 0.8, 0.8, 1, .5
-      Angle: 65
-      InnerAngle: 60
+      Angle: 60
+      InnerAngle: 45
 
     # misc lights
     - Name: ceil035 # small square
-      Radius: 35
+      Radius: 40
       Points: 0.5, 0.5
       Color: 1, .9, .9, .5
-      Angle: 65
-      InnerAngle: 60
+      Angle: 60
+      InnerAngle: 40
 
     - Name: ceil036 # rectangle
-      Radius: 35
+      Radius: 40
       Points: 0.5, 0.5
       Color: 1, .88, .88, .5
-      Angle: 65
+      Angle: 80
       InnerAngle: 60
-      
+
     # Stacked lights
     - Name: ceil028
       Type: 2
@@ -163,9 +163,10 @@ Lights:
       Height: .1
       Color:  .75, .75, 1, 0.5
       #Color: 0.75, 0.833, 1, .5
-      Radius: 35
+      Radius: 40
       Angle: 75
       InnerAngle: 65
+      ConeSpill: 0.2
 
     - Name: ceil029
       Type: 2
@@ -176,10 +177,10 @@ Lights:
       Height: 0.095
       Color:  .75, .75, 1, 0.5
       #Color: 0.8, 0.87, 1, .5
-      Radius: 35
+      Radius: 40
       Angle: 75
       InnerAngle: 65
-      ConeSpill: 0.15
+      ConeSpill: 0.2
 
     # Double edge wrapped lights
     - Name: ceil020 # yellow

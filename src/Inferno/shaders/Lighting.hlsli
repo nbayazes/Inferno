@@ -10,7 +10,7 @@ static const float GLOBAL_SPECULAR_MULT = 0.5;
 static const float METAL_DIFFUSE_FACTOR = 3; // Direct lighting contribution on metal. Setting this too low makes robots look odd.
 static const float METAL_SPECULAR_EXP = 2; // increase to get sharper metal highlights
 static const float METAL_SPECULAR_MULT = 1; // increase to get brighter metal
-static const float FRESNEL_MULT = GLOBAL_LIGHT_MULT * 1.75;
+static const float FRESNEL_MULT = GLOBAL_LIGHT_MULT * 1;
 
 struct MaterialInfo {
     float NormalStrength;
@@ -1051,7 +1051,8 @@ float3 ApplyRectLight3(
     float2 nearestDiffPoint = float2(clamp(diffPlanePoint.x, -vWidth, vWidth),
         clamp(diffPlanePoint.y, -vHeight, vHeight));
     float3 closestDiffusePoint = light.pos + lightRight * nearestDiffPoint.x + lightUp * nearestDiffPoint.y;
-    closestDiffusePoint -= light.normal * 0.05; // Offset light slightly to prevent z-fighting
+    //closestDiffusePoint -= light.normal * 0.05;
+    closestDiffusePoint += light.normal * 1.5; // Offset light slightly to prevent z-fighting
     float lightDist = distance(closestDiffusePoint, worldPos);
 
     float3 specular = float3(0, 0, 0);
@@ -1075,8 +1076,8 @@ float3 ApplyRectLight3(
 
         float gloss = RoughnessToGloss(roughness);
         float specularFactor = pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
-        float falloff = Attenuate(min(distance(worldPos, l), lightDist), light.radius * .4);
-        falloff = Attenuate(length(l), light.radius * 3) * 2;
+        //float falloff = Attenuate(min(distance(worldPos, l), lightDist), light.radius * .4);
+        float falloff = Attenuate(length(l), light.radius * 3); // push specular out as far as possible without artifacts
         float3 lightDir = normalize(light.pos - worldPos);
         // Fresnel, also check if point is behind light plane or surface plane
         specularFactor *= 1 + FresnelSimple(dot(h, viewDir)) * FRESNEL_MULT * dot(-light.normal, lightDir);
@@ -1100,9 +1101,11 @@ float3 ApplyRectLight3(
         specular = max(0, specularMask * specularFactor * specularColor * falloff);
     }
 
-    // clip specular behind the light plane
+    // clip light behind the plane
     float planeFactor = -dot(light.normal, light.pos - worldPos - light.normal); // Is the pixel behind the plane?
     float diffCutoff = saturate(planeFactor - .25); // Adding less offset decreases brightness
+    //float planeFactor = -dot(light.normal, light.pos - worldPos - light.normal * 1.6); // Is the pixel behind the plane?
+    //float diffCutoff = saturate(planeFactor * 2); // Adding less offset decreases brightness
     float specPlaneCutoff = saturate(planeFactor - 1);
 
     float nDotL = Lambert(normal, normalize(closestDiffusePoint - worldPos));
@@ -1110,7 +1113,7 @@ float3 ApplyRectLight3(
     float falloff = Attenuate(lightDist, light.radius);
 
     if (any(light.coneAngle0)) {
-        float coneFalloff = GetConeFalloff(worldPos, closestDiffusePoint - light.normal * 1.40, light.normal, light.coneAngle0, light.coneAngle1);
+        float coneFalloff = GetConeFalloff(worldPos, closestDiffusePoint - light.normal, light.normal, light.coneAngle0, light.coneAngle1);
         falloff = falloff * light.coneSpill + falloff * coneFalloff;
     }
 
@@ -1127,7 +1130,7 @@ void GetLightColors(LightData light, MaterialInfo material, float3 diffuse, out 
     lightColor = lerp(lightRgb, lightRgb * diffuse * METAL_DIFFUSE_FACTOR * material.SpecularColor.rgb, material.Metalness); // Allow some diffuse contribution even at max metal for visibility reasons
     //float3 metalDiffuse = GetMetalDiffuse(diffuse);
     //specularColor = lerp(lightColor, (pow(diffuse + 1, METAL_SPECULAR_EXP) - 1) * lightRgb, material.Metalness);
-    specularColor = lerp(lightColor, (pow(diffuse + 1 , METAL_SPECULAR_EXP) - 1) * lightRgb, material.Metalness) * material.SpecularColor.rgb * .5;
+    specularColor = lerp(lightColor, (pow(diffuse + 1 , METAL_SPECULAR_EXP) - 1) * lightRgb * METAL_SPECULAR_MULT, material.Metalness) * material.SpecularColor.rgb * .5;
     //specularColor *= GLOBAL_SPECULAR_MULT * (1 + material.Metalness * METAL_SPECULAR_MULT);
     //specularColor *= GLOBAL_SPECULAR_MULT * (1 + material.Metalness * METAL_SPECULAR_MULT) * material.SpecularColor.rgb;
     //specularColor = lerp(lightColor, material.SpecularColor.rgb, material.Metalness);

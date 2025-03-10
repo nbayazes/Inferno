@@ -133,6 +133,10 @@ float4 psmain(PS_INPUT input) : SV_Target {
             float3 normal = SampleNormal(TextureTable[NonUniformResourceIndex(texid * 5 + 4)], input.uv, NormalSampler, Frame.FilterMode);
             normal.xy *= material.NormalStrength;
             normal = normalize(normal);
+
+            float3x3 tbn = float3x3(input.tangent, input.bitangent, input.normal);
+            normal = normalize(mul(normal, tbn));
+
             emissive *= material.EmissiveStrength;
 
             if (emissive > 0 && material.LightReceived == 0) {
@@ -141,9 +145,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
             else {
                 diffuse *= input.col; // apply per-poly color when not using fullbright textures
             }
-
-            float3x3 tbn = float3x3(input.tangent, input.bitangent, input.normal);
-            normal = normalize(mul(normal, tbn));
 
             float3 colorSum = float3(0, 0, 0);
             uint2 pixelPos = uint2(input.pos.xy);
@@ -166,7 +167,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
             float2 muv = mul(Frame.ViewMatrix, float4(normal, 0)).xy * 0.5 + 0.5;
             muv.y = 1 - muv.y;
             float3 matcap = Matcap.Sample(Sampler, muv).rgb;
-            float3 matcapSum = diffuse.rgb  * ambient * material.LightReceived * material.Metalness *
+            float3 matcapSum = diffuse.rgb * ambient * material.LightReceived * material.Metalness *
                                material.SpecularColor.rgb * material.SpecularColor.a * material.SpecularStrength;
 
             lighting += lerp(baseAmbient, matcapSum * matcap * 5, material.Metalness);
