@@ -63,8 +63,8 @@ namespace Inferno::Render {
             side.AnimatedColor.w *= t;
         }
         else if (mode == DynamicLightMode::Pulse) {
-            float t = 1 + sinf((float)Game::Time * 3.14f * 1.25f + hash) * 0.125f;
-            side.AnimatedRadius *= t;
+            float t = 1.25f + sinf((float)Game::Time * 3.14f * 1.25f * 0.5f + hash) * 0.75f;
+            //side.AnimatedRadius *= t;
             side.AnimatedColor.w *= t;
         }
         else if (mode == DynamicLightMode::BigPulse) {
