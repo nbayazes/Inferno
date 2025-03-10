@@ -562,6 +562,8 @@ namespace Inferno::Render {
             if (dt > 0)
                 spark.Velocity *= 1 - Info.Drag;
 
+            // Only enable physics in release builds, as the raycasts are too slow in debug
+#ifndef _DEBUG
             if (Info.Physics) {
                 auto dir = spark.Velocity;
                 dir.Normalize();
@@ -604,6 +606,7 @@ namespace Inferno::Render {
                     }
                 }
             }
+#endif
         }
     }
 
@@ -872,7 +875,8 @@ namespace Inferno::Render {
                 lightColor *= 1 + noise * 0.025f;
         }
         else if (Info.Mode == DynamicLightMode::Pulse) {
-            lightRadius += lightRadius * sinf((float)Game::Time * 3.14f * 1.25f + (float)id * 0.1747f) * 0.125f;
+            //lightRadius += lightRadius * sinf((float)Game::Time * 3.14f * 1.25f * 0.5f + (float)id * 0.1747f) * 0.125f;
+            lightColor.w *= sinf((float)Game::Time * 3.14f * 1.25f * 0.5f + (float)id * 0.1747f) * 0.125f;
         }
         else if (Info.Mode == DynamicLightMode::BigPulse) {
             lightRadius += lightRadius * sinf((float)Game::Time * 3.14f * 1.25f + (float)id * 0.1747f) * 0.25f;

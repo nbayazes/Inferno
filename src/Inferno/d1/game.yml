@@ -1168,6 +1168,7 @@ Effects:
       Texture: tracer
       Width: 0.2
       Color: 1, .5, .166, 6
+      Physics: 1
 
     - Name: reactor destroyed
       # Duration: [ 0.75, 0.95 ]
