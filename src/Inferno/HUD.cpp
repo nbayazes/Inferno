@@ -74,8 +74,8 @@ namespace Inferno {
             // Laser tier can be downgraded if thief steals the super laser
 
             bool laserTierChanged = _primary && (
-                (player.LaserLevel > MAX_LASER_LEVEL && LaserLevel <= MAX_LASER_LEVEL) ||
-                (player.LaserLevel <= MAX_LASER_LEVEL && LaserLevel > MAX_LASER_LEVEL));
+                                        (player.LaserLevel > MAX_LASER_LEVEL && LaserLevel <= MAX_LASER_LEVEL) ||
+                                        (player.LaserLevel <= MAX_LASER_LEVEL && LaserLevel > MAX_LASER_LEVEL));
 
             if (_requested != weapon || (laserTierChanged && weapon == (int)PrimaryWeaponIndex::Laser)) {
                 _state = FadeOut;
@@ -182,7 +182,7 @@ namespace Inferno {
         DrawOpaqueBitmap(offset, align, material, color);
     }
 
-    void DrawAdditiveBitmap(const Vector2& offset, AlignH align, const Material2D& material, float sizeScale, float scanline, bool mirrorX = false) {
+    void DrawAdditiveBitmap(const Vector2& offset, AlignH align, const Material2D& material, float sizeScale, float scanline, const Color& color, bool mirrorX = false) {
         Render::CanvasBitmapInfo info;
         info.Position = offset;
         info.Size = Vector2{ (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
@@ -192,14 +192,14 @@ namespace Inferno {
         info.VerticalAlign = AlignV::Bottom;
         info.Scanline = scanline;
         info.MirrorX = mirrorX;
-        info.Color = Color(2, 2, 2);
+        info.Color = color;
         Render::HudGlowCanvas->DrawBitmapScaled(info);
     }
 
     void DrawAdditiveBitmap(const Vector2& offset, AlignH align, Gauges gauge, float sizeScale, float scanline = 0.4f, bool mirrorX = false) {
         TexID id = GetGaugeTexID(gauge);
         auto& material = Render::Materials->Get(id);
-        DrawAdditiveBitmap(offset, align, material, sizeScale, scanline, mirrorX);
+        DrawAdditiveBitmap(offset, align, material, sizeScale, scanline, Color(2, 2, 2), mirrorX);
     }
 
     //void DrawAdditiveBitmap(const Vector2& offset, AlignH align, const string& bitmapName, float sizeScale, float scanline = 0.4f) {
@@ -368,7 +368,7 @@ namespace Inferno {
                 break;
 
             case PrimaryWeaponIndex::Vulcan:
-                case PrimaryWeaponIndex::Gauss:
+            case PrimaryWeaponIndex::Gauss:
                 ammo = fmt::format("{:05}", player.PrimaryAmmo[weapon.AmmoType]);
                 break;
 
@@ -461,14 +461,29 @@ namespace Inferno {
         // Draw Keys
         bool mirrorX = Game::Level.IsDescent1();
         float keyScanline = 0.0f;
-        if (player.HasPowerup(PowerupFlag::BlueKey))
-            DrawAdditiveBitmap({ x + 147, -90 }, AlignH::CenterRight, Gauges::BlueKey, resScale, keyScanline, mirrorX);
+        if (player.HasPowerup(PowerupFlag::BlueKey)) {
+            auto& blue = Render::Materials->Get("gauge02b#0");
+            if (blue.Pointer())
+                DrawAdditiveBitmap({ x + 147, -90 }, AlignH::CenterRight, blue, 1, keyScanline, Color(0.0f, 0.0f, 2), false);
+            else
+                DrawAdditiveBitmap({ x + 147, -90 }, AlignH::CenterRight, Gauges::BlueKey, resScale, keyScanline, mirrorX);
+        }
 
-        if (player.HasPowerup(PowerupFlag::GoldKey))
-            DrawAdditiveBitmap({ x + 147 + 2, -90 + 21 }, AlignH::CenterRight, Gauges::GoldKey, resScale, keyScanline, mirrorX);
+        if (player.HasPowerup(PowerupFlag::GoldKey)) {
+            auto& yellow = Render::Materials->Get("gauge02b#1");
+            if (yellow.Pointer())
+                DrawAdditiveBitmap({ x + 147 + 2, -90 + 21 }, AlignH::CenterRight, yellow, 1, keyScanline, Color(1.1f, 1.1f, 1.1f), false);
+            else
+                DrawAdditiveBitmap({ x + 147 + 2, -90 + 21 }, AlignH::CenterRight, Gauges::GoldKey, resScale, keyScanline, mirrorX);
+        }
 
-        if (player.HasPowerup(PowerupFlag::RedKey))
-            DrawAdditiveBitmap({ x + 147 + 4, -90 + 42 }, AlignH::CenterRight, Gauges::RedKey, resScale, keyScanline, mirrorX);
+        if (player.HasPowerup(PowerupFlag::RedKey)) {
+            auto& red = Render::Materials->Get("gauge02b#2");
+            if (red.Pointer())
+                DrawAdditiveBitmap({ x + 147 + 4, -90 + 42 }, AlignH::CenterRight, red, 1, keyScanline, Color(1.75f, 0, 0), false);
+            else
+                DrawAdditiveBitmap({ x + 147 + 4, -90 + 42 }, AlignH::CenterRight, Gauges::RedKey, resScale, keyScanline, mirrorX);
+        }
     }
 
     void DrawHighlights(bool flip, float opacity = 0.07f) {

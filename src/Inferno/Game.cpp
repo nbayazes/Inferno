@@ -1092,6 +1092,9 @@ namespace Inferno::Game {
             "gauge01b#18",
             "gauge01b#19",
             "gauge02b",
+            "gauge02b#0",
+            "gauge02b#1",
+            "gauge02b#2",
             "gauge03b",
             //"gauge16b", // lock
             "Hilite",
