@@ -120,8 +120,8 @@ namespace Inferno::Editor {
         void GoToSecretExit();
         void GoToSecretExitReturn();
 
-        void PlaytestLevel();
-        void StartGame();
+        void CreateTestMission();
+        void StartExternalGame();
 
         void Exit();
 

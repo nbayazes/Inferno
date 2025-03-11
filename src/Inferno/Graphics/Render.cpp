@@ -679,7 +679,7 @@ namespace Inferno::Render {
 
         EndUpdateEffects();
 
-        if (!Settings::Inferno.ScreenshotMode && Game::GetState() == GameState::Editor) {
+        if (!Settings::Editor.HideUI && Game::GetState() == GameState::Editor) {
             PIXScopedEvent(cmdList, PIX_COLOR_INDEX(6), "Editor");
             //DrawEditor(ctx, Game::Level);
             DrawLevelDebug(Game::Level, ctx.Camera);
@@ -739,7 +739,7 @@ namespace Inferno::Render {
             GetEscapeScene() == EscapeScene::Start)
             DrawHud(ctx);
 
-        if (Settings::Inferno.ScreenshotMode || state != GameState::Editor) {
+        if (Settings::Editor.HideUI || state != GameState::Editor) {
             //Canvas->DrawGameText(level.Name, 0, 20 * Shell::DpiScale, FontSize::Big, { 1, 1, 1 }, 0.5f, AlignH::Center, AlignV::Top);
             if (state == GameState::Automap) {
                 DrawAutomapText(ctx);

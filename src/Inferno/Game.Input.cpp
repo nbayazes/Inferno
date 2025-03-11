@@ -15,22 +15,47 @@
 namespace Inferno {
     using Keys = Input::Keys;
 
-    void CheckGlobalHotkeys() {
-        if (Input::OnKeyPressed(Keys::F1))
-            Game::ShowDebugOverlay = !Game::ShowDebugOverlay;
+    void CheckDeveloperHotkeys() {
+        if (!Settings::Inferno.EnableDevHotkeys)
+            return;
+
+        auto state = Game::GetState();
+
+        if (state == GameState::Game) {
+            if (Input::OnKeyPressed(Keys::Back) && Input::AltDown)
+                Game::BeginSelfDestruct();
+
+            if (Input::OnKeyPressed(Keys::M) && Input::AltDown) {
+                Game::Automap.RevealFullMap();
+                PrintHudMessage("full map!");
+                Inferno::Sound::Play2D({ SoundID::Cheater });
+            }
+
+            //if (Input::OnKeyPressed(Keys::R)) {
+            //    static bool toggle = false;
+
+            //    if (toggle)
+            //        Game::SetTimeScale(1, 1.0f);
+            //    else
+            //        Game::SetTimeScale(0.5f, 0.75f);
+
+            //    toggle = !toggle;
+            //}
+        }
 
         if (Input::OnKeyPressed(Keys::F2)) {
-            if (Game::GetState() == GameState::MainMenu) {
+            if (state == GameState::MainMenu) {
                 Game::SetState(GameState::Editor);
             }
             else {
                 //Game::StartMission();
-                Game::SetState(Game::GetState() != GameState::Editor ? GameState::Editor : GameState::LoadLevel);
+                Game::PlayingFromEditor = true;
+                Game::SetState(state != GameState::Editor ? GameState::Editor : GameState::LoadLevel);
             }
         }
 
         if (Input::OnKeyPressed(Keys::F3))
-            Settings::Inferno.ScreenshotMode = !Settings::Inferno.ScreenshotMode;
+            Settings::Editor.HideUI = !Settings::Editor.HideUI;
 
         if (Input::OnKeyPressed(Keys::F5)) {
             Resources::LoadDataTables(LoadFlag::Default | GetLevelLoadFlag(Game::Level));
@@ -240,40 +265,17 @@ namespace Inferno {
     bool CheckPhotoMode() {
         auto state = Game::GetState();
 
+        // todo: this should be a real game action
         // Photo mode
-        if (Input::OnKeyPressed(Keys::OemTilde) && Input::AltDown && (state == GameState::Game || state == GameState::PhotoMode)) {
-            Game::SetState(state == GameState::PhotoMode ? GameState::Game : GameState::PhotoMode);
-            return true;
-        }
+        //if (Input::OnKeyPressed(Keys::OemTilde) && Input::AltDown && (state == GameState::Game || state == GameState::PhotoMode)) {
+        //    Game::SetState(state == GameState::PhotoMode ? GameState::Game : GameState::PhotoMode);
+        //    return true;
+        //}
+
+        if (Input::MenuActions.IsSet(MenuAction::Cancel))
+            Game::SetState(GameState::Game); // Photo mode should only be activated from within game
 
         return false;
-    }
-
-    // Keys that should only be enabled in debug builds
-    void HandleDebugKeys() {
-        auto state = Game::GetState();
-
-        if (state == GameState::Game) {
-            if (Input::OnKeyPressed(Keys::Back) && Input::AltDown)
-                Game::BeginSelfDestruct();
-
-            if (Input::OnKeyPressed(Keys::M) && Input::AltDown) {
-                Game::Automap.RevealFullMap();
-                PrintHudMessage("full map!");
-                Inferno::Sound::Play2D({ SoundID::Cheater });
-            }
-
-            if (Input::OnKeyPressed(Keys::R)) {
-                static bool toggle = false;
-
-                if (toggle)
-                    Game::SetTimeScale(1, 1.0f);
-                else
-                    Game::SetTimeScale(0.5f, 0.75f);
-
-                toggle = !toggle;
-            }
-        }
     }
 
     void HandleFixedUpdateInput(float /*dt*/) {
@@ -423,6 +425,9 @@ namespace Inferno {
     }
 
     void HandleInput(float dt) {
+        if (Input::OnKeyPressed(Keys::F1))
+            Game::ShowDebugOverlay = !Game::ShowDebugOverlay;
+
         switch (Game::GetState()) {
             case GameState::Automap:
                 if (Game::Bindings.Pressed(GameAction::Automap) || Game::Bindings.Pressed(GameAction::Pause)) {
@@ -437,13 +442,13 @@ namespace Inferno {
                 return;
 
             case GameState::PhotoMode:
-                CheckPhotoMode();
+                //CheckPhotoMode();
                 GenericCameraController(Game::MainCamera, 90);
                 break;
 
             case GameState::Game:
-                if (CheckPhotoMode())
-                    return; // return early so other hotkeys don't get executed
+                //if (CheckPhotoMode())
+                //    return; // return early so other hotkeys don't get executed
 
                 if (Game::Bindings.Pressed(GameAction::Automap)) {
                     Game::SetState(GameState::Automap);
@@ -465,7 +470,5 @@ namespace Inferno {
 
                 break;
         }
-
-        HandleDebugKeys();
     }
 }

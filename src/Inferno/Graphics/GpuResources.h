@@ -502,9 +502,9 @@ namespace Inferno {
                 return true;
             }
             catch (const std::exception& e) {
-                // if HRESULT = 80070057, the texture does not have an even number of pixels
+                SPDLOG_ERROR(fmt::format("Error loading texture {}. Check that width and height are a multiple of 4.\nStatus: {}", path.string(), e.what()));
+                // if HRESULT = 80070057, the texture likely does not have a multiple of 4 for width and height
                 __debugbreak();
-                SPDLOG_ERROR(fmt::format("Error loading texture {}\nStatus: {}", path.string(), e.what()));
                 return false;
             }
         }

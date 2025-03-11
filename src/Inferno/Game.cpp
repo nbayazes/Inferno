@@ -489,7 +489,7 @@ namespace Inferno::Game {
                 break;
 
             case GameState::Editor:
-                if(Game::DemoMode) {
+                if (Game::DemoMode) {
                     ShowOkMessage("Editor cannot save or open custom levels in demo mode.\nPlease purchase Descent 1 or Descent 2 for full functionality.", "Inferno Editor");
                     Game::EditorLoadLevel(D1_DEMO_FOLDER / "descent.hog");
                 }
@@ -551,11 +551,20 @@ namespace Inferno::Game {
                 break;
 
             case GameState::PhotoMode:
-                if (State != GameState::Game && State != GameState::ExitSequence) return;
-                MoveCameraToObject(Game::MainCamera, GetPlayerObject(), LerpAmount);
+            {
+                if (State != GameState::Game && State != GameState::ExitSequence && State != GameState::PauseMenu) return;
+                auto& player = GetPlayerObject();
+                Matrix transform = player.GetTransform(LerpAmount);
+                auto target = transform.Translation() + transform.Forward();
+                auto position = transform.Translation() + player.Rotation.Backward() * 10 + player.Rotation.Up() * 2.5f;
+                auto forward = target - position;
+                forward.Normalize();
+                auto up = forward.Cross(transform.Right());
+                Game::MainCamera.MoveTo(position, target, up);
                 GetPlayerObject().Render.Type = RenderType::Model; // Make player visible
                 Input::SetMouseMode(Input::MouseMode::Mouselook);
                 break;
+            }
 
             case GameState::PauseMenu:
                 if (State == GameState::PauseMenu) return;
@@ -694,7 +703,8 @@ namespace Inferno::Game {
 
         Game::BriefingVisible = false;
         Input::Update(dt);
-        CheckGlobalHotkeys();
+
+        CheckDeveloperHotkeys();
 
         if (Game::State == GameState::Editor) {
             if (Settings::Editor.EnablePhysics)
@@ -805,7 +815,7 @@ namespace Inferno::Game {
                 SetActiveCamera(Editor::EditorCamera);
                 Editor::EditorCamera.SetFov(Settings::Editor.FieldOfView);
 
-                if (!Settings::Inferno.ScreenshotMode) {
+                if (!Settings::Editor.HideUI) {
                     if (!EditorUI) EditorUI = make_unique<Inferno::Editor::EditorUI>();
                     EditorUI->OnRender();
                 }
@@ -838,8 +848,10 @@ namespace Inferno::Game {
 
             if (!StartLevel()) {
                 // something went wrong loading level
-                // todo: go back to editor if started from there
-                SetState(GameState::MainMenu);
+                if (Game::PlayingFromEditor)
+                    SetState(GameState::Editor);
+                else
+                    SetState(GameState::MainMenu);
             }
             else {
                 SetState(GameState::Game);
@@ -1061,6 +1073,7 @@ namespace Inferno::Game {
     }
 
     void StartMission() {
+        Game::PlayingFromEditor = false;
         Player = {};
         PlayerLevelStart = {};
         MissionTimestamp = GetTimestamp();
@@ -1091,6 +1104,16 @@ namespace Inferno::Game {
             "gauge01b#17",
             "gauge01b#18",
             "gauge01b#19",
+            "targ01b#0",
+            "targ01b#1",
+            "targ02b#0",
+            "targ02b#1",
+            "targ02b#2",
+            "targ03b#0",
+            "targ03b#1",
+            "targ03b#2",
+            "targ03b#3",
+            "targ03b#4",
             "gauge02b",
             "gauge02b#0",
             "gauge02b#1",
@@ -1109,7 +1132,6 @@ namespace Inferno::Game {
         Graphics::LoadTextures(gameTextures);
     }
 
-
     bool StartLevel() {
         SPDLOG_INFO("Starting level");
         Editor::SetPlayerStartIDs(Level);
@@ -1119,19 +1141,20 @@ namespace Inferno::Game {
 
         auto& player = GetPlayerObject();
 
-        // todo: disable this when not launched from the editor
-        if (Input::ControlDown && Level.SegmentExists(Editor::Selection.Segment)) {
-            auto& seg = Level.GetSegment(Editor::Selection.Segment);
-            // Remove any objects in the segment so the player doesn't get stuck in a robot
-            for (auto& obj : seg.Objects)
-                Editor::DeleteObject(Level, obj);
+        if (Game::PlayingFromEditor) {
+            if (Input::ControlDown && Level.SegmentExists(Editor::Selection.Segment)) {
+                auto& seg = Level.GetSegment(Editor::Selection.Segment);
+                // Remove any objects in the segment so the player doesn't get stuck in a robot
+                for (auto& obj : seg.Objects)
+                    Editor::DeleteObject(Level, obj);
 
-            // Move player to selected segment if control is held down
-            Editor::Selection.Object = ObjID(0);
-            Editor::Commands::MoveObjectToSegment();
-        }
-        else {
-            Editor::History.SnapshotLevel("Playtest");
+                // Move player to selected segment if control is held down
+                Editor::Selection.Object = ObjID(0);
+                Editor::Commands::MoveObjectToSegment();
+            }
+            else {
+                Editor::History.SnapshotLevel("Playtest");
+            }
         }
 
         if (RestartingLevel) {

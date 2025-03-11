@@ -22,7 +22,7 @@ namespace Inferno::Render {
     }
 
     void DrawObjectBoundingBoxes(const Object& object, const Color& color) {
-        if (Game::GetState() != GameState::Editor || Settings::Inferno.ScreenshotMode) return;
+        if (Game::GetState() != GameState::Editor || Settings::Editor.HideUI) return;
         if (object.Render.Type != RenderType::Model) return;
 
         auto& model = Resources::GetModel(object.Render.Model.ID);
@@ -46,7 +46,7 @@ namespace Inferno::Render {
 
     void DrawObjectOutline(const Object& object, const Color& color, const Camera& camera, float scale = 1.0f) {
         if (object.Radius == 0) return;
-        if (Game::GetState() != GameState::Editor || Settings::Inferno.ScreenshotMode) return;
+        if (Game::GetState() != GameState::Editor || Settings::Editor.HideUI) return;
         DrawFacingCircle(object.Position, object.Radius * scale, color, camera);
         //DrawObjectBoundingBoxes(object, Color(0, 1, 0));
     }

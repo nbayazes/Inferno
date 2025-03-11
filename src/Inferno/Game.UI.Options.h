@@ -533,6 +533,8 @@ namespace Inferno::UI {
             panel->AddChild<Checkbox>("charging fusion slows time", Settings::Inferno.SlowmoFusion);
             //panel->AddChild<Checkbox>("prefer high res fonts", Settings::Inferno.PreferHighResFonts);
 
+            panel->AddChild<Label>("");
+
             panel->AddChild<Button>("Primary Weapon priority", [] {
                 ShowScreen(make_unique<PriorityMenu>("Primary Priority", Settings::Inferno.PrimaryPriority, DEFAULT_PRIMARY_NAMES));
             });
@@ -540,6 +542,9 @@ namespace Inferno::UI {
             panel->AddChild<Button>("Secondary Weapon priority", [] {
                 ShowScreen(make_unique<PriorityMenu>("Secondary Priority", Settings::Inferno.SecondaryPriority, DEFAULT_SECONDARY_NAMES));
             });
+
+            panel->AddChild<Label>("");
+            panel->AddChild<Checkbox>("developer hotkeys", Settings::Inferno.EnableDevHotkeys);
 
             AddChild(std::move(panel));
         }

@@ -169,6 +169,7 @@ namespace Inferno::Game {
     constexpr float WEAPON_HIT_OBJECT_VOLUME = 1.0f;
 
     inline bool Cheater = false;
+    inline bool PlayingFromEditor = false;
     inline bool FailedEscape = false; // Failed to escape the level in time. Used for scoring and pausing time.
 
     // Returns the number of extra lives

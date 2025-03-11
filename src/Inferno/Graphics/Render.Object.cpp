@@ -39,7 +39,7 @@ namespace Inferno::Render {
             object.Render.Type == RenderType::Hostage) {
             auto& vclip = Resources::GetVideoClip(object.Render.VClip.ID);
             if (vclip.NumFrames == 0) {
-                if (Game::GetState() == GameState::Editor && !Settings::Inferno.ScreenshotMode)
+                if (Game::GetState() == GameState::Editor && !Settings::Editor.HideUI)
                     DrawObjectOutline(object, ctx.Camera);
 
                 return;
@@ -56,7 +56,7 @@ namespace Inferno::Render {
             BillboardInfo info = { .Radius = object.Radius, .Color = color, .Additive = additive, .Rotation = object.Render.Rotation, .Up = up, .Terrain = object.Segment == SegID::Terrain };
             DrawBillboard(ctx, weapon.BlobBitmap, pos, info);
         }
-        else if (Game::GetState() == GameState::Editor && !Settings::Inferno.ScreenshotMode) {
+        else if (Game::GetState() == GameState::Editor && !Settings::Editor.HideUI) {
             DrawObjectOutline(object, ctx.Camera);
         }
     }
@@ -341,7 +341,7 @@ namespace Inferno::Render {
 
         auto& model = Resources::GetModel(modelId);
         if (model.DataSize == 0) {
-            if (Game::GetState() == GameState::Editor && !Settings::Inferno.ScreenshotMode)
+            if (Game::GetState() == GameState::Editor && !Settings::Editor.HideUI)
                 DrawObjectOutline(object, ctx.Camera);
 
             return;
@@ -545,7 +545,7 @@ namespace Inferno::Render {
 
         auto& model = Resources::GetModel(modelId);
         if (model.DataSize == 0) {
-            if (Game::GetState() == GameState::Editor && !Settings::Inferno.ScreenshotMode)
+            if (Game::GetState() == GameState::Editor && !Settings::Editor.HideUI)
                 DrawObjectOutline(object, ctx.Camera);
 
             return;

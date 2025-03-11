@@ -3,7 +3,7 @@
 namespace Inferno {
     class Camera;
 
-    void CheckGlobalHotkeys();
+    void CheckDeveloperHotkeys();
     void HandleEditorDebugInput(float dt);
     void GenericCameraController(Camera& camera, float speed, bool orbit = false);
     // Same as handle input, but is only called on game ticks

@@ -83,7 +83,7 @@ namespace Inferno {
         float MoveSpeed = 140.0f; // Editor move speed
         bool EditBothWallSides = true;
         bool ReopenLastLevel = true;
-
+        bool HideUI = false; // hides the editor UI for screenshots
         bool EnableWallMode = false;
         bool EnableTextureMode = false;
         bool SelectMarkedSegment = false;
@@ -201,7 +201,6 @@ namespace Inferno {
         float MouselookSensitivity = 0.005f; // Different scale from regular ship input
         bool MouselookInvert = true; // Inverts mouselook Y axis
         bool HalvePitchSpeed = true; // Halves the maximum pitch speed. This is the original game behavior.
-        bool ScreenshotMode = false; // game setting?
         float MasterVolume = 1.0f;
         float EffectVolume = 0.5f;
         float MusicVolume = 0.5f;
@@ -228,6 +227,7 @@ namespace Inferno {
         bool UseSoundOcclusion = false;
         bool UseTextureCaching = false;
         string RecentMission; // Path of the most recently played mission
+        bool EnableDevHotkeys = false;
 
         Array<uint8, 13> PrimaryPriority = DEFAULT_PRIMARY_PRIORITY;
         Array<uint8, 11> SecondaryPriority = DEFAULT_SECONDARY_PRIORITY;

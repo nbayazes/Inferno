@@ -700,7 +700,7 @@ namespace Inferno::Editor {
         }
 
 
-        void StartGame() {
+        void StartExternalGame() {
             // Start the child process. 
             STARTUPINFO si{};
             PROCESS_INFORMATION pi{};
@@ -727,7 +727,7 @@ namespace Inferno::Editor {
             //SetStatusMessage("Game exited");
         }
 
-        void PlaytestLevel() {
+        void CreateTestMission() {
             try {
                 filesystem::path exe = GetGameExecutablePath();
                 auto missionFolder = exe.parent_path() / "missions";

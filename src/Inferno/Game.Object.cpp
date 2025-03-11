@@ -632,8 +632,8 @@ namespace Inferno {
                 //obj.Light.Color = Color(1, 0, 0);
                 //obj.Light.Radius = 50;
                 //obj.Light.Mode = DynamicLightMode::BigPulse;
-                light.LightColor = Color(1, 0.01f, 0.01f, 3);
-                light.Radius = 30;
+                light.LightColor = Color(1, 0.01f, 0.01f, 0.3f);
+                light.Radius = 20;
                 light.Mode = DynamicLightMode::BigPulse;
                 break;
             }

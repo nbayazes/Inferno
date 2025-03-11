@@ -386,15 +386,17 @@ namespace Inferno::Editor {
             }
 
             if (ImGui::BeginMenu("Play")) {
-                if (ImGui::MenuItem("Play in Inferno"))
-                    Game::SetState(GameState::Game);
+                if (ImGui::MenuItem("Playtest Level")) {
+                    Game::PlayingFromEditor = true;
+                    Game::SetState(GameState::LoadLevel);
+                }
 
                 ImGui::Separator();
 
                 if (ImGui::MenuItem("Create test mission"))
-                    Commands::PlaytestLevel();
-                if (ImGui::MenuItem("Launch game"))
-                    Commands::StartGame();
+                    Commands::CreateTestMission();
+                if (ImGui::MenuItem("Start external game"))
+                    Commands::StartExternalGame();
 
                 ImGui::EndMenu();
             }
@@ -457,7 +459,7 @@ namespace Inferno::Editor {
             ImGui::SetNextItemWidth(80 * Shell::DpiScale);
             auto snap = Settings::Editor.RotationSnap * RadToDeg;
 
-            if (ImGui::InputFloat("##rotation", &snap, 0, 0, (char*)u8"%.3f°"))
+            if (ImGui::InputFloat("##rotation", &snap, 0, 0, "%.3f°"))
                 Settings::Editor.RotationSnap = std::clamp(snap, 0.0f, 180.0f) * DegToRad;
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Rotation snapping");
 
@@ -469,8 +471,8 @@ namespace Inferno::Editor {
                 constexpr auto pi = (float)std::numbers::pi * RadToDeg;
                 static constexpr float snapValues[] = { 0, pi / 32, pi / 24, pi / 16, pi / 12, pi / 8, pi / 6, pi / 4 };
                 for (auto& value : snapValues) {
-                    auto label = fmt::format(u8"{:.2f}°", value);
-                    if (ImGui::Selectable((char*)label.c_str()))
+                    auto label = fmt::format("{:.2f}°", value);
+                    if (ImGui::Selectable(label.c_str()))
                         Settings::Editor.RotationSnap = value * DegToRad;
                 }
                 ImGui::EndCombo();
@@ -500,7 +502,7 @@ namespace Inferno::Editor {
             if (ImGui::BeginCombo("##insert", insertModes[(int)Settings::Editor.InsertMode])) {
                 for (int i = 0; i < insertModes.size(); i++) {
                     const bool isSelected = (int)Settings::Editor.InsertMode == i;
-                    auto itemLabel = std::to_string((int)i);
+                    auto itemLabel = std::to_string(i);
                     if (ImGui::Selectable(insertModes[i], isSelected)) {
                         Settings::Editor.InsertMode = (InsertMode)i;
                     }
@@ -534,12 +536,11 @@ namespace Inferno::Editor {
                 ImGui::PopStyleColor(2);
                 ImGui::Text("Planar tolerance");
 
-                // must use utf8 encoding to properly render glyphs
                 auto tolerance = Settings::Editor.Selection.PlanarTolerance;
-                auto label = fmt::format(u8"{:.0f}°", tolerance);
+                auto label = fmt::format("{:.0f}°", tolerance);
                 ImGui::SetNextItemWidth(175 * Shell::DpiScale);
 
-                if (ImGui::SliderFloat("##tolerance", &tolerance, 0, 90, (char*)label.c_str())) {
+                if (ImGui::SliderFloat("##tolerance", &tolerance, 0, 90, label.c_str())) {
                     Settings::Editor.Selection.PlanarTolerance = std::clamp(tolerance, 0.0f, 90.0f);
                 }
 

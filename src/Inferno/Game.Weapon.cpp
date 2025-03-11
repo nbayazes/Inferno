@@ -499,13 +499,15 @@ namespace Inferno::Game {
         if (weapon.Extended.Recoil)
             obj.Physics.Thrust += obj.Rotation.Backward() * weapon.Extended.Recoil;
 
+        auto renderFlag = RenderFlag::None;
+
         // todo: check if in first person, not just if in-game
         if (Game::GetState() == GameState::Game && obj.IsPlayer()) {
             if (info.gun == 6)
-                showFlash = false; // Hide center gun flash in first person (gun is under the ship, player can't see it!)
+                renderFlag = RenderFlag::ThirdPerson; // Hide center gun flash in first person (gun is under the ship, player can't see it!)
 
             if (!Settings::Inferno.ShowWeaponFlash)
-                showFlash = false; // Hide first-person weapon flash if setting is disabled
+                renderFlag = RenderFlag::ThirdPerson; // Hide first-person weapon flash if setting is disabled
         }
 
         if (showFlash) {
@@ -514,6 +516,7 @@ namespace Inferno::Game {
             p.Radius = weapon.FlashSize;
             p.FadeTime = 0.175f;
             p.Color = weapon.Extended.FlashColor * 10; // Flash sprites look better when overexposed
+            p.Flags = renderFlag;
             AttachParticle(p, ref, gunSubmodel);
 
             // Muzzle flash. Important for mass weapons that don't emit lights on their own.
@@ -522,6 +525,7 @@ namespace Inferno::Game {
             light.Radius = weapon.FlashSize * 4;
             light.FadeTime = 0.25f;
             light.SpriteMult = 0;
+            light.Flags = renderFlag;
             AddLight(light, position, light.FadeTime, obj.Segment);
         }
 

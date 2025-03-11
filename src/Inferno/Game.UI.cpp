@@ -739,11 +739,16 @@ namespace Inferno::UI {
             panel->AddChild<Button>("Options", [] {
                 ShowScreen(make_unique<OptionsMenu>());
             }, AlignH::Center);
+
+            panel->AddChild<Button>("photo mode", [] {
+                Game::SetState(GameState::PhotoMode);
+            }, AlignH::Center);
+
             panel->AddChild<Button>("Quit", [this] {
                 auto confirmDialog = make_unique<ConfirmDialog>("abort mission?");
                 confirmDialog->CloseCallback = [this](CloseState state) {
                     if (state == CloseState::Accept)
-                        Game::SetState(GameState::MainMenu);
+                        Game::SetState(Game::PlayingFromEditor ? GameState::Editor : GameState::MainMenu);
                 };
 
                 ShowScreen(std::move(confirmDialog));
