@@ -165,6 +165,23 @@ namespace Inferno {
         Render::HudCanvas->DrawBitmapScaled(info);
     }
 
+    void DrawReticleBitmap(const Vector2& offset, const string& name, float scale) {
+        auto& material = Render::Materials->Get(name);
+
+        Inferno::Render::CanvasBitmapInfo info;
+        info.Position = offset * scale;
+        info.Size = Vector2{ (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
+        info.Size *= scale;
+        info.Texture = material.Handles[Material2D::Diffuse];
+        info.HorizontalAlign = AlignH::Center;
+        info.VerticalAlign = AlignV::CenterTop;
+        info.Scanline = 0.0f;
+        Render::HudCanvas->DrawBitmapScaled(info);
+
+        info.Scanline = 0.4f;
+        Render::HudCanvas->DrawBitmapScaled(info);
+    }
+
     void DrawOpaqueBitmap(const Vector2& offset, AlignH align, const Material2D& material, const Color& color) {
         Inferno::Render::CanvasBitmapInfo info;
         info.Position = offset;
@@ -224,21 +241,27 @@ namespace Inferno {
     }
 
     void DrawReticle() {
-        auto isD1 = Game::Level.IsDescent1();
-        const Vector2 crossOffset(0, isD1 ? -2.0f : -5.0f);
-        const Vector2 primaryOffset(0, isD1 ? 6.0f : 14.0f);
-        const Vector2 secondaryOffset(0, isD1 ? 1.0f : 2.0f);
+        //auto isD1 = Game::Level.IsDescent1();
+        //const Vector2 crossOffset(0, isD1 ? -2.0f : -5.0f);
+        //const Vector2 primaryOffset(0, isD1 ? 6.0f : 14.0f);
+        //const Vector2 secondaryOffset(0, isD1 ? 1.0f : 2.0f);
+
+        constexpr Vector2 crossOffset(0, -5.0f);
+        constexpr Vector2 primaryOffset(0, 14.0f);
+        constexpr Vector2 secondaryOffset(0, 2.0f);
 
         bool primaryReady = Game::Player.CanFirePrimary(Game::Player.Primary) && Game::Player.PrimaryDelay <= 0;
         bool secondaryReady = Game::Player.CanFireSecondary(Game::Player.Secondary) && Game::Player.SecondaryDelay <= 0;
-        float scale = isD1 ? 2.0f : 1.0f;
+        //float scale = isD1 ? 2.0f : 1.0f;
+        float scale = 1;
         // cross deactivates when no primary or secondary weapons are available
         int crossFrame = primaryReady || secondaryReady ? 1 : 0;
 
         bool quadLasers = Game::Player.HasPowerup(PowerupFlag::QuadFire) && Game::Player.Primary == PrimaryWeaponIndex::Laser;
         int primaryFrame = primaryReady ? (quadLasers ? 2 : 1) : 0;
-        DrawReticleBitmap(crossOffset, Gauges::ReticleCross, crossFrame, scale); // gauss, vulkan
-        DrawReticleBitmap(primaryOffset, Gauges::ReticlePrimary, primaryFrame, scale);
+        auto cross = fmt::format("targ01#{}", crossFrame);
+        DrawReticleBitmap(crossOffset, fmt::format("targ01b#{}", crossFrame), scale); // gauss, vulkan
+        DrawReticleBitmap(primaryOffset, fmt::format("targ02b#{}", primaryFrame), scale);
 
         int secondaryFrame = secondaryReady;
         static constexpr uint8_t Secondary_weapon_to_gun_num[10] = { 4, 4, 7, 7, 7, 4, 4, 7, 4, 7 };
@@ -248,7 +271,7 @@ namespace Inferno {
         else if (secondaryFrame && !(Game::Player.SecondaryFiringIndex & 1))
             secondaryFrame++;
 
-        DrawReticleBitmap(secondaryOffset, Gauges::ReticleSecondary, secondaryFrame, scale);
+        DrawReticleBitmap(secondaryOffset, fmt::format("targ03b#{}", secondaryFrame), scale);
     }
 
     void DrawEnergyBar(float spacing, bool flipX, float energy) {
