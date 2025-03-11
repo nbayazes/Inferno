@@ -13,6 +13,12 @@ namespace Inferno {
         RandomObjEnd = 1 << 5, // Uses a random end point on start object
     };
 
+    enum class RenderFlag {
+        None,
+        FirstPerson, // Only draw when viewed from first person (player perspective)
+        ThirdPerson // Only draw when viewed from third person (photo mode)
+    };
+
     struct BeamInfo {
         float Duration = 1;
         //ObjRef StartObj; // attaches start of beam to this object. Sets Start each update if valid.
@@ -58,6 +64,7 @@ namespace Inferno {
         float Rotation = 0;
         float Delay = 0;
         bool RandomRotation = true;
+        RenderFlag Flags = RenderFlag::None;
     };
 
     struct LightEffectInfo {
@@ -73,6 +80,7 @@ namespace Inferno {
         float Angle0 = 0; // Spotlight parameter
         float Angle1 = 0; // Spotlight parameter
         float ConeSpill = 0; // Spotlight parameter
+        RenderFlag Flags = RenderFlag::None;
     };
 
     struct SparkEmitterInfo {

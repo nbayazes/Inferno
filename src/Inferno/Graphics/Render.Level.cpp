@@ -435,8 +435,10 @@ namespace Inferno::Render {
 
             case RenderCommandType::Effect:
                 if ((pass == RenderPass::Opaque && cmd.Data.Effect->Queue == RenderQueueType::Opaque) ||
-                    (pass == RenderPass::Transparent && cmd.Data.Effect->Queue == RenderQueueType::Transparent))
+                    (pass == RenderPass::Transparent && cmd.Data.Effect->Queue == RenderQueueType::Transparent)) {
+                    if (cmd.Data.Effect->ShouldDraw())
                     cmd.Data.Effect->Draw(ctx);
+                }
                 break;
         }
     }
@@ -563,7 +565,7 @@ namespace Inferno::Render {
         ctx.ApplyEffect(Effects->Stars);
         ctx.SetConstantBuffer(0, Adapter->GetTerrainConstants().GetGPUVirtualAddress());
 
-        StarShader::Parameters parameters {
+        StarShader::Parameters parameters{
             .AtmosphereColor = Game::Terrain.AtmosphereColor,
             .StarColor = Game::Terrain.StarColor,
             .SkyRadius = 1.7f

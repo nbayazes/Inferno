@@ -113,6 +113,7 @@ namespace Inferno {
         p.Parent = parent;
         p.ParentSubmodel = submodel;
         p.FadeTime = info.FadeTime;
+        p.Flags = info.Flags;
 
         if (info.RandomRotation)
             p.Info.Rotation = Random() * DirectX::XM_2PI;
@@ -212,6 +213,7 @@ namespace Inferno {
         light.FadeTime = info.FadeTime;
         light.Segment = segment;
         light.Position = position;
+        light.Flags = info.Flags;
         return AddEffect(make_unique<LightEffect>(std::move(light)));
     }
 

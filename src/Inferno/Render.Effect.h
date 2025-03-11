@@ -5,6 +5,7 @@
 
 namespace Inferno::Render {
     struct RenderCommand;
+
     enum class RenderQueueType {
         None,
         Opaque,
@@ -22,6 +23,7 @@ namespace Inferno::Render {
         ObjRef Parent;
         Inferno::SubmodelRef ParentSubmodel;
         bool FadeOnParentDeath = false; // Detaches from the parent when it dies and uses FadeTime
+        RenderFlag Flags = RenderFlag::None;
 
         // Called once per frame
         void Update(float dt, EffectID id);
@@ -45,6 +47,8 @@ namespace Inferno::Render {
 
         virtual void OnExpire() {}
         virtual void OnInit() {}
+
+        bool ShouldDraw() const;
 
         EffectBase() = default;
         virtual ~EffectBase() = default;
@@ -78,5 +82,4 @@ namespace Inferno::Render {
     // Either call this or individual effects using UpdateEffect()
     void UpdateAllEffects(float dt);
     void EndUpdateEffects();
-
 }

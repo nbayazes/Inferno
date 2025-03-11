@@ -34,6 +34,13 @@ namespace Inferno::Render {
         return Duration - GetRemainingTime();
     }
 
+    bool EffectBase::ShouldDraw() const {
+        if (Flags == RenderFlag::ThirdPerson && (Game::GetState() == GameState::Game || Game::GetState() == GameState::PauseMenu))
+            return false; // Don't draw third person effects in first person
+
+        return true;
+    }
+
     EffectBase* GetEffect(EffectID effect) {
         if (!Seq::inRange(VisualEffects, (int)effect)) return nullptr;
         return VisualEffects[(int)effect].get();
@@ -852,6 +859,9 @@ namespace Inferno::Render {
     }
 
     void LightEffect::OnUpdate(float /*dt*/, EffectID id) {
+        if (!ShouldDraw())
+            return;
+
         float lightRadius = Info.Radius;
         Color lightColor = Info.LightColor;
 
