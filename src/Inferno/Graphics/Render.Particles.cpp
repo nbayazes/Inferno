@@ -875,11 +875,14 @@ namespace Inferno::Render {
                 lightColor *= 1 + noise * 0.025f;
         }
         else if (Info.Mode == DynamicLightMode::Pulse) {
-            //lightRadius += lightRadius * sinf((float)Game::Time * 3.14f * 1.25f * 0.5f + (float)id * 0.1747f) * 0.125f;
-            lightColor.w *= sinf((float)Game::Time * 3.14f * 1.25f * 0.5f + (float)id * 0.1747f) * 0.125f;
+            float t = sinf((float)Game::Time * 3.14f * 0.625f + (float)id * 0.1747f);
+            lightColor.w *= 1.25f + t * 0.75f;
+            //lightColor.w *= t * 0.125f;
         }
         else if (Info.Mode == DynamicLightMode::BigPulse) {
-            lightRadius += lightRadius * sinf((float)Game::Time * 3.14f * 1.25f + (float)id * 0.1747f) * 0.25f;
+            float t = sinf((float)Game::Time * 3.14f * 0.8f + (float)id * 0.1747f);
+            lightRadius *= 1 + (t + 1) * .2f;
+            lightColor *= 1 + (t + 1) * .125f;
         }
 
         Graphics::LightData light{};
