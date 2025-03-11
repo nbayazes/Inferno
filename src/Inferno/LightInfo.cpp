@@ -19,10 +19,7 @@ namespace Inferno {
         float angle = 0, innerAngle = 0;
         ReadValue(node["Angle"], angle);
         ReadValue(node["InnerAngle"], innerAngle);
-
-        float coneSpill = 0.1; // 10% spill by default
-        ReadValue(node["ConeSpill"], coneSpill);
-        info.ConeSpill = coneSpill;
+        ReadValue(node["ConeSpill"], info.ConeSpill);
 
         if (angle > 0) {
             info.Angle0 = 1.0f / (cosf(DegToRad * innerAngle) - cosf(DegToRad * angle));

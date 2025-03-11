@@ -47,6 +47,7 @@ namespace Inferno::Render {
 
     void AnimateLight(SegmentLight::SideLighting& side, DynamicLightMode mode, SegID segid) {
         const auto hash = PcgRandomFloat((int)side.Tag.Segment + (int)side.Tag.Side + (int)segid);
+        const auto segHash = PcgRandomFloat((int)side.Tag.Segment + (int)segid);
 
         side.AnimatedColor = side.Color;
         side.AnimatedRadius = side.Radius;
@@ -437,7 +438,7 @@ namespace Inferno::Render {
                 if ((pass == RenderPass::Opaque && cmd.Data.Effect->Queue == RenderQueueType::Opaque) ||
                     (pass == RenderPass::Transparent && cmd.Data.Effect->Queue == RenderQueueType::Transparent)) {
                     if (cmd.Data.Effect->ShouldDraw())
-                    cmd.Data.Effect->Draw(ctx);
+                        cmd.Data.Effect->Draw(ctx);
                 }
                 break;
         }
