@@ -218,13 +218,14 @@ float3 ApplyPointLight(
     float planeFactor = 1;
     float3 realLightDir = normalize(lightPos - worldPos);
     float coneFalloff = 1;
+    const float zOffset = 0.05f; // offset to prevent z fighting
 
     // clip specular and diffuse behind the light plane for wall lights
     if (any(light.normal)) {
         // Adjust multipliers to change plane position
         planeFactor = -dot(light.normal, (lightPos + normal * 1) - worldPos) * 1;
-        lightPos += light.normal * 4;
-        coneFalloff = GetConeFalloff(worldPos, lightPos - light.normal * 4, light.normal, light.coneAngle0, light.coneAngle1);
+        lightPos += light.normal * zOffset;
+        coneFalloff = GetConeFalloff(worldPos, lightPos - light.normal * zOffset, light.normal, light.coneAngle0, light.coneAngle1);
     }
 
     float3 lightDir = lightPos - worldPos;
@@ -242,7 +243,7 @@ float3 ApplyPointLight(
     specularFactor *= 1 + FresnelSimple(dot(realLightDir, halfVec)) * FRESNEL_MULT;
     specularFactor *= saturate(dot(normal, realLightDir) * 4); // fade specular behind the surface plane
     specularFactor *= saturate(planeFactor * .2); // Lower multiplier is smoother edges of specular near plane.
-    falloff *= saturate(planeFactor + 1.8);
+    falloff *= saturate(planeFactor + 1.8); // constant affects how far light goes behind the plane
     //falloff *= coneFalloff;
 
     if (any(light.coneAngle0)) {
@@ -1114,7 +1115,7 @@ float3 ApplyRectLight3(
 
     if (any(light.coneAngle0)) {
         float coneFalloff = GetConeFalloff(worldPos, closestDiffusePoint - light.normal, light.normal, light.coneAngle0, light.coneAngle1);
-        falloff = falloff * light.coneSpill + falloff * coneFalloff;
+        //falloff = falloff * light.coneSpill + falloff * coneFalloff;
     }
 
     return max(0, 0.15 * falloff * nDotL * lightColor * diffuse * diffCutoff * GLOBAL_LIGHT_MULT + specular * falloff * specPlaneCutoff);
