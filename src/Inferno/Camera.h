@@ -153,49 +153,55 @@ namespace Inferno {
             Position += translation;
         }
 
-        void MoveForward(float frameTime) {
+        void MoveForward(float value) {
+            if (value == 0) return;
             _changed = true;
-            auto step = GetForward() * frameTime;
+            auto step = GetForward() * value;
             Position += step;
             Target += step;
             CancelLerp();
         }
 
-        void MoveBack(float frameTime) {
+        void MoveBack(float value) {
+            if (value == 0) return;
             _changed = true;
-            auto step = -GetForward() * frameTime;
+            auto step = -GetForward() * value;
             Position += step;
             Target += step;
             CancelLerp();
         }
 
-        void MoveLeft(float frameTime) {
+        void MoveLeft(float value) {
+            if (value == 0) return;
             _changed = true;
-            auto step = GetRight() * frameTime;
+            auto step = GetRight() * value;
             Position += step;
             Target += step;
             CancelLerp();
         }
 
-        void MoveRight(float frameTime) {
+        void MoveRight(float value) {
+            if (value == 0) return;
             _changed = true;
-            auto step = -GetRight() * frameTime;
+            auto step = -GetRight() * value;
             Position += step;
             Target += step;
             CancelLerp();
         }
 
-        void MoveUp(float frameTime) {
+        void MoveUp(float value) {
+            if (value == 0) return;
             _changed = true;
-            auto step = Up * frameTime;
+            auto step = Up * value;
             Position += step;
             Target += step;
             CancelLerp();
         }
 
-        void MoveDown(float frameTime) {
+        void MoveDown(float value) {
+            if (value == 0) return;
             _changed = true;
-            auto step = -Up * frameTime;
+            auto step = -Up * value;
             Position += step;
             Target += step;
             CancelLerp();
