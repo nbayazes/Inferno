@@ -1006,7 +1006,6 @@ namespace Inferno::Game {
                 Resources::LoadLevel(level);
                 Graphics::LoadLevel(level);
                 Game::LoadLevel(hogPath, levelEntry, autosave);
-                Render::MaterialsChanged = true;
 
                 auto briefingName = mission.GetValue("briefing");
 

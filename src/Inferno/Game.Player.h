@@ -107,6 +107,7 @@ namespace Inferno {
         void CyclePrimary();
         void CycleSecondary();
         void CycleBombs();
+        HeadlightState GetHeadlightState() const { return _headlight; }
 
         void DropBomb();
 

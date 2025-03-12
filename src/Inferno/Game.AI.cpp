@@ -240,6 +240,9 @@ namespace Inferno {
                         if (!obj->IsRobot()) continue;
                         if (obj->Signature == source.Signature) continue; // Don't alert self
 
+                        // todo: when a robot is first woken up, decide whether it will hold position or investigate
+                        if (Random() < 0.5f) continue; // Don't alert at all half the time
+
                         auto dist = Vector3::Distance(obj->Position, source.Position);
                         if (dist > radius) continue;
                         auto random = 1 + RandomN11() * 0.25f; // Add some variance so robots in a room don't all wake up at same time
@@ -1069,7 +1072,7 @@ namespace Inferno {
                     PlayRobotAnimation(robot, Animation::Fire, ai.FireDelay.Remaining() * 0.8f);
                 }
 
-                if (weapon.Extended.Chargable) 
+                if (weapon.Extended.Chargable)
                     ai.ChargingWeapon = true;
             }
             else if (ai.FireDelay <= 0 && !ai.PlayingAnimation()) {
@@ -1262,7 +1265,7 @@ namespace Inferno {
         if (isThroughWall && hasLos == IntersectResult::ThroughWall)
             *isThroughWall = true;
 
-        if (target.IsCloakEffective() || hasLos == IntersectResult::HitWall)
+        if (IsCloakEffective(target) || hasLos == IntersectResult::HitWall)
             return false;
 
         if (!PointIsInFOV(robot.Rotation.Forward(), targetDir, DifficultyInfo(robotInfo).FieldOfView))
@@ -1338,6 +1341,13 @@ namespace Inferno {
                     if (!help->IsRobot()) continue;
 
                     auto& helpAI = GetAI(*help);
+                    auto& robotInfo = Resources::GetRobotInfo(*help);
+
+                    // don't flee to robots that also flee. basically prevent scouts from running to other scouts.
+                    // preferably this would be checked with a behavior flag instead of the threshold
+                    if (robotInfo.FleeThreshold > 0)
+                        continue;
+
                     if (helpAI.State == AIState::Alert || helpAI.State == AIState::Idle) {
                         // Found a robot that can help us
 
@@ -1570,7 +1580,7 @@ namespace Inferno {
         auto hasLos = HasLineOfSight(robot, target.Position);
 
         // Use the last known position as the target dir if target is obscured
-        if (!hasLos || target.IsCloakEffective()) {
+        if (!hasLos || IsCloakEffective(target)) {
             if (!ai.TargetPosition) {
                 SPDLOG_WARN("Robot {} had a target with no target position, clearing target", robot.Signature);
                 ai.Target = {};
@@ -1584,7 +1594,7 @@ namespace Inferno {
         TurnTowardsDirection(robot, targetDir, DifficultyInfo(robotInfo).TurnTime);
 
         // Update target location if it is in line of sight and not cloaked
-        if ((hasLos && !target.IsCloaked()) || (hasLos && target.IsCloaked() && !target.IsCloakEffective())) {
+        if ((hasLos && !target.IsCloaked()) || (hasLos && target.IsCloaked() && !IsCloakEffective(target))) {
             ai.LastSeenTargetPosition = ai.TargetPosition = { target.Segment, target.Position };
             ai.Awareness = AI_AWARENESS_MAX;
             ai.CombatState = AICombatState::Normal;
@@ -1648,15 +1658,17 @@ namespace Inferno {
         // Only robots that flee can find help. Limit to hotshot and above.
         if (robotInfo.FleeThreshold > 0 &&
             robot.Control.AI.Behavior != AIBehavior::Still &&
+            ai.AnimationState == Animation::Alert && // Only check when not firing
             Game::Difficulty >= DifficultyLevel::Hotshot) {
             if (!ai.FleeTimer.IsSet()) {
                 ai.FleeTimer = 2 + Random() * 2; // Periodically think about fleeing
             }
 
             if (ai.FleeTimer.Expired() && FleeingDrones == 0) {
-                if (robot.HitPoints / robot.MaxHitPoints <= robotInfo.FleeThreshold || ai.Fear >= 1) {
+                auto chance = Random(); // only flee half the time
+                if (chance > 0.5 && (robot.HitPoints / robot.MaxHitPoints <= robotInfo.FleeThreshold || ai.Fear >= 1)) {
                     // Wounded or scared enough to flee, but would rather fight if there's allies nearby
-                    //SPDLOG_INFO("Nearby allies: {}", allies);
+                    //SPDLOG_INFO("Searching for help. Fighting allies: {}", DronesInCombat);
 
                     if (DronesInCombat <= AI_ALLY_FLEE_MIN) {
                         FindHelp(ai, robot);
@@ -1688,7 +1700,7 @@ namespace Inferno {
         auto hasLos = HasLineOfSight(robot, target.Position);
 
         // Use the last known position as the target dir if target is obscured
-        if (!hasLos || target.IsCloakEffective()) {
+        if (!hasLos || IsCloakEffective(target)) {
             if (!ai.TargetPosition) {
                 SPDLOG_WARN("Robot {} had a target with no target position, clearing target", robot.Signature);
                 ai.Target = {};
@@ -1702,7 +1714,7 @@ namespace Inferno {
         TurnTowardsDirection(robot, targetDir, DifficultyInfo(robotInfo).TurnTime);
 
         // Update target location if it is in line of sight and not cloaked
-        if ((hasLos && !target.IsCloaked()) || (hasLos && target.IsCloaked() && !target.IsCloakEffective())) {
+        if ((hasLos && !target.IsCloaked()) || (hasLos && target.IsCloaked() && !IsCloakEffective(target))) {
             ai.TargetPosition = { target.Segment, target.Position };
             ai.Awareness = AI_AWARENESS_MAX;
             ai.CombatState = AICombatState::Normal;

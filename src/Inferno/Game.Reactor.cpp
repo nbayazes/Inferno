@@ -304,7 +304,7 @@ namespace Inferno::Game {
         //    return;
         //}
 
-        if (Game::ObjectCanSeeObject(reactor, player)) {
+        if (ObjectCanSeeObject(reactor, player)) {
             Reactor.LastSeenPlayer = 0;
             Reactor.KnownPlayerPosition = player.Position;
         }
