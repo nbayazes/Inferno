@@ -121,6 +121,7 @@ namespace Inferno {
         SaveGameInfo save{};
 
 #define READ_PROP(name) ReadValue2(node, #name, save.##name)
+        READ_PROP(version);
         READ_PROP(dateTime);
         READ_PROP(autosave);
         READ_PROP(timestamp);
@@ -174,6 +175,7 @@ namespace Inferno {
 
         //auto mission = Game::GetMissionInfo();
 #define WRITE_PROP(name) doc[#name] << save.##name
+        WRITE_PROP(version);
         WRITE_PROP(dateTime);
         WRITE_PROP(autosave);
         WRITE_PROP(timestamp);
@@ -369,6 +371,8 @@ namespace Inferno {
         player.Energy = save.energy;
         player.Shields = save.shields;
 
+        player.PrimaryWeapons = save.primaryWeapons;
+        player.SecondaryWeapons = save.secondaryWeapons;
         player.PrimaryAmmo = save.primaryAmmo;
         player.SecondaryAmmo = save.secondaryAmmo;;
 

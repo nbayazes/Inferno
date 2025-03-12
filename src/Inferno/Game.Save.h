@@ -5,6 +5,7 @@
 
 namespace Inferno {
     struct SaveGameInfo {
+        int version = 1;
         bool autosave; // marks this save as an autosave, which means it will get replaced automatically
         int levelNumber;
         string levelName;
