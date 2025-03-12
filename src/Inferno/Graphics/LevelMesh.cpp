@@ -112,7 +112,7 @@ namespace Inferno {
         Vector3 tangent = (edge1 * deltaUV2.y - edge2 * deltaUV1.y) * f;
         tangent.Normalize();
 
-        Vector3 bitangent = (edge2 * deltaUV1.x - edge1 * deltaUV2.x) * f;
+        Vector3 bitangent = (edge1 * deltaUV2.x - edge2 * deltaUV1.x) * f;
         bitangent.Normalize();
 
         return { tangent, bitangent };
