@@ -34,7 +34,10 @@ namespace Inferno::UI {
             _lives = fmt::format("lives: {}", _save.lives);
             _livesWidth = MeasureString(_lives, FontSize::Small).x;
 
-            _level = fmt::format("Level {}: {}", _save.levelNumber, _save.levelName);
+            if (_save.levelNumber < 0)
+                _level = fmt::format("Secret Level {}: {}", -_save.levelNumber, _save.levelName);
+            else
+                _level = fmt::format("Level {}: {}", _save.levelNumber, _save.levelName);
 
             _difficultyWidth = MeasureString(DifficultyToString(_save.difficulty), FontSize::Small).x;
             _dateTime = FormatTimestamp(_save.timestamp);
