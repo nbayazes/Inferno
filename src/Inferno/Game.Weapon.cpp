@@ -89,8 +89,8 @@ namespace Inferno::Game {
 
         if (!mine.Control.Weapon.Flags && mine.Control.Weapon.AliveTime > Game::MINE_ARM_TIME) {
             Sound3D sound(SoundID(155));
-            sound.Radius = 100;
-            sound.Volume = 0.55f;
+            sound.Radius = 120;
+            sound.Volume = 1.0f;
             sound.Pitch = 0.275f;
             Sound::PlayFrom(sound, mine);
 

@@ -100,6 +100,7 @@ namespace Inferno {
 
     enum class PowerupID : uint8;
 
+    // 'Extended' weapon info not present in the original data
     struct WeaponExtended {
         WeaponID ID; // Associate with this existing weapon ID in the HAM
         string Name; // Name in fullscreen HUD
@@ -147,7 +148,7 @@ namespace Inferno {
         float Spread = 0; // Amount of spread in degrees
         Color FlashColor = { 1, 1, 1 }; // Color for muzzle flash sprites and lighting
         float Noise = 1; // How much noise (awareness) weapon creates when firing
-        float SoundRadius = 240; // Sound radius when firing
+        float SoundRadius = 300; // Sound radius when firing
         float StunMult = 1; // how effective this weapon is at stunning robots. 0.5 would halve stun duration. Also affects knockback.
         Array<float, 5> InitialSpeed; // Speed to spawn with
         bool PointCollideWalls = true; // Use raycasting against level geometry. Otherwise use spheres.
