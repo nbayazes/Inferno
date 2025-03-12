@@ -332,6 +332,8 @@ namespace Inferno::Game {
                 Game::FireWeaponInfo info = { .id = WeaponID::ReactorBlob, .gun = (uint8)gun, .customDir = &dir };
                 FireWeapon(reactor, info);
 
+                Game::PlayWeaponSound(WeaponID::ReactorBlob, 1, reactor, gun);
+
                 // Randomly fire more blobs based on level number and difficulty
                 auto chance = 1.0f / ((float)Game::LevelNumber / 4 + 2);
                 int count = 0;
