@@ -422,9 +422,8 @@ namespace Inferno {
         }
     }
 
-    void SaveLevelMetadata(const Level& level, std::filesystem::path path, const LightSettings& lightSettings) {
-        path.replace_extension(METADATA_EXTENSION);
-
+    // Writes metadata to a path, including extension
+    void SaveLevelMetadata(const Level& level, const std::filesystem::path& path, const LightSettings& lightSettings) {
         filesystem::path temp = path;
         temp.replace_filename("temp.ied");
 
@@ -434,6 +433,7 @@ namespace Inferno {
         }
 
         // Write went okay, ovewrite the old file and remove temp
+        SPDLOG_INFO("Writing level metadata to {}", path.string());
         filesystem::copy(temp, path, filesystem::copy_options::overwrite_existing);
         filesystem::remove(temp);
     }

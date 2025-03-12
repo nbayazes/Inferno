@@ -59,7 +59,16 @@ namespace Inferno::Editor {
         level.CameraPosition = Editor::EditorCamera.Position;
         level.CameraTarget = Editor::EditorCamera.Target;
         level.CameraUp = Editor::EditorCamera.Up;
-        SaveLevelMetadata(level, path, EditorLightSettings);
+
+        filesystem::path metadataPath = path;
+        metadataPath.replace_extension().replace_extension(); // sometimes has two extensions due to backup
+
+        if (autosave)
+            metadataPath.replace_extension(fmt::format("{}.bak", METADATA_EXTENSION));
+        else
+            metadataPath.replace_extension(METADATA_EXTENSION);
+
+        SaveLevelMetadata(level, metadataPath, EditorLightSettings);
         SetStatusMessage("Saved level to {}", path.string());
 
         // Save custom textures
@@ -482,7 +491,7 @@ namespace Inferno::Editor {
 
                 auto permissions = std::filesystem::status(backupPath).permissions();
                 if ((permissions & std::filesystem::perms::owner_write) == std::filesystem::perms::none) {
-                    SPDLOG_INFO("Temp file {} is read only", path.string());
+                    SPDLOG_WARN("Temp file {} is read only", path.string());
                 }
                 else {
                     if (Game::Mission) {
