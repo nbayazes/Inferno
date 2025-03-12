@@ -574,7 +574,7 @@ namespace Inferno::Game {
     }
 
     void PlayMusic(string_view song, LoadFlag flag, bool loop) {
-        SPDLOG_INFO("Trying to play {}", song);
+        SPDLOG_INFO("Trying to play song `{}`", song);
 
         //Sound::PlayMusic("Resignation.mp3");
         //Sound::PlayMusic("Title.ogg");

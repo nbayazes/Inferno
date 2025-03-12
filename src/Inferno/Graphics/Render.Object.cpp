@@ -441,6 +441,7 @@ namespace Inferno::Render {
             auto cubeSrv = Render::Materials->EnvironmentCube.GetCubeSRV().GetGpuHandle();
             if (!cubeSrv.ptr) cubeSrv = Render::Adapter->NullCube.GetGpuHandle();
             effect.Shader->SetEnvironmentCube(cmdList, cubeSrv);
+            effect.Shader->SetMatcap(cmdList, Render::Materials->Matcap.GetSRV());
             effect.Shader->SetDissolveTexture(cmdList, Render::Materials->White().Handle());
         }
 

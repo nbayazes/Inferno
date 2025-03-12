@@ -548,7 +548,7 @@ namespace Inferno::Render {
             auto& mesh = terrainMesh->GetTerrain();
             auto& terrainTexture = Render::Materials->Get(mesh.TextureName);
             effect.Shader->SetDiffuse(cmdList, terrainTexture.Handle());
-
+            
             cmdList->IASetVertexBuffers(0, 1, &mesh.VertexBuffer);
             cmdList->IASetIndexBuffer(&mesh.IndexBuffer);
             cmdList->DrawIndexedInstanced(mesh.IndexCount, 1, 0, 0, 0);

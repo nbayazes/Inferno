@@ -516,8 +516,6 @@ namespace Inferno::Resources {
             auto ham = ReadDescent1GameData(pigData, palette, pig, sounds);
             sounds.Path = pig.Path = *pigPath;
 
-            LoadCustomExitModels(ham, palette);
-
             if (Inferno::Settings::Inferno.UseTextureCaching) {
                 WriteTextureCache(ham, pig, palette, D1_CACHE);
                 D1TextureCache = TextureMapCache(D1_CACHE, 1800);
@@ -1372,6 +1370,7 @@ namespace Inferno::Resources {
             LoadDataTables(LoadFlag::Filesystem | LoadFlag::Mission | GetLevelLoadFlag(level));
             LoadStringTable(GameData.hog);
             UpdateAverageTextureColor();
+            LoadCustomExitModels(GameData, GameData.palette);
 
             Inferno::Sound::CopySoundIds();
             //FixObjectModelIds(level);

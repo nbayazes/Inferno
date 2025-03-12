@@ -364,6 +364,7 @@ namespace Inferno::Render {
     void LoadLevel(const Level& level) {
         Adapter->WaitForGpu();
 
+        Render::MaterialsChanged = true;
         SPDLOG_INFO("Load models");
         // Load models for objects in the level
         constexpr int DESCENT3_MODEL_COUNT = 200;
