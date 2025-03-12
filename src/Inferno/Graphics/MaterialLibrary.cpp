@@ -333,12 +333,6 @@ namespace Inferno::Render {
                     material.Textures[Material2D::SuperTransparency].LoadDDS(batch, *path);
         }
 
-        //if (auto path = FileSystem::TryFindFile(baseName + "_n.dds")) {
-        //    //auto normalMap = CreateNormalMap(*upload.Bitmap);
-        //    //material.Textures[Material2D::Normal].Load(batch, normalMap.data(), width, height, material.Name + "_n", true, DXGI_FORMAT_R8G8B8A8_UNORM);
-        //    material.Textures[Material2D::Normal].LoadDDS(batch, *path);
-        //}
-
         auto cached = cache.GetEntry(upload.ID);
 
         if (!material.Textures[Material2D::Diffuse]) {
@@ -368,6 +362,9 @@ namespace Inferno::Render {
 
         if (auto path = FileSystem::TryFindFile(baseName + "_s.dds"))
             material.Textures[Material2D::Specular].LoadDDS(batch, *path);
+
+        if (auto path = FileSystem::TryFindFile(baseName + "_n.dds"))
+            material.Textures[Material2D::Normal].LoadDDS(batch, *path);
 
         if (!material.Textures[Material2D::Specular] && !upload.Bitmap.Data.empty()) {
             if (cached && cached->SpecularLength) {
@@ -651,6 +648,20 @@ namespace Inferno::Render {
 
         for (auto& id : ids)
             EnableProcedural(id);
+
+        if (auto exit = Seq::tryItem(Resources::GameData.Models, (int)Resources::GameData.ExitModel)) {
+            for (size_t i = 0; i < exit->TextureCount; i++) {
+                auto texid = Resources::LookupModelTexID(*exit, i);
+                ids.insert(texid);
+            }
+        }
+
+        if (auto exit = Seq::tryItem(Resources::GameData.Models, (int)Resources::GameData.DestroyedExitModel)) {
+            for (size_t i = 0; i < exit->TextureCount; i++) {
+                auto texid = Resources::LookupModelTexID(*exit, i);
+                ids.insert(texid);
+            }
+        }
 
         auto tids = Seq::ofSet(ids);
         LoadMaterials(tids, force);
