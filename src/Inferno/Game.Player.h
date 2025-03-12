@@ -194,6 +194,7 @@ namespace Inferno {
 
     private:
         float GetWeaponEnergyCost(float baseCost) const;
+        void ReleaseFusionCharge();
 
         // Returns a value indicating the weapon's priority. Lower values are higher priority. 255 is disabled.
         int GetWeaponPriority(PrimaryWeaponIndex primary) const;

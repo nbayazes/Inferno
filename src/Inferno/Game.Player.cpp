@@ -135,11 +135,12 @@ namespace Inferno {
         else
             Sound::Play2D(SoundID::SelectPrimary);
 
+        ReleaseFusionCharge(); // Release fusion in case it's being charged while switching weapons
+
         PrimaryDelay = RearmTime;
         Primary = (PrimaryWeaponIndex)weapon;
         PrimaryWasSuper[weapon % SUPER_WEAPON] = weapon >= SUPER_WEAPON;
         PrintHudMessage(fmt::format("{} selected!", Resources::GetPrimaryName(Primary)));
-        WeaponCharge = 0; // failsafe
     }
 
     void Player::SelectSecondary(SecondaryWeaponIndex index) {
@@ -220,11 +221,7 @@ namespace Inferno {
 
         if (IsDead) {
             // Fire the fusion cannon if the ship is destroyed while charging it
-            if (weapon.Extended.Chargable && WeaponCharge > 0) {
-                Sound::Stop(_fusionChargeSound);
-                FirePrimary();
-                WeaponCharge = 0;
-            }
+            ReleaseFusionCharge();
             return;
         }
 
@@ -301,15 +298,7 @@ namespace Inferno {
                 ApplyForce(player, dir);
             }
             else if (PrimaryState == FireState::Release || Energy <= 0) {
-                if (WeaponCharge > 0) {
-                    if (Settings::Inferno.SlowmoFusion && WeaponCharge > SLOWMO_MIN_CHARGE) {
-                        Game::SetTimeScale(1.0f, SLOWMO_UP_RATE); // Return to normal speed
-                    }
-
-                    Game::FusionTint.SetTarget(Color(0, 0, 0, 0), Game::Time, 0.4f);
-                    Sound::Stop(_fusionChargeSound);
-                    FirePrimary();
-                }
+                ReleaseFusionCharge();
             }
         }
         else if (PrimaryState == FireState::Hold) {
@@ -612,6 +601,20 @@ namespace Inferno {
             AutoselectSecondary(); // Swap to different weapon if out of ammo
     }
 
+    void Player::ReleaseFusionCharge() {
+        auto& weapon = Resources::GetWeapon(GetPrimaryWeaponID(Primary));
+
+        if (weapon.Extended.Chargable && WeaponCharge > 0) {
+            if (Settings::Inferno.SlowmoFusion && WeaponCharge > SLOWMO_MIN_CHARGE) {
+                Game::SetTimeScale(1.0f, SLOWMO_UP_RATE); // Return to normal speed
+            }
+
+            Game::FusionTint.SetTarget(Color(0, 0, 0, 0), Game::Time, 0.4f);
+            Sound::Stop(_fusionChargeSound);
+            FirePrimary();
+        }
+    }
+
     bool Player::CanOpenDoor(const Wall& wall) const {
         if (wall.Type != WallType::Door || wall.HasFlag(WallFlag::DoorLocked))
             return false;
@@ -896,6 +899,9 @@ namespace Inferno {
     }
 
     float Player::GetShipVisibility() const {
+        if (_headlight != HeadlightState::Off) 
+            return 1.0f; // fully visible when headlight is on!
+
         if (auto player = Game::Level.TryGetObject(Reference)) {
             auto lum = Luminance(player->Ambient.GetValue().ToVector3());
             lum = Saturate(lum - 0.1f); // Make slightly darker so dim segments are stealthy
