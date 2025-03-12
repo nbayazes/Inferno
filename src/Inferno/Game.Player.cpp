@@ -493,7 +493,6 @@ namespace Inferno {
 
         auto id = GetPrimaryWeaponID(Primary);
         auto& weapon = Resources::GetWeapon(id);
-        PrimaryDelay = GetPrimaryFireDelay();
         auto& battery = Ship.Weapons[(int)Primary];
 
         // Charged weapons drain energy on button down instead of here
@@ -506,6 +505,7 @@ namespace Inferno {
         auto& sequence = battery.Firing;
         if (FiringIndex >= battery.FiringCount) FiringIndex = 0;
 
+        PrimaryDelay = GetPrimaryFireDelay();
         auto& player = Game::GetPlayerObject();
 
         // count the active gunpoints to reduce the volume of the fired shots so after they are averaged it's not too loud
