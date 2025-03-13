@@ -262,22 +262,6 @@ namespace Inferno {
             player.ToggleHeadlight();
     }
 
-    //bool CheckPhotoMode() {
-    //    auto state = Game::GetState();
-
-    //    // todo: this should be a real game action
-    //    // Photo mode
-    //    //if (Input::OnKeyPressed(Keys::OemTilde) && Input::AltDown && (state == GameState::Game || state == GameState::PhotoMode)) {
-    //    //    Game::SetState(state == GameState::PhotoMode ? GameState::Game : GameState::PhotoMode);
-    //    //    return true;
-    //    //}
-
-    //    if (Input::MenuActions.IsSet(MenuAction::Cancel))
-    //        Game::SetState(GameState::Game); // Photo mode should only be activated from within game
-
-    //    return false;
-    //}
-
     void HandleFixedUpdateInput(float /*dt*/) {
         bool firePrimary = false;
         bool fireSecondary = false;
@@ -442,14 +426,13 @@ namespace Inferno {
                 return;
 
             case GameState::PhotoMode:
-                //CheckPhotoMode();
+                if (Input::MenuActions.IsSet(MenuAction::Cancel) || Game::Bindings.Pressed(GameAction::Pause))
+                    Game::SetState(GameState::Game); // Photo mode should only be activated from within game
+
                 GenericCameraController(Game::MainCamera, 90);
                 break;
 
             case GameState::Game:
-                //if (CheckPhotoMode())
-                //    return; // return early so other hotkeys don't get executed
-
                 if (Game::Bindings.Pressed(GameAction::Automap)) {
                     Game::SetState(GameState::Automap);
                 }
