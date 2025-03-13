@@ -354,10 +354,10 @@ namespace Inferno {
         if (RobotScore > 80'000) {
             Threat = "threat: extreme";
         }
-        if (RobotScore > 60'000) {
+        else if (RobotScore > 60'000) {
             Threat = "threat: high";
         }
-        if (RobotScore > 40'000) {
+        else if (RobotScore > 40'000) {
             Threat = "threat: moderate";
         }
         else if (RobotScore > 20'000) {
