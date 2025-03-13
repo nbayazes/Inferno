@@ -109,9 +109,8 @@ namespace Inferno {
     }
 
     SubmodelRef GetGunpointSubmodelOffset(const Object& obj, uint8 gun) {
-        gun = std::clamp(gun, (uint8)0, MAX_GUNS);
-
         if (obj.Type == ObjectType::Robot) {
+            gun = std::clamp(gun, (uint8)0, MAX_GUNS);
             auto& robot = Resources::GetRobotInfo(obj.ID);
             auto& gunpoint = robot.GunPoints[gun];
 
@@ -124,12 +123,17 @@ namespace Inferno {
         }
 
         if (obj.Type == ObjectType::Player || obj.Type == ObjectType::Coop) {
+            if (!Seq::inRange(Resources::GameData.PlayerShip.Gunpoints, gun))
+                return { .id = 0, .offset = Vector3::Zero };
+
             auto& gunpoint = Resources::GameData.PlayerShip.Gunpoints[gun];
             return { 0, gunpoint };
         }
 
         if (obj.Type == ObjectType::Reactor) {
-            if (!Seq::inRange(Resources::GameData.Reactors, obj.ID)) return { .id = 0, .offset = Vector3::Zero };
+            if (!Seq::inRange(Resources::GameData.Reactors, obj.ID))
+                return { .id = 0, .offset = Vector3::Zero };
+
             auto& reactor = Resources::GameData.Reactors[obj.ID];
             return { 0, reactor.GunPoints[gun] };
         }

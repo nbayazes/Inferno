@@ -43,7 +43,8 @@ namespace Inferno {
     template <typename... Args>
     void Chat(const Object& robot, const string_view fmt, Args&... args) {
         string message = fmt::vformat(fmt, fmt::make_format_args(args...));
-        fmt::println("{:6.2f}  DRONE {}: {}", Game::Time, robot.Signature, message);
+        auto& info = Resources::GetRobotInfo(robot);
+        fmt::println("{:6.2f}  {} {}: {}", Game::Time, info.Name, robot.Signature, message);
     }
 
     void ResetAI() {
@@ -147,6 +148,7 @@ namespace Inferno {
         if (robotInfo.IsBoss) return; // Bosses handle sound differently
         ai.CombatSoundTimer = 2 + Random() * 2;
         Sound3D sound(robotInfo.SeeSound);
+        sound.Volume = 1.15f;
         sound.Radius = AI_SOUND_RADIUS;
         Sound::PlayFrom(sound, robot);
     }
@@ -245,7 +247,7 @@ namespace Inferno {
 
                         auto dist = Vector3::Distance(obj->Position, source.Position);
                         if (dist > radius) continue;
-                        auto random = 1 + RandomN11() * 0.25f; // Add some variance so robots in a room don't all wake up at same time
+                        auto random = 0.25f + Random() * 0.5; // Add some variance so robots in a room don't all wake up at same time
                         auto& ai = GetAI(*obj);
                         if (ai.State == AIState::Idle || ai.State == AIState::Alert || ai.State == AIState::Roam) {
                             if (ai.State == AIState::Idle) {
@@ -549,10 +551,10 @@ namespace Inferno {
         else {
             // check if gunpoint is inside a wall before firing
             //if (!GunpointIntersectsWall(robot, gun)) {
-        // Fire the weapon
-        Game::FireWeaponInfo info = { .id = weaponId, .gun = gun, .customDir = &targetDir };
-        Game::FireWeapon(robot, info);
-        Game::PlayWeaponSound(weaponId, weapon.Extended.FireVolume, robot, gun);
+            // Fire the weapon
+            Game::FireWeaponInfo info = { .id = weaponId, .gun = gun, .customDir = &targetDir };
+            Game::FireWeapon(robot, info);
+            Game::PlayWeaponSound(weaponId, weapon.Extended.FireVolume, robot, gun);
         }
 
         if (primary)
@@ -1899,6 +1901,7 @@ namespace Inferno {
                 auto weapon = robot.Control.AI.SmartMineFlag() ? WeaponID::SmartMine : WeaponID::ProxMine;
                 Game::FireWeaponInfo info = { .id = weapon, .gun = 0, .showFlash = false };
                 Game::FireWeapon(robot, info);
+                Game::PlayWeaponSound(weapon, 1, robot, 0);
                 ai.FireDelay = AI_MINE_LAYER_DELAY;
             }
 

@@ -650,14 +650,14 @@ namespace Inferno::Render {
             EnableProcedural(id);
 
         if (auto exit = Seq::tryItem(Resources::GameData.Models, (int)Resources::GameData.ExitModel)) {
-            for (size_t i = 0; i < exit->TextureCount; i++) {
+            for (int16 i = 0; i < exit->TextureCount; i++) {
                 auto texid = Resources::LookupModelTexID(*exit, i);
                 ids.insert(texid);
             }
         }
 
         if (auto exit = Seq::tryItem(Resources::GameData.Models, (int)Resources::GameData.DestroyedExitModel)) {
-            for (size_t i = 0; i < exit->TextureCount; i++) {
+            for (int16 i = 0; i < exit->TextureCount; i++) {
                 auto texid = Resources::LookupModelTexID(*exit, i);
                 ids.insert(texid);
             }
