@@ -551,13 +551,20 @@ namespace Inferno::Game {
     void PlayLevelMusic() {
         auto flags = LoadFlag::Default | GetLevelLoadFlag(Game::Level);
 
-        // Determine the correct song to play based on the level number
-        auto sng = Resources::ReadTextFile("descent.sng", flags);
+        auto sng = Resources::ReadTextFile("descent.sng", GetLevelLoadFlag(Game::Level) | LoadFlag::Dxa);
+
+        if (sng.empty())
+            sng = Resources::ReadTextFile("descent.sng", LoadFlag::Mission);
+
+        if (sng.empty())
+            sng = Resources::ReadTextFile("descent.sng", GetLevelLoadFlag(Game::Level) | LoadFlag::BaseHog);
+
         if (sng.empty()) {
             SPDLOG_WARN("No SNG file found!");
             return;
         }
 
+        // Determine the correct song to play based on the level number
         auto songs = ParseSng(sng);
 
         constexpr uint FirstLevelSong = 5;
