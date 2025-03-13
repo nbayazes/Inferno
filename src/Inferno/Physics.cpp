@@ -1056,9 +1056,11 @@ namespace Inferno {
 
                     float hitSpeed = 0;
                     if (hitDistance < -.5f && hitDistance > -obj.Radius) {
+                        // Reposition objects stuck in a wall to the surface.
+                        // Offset is necessary so bombs don't slide around.
                         //if (obj.Type != ObjectType::Debris)
                         //    SPDLOG_WARN("Moved object {} to wall surface", Game::GetObjectRef(obj).Id);
-                        obj.Position = hitPoint + hitNormal * obj.Radius;
+                        obj.Position = hitPoint + hitNormal * (obj.Radius + 0.1f);
                     }
 
                     if (hitDistance < obj.Radius + 0.001f) {
@@ -1415,6 +1417,7 @@ namespace Inferno {
                     if (obj.Type == ObjectType::Weapon)
                         obj.Rotation = Matrix3x3(obj.Physics.Velocity, obj.Rotation.Up());
 
+                    obj.Position += hit.Normal * 0.1f; // Move object off of collision surface
                     obj.Physics.Bounces--;
                 }
 

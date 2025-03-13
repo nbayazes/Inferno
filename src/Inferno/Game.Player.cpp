@@ -899,7 +899,7 @@ namespace Inferno {
     }
 
     float Player::GetShipVisibility() const {
-        if (_headlight != HeadlightState::Off) 
+        if (_headlight != HeadlightState::Off)
             return 1.0f; // fully visible when headlight is on!
 
         if (auto player = Game::Level.TryGetObject(Reference)) {

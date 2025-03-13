@@ -23,8 +23,8 @@ namespace Inferno {
     constexpr float SLOWMO_MIN_CHARGE = 0.5f; // Time before slowmo starts on fusion
     constexpr float SLOWMO_DOWN_RATE = 0.4f; // How fast time slows down (u/s)
     constexpr float SLOWMO_UP_RATE = 1.0f; // How fast time speeds up (u/s)
-    constexpr int8 FLARE_GUN_ID = 6;
-    constexpr int BOMB_GUN_ID = 7;
+    constexpr uint8 FLARE_GUN_ID = 6;
+    constexpr uint8 BOMB_GUN_ID = 7;
     constexpr auto HEADLIGHT_OFF_SOUND = "switch2";
     constexpr auto HEADLIGHT_ON_SOUND = "switch";
 
