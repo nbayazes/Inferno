@@ -42,9 +42,9 @@ TextureCube Environment : register(t15);
 static const float PIDIV2 = PI / 2;
 static const float GAME_UNIT = 20; // value of 1 UV tiling in game units
 
-static const float DIRECT_LIGHT_MULT = 1.1; // Multiplier on direct (dynamic) lighting
+static const float DIRECT_LIGHT_MULT = 1.3; // Multiplier on direct (dynamic) lighting
 static const float EMISSIVE_MULT = 1; // Multiplier on emissive lighting
-static const float AMBIENT_MULT = 1; // Multiplier on ambient (baked static) lighting
+static const float AMBIENT_MULT = 0.6; // Multiplier on ambient (baked static) lighting
 
 struct InstanceConstants {
     float2 Scroll, Scroll2; // base and decal scrolling
@@ -248,8 +248,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
     else {
         float3 normal = SampleNormal(Normal1, uvs, Sampler, Frame.FilterMode);
 
-        //if (normal.z == 0)
-        //normal.z = sqrt(1 - saturate(dot(normal.xy, normal.xy)));
         MaterialInfo material = Materials[Args.Tex1];
         normal.xy *= material.NormalStrength;
         normal = normalize(normal);
@@ -257,7 +255,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
         // align normals
         float3x3 tbn = float3x3(input.tangent, input.bitangent, input.normal);
         normal = normalize(mul(normal, tbn));
-        //return float4((input.normal + 1) * 0.5f, 1);
         //return ApplyLinearFog(base * lighting, input.pos, 10, 500, float4(0.25, 0.35, 0.75, 1));
 
         //material.SpecularStrength *= 1 + material.Metalness * 2;
@@ -313,7 +310,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         ShadeLights(directLight, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
 
         // allow light contribution to fullbright, otherwise lava looks odd
-        lighting += directLight * (fullbright ? 1 : material.LightReceived) * DIRECT_LIGHT_MULT;
+        lighting += directLight * (fullbright ? 0.5 : material.LightReceived) * DIRECT_LIGHT_MULT;
 
 
         //specularAmbient *= material.SpecularStrength * material.LightReceived;
@@ -343,7 +340,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
             float3 highlight = diffuse.rgb * material.LightReceived * material.SpecularStrength * material.Metalness
                                * specularAmbient * material.SpecularColor.rgb * material.SpecularColor.a;
 
-            lighting += max(env * highlight * .5, 0); // cubemap highlight
+            lighting += max(env * highlight, 0); // cubemap highlight
 
             // make metal surfaces parallel to the camera brighter. they look oddly dark otherwise.
             // fakes GI from ambient.

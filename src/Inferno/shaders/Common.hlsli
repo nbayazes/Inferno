@@ -52,7 +52,7 @@ static const int FILTER_SMOOTH = 2;
 //}
 
 //float2 UnpackFloats(uint packed) {
-    
+
 //    return float2(Fix16ToFloat(min16int(packed >> 16)), Fix16ToFloat(min16int(packed & 0xFFFF)));
 //}
 
@@ -68,8 +68,8 @@ float4 Sample2D(Texture2D tex, float2 uv, SamplerState texSampler, int filterMod
     float width, height;
     tex.GetDimensions(width, height);
     float2 texsize = float2(width, height); // 64x64
-    float2 uvTex = uv * texsize;            // 0.1 * 64 -> 6.4
-    float2 seam = floor(uvTex + .5);        // 6.4 + .5 -> 6
+    float2 uvTex = uv * texsize; // 0.1 * 64 -> 6.4
+    float2 seam = floor(uvTex + .5); // 6.4 + .5 -> 6
     uvTex = (uvTex - seam) / fwidth(uvTex) + seam;
 
     uvTex = clamp(uvTex, seam - .5, seam + .5);
@@ -78,9 +78,36 @@ float4 Sample2D(Texture2D tex, float2 uv, SamplerState texSampler, int filterMod
 }
 
 float3 SampleNormal(Texture2D tex, float2 uv, SamplerState texSampler, int filterMode) {
-    return clamp(Sample2D(tex, uv, texSampler, filterMode).rgb * 2 - 1, -1, 1);
-    // AA sampling causes artifacts on sharp highlights when using AA mode. Use plain point sampling instead.
-    return clamp(tex.Sample(texSampler, uv).rgb * 2 - 1, -1, 1);
+    float3 color;
+
+    if (filterMode == FILTER_POINT) {
+        color = tex.SampleLevel(texSampler, uv, 0).rgb; // always use biggest LOD in point mode
+    }
+    else if (filterMode == FILTER_SMOOTH) {
+        color = tex.Sample(texSampler, uv).rgb; // Normal filtering for smooth mode
+    }
+    else {
+        // Point samples a texture with anti-aliasing along the pixel edges
+        // https://www.shadertoy.com/view/csX3RH
+        float width, height;
+        tex.GetDimensions(width, height);
+        float2 texsize = float2(width, height); // 64x64
+        float2 uvTex = uv * texsize; // 0.1 * 64 -> 6.4
+        float2 seam = floor(uvTex + .5); // 6.4 + .5 -> 6
+        //seam.x = uvTex.x > 0.5 ? floor(uvTex.x - .125 / 2) : ceil(uvTex.x + .125 / 2);
+        //seam.y = uvTex.y > 0.5 ? floor(uvTex.y - .125 / 2) : ceil(uvTex.y + .125 / 2);
+        uvTex = (uvTex - seam) / (1.5 * fwidth(uvTex)) + seam;
+        uvTex = clamp(uvTex, seam - .5, seam + .5);
+        //uvTex = clamp(uvTex, seam, seam + .25);
+        color = tex.SampleBias(texSampler, uvTex / texsize, -1).rgb; // Negative LOD bias reduces artifacting at low res
+        //return color;
+    }
+
+    //color = Sample2D(tex, uv, texSampler, filterMode);
+
+    float3 normal = clamp(color.rgb * 2 - 1, -1, 1); // expand
+    normal.z = sqrt(1 - saturate(dot(normal.xy, normal.xy))); // convert mustard normals (no blue channel)
+    return normal;
 }
 
 // 'rotated disco' sampling

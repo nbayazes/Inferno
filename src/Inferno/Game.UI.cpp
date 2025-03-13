@@ -460,7 +460,7 @@ namespace Inferno::UI {
     void ShowDifficultySelect(MissionInfo& mission, int& level, DifficultyLevel& difficulty) {
         auto screen = ShowScreen(make_unique<DifficultyDialog>(difficulty));
 
-        screen->CloseCallback = [&mission, difficulty, level](CloseState state) {
+        screen->CloseCallback = [&mission, &difficulty, level](CloseState state) {
             if (state == CloseState::Accept) {
                 Game::StartMission();
                 Game::Difficulty = difficulty;
