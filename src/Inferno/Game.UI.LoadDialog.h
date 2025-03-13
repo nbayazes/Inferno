@@ -21,7 +21,15 @@ namespace Inferno::UI {
             Padding = Vector2(SMALL_CONTROL_HEIGHT / 2, SMALL_CONTROL_HEIGHT / 2);
             ActionSound = MENU_SELECT_SOUND;
 
-            _playTime = fmt::format("play time: {:02}:{:02}", int(_save.totalTime) / 60, int(_save.totalTime) % 60);
+            auto time = _save.totalTime;
+            auto hours = int(time / 3600);
+            time -= hours * 3600;
+
+            if (hours > 0)
+                _playTime = fmt::format("play time: {}:{:02}:{:02}", hours, int(time) / 60, int(time) % 60);
+            else
+                _playTime = fmt::format("play time: {:02}:{:02}", int(time) / 60, int(time) % 60);
+
             auto size = MeasureString(_playTime, FontSize::Small);
             _playTimeWidth = size.x;
             _fontHeight = size.y;
