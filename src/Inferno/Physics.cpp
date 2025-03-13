@@ -1276,7 +1276,7 @@ namespace Inferno {
     // Applies damage and play a sound if object velocity changes suddenly
     void CheckForImpact(Object& obj, const LevelHit& hit, const LevelTexture* ti = nullptr) {
         constexpr float DAMAGE_SCALE = 128;
-        constexpr float DAMAGE_THRESHOLD = 0.333f;
+        constexpr float DAMAGE_THRESHOLD = 0.35f;
         auto deltaSpeed = obj.Physics.Velocity.Length() - obj.Physics.PrevVelocity.Length();
         bool isForceField = ti && ti->IsForceField();
 
