@@ -112,4 +112,8 @@ namespace Inferno {
 
     // Teleports an object to a new segment
     void TeleportObject(Object& obj, SegID segid, const Vector3* position = nullptr, const Matrix3x3* rotation = nullptr, bool resetPhysics = true);
+
+    // Returns true if the gunpoint is outside of the level.
+    // distBuffer adds extra distance to the intersection range check
+    bool GunpointIntersectsWall(const Object& obj, int8 gunpoint, float distBuffer = 0.5f);
 }

@@ -1282,4 +1282,22 @@ namespace Inferno {
         SPDLOG_INFO("Teleporting object {} to segment {}", obj.Signature, segid);
         RelinkObject(Game::Level, obj, segid);
     }
+
+    bool GunpointIntersectsWall(const Object& obj, int8 gunpoint, float distBuffer) {
+        auto gunSubmodel = GetGunpointSubmodelOffset(obj, gunpoint);
+        auto objOffset = GetSubmodelOffset(obj, gunSubmodel);
+        auto position = Vector3::Transform(objOffset, obj.GetTransform());
+
+        auto dir = position - obj.Position;
+        auto dist = dir.Length();
+        dir.Normalize();
+
+        if (dist < 0.01f) return false;
+        Ray ray(obj.Position, dir);
+        LevelHit hit;
+        RayQuery query;
+        query.MaxDistance = dist + distBuffer;
+        query.Start = obj.Segment;
+        return Game::Intersect.RayLevel(ray, query, hit);
+    }
 }

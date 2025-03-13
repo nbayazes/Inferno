@@ -543,10 +543,17 @@ namespace Inferno {
             target = gunPosition + forward * 20;
         }
 
+        if (GunpointIntersectsWall(robot, gun)) {
+            //SPDLOG_INFO("Gun intersects!");
+        }
+        else {
+            // check if gunpoint is inside a wall before firing
+            //if (!GunpointIntersectsWall(robot, gun)) {
         // Fire the weapon
         Game::FireWeaponInfo info = { .id = weaponId, .gun = gun, .customDir = &targetDir };
         Game::FireWeapon(robot, info);
         Game::PlayWeaponSound(weaponId, weapon.Extended.FireVolume, robot, gun);
+        }
 
         if (primary)
             CycleGunpoint(robot, ai, robotInfo);
