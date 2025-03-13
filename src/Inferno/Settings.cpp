@@ -840,8 +840,15 @@ namespace Inferno {
 
     void Settings::Load(const filesystem::path& path) {
         try {
+            if (!filesystem::exists(path)) {
+                // Use default bindings
+                SPDLOG_INFO("Using default bindings");
+                ResetKeyboardBindings(Game::Bindings.GetKeyboard());
+                ResetMouseBindings(Game::Bindings.GetMouse());
+                return;
+            }
+
             std::ifstream file(path);
-            if (!file) return;
 
             SPDLOG_INFO("Loading settings from {}", path.string());
 
