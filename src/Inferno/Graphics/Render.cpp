@@ -178,12 +178,7 @@ namespace Inferno::Render {
         StaticTextures->Missing.AddShaderResourceView();
 
         try {
-            if (!filesystem::exists("tony_mc_mapface.dds")) {
-                SPDLOG_ERROR("tony_mc_mapface.dds not found");
-            }
-            else {
-                ToneMapping->LoadResources(batch);
-            }
+            ToneMapping->LoadResources(batch);
         }
         catch (const std::exception& e) {
             SPDLOG_ERROR(e.what());
