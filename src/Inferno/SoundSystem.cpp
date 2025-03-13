@@ -442,12 +442,6 @@ namespace Inferno::Sound {
         void SetEffectVolume(float volume) {
             std::scoped_lock lock(_threadMutex);
             _effectVolume = volume;
-
-            // Update playing effects
-            for (auto& instance : _soundInstances) {
-                auto amplitude = VolumeToAmplitudeRatio(instance.Info.Sound.Volume * volume, DEFAULT_SILENCE);
-                instance.Effect->SetVolume(amplitude);
-            }
         }
 
         void SetMasterVolume(float volume) {
