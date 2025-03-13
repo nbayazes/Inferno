@@ -492,29 +492,30 @@ namespace Inferno::Resources {
             }
 
             SPDLOG_INFO("Loading Descent 1 data");
-            auto hogPath = FileSystem::TryFindFile("descent.hog");
-            auto pigPath = FileSystem::TryFindFile("descent.pig");
 
-            if (!hogPath) {
+            const auto hogPath = D1_FOLDER / "descent.hog";
+            const auto pigPath = D1_FOLDER / "descent.pig";
+
+            if (!filesystem::exists(hogPath)) {
                 SPDLOG_WARN("descent.hog not found");
                 return false;
             }
 
-            if (!pigPath) {
+            if (!filesystem::exists(pigPath)) {
                 SPDLOG_WARN("descent.pig not found");
                 return false;
             }
 
-            auto hog = HogFile::Read(*hogPath);
+            auto hog = HogFile::Read(hogPath);
             auto paletteData = hog.ReadEntry("palette.256");
             auto palette = ReadPalette(paletteData);
-            auto pigData = File::ReadAllBytes(*pigPath);
+            auto pigData = File::ReadAllBytes(pigPath);
 
             PigFile pig;
             SoundFile sounds;
 
             auto ham = ReadDescent1GameData(pigData, palette, pig, sounds);
-            sounds.Path = pig.Path = *pigPath;
+            sounds.Path = pig.Path = pigPath;
 
             if (Inferno::Settings::Inferno.UseTextureCaching) {
                 WriteTextureCache(ham, pig, palette, D1_CACHE);
@@ -1397,7 +1398,7 @@ namespace Inferno::Resources {
     }
 
     bool FoundDescent1() {
-        return FileSystem::TryFindFile("descent.hog").has_value();
+        return filesystem::exists(D1_FOLDER / "descent.hog");
     }
 
     bool FoundDescent1Demo() {
@@ -1405,7 +1406,7 @@ namespace Inferno::Resources {
     }
 
     bool FoundDescent2() {
-        return FileSystem::TryFindFile("descent2.hog").has_value();
+        return filesystem::exists(D2_FOLDER / "descent2.hog");
     }
 
     bool FoundDescent3() {
