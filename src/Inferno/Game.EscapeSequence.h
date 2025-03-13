@@ -15,7 +15,7 @@ namespace Inferno {
     void StopEscapeSequence();
     void DebugEscapeSequence();
 
-    void CreateEscapePath(Level& level, TerrainInfo& info);
+    bool CreateEscapePath(Level& level, TerrainInfo& info);
 
     TerrainInfo ParseEscapeInfo(Level& level, span<string> lines);
 

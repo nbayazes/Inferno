@@ -55,15 +55,22 @@ namespace Inferno {
     //    while (State.PathIndex < State.Path.size()) {}
     //}
 
-    void CreateEscapePath(Level& level, TerrainInfo& info) {
+    bool CreateEscapePath(Level& level, TerrainInfo& info) {
         // Find exit tunnel start
         auto curSeg = FindExit(level);
-        if (!curSeg) return;
+        if (!curSeg) return false;
 
         auto& points = info.EscapePath;
         bool foundSurface = false;
+        int iter = 0;
 
         while (curSeg) {
+            if (iter++ > 1000) {
+                // Likely a poorly formed exit
+                points.clear();
+                return false;
+            }
+
             if (auto cside = level.GetConnectedSide(curSeg)) {
                 auto [seg, side] = level.GetSegmentAndSide(cside);
                 auto opp = GetOppositeSide(cside);
@@ -115,7 +122,7 @@ namespace Inferno {
         }
 
         if (!foundSurface) points.clear();
-        if (points.empty()) return;
+        if (points.empty()) return false;
 
         info.SurfacePathIndex = (int)points.size() - 1;
 
@@ -146,6 +153,7 @@ namespace Inferno {
 
         ASSERT(Seq::inRange(points, info.SurfacePathIndex));
         info.LookbackPathIndex = info.SurfacePathIndex / 3;
+        return true;
     }
 
     TerrainInfo CreateRandomTerrain(Level& level) {
@@ -583,7 +591,12 @@ namespace Inferno {
         if (!exit) return;
 
         if (Game::Terrain.EscapePath.empty()) {
-            CreateEscapePath(Game::Level, Game::Terrain);
+            if (!CreateEscapePath(Game::Level, Game::Terrain)) {
+                SPDLOG_WARN("Unable to create escape path, skipping to score screen");
+                Game::SetState(GameState::ScoreScreen);
+                Sound::StopMusic();
+                return;
+            }
         }
 
         Game::Level.Terrain.VolumeLight = Color(.90f, 0.90f, 1.0f, 3);
