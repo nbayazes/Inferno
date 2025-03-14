@@ -872,17 +872,14 @@ namespace Inferno::Render {
             lightColor = Color::Lerp(Color(0, 0, 0), lightColor, t);
         }
 
-        if (Info.Mode == DynamicLightMode::Flicker || Info.Mode == DynamicLightMode::StrongFlicker) {
-            //constexpr float FLICKER_INTERVAL = 15; // hz
-            //float interval = std::floor(Render::ElapsedTime * FLICKER_INTERVAL + (float)obj.Signature * 0.1747f) / FLICKER_INTERVAL;
-            const float flickerSpeed = Info.Mode == DynamicLightMode::Flicker ? 4.0f : 6.0f;
-            const float flickerRadius = Info.Mode == DynamicLightMode::Flicker ? 0.03f : 0.04f;
-            // slightly randomize the radius and brightness on an interval
-            auto noise = OpenSimplex2::Noise2((int)id, Game::Time * flickerSpeed, 0);
-            lightRadius += lightRadius * noise * flickerRadius;
-
-            if (Info.Mode == DynamicLightMode::StrongFlicker)
-                lightColor *= 1 + noise * 0.025f;
+        if (Info.Mode == DynamicLightMode::Flicker || Info.Mode == DynamicLightMode::StrongFlicker || Info.Mode == DynamicLightMode::WeakFlicker) {
+            int index = Info.Mode == DynamicLightMode::WeakFlicker ? 0 : Info.Mode == DynamicLightMode::Flicker ? 1 : 2;
+            float flickerSpeeds[] = { 1.2f, 1.9f, 3.5f };
+            float mults[] = { .35f, .5f, .65f }; // how much to dim
+            auto noise = OpenSimplex2::Noise2((int)id, Game::Time * flickerSpeeds[index], 0);
+            auto t = 1.0f - abs(noise * noise * noise - .05f) * mults[index] * (Game::ControlCenterDestroyed ? 2 : 1);
+            lightColor.w *= t;
+            //lightRadius += lightRadius * noise * flickerRadius;
         }
         else if (Info.Mode == DynamicLightMode::Pulse) {
             float t = sinf((float)Game::Time * 3.14f * 0.625f + (float)id * 0.1747f);

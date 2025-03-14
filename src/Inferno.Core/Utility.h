@@ -173,8 +173,8 @@ namespace Inferno {
 
     inline bool VectorNear(const Vector3& v1, const Vector3& v2, float epsilon) {
         return ((abs(v1.x - v2.x) <= epsilon) &&
-            (abs(v1.y - v2.y) <= epsilon) &&
-            (abs(v1.z - v2.z) <= epsilon));
+                (abs(v1.y - v2.y) <= epsilon) &&
+                (abs(v1.z - v2.z) <= epsilon));
         //return XMVector2NearEqual(a, b, { epsilon, epsilon, epsilon });
     }
 
@@ -996,6 +996,17 @@ namespace Inferno {
         ScopedBool& operator=(const ScopedBool&) = delete;
         ScopedBool& operator=(ScopedBool&&) = default;
     };
+
+    // Formats time in seconds into h:mm:ss or mm:ss
+    inline string FormatDisplayTime(double time) {
+        auto hours = int(time / 3600);
+        time -= hours * 3600;
+
+        if (hours > 0)
+            return fmt::format("{}:{:02}:{:02}", hours, int(time) / 60, int(time) % 60);
+        else
+            return fmt::format("{}:{:02}", int(time) / 60, int(time) % 60);
+    }
 
     // Asserts single threaded access of this scope
 #define ASSERT_STA() static std::atomic staGuard = false; ASSERT(!staGuard); ScopedBool staScope(staGuard);

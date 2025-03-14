@@ -483,12 +483,9 @@ namespace Inferno::Game {
         InitLevel(std::move(level));
 
         if (!info.EditorLoad) {
+            Game::Player.stats.StartLevel();
             // Autosaves need updated stats before the next level is fully loaded
-            Game::Player.TotalTime += Game::Player.LevelTime;
-            Game::Player.LevelTime = 0;
-            Game::Player.Stats.TotalKills += Game::Player.Stats.Kills;
-            Game::Player.Stats.Kills = 0;
-            SPDLOG_INFO("Updating total played time to {}", Game::Player.TotalTime);
+            SPDLOG_INFO("Updating total played time to {}", Game::Player.stats.totalTime);
         }
 
         if (info.Autosave)

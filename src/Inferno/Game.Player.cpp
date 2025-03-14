@@ -46,6 +46,11 @@ namespace Inferno {
             float oldCount = AfterburnerCharge / USE_SPEED;
             AfterburnerCharge -= dt / AFTERBURNER_USE_SECS;
 
+            if (AfterburnerCharge > 0 && _nextAfterburnerAlertTime < Game::Time) {
+                AlertRobotsOfNoise(Game::GetPlayerObject(), Game::PLAYER_AFTERBURNER_SOUND_RADIUS, 0.45f);
+                _nextAfterburnerAlertTime = Game::Time + 0.25f; // Alert every 0.25 seconds
+            }
+
             if (AfterburnerCharge < 0) AfterburnerCharge = 0;
             float count = AfterburnerCharge / USE_SPEED;
 
@@ -53,7 +58,7 @@ namespace Inferno {
             thrust = 1 + std::min(0.5f, AfterburnerCharge) * 2; // Falloff from 2 under 50% charge
         }
         else if (AfterburnerCharge < 1) {
-            const float rechargeTime = HasPowerup(PowerupFlag::Afterburner) ? 4 : 8; // halve recharge time with afterburner cooler
+            const float rechargeTime = HasPowerup(PowerupFlag::Afterburner) ? 4.0f : 8.0f; // halve recharge time with afterburner cooler
             float chargeUp = std::min(dt / rechargeTime, 1 - AfterburnerCharge);
             float energy = std::max(Energy - 10, 0.0f); // don't drop below 10 energy
             chargeUp = std::min(chargeUp, energy / 10); // limit charge if <= 10 energy
@@ -101,6 +106,7 @@ namespace Inferno {
             SoundResource resource{ AFTERBURNER_OFF_SOUND };
             Sound3D sound(resource);
             sound.Radius = 125;
+            sound.Volume = 1.2;
             Sound::PlayFrom(sound, Game::GetPlayerObject());
 
             StopEffect(_afterburnerEffect);
@@ -733,8 +739,8 @@ namespace Inferno {
     }
 
     void Player::LoseLife() {
-        LevelDeaths++;
-        HostagesOnboard = 0;
+        stats.deaths++;
+        stats.hostagesOnboard = 0;
 
         if (Lives > 0)
             Lives--;
@@ -811,11 +817,10 @@ namespace Inferno {
         }
 
         auto& player = Game::GetPlayerObject();
-        HostagesOnboard = 0;
+        stats.hostagesOnboard = 0;
         _prevAfterburnerCharge = AfterburnerCharge = 1;
         AfterburnerActive = false;
         WeaponCharge = 0;
-        KilledBy = {};
         HomingObjectDist = -1;
         IsDead = false;
         TimeDead = 0;
@@ -921,8 +926,8 @@ namespace Inferno {
     }
 
     float Player::GetShipVisibility() const {
-        if (_headlight != HeadlightState::Off)
-            return 1.0f; // fully visible when headlight is on!
+        if (_headlight != HeadlightState::Off || AfterburnerActive)
+            return 1.0f; // fully visible when headlight is on or using afterburner!
 
         if (auto player = Game::Level.TryGetObject(Reference)) {
             auto lum = Luminance(player->Ambient.GetValue().ToVector3());
@@ -1495,8 +1500,8 @@ namespace Inferno {
         if (obj.Type == ObjectType::Hostage) {
             obj.Lifespan = -1;
             Game::AddPointsToScore(Game::HOSTAGE_SCORE);
-            HostagesOnboard++;
-            HostagesRescued++;
+            stats.hostagesOnboard++;
+            stats.hostagesRescued++;
             PrintHudMessage("hostage rescued!");
             AddScreenFlash({ 0, 0, MAX_FLASH });
             Sound::Play2D({ SoundID::RescueHostage });

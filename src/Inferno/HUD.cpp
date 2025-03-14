@@ -754,7 +754,7 @@ namespace Inferno {
                 info.VerticalAlign = AlignV::Top;
                 info.Scanline = TEXT_SCANLINE;
                 info.Position = Vector2(-5, 5);
-                auto score = fmt::format("score: {:5}", player.Score);
+                auto score = fmt::format("score: {:5}", player.stats.score);
                 UseWide1Char(score);
                 Render::HudCanvas->DrawText(score, info);
 

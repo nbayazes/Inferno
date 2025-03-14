@@ -113,10 +113,10 @@ namespace Inferno {
             }
 
             string message;
-            if (state.HostagesOnboard > 1) {
-                message = fmt::format("Ship destroyed, {} hostages lost!", state.HostagesOnboard);
+            if (state.stats.hostagesOnboard > 1) {
+                message = fmt::format("Ship destroyed, {} hostages lost!", state.stats.hostagesOnboard);
             }
-            else if (state.HostagesOnboard == 1) {
+            else if (state.stats.hostagesOnboard == 1) {
                 message = "ship destroyed, 1 hostage lost!";
             }
             else {

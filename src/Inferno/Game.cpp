@@ -60,6 +60,9 @@ namespace Inferno::Game {
         return !Settings::Cheats.DisableAI && Game::GetState() == GameState::Game;
     }
 
+    // Removes all objects contained in a segment
+    void RemoveObjectsFromSegment(SegID tag);
+
     bool StartLevel();
     bool HasPendingLoad();
 
@@ -102,13 +105,13 @@ namespace Inferno::Game {
     }
 
     uint8 AddPointsToScore(int points) {
-        auto score = Player.Score;
+        auto score = Player.stats.score;
 
-        Player.Score += points;
+        Player.stats.score += points;
         AddPointsToHUD(points);
 
         // This doesn't account for negative scoring (which never happens in D2)
-        auto lives = Player.Score / EXTRA_LIFE_POINTS - score / EXTRA_LIFE_POINTS;
+        auto lives = Player.stats.score / EXTRA_LIFE_POINTS - score / EXTRA_LIFE_POINTS;
         if (lives < 0) lives = 0;
 
         if (lives > 0) {
@@ -128,6 +131,19 @@ namespace Inferno::Game {
 
     void PlayMainMenuMusic() {
         Game::PlayMusic("descent", LoadFlag::Default | LoadFlag::Descent1);
+    }
+
+    void WarpPlayerToExit() {
+        auto tag = FindExit(Game::Level);
+
+        if (auto seg = Game::Level.TryGetSegment(tag)) {
+            RemoveObjectsFromSegment(tag.Segment);
+
+            auto rotation = VectorToRotation(seg->GetSide(tag.Side).AverageNormal, GetPlayerObject().Rotation.Up());
+            //rotation.Forward(rotation.Backward()); // ugh, reversed z on objects
+            //rotation *= Matrix::CreateFromAxisAngle(rotation.Up(), XM_PI);
+            TeleportObject(GetPlayerObject(), tag.Segment, &seg->Center, &rotation);
+        }
     }
 
     void UpdateEffects(Object& obj, float dt) {
@@ -346,92 +362,6 @@ namespace Inferno::Game {
         Game::GlobalDimming = 1; // Clear dimming
     }
 
-    UI::ScoreInfo CalculateEndLevelScore(int /*levelNumber*/, uint totalHostages) {
-        //if (level.Version != 0) {
-        //    return {
-        //        .LevelName = "PLACEHOLDER LEVEL",
-        //        .LevelNumber = 1,
-        //        .Difficulty = Game::Difficulty,
-        //        .Time = "0:00",
-        //        .Secrets = 3,
-        //        .SecretsFound = 1,
-        //        .RobotsDestroyed = 10,
-        //        .ShieldBonus = 1000,
-        //        .EnergyBonus = 1000,
-        //        .HostageBonus = 1000,
-        //        .FullRescue = true,
-        //        .SkillBonus = 0,
-        //        .TotalBonus = 3000,
-        //        .TotalScore = 53000,
-        //        .ExtraLives = 1
-        //    };
-        //}
-
-        // D2 fix for secret levels having negative numbers
-        //if (levelNumber < 0)
-        //    levelNumber *= -(levelCount / secretLevelCount);
-
-        auto finalLevel = IsFinalLevel();
-        auto& player = Game::Player;
-        auto difficulty = (int)Game::Difficulty;
-        auto levelPoints = player.Score - player.LevelStartScore;
-
-        UI::ScoreInfo score;
-        score.FinalLevel = finalLevel;
-
-        if (!Game::Cheater) {
-            if (difficulty > 1) {
-                if (Game::Level.IsDescent1())
-                    score.SkillBonus = levelPoints * (difficulty - 1) / 2; // D1 (0.5 to 1.5x)
-                else
-                    score.SkillBonus = levelPoints * difficulty / 4; // D2 (0.5 to 1x)
-
-                score.SkillBonus -= score.SkillBonus % 100; // round
-            }
-
-            // D2 uses level number for shield and energy bonus, D1 uses difficulty level
-            //score.ShieldBonus = (int)player.Shields * 5 * levelNumber;
-            //score.EnergyBonus = (int)player.Energy * 2 * levelNumber;
-            score.ShieldBonus = (int)player.Shields * 10 * (difficulty + 1);
-
-            // Remove energy bonus, it's kind of lame and rewards guass / backtracking to an energy center
-            //score.EnergyBonus = (int)player.Energy * 5 * (difficulty + 1);
-            //score.EnergyBonus = std::max((int)player.Energy - 100, 0) * 10 * (difficulty + 1);
-            score.HostageBonus = player.HostagesOnboard * 500 * (difficulty + 1);
-
-            score.ShieldBonus -= score.ShieldBonus % 50;
-            score.EnergyBonus -= score.EnergyBonus % 50;
-
-            if (player.HostagesOnboard == totalHostages) {
-                score.HostageBonus += player.HostagesOnboard * 1000 * (difficulty + 1);
-
-                score.FullRescue = true;
-            }
-
-            // Convert extra lives to points on the final level
-            if (finalLevel) {
-                score.ShipBonus = player.Lives * 10000;
-            }
-        }
-
-        score.Difficulty = Game::Difficulty;
-        score.TotalBonus = score.SkillBonus + score.EnergyBonus + score.ShieldBonus + score.HostageBonus + score.ShipBonus;
-        score.Deaths = Game::Player.LevelDeaths;
-        score.RobotsDestroyed = Game::Player.Stats.Kills;
-
-        string time = "0:00";
-        int minutes = (int)Game::Player.LevelTime / 60;
-        int seconds = (int)Game::Player.LevelTime % 60;
-        score.Time = fmt::format("{}:{:02}", minutes, seconds);
-
-        score.ExtraLives = Game::AddPointsToScore(score.TotalBonus);
-        // don't show extra lives on the final level (they were just removed for bonus points)
-        if (finalLevel) score.ExtraLives = 0;
-        score.TotalScore = Game::Player.Score;
-        score.LevelNumber = Game::LevelNumber;
-        score.LevelName = Game::Level.Name;
-        return score;
-    }
 
     // Changes the game state if a new one is requested
     void CheckGameStateChange() {
@@ -473,7 +403,7 @@ namespace Inferno::Game {
 
             case GameState::ScoreScreen:
             {
-                auto score = CalculateEndLevelScore(LevelNumber, Level.TotalHostages);
+                auto score = UI::ScoreInfo::Create(Level.TotalHostages);
                 UI::ShowScoreScreen(score, LoadSecretLevel);
                 Input::SetMouseMode(Input::MouseMode::Normal);
                 break;
@@ -695,7 +625,7 @@ namespace Inferno::Game {
         //if (State == GameState::Game || State == GameState::PauseMenu);
 
         if (Game::State == GameState::Game) {
-            Player.LevelTime += dt * Game::TimeScale;
+            Player.stats.time += dt * Game::TimeScale;
         }
 
         LegitProfiler::ProfilerTask update("Update game", LegitProfiler::Colors::CARROT);
@@ -1131,6 +1061,13 @@ namespace Inferno::Game {
         Graphics::LoadTextures(gameTextures);
     }
 
+    void RemoveObjectsFromSegment(SegID tag) {
+        auto& seg = Level.GetSegment(tag);
+
+        for (auto& obj : seg.Objects)
+            Editor::DeleteObject(Level, obj);
+    }
+
     bool StartLevel() {
         SPDLOG_INFO("Starting level");
         Editor::SetPlayerStartIDs(Level);
@@ -1142,10 +1079,8 @@ namespace Inferno::Game {
 
         if (Game::PlayingFromEditor) {
             if (Input::ControlDown && Level.SegmentExists(Editor::Selection.Segment)) {
-                auto& seg = Level.GetSegment(Editor::Selection.Segment);
                 // Remove any objects in the segment so the player doesn't get stuck in a robot
-                for (auto& obj : seg.Objects)
-                    Editor::DeleteObject(Level, obj);
+                RemoveObjectsFromSegment(Editor::Selection.Segment);
 
                 // Move player to selected segment if control is held down
                 Editor::Selection.Object = ObjID(0);
@@ -1165,7 +1100,6 @@ namespace Inferno::Game {
         Settings::Editor.ShowTerrain = false;
         Game::ScreenGlow.SetTarget(Color(0, 0, 0, 0), Game::Time, 0);
         Game::FailedEscape = false;
-        Game::Player.LevelDeaths = 0;
         Game::ScreenFlash = Color(0, 0, 0);
 
         // Activate game mode
@@ -1195,14 +1129,7 @@ namespace Inferno::Game {
         Player.SpawnPosition = player.Position;
         Player.SpawnRotation = player.Rotation;
         Player.SpawnSegment = player.Segment;
-        Player.Stats.HostagesOnLevel = 0;
-        Player.Stats.TotalKills += Player.Stats.Kills;
-        Player.Stats.Kills = 0;
-        Player.Stats.Robots = 0;
-        Player.HostagesOnboard = 0;
-        Player.HostagesRescued = 0;
 
-        Player.LevelStartScore = Player.Score;
         Player.TurnOffHeadlight(false);
 
         // Default the gravity direction to the player start
@@ -1236,7 +1163,7 @@ namespace Inferno::Game {
                 SetFlag(obj.Physics.Flags, PhysicsFlag::SphereCollidePlayer);
                 obj.NextThinkTime = 0.5f; // Help against hot-starts by sleeping robots on level load
                 PlayRobotAnimation(obj, Animation::Rest);
-                Player.Stats.Robots++;
+                Player.stats.robots++;
                 //obj.Physics.Wiggle = obj.Radius * 0.01f;
                 //obj.Physics.WiggleRate = 0.33f;
             }
@@ -1267,8 +1194,8 @@ namespace Inferno::Game {
                 Level.HasBoss = true;
 
             if (obj.Type == ObjectType::Hostage) {
-                Player.Stats.HostagesOnLevel++;
-                Player.Stats.TotalHostages++;
+                Player.stats.hostagesOnLevel++;
+                Player.stats.totalHostages++;
             }
 
             FixObjectPosition(obj);

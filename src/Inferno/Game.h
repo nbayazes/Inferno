@@ -148,6 +148,7 @@ namespace Inferno::Game {
     constexpr float PLAYER_HIT_WALL_NOISE = 1;
     constexpr float PLAYER_HIT_WALL_RADIUS = 100;
     constexpr float PLAYER_FUSION_SOUND_RADIUS = 120;
+    constexpr float PLAYER_AFTERBURNER_SOUND_RADIUS = 160;
     constexpr float FUSION_SHAKE_STRENGTH = 3.5f; // Amount charging fusion shakes the player
     constexpr uint16 VULCAN_AMMO_PICKUP = 1000; // Amount of ammo to give when picking up vulcan ammo. Reduced from 1250 due to vulcan being more efficient.
     constexpr float CLOAK_TIME = 30.0f;
@@ -240,6 +241,8 @@ namespace Inferno::Game {
     enum class ThreatLevel { None, Minimal, Moderate, High, Extreme };
 
     void PlayMainMenuMusic();
+
+    void WarpPlayerToExit();
 }
 
 namespace Inferno {
@@ -252,8 +255,9 @@ namespace Inferno {
     }
 
     inline bool IsCloakEffective(const Object& object) {
-        if (object.IsPlayer() && Game::Player.GetHeadlightState() != HeadlightState::Off) {
-            return false;
+        if (object.IsPlayer()) {
+            if (Game::Player.GetHeadlightState() != HeadlightState::Off || Game::Player.AfterburnerActive)
+                return false;
         }
 
         return object.IsCloakEffective();
@@ -271,5 +275,4 @@ namespace Inferno {
         RayQuery query(dist, obj.Segment, RayQueryMode::Visibility);
         return !Game::Intersect.RayLevel(ray, query, hit);
     }
-
 }

@@ -225,6 +225,7 @@
     <ClCompile Include="Game.Save.cpp" />
     <ClCompile Include="Game.Terrain.cpp" />
     <ClCompile Include="Game.UI.cpp" />
+    <ClCompile Include="Game.UI.ScoreScreen.cpp" />
     <ClCompile Include="Graphics.Debug.cpp" />
     <None Include="d1\game.yml" />
     <None Include="d1\lights.yml" />

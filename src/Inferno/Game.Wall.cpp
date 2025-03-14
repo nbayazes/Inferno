@@ -446,7 +446,7 @@ namespace Inferno {
 
                 // fireballs start away from door then move closer
                 auto& side = level.GetSide(wall.Tag);
-                pos += side.AverageNormal * size * float(totalFireballs - e) / totalFireballs;
+                pos += side.AverageNormal * size * float(totalFireballs - e) / (float)totalFireballs;
 
                 if (e % damageCount == 0) {
                     // Create a damaging explosion 1/4th of the time

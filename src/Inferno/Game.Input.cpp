@@ -25,6 +25,9 @@ namespace Inferno {
             if (Input::OnKeyPressed(Keys::Back) && Input::AltDown)
                 Game::BeginSelfDestruct();
 
+            if (Input::OnKeyPressed(Keys::OemPipe) && Input::AltDown)
+                Game::WarpPlayerToExit();
+
             if (Input::OnKeyPressed(Keys::M) && Input::AltDown) {
                 Game::Automap.RevealFullMap();
                 PrintHudMessage("full map!");

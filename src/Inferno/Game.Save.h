@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "Difficulty.h"
-#include "Player.h"
+#include "Game.Player.h"
 #include "Weapon.h"
 
 namespace Inferno {
@@ -21,8 +21,8 @@ namespace Inferno {
 
         uint16 primaryWeapons, secondaryWeapons;
 
-        std::array<uint16, PlayerData::MAX_PRIMARY_WEAPONS> primaryAmmo;
-        std::array<uint16, PlayerData::MAX_SECONDARY_WEAPONS> secondaryAmmo;
+        std::array<uint16, Player::MAX_PRIMARY_WEAPONS> primaryAmmo;
+        std::array<uint16, Player::MAX_SECONDARY_WEAPONS> secondaryAmmo;
 
         PrimaryWeaponIndex primary;
         SecondaryWeaponIndex secondary;
@@ -31,10 +31,7 @@ namespace Inferno {
         uint8 laserLevel;
 
         int lives;
-        int score;
-
-        int totalKills;
-        double totalTime;
+        Player::Stats stats;
 
         filesystem::path saveFilePath; // Path of a loaded save
     };

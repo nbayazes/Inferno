@@ -10,6 +10,7 @@
 
 namespace Inferno {
     enum class FireState { None, Press, Hold, Release };
+
     enum class HeadlightState { Off, Normal, Bright };
 
     constexpr float MAX_ENERGY = 200;
@@ -31,16 +32,36 @@ namespace Inferno {
     constexpr auto AFTERBURNER_OFF_SOUND = "afterburner-off";
 
     // Extracted player state that was scattered across methods or globals as static variables
-    class Player : public PlayerData {
+    class Player {
         SoundUID _afterburnerSoundSig = SoundUID::None;
         SoundUID _fusionChargeSound = SoundUID::None;
         float _prevAfterburnerCharge = 0;
         double _nextFlareFireTime = 0;
+        double _nextAfterburnerAlertTime = 0;
         EffectID _headlightEffect = EffectID::None;
         EffectID _afterburnerEffect = EffectID::None;
         HeadlightState _headlight = HeadlightState::Off;
 
     public:
+        static constexpr int MAX_PRIMARY_WEAPONS = 10;
+        static constexpr int MAX_SECONDARY_WEAPONS = 10;
+        static constexpr int INITIAL_LIVES = 3;
+        uint Lives = INITIAL_LIVES;
+
+        uint8 LaserLevel; // 0 to 5
+        uint16 PrimaryWeapons; // Each bit represents an owned primary weapon
+        uint16 SecondaryWeapons; // Each bit represents an owned secondary weapon
+        std::array<uint16, MAX_PRIMARY_WEAPONS> PrimaryAmmo;
+        std::array<uint16, MAX_SECONDARY_WEAPONS> SecondaryAmmo;
+
+        ObjRef Reference = { ObjID{ 0 }, ObjSig{ 0 } }; // Reference to player
+
+        float HomingObjectDist = -1; // Distance of nearest homing object. Used for lock indicators.
+
+        PowerupFlag Powerups;
+        float Energy = 100;
+        float Shields = 100;
+
         float RearmTime = 1.0f; // Time to swap between weapons and being able to fire
 
         PrimaryWeaponIndex Primary = PrimaryWeaponIndex::Laser;
@@ -77,13 +98,58 @@ namespace Inferno {
         bool IsDead = false;
         float TimeDead = 0;
         bool Exploded = false; // Indicates if the player exploded after dying
-        int Score, LevelStartScore;
-        double LevelTime, TotalTime;
-        uint LevelDeaths = 0; // Number of times player has died this level
 
         SegID SpawnSegment = SegID::None;
         Vector3 SpawnPosition; // Can be moved based on checkpoints
         Matrix3x3 SpawnRotation;
+
+        struct Stats {
+            double time; // Time on level
+            double totalTime; // Total time played
+
+            int score; // The player's current score
+            int levelStartScore; // The score when the level loaded. Used for end of level scoring.
+
+            int16 robots = 0; // Number of initial robots this level
+            int16 totalRobots = 0; // Total robots
+
+            int16 kills = 0; // Enemies killed this level
+            int totalKills = 0; // Total kills across all levels
+
+            uint deaths = 0; // Number of times player has died this level
+            uint totalDeaths = 0;
+
+            uint secrets = 0, secretsFound = 0;
+
+            uint8 hostagesOnLevel = 0;
+            uint16 totalHostages = 0; // Total hostages in all levels
+
+            uint8 hostagesRescued; // Hostages rescued by the player on the current level.
+            uint8 hostagesOnboard; // How many poor souls get killed when ship is lost
+
+            // Resets stats for the start of a level
+            void StartLevel() {
+                totalTime += time;
+                time = 0;
+
+                levelStartScore = score;
+
+                totalKills += kills;
+                kills = 0;
+
+                totalRobots += robots;
+                robots = 0;
+
+                totalDeaths = deaths;
+                deaths = 0;
+
+                //TotalHostages += Hostages; // TotalHostages is updated on level load
+                hostagesOnLevel = 0;
+
+                hostagesOnboard = 0;
+                hostagesRescued = 0;
+            }
+        } stats;
 
         void GiveWeapon(PrimaryWeaponIndex weapon);
 

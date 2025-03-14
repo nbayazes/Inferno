@@ -311,8 +311,8 @@ namespace Inferno {
         else
             LevelNumber = fmt::format("Level {}", Game::LevelNumber);
 
-        if (Game::Player.Stats.HostagesOnLevel > 0) {
-            auto hostagesLeft = Game::Player.Stats.HostagesOnLevel - Game::Player.HostagesRescued;
+        if (Game::Player.stats.hostagesOnLevel > 0) {
+            auto hostagesLeft = Game::Player.stats.hostagesOnLevel - Game::Player.stats.hostagesRescued;
             HostageText = hostagesLeft <= 0 ? "all hostages rescued" : hostagesLeft == 1 ? "1 hostage left" : fmt::format("{} hostages left", hostagesLeft);
         }
         else {

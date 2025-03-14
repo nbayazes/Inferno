@@ -115,6 +115,7 @@
     <ClCompile Include="Audio\pcm\impl.cpp" />
     <ClCompile Include="Audio\pcm\stb_vorbis.c" />
     <ClCompile Include="zip\zip.c" />
+    <ClCompile Include="Game.UI.ScoreScreen.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\Audio.h" />

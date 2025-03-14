@@ -96,10 +96,7 @@ namespace Inferno {
         save.laserLevel = player.LaserLevel;
 
         save.lives = player.Lives;
-        save.score = player.Score;
-
-        save.totalKills = player.Stats.TotalKills;
-        save.totalTime = player.TotalTime;
+        save.stats = player.stats;
         return save;
     }
 
@@ -150,11 +147,15 @@ namespace Inferno {
         READ_PROP(laserLevel);
 
         READ_PROP(lives);
-        READ_PROP(score);
-
-        READ_PROP(totalKills);
-        READ_PROP(totalTime);
 #undef READ_PROP
+
+#define READ_STAT(name) ReadValue2(node, #name, save.stats.##name)
+        READ_STAT(score);
+        READ_STAT(totalKills);
+        READ_STAT(totalTime);
+        READ_STAT(totalDeaths);
+        READ_STAT(totalHostages);
+#undef READ_STAT
 
         return save;
     }
@@ -200,11 +201,16 @@ namespace Inferno {
         WRITE_PROP(laserLevel);
 
         WRITE_PROP(lives);
-        WRITE_PROP(score);
-
-        WRITE_PROP(totalKills);
-        WRITE_PROP(totalTime);
 #undef WRITE_PROP
+
+#define WRITE_STAT(name) doc[#name] << save.stats.##name
+        WRITE_STAT(score);
+        WRITE_STAT(totalKills);
+        WRITE_STAT(totalTime);
+        WRITE_STAT(totalDeaths);
+        WRITE_STAT(totalDeaths);
+        WRITE_STAT(totalHostages);
+#undef WRITE_STAT
 
         filesystem::path temp = path;
         temp.replace_filename("temp.sav");
@@ -374,7 +380,7 @@ namespace Inferno {
         player.PrimaryWeapons = save.primaryWeapons;
         player.SecondaryWeapons = save.secondaryWeapons;
         player.PrimaryAmmo = save.primaryAmmo;
-        player.SecondaryAmmo = save.secondaryAmmo;;
+        player.SecondaryAmmo = save.secondaryAmmo;
 
         player.Primary = (PrimaryWeaponIndex)save.primary;
         player.Secondary = (SecondaryWeaponIndex)save.secondary;
@@ -383,11 +389,7 @@ namespace Inferno {
         player.LaserLevel = save.laserLevel;
 
         player.Lives = save.lives;
-        player.Score = save.score;
-        player.LevelStartScore = save.score;
-
-        player.TotalTime = save.totalTime;
-        player.Stats.TotalKills = save.totalKills;
+        player.stats = save.stats;
 
         try {
             if (!filesystem::exists(save.missionPath)) {
