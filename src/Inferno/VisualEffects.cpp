@@ -314,9 +314,14 @@ namespace Inferno {
         }
     }
 
-    void StopEffect(EffectID id) {
-        if (auto effect = GetEffect(id))
+    void StopEffect(EffectID& id) {
+        if (id == EffectID::None) 
+            return;
+
+        if (auto effect = GetEffect(id)) {
             effect->Duration = 0;
+            id = EffectID::None;
+        }
     }
 
     void ResetEffects() {

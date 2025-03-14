@@ -33,7 +33,7 @@ namespace Inferno {
     }
 
     float Player::UpdateAfterburner(float dt, bool active) {
-        if (!HasPowerup(PowerupFlag::Afterburner)) return 0;
+        //if (!HasPowerup(PowerupFlag::Afterburner)) return 0;
 
         float thrust = 0;
 
@@ -53,7 +53,8 @@ namespace Inferno {
             thrust = 1 + std::min(0.5f, AfterburnerCharge) * 2; // Falloff from 2 under 50% charge
         }
         else if (AfterburnerCharge < 1) {
-            float chargeUp = std::min(dt / 8, 1 - AfterburnerCharge); // 8 second recharge
+            const float rechargeTime = HasPowerup(PowerupFlag::Afterburner) ? 4 : 8; // halve recharge time with afterburner cooler
+            float chargeUp = std::min(dt / rechargeTime, 1 - AfterburnerCharge);
             float energy = std::max(Energy - 10, 0.0f); // don't drop below 10 energy
             chargeUp = std::min(chargeUp, energy / 10); // limit charge if <= 10 energy
             AfterburnerCharge += chargeUp;
@@ -67,29 +68,50 @@ namespace Inferno {
 
         // AB button held
         if (active && !AfterburnerActive) {
-            if (auto soundId = Seq::tryItem(Resources::Descent2.Sounds, (int)SoundID::AfterburnerIgnite)) {
-                SoundResource resource;
-                resource.D2 = *soundId;
-                Sound3D sound(resource);
-                sound.Radius = 125;
-                sound.LoopStart = 32027;
-                sound.LoopEnd = 48452;
-                sound.Looped = true;
-                _afterburnerSoundSig = Sound::PlayFrom(sound, Game::GetPlayerObject());
-                //Render::Camera.Shake(2.0f);
+            SoundResource resource{ AFTERBURNER_SOUND };
+            Sound3D sound(resource);
+            sound.Radius = 125;
+            sound.Volume = 1.4;
+            _afterburnerSoundSig = Sound::PlayFrom(sound, Game::GetPlayerObject());
+
+            //if (auto soundId = Seq::tryItem(Resources::Descent2.Sounds, (int)SoundID::AfterburnerIgnite)) {
+            //    SoundResource resource{ AFTERBURNER_SOUND };
+            //    //resource.D2 = *soundId;
+            //    Sound3D sound(resource);
+            //    sound.Radius = 125;
+            //    sound.LoopStart = 32027;
+            //    sound.LoopEnd = 48452;
+            //    sound.Looped = true;
+            //    _afterburnerSoundSig = Sound::PlayFrom(sound, Game::GetPlayerObject());
+            //    //Render::Camera.Shake(2.0f);
+            //}
+
+            if (auto info = Resources::GetLightInfo("Afterburner")) {
+                LightEffectInfo light;
+                light.Radius = info->Radius;
+                light.LightColor = info->Color;
+                light.Mode = DynamicLightMode::StrongFlicker;
+                _afterburnerEffect = AttachLight(light, Reference, { .id = 0, .offset = { 0, 4.0f, 0 } });
             }
         }
 
         // AB button released
         if (!active && AfterburnerActive) {
             Sound::Stop(_afterburnerSoundSig);
-            if (auto soundId = Seq::tryItem(Resources::Descent2.Sounds, (int)SoundID::AfterburnerStop)) {
+            SoundResource resource{ AFTERBURNER_OFF_SOUND };
+            Sound3D sound(resource);
+            sound.Radius = 125;
+            Sound::PlayFrom(sound, Game::GetPlayerObject());
+
+            StopEffect(_afterburnerEffect);
+
+            /*if (auto soundId = Seq::tryItem(Resources::Descent2.Sounds, (int)SoundID::AfterburnerStop)) {
                 SoundResource resource;
                 resource.D2 = *soundId;
                 Sound3D sound(resource);
                 sound.Radius = 125;
                 Sound::PlayFrom(sound, Game::GetPlayerObject());
-            }
+            }*/
         }
 
         AfterburnerActive = active;
@@ -920,11 +942,7 @@ namespace Inferno {
                     Sound::Play2D({ HEADLIGHT_OFF_SOUND });
 
                 _headlight = HeadlightState::Off;
-
-                if (_headlightEffect != EffectID::None) {
-                    StopEffect(_headlightEffect);
-                    _headlightEffect = EffectID::None;
-                }
+                StopEffect(_headlightEffect);
                 break;
         }
     }
@@ -1451,7 +1469,7 @@ namespace Inferno {
                 break;
 
             case PowerupID::Afterburner:
-                used = pickUpAccesory(PowerupFlag::Afterburner, "afterburner");
+                used = pickUpAccesory(PowerupFlag::Afterburner, "afterburner cooler");
                 break;
 
             case PowerupID::Headlight:

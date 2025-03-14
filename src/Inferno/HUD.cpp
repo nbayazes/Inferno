@@ -325,8 +325,8 @@ namespace Inferno {
     }
 
     void DrawAfterburnerBar(float x, const Player& player) {
-        if (!player.HasPowerup(PowerupFlag::Afterburner))
-            return;
+        //if (!player.HasPowerup(PowerupFlag::Afterburner))
+        //    return;
 
         float percent = player.AfterburnerCharge;
         auto scale = Render::HudCanvas->GetScale();

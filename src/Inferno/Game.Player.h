@@ -27,6 +27,8 @@ namespace Inferno {
     constexpr uint8 BOMB_GUN_ID = 7;
     constexpr auto HEADLIGHT_OFF_SOUND = "switch2";
     constexpr auto HEADLIGHT_ON_SOUND = "switch";
+    constexpr auto AFTERBURNER_SOUND = "afterburner";
+    constexpr auto AFTERBURNER_OFF_SOUND = "afterburner-off";
 
     // Extracted player state that was scattered across methods or globals as static variables
     class Player : public PlayerData {
@@ -35,6 +37,7 @@ namespace Inferno {
         float _prevAfterburnerCharge = 0;
         double _nextFlareFireTime = 0;
         EffectID _headlightEffect = EffectID::None;
+        EffectID _afterburnerEffect = EffectID::None;
         HeadlightState _headlight = HeadlightState::Off;
 
     public:

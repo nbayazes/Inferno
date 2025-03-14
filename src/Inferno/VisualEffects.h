@@ -227,7 +227,7 @@ namespace Inferno {
     // Detach effects from an object and cause them to fade out
     void DetachEffects(ObjRef);
 
-    void StopEffect(EffectID);
+    void StopEffect(EffectID&);
 
     // Clears all effects
     void ResetEffects();
