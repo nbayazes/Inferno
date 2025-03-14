@@ -62,7 +62,7 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 0.15, 0.15, 0.6, 3.5
-    FlashColor: 1, 1, 1, 15
+    FlashColor: 1, 1, 1, 2
     EnergyUsage: 0.25
 
   - id: 3
@@ -99,7 +99,7 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 1, 0.025, 0.025, 1.5
-    FlashColor: 1, 0.25, 0.25, 20
+    FlashColor: 1, 0.25, 0.25, 4
 
   - id: 10
     Name: robot blue laser
@@ -131,7 +131,7 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 0.7, 0.4, 0.1, 2
-    FlashColor: 1, .75, .45, 15
+    FlashColor: 1, .75, .45, 2
 
   - id: 31
     Name: laser 6
@@ -147,7 +147,7 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 0.54, 0.54, 1, 1.4
-    FlashColor: .5, .5, 1, 15
+    FlashColor: .5, .5, 1, 2
 
   - id: 9
     Name: flare
@@ -160,7 +160,7 @@ Weapons:
     LightFadeTime: 0.4
     Size: 0.5
     Sticky: 1
-    FlashColor: 1, 1, 1, 15
+    FlashColor: 1, 1, 1, 2
     Sparks: flare sparks # sparks to create while alive
     DeathSparks: flare death sparks # sparks to create when expiring
     SoundRadius: 150
@@ -207,7 +207,7 @@ Weapons:
     Speed: 200 # 200
     Size: .75 # Was 0.5. Increase size to increase area and feel more powerful
     Spread: 3.0 # Was 3.6. Reduce spread to improve effectiveness at medium range
-    FlashColor: 1, 1, 1, 15
+    FlashColor: 1, 1, 1, 1
 
   - id: 13
     Name: plasma
@@ -238,7 +238,7 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 20
     LightColor: 0.6, 0.1, 1, 4
-    FlashColor: .6, .1, 1, 15
+    FlashColor: .6, .1, 1, 2
     Mass: 2
     Behavior: fusion
     StunMult: 0.4
@@ -282,7 +282,7 @@ Weapons:
     LightRadius: 14
     LightColor: 0.25, 0.25, 0.75, 2
     ExplosionColor: 1, 0.25, 0.0, 10
-    FlashColor: 1, 0.25, 0.0, 4
+    FlashColor: 1, 0.25, 0.0, 2
     Size: 1 # was 1.5
     HomingFov: 45 # was 48.6 (dot = .75)
     HomingDistance: 300
@@ -297,8 +297,8 @@ Weapons:
     ExplosionColor: 1, 0.25, 0.0, 10
     FlashColor: 1, 0.25, 0.0, 2
     Size: 1 # was 1.5
-    HomingFov: 45 # Slightly easier to evade than 45
-    HomingDistance: 300
+    HomingFov: 44 # Slightly easier to evade than 45
+    HomingDistance: 300 # Scan for targets in this range
     Damage: [ 10, 15, 20, 25, 30 ] # Changed to D2 values
     # Damage: [ 15, 15, 20, 30, 49 ] # D1 values
     SplashRadius: 30 # Was 40
@@ -313,7 +313,7 @@ Weapons:
     LightRadius: 18
     LightColor: 1, 0.05, 0.05
     Glow: 0.75, 0.75, 0.75
-    DirectDamage: 0
+    DirectDamage: 0 # No contact damage
     BlobSize: 2
     Damage: 120 # Mines detonate before touching enemies
     StunMult: 0.4 # Reduce stun and knockback force
@@ -389,7 +389,7 @@ Weapons:
     Recoil: 175
     HomingFov: 45
     HomingDistance: 300
-    FlashColor: 0.75, 0.125, 0.125, 15
+    FlashColor: 0.75, 0.125, 0.125, 2
     SoundRadius: 500
     StunMult: 2 # Max stun whatever we hit
 
@@ -406,7 +406,7 @@ Weapons:
     HomingFov: 45
     HomingDistance: 300
     FlashSize: 12
-    FlashColor: 0.75, 0.125, 0.125, 15
+    FlashColor: 0.75, 0.125, 0.125, 2
     SoundRadius: 500 # Large radius so player hears them coming
     StunMult: 2 # Max stun whatever we hit
 
@@ -420,7 +420,7 @@ Weapons:
     LightRadius: 14
     LightColor: 0.3, 0.3, 0.75
     ExplosionColor: 0.3, 0.3, 0.75
-    FlashColor: 1, 1, 1, 15
+    FlashColor: 1, 1, 1, 2
 
   - id: 24
     Name: robot red laser
@@ -469,7 +469,7 @@ Weapons:
     LightRadius: 24
     Size: 1.6 # Was size 1
     LightColor: .0, .8, 1, 1
-    FlashColor: .0, .1, 1, 15
+    FlashColor: .0, .1, 1, 2
 
   - id: 32
     Name: gauss
@@ -485,7 +485,7 @@ Weapons:
     LightRadius: 6
     ExplosionSound: # ExpHardBullet
     Model: -1
-    FlashColor: 1, 1, 1, 15
+    FlashColor: 1, 1, 1, 2
     StunMult: 0.5 
 
   - id: 33
@@ -498,7 +498,7 @@ Weapons:
     ExplosionSound: ExpEMDHitB
     LightRadius: 14
     LightColor: 0.2, 0.5, 0.5
-    FlashColor: 1, 1, 1, 15
+    FlashColor: 1, 1, 1, 2
 
   - id: 34
     Name: phoenix
@@ -510,7 +510,7 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 0.6, 0.2, 0
-    FlashColor: 1, 1, 1, 25
+    FlashColor: 1, 1, 1, 2
     PlayerDamageScale: 0.5 # Halve self damage
 
   - id: 35
@@ -524,7 +524,7 @@ Weapons:
     ExplosionTexture: EmdConcept1
     ExplosionSize: 1.2
     ExplosionTime: 0.4
-    FlashColor: .4, .4, 1, 15
+    FlashColor: .4, .4, 1, 2
 
   - id: 36
     Name: flash missile
@@ -567,25 +567,25 @@ Robots:
   - id: 0
     Name: Medium Hulk
     DevName: Mech
-    CircleDistance: 80 # Prefer staying away and lobbing missiles
+    CircleDistance: -1
     Mass: 6.5
     Multishot: 2
     ChaseChance: 0
     SuppressChance: 0.75
     Curiosity: 0.1 # Very rarely move to investigate sounds
     AimAngle: 15 # Unfair to lead much and looks odd
-    Score: 600 # Was 500
+    Score: 500
     Shots: [ 2, 2, 2, 4, 4 ] # Was 1, 1, 2, 3, 3
-    BurstDelay: 0.75
-    FireDelay: [ 5, 4, 3, 2.5, 1.5 ] # Was 5, 4, 3, 2, 1
-    Aim: 120
+    BurstDelay: 0.5
+    FireDelay: [ 5, 4, 3, 2.25, 1.25 ] # Was 5, 4, 3, 2, 1
+    Aim: 250
   - id: 1
     Name: Medium Lifter
     DevName: Green Claw
     CircleDistance: 12
     Mass: 8
     MeleeDamage: [ 6, 7, 8, 9, 10 ]
-    Speed: [ 35, 40, 45, 50, 65 ] # Duplicate of retail values. Demo has very slow melee robots.
+    Speed: [ 35, 40, 45, 50, 65 ] # Retail values. Demo has very slow melee robots.
     ChaseChance: 1
     Curiosity: 0.4 # Don't always give away position
     GetBehind: 1
@@ -593,7 +593,7 @@ Robots:
     Name: Spider
     DevName: Spider
     CircleDistance: 80
-    Mass: 5.5
+    Mass: 6
     Radius: 4.5 # Default radius is too large and causes problems in level 10 tunnels
     BurstDelay: 0.15
   - id: 3
@@ -601,7 +601,7 @@ Robots:
     DevName: Josh
     CircleDistance: 60
     # Speed: [ 40, 40, 45, 50, 60 ] # Speed boosted at lower difficulty 30, 30, 35, 40, 60
-    Mass: 2.5
+    Mass: 3.25
     Drag: 0.025
     AlertRadius: 110 # Drones are scouts and have a larger radius than normal
     FleeThreshold: 0.5
@@ -613,7 +613,7 @@ Robots:
     DevName: Violet
     CircleDistance: 40
     Drag: 0.03
-    Mass: 3.0
+    Mass: 3.5
     Curiosity: 0.85
     AngerBehavior: 1 # Gets angry when alone
     AimAngle: 60 # Increased to make it a bit more unique
@@ -622,8 +622,8 @@ Robots:
     Name: Cloaked Driller
     DevName: Cloak Vulcan
     CircleDistance: 100 # sniper
-    Mass: 6.5 # Heavier than regular due to cloaking device
-    Drag: 0.15
+    Mass: 5.5 # Heavier than regular due to cloaking device
+    Drag: 0.03
     SuppressChance: .05
     ChaseChance: .4
     Score: 1000 # Was 600, less than the regular driller
@@ -634,7 +634,7 @@ Robots:
   - id: 6 
     Name: Cloaked Hulk
     DevName: Cloak Mech
-    CircleDistance: 60
+    CircleDistance: -1
     Multishot: 2
     Mass: 6.5
     ChaseChance: 0
@@ -672,43 +672,49 @@ Robots:
     DevName: Plasma Mech
     CircleDistance: 40
     Multishot: 2
-    BurstDelay: 0.2 # Increase from 1/8 due to multishot
+    BurstDelay: 0.16 # Increase from 1/8 due to multishot
     Mass: 6
     Drag: 0.03
     ChaseChance: .75
-    SuppressChance: .25
+    SuppressChance: .4
     FireDelay: [ 1, .75, 1, .75, 0.9 ] # Was 1, .75, .75, .75, .75. Adjusted to compensate for extra shots on hotshot and insane
     Shots: [ 2, 2, 4, 4, 6 ] # Was 2, 2, 3, 4, 5
-    Curiosity: 0.25 # Usually hold position
+    Curiosity: 0.25
   - id: 10
     Name: Class 3 Gopher
     DevName: Toaster 
     FleeThreshold: 0.4
+    CircleDistance: 60
     Score: 400 # Was 200, too low for their mine laying annoyance and hit points
   - id: 11
     Name: Laser platform
     DevName: Bird  
     CircleDistance: 50
     Mass: 2.5
-    Multishot: 7 # shotgun all available projectiles
-    FireDelay: [ 1.5, 1.25, 0.8, 0.6, 0.4 ]
-    Shots: [ 3, 4, 4, 5, 6 ] 
-    Aim: 0
+    Multishot: 2 # shotgun
+    # FireDelay: [ 1.5, 1.25, 0.8, 0.6, 0.4 ]
+    FireDelay: [ 1.3, 1.15, 0.9, 0.85, 0.85 ] # originaly 1.5, 1.25, 1, 1, 1
+    Shots: [ 2, 4, 6, 6, 8 ] # originally 3, 4, 4, 5, 7
+    Aim: 60
     Drag: 0.03
     SuppressChance: 0.9
-    Score: 500 # Was 300, these are now more dangerous
+    Score: 400 # Was 300, these are now more dangerous
     Curiosity: 0.5
     AimAngle: 35 # Looks odd to lead much
     GetBehind: 0
   - id: 12
     Name:  Missile Platform
     DevName: Missile Bird
-    #FireDelay: [ 3, 2, 2, 1.75, 1.5 ]
-    #Shots: [ 2, 2, 2, 3, 4 ]
-    FireDelay: [ 1.5, 1.5, 1, 0.75, .65 ]
-    Shots: 1
-    CircleDistance: 20
-    Mass: 2.5
+    FireDelay: [ 1.5, 1.5, 1.25, 1.25, 1 ]
+    Shots: [ 2, 3, 3, 4, 5 ]
+    #  a volley of 5 shots at 1/8s + 1s wait = 1.625 / 5 -> 0.325s avg delay per shot on insane
+    # FireDelay: [ 0.875, 0.625, .55, 0.4375, .325 ] # originally 1.5, 1.5, 1.25, 1.25, 1
+    #FireDelay: [ 0.9, 0.65, .55, 0.45, .35 ] # originally 1.5, 1.5, 1.25, 1.25, 1
+    #Shots: 1 # originally 2, 3, 3, 4, 5
+    BurstDelay: 0.2 # default of 0.125
+    CircleDistance: 100
+    Aim: 220
+    Mass: 3.5
     Drag: 0.03
     Curiosity: 0.25 # Usually hold position
     AimAngle: 20 # Looks odd to lead much
@@ -732,9 +738,10 @@ Robots:
   - id: 15
     Name: Fusion hulk
     DevName: Miniboss
-    FireDelay: [ 2, 1.25, 1.5, 1, .5 ] # Reduced by 1 second due to charge time
-    Shots: [ 1, 1, 2, 2, 2 ]
-    CircleDistance: 40
+    FireDelay: [ 2.5, 2, 1.5, 1, 0.5 ] # Reduced due to charge time, was 3, 2, 2.5, 2, 1.5
+    Shots: [ 2, 2, 2, 2, 2 ] # was 1, 1, 2, 2, 3
+    TurnTime: [ 0.8, 0.7, 0.6, 0.5, 0.4 ]
+    CircleDistance: -1
     Mass: 20 # was 30
     Multishot: 2
     DeathRoll: 3
@@ -744,11 +751,12 @@ Robots:
     SuppressChance: 0.2
     Curiosity: 0 # Don't investigate sounds
     StunResist: 1.6 # immune to stuns from concussion missiles
+    ChargeTime: 1
     # DeathRollSound: 185 # d1
   - id: 16
     Name: Red Hulk
     DevName: Super Mech
-    CircleDistance: 80
+    CircleDistance: -1
     Multishot: 1
     Mass: 7
     ChaseChance: 0
@@ -787,8 +795,8 @@ Robots:
     Name: Class 1 Driller
     DevName: Vulcan Mech
     CircleDistance: 100 # sniper
-    Mass: 5.5
-    Drag: 0.04
+    Mass: 5
+    Drag: 0.03
     SuppressChance: .2
     ChaseChance: .5 # they angy
     Score: 900 # Was 1000, but are quite flimsy. Moved down to make cloak drillers 1000.
@@ -798,7 +806,7 @@ Robots:
   - id: 20 
     Name: Light Hulk # Green hulk / Light hulk
     DevName: Toad
-    CircleDistance: 80
+    CircleDistance: -1
     Mass: 6.5
     FireDelay: [ 3, 2, 1, 0.5, 0.5 ]
     Shots: [ 2, 2, 4, 4, 6 ] # Shots fire in pairs
@@ -809,6 +817,7 @@ Robots:
     SuppressChance: 1
     Curiosity: 0.2 # Rarely move to investigate sounds. Has slow move speed.
     HitPoints: 90 # Increased from 70 to better fill the 'hulk' role. Brown hulks have 100 health.
+    AimAngle: 30
   - id: 21
     Name: Advanced lifter
     DevName: "4-Claw"
@@ -1170,11 +1179,31 @@ Effects:
       Color: 1, .5, .166, 6
       Physics: 1
 
+    # - Name: reactor destroyed
+    #   # Duration: [ 0.75, 0.95 ]
+    #   Duration: [ 0.6, 2.2 ]
+    #   #Restitution: 0.6
+    #   Velocity: [ 45, 80 ]
+    #   # Velocity: [ 30, 60 ]
+    #   Count: 60
+    #   SpawnRadius: 1
+    #   Color: 1, 0, 0, 160
+    #   # Color: 0.8, 0.0, 1, 80
+    #   FadeTime: .75
+    #   Drag: 0.0
+    #   Texture: tracer # hotspark
+    #   Width: [ 0.8, 2.5 ]
+    #   VelocitySmear: 0.02
+    #   UseWorldGravity: 0
+    #   UsePointGravity: 1
+    #   PointGravityStrength: 45
+    #   PointGravityVelocity: 0, -10, 0
+    #   # PointGravityOffset: 0, -10, 0 # offset for point gravity
+
     - Name: reactor destroyed
-      # Duration: [ 0.75, 0.95 ]
-      Duration: [ 0.25, 0.75 ]
+      Duration: [ 0.4, 0.75 ]
       #Restitution: 0.6
-      Velocity: [ 60, 130 ]
+      Velocity: [ 60, 100 ]
       # Velocity: [ 30, 60 ]
       Count: 45
       SpawnRadius: 0

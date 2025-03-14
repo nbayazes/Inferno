@@ -42,7 +42,7 @@ TextureCube Environment : register(t15);
 static const float PIDIV2 = PI / 2;
 static const float GAME_UNIT = 20; // value of 1 UV tiling in game units
 
-static const float DIRECT_LIGHT_MULT = 1.3; // Multiplier on direct (dynamic) lighting
+static const float DIRECT_LIGHT_MULT = 1.1; // Multiplier on direct (dynamic) lighting
 static const float EMISSIVE_MULT = 1; // Multiplier on emissive lighting
 static const float AMBIENT_MULT = 0.6; // Multiplier on ambient (baked static) lighting
 
