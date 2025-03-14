@@ -1290,6 +1290,16 @@ Effects:
       LightColor: 1, .8, .2, 4
       Clip: 2 # Small explosion
 
+    - Name: wall explode fireball
+      FadeTime: 0.125
+      Radius: [ 5.5, 6.5 ]
+      Delay: [ 0.05, 0.10 ]
+      Color: 1, .75, .75, 2.0
+      Instances: 64
+      Duration: 1
+      Clip: 2 # Small explosion
+      UseParentVertices: 1
+
     - Name: boss small fireball
       FadeTime: 0.25
       Radius: [ 4, 6 ]

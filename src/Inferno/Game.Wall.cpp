@@ -411,7 +411,6 @@ namespace Inferno {
 
     void UpdateExplodingWalls(Level& level, float dt) {
         constexpr float EXPLODE_TIME = 1.0f;
-        constexpr int TOTAL_FIREBALLS = 32;
 
         for (auto& wall : ExplodingWalls) {
             if (!wall.IsAlive()) continue;
@@ -429,23 +428,27 @@ namespace Inferno {
                 }
             }
 
+            auto effect = EffectLibrary.GetExplosion("wall explode fireball");
+            const int totalFireballs = effect ? effect->Instances : 32;
+
             auto frac = wall.Time / EXPLODE_TIME;
-            auto oldCount = int(TOTAL_FIREBALLS * prevFrac * prevFrac);
-            auto count = int(TOTAL_FIREBALLS * frac * frac);
+            auto oldCount = int(totalFireballs * prevFrac * prevFrac);
+            auto count = int(totalFireballs * frac * frac);
+            auto damageCount = int(totalFireballs / 32.0f * 4); // 4 at base count of 32
 
             for (int e = oldCount; e < count; e++) {
                 auto verts = level.VerticesForSide(wall.Tag);
                 auto pos = verts[1] + (verts[0] - verts[1]) * Random();
                 pos += (verts[2] - verts[1]) * Random();
 
-                constexpr float FIREBALL_SIZE = 4.5f;
-                auto size = FIREBALL_SIZE + (2.0f * FIREBALL_SIZE * e / TOTAL_FIREBALLS);
+                const float fireballSize = effect ? effect->Radius.GetRandom() : 4.5f;
+                auto size = fireballSize + (2.0f * fireballSize * e / totalFireballs);
 
                 // fireballs start away from door then move closer
                 auto& side = level.GetSide(wall.Tag);
-                pos += side.AverageNormal * size * float(TOTAL_FIREBALLS - e) / TOTAL_FIREBALLS;
+                pos += side.AverageNormal * size * float(totalFireballs - e) / totalFireballs;
 
-                if (e % 4 == 0) {
+                if (e % damageCount == 0) {
                     // Create a damaging explosion 1/4th of the time
                     GameExplosion expl{};
                     expl.Damage = 4;
@@ -458,9 +461,9 @@ namespace Inferno {
                 }
 
                 ParticleInfo p{};
-                p.Clip = VClipID::SmallExplosion;
+                p.Clip = effect ? effect->Clip : VClipID::SmallExplosion;
                 p.Radius = size / 2;
-                p.Color = Color(1, .75f, .75f, 2.0f);
+                p.Color = effect ? effect->Color : Color(1, .75f, .75f, 2.0f);
                 AddParticle(p, wall.Tag.Segment, pos);
             }
 
