@@ -467,7 +467,9 @@
     <None Include="gsl\pointers.h">
       <FileType>CppHeader</FileType>
     </None>
-    <None Include="shaders\ObjectVertex.hlsli" />
+    <None Include="shaders\ObjectVertex.hlsli">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="shaders\Terrain.hlsl">
       <DeploymentContent>true</DeploymentContent>
       <FileType>HLSL</FileType>

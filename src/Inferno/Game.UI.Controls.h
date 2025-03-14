@@ -2233,7 +2233,7 @@ namespace Inferno::UI {
             dti.Position.x = ScreenPosition.x + ScreenSize.x / 2 - _textSize / 2 * GetScale();
             dti.Position.y = ScreenPosition.y + Padding.y * GetScale();
 
-            Render::UICanvas->DrawRaw(_message, dti, Layer);
+            Render::UICanvas->DrawRaw(_message, dti, Layer + 1);
         }
     };
 
