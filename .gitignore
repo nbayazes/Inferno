@@ -368,3 +368,4 @@ dxc.exe
 *.bak
 *.sav
 *.pof
+/src/Inferno/textures

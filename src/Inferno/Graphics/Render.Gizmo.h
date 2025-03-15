@@ -96,7 +96,7 @@ namespace Inferno::Render {
         }
     }
 
-    inline void DrawTranslationGizmo(GraphicsContext& ctx, const Editor::TransformGizmo& gizmo) {
+    inline void DrawTranslationGizmo(const GraphicsContext& ctx, const Editor::TransformGizmo& gizmo) {
         using namespace Editor;
         auto sizeScale = Settings::Editor.GizmoSize / 5.0f; // arrows have a default size of 5
         auto position = gizmo.Transform.Translation();

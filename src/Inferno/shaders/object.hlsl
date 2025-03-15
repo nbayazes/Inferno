@@ -6,7 +6,7 @@
     "CBV(b0),"\
     "DescriptorTable(SRV(t0, space = 1, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE), visibility=SHADER_VISIBILITY_PIXEL), " \
     "CBV(b1), "\
-    "DescriptorTable(SRV(t0, numDescriptors = 5), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t0), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t5), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t6), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t7), visibility=SHADER_VISIBILITY_PIXEL), " \

@@ -40,7 +40,7 @@ namespace Inferno::Render {
             if (!cubeSrv.ptr) cubeSrv = Render::Adapter->NullCube.GetGpuHandle();
             effect.Shader->SetEnvironmentCube(cmdList, cubeSrv);
             effect.Shader->SetDissolveTexture(cmdList, Render::Materials->White().Handle());
-            effect.Shader->SetMatcap(cmdList, Render::Materials->Matcap.GetSRV());
+            effect.Shader->SetMatcap(cmdList, Render::Materials->White().Handle());
         }
 
         ObjectShader::Constants constants = {};
