@@ -138,10 +138,10 @@ namespace Inferno::Game {
 
         if (auto seg = Game::Level.TryGetSegment(tag)) {
             RemoveObjectsFromSegment(tag.Segment);
-
-            auto rotation = VectorToRotation(seg->GetSide(tag.Side).AverageNormal, GetPlayerObject().Rotation.Up());
-            //rotation.Forward(rotation.Backward()); // ugh, reversed z on objects
-            //rotation *= Matrix::CreateFromAxisAngle(rotation.Up(), XM_PI);
+            auto face = Face::FromSide(Game::Level, tag);
+            auto up = face.VectorForEdge(0);
+            auto rotation = VectorToRotation(-face.AverageNormal(), -up);
+            rotation.Forward(rotation.Backward()); // ugh reverse z
             TeleportObject(GetPlayerObject(), tag.Segment, &seg->Center, &rotation);
         }
     }
