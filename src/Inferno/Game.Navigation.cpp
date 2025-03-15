@@ -196,7 +196,7 @@ namespace Inferno {
                     if (portal.RoomLink != roomPath[i + 1])
                         continue; // Portal doesn't connect to next room in the path
 
-                    if (!CanNavigateSide(level, portal.Tag, flags)) 
+                    if (!CanNavigateSide(level, portal.Tag, flags))
                         continue;
 
                     auto& portalSide = level.GetSide(portal.Tag);
@@ -292,8 +292,16 @@ namespace Inferno {
         std::list<TraversalNode*> queue;
         _traversalBuffer[(int)start].LocalGoal = 0;
         queue.push_back(&_traversalBuffer[(int)start]);
+        int iterations = 0;
 
         while (!queue.empty()) {
+            if (queue.size() > level.Rooms.size() * 2 || iterations++ > 1000) {
+                SPDLOG_ERROR("PATHING FAILED between room {} and {}", start, goal);
+                __debugbreak();
+                _traversalBuffer.clear(); // don't return anything
+                break;
+            }
+
             queue.sort([](const TraversalNode* a, const TraversalNode* b) {
                 return a->GoalDistance < b->GoalDistance;
             });
@@ -321,8 +329,21 @@ namespace Inferno {
 
                 auto& neighbor = _traversalBuffer[(int)portal.RoomLink];
 
-                if (!neighbor.Visited)
-                    queue.push_back(&neighbor);
+                // Prevent multiple portals between the same room from being queued
+                if (!neighbor.Visited) {
+                    bool isQueued = false;
+                    for (auto& item : queue) {
+                        if (item->Index == neighbor.Index && item->Parent == neighbor.Parent) {
+                            isQueued = true;
+                            break;
+                        }
+                    }
+
+                    if (!isQueued)
+                        queue.push_back(&neighbor);
+                    else
+                        continue; // Skip this connection
+                }
 
                 auto& portalSide = level.GetSide(portal.Tag);
 
