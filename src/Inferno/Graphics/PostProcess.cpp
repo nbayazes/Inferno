@@ -189,7 +189,7 @@ namespace Inferno::PostFx {
 
         commandList->SetPipelineState(_pso.Get());
         commandList->SetComputeRootSignature(_rootSignature.Get());
-        commandList->SetComputeRoot32BitConstants(B0_Constants, sizeof(constants) / 4, &constants, 0);
+        Render::BindTempConstantsCompute(commandList, constants, B0_Constants);
         commandList->SetComputeRootDescriptorTable(T0_Bloom, bloom.GetSRV());
         commandList->SetComputeRootDescriptorTable(T1_LUT, tonyMcMapface.GetSRV());
         if (dirt) commandList->SetComputeRootDescriptorTable(T2_DIRT, dirt.GetSRV());

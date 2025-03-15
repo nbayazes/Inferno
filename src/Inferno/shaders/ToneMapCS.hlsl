@@ -19,7 +19,7 @@
 #endif
 
 #define RS \
-    "RootConstants(b0, num32BitConstants = 12), " \
+    "CBV(b0), " \
     "DescriptorTable(UAV(u0))," \
     "DescriptorTable(UAV(u1))," \
     "DescriptorTable(SRV(t0))," \
@@ -177,7 +177,7 @@ void main(uint3 DTid : SV_DispatchThreadID) {
 
         // todo: dirt texture needs to maintain aspect ratio when scaling
         if (Args.EnableDirt)
-            hdrColor += Dirt.SampleLevel(LinearSampler, TexCoord, 0) * clamp(bloom * 20, 0, 4) * 0.4;
+            hdrColor += Dirt.SampleLevel(LinearSampler, TexCoord, 0) * pow(bloom, .25) * 0.1;
     }
 
     hdrColor *= Args.Exposure;

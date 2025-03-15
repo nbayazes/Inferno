@@ -493,6 +493,12 @@ namespace Inferno::Render {
         cmdList->SetGraphicsRootConstantBufferView(rootParameter, memory.GPU);
     }
 
+    void BindTempConstantsCompute(ID3D12GraphicsCommandList* cmdList, const void* data, uint64 size, uint32 rootParameter) {
+        auto memory = GetFrameUploadBuffer()->GetMemory(size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+        memcpy(memory.CPU, data, size);
+        cmdList->SetComputeRootConstantBufferView(rootParameter, memory.GPU);
+    }
+
     struct RenderInfo {
         Vector2 Size;
     };

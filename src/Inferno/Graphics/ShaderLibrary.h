@@ -11,10 +11,17 @@ namespace Inferno {
     namespace Render {
         void BindTempConstants(ID3D12GraphicsCommandList* cmdList, const void* data, uint64 size, uint32 rootParameter);
 
+        void BindTempConstantsCompute(ID3D12GraphicsCommandList* cmdList, const void* data, uint64 size, uint32 rootParameter);
+
         // Binds per-frame shader constants
         template <class T>
         void BindTempConstants(ID3D12GraphicsCommandList* cmdList, const T& data, uint32 rootParameter) {
             BindTempConstants(cmdList, &data, sizeof(data), rootParameter);
+        }
+
+        template <class T>
+        void BindTempConstantsCompute(ID3D12GraphicsCommandList* cmdList, const T& data, uint32 rootParameter) {
+            BindTempConstantsCompute(cmdList, &data, sizeof(data), rootParameter);
         }
     }
 
