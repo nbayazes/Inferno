@@ -341,27 +341,36 @@ namespace Inferno::Game {
 
     void LoadLevelMetadata(Inferno::Level& level) {
         auto metadataFile = String::NameWithoutExtension(level.FileName) + METADATA_EXTENSION;
-        string path = metadataFile;
+        filesystem::path path = metadataFile;
         auto metadata = Game::Mission->TryReadEntryAsString(metadataFile);
 
-        if (metadata.empty()) {
+        if (!metadata) {
             auto mission = String::ToLower(Game::Mission->Path.filename().string());
 
             // Read IED from data directories for official missions
             if (mission == "descent.hog")
-                path = "d1/" + metadataFile;
+                path = D1_FOLDER / metadataFile;
             else if (mission == "descent2.hog")
-                path = "d2/" + metadataFile;
-            else if (mission == "d2x.hog")
-                path = "d2/vertigo" + metadataFile; // Vertigo
+                path = D2_FOLDER / metadataFile;
+            //else if (mission == "d2x.hog")
+            //    path = D2_FOLDER / "vertigo" / metadataFile; // Vertigo
 
-            if (filesystem::exists(path))
+            if (filesystem::exists(path)) {
                 metadata = File::ReadAllText(path);
+            }
+            else {
+                // check for unpacked data folder with same name as mission
+                if (!metadata) {
+                    // search for unpacked
+                    auto unpackedPath = Game::Mission->Path.parent_path() / Game::Mission->Path.stem() / metadataFile;
+                    metadata = File::ReadAllText(unpackedPath);
+                }
+            }
         }
 
-        if (!metadata.empty()) {
-            SPDLOG_INFO("Reading level metadata from `{}`", path);
-            LoadLevelMetadata(level, metadata, Editor::EditorLightSettings);
+        if (metadata) {
+            SPDLOG_INFO("Reading level metadata from `{}`", path.string());
+            LoadLevelMetadata(level, *metadata, Editor::EditorLightSettings);
         }
     }
 

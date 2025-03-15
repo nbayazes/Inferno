@@ -1196,11 +1196,9 @@ namespace Inferno::Resources {
         auto& gamePath = GetMaterialTablePath(HasFlag(flags, LoadFlag::Descent1));
 
         if (Game::Mission) {
-            auto data = Game::Mission->TryReadEntryAsString("material.yml");
-            SPDLOG_INFO("Reading material table from mission");
-
-            if (!data.empty()) {
-                LoadMaterialTable(data, Resources::Materials.GetAllMaterialInfo());
+            if (auto data = Game::Mission->TryReadEntryAsString("material.yml")) {
+                SPDLOG_INFO("Reading material table from mission");
+                LoadMaterialTable(*data, Resources::Materials.GetAllMaterialInfo());
                 return true;
             }
         }

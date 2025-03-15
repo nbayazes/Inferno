@@ -58,8 +58,8 @@ namespace Inferno {
         Option<List<ubyte>> TryReadEntry(int index) const;
         Option<List<ubyte>> TryReadEntry(string_view entry) const;
 
-        // Returns an empty string if entry is not found
-        string TryReadEntryAsString(string_view entry) const {
+        // Tries to read an entry as ASCII text
+        Option<string> TryReadEntryAsString(string_view entry) const {
             auto data = TryReadEntry(entry);
             if (!data) return {};
             return string((char*)data->data(), data->size());

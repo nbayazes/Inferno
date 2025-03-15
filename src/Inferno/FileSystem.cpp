@@ -85,6 +85,7 @@ namespace Inferno::FileSystem {
             AddDataDirectory(Settings::Inferno.Descent1Path.parent_path());
 
         AddDataDirectory("./data");
+        AddDataDirectory("./textures");
 
         for (auto& path : Settings::Inferno.DataPaths)
             AddDataDirectory(path);
