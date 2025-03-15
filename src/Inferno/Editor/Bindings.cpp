@@ -152,6 +152,11 @@ namespace Inferno::Editor {
             .Name = "Go to Wall"
         };
 
+        Command GotoRoom{
+            .Action = [] { Events::ShowDialog(DialogType::GotoRoom); },
+            .Name = "Go to Room"
+        };
+
         Command HideMarks{ .Action = [] {}, .Name = "Hide Marks" };
         Command HoldMouselook{ .Action = [] {}, .Name = "Hold Mouselook" };
     }
@@ -199,6 +204,7 @@ namespace Inferno::Editor {
             case EditorAction::ShowGotoSegment: return Commands::GotoSegment;
             case EditorAction::ShowGotoObject: return Commands::GotoObject;
             case EditorAction::ShowGotoWall: return Commands::GotoWall;
+            case EditorAction::ShowGotoRoom: return Commands::GotoRoom;
             case EditorAction::AlignMarked: return Commands::AlignMarked;
             case EditorAction::ResetUVs: return Commands::ResetUVs;
             case EditorAction::FitUVs: return Commands::FitUVs;

@@ -193,6 +193,7 @@ namespace Inferno::Editor {
                     MenuCommandEx(Commands::GotoObject, "Go To Object...", EditorAction::ShowGotoObject);
                     MenuCommandEx(Commands::GotoSegment, "Go To Segment...", EditorAction::ShowGotoSegment);
                     MenuCommandEx(Commands::GotoWall, "Go To Wall...", EditorAction::ShowGotoWall);
+                    MenuCommandEx(Commands::GotoRoom, "Go To Room...", EditorAction::ShowGotoRoom);
 
                     ImGui::EndMenu();
                 }

@@ -54,6 +54,7 @@ namespace Inferno::Editor {
         ShowGotoSegment,
         ShowGotoObject,
         ShowGotoWall,
+        ShowGotoRoom,
         AlignMarked,
         ResetUVs,
         FitUVs,
@@ -87,6 +88,7 @@ namespace Inferno::Editor {
         extern Command GotoSegment;
         extern Command GotoObject;
         extern Command GotoWall;
+        extern Command GotoRoom;
     }
 
     struct EditorBinding {

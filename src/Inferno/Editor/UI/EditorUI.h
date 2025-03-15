@@ -120,6 +120,40 @@ namespace Inferno::Editor {
         }
     };
 
+    class GotoRoomDialog : public ModalWindowBase {
+        int _value = 0;
+        int _maxValue = 0;
+
+    public:
+        GotoRoomDialog() : ModalWindowBase("Go To Room") {
+            Width = 350;
+        }
+
+    protected:
+        bool OnOpen() override {
+            _maxValue = (int)Game::Level.Rooms.size() - 1;
+            return true;
+        }
+
+        void OnUpdate() override {
+            ImGui::Text("Room Number 0 - %i", _maxValue);
+
+            SetInitialFocus();
+            if (ImGui::InputInt("##input", &_value, 0))
+                _value = std::clamp(_value, 0, _maxValue);
+            EndInitialFocus();
+
+            AcceptButtons("OK", "Cancel");
+        }
+
+        void OnAccept() override {
+            for (size_t i = 0; i < Game::Level.Segments.size(); i++) {
+                if (Game::Level.Segments[i].Room == (RoomID)_value)
+                    Editor::Selection.SetSelection({ (SegID)i });
+            }
+        }
+    };
+
     class EditorUI {
         TextureBrowserUI _textureBrowser;
         TextureEditor _textureEditor;
@@ -161,6 +195,7 @@ namespace Inferno::Editor {
             RegisterDialog<GotoSegmentDialog>(DialogType::GotoSegment);
             RegisterDialog<GotoObjectDialog>(DialogType::GotoObject);
             RegisterDialog<GotoWallDialog>(DialogType::GotoWall);
+            RegisterDialog<GotoRoomDialog>(DialogType::GotoRoom);
             RegisterDialog<RenameLevelDialog>(DialogType::RenameLevel);
             RegisterDialog<MissionEditor>(DialogType::MissionEditor);
             RegisterDialog<NewLevelDialog>(DialogType::NewLevel);

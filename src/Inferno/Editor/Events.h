@@ -25,6 +25,7 @@ namespace Inferno::Editor {
         GotoSegment,
         GotoObject,
         GotoWall,
+        GotoRoom,
         NewLevel, 
         RenameLevel,
         Settings,
