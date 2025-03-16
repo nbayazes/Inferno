@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Render.Queue.h"
+#include "Game.Automap.h"
 #include "Game.h"
 #include "Game.Wall.h"
 #include "LegitProfiler.h"
@@ -8,6 +9,7 @@
 #include "Render.Editor.h"
 #include "Render.Particles.h"
 #include "Render.h"
+#include "Render.Level.h"
 #include "Resources.h"
 
 namespace Inferno::Render {
@@ -93,11 +95,8 @@ namespace Inferno::Render {
             }
         }
         else if (!level.Objects.empty()) {
-            // todo: should start at camera position
-            //TraverseLevel(level.Objects[0].Segment, level, wallMeshes);
-
-            auto roomId = level.GetRoomID(Game::GetPlayerObject());
-            TraverseLevelRooms(roomId, level, meshBuilder.GetWallMeshes(), camera);
+            // todo: should start at camera segment, not player (can be detached)
+            TraverseSegments(level, camera, meshBuilder.GetWallMeshes(), Game::GetPlayerObject().Segment);
         }
 
         // Draw effects and objects on the terrain
@@ -118,7 +117,7 @@ namespace Inferno::Render {
                 }
             }
 
-            SubmitObjects(camera);
+            QueueSegmentObjects(level, level.Terrain, camera);
         }
 
         LegitProfiler::AddCpuTask(std::move(task));
@@ -174,112 +173,36 @@ namespace Inferno::Render {
         }
     }
 
-    //void RenderQueue::QueueSegmentObjects(Level& level, const Segment& seg) {
-    //    _objects.clear();
-
-    //    // queue objects in segment
-    //    for (auto oid : seg.Objects) {
-    //        if (auto obj = level.TryGetObject(oid)) {
-    //            if (!ShouldDrawObject(*obj)) continue;
-    //            _objects.push_back({ obj, GetRenderDepth(obj->Position) });
-    //        }
-    //    }
-
-    //    for (auto& effectId : seg.Effects) {
-    //        if (auto effect = GetEffect(effectId)) {
-    //            Stats::EffectDraws++;
-    //            _objects.push_back({ nullptr, GetRenderDepth(effect->Position), effect });
-    //        }
-    //    }
-
-    //    // Sort objects in segment by depth
-    //    Seq::sortBy(_objects, [](const ObjDepth& a, const ObjDepth& b) {
-    //        return a.Depth < b.Depth;
-    //    });
-
-    //    // Queue objects in seg
-    //    for (auto& obj : _objects) {
-    //        if (obj.Obj) {
-    //            if (obj.Obj->Render.Type == RenderType::Model &&
-    //                obj.Obj->Render.Model.ID != ModelID::None) {
-    //                if (obj.Obj->IsCloaked() && Game::GetState() != GameState::Editor) {
-    //                    // Cloaked objects render using a different queue
-    //                    _distortionQueue.push_back({ obj.Obj, obj.Depth });
-    //                }
-    //                else {
-    //                    // always submit objects to opaque queue, as the renderer will skip
-    //                    // non-transparent submeshes
-    //                    _opaqueQueue.push_back({ obj.Obj, obj.Depth });
-
-    //                    if (obj.Obj->Render.Model.Outrage) {
-    //                        //auto& mesh = GetOutrageMeshHandle(obj.Obj->Render.Model.ID);
-    //                        //if (mesh.HasTransparentTexture)
-    //                        // outrage models do not set transparent texture flag, but many contain transparent faces
-    //                        _transparentQueue.push_back({ obj.Obj, obj.Depth });
-    //                    }
-    //                    else {
-    //                        auto& mesh = GetMeshHandle(obj.Obj->Render.Model.ID);
-    //                        if (mesh.IsTransparent)
-    //                            _transparentQueue.push_back({ obj.Obj, obj.Depth });
-    //                    }
-    //                }
-    //            }
-    //            else {
-    //                if(obj.Obj->Render.Type == RenderType::Hostage || obj.Obj->Render.Type == RenderType::Powerup) {
-    //                    // Assume all powerups are opaque for now
-    //                    _opaqueQueue.push_back({ obj.Obj, obj.Depth });
-    //                } else {
-    //                    _transparentQueue.push_back({ obj.Obj, obj.Depth });
-    //                }
-    //            }
-    //        }
-    //        else if (obj.Effect) {
-    //            auto depth = GetRenderDepth(obj.Effect->Position);
-
-    //            if (obj.Effect->Queue == RenderQueueType::Transparent)
-    //                _transparentQueue.push_back({ obj.Effect, depth });
-    //            else if (obj.Effect->Queue == RenderQueueType::Opaque)
-    //                _opaqueQueue.push_back({ obj.Effect, depth });
-    //        }
-    //    }
-    //}
-
-    void RenderQueue::QueueRoomObjects(Level& level, const Room& room, const Camera& camera) {
+    void RenderQueue::QueueSegmentObjects(Level& level, const Segment& seg, const Camera& camera) {
         _objects.clear();
 
-        for (auto& segId : room.Segments) {
-            auto pseg = level.TryGetSegment(segId);
-            if (!pseg) continue;
-            auto& seg = *pseg;
-
-            // queue objects in segment
-            for (auto oid : seg.Objects) {
-                if (auto obj = level.TryGetObject(oid)) {
-                    if (!ShouldDrawObject(*obj)) continue;
-                    _objects.push_back({ obj, GetRenderDepth(obj->Position, camera) });
-                }
-            }
-
-            for (auto& effectId : seg.Effects) {
-                if (auto effect = GetEffect(effectId)) {
-                    Stats::EffectDraws++;
-                    _objects.push_back({ nullptr, GetRenderDepth(effect->Position, camera), effect });
-                }
+        // queue objects in segment
+        for (auto oid : seg.Objects) {
+            if (auto obj = level.TryGetObject(oid)) {
+                if (!ShouldDrawObject(*obj)) continue;
+                _objects.push_back({ obj, GetRenderDepth(obj->Position, camera) });
             }
         }
 
-        // Sort objects in room by depth
-        Seq::sortBy(_objects, [](const ObjDepth& a, const ObjDepth& b) {
-            return a.Depth > b.Depth;
-        });
-    }
+        for (auto& effectId : seg.Effects) {
+            if (auto effect = GetEffect(effectId)) {
+                Stats::EffectDraws++;
+                _objects.push_back({ nullptr, GetRenderDepth(effect->Position, camera), effect });
+            }
+        }
 
-    void RenderQueue::SubmitObjects(const Camera& camera) {
+        // Sort objects in segment by depth
+        Seq::sortBy(_objects, [](const ObjDepth& a, const ObjDepth& b) {
+            return a.Depth < b.Depth;
+        });
+
+        // Queue objects in seg
         for (auto& obj : _objects) {
             if (obj.Obj) {
                 if (obj.Obj->Render.Type == RenderType::Model &&
                     obj.Obj->Render.Model.ID != ModelID::None) {
                     if (obj.Obj->IsCloaked() && Game::GetState() != GameState::Editor) {
+                        // Cloaked objects render using a different queue because they draw 'on top' of the scene
                         _distortionQueue.push_back({ obj.Obj, obj.Depth });
                     }
                     else {
@@ -288,6 +211,8 @@ namespace Inferno::Render {
                         _opaqueQueue.push_back({ obj.Obj, obj.Depth });
 
                         if (obj.Obj->Render.Model.Outrage) {
+                            //auto& mesh = GetOutrageMeshHandle(obj.Obj->Render.Model.ID);
+                            //if (mesh.HasTransparentTexture)
                             // outrage models do not set transparent texture flag, but many contain transparent faces
                             _transparentQueue.push_back({ obj.Obj, obj.Depth });
                         }
@@ -299,7 +224,9 @@ namespace Inferno::Render {
                     }
                 }
                 else {
+                    // Assume all powerups are transparent for now
                     _transparentQueue.push_back({ obj.Obj, obj.Depth });
+
                     //if (obj.Obj->Render.Type == RenderType::Hostage || obj.Obj->Render.Type == RenderType::Powerup) {
                     //    // Assume all powerups are opaque for now
                     //    _opaqueQueue.push_back({ obj.Obj, obj.Depth });
@@ -311,6 +238,7 @@ namespace Inferno::Render {
             }
             else if (obj.Effect) {
                 auto depth = GetRenderDepth(obj.Effect->Position, camera);
+
                 if (obj.Effect->Queue == RenderQueueType::Transparent)
                     _transparentQueue.push_back({ obj.Effect, depth });
                 else if (obj.Effect->Queue == RenderQueueType::Opaque)
@@ -319,81 +247,35 @@ namespace Inferno::Render {
         }
     }
 
-    //void RenderQueue::TraverseLevel(SegID startId, Level& level, span<LevelMesh> wallMeshes) {
-    //    ScopedTimer levelTimer(&Render::Metrics::QueueLevel);
-
+    //void RenderQueue::QueueRoomObjects(Level& level, const Room& room, const Camera& camera) {
     //    _objects.clear();
-    //    _visited.clear();
-    //    _search.push({ startId, 0 });
-    //    Stats::EffectDraws = 0;
 
-    //    // todo: add visible lights. Graphics::Lights.AddLight(light);
+    //    for (auto& segId : room.Segments) {
+    //        auto pseg = level.TryGetSegment(segId);
+    //        if (!pseg) continue;
+    //        auto& seg = *pseg;
 
-    //    while (!_search.empty()) {
-    //        SegDepth item = _search.front();
-    //        _search.pop();
-
-    //        // must check if visited because multiple segs can connect to the same seg before being it is visited
-    //        if (_visited.contains(item.Seg)) continue;
-    //        _visited.insert(item.Seg);
-    //        auto* seg = &level.GetSegment(item.Seg);
-
-    //        Array<SegDepth, 6> children{};
-
-    //        // Find open sides
-    //        for (auto& sideId : SideIDs) {
-    //            if (!WallIsTransparent(level, { item.Seg, sideId }))
-    //                continue; // Can't see through wall
-
-    //            bool culled = false;
-    //            // always add adjacent segments to start
-    //            if (item.Seg != startId) {
-    //                auto vec = seg->Sides[(int)sideId].Center - Camera.Position;
-    //                vec.Normalize();
-
-    //                // todo: draw objects in adjacent segments, as objects on the boundary can overlap
-    //                if (vec.Dot(seg->Sides[(int)sideId].AverageNormal) >= 0)
-    //                    culled = true;
-    //            }
-
-    //            auto cid = seg->GetConnection(sideId);
-    //            auto cseg = level.TryGetSegment(cid);
-    //            if (cseg && !_visited.contains(cid)) {
-    //                children[(int)sideId] = {
-    //                    .Seg = cid,
-    //                    .Depth = GetRenderDepth(cseg->Center),
-    //                    .Culled = culled
-    //                };
+    //        // queue objects in segment
+    //        for (auto oid : seg.Objects) {
+    //            if (auto obj = level.TryGetObject(oid)) {
+    //                if (!ShouldDrawObject(*obj)) continue;
+    //                _objects.push_back({ obj, GetRenderDepth(obj->Position, camera) });
     //            }
     //        }
 
-    //        // Sort connected segments by depth
-    //        Seq::sortBy(children, [](const SegDepth& a, const SegDepth& b) {
-    //            if (a.Seg == SegID::None) return false;
-    //            if (b.Seg == SegID::None) return true;
-    //            return a.Depth < b.Depth;
-    //        });
-
-    //        if (!item.Culled) {
-    //            for (auto& c : children) {
-    //                if (c.Seg != SegID::None)
-    //                    _search.push(c);
+    //        for (auto& effectId : seg.Effects) {
+    //            if (auto effect = GetEffect(effectId)) {
+    //                Stats::EffectDraws++;
+    //                _objects.push_back({ nullptr, GetRenderDepth(effect->Position, camera), effect });
     //            }
-    //        }
-
-    //        QueueSegmentObjects(level, *seg);
-
-    //        // queue visible walls (this does not scale well)
-    //        // todo: track walls as iterating
-    //        for (auto& mesh : wallMeshes) {
-    //            if (mesh.Chunk->Tag.Segment == item.Seg)
-    //                _transparentQueue.push_back({ &mesh, 0 });
     //        }
     //    }
 
-    //    Stats::VisitedSegments = (uint16)_visited.size();
+    //    // Sort objects in room by depth
+    //    Seq::sortBy(_objects, [](const ObjDepth& a, const ObjDepth& b) {
+    //        return a.Depth > b.Depth;
+    //    });
     //}
-
 
     //Vector3 GetNdc(const Face2& face, int i) {
     //    auto clip = Vector4::Transform(Vector4(face[i].x, face[i].y, face[i].z, 1), Render::ViewProjection);
@@ -447,131 +329,322 @@ namespace Inferno::Render {
         DebugCanvas->Draw(payload);
     }
 
-    void RenderQueue::CheckRoomVisibility(Level& level, const Portal& srcPortal, const Bounds2D& srcBounds, const Camera& camera) {
-        auto room = level.GetRoom(srcPortal.RoomLink);
-        if (!room) return;
+    //void RenderQueue::CheckRoomVisibility(Level& level, const Portal& srcPortal, const Bounds2D& srcBounds, const Camera& camera) {
+    //    auto room = level.GetRoom(srcPortal.RoomLink);
+    //    if (!room) return;
 
-        _roomStack.Push(srcPortal.RoomLink);
+    //    _roomStack.Push(srcPortal.RoomLink);
 
-        for (auto& portal : room->Portals) {
-            //if (Seq::contains(_roomQueue, portal.RoomLink))
-            if (_roomStack.Contains(portal.RoomLink))
-                continue; // Already visited linked room
+    //    for (auto& portal : room->Portals) {
+    //        //if (Seq::contains(_roomQueue, portal.RoomLink))
+    //        if (_roomStack.Contains(portal.RoomLink))
+    //            continue; // Already visited linked room
 
-            if (!SideIsTransparent(level, portal.Tag))
-                continue; // stop at opaque walls
+    //        if (!SideIsTransparent(level, portal.Tag))
+    //            continue; // stop at opaque walls
 
-            auto face = ConstFace::FromSide(level, portal.Tag);
-            if (!camera.Frustum.Contains(face[0], face[1], face[2])) continue;
-            if (!camera.Frustum.Contains(face[1], face[2], face[3])) continue;
+    //        auto face = ConstFace::FromSide(level, portal.Tag);
+    //        if (!camera.Frustum.Contains(face[0], face[1], face[2])) continue;
+    //        if (!camera.Frustum.Contains(face[1], face[2], face[3])) continue;
 
-            //auto dot = face.AverageNormal().Dot(srcFace.AverageNormal());
+    //        //auto dot = face.AverageNormal().Dot(srcFace.AverageNormal());
 
-            auto ndc = GetNdc(face, camera.ViewProjection);
-            if (!ndc) continue;
-            auto bounds = Bounds2D::FromPoints(*ndc);
+    //        auto ndc = GetNdc(face, camera.ViewProjection);
+    //        if (!ndc) continue;
+    //        auto bounds = Bounds2D::FromPoints(*ndc);
 
-            if (bounds.CrossesPlane)
-                bounds = srcBounds; // Uncertain where the bounds of the portal are, use previous bounds
-            else
-                bounds = srcBounds.Intersection(bounds);
+    //        if (bounds.CrossesPlane)
+    //            bounds = srcBounds; // Uncertain where the bounds of the portal are, use previous bounds
+    //        else
+    //            bounds = srcBounds.Intersection(bounds);
 
-            if (!bounds.Empty()) {
-                if (!Seq::contains(_visibleRooms, portal.RoomLink))
-                    _visibleRooms.push_back(portal.RoomLink);
+    //        if (!bounds.Empty()) {
+    //            if (!Seq::contains(_visibleRooms, portal.RoomLink))
+    //                _visibleRooms.push_back(portal.RoomLink);
 
-                // Keep searching...
-                if (Settings::Editor.ShowPortals)
-                    DrawBounds(bounds, Color(0, 1, 0, 0.2f));
+    //            // Keep searching...
+    //            if (Settings::Editor.ShowPortals)
+    //                DrawBounds(bounds, Color(0, 1, 0, 0.2f));
 
-                CheckRoomVisibility(level, portal, bounds, camera);
-            }
-        }
+    //            CheckRoomVisibility(level, portal, bounds, camera);
+    //        }
+    //    }
 
-        _roomStack.Rewind(srcPortal.RoomLink);
-    }
+    //    _roomStack.Rewind(srcPortal.RoomLink);
+    //}
 
-    void RenderQueue::TraverseLevelRooms(RoomID startRoomId, Level& level, span<LevelMesh> wallMeshes, const Camera& camera) {
-        _objects.clear();
+    //void RenderQueue::TraverseLevelRooms(RoomID startRoomId, Level& level, span<LevelMesh> wallMeshes, const Camera& camera) {
+    //    _objects.clear();
+    //    _visibleRooms.clear();
+    //    _visibleRooms.push_back(startRoomId);
+
+    //    auto startRoom = level.GetRoom(startRoomId);
+    //    if (!startRoom) return;
+    //    //auto screenBounds = Bounds2D({ -.75f, -.75f }, { .75f, .75f });
+    //    auto screenBounds = Bounds2D({ -1, -1 }, { 1, 1 });
+
+    //    _roomStack.Push(startRoomId);
+
+    //    for (auto& portal : startRoom->Portals) {
+    //        if (!SideIsTransparent(level, portal.Tag))
+    //            continue; // stop at opaque walls like closed doors
+
+    //        auto face = ConstFace::FromSide(level, portal.Tag);
+    //        auto basePoints = GetNdc(face, camera.ViewProjection);
+
+    //        // Search next room if portal is on screen
+    //        if (basePoints) {
+    //            //if (!Seq::contains(_roomQueue, basePortal.RoomLink))
+    //            //    _roomQueue.push_back(basePortal.RoomLink);
+
+    //            if (!Seq::contains(_visibleRooms, portal.RoomLink))
+    //                _visibleRooms.push_back(portal.RoomLink);
+
+    //            // Check if the frustum contains the portal (can cross the view plane)
+    //            //if (!Render::CameraFrustum.Contains(face[0], face[1], face[2])) continue;
+    //            //if (!Render::CameraFrustum.Contains(face[1], face[2], face[3])) continue;
+
+    //            auto bounds = Bounds2D::FromPoints(*basePoints);
+    //            bounds = bounds.Intersection(screenBounds);
+    //            if (bounds.Empty())
+    //                continue;
+
+    //            if (bounds.CrossesPlane)
+    //                bounds = screenBounds; // Uncertain where the bounds of the portal are, use the whole screen
+
+    //            if (Settings::Editor.ShowPortals)
+    //                DrawBounds(bounds, Color(0, 0, 1, 0.2f));
+
+    //            CheckRoomVisibility(level, portal, bounds, camera);
+    //        }
+    //    }
+
+    //    // grow visible rooms by one to prevent flicker when lights are on room boundaries at the edge of vision or behind the view
+    //    auto startSize = _visibleRooms.size();
+    //    for (int i = 0; i < startSize; i++) {
+    //        auto room = level.GetRoom(_visibleRooms[i]);
+    //        if (!room) continue;
+
+    //        for (auto& portal : room->Portals) {
+    //            if (!SideIsTransparent(level, portal.Tag))
+    //                continue; // Closed or opaque side
+
+    //            if (!Seq::contains(_visibleRooms, portal.RoomLink))
+    //                _visibleRooms.push_back(portal.RoomLink);
+    //        }
+    //    }
+
+    //    //SPDLOG_INFO("Update effects");
+
+    //    // Reverse the room queue so distant room objects are drawn first
+    //    for (auto rid : _visibleRooms | views::reverse) {
+    //        if (auto room = level.GetRoom(rid)) {
+    //            // queue wall meshes
+    //            for (auto& index : room->WallMeshes) {
+    //                if (!Seq::inRange(wallMeshes, index)) continue;
+    //                auto& mesh = wallMeshes[index];
+    //                float depth = Vector3::DistanceSquared(camera.Position, mesh.Chunk->Center);
+    //                _transparentQueue.push_back({ &mesh, depth });
+    //            }
+
+    //            QueueRoomObjects(level, *room, camera);
+    //            SubmitObjects(camera);
+
+    //            for (auto& sid : room->Segments) {
+    //                UpdateSegmentEffects(level, sid);
+    //            }
+    //        }
+    //    }
+    //}
+
+    void RenderQueue::TraverseSegments(Level& level, const Camera& camera, span<LevelMesh> wallMeshes, SegID startSeg) {
+        _segInfo.resize(level.Segments.size());
+        ranges::fill(_segInfo, SegmentInfo{});
+
+        _renderList.clear();
+        _renderList.reserve(500);
+        ranges::fill(_renderList, SegID::None);
+
+        _roomList.resize(level.Rooms.size());
+        ranges::fill(_roomList, false);
+
         _visibleRooms.clear();
-        _visibleRooms.push_back(startRoomId);
 
-        auto startRoom = level.GetRoom(startRoomId);
-        if (!startRoom) return;
-        //auto screenBounds = Bounds2D({ -.75f, -.75f }, { .75f, .75f });
-        auto screenBounds = Bounds2D({ -1, -1 }, { 1, 1 });
+        if (startSeg < SegID(0) || startSeg == SegID::Terrain) return;
 
-        _roomStack.Push(startRoomId);
+        Window screenWindow = { -1, 1, 1, -1 };
 
-        for (auto& portal : startRoom->Portals) {
-            if (!SideIsTransparent(level, portal.Tag))
-                continue; // stop at opaque walls like closed doors
+        const auto calcWindow = [&camera, &level](const Segment& seg, SideID side, const Window& parentWindow) {
+            auto indices = seg.GetVertexIndices(side);
+            int behindCount = 0;
+            Window bounds = { FLT_MAX, -FLT_MAX, -FLT_MAX, FLT_MAX };
 
-            auto face = ConstFace::FromSide(level, portal.Tag);
-            auto basePoints = GetNdc(face, camera.ViewProjection);
+            for (auto& index : indices) {
+                // project point
+                auto& p = level.Vertices[index];
+                auto clip = Vector4::Transform(Vector4(p.x, p.y, p.z, 1), camera.ViewProjection);
 
-            // Search next room if portal is on screen
-            if (basePoints) {
-                //if (!Seq::contains(_roomQueue, basePortal.RoomLink))
-                //    _roomQueue.push_back(basePortal.RoomLink);
+                if (clip.w < 0)
+                    behindCount++; // point is behind camera plane
 
-                if (!Seq::contains(_visibleRooms, portal.RoomLink))
-                    _visibleRooms.push_back(portal.RoomLink);
+                auto projected = Vector2{ clip / abs(clip.w) };
+                bounds.Expand(projected);
+            }
 
-                // Check if the frustum contains the portal (can cross the view plane)
-                //if (!Render::CameraFrustum.Contains(face[0], face[1], face[2])) continue;
-                //if (!Render::CameraFrustum.Contains(face[1], face[2], face[3])) continue;
+            bool onScreen = bounds.Clip(parentWindow);
 
-                auto bounds = Bounds2D::FromPoints(*basePoints);
-                bounds = bounds.Intersection(screenBounds);
-                if (bounds.Empty())
+            if (behindCount == 4 || !onScreen)
+                bounds = EMPTY_WINDOW; // portal is behind camera or offscreen
+            else if (behindCount > 0)
+                bounds = parentWindow; // a portal crosses view plane, use fallback
+
+            return bounds;
+        };
+
+        const auto processSegment = [&](SegID segid, const Window& parentWindow) {
+            const auto& adjSeg = level.GetSegment(segid);
+
+            for (auto& sideid : SIDE_IDS) {
+                auto connid = adjSeg.Connections[(int)sideid];
+                if (connid < SegID(0))
                     continue;
 
-                if (bounds.CrossesPlane)
-                    bounds = screenBounds; // Uncertain where the bounds of the portal are, use the whole screen
+                if (!SideIsTransparent(level, { segid, sideid }))
+                    continue; // Opaque wall or no connection
 
-                if (Settings::Editor.ShowPortals)
-                    DrawBounds(bounds, Color(0, 0, 1, 0.2f));
+                auto sideWindow = calcWindow(adjSeg, sideid, parentWindow);
 
-                CheckRoomVisibility(level, portal, bounds, camera);
-            }
-        }
+                if (sideWindow.IsEmpty())
+                    continue; // Side isn't visible from portal
 
-        // grow visible rooms by one to prevent flicker when lights are on room boundaries at the edge of vision or behind the view
-        auto startSize = _visibleRooms.size();
-        for (int i = 0; i < startSize; i++) {
-            auto room = level.GetRoom(_visibleRooms[i]);
-            if (!room) continue;
+                auto& conn = _segInfo[(int)connid];
 
-            for (auto& portal : room->Portals) {
-                if (!SideIsTransparent(level, portal.Tag))
-                    continue; // Closed or opaque side
+                if (conn.visited) {
+                    if (conn.window.Expand(sideWindow))
+                        conn.processed = false; // force reprocess due to window changing
 
-                if (!Seq::contains(_visibleRooms, portal.RoomLink))
-                    _visibleRooms.push_back(portal.RoomLink);
-            }
-        }
-
-        //SPDLOG_INFO("Update effects");
-
-        // Reverse the room queue so distant room objects are drawn first
-        for (auto rid : _visibleRooms | views::reverse) {
-            if (auto room = level.GetRoom(rid)) {
-                // queue wall meshes
-                for (auto& index : room->WallMeshes) {
-                    if (!Seq::inRange(wallMeshes, index)) continue;
-                    auto& mesh = wallMeshes[index];
-                    float depth = Vector3::DistanceSquared(camera.Position, mesh.Chunk->Center);
-                    _transparentQueue.push_back({ &mesh, depth });
+                    continue; // Already visited, don't add it to the render list again
+                }
+                else {
+                    conn.window = sideWindow;
                 }
 
-                QueueRoomObjects(level, *room, camera);
-                SubmitObjects(camera);
+                conn.visited = true;
 
-                for (auto& sid : room->Segments) {
-                    UpdateSegmentEffects(level, sid);
+                if (Settings::Graphics.OutlineVisibleRooms)
+                    Render::Debug::OutlineSegment(level, level.GetSegment(connid), Color(1, 1, 1));
+
+                _renderList.push_back(connid);
+            }
+        };
+
+        // Add the first seg to populate the stack
+        _segInfo[(int)startSeg].window = screenWindow;
+        _segInfo[(int)startSeg].visited = true;
+        _renderList.push_back(startSeg);
+
+        uint renderIndex = 0;
+
+        if (Settings::Graphics.OutlineVisibleRooms)
+            Render::Debug::OutlineSegment(level, level.GetSegment(startSeg), Color(1, 1, 1, 0.25f));
+
+        auto queueSegment = [&, this](SegID segid) {
+            auto& seg = level.GetSegment(segid);
+            QueueSegmentObjects(level, seg, camera);
+            UpdateSegmentEffects(level, segid);
+
+            // queue walls in segment
+            for (auto& mesh : wallMeshes) {
+                if (mesh.Chunk->Tag.Segment == segid)
+                    _transparentQueue.push_back({ &mesh, 0 });
+            }
+
+            if (!UseRoomLighting)
+                Render::DrawSegmentLights(segid);
+
+            if (seg.Room > RoomID::None)
+                _roomList[(int)seg.Room] = true;
+        };
+
+        while (renderIndex++ < _renderList.size()) {
+            auto renderListSize = _renderList.size();
+
+            // iterate each segment in the render list for each pass in case the window changes
+            // due to adjacent segments
+            for (size_t i = 0; i < renderListSize && i < Game::Automap.Segments.size(); i++) {
+                auto segid = _renderList[i];
+                if (segid == SegID::None) continue;
+                Game::Automap.Segments[(int)segid] = AutomapVisibility::Visible;
+                auto& info = _segInfo[(int)segid];
+                if (info.processed) continue;
+
+                info.processed = true;
+                //Render::Debug::DrawCanvasBox(info.window.Left, info.window.Right, info.window.Top, info.window.Bottom, Color(0, 1, 0, 0.25f));
+                processSegment(segid, info.window);
+
+                if (!info.queued) {
+                    info.queued = true;
+                    queueSegment(segid);
+                }
+            }
+
+            if (renderIndex > 1000) {
+                SPDLOG_WARN("Maximum segment render count exceeded");
+                __debugbreak();
+                break;
+            }
+        }
+
+        // extend past the visible segments so lights and objects don't get clipped
+        auto growVisible = [&, this] {
+            for (auto& segid : _renderList) {
+                const auto& seg = level.GetSegment(segid);
+
+                for (auto& sideid : SIDE_IDS) {
+                    auto connid = seg.Connections[(int)sideid];
+                    if (connid < SegID(0))
+                        continue;
+
+                    if (!SideIsTransparent(level, { segid, sideid }))
+                        continue; // Opaque wall or no connection
+
+                    auto& conn = _segInfo[(int)connid];
+                    if (conn.visited)
+                        continue;
+
+                    queueSegment(connid);
+                    conn.visited = true;
+
+                    if (Settings::Graphics.OutlineVisibleRooms)
+                        Render::Debug::OutlineSegment(level, level.GetSegment(connid), Color(0.65f, 0.65f, 1, 0.5f));
+
+                    _renderList.push_back(connid);
+                }
+            }
+        };
+
+        // expand visible segments twice to reduce light and object popin
+        growVisible();
+        growVisible();
+
+        // Mark the visible rooms for object updates
+        for (int i = 0; i < _roomList.size(); i++) {
+            if (_roomList[i] == false) continue;
+
+            _visibleRooms.push_back((RoomID)i);
+
+            // Draw lights using rooms
+            if (UseRoomLighting) {
+                if (auto room = level.GetRoom((RoomID)i)) {
+                    for (auto& segid : room->Segments) {
+                        Render::DrawSegmentLights(segid);
+                    }
                 }
             }
         }
+
+        ranges::reverse(_transparentQueue); // reverse the queue so it draws back to front
+
+        Game::Debug::VisibleSegments = (uint)_renderList.size();
     }
 }

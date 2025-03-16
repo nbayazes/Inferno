@@ -21,6 +21,7 @@ namespace Inferno::Graphics {
 }
 
 namespace Inferno::Render {
+    void DrawSegmentLights(SegID segid);
     void DrawLevel(GraphicsContext& ctx, Level& level);
     void DrawLevelDebug(const Level& level, const Camera& camera);
     void RebuildLevelResources(Level& level);

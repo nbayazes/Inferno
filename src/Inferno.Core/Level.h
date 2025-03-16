@@ -368,7 +368,7 @@ namespace Inferno {
         Segment Terrain; // Placeholder terrain segment
 
         Segment* TryGetSegment(SegID id) {
-            if(id == SegID::Terrain) return &Terrain;
+            if (id == SegID::Terrain) return &Terrain;
             if (!Seq::inRange(Segments, (int)id)) return nullptr;
             return &Segments[(int)id];
         }
@@ -379,7 +379,7 @@ namespace Inferno {
             return &Segments[(int)id];
         }
 
-        Segment* TryGetSegment(Tag tag) {return tag.Segment == SegID::Terrain ? &Terrain : TryGetSegment(tag.Segment); }
+        Segment* TryGetSegment(Tag tag) { return tag.Segment == SegID::Terrain ? &Terrain : TryGetSegment(tag.Segment); }
         const Segment* TryGetSegment(Tag tag) const { return tag.Segment == SegID::Terrain ? &Terrain : TryGetSegment(tag.Segment); }
 
         Segment& GetSegment(SegID id) { return id == SegID::Terrain ? Terrain : Segments[(int)id]; }
@@ -576,8 +576,6 @@ namespace Inferno {
             if (roomId == RoomID::None) return nullptr;
             return &Rooms[(int)roomId];
         }
-
-
 
         Portal* GetPortal(Tag tag) {
             if (auto room = GetRoom(tag.Segment)) {

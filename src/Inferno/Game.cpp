@@ -321,8 +321,6 @@ namespace Inferno::Game {
             }
         }
 
-        if (State == GameState::Game || State == GameState::ExitSequence)
-            TraverseSegments(GetActiveCamera(), GetPlayerObject().Segment, TraversalFlag::None);
 
         static double accumulator = 0;
         accumulator += dt;

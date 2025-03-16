@@ -1,5 +1,6 @@
 #pragma once
 #include <queue>
+#include "Game.Visibility.h"
 #include "LevelMesh.h"
 #include "Mesh.h"
 #include "Graphics/Render.Particles.h"
@@ -158,6 +159,17 @@ namespace Inferno::Render {
 
         List<ObjDepth> _objects;
 
+        struct SegmentInfo {
+            Window window;
+            bool visited = false;
+            bool processed = false;
+            bool queued = false;
+        };
+
+        List<SegmentInfo> _segInfo;
+        List<SegID> _renderList;
+        List<char> _roomList;
+
     public:
         void Update(Level& level, LevelMeshBuilder& meshBuilder, bool drawObjects, const Camera& camera);
         span<RenderCommand> Opaque() { return _opaqueQueue; }
@@ -166,12 +178,17 @@ namespace Inferno::Render {
         span<RenderCommand> Distortion() { return _distortionQueue; }
         span<RoomID> GetVisibleRooms() { return _visibleRooms; }
 
+        void TraverseSegments(Level& level, const Camera& camera, span<LevelMesh> wallMeshes, SegID startSeg);
+
+        // When false, uses per-segment lighting.
+        // Segment lighting causes more popin, but room lighting causes more bleeding.
+        bool UseRoomLighting = true; 
     private:
         void QueueEditorObject(Object& obj, float lerp, const Camera& camera);
-        void QueueRoomObjects(Level& level, const Room& room, const Camera& camera);
-        void SubmitObjects(const Camera& camera);
-        void CheckRoomVisibility(Level& level, const Portal& srcPortal, const Bounds2D& srcBounds, const Camera& camera);
-        void TraverseLevelRooms(RoomID startRoomId, Level& level, span<LevelMesh> wallMeshes, const Camera& camera);
+        void QueueSegmentObjects(Level& level, const Segment& seg, const Camera& camera);
+        //void QueueRoomObjects(Level& level, const Room& room, const Camera& camera);
+        //void CheckRoomVisibility(Level& level, const Portal& srcPortal, const Bounds2D& srcBounds, const Camera& camera);
+        //void TraverseLevelRooms(RoomID startRoomId, Level& level, span<LevelMesh> wallMeshes, const Camera& camera);
     };
 
     Option<Array<Vector3, 4>> GetNdc(const ConstFace& face, const Matrix& viewProj);

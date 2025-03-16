@@ -548,7 +548,7 @@ namespace Inferno::Render {
             auto& mesh = terrainMesh->GetTerrain();
             auto& terrainTexture = Render::Materials->Get(mesh.TextureName);
             effect.Shader->SetDiffuse(cmdList, terrainTexture.Handle());
-            
+
             cmdList->IASetVertexBuffers(0, 1, &mesh.VertexBuffer);
             cmdList->IASetIndexBuffer(&mesh.IndexBuffer);
             cmdList->DrawIndexedInstanced(mesh.IndexCount, 1, 0, 0, 0);
@@ -576,6 +576,56 @@ namespace Inferno::Render {
         cmdList->DrawInstanced(3, 1, 0, 0);
     }
 
+    void DrawSegmentLights(SegID segid) {
+        auto lights = Seq::tryItem(SegmentLights, (int)segid);
+        if (!lights) return;
+
+        // Add lights on each side (from textures)
+        for (auto& sideLights : lights->Sides) {
+            for (int lid = 0; lid < sideLights.Lights.size(); lid++) {
+                auto& light = sideLights.Lights[lid];
+                DynamicLightMode mode = light.mode;
+
+                if (sideLights.Color.w <= 0 || sideLights.Radius <= 0 || light.mode == DynamicLightMode::Off)
+                    continue;
+
+                if (Game::ControlCenterDestroyed) {
+                    if (lid % 3 == 0) mode = DynamicLightMode::StrongFlicker;
+                    else if (lid % 2 == 0) mode = DynamicLightMode::StrongFlicker;
+                }
+
+                AnimateLight(sideLights, mode, segid);
+                Graphics::Lights.AddLight(light);
+
+                if (Settings::Editor.ShowLights) {
+                    Color lineColor(1, .6f, .2f);
+                    if (light.type == LightType::Rectangle) {
+                        Debug::DrawLine(light.pos + light.right + light.up, light.pos + light.right - light.up, lineColor); // right
+                        Debug::DrawLine(light.pos + light.right - light.up, light.pos - light.right - light.up, lineColor); // bottom
+                        Debug::DrawLine(light.pos - light.right + light.up, light.pos - light.right - light.up, lineColor); // left
+                        Debug::DrawLine(light.pos - light.right + light.up, light.pos + light.right + light.up, lineColor); // top
+                    }
+                    else {
+                        //Debug::DrawPoint(light.pos, lineColor, Game::PlayerCamera);
+                        //Debug::DrawLine(light.pos, light.pos + light.normal * light.radius/2, color);
+                        if (light.normal != Vector3::Zero) {
+                            auto transform = Matrix(VectorToRotation(light.normal));
+                            transform.Translation(light.pos);
+                            Debug::DrawCircle(5 /*light.radius*/, transform, lineColor);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Add lights inside the segment (explosions, objects)
+        for (auto& light : lights->Lights) {
+            LightData l = light;
+            l.color *= Game::GlobalDimming;
+            Graphics::Lights.AddLight(l);
+        }
+    }
+
     void DrawLevel(GraphicsContext& ctx, Level& level) {
         if (Settings::Editor.ShowFlickeringLights)
             UpdateFlickeringLights(level, (float)Game::Time, Game::FrameTime);
@@ -586,64 +636,11 @@ namespace Inferno::Render {
 
         _renderQueue.Update(level, _levelMeshBuilder, drawObjects, ctx.Camera);
 
-        for (auto& id : _renderQueue.GetVisibleRooms()) {
-            auto room = level.GetRoom(id);
-            if (!room) continue;
-
-            // Gather lights in the room segments
-            for (auto& segid : room->Segments) {
-                auto lights = Seq::tryItem(SegmentLights, (int)segid);
-                if (!lights) continue;
-
-                // Add lights on each side (from textures)
-                for (auto& sideLights : lights->Sides) {
-                    for (int lid = 0; lid < sideLights.Lights.size(); lid++) {
-                        auto& light = sideLights.Lights[lid];
-                        DynamicLightMode mode = light.mode;
-
-                        if (sideLights.Color.w <= 0 || sideLights.Radius <= 0 || light.mode == DynamicLightMode::Off)
-                            continue;
-
-                        if (Game::ControlCenterDestroyed) {
-                            if (lid % 3 == 0) mode = DynamicLightMode::StrongFlicker;
-                            else if (lid % 2 == 0) mode = DynamicLightMode::StrongFlicker;
-                        }
-
-                        AnimateLight(sideLights, mode, segid);
-                        Graphics::Lights.AddLight(light);
-
-                        if (Settings::Editor.ShowLights) {
-                            Color lineColor(1, .6f, .2f);
-                            if (light.type == LightType::Rectangle) {
-                                Debug::DrawLine(light.pos + light.right + light.up, light.pos + light.right - light.up, lineColor); // right
-                                Debug::DrawLine(light.pos + light.right - light.up, light.pos - light.right - light.up, lineColor); // bottom
-                                Debug::DrawLine(light.pos - light.right + light.up, light.pos - light.right - light.up, lineColor); // left
-                                Debug::DrawLine(light.pos - light.right + light.up, light.pos + light.right + light.up, lineColor); // top
-                            }
-                            else {
-                                //Debug::DrawPoint(light.pos, lineColor, Game::PlayerCamera);
-                                //Debug::DrawLine(light.pos, light.pos + light.normal * light.radius/2, color);
-                                if (light.normal != Vector3::Zero) {
-                                    auto transform = Matrix(VectorToRotation(light.normal));
-                                    transform.Translation(light.pos);
-                                    Debug::DrawCircle(5 /*light.radius*/, transform, lineColor);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Add lights inside the segment (explosions, objects)
-                for (auto& light : lights->Lights) {
-                    LightData l = light;
-                    l.color *= Game::GlobalDimming;
-                    Graphics::Lights.AddLight(l);
-                }
+        if (Game::GetState() == GameState::Editor) {
+            for (int i = 0; i < Game::Level.Segments.size(); i++) {
+                DrawSegmentLights((SegID)i);
             }
-
-            if (Settings::Graphics.OutlineVisibleRooms && Game::GetState() != GameState::Editor)
-                Debug::OutlineRoom(level, *room, Color(1, 1, 1, 0.5f));
-        }
+        } 
 
         // Debug active rooms
         //for (auto& id : Game::Debug::ActiveRooms) {
