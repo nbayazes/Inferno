@@ -60,9 +60,6 @@ namespace Inferno::Game {
         return !Settings::Cheats.DisableAI && Game::GetState() == GameState::Game;
     }
 
-    // Removes all objects contained in a segment
-    void RemoveObjectsFromSegment(SegID tag);
-
     bool StartLevel();
     bool HasPendingLoad();
 
@@ -133,11 +130,22 @@ namespace Inferno::Game {
         Game::PlayMusic("descent", LoadFlag::Default | LoadFlag::Descent1);
     }
 
+    void DestroyEnemiesInSegment(auto segid) {
+        if(auto seg = Level.TryGetSegment(segid)) {
+            for (auto& objid : seg->Objects) {
+                auto obj = Level.TryGetObject(objid);
+                if (!obj || !obj->IsRobot()) continue;
+
+                DestroyObject(*obj);
+            }
+        }
+    }
+
     void WarpPlayerToExit() {
         auto tag = FindExit(Game::Level);
 
         if (auto seg = Game::Level.TryGetSegment(tag)) {
-            RemoveObjectsFromSegment(tag.Segment);
+            DestroyEnemiesInSegment(tag);
             auto face = Face::FromSide(Game::Level, tag);
             auto up = face.VectorForEdge(0);
             auto rotation = VectorToRotation(-face.AverageNormal(), -up);
@@ -304,8 +312,8 @@ namespace Inferno::Game {
         DecayScreenFlash(dt);
         Graphics::UpdateTimers();
 
-        // Update global dimming
-        GlobalDimming = ControlCenterDestroyed ? float(sin(CountdownTimer * 4) * 0.5 + 0.5) : 1;
+        // Update global dimming (50% max ambient)
+        GlobalDimming = ControlCenterDestroyed ? float(sin(CountdownTimer * 4) * 0.5 + 0.5) / 2 : 1;
 
         DestroyedClips.Update(Level, dt);
         for (auto& clip : Resources::GameData.Effects) {
@@ -1059,13 +1067,6 @@ namespace Inferno::Game {
         Graphics::LoadTextures(gameTextures);
     }
 
-    void RemoveObjectsFromSegment(SegID tag) {
-        auto& seg = Level.GetSegment(tag);
-
-        for (auto& obj : seg.Objects)
-            Editor::DeleteObject(Level, obj);
-    }
-
     bool StartLevel() {
         SPDLOG_INFO("Starting level");
         Editor::SetPlayerStartIDs(Level);
@@ -1078,8 +1079,7 @@ namespace Inferno::Game {
         if (Game::PlayingFromEditor) {
             if (Input::ControlDown && Level.SegmentExists(Editor::Selection.Segment)) {
                 // Remove any objects in the segment so the player doesn't get stuck in a robot
-                RemoveObjectsFromSegment(Editor::Selection.Segment);
-
+                DestroyEnemiesInSegment(Editor::Selection.Segment);
                 // Move player to selected segment if control is held down
                 Editor::Selection.Object = ObjID(0);
                 Editor::Commands::MoveObjectToSegment();

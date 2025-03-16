@@ -87,6 +87,7 @@ namespace Inferno {
         void MakeVulnerable(Object& obj, bool playSound = true);
     }
 
+    // Explodes an object and flags it as destroyed
     void DestroyObject(Object& obj);
     //void ExplodeSubmodels(ModelID model, Object& obj);
 

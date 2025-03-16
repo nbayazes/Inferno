@@ -1213,8 +1213,7 @@ namespace Inferno {
 
             for (int i = 0; i < seg.Objects.size(); i++) {
                 auto other = level.TryGetObject(seg.Objects[i]);
-
-                if (!other->IsAlive() || other->Segment != segment) continue;
+                if (!other || !other->IsAlive() || other->Segment != segment) continue;
                 if (other->Type != ObjectType::Player && other->Type != ObjectType::Robot && other->Type != ObjectType::Reactor)
                     continue;
 
