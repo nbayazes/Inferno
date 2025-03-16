@@ -1098,7 +1098,7 @@ namespace Inferno {
             return false;
 
         bool canFire = true;
-        auto& battery = Ship.Weapons[(int)Primary];
+        auto& battery = Ship.Weapons[(int)index];
 
         if ((index == PrimaryWeaponIndex::Vulcan ||
              index == PrimaryWeaponIndex::Gauss) &&
