@@ -64,17 +64,18 @@ namespace Inferno {
             while (std::getline(file, line)) {
                 if (String::Contains(line, "=")) {
                     // trim trailing comments (only applies to very old files)
-                    if (auto idx = line.find_first_of(';'); idx > -1)
-                        line = line.substr(0, idx);
+                    if (auto idx = String::IndexOf(line, ";"))
+                        line = line.substr(0, *idx);
 
-                    auto tokens = String::Split(line, '=');
-                    if (tokens.size() != 2) {
-                        SPDLOG_WARN("Two tokens expected in: {}", line);
+                    string key, value;
+                    if (auto idx = String::IndexOf(line, "=")) {
+                        key = String::Trim(String::ToLower(line.substr(0, *idx)));
+                        value = String::Trim(line.substr(*idx + 1));
+                    }
+                    else {
+                        SPDLOG_WARN("Equals sign expected in mission value: {}", line);
                         continue;
                     }
-
-                    auto key = String::ToLower(String::Trim(tokens[0]));
-                    auto value = String::TrimStart(tokens[1]);
 
                     using String::Hash;
                     switch (Hash(key)) {
