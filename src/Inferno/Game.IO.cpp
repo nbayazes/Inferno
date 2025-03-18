@@ -9,6 +9,7 @@
 #include "Game.h"
 #include "Game.Room.h"
 #include "Game.Save.h"
+#include "Game.Segment.h"
 #include "Graphics.h"
 #include "LevelMetadata.h"
 #include "Procedural.h"
@@ -178,7 +179,7 @@ namespace Inferno::Game {
             if (auto data = Resources::ReadBinaryFile(exitConfig)) {
                 DecodeText(*data);
                 auto lines = String::ToLines(String::OfBytes(*data));
-                Game::Terrain = ParseEscapeInfo(Level, lines);
+                Game::Terrain = ParseEscapeInfo(lines);
             }
             else {
                 Game::Terrain = {};
@@ -190,8 +191,10 @@ namespace Inferno::Game {
                 Game::Terrain.SatelliteDir.Normalize();
                 Game::Terrain.SatelliteSize = 250;
                 Game::Terrain.ExitModel = Resources::GameData.ExitModel; // todo: hard code?
-                CreateEscapePath(Level, Game::Terrain);
             }
+
+            if (auto exit = FindExit(Level))
+                CreateEscapePath(Level, Game::Terrain, exit, false);
 
             // Replace heightmap based terrain with random large terrain
             TerrainGenInfo.Seed = String::Hash(Level.Name);

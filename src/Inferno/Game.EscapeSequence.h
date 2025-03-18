@@ -11,13 +11,13 @@ namespace Inferno {
 
     void UpdateEscapeCamera(float dt);
 
-    void StartEscapeSequence();
+    void StartEscapeSequence(Tag startSeg);
     void StopEscapeSequence();
     void DebugEscapeSequence();
 
-    bool CreateEscapePath(Level& level, TerrainInfo& info);
+    bool CreateEscapePath(Level& level, TerrainInfo& info, Tag start, bool makeWallsIllusions);
 
-    TerrainInfo ParseEscapeInfo(Level& level, span<string> lines);
+    TerrainInfo ParseEscapeInfo(span<string> lines);
 
     enum class EscapeScene {
         None,

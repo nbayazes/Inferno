@@ -55,20 +55,33 @@ namespace Inferno {
     //    while (State.PathIndex < State.Path.size()) {}
     //}
 
-    bool CreateEscapePath(Level& level, TerrainInfo& info) {
-        // Find exit tunnel start
-        auto curSeg = FindExit(level);
-        if (!curSeg) return false;
+    bool CreateEscapePath(Level& level, TerrainInfo& info, Tag start, bool makeWallsIllusions) {
+        if (!level.SegmentExists(start)) return false;
 
         auto& points = info.EscapePath;
+        points.clear();
         bool foundSurface = false;
         int iter = 0;
+
+        auto curSeg = start;
 
         while (curSeg) {
             if (iter++ > 1000) {
                 // Likely a poorly formed exit
                 points.clear();
                 return false;
+            }
+
+            // Convert all solid walls along the path to illusions.
+            // The original game would ignore collision during the escape sequence.
+            // Inferno still needs physics, but this will fix any levels with solid walls in the way.
+            if (makeWallsIllusions) {
+                if (auto wall = level.TryGetWall(curSeg)) {
+                    if (wall->Type == WallType::Closed) {
+                        wall->Type = WallType::Illusion;
+                        SPDLOG_WARN("Converting closed wall in escape path at {} to illusion", curSeg);
+                    }
+                }
             }
 
             if (auto cside = level.GetConnectedSide(curSeg)) {
@@ -156,7 +169,7 @@ namespace Inferno {
         return true;
     }
 
-    TerrainInfo CreateRandomTerrain(Level& level) {
+    TerrainInfo CreateRandomTerrain(const Level& level) {
         TerrainInfo info{};
         info.SurfaceTexture = "moon01.bbm";
         info.SatelliteTexture = "sun.bbm";
@@ -178,12 +191,10 @@ namespace Inferno {
         args.TextureScale = 80;
         args.Seed = String::Hash(level.Name);
         GenerateTerrain(info, args);
-        CreateEscapePath(level, info);
-
         return info;
     }
 
-    TerrainInfo ParseEscapeInfo(Level& level, span<string> lines) {
+    TerrainInfo ParseEscapeInfo(span<string> lines) {
         if (lines.size() < 7)
             throw Exception("Not enough lines in level escape data. 7 required");
 
@@ -234,8 +245,6 @@ namespace Inferno {
         auto stationDir = String::Split(lines[7], ',');
         if (stationDir.size() >= 2)
             info.StationDir = parseDirection(satelliteDir);
-
-        CreateEscapePath(level, info);
 
         if (auto data = Resources::ReadBinaryFile(info.Heightmap, LoadFlag::Mission)) {
             auto bitmap = ReadBbm(*data);
@@ -586,18 +595,16 @@ namespace Inferno {
         }
     }
 
-    void StartEscapeSequence() {
-        auto exit = FindExit(Game::Level);
-        if (!exit) return;
+    void StartEscapeSequence(Tag startSeg) {
 
-        if (Game::Terrain.EscapePath.empty()) {
-            if (!CreateEscapePath(Game::Level, Game::Terrain)) {
-                SPDLOG_WARN("Unable to create escape path, skipping to score screen");
-                Game::SetState(GameState::ScoreScreen);
-                Sound::StopMusic();
-                return;
-            }
+        // Regenerate the escape path in case the level has multiple exit triggers
+        if (!CreateEscapePath(Game::Level, Game::Terrain, startSeg, true)) {
+            SPDLOG_WARN("Unable to create escape path, skipping to score screen");
+            Game::SetState(GameState::ScoreScreen);
+            Sound::StopMusic();
+            return;
         }
+        //}
 
         Game::Level.Terrain.VolumeLight = Color(.90f, 0.90f, 1.0f, 3);
 

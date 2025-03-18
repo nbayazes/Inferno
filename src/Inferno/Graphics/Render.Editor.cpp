@@ -550,11 +550,11 @@ namespace Inferno::Render {
             DrawPath(Inferno::Debug::OptimizedPath, Color(1, 0, 0), ctx.Camera);
         }
 
-        //if (Game::Terrain.EscapePath.size() >= 2) {
-        //    for (int i = 0; i < Game::Terrain.EscapePath.size() - 1; i++) {
-        //        Debug::DrawLine(Game::Terrain.EscapePath[i], Game::Terrain.EscapePath[i + 1], Color(0, 1, 0));
-        //    }
-        //}
+        if (Settings::Editor.ShowEscapePath && Game::Terrain.EscapePath.size() >= 2) {
+            for (int i = 0; i < Game::Terrain.EscapePath.size() - 1; i++) {
+                Debug::DrawLine(Game::Terrain.EscapePath[i], Game::Terrain.EscapePath[i + 1], Color(0, 1, 0));
+            }
+        }
 
         DrawRooms(level, ctx.Camera);
         OutlineBossTeleportSegments();
