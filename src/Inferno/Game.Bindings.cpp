@@ -344,6 +344,8 @@ namespace Inferno {
         device.Bind({ .action = GameAction::Pause, .id = Keys::Escape });
         device.Bind({ .action = GameAction::RearView, .id = Keys::R });
         device.Bind({ .action = GameAction::EnergyConverter, .id = Keys::T });
+        device.Bind({ .action = GameAction::DropBomb, .id = Keys::B });
+        device.Bind({ .action = GameAction::CycleBomb, .id = Keys::C });
 
         device.Bind({ .action = GameAction::Weapon1, .id = Keys::D1 });
         device.Bind({ .action = GameAction::Weapon2, .id = Keys::D2 });
