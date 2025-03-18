@@ -94,6 +94,7 @@ namespace Inferno {
         bool PasteSegmentSpecial = true;
         bool OutlineBossTeleportSegments = false;
         bool ShowTerrain = false;
+        bool ShowEscapePath = false;
 
         float ObjectRenderDistance = 300.0f;
 
