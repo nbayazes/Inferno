@@ -9,7 +9,7 @@ namespace Inferno {
         Misc
     };
 
-    TextureType ClassifyTexture(const PigEntry& entry);
+    TextureType ClassifyTexture(bool descent1, const PigEntry& entry);
 
     class CustomTextureLibrary {
         Dictionary<TexID, PigBitmap> _textures;

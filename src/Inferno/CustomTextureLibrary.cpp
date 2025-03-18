@@ -17,8 +17,8 @@ namespace Inferno {
         "vammo", "vulcan"
     };
 
-    TextureType ClassifyTexture(const PigEntry& entry) {
-        if (Resources::IsLevelTexture(entry.ID))
+    TextureType ClassifyTexture(bool descent1, const PigEntry& entry) {
+        if (Resources::IsLevelTexture(descent1, entry.ID))
             return TextureType::Level;
 
         for (auto& filter : ROBOT_TEXTURES) {
@@ -96,7 +96,7 @@ namespace Inferno {
         if (bmih.biCompression != BI_RGB)
             throw Exception("Cannot read compressed bitmaps. Resave the file with compression turned off.");
 
-        if (ClassifyTexture(entry) == TextureType::Level) {
+        if (ClassifyTexture(descent1, entry) == TextureType::Level) {
             if (bmih.biWidth != bmih.biHeight || !IsPowerOfTwo(bmih.biWidth))
                 throw Exception("Level textures must be square and a power of 2, otherwise texmerge will fail.");
         }

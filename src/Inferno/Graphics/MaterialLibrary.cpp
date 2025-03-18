@@ -381,7 +381,7 @@ namespace Inferno::Render {
         }
 
         // Generate maps if none were found
-        bool genMaps = (Resources::IsLevelTexture(material.ID) || Resources::IsObjectTexture(material.ID)) && Settings::Inferno.GenerateMaps;
+        bool genMaps = (Resources::IsLevelTexture(Game::Level.IsDescent1(), material.ID) || Resources::IsObjectTexture(material.ID)) && Settings::Inferno.GenerateMaps;
 
         if (!material.Textures[Material2D::Specular] && genMaps && !upload.Bitmap.Data.empty()) {
             auto specular = CreateSpecularMap(upload.Bitmap);

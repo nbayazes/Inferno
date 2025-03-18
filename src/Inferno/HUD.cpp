@@ -373,7 +373,7 @@ namespace Inferno {
         info.HorizontalAlign = AlignH::CenterRight; // Justify the left edge of the text to the center
         info.VerticalAlign = AlignV::CenterTop;
         info.Scanline = TEXT_SCANLINE;
-        auto weaponName = Resources::GetPrimaryNameShort(weaponIndex);
+        auto weaponName = Resources::GetPrimaryNameShort(Game::Level.IsDescent1(), weaponIndex);
         string label = string(weaponName), ammo;
         auto& weapon = player.Ship.Weapons[(int)weaponIndex];
 
@@ -443,7 +443,7 @@ namespace Inferno {
         info.HorizontalAlign = AlignH::CenterRight; // Justify the left edge of the text to the center
         info.VerticalAlign = AlignV::CenterTop;
         info.Scanline = TEXT_SCANLINE;
-        DrawMonitorText(Resources::GetSecondaryNameShort((SecondaryWeaponIndex)state.WeaponIndex), info, 0.6f * state.Opacity);
+        DrawMonitorText(Resources::GetSecondaryNameShort(Game::Level.IsDescent1(), (SecondaryWeaponIndex)state.WeaponIndex), info, 0.6f * state.Opacity);
 
         // Ammo counter
         info.Color = RED_TEXT;

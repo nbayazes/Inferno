@@ -280,7 +280,7 @@ namespace Inferno::Editor {
 
         for (int i = 1; i < Resources::GetTextureCount(); i++) {
             auto& bmp = Resources::GetBitmap((TexID)i);
-            auto type = ClassifyTexture(bmp.Info);
+            auto type = ClassifyTexture(Game::Level.IsDescent1(), bmp.Info);
 
             if ((_showModified && bmp.Info.Custom) ||
                 (_showInUse && levelTextures.contains(bmp.Info.ID))) {

@@ -75,7 +75,7 @@ namespace Inferno::Resources {
 
     ModelID GetDeadModelID(ModelID);
     ModelID GetDyingModelID(ModelID);
-    ModelID GetCoopShipModel();
+    ModelID GetCoopShipModel(const Level& level);
 
     const RobotInfo& GetRobotInfo(uint);
 
@@ -102,7 +102,7 @@ namespace Inferno::Resources {
     }
 
     // Returns true if the id corresponds to a level texture
-    bool IsLevelTexture(TexID id);
+    bool IsLevelTexture(bool descent1, TexID id);
 
     bool IsObjectTexture(TexID id);
 
@@ -183,9 +183,9 @@ namespace Inferno::Resources {
 
     const string_view GetString(GameString);
     const string_view GetPrimaryName(PrimaryWeaponIndex id);
-    const string_view GetSecondaryName(SecondaryWeaponIndex id);
-    const string_view GetPrimaryNameShort(PrimaryWeaponIndex id);
-    const string_view GetSecondaryNameShort(SecondaryWeaponIndex id);
+    const string_view GetSecondaryName(bool descent1, SecondaryWeaponIndex id);
+    const string_view GetPrimaryNameShort(bool descent1, PrimaryWeaponIndex id);
+    const string_view GetSecondaryNameShort(bool descent1, SecondaryWeaponIndex id);
 
     bool LoadGameTables(LoadFlag flags);
     bool LoadLightTables(LoadFlag flags);

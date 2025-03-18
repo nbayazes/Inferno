@@ -373,7 +373,7 @@ namespace Inferno::Editor {
         static void ApplyTexture(TexID id) {
             auto tid = Resources::LookupLevelTexID(id);
             auto& info = Resources::GetTextureInfo(id);
-            if (Resources::IsLevelTexture(id)) {
+            if (Resources::IsLevelTexture(Game::Level.IsDescent1(), id)) {
                 if (info.Transparent)
                     Events::SelectTexture(LevelTexID::None, tid); // overlay
                 else

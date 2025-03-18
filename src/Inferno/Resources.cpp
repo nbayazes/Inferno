@@ -196,8 +196,8 @@ namespace Inferno::Resources {
         return GameData.DyingModels[(int)id];
     }
 
-    ModelID GetCoopShipModel() {
-        return Game::Level.IsDescent1() ? ModelID::D1Coop : ModelID::D2Player;
+    ModelID GetCoopShipModel(const Level& level) {
+        return level.IsDescent1() ? ModelID::D1Coop : ModelID::D2Player;
     }
 
     const RobotInfo& GetRobotInfo(uint id) {
@@ -290,8 +290,8 @@ namespace Inferno::Resources {
         return GameData.ObjectBitmaps[ptr];
     }
 
-    bool IsLevelTexture(TexID id) {
-        auto tex255 = Game::Level.IsDescent1() ? TexID(971) : TexID(1485);
+    bool IsLevelTexture(bool descent1, TexID id) {
+        auto tex255 = descent1 ? TexID(971) : TexID(1485);
         auto tid = Resources::LookupLevelTexID(id);
 
         // Default tid is 255, so check if the real 255 texid is passed in
@@ -372,8 +372,8 @@ namespace Inferno::Resources {
         throw Exception(msg);
     }
 
-    List<PaletteInfo> FindAvailablePalettes() {
-        if (Game::Level.IsDescent1()) return {};
+    List<PaletteInfo> FindAvailablePalettes(bool descent1) {
+        if (descent1) return {};
 
         // Hard coded palettes
         List<PaletteInfo> palettes = {
@@ -424,21 +424,21 @@ namespace Inferno::Resources {
         return GetString(GameString{ 104 + (int)id }); // Same for d1 and d2
     }
 
-    const string_view GetSecondaryName(SecondaryWeaponIndex id) {
-        int index = Game::Level.IsDescent1() ? 109 : 114;
+    const string_view GetSecondaryName(bool descent1, SecondaryWeaponIndex id) {
+        int index = descent1 ? 109 : 114;
         return GetString(GameString{ index + (int)id });
     }
 
-    const string_view GetPrimaryNameShort(PrimaryWeaponIndex id) {
+    const string_view GetPrimaryNameShort(bool descent1, PrimaryWeaponIndex id) {
         if (id == PrimaryWeaponIndex::Spreadfire)
             return "spread"; // D1 has "spreadfire" in the string table, but it gets trimmed by the border
 
-        int index = Game::Level.IsDescent1() ? 114 : 124;
+        int index = descent1 ? 114 : 124;
         return Resources::GetString(GameString{ index + (int)id });
     }
 
-    const string_view GetSecondaryNameShort(SecondaryWeaponIndex id) {
-        int index = Game::Level.IsDescent1() ? 119 : 134;
+    const string_view GetSecondaryNameShort(bool descent1, SecondaryWeaponIndex id) {
+        int index = descent1 ? 119 : 134;
         return Resources::GetString(GameString{ index + (int)id });
     }
 
@@ -1028,8 +1028,6 @@ namespace Inferno::Resources {
         return {};
     }
 
-
-    // GetGameDataFolder(Game::Level)
     Option<List<byte>> ReadFromDxaFolder(const filesystem::path& folder, string_view name) {
         for (auto& file : filesystem::directory_iterator(folder)) {
             if (!file.is_regular_file()) continue;
@@ -1252,7 +1250,7 @@ namespace Inferno::Resources {
                     }
                 }
 
-                AvailablePalettes = FindAvailablePalettes();
+                AvailablePalettes = FindAvailablePalettes(level.IsDescent1());
                 GameData = FullGameData(Descent2);
                 // todo: switch palette based on level
 

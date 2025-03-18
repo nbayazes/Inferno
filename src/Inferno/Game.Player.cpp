@@ -197,7 +197,7 @@ namespace Inferno {
         }
 
         if (!CanFireSecondary((SecondaryWeaponIndex)weapon)) {
-            auto msg = fmt::format("you have no {}s!", Resources::GetSecondaryName(index));
+            auto msg = fmt::format("you have no {}s!", Resources::GetSecondaryName(Game::Level.IsDescent1(), index));
             PrintHudMessage(msg);
             Sound::Play2D({ SoundID::SelectFail });
             return;
@@ -212,7 +212,7 @@ namespace Inferno {
         SecondaryDelay = RearmTime;
         Secondary = (SecondaryWeaponIndex)weapon;
         SecondaryWasSuper[weapon % SUPER_WEAPON] = weapon >= SUPER_WEAPON;
-        PrintHudMessage(fmt::format("{} selected!", Resources::GetSecondaryName(Secondary)));
+        PrintHudMessage(fmt::format("{} selected!", Resources::GetSecondaryName(Game::Level.IsDescent1(), Secondary)));
     }
 
 
@@ -1538,7 +1538,7 @@ namespace Inferno {
 
         auto& ammo = SecondaryAmmo[(int)index];
         auto startAmmo = ammo;
-        auto name = Resources::GetSecondaryName(index);
+        auto name = Resources::GetSecondaryName(Game::Level.IsDescent1(), index);
 
         if (ammo >= max) {
             auto msg = fmt::format("{} {} {}s!", Resources::GetString(GameString::AlreadyHave), ammo, name);

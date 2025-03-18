@@ -1040,7 +1040,7 @@ namespace Inferno {
             case ObjectType::Coop:
                 obj.Movement = MovementType::Physics;
                 obj.Render.Type = RenderType::Model;
-                obj.Render.Model = { .ID = Resources::GetCoopShipModel() };
+                obj.Render.Model = { .ID = Resources::GetCoopShipModel(Game::Level) };
                 obj.ID = 0;
                 break;
 
