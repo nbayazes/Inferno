@@ -969,7 +969,7 @@ namespace Inferno {
         }
 
         if (trigger.HasFlag(TriggerFlagD1::Exit)) {
-            StartEscapeSequence();
+            StartEscapeSequence(src);
         }
 
         if (trigger.HasFlag(TriggerFlagD1::SecretExit)) {
@@ -1016,7 +1016,7 @@ namespace Inferno {
 
         switch (trigger.Type) {
             case TriggerType::Exit:
-                StartEscapeSequence();
+                StartEscapeSequence(src);
                 break;
 
             case TriggerType::SecretExit:
