@@ -213,7 +213,7 @@ namespace Inferno {
                         auto l = FloatToFix(Desaturate(side.Light[i]));
                         writer.Write((int16)(u >> 5));
                         writer.Write((int16)(v >> 5));
-                        writer.Write((int16)(l >> 1));
+                        writer.Write((uint16)(l >> 1));
                     }
                 }
             }

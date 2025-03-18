@@ -186,7 +186,7 @@ namespace Inferno {
                     for (int i = 0; i < 4; i++) {
                         auto u = fix(_reader.ReadInt16()) << 5;
                         auto v = fix(_reader.ReadInt16()) << 5;
-                        auto l = fix(_reader.ReadInt16()) << 1;
+                        auto l = fix(_reader.ReadUInt16()) << 1;
                         side.UVs[i].x = FixToFloat(u);
                         side.UVs[i].y = FixToFloat(v);
                         auto light = FixToFloat(l);
