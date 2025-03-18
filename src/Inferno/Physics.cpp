@@ -1174,6 +1174,13 @@ namespace Inferno {
                         if (other->IsPowerup()) r2 *= Game::POWERUP_RADIUS_MULT;
 
                         if (auto info = IntersectSphereSphere({ obj.Position, r1 }, { other->Position, r2 })) {
+                            if (Game::GetState() == GameState::ExitSequence) {
+                                // Player destroys any robots that are in the way during escape!
+                                if (obj.IsPlayer() && other->IsRobot()) DestroyObject(*other);
+                                if (obj.IsRobot() && other->IsPlayer()) DestroyObject(obj);
+                                break; // don't actually collide
+                            }
+
                             hit.Update(info, other);
 
                             // Move players and robots when they collide with something
