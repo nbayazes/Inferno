@@ -148,11 +148,11 @@ namespace Inferno {
         Input::InputType type = Input::InputType::Unknown;
 
         struct Sensitivity {
-            //float pitch = 1, yaw = 1, roll = 1;
             float upDown = 1, leftRight = 1, forwardRev = 1; // for controllers
 
             Vector3 thrust = { 1, 1, 1 };
             Vector3 rotation = { 1, 1, 1 };
+            Vector3 automap = { 1, 1, 1 }; // pitch and yaw roll sensitivity for the automap
 
             // Deadzones for controllers and joysticks
             Vector3 thrustDeadzone = { 0.05f, 0.05f, 0.05f }; // right, up, forward

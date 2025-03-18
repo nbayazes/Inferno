@@ -349,7 +349,7 @@ namespace Inferno {
 
         node["thrust"] << EncodeVector(sensitivity.thrust);
         node["rotation"] << EncodeVector(sensitivity.rotation);
-
+        node["automap"] << EncodeVector(sensitivity.automap);
         node["thrustDeadzone"] << EncodeVector(sensitivity.thrustDeadzone);
         node["rotationDeadzone"] << EncodeVector(sensitivity.rotationDeadzone);
     }
@@ -361,6 +361,7 @@ namespace Inferno {
 
         ReadValue2(node, "thrust", sensitivity.thrust);
         ReadValue2(node, "rotation", sensitivity.rotation);
+        ReadValue2(node, "automap", sensitivity.automap);
         ReadValue2(node, "thrustDeadzone", sensitivity.thrustDeadzone);
         ReadValue2(node, "rotationDeadzone", sensitivity.rotationDeadzone);
     }
@@ -733,7 +734,9 @@ namespace Inferno {
         node |= ryml::MAP;
 
         node["ShipWiggle"] << (int)settings.ShipWiggle;
-        node["InvertY"] << settings.InvertY;
+        node["AutomapMode"] << (int)settings.AutomapMode;
+        node["AutomapInvertX"] << settings.AutomapInvertX;
+        node["AutomapInvertY"] << settings.AutomapInvertY;
         node["Difficulty"] << (int)Game::Difficulty;
         node["HalvePitchSpeed"] << settings.HalvePitchSpeed;
         node["ShipAutolevel"] << settings.ShipAutolevel;
@@ -768,7 +771,9 @@ namespace Inferno {
         if (node.is_seed()) return;
 
         ReadValue2(node, "ShipWiggle", settings.ShipWiggle);
-        ReadValue2(node, "InvertY", settings.InvertY);
+        ReadValue2(node, "AutomapMode", settings.AutomapMode);
+        ReadValue2(node, "AutomapInvertX", settings.AutomapInvertX);
+        ReadValue2(node, "AutomapInvertY", settings.AutomapInvertY);
         ReadValue2(node, "Difficulty", Game::Difficulty);
         ReadValue2(node, "HalvePitchSpeed", settings.HalvePitchSpeed);
         ReadValue2(node, "ShipAutolevel", settings.ShipAutolevel);

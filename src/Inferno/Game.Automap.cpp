@@ -520,7 +520,7 @@ namespace Inferno {
         using Input::Keys;
         if (!Input::HasFocus) return;
 
-        GenericCameraController(Game::AutomapCamera, 300);
+        GenericCameraController(Game::AutomapCamera, 300, Settings::Inferno.AutomapMode == AutomapMode::Orbit);
 
         if (Game::Bindings.Pressed(GameAction::Afterburner))
             ResetAutomapCamera(false);

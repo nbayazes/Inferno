@@ -14,7 +14,6 @@ namespace Inferno {
         EClipID EffectClip2 = EClipID::None;
         Vector2 OverlaySlide; // UV sliding corrected for overlay rotation
         bool SkipDecalCull = false; // Set to true when overlay is a transparent procedural
-        Color LightColor; // Light color for decals
 
         // Geometric center used for wall depth sorting
         Vector3 Center;

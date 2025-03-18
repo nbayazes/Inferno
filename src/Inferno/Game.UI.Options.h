@@ -142,6 +142,13 @@ namespace Inferno::UI {
                 addSlider("Pitch", 0.0f, 2.0f, rotation.x);
                 addSlider("Yaw", 0.0f, 2.0f, rotation.y);
                 addSlider("Roll", 0.0f, 2.0f, rotation.z);
+
+                _stack->AddChild<Label>("");
+                _stack->AddChild<Label>("automap", FontSize::MediumBlue);
+                auto& automap = bindings.sensitivity.automap;
+                addSlider("pitch", 0.0f, 2.0f, automap.x);
+                addSlider("yaw", 0.0f, 2.0f, automap.y);
+                //addSlider("roll", 0.0f, 2.0f, automap.z);
             }
             else {
                 // input device
@@ -206,10 +213,7 @@ namespace Inferno::UI {
             panel->AddChild<Checkbox>("Enable Mouse", Settings::Inferno.EnableMouse);
             panel->AddChild<Checkbox>("Enable joystick", Settings::Inferno.EnableJoystick);
             panel->AddChild<Checkbox>("Enable gamepad", Settings::Inferno.EnableGamepad);
-            panel->AddChild<Label>("");
             panel->AddChild<Checkbox>("Classic pitch speed", Settings::Inferno.HalvePitchSpeed);
-
-
 
             panel->AddChild<Label>("");
             panel->AddChild<Button>("Customize bindings", [] {
@@ -218,6 +222,12 @@ namespace Inferno::UI {
             panel->AddChild<Button>("sensitivity and deadzone", [] {
                 ShowScreen(make_unique<SensitivityDialog>());
             });
+
+            panel->AddChild<Label>("");
+            auto controlMode = panel->AddChild<OptionSpinner>("automap mode", std::initializer_list<string_view>{ "Mouselook", "Orbit" }, (int&)Settings::Inferno.AutomapMode);
+            controlMode->LabelWidth = 250;
+            panel->AddChild<Checkbox>("Invert automap X", Settings::Inferno.AutomapInvertX);
+            panel->AddChild<Checkbox>("Invert automap Y", Settings::Inferno.AutomapInvertY);
 
             AddChild(std::move(panel));
         }

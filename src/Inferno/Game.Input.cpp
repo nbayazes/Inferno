@@ -189,19 +189,42 @@ namespace Inferno {
         camera.Roll(-Game::Bindings.LinearAxis(GameAction::RollLeft) * dt * 2);
         camera.Roll(-Game::Bindings.LinearAxis(GameAction::RollRight) * dt * 2);
 
-        float invert = Settings::Inferno.MouselookInvert ? 1.0f : -1.0f;
+        //auto& mouse = Game::Bindings.GetMouse();
+        //float yawInvert = 1;
+        //float pitchInvert = 1;
+
+        //for (auto& binding : mouse.GetBinding(GameAction::YawAxis)) {
+        //    if (binding.type == BindType::None) continue;
+        //    yawInvert = binding.GetInvertSign();
+        //}
+
+        //for (auto& binding : mouse.GetBinding(GameAction::PitchAxis)) {
+        //    if (binding.type == BindType::None) continue;
+        //    pitchInvert = -binding.GetInvertSign();
+        //}
+
+        auto& mouse = Game::Bindings.GetMouse();
+
+        // Mouse control settings are separate from regular flight controls
+        float invertx = Settings::Inferno.AutomapInvertX ? -1.0f : 1.0f;
+        float inverty = Settings::Inferno.AutomapInvertY ? -1.0f : 1.0f;
+        auto sensitivity = mouse.sensitivity.automap * 0.005f;
         auto& delta = Input::MouseDelta;
-        float linearSensitivity = 3.0f;
+        float linearSensitivity = 3.0f; // controller sensitivity
 
         if (orbit) {
-            camera.Orbit(-delta.x * Settings::Inferno.MouselookSensitivity, -delta.y * invert * Settings::Inferno.MouselookSensitivity);
+            // mouse
+            camera.Orbit(-delta.x * sensitivity.y * invertx, -delta.y * inverty * sensitivity.x);
 
+            // controller
             camera.Orbit(Game::Bindings.LinearAxis(GameAction::YawAxis) * dt * linearSensitivity,
                          Game::Bindings.LinearAxis(GameAction::PitchAxis) * dt * linearSensitivity);
         }
         else {
-            camera.Rotate(delta.x * Settings::Inferno.MouselookSensitivity, delta.y * invert * Settings::Inferno.MouselookSensitivity);
+            // mouse
+            camera.Rotate(delta.x * sensitivity.y * invertx, -delta.y * inverty * sensitivity.x);
 
+            // controller
             camera.Rotate(Game::Bindings.LinearAxis(GameAction::YawAxis) * dt * linearSensitivity,
                           Game::Bindings.LinearAxis(GameAction::PitchAxis) * dt * linearSensitivity);
         }

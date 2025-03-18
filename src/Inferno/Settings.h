@@ -189,6 +189,11 @@ namespace Inferno {
         Windowed = 2
     };
 
+    enum class AutomapMode {
+        Mouselook = 0,
+        Orbit = 1
+    };
+
     constexpr uint8 NO_AUTOSELECT = 255; // Weapons after this aren't autoselected
     constexpr uint8 QUAD_SUPER_LASER_PRIORITY = 11;
     constexpr uint8 QUAD_LASER_PRIORITY = 10;
@@ -198,9 +203,10 @@ namespace Inferno {
     struct InfernoSettings {
         List<filesystem::path> DataPaths;
         filesystem::path Descent1Path, Descent2Path;
-        bool InvertY = false;
-        float MouselookSensitivity = 0.005f; // Different scale from regular ship input
-        bool MouselookInvert = true; // Inverts mouselook Y axis
+        bool AutomapInvertX = false;
+        bool AutomapInvertY = false;
+        AutomapMode AutomapMode = AutomapMode::Mouselook;
+        float AutomapSensitivity = 1;
         bool HalvePitchSpeed = true; // Halves the maximum pitch speed. This is the original game behavior.
         float MasterVolume = 1.0f;
         float EffectVolume = 0.5f;
