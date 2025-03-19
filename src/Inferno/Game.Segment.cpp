@@ -136,7 +136,7 @@ namespace Inferno {
     // Returns true if a point is inside of a segment
     bool SegmentContainsPoint(const Level& level, SegID id, const Vector3& point) {
         auto seg = level.TryGetSegment(id);
-        if (!seg) return false;
+        if (!seg || level.Vertices.empty()) return false;
 
         auto distances = GetSideDistances(level, *seg, point);
         return ranges::all_of(distances, [](float d) { return d >= 0; });

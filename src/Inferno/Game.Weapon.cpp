@@ -77,7 +77,7 @@ namespace Inferno::Game {
 
             // Try to find a nearby target
             if (!cw.TrackingTarget) {
-                auto filter = mine.Faction == Faction::Robot ? ObjectMask::Player : ObjectMask::Robot;
+                auto filter = HasFlag(mine.Faction, Faction::Robot) ? ObjectMask::Player : ObjectMask::Robot;
                 Array srcRef = { Game::GetObjectRef(mine) };
 
                 auto [ref, dist] = Game::FindNearestVisibleObject({ mine.Segment, mine.Position }, PROX_ACTIVATE_RANGE, filter, srcRef);
