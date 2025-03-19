@@ -469,7 +469,10 @@ namespace Inferno::Render {
 
         _visibleRooms.clear();
 
-        if (startSeg < SegID(0) || startSeg == SegID::Terrain) return;
+        if (startSeg == SegID::Terrain)
+            startSeg = Game::Terrain.ExitTag.Segment; // Assume the exit tunnel is visible
+
+        if (startSeg < SegID(0)) return;
 
         Window screenWindow = { -1, 1, 1, -1 };
 
@@ -561,8 +564,8 @@ namespace Inferno::Render {
             if (!UseRoomLighting)
                 Render::DrawSegmentLights(segid);
 
-            if (seg.Room > RoomID::None)
-                _roomList[(int)seg.Room] = true;
+            if (auto rl = Seq::tryItem(_roomList, (int)seg.Room))
+                *rl = true;
         };
 
         while (renderIndex++ < _renderList.size()) {

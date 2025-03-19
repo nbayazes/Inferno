@@ -577,6 +577,30 @@ namespace Inferno {
         }
     };
 
+    class TerrainDepthShader : public IShader {
+        enum RootParameterIndex : uint {
+            FrameConstants,
+            RootConstants,
+            RootParameterCount
+        };
+
+    public:
+        constexpr static auto OutputFormat = DXGI_FORMAT_R16_FLOAT;
+
+        struct Constants {
+            Matrix World;
+        };
+
+        static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
+            Render::BindTempConstants(commandList, consts, RootConstants);
+        }
+
+        TerrainDepthShader(const ShaderInfo& info) : IShader(info) {
+            InputLayout = ObjectVertex::Layout;
+            Format = OutputFormat;
+        }
+    };
+
     class TerrainShader : public IShader {
         enum RootParameterIndex : uint {
             FrameConstants, // b0
@@ -727,6 +751,7 @@ namespace Inferno {
         ObjectShader Object = ShaderInfo{ "shaders/object.hlsl" };
         ObjectShader AutomapObject = ShaderInfo{ "shaders/AutomapObject.hlsl" };
         ObjectShader BriefingObject = ShaderInfo{ "shaders/BriefingObject.hlsl" };
+        TerrainDepthShader TerrainDepth = ShaderInfo{ "shaders/TerrainDepth.hlsl" };
         TerrainShader Terrain = ShaderInfo{ "shaders/Terrain.hlsl" };
         ObjectDistortionShader ObjectDistortion = ShaderInfo{ "shaders/Cloak.hlsl" };
         StarShader Stars = ShaderInfo{ "shaders/stars.hlsl" };
@@ -787,7 +812,8 @@ namespace Inferno {
         Effect<AsteroidShader> Asteroid = { &_shaders->Asteroid, { .Blend = BlendMode::Alpha, .Culling = CullMode::Clockwise, .Depth = DepthMode::ReadWrite } };
         Effect<MenuSunShader> MenuSun = { &_shaders->MenuSun, { .Blend = BlendMode::Alpha, .Culling = CullMode::Clockwise, .Depth = DepthMode::ReadWrite } };
 
-        Effect<TerrainShader> Terrain = { &_shaders->Terrain, { .Depth = DepthMode::ReadWrite, .Stencil = StencilMode::PortalReadNeq } };
+        Effect<TerrainShader> Terrain = { &_shaders->Terrain, { .Depth = DepthMode::Read, .Stencil = StencilMode::PortalReadNeq } };
+        Effect<TerrainDepthShader> TerrainDepth = { &_shaders->TerrainDepth, { .Depth = DepthMode::ReadWrite, .Stencil = StencilMode::PortalReadNeq } };
         Effect<DepthShader> TerrainPortal = { &_shaders->Depth, { .Depth = DepthMode::Read, .Stencil = StencilMode::PortalWrite } };
         Effect<ObjectShader> TerrainObject = { &_shaders->Object, { .Blend = BlendMode::Alpha, .Culling = CullMode::None, .Depth = DepthMode::Read } };
         Effect<ObjectDepthShader> TerrainDepthObject = { &_shaders->DepthObject, { .Blend = BlendMode::Opaque, .Culling = CullMode::None } };
@@ -807,6 +833,7 @@ namespace Inferno {
             CompileShader(&_shaders->DepthObject);
             CompileShader(&_shaders->DepthCutout);
             CompileShader(&_shaders->Hud);
+            CompileShader(&_shaders->TerrainDepth);
             CompileShader(&_shaders->Terrain);
             CompileShader(&_shaders->Stars);
             CompileShader(&_shaders->Sun);
@@ -844,6 +871,7 @@ namespace Inferno {
             compile(AutomapOutline);
 
             compile(Terrain);
+            compile(TerrainDepth);
             compile(TerrainPortal);
             compile(TerrainObject);
             compile(TerrainDepthObject);

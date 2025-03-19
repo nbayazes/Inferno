@@ -5,15 +5,14 @@
 #include "Effect.h"
 
 namespace Inferno {
-
     // Combined command list / allocator / queue for executing commands
     class CommandContext {
     protected:
         CommandQueue* _queue;
         ComPtr<ID3D12GraphicsCommandList> _cmdList;
         ComPtr<ID3D12CommandAllocator> _allocator;
-    public:
 
+    public:
         CommandContext(ID3D12Device* device, CommandQueue* queue, string_view name) : _queue(queue) {
             assert(device);
             assert(queue);
@@ -56,6 +55,7 @@ namespace Inferno {
 
     class GraphicsContext : public CommandContext {
         uintptr_t _activeEffect = 0;
+
     public:
         GraphicsContext(ID3D12Device* device, CommandQueue* queue, string_view name) : CommandContext(device, queue, name) {}
 
@@ -72,6 +72,7 @@ namespace Inferno {
         }
 
         void SetRenderTarget(D3D12_CPU_DESCRIPTOR_HANDLE rtv) const { SetRenderTargets({ &rtv, 1 }); }
+
         void SetRenderTarget(D3D12_CPU_DESCRIPTOR_HANDLE rtv, D3D12_CPU_DESCRIPTOR_HANDLE dsv) const {
             ASSERT(rtv.ptr && dsv.ptr);
             SetRenderTargets({ &rtv, 1 }, dsv);
@@ -82,21 +83,20 @@ namespace Inferno {
         }
 
         void ClearColor(RenderTarget& target, const D3D12_RECT* rect = nullptr, const Color* color = nullptr) {
-            auto clearColor = color ? color : &target.ClearColor;
             target.Transition(_cmdList.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET);
-            _cmdList->ClearRenderTargetView(target.GetRTV(), *clearColor, (rect == nullptr) ? 0 : 1, rect);
+            _cmdList->ClearRenderTargetView(target.GetRTV(), color ? *color : target.ClearColor, (rect == nullptr) ? 0 : 1, rect);
             _activeEffect = 0;
         }
 
-        void ClearColor(ColorBuffer& target, const D3D12_RECT* rect = nullptr) {
+        void ClearColor(ColorBuffer& target, const D3D12_RECT* rect = nullptr, const Color* color = nullptr) {
             target.Transition(_cmdList.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET);
-            _cmdList->ClearRenderTargetView(target.GetRTV(), target.ClearColor, (rect == nullptr) ? 0 : 1, rect);
+            _cmdList->ClearRenderTargetView(target.GetRTV(), color ? *color : target.ClearColor, (rect == nullptr) ? 0 : 1, rect);
             _activeEffect = 0;
         }
 
-        void ClearDepth(DepthBuffer& target, const D3D12_RECT* rect = nullptr) {
+        void ClearDepth(DepthBuffer& target, const D3D12_RECT* rect = nullptr, const float* depth = nullptr) {
             target.Transition(_cmdList.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
-            _cmdList->ClearDepthStencilView(target.GetDSV(), D3D12_CLEAR_FLAG_DEPTH, target.ClearDepth, 0, (rect == nullptr) ? 0 : 1, rect);
+            _cmdList->ClearDepthStencilView(target.GetDSV(), D3D12_CLEAR_FLAG_DEPTH, depth ? *depth : target.ClearDepth, 0, (rect == nullptr) ? 0 : 1, rect);
             _activeEffect = 0;
         }
 

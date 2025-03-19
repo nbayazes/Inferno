@@ -163,12 +163,22 @@ namespace Inferno::Render {
             ctx.ApplyEffect(Effects->TerrainPortal);
             ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
             _levelMeshBuilder.GetExitPortal().Draw(cmdList); // Mask the exit portal to 1
-            //ctx.SetRenderTarget(Adapter->GetLinearDepthBuffer().GetRTV(), Adapter->GetDepthBuffer().GetDSV());
-        }
 
-        //Adapter->LinearizedDepthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-        //Adapter->GetDepthBuffer().Transition(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
-        //return;
+            // Draw terrain depth prepass
+            if (auto terrainMesh = LevelResources.TerrainMesh.get()) {
+                auto& effect = Effects->TerrainDepth;
+                ctx.ApplyEffect(effect);
+                ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+                effect.Shader->SetConstants(cmdList, { Game::Terrain.Transform });
+
+                auto& mesh = terrainMesh->GetTerrain();
+
+                cmdList->IASetVertexBuffers(0, 1, &mesh.VertexBuffer);
+                cmdList->IASetIndexBuffer(&mesh.IndexBuffer);
+                cmdList->DrawIndexedInstanced(mesh.IndexCount, 1, 0, 0, 0);
+            }
+
+        }
 
         // Opaque geometry prepass
         for (auto& cmd : _renderQueue.Opaque()) {
@@ -179,8 +189,7 @@ namespace Inferno::Render {
                     cmd.Data.LevelMesh->Draw(cmdList);
                     break;
 
-                case RenderCommandType::Object:
-                {
+                case RenderCommandType::Object: {
                     // Models
                     auto& object = *cmd.Data.Object;
                     if (object.Render.Type == RenderType::Model) {
@@ -231,8 +240,7 @@ namespace Inferno::Render {
                     break;
                 }
 
-                case RenderCommandType::Effect:
-                {
+                case RenderCommandType::Effect: {
                     cmd.Data.Effect->DepthPrepass(ctx);
                     break;
                 }
@@ -374,8 +382,7 @@ namespace Inferno::Render {
 
     void ExecuteRenderCommand(GraphicsContext& ctx, const RenderCommand& cmd, RenderPass pass, bool decals = false) {
         switch (cmd.Type) {
-            case RenderCommandType::LevelMesh:
-            {
+            case RenderCommandType::LevelMesh: {
                 auto& mesh = *cmd.Data.LevelMesh;
 
                 if (Settings::Editor.RenderMode == RenderMode::Flat) {
@@ -640,7 +647,7 @@ namespace Inferno::Render {
             for (int i = 0; i < Game::Level.Segments.size(); i++) {
                 DrawSegmentLights((SegID)i);
             }
-        } 
+        }
 
         // Debug active rooms
         //for (auto& id : Game::Debug::ActiveRooms) {
