@@ -131,7 +131,7 @@ namespace Inferno::Game {
     }
 
     void DestroyEnemiesInSegment(auto segid) {
-        if(auto seg = Level.TryGetSegment(segid)) {
+        if (auto seg = Level.TryGetSegment(segid)) {
             for (auto& objid : seg->Objects) {
                 auto obj = Level.TryGetObject(objid);
                 if (!obj || !obj->IsRobot()) continue;
@@ -359,15 +359,16 @@ namespace Inferno::Game {
         Matrix transform = obj.GetTransform(lerp);
         auto target = transform.Translation() + transform.Forward();
         camera.MoveTo(transform.Translation(), target, transform.Up());
+        camera.Segment = obj.Segment;
     }
 
     void ResetGlobalLighting() {
         // todo: this should lerp back to normal instead of being instant
+        // todo: this should use whatever the old bloom and exposure values are
         Render::ToneMapping->ToneMap.BloomStrength = .35f;
         Render::ToneMapping->ToneMap.Exposure = 1;
         Game::GlobalDimming = 1; // Clear dimming
     }
-
 
     // Changes the game state if a new one is requested
     void CheckGameStateChange() {
@@ -375,8 +376,7 @@ namespace Inferno::Game {
         Input::ResetState(); // Clear input when switching game states
 
         switch (RequestedState) {
-            case GameState::MainMenu:
-            {
+            case GameState::MainMenu: {
                 Sound::StopAllSounds();
                 Game::Level = {};
                 Game::MainCamera.Up = Vector3::UnitY;
@@ -396,8 +396,7 @@ namespace Inferno::Game {
                 break;
             }
 
-            case GameState::Briefing:
-            {
+            case GameState::Briefing: {
                 Input::SetMouseMode(Input::MouseMode::Normal);
                 if (!Game::Briefing.IsValid()) return;
                 break;
@@ -407,8 +406,7 @@ namespace Inferno::Game {
                 Input::SetMouseMode(Input::MouseMode::Mouselook);
                 break;
 
-            case GameState::ScoreScreen:
-            {
+            case GameState::ScoreScreen: {
                 auto score = UI::ScoreInfo::Create(Level.TotalHostages);
                 UI::ShowScoreScreen(score, LoadSecretLevel);
                 Input::SetMouseMode(Input::MouseMode::Normal);
@@ -486,8 +484,7 @@ namespace Inferno::Game {
                 Player.StopAfterburner();
                 break;
 
-            case GameState::PhotoMode:
-            {
+            case GameState::PhotoMode: {
                 if (State != GameState::Game && State != GameState::ExitSequence && State != GameState::PauseMenu) return;
                 auto& player = GetPlayerObject();
                 Matrix transform = player.GetTransform(LerpAmount);
@@ -698,8 +695,7 @@ namespace Inferno::Game {
                 DrawBriefing();
                 break;
 
-            case GameState::LoadLevel:
-            {
+            case GameState::LoadLevel: {
                 DrawLoadingScreen();
                 break;
             }
@@ -761,8 +757,20 @@ namespace Inferno::Game {
                 UI::Update();
                 break;
 
-            case GameState::PhotoMode:
+            case GameState::PhotoMode: {
+                SetActiveCamera(Game::MainCamera);
+
+                // Update the camera segment as it moves around so segment traversal is done correctly
+                if (!SegmentContainsPoint(Level, Game::MainCamera.Segment, Game::MainCamera.Position)) {
+                    auto id = TraceSegment(Level, Game::MainCamera.Segment, Game::MainCamera.Position);
+
+                    if (id == SegID::None && Game::MainCamera.Segment == Game::Terrain.ExitTag.Segment)
+                        Game::MainCamera.Segment = SegID::Terrain; // Assume that the camera is on the terrain 
+                    else if (id != SegID::None)
+                        Game::MainCamera.Segment = id;
+                }
                 break;
+            }
         }
 
         //LegitProfiler::Profiler.Render();

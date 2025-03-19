@@ -40,6 +40,7 @@ namespace Inferno {
 
         DirectX::BoundingFrustum Frustum;
         Matrix ViewProjection;
+        SegID Segment;
 
         uint2 GetViewportSize() const {
             return { (uint)_viewport.width, (uint)_viewport.height };

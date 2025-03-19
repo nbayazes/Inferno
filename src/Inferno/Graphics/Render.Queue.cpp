@@ -95,8 +95,7 @@ namespace Inferno::Render {
             }
         }
         else if (!level.Objects.empty()) {
-            // todo: should start at camera segment, not player (can be detached)
-            TraverseSegments(level, camera, meshBuilder.GetWallMeshes(), Game::GetPlayerObject().Segment);
+            TraverseSegments(level, camera, meshBuilder.GetWallMeshes(), Game::GetActiveCamera().Segment);
         }
 
         // Draw effects and objects on the terrain
