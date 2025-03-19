@@ -103,7 +103,13 @@ namespace Inferno::Render {
         effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
         auto sampler = Render::GetClampedTextureSampler();
         effect.Shader->SetSampler(cmdList, sampler);
-        effect.Shader->SetDepthBias(cmdList, info.Radius);
+
+        SpriteShader::Constants constants{
+            .DepthBias = info.DepthBias,
+            .Softness = info.Softness
+        };
+
+        effect.Shader->SetConstants(cmdList, constants);
 
         // todo: replace horrible code with proper batching
         Stats::DrawCalls++;

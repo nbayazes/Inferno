@@ -501,7 +501,7 @@ namespace Inferno::Render {
             auto& effect = terrain.SatelliteAdditive ? Effects->Sun : Effects->SpriteTerrain;
             ctx.ApplyEffect(effect);
             ctx.SetConstantBuffer(0, Adapter->GetTerrainConstants().GetGPUVirtualAddress());
-            effect.Shader->SetDepthBias(cmdList, 0);
+            effect.Shader->SetConstants(cmdList, { 0, 0 });
             //effect.Shader->SetDepthTexture(ctx.GetCommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
             effect.Shader->SetSampler(ctx.GetCommandList(), Render::GetClampedTextureSampler());
 

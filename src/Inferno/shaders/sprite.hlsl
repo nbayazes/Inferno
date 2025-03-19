@@ -2,13 +2,14 @@
 
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0),"\
-    "RootConstants(b1, num32BitConstants = 1), " \
+    "RootConstants(b1, num32BitConstants = 2), " \
     "DescriptorTable(SRV(t0), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t1), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL)"
 
 struct Arguments {
     float DepthBias;
+    float Softness;
 };
 
 ConstantBuffer<FrameConstants> Frame : register(b0);
@@ -33,7 +34,7 @@ struct PS_INPUT {
 PS_INPUT vsmain(VS_INPUT input) {
     PS_INPUT output;
     output.pos = mul(Frame.ViewProjectionMatrix, float4(input.pos, 1));
-    //output.pos.z += -Args.DepthBias * 2 / max(output.pos.w, 0.0001); // depth bias
+    output.pos.z += -Args.DepthBias / max(output.pos.w, 0.0001); // depth bias
     output.col = input.col.rgb * input.col.a;
     output.uv = input.uv;
     return output;
@@ -60,20 +61,23 @@ float4 psmain(PS_INPUT input) : SV_Target {
     // (1 - (1-2*(Target-0.5)) * (1-Blend))
     //if (length(input.col.rgb) > 1 && length(diffuse.rgb) > 0.75)
     //    diffuse.rgb *= input.col.rgb;
-        //(1 - (1 - 2 * target - 0.5)) * (1 - blend)
+    //(1 - (1 - 2 * target - 0.5)) * (1 - blend)
     //diffuse.rgb += clamp(diffuse.rgb - 0.5, 0, 1) * clamp(diffuse.rgb - 0.5, 0, 1);
-    
+
     float sceneDepth = Depth.Sample(Sampler, (input.pos.xy + 0.5) / Frame.Size).x;
     if (sceneDepth <= 0.0f)
         return diffuse; // don't apply softening to particles against the background
-    
+
     float pixelDepth = LinearizeDepth(Frame.NearClip, Frame.FarClip, input.pos.z);
-    const float DEPTH_SCALE = 0.85; // larger explosions want a smaller scale to blend into the surroundings better (0.85)
     const float DEPTH_EXPONENT = 1.5;
-    float d = saturate((sceneDepth - pixelDepth) * 1000);
-    //float d = SaturateSoft((sceneDepth - pixelDepth) * FarClip * DEPTH_SCALE, DEPTH_EXPONENT);
+
+    if (Args.Softness != 0) {
+        float depthScale = clamp(1 - Args.Softness, 0.05, 1); // sprite turns invisible under 0.05
+        diffuse *= SaturateSoft((sceneDepth - pixelDepth) * Frame.FarClip * depthScale, DEPTH_EXPONENT);
+    }
+
     return diffuse;
-    
+
     // highlights on sprites
     //float4 color = diffuse * input.col;
     //float4 specular = pow(saturate(color - 0.6) + 1, 5) - 1;

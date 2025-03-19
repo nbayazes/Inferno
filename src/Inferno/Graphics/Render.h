@@ -94,6 +94,8 @@ namespace Inferno::Render {
         float Rotation = 0;
         const Vector3* Up = nullptr;
         bool Terrain = false;
+        float DepthBias = 0;
+        float Softness = 0;
     };
 
     void DrawBillboard(GraphicsContext& ctx,

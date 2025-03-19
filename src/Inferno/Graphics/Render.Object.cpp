@@ -47,13 +47,27 @@ namespace Inferno::Render {
 
             // Randomize sprite animation
             auto tid = vclip.GetFrame(Game::Time + GetTimeOffset(object));
-            BillboardInfo info = { .Radius = object.Radius, .Color = color, .Additive = additive, .Rotation = object.Render.Rotation, .Up = up, .Terrain = object.Segment == SegID::Terrain };
+            BillboardInfo info = {
+                .Radius = object.Radius,
+                .Color = color,
+                .Additive = additive,
+                .Rotation = object.Render.Rotation,
+                .Up = up,
+                .Terrain = object.Segment == SegID::Terrain
+            };
             DrawBillboard(ctx, tid, pos, info);
         }
         else if (object.Render.Type == RenderType::Laser) {
             // "laser" is used for still-image "blobs" like spreadfire
             auto& weapon = Resources::GetWeapon((WeaponID)object.ID);
-            BillboardInfo info = { .Radius = object.Radius, .Color = color, .Additive = additive, .Rotation = object.Render.Rotation, .Up = up, .Terrain = object.Segment == SegID::Terrain };
+            BillboardInfo info = {
+                .Radius = object.Radius,
+                .Color = color,
+                .Additive = additive,
+                .Rotation = object.Render.Rotation,
+                .Up = up,
+                .Terrain = object.Segment == SegID::Terrain
+            };
             DrawBillboard(ctx, weapon.BlobBitmap, pos, info);
         }
         else if (Game::GetState() == GameState::Editor && !Settings::Editor.HideUI) {
@@ -662,24 +676,21 @@ namespace Inferno::Render {
         auto& frameConstants = Adapter->GetFrameConstants();
 
         switch (object.Type) {
-            case ObjectType::Robot:
-            {
+            case ObjectType::Robot: {
                 // could be transparent or opaque pass
                 auto& info = Resources::GetRobotInfo(object.ID);
                 DrawModel(ctx, object, info.Model, pass, frameConstants);
                 break;
             }
 
-            case ObjectType::Hostage:
-            {
+            case ObjectType::Hostage: {
                 if (pass != RenderPass::Transparent) return;
                 auto up = object.Rotation.Up();
                 DrawSprite(ctx, object, false, &up, Settings::Editor.RenderMode == RenderMode::Shaded);
                 break;
             }
 
-            case ObjectType::Powerup:
-            {
+            case ObjectType::Powerup: {
                 if (pass != RenderPass::Transparent) return;
                 DrawSprite(ctx, object, false, nullptr, Settings::Editor.RenderMode == RenderMode::Shaded);
                 break;
@@ -689,8 +700,7 @@ namespace Inferno::Render {
             case ObjectType::Player:
             case ObjectType::Reactor:
             case ObjectType::SecretExitReturn:
-            case ObjectType::Marker:
-            {
+            case ObjectType::Marker: {
                 DrawModel(ctx, object, object.Render.Model.ID, pass, frameConstants);
                 break;
             }
@@ -718,8 +728,7 @@ namespace Inferno::Render {
                 }
                 break;
 
-            case ObjectType::Fireball:
-            {
+            case ObjectType::Fireball: {
                 if (pass != RenderPass::Transparent) return;
                 if (object.Render.VClip.ID == VClipID::Matcen) {
                     auto up = object.Rotation.Up();

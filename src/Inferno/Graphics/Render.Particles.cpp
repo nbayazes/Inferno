@@ -127,7 +127,17 @@ namespace Inferno::Render {
         }
 
         auto tid = vclip.GetFrameClamped(GetElapsedTime());
-        BillboardInfo info = { .Radius = Info.Radius, .Color = color, .Additive = true, .Rotation = Info.Rotation, .Up = up, .Terrain = Segment == SegID::Terrain };
+        BillboardInfo info = {
+            .Radius = Info.Radius,
+            .Color = color,
+            .Additive = true,
+            .Rotation = Info.Rotation,
+            .Up = up,
+            .Terrain = Segment == SegID::Terrain,
+            .DepthBias = Info.Radius,
+            .Softness = Info.Radius > 10 ? 0.8f : 0.15f, // Make very large explosions softer
+        };
+
         DrawBillboard(ctx, tid, Position, info);
     }
 
@@ -399,7 +409,7 @@ namespace Inferno::Render {
         auto cmdList = ctx.GetCommandList();
         effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
         effect.Shader->SetSampler(cmdList, Render::GetWrappedTextureSampler());
-        effect.Shader->SetDepthBias(cmdList, halfWidth);
+        effect.Shader->SetConstants(cmdList, { halfWidth, 0.1f });
 
         if (!Info.Texture.empty()) {
             auto& material = Render::Materials->Get(Info.Texture);
@@ -494,7 +504,7 @@ namespace Inferno::Render {
                     ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
                     effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
                     effect.Shader->SetSampler(cmdList, Render::GetWrappedTextureSampler());
-                    effect.Shader->SetDepthBias(cmdList, 2);
+                    effect.Shader->SetConstants(cmdList, { 2, 0.1f });
                 }
 
                 decal.Update(dt, EffectID(0));
@@ -626,7 +636,7 @@ namespace Inferno::Render {
         effect.Shader->SetSampler(cmdList, Render::GetClampedTextureSampler());
         auto& material = Render::Materials->Get(Info.Texture);
         effect.Shader->SetDiffuse(cmdList, material.Handle());
-        effect.Shader->SetDepthBias(cmdList, Info.Width.Max * 0.5f);
+        effect.Shader->SetConstants(cmdList, { Info.Width.Max * 0.5f, 0.1f });
         g_SpriteBatch->Begin(cmdList);
 
         auto remaining = GetRemainingTime();

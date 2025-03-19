@@ -383,7 +383,8 @@ namespace Inferno {
 
     public:
         struct Constants {
-            float DepthBias = 0;
+            float DepthBias = 0; // Size in world units to bias the sprite towards the camera. Positive values appear in front of other geometry.
+            float Softness = 0; // Value between 0 and 1 to soften the edge of the sprite when intersecting geometry. Higher is softer.
         };
 
         SpriteShader(const ShaderInfo& info) : IShader(info) {
@@ -402,9 +403,8 @@ namespace Inferno {
             commandList->SetGraphicsRootDescriptorTable(Depth, texture);
         }
 
-        static void SetDepthBias(ID3D12GraphicsCommandList* commandList, float bias) {
-            Constants consts = { bias };
-            commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof(consts) / 4, &consts, 0);
+        static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& constants) {
+            commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof(constants) / 4, &constants, 0);
         }
     };
 
