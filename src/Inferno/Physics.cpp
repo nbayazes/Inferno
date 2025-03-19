@@ -996,14 +996,14 @@ namespace Inferno {
                         if (triFacesObj &&
                             pathRay.Intersects(p0, p1, p2, dist) &&
                             dist < travelDistance) {
-                            hitPoint = obj.PrevPosition + direction * dist;
+                            hitPoint = obj.Position + direction * dist;
                             if (WallPointIsTransparent(hitPoint, face, tri))
                                 continue; // skip projectiles that hit transparent part of a wall
 
                             // move the object to the surface and proceed as normal
-                            obj.Position = hitPoint - direction * obj.Radius;
+                            obj.Position = hitPoint - direction * 0.01f;
                             hitNormal = side.Normals[tri];
-                            hitDistance = dist;
+                            hitDistance = 0.01f; // exact hit
                             edgeDistance = FaceEdgeDistance(seg, sideId, face, hitPoint);
                         }
                     }
