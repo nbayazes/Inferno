@@ -369,7 +369,7 @@ namespace Inferno {
 
                 // Add explosion behind the player
                 if (auto e = EffectLibrary.GetExplosion("tunnel chase fireball")) {
-                    auto pos = player.Position + player.Rotation.Backward() * 10;
+                    auto pos = player.Position + player.Rotation.Backward() * 12.5f;
                     CreateExplosion(*e, SegID::Terrain, pos);
                 }
 
@@ -522,6 +522,8 @@ namespace Inferno {
             }
         }
 
+        Game::UpdateCameraSegment(CinematicCamera);
+
         auto& exit = Game::Terrain.ExitTransform;
 
         //if (State.PathIndex >= Game::Terrain.SurfacePathIndex * 0.9 && !State.ZoomingOut) {
@@ -595,10 +597,10 @@ namespace Inferno {
         }
     }
 
-    void StartEscapeSequence(Tag startSeg) {
+    void StartEscapeSequence(Tag start) {
 
         // Regenerate the escape path in case the level has multiple exit triggers
-        if (!CreateEscapePath(Game::Level, Game::Terrain, startSeg, true)) {
+        if (!CreateEscapePath(Game::Level, Game::Terrain, start, true)) {
             SPDLOG_WARN("Unable to create escape path, skipping to score screen");
             Game::SetState(GameState::ScoreScreen);
             Sound::StopMusic();
@@ -614,6 +616,8 @@ namespace Inferno {
         State.ExplosionSoundTimer = 0;
         State.ShipRollSign = RandomInt(1) ? 1 : -1;
         Game::SetState(GameState::ExitSequence);
+
+        CinematicCamera.Segment = start.Segment;
 
         Game::PlayMusic("endlevel", LoadFlag::Default | GetLevelLoadFlag(Game::Level), false);
     }

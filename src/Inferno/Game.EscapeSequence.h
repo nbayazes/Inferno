@@ -11,7 +11,7 @@ namespace Inferno {
 
     void UpdateEscapeCamera(float dt);
 
-    void StartEscapeSequence(Tag startSeg);
+    void StartEscapeSequence(Tag start);
     void StopEscapeSequence();
     void DebugEscapeSequence();
 

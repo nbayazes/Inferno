@@ -115,6 +115,8 @@ namespace Inferno::Game {
 
     void MoveCameraToObject(Camera& camera, const Object& obj, float lerp);
 
+    void UpdateCameraSegment(Camera& camera);
+
     void Update(float dt);
 
     void CreateMissileSpawn(const Object& missile, uint blobs);

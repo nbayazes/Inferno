@@ -613,6 +613,17 @@ namespace Inferno::Game {
         Render::Canvas->DrawGameText(text, info);
     }
 
+    void UpdateCameraSegment(Camera& camera) {
+        if (!SegmentContainsPoint(Level, camera.Segment, camera.Position)) {
+            auto id = TraceSegment(Level, camera.Segment, camera.Position);
+
+            if (id == SegID::None && camera.Segment == Game::Terrain.ExitTag.Segment)
+                camera.Segment = SegID::Terrain; // Assume that the camera is on the terrain 
+            else if (id != SegID::None)
+                camera.Segment = id;
+        }
+    }
+
     void Update(float dt) {
         Game::FrameTime = 0;
 
@@ -759,16 +770,7 @@ namespace Inferno::Game {
 
             case GameState::PhotoMode: {
                 SetActiveCamera(Game::MainCamera);
-
-                // Update the camera segment as it moves around so segment traversal is done correctly
-                if (!SegmentContainsPoint(Level, Game::MainCamera.Segment, Game::MainCamera.Position)) {
-                    auto id = TraceSegment(Level, Game::MainCamera.Segment, Game::MainCamera.Position);
-
-                    if (id == SegID::None && Game::MainCamera.Segment == Game::Terrain.ExitTag.Segment)
-                        Game::MainCamera.Segment = SegID::Terrain; // Assume that the camera is on the terrain 
-                    else if (id != SegID::None)
-                        Game::MainCamera.Segment = id;
-                }
+                UpdateCameraSegment(Game::MainCamera);
                 break;
             }
         }
