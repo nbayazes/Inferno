@@ -449,6 +449,23 @@ namespace Inferno {
         }
     }
 
+    // Creates random shrapnel at a location
+    void CreateDebris(SegID segment, const Vector3& position, const Vector3& force, float randomScale) {
+        DebrisInfo debris;
+        Vector3 velocity = RandomVector(randomScale) + force;
+        Vector3 angularVelocity;
+        angularVelocity.x = RandomN11() * 3;
+        angularVelocity.y = RandomN11() * 3;
+        angularVelocity.z = RandomN11() * 3;
+        debris.Mass = .05f;
+        debris.Drag = 0.002f;
+        auto duration = 2.5f + Random() * 2.0f;
+        auto i = RandomInt(0, 4);
+        debris.Model = ModelID((int)Resources::GameData.Debris + i);
+        auto world = Matrix::CreateTranslation(position);
+        AddDebris(debris, world, segment, velocity, angularVelocity, duration);
+    }
+
     void DestroyObject(Object& obj) {
         obj.Flags |= ObjectFlag::Destroyed;
 
@@ -512,6 +529,11 @@ namespace Inferno {
                 auto hitForce = obj.LastHitForce * (1.0f + Random() * 0.5f);
                 CreateObjectDebris(obj, robot.Model, hitForce);
 
+                for (size_t i = 0; i < 8; i++) {
+                    auto random = RandomPointOnSphere() * obj.Radius * 0.35;
+                    CreateDebris(obj.Segment, obj.Position + random, hitForce);
+                }
+
                 // todo: spawn particles
 
                 DropContents(obj);
@@ -521,7 +543,7 @@ namespace Inferno {
 
             case ObjectType::Player:
             {
-                // Player_ship->expl_vclip_num
+                // Handled by DoDeathSequence(), as the player object is never actually destroyed
                 break;
             }
 

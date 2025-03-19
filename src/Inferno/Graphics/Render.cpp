@@ -366,19 +366,18 @@ namespace Inferno::Render {
         LevelResources = {};
         LevelResources.LevelMeshes = make_unique<PackedBuffer>(1024 * 1024 * 20);
         LevelResources.ObjectMeshes = MakePtr<MeshBuffer>(Resources::GameData.Models.size(), DESCENT3_MODEL_COUNT);
-        auto& objectMeshes = LevelResources.ObjectMeshes;
 
         List<ModelID> modelIds;
         for (auto& obj : level.Objects) {
             if (obj.Render.Type == RenderType::Model) {
-                objectMeshes->LoadModel(obj.Render.Model.ID);
-                objectMeshes->LoadModel(Resources::GetDeadModelID(obj.Render.Model.ID));
-                objectMeshes->LoadModel(Resources::GetDyingModelID(obj.Render.Model.ID));
+                LoadModel(obj.Render.Model.ID);
+                LoadModel(Resources::GetDeadModelID(obj.Render.Model.ID));
+                LoadModel(Resources::GetDyingModelID(obj.Render.Model.ID));
             }
         }
 
-        objectMeshes->LoadModel(Resources::GameData.ExitModel);
-        objectMeshes->LoadModel(Resources::GameData.DestroyedExitModel);
+        LoadModel(Resources::GameData.ExitModel);
+        LoadModel(Resources::GameData.DestroyedExitModel);
 
         //{
         //    LoadOutrageModel(TEST_MODEL);

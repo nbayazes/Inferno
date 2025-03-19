@@ -106,6 +106,12 @@ namespace Inferno {
                     CreateExplosion(*e, player.Segment, playerPos);
 
                 CreateObjectDebris(player, player.Render.Model.ID, Vector3::Zero);
+
+                for (size_t i = 0; i < 16; i++) {
+                    auto random = RandomPointOnSphere() * player.Radius * 0.35;
+                    CreateDebris(player.Segment, player.Position + random);
+                }
+
                 player.Render.Type = RenderType::None; // Hide the player after exploding
                 player.Type = ObjectType::Ghost;
 

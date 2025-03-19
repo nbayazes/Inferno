@@ -91,6 +91,7 @@ namespace Inferno {
 
         ModelID ExitModel = ModelID::None; // For D1 exits
         ModelID DestroyedExitModel = ModelID::None; // For D1 exits
+        ModelID Debris = ModelID::None;
 
         HamFile() = default;
         ~HamFile() = default;

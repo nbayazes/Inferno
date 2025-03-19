@@ -87,6 +87,8 @@ namespace Inferno {
         void MakeVulnerable(Object& obj, bool playSound = true);
     }
 
+    void CreateDebris(SegID segment, const Vector3& position, const Vector3& force = Vector3::Zero, float randomScale = 20);
+
     // Explodes an object and flags it as destroyed
     void DestroyObject(Object& obj);
     //void ExplodeSubmodels(ModelID model, Object& obj);

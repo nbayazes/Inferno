@@ -1118,6 +1118,9 @@ namespace Inferno::Game {
         LoadGameTextures();
         PlayLevelMusic();
 
+        for (int i = 0; i < 4; i++)
+            Graphics::LoadModel(ModelID((int)Resources::GameData.Debris + i)); // Load debris models
+
         Automap = AutomapInfo(Level);
 
         // Reset player state

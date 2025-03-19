@@ -452,8 +452,26 @@ namespace Inferno::Resources {
         }
     }
 
+    void LoadCustomModel(FullGameData& data, string_view fileName, LoadFlag flags) {
+        auto modelData = ReadBinaryFile(fileName, flags);
+        if (modelData) {
+
+            auto model = ReadPof(*modelData, &data.palette);
+            model.FileName = fileName;
+            model.FirstTexture = (uint16)data.ObjectBitmaps.size();
+            data.ObjectBitmapPointers.push_back(model.FirstTexture);
+
+            for (auto& texture : model.Textures) {
+                auto id = data.pig.Find(texture);
+                data.ObjectBitmaps.push_back(id);
+            }
+
+            data.Models.push_back(model);
+        }
+    }
+
     // Load the custom exit models. Note this requires the D1 ham for proper texturing.
-    void LoadCustomExitModels(HamFile& ham, const Palette& palette) {
+    void LoadCustomModels(FullGameData& data) {
         // Don't search the HOG files because it would find the original models
         auto flags = LoadFlag::Filesystem | LoadFlag::Descent1 | LoadFlag::Dxa;
 
@@ -461,12 +479,11 @@ namespace Inferno::Resources {
             auto exit = "exit01.pof";
             auto modelData = ReadBinaryFile(exit, flags);
             if (modelData) {
-                //auto modelData = Game::Mission->ReadEntry(entry);
-                auto model = ReadPof(*modelData, &palette);
+                auto model = ReadPof(*modelData, &data.palette);
                 model.FileName = exit;
-                auto firstTexture = ham.Models[(int)ham.ExitModel].FirstTexture;
-                ham.Models[(int)ham.ExitModel] = model;
-                ham.Models[(int)ham.ExitModel].FirstTexture = firstTexture;
+                auto firstTexture = data.Models[(int)data.ExitModel].FirstTexture;
+                data.Models[(int)data.ExitModel] = model;
+                data.Models[(int)data.ExitModel].FirstTexture = firstTexture;
             }
         }
 
@@ -474,14 +491,21 @@ namespace Inferno::Resources {
             auto exit = "exit01d.pof";
             auto modelData = ReadBinaryFile(exit, flags);
             if (modelData) {
-                //auto modelData = Game::Mission->ReadEntry(entry);
-                auto model = ReadPof(*modelData, &palette);
+                auto model = ReadPof(*modelData, &data.palette);
                 model.FileName = exit;
-                auto firstTexture = ham.Models[(int)ham.DestroyedExitModel].FirstTexture;
-                ham.Models[(int)ham.DestroyedExitModel] = model;
-                ham.Models[(int)ham.DestroyedExitModel].FirstTexture = firstTexture;
+
+                auto firstTexture = data.Models[(int)data.DestroyedExitModel].FirstTexture;
+                data.Models[(int)data.DestroyedExitModel] = model;
+                data.Models[(int)data.DestroyedExitModel].FirstTexture = firstTexture;
             }
         }
+
+
+        data.Debris = (ModelID)data.Models.size();
+        LoadCustomModel(data, "debris.pof", flags);
+        LoadCustomModel(data, "debris1.pof", flags);
+        LoadCustomModel(data, "debris2.pof", flags);
+        LoadCustomModel(data, "debris3.pof", flags);
     }
 
     bool LoadDescent1Data() {
@@ -1367,7 +1391,7 @@ namespace Inferno::Resources {
             LoadDataTables(LoadFlag::Filesystem | LoadFlag::Mission | GetLevelLoadFlag(level));
             LoadStringTable(GameData.hog);
             UpdateAverageTextureColor();
-            LoadCustomExitModels(GameData, GameData.palette);
+            LoadCustomModels(GameData);
 
             Inferno::Sound::CopySoundIds();
             //FixObjectModelIds(level);
