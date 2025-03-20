@@ -271,7 +271,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         if (fullbright) {
             emissive += 1; // make lava and forcefields full bright
         }
-        else if (any(Args.LightColor.rgb)) {
+        else {
             // Boost the brightness of color lights to match white lights
             // Reduce the brightness of green and increase blue
             //float colorMult = 1 + (1 - dot(Args.LightColor.rgb, float3(1, 2, 0.25)) * .333) * 3;
