@@ -34,7 +34,7 @@ namespace Inferno::Render {
         _opaqueQueue.clear();
         _decalQueue.clear();
         _visited.clear();
-        _distortionQueue.clear();
+        //_distortionQueue.clear();
         _visibleRooms.clear();
         _roomStack.Reset();
 
@@ -141,7 +141,7 @@ namespace Inferno::Render {
         }
         else if (obj.Render.Type == RenderType::Model && obj.Render.Model.ID != ModelID::None) {
             if (obj.IsCloaked() && Game::GetState() != GameState::Editor) {
-                _distortionQueue.push_back({ &obj, depth });
+                _transparentQueue.push_back({ &obj, depth });
             }
             else {
                 _opaqueQueue.push_back({ &obj, depth });
@@ -201,8 +201,8 @@ namespace Inferno::Render {
                 if (obj.Obj->Render.Type == RenderType::Model &&
                     obj.Obj->Render.Model.ID != ModelID::None) {
                     if (obj.Obj->IsCloaked() && Game::GetState() != GameState::Editor) {
-                        // Cloaked objects render using a different queue because they draw 'on top' of the scene
-                        _distortionQueue.push_back({ obj.Obj, obj.Depth });
+                        _transparentQueue.push_back({ obj.Obj, obj.Depth });
+                        //_distortionQueue.push_back({ obj.Obj, obj.Depth });
                     }
                     else {
                         // always submit objects to opaque queue, as the renderer will skip

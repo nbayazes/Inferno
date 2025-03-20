@@ -344,7 +344,7 @@ namespace Inferno::Render {
                           const Object& object,
                           ModelID modelId,
                           RenderPass pass) {
-        if (pass != RenderPass::Distortion) return;
+        if (pass != RenderPass::Transparent) return;
 
         auto cmdList = ctx.GetCommandList();
         auto& effect = Effects->ObjectDistortion;

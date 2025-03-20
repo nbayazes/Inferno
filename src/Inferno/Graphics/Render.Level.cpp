@@ -731,14 +731,6 @@ namespace Inferno::Render {
 
             DrawDecals(ctx, Game::FrameTime);
 
-            {
-                PIXScopedEvent(cmdList, PIX_COLOR_INDEX(2), "Transparent queue");
-                for (auto& cmd : _renderQueue.Transparent())
-                    ExecuteRenderCommand(ctx, cmd, RenderPass::Transparent);
-            }
-
-            //ctx.SetViewportAndScissor(UINT(target.GetWidth() * Settings::Graphics.RenderScale), UINT(target.GetHeight() * Settings::Graphics.RenderScale));
-
             // Copy the contents of the render target to the distortion buffer
             auto& renderTarget = Adapter->GetRenderTarget();
 
@@ -750,8 +742,16 @@ namespace Inferno::Render {
             Adapter->DistortionBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
             renderTarget.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-            for (auto& cmd : _renderQueue.Distortion())
-                ExecuteRenderCommand(ctx, cmd, RenderPass::Distortion);
+            {
+                PIXScopedEvent(cmdList, PIX_COLOR_INDEX(2), "Transparent queue");
+                for (auto& cmd : _renderQueue.Transparent())
+                    ExecuteRenderCommand(ctx, cmd, RenderPass::Transparent);
+            }
+
+            //ctx.SetViewportAndScissor(UINT(target.GetWidth() * Settings::Graphics.RenderScale), UINT(target.GetHeight() * Settings::Graphics.RenderScale));
+
+            //for (auto& cmd : _renderQueue.Distortion())
+            //    ExecuteRenderCommand(ctx, cmd, RenderPass::Distortion);
 
             LegitProfiler::AddCpuTask(std::move(queue));
 

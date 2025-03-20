@@ -145,7 +145,7 @@ namespace Inferno::Render {
         List<RenderCommand> _opaqueQueue;
         List<RenderCommand> _decalQueue;
         List<RenderCommand> _transparentQueue;
-        List<RenderCommand> _distortionQueue;
+        //List<RenderCommand> _distortionQueue;
         Set<SegID> _visited;
         std::queue<SegDepth> _search;
         List<RoomID> _visibleRooms;
@@ -175,7 +175,7 @@ namespace Inferno::Render {
         span<RenderCommand> Opaque() { return _opaqueQueue; }
         span<RenderCommand> Decal() { return _decalQueue; }
         span<RenderCommand> Transparent() { return _transparentQueue; }
-        span<RenderCommand> Distortion() { return _distortionQueue; }
+        //span<RenderCommand> Distortion() { return _distortionQueue; }
         span<RoomID> GetVisibleRooms() { return _visibleRooms; }
 
         void TraverseSegments(Level& level, const Camera& camera, span<LevelMesh> wallMeshes, SegID startSeg);

@@ -54,7 +54,7 @@ namespace Inferno::Render {
         Decals, // Solid level geometry decals
         Walls, // Level walls, might be transparent
         Transparent, // Sprites, transparent portions of models
-        Distortion, // Cloaked enemies, shockwaves
+        Distortion, // Shockwaves
     };
 
     //void DrawVClip(GraphicsContext& ctx, const VClip& vclip, const Vector3& position, float radius, const Color& color, float elapsed, bool additive = false, float rotation = 0, const Vector3* up = nullptr);

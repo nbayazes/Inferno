@@ -23,7 +23,7 @@ struct PS_INPUT {
     float4 pos : SV_POSITION;
     centroid float2 uv : TEXCOORD0;
     centroid float4 col : COLOR0;
-    //centroid float3 normal : NORMAL;
+    centroid float3 normal : NORMAL;
 };
 
 [RootSignature(RS)]
@@ -35,7 +35,7 @@ PS_INPUT vsmain(ObjectVertex input) {
     output.uv = input.uv;
 
     // transform from object space to world space
-    //output.normal = normalize(mul((float3x3)Instance.WorldMatrix, input.normal));
+    output.normal = normalize(mul((float3x3)Instance.WorldMatrix, input.normal));
     //output.normal =  normalize(mul((float3x3)wvp, input.normal));
     //output.tangent = normalize(mul((float3x3)Instance.WorldMatrix, input.tangent));
     //output.bitangent = normalize(mul((float3x3)Instance.WorldMatrix, input.bitangent));
@@ -44,19 +44,30 @@ PS_INPUT vsmain(ObjectVertex input) {
 }
 
 float4 psmain(PS_INPUT input) : SV_Target {
-    const float NORMAL_STRENGTH = 150;
+    const float NORMAL_STRENGTH = 30;
     const float BLUR_STRENGTH = 10;
-    float3 deltax = ddx(input.pos.xyz);
-    float3 deltay = ddy(input.pos.xyz);
-    float3 normal = normalize(cross(deltax, deltay) );
-    float noise = 1 - (Instance.Noise * 0.2);
-    float2 scale = noise * BLUR_STRENGTH / Frame.Size * Frame.RenderScale * Frame.RenderScale;
 
-    float time = Frame.Time + Instance.TimeOffset;
-    float2 offset = float2(sin(input.pos.y * scale.y + time), cos(input.pos.x * scale.x + time) * 3);
-    float2 samplePos = (input.pos.xy + offset) / Frame.Size * Frame.RenderScale;
-    samplePos = saturate(samplePos + normal.xy * NORMAL_STRENGTH * noise * Frame.RenderScale);
+    float3 viewDir = normalize(input.pos.xyz - Frame.Eye);
 
+    float2 muv = mul(Frame.ViewMatrix, float4(input.normal, 0)).xy * 0.5 + 0.5;
+    //muv.y = 1 - muv.y;
+
+    //return float4(muv, 0, 1);
+
+    //float3 deltax = ddx(input.pos.xyz);
+    //float3 deltay = ddy(input.pos.xyz);
+    //float3 normal = normalize(cross(deltax, deltay) );
+    float noise = 1 - (Instance.Noise * 0.3);
+    float2 scale =/* noise **/ BLUR_STRENGTH / Frame.Size * Frame.RenderScale * Frame.RenderScale;
+
+    float time = Frame.Time * 2 + Instance.TimeOffset;
+    float2 offset = float2(sin(input.pos.x * scale.x + time), cos(input.pos.y * scale.y + time));
+    muv.x += noise * .2;
+    float2 samplePos = (input.pos.xy) / Frame.Size * Frame.RenderScale;
+    samplePos += NORMAL_STRENGTH * muv / Frame.Size * Frame.RenderScale;
+    //samplePos = saturate(samplePos + muv * NORMAL_STRENGTH * noise * Frame.RenderScale);
+    //samplePos = saturate(samplePos + noise * Frame.RenderScale);
+     //+ muv * NORMAL_STRENGTH
     float3 sample = float3(0, 0, 0);
     sample += FrameTexture.SampleLevel(LinearBorder, samplePos, 0).rgb;
     sample += FrameTexture.SampleLevel(LinearBorder, samplePos + float2(scale.x, -scale.y), 0).rgb * 0.25;
@@ -65,5 +76,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
     sample += FrameTexture.SampleLevel(LinearBorder, samplePos + float2(scale.x, scale.y), 0).rgb * 0.25;
 
     sample /= 8;
-    return float4(sample.rgb * noise, 1);
+    return float4(sample.rgb * noise, 0.95); // make slightly transparent so powerups and sprites are visible
+    //return float4(0, 0, 0, 0.8);
 }
