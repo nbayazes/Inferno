@@ -239,7 +239,7 @@ namespace Inferno {
 
         auto& player = Game::Player;
 
-        if (!Input::HasFocus || player.IsDead || Game::Level.Objects.empty())
+        if (player.IsDead || Game::Level.Objects.empty())
             return; // No player input without focus or while dead
 
         if (Game::Bindings.Pressed(GameAction::Weapon1))
@@ -438,6 +438,8 @@ namespace Inferno {
     }
 
     void HandleInput(float dt) {
+        if (!Input::HasFocus) return;
+
         if (Input::OnKeyPressed(Keys::F1))
             Game::ShowDebugOverlay = !Game::ShowDebugOverlay;
 
