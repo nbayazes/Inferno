@@ -161,7 +161,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
             // ambient
             const float AMBIENT_MULT = 0.5;
-            float3 baseAmbient = diffuse.rgb * ambient * AMBIENT_MULT * material.LightReceived * (1 - material.Metalness * .20); // ambient
+            lighting += diffuse.rgb * ambient * material.LightReceived * (1 - material.Metalness * .6) * AMBIENT_MULT; // ambient
 
             // Matcap specular
             float2 muv = mul(Frame.ViewMatrix, float4(normal, 0)).xy * 0.5 + 0.5;
@@ -169,8 +169,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
             float3 matcap = Matcap.Sample(Sampler, muv).rgb;
             float3 matcapSum = diffuse.rgb * ambient * material.LightReceived * material.Metalness *
                                material.SpecularColor.rgb * material.SpecularColor.a * material.SpecularStrength;
-
-            lighting += lerp(baseAmbient, matcapSum * matcap * 5, material.Metalness);
+            lighting += matcapSum * matcap * 5;
         }
 
         lighting.rgb += phaseColor;
