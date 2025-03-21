@@ -4,12 +4,7 @@
     "CBV(b0),"\
     "CBV(b1),"\
     "DescriptorTable(SRV(t0), visibility=SHADER_VISIBILITY_PIXEL), " \
-    "StaticSampler(s0," \
-        "filter = FILTER_MIN_MAG_MIP_POINT,"\
-        "addressU = TEXTURE_ADDRESS_CLAMP, addressV = TEXTURE_ADDRESS_CLAMP,"\
-        "comparisonFunc=COMPARISON_ALWAYS," \
-        "borderColor=STATIC_BORDER_COLOR_TRANSPARENT_BLACK," \
-        "visibility=SHADER_VISIBILITY_PIXEL)"
+    "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL)"
 
 struct Arguments {
     float4x4 ProjectionMatrix;

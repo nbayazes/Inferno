@@ -51,6 +51,7 @@ namespace Inferno::Render {
         Vector2 UV0{ 0, 0 }, UV1{ 1, 1 };
         float Scanline = 0;
         bool MirrorX = false;
+        bool PointSample = true;
     };
 
     constexpr uint CANVAS_HEIGHT = 480;
@@ -377,6 +378,7 @@ namespace Inferno::Render {
         D3D12_GPU_DESCRIPTOR_HANDLE Texture{};
         int Layer = 0;
         float Scanline = 0;
+        bool PointSample = true; // Point sampling
 
         void RoundLayout() {
             V0.Position.x = std::round(V0.Position.x);

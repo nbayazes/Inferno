@@ -378,8 +378,7 @@ namespace Inferno {
         auto& weapon = player.Ship.Weapons[(int)weaponIndex];
 
         switch (weaponIndex) {
-            case PrimaryWeaponIndex::Laser:
-            {
+            case PrimaryWeaponIndex::Laser: {
                 if (player.HasPowerup(PowerupFlag::QuadFire))
                     label = fmt::format("laser\nlvl: {}\nquad", state.LaserLevel + 1);
                 else
@@ -509,8 +508,8 @@ namespace Inferno {
         }
     }
 
-    void DrawHighlights(bool flip, float opacity = 0.07f) {
-        auto& material = Render::Materials->Get("SmHilite");
+    void DrawGlare(bool flip, float opacity = 0.04f) {
+        auto& material = Render::Materials->Get("Hilite");
         auto scale = Render::HudCanvas->GetScale() * 1.5f;
         auto& screen = Render::HudCanvas->GetSize();
         int fl = flip ? 1 : -1;
@@ -518,32 +517,44 @@ namespace Inferno {
         auto height = (float)material.Textures[0].GetWidth() * scale;
         auto width = (float)material.Textures[0].GetHeight() * scale * fl;
 
-        Color color(1, 1, 1, opacity);
+        constexpr float ambientFloor = 0.55f; // minimum ambient for glare to be visible
+        // Lower the floor for the glare to be visible
+        Color ambient = Ambient;
+        ambient.x = std::max(ambient.x - ambientFloor, 0.0f);
+        ambient.y = std::max(ambient.y - ambientFloor, 0.0f);
+        ambient.z = std::max(ambient.z - ambientFloor, 0.0f);
+
+        Color color = ambient + Direct * .65f;
+        color.w = opacity;
 
         constexpr int steps = 16;
         constexpr float vStep = 1.0f / steps;
+        constexpr float CENTER_DIST = 145; // how far from the centerline each glare is
         const float yStep = height / steps * 0.75f;
-        float offset = screen.x / 2 + 150 * scale * fl;
-        float yOffset = 10 * scale;
+        float offset = screen.x / 2 + CENTER_DIST * scale * fl;
+        float yOffset = -20 * scale;
+        constexpr float CURVATURE = 1.8f; // Higher value curves the glare inward more
+        constexpr float THICKNESS_MULT = 2.00f;
 
         for (int i = 0; i < steps; i++) {
             Render::HudCanvasPayload payload;
             payload.Texture = material.Handle();
 
-            float x0 = -cos((steps - i) * 3.14f / steps / 2 + 0.2f) * width * scale * 0.7f + offset;
-            float x1 = -cos((steps - i - 1) * 3.14f / steps / 2 + 0.2f) * width * scale * 0.7f + offset;
+            float x0 = -cos((steps - i) * 3.14f / steps / 2 + 0.2f) * width * CURVATURE + offset;
+            float x1 = -cos((steps - i - 1) * 3.14f / steps / 2 + 0.2f) * width * CURVATURE + offset;
             float y0 = yOffset + yStep * float(i);
             float y1 = yOffset + yStep * float(i + 1);
 
             Vector2 v0 = { x0, y0 };
-            Vector2 v1 = { x0 + width * 2, y0 };
-            Vector2 v2 = { x1 + width * 2, y1 };
+            Vector2 v1 = { x0 + width * THICKNESS_MULT, y0 };
+            Vector2 v2 = { x1 + width * THICKNESS_MULT, y1 };
             Vector2 v3 = { x1, y1 };
 
             payload.V0 = HudVertex{ v0, { 1 - vStep * float(i), 0 }, color }; // bottom left
             payload.V1 = HudVertex{ v1, { 1 - vStep * float(i), 1 }, color }; // bottom right
             payload.V2 = HudVertex{ v2, { 1 - vStep * float(i + 1), 1 }, color }; // top right
             payload.V3 = HudVertex{ v3, { 1 - vStep * float(i + 1), 0 }, color }; // top left
+            payload.PointSample = false;
             Render::HudGlowCanvas->Draw(payload);
         }
     }
@@ -817,8 +828,10 @@ namespace Inferno {
                 Render::HudCanvas->DrawText(timer, info);
             }
 
-            //DrawHighlights(false);
-            //DrawHighlights(true);
+            if (Settings::Inferno.HudGlare) {
+                DrawGlare(false);
+                DrawGlare(true);
+            }
 
             // Lock warning
             //DrawAdditiveBitmap({ -220, -230 }, AlignH::CenterRight, "gauge16b", 1);

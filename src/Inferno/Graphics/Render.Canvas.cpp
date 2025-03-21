@@ -7,15 +7,15 @@ namespace Inferno::Render {
         Vector2 alignment;
 
         switch (alignH) {
-            case Inferno::AlignH::Left: 
+            case Inferno::AlignH::Left:
                 break; // no change
-            case Inferno::AlignH::Center: 
+            case Inferno::AlignH::Center:
                 alignment.x = parentSize.x / 2 - size.x / 2;
                 break;
-            case Inferno::AlignH::CenterLeft: 
+            case Inferno::AlignH::CenterLeft:
                 alignment.x = parentSize.x / 2 - size.x;
                 break;
-            case Inferno::AlignH::CenterRight: 
+            case Inferno::AlignH::CenterRight:
                 alignment.x = parentSize.x / 2;
                 break;
             case Inferno::AlignH::Right:
@@ -26,16 +26,16 @@ namespace Inferno::Render {
         switch (alignV) {
             case AlignV::Top:
                 break; // no change
-            case AlignV::Center: 
+            case AlignV::Center:
                 alignment.y = parentSize.y / 2 - size.y / 2;
                 break;
-            case AlignV::CenterTop: 
+            case AlignV::CenterTop:
                 alignment.y = parentSize.y / 2;
                 break;
-            case AlignV::CenterBottom: 
+            case AlignV::CenterBottom:
                 alignment.y = parentSize.y / 2 - size.y;
                 break;
-            case AlignV::Bottom: 
+            case AlignV::Bottom:
                 alignment.y = parentSize.y - size.y - margin.y * 2;
                 break;
         }
@@ -100,6 +100,8 @@ namespace Inferno::Render {
                 for (auto& g : group) {
                     constants.Scanline = g.Scanline;
                     _effect->Shader->SetConstants(ctx.GetCommandList(), constants);
+                    auto sampler = g.PointSample ? Heaps->States.PointClamp() : Heaps->States.LinearClamp();
+                    _effect->Shader->SetSampler(cmdList, sampler);
                     _batch.DrawQuad(g.V0, g.V1, g.V2, g.V3);
                 }
 
@@ -307,6 +309,7 @@ namespace Inferno::Render {
         payload.V3 = { Vector2{ pos.x, pos.y }, { 0, 0 }, info.Color }; // top left
         payload.Texture = Materials->White().Handles[Material2D::Diffuse];
         payload.Layer = layer;
+        payload.PointSample = info.PointSample;
         Draw(payload);
     }
 }

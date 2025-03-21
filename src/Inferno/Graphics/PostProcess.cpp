@@ -181,7 +181,7 @@ namespace Inferno::PostFx {
             .Exposure = Exposure,
             .NewLightMode = (HlslBool)Settings::Graphics.NewLightMode,
             .ToneMapper = Settings::Graphics.ToneMapper,
-            .EnableDirt = (HlslBool)(dirt && (gameState == GameState::Game || gameState == GameState::PauseMenu)),
+            .EnableDirt = (HlslBool)(dirt && Settings::Inferno.HudGlare && (gameState == GameState::Game || gameState == GameState::PauseMenu)),
             .EnableBloom = (HlslBool)Settings::Graphics.EnableBloom,
             .Tint = tint,
             .Brightness = Settings::Graphics.Brightness

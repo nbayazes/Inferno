@@ -225,6 +225,7 @@ namespace Inferno {
         bool OnlyCycleAutoselectWeapons = true;
         bool StickyRearview = false;
         bool SlowmoFusion = true;
+        bool HudGlare = true; // Enables dirt and glare on the HUD
         bool EnableJoystick = false;
         bool EnableGamepad = true;
         bool EnableMouse = true;

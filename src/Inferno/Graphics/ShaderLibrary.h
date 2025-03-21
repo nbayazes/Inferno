@@ -730,6 +730,10 @@ namespace Inferno {
         static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& constants) {
             Render::BindTempConstants(commandList, constants, RootConstants);
         }
+
+        static void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
+            commandList->SetGraphicsRootDescriptorTable(Sampler, sampler);
+        }
     };
 
 

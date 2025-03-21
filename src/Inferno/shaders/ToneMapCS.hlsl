@@ -177,7 +177,7 @@ void main(uint3 DTid : SV_DispatchThreadID) {
 
         // todo: dirt texture needs to maintain aspect ratio when scaling
         if (Args.EnableDirt)
-            hdrColor += Dirt.SampleLevel(LinearSampler, TexCoord, 0) * pow(bloom, .25) * 0.1;
+            hdrColor += Dirt.SampleLevel(LinearSampler, TexCoord, 0) * pow(max(bloom * 10, 0), .5) * 0.25;
     }
 
     hdrColor *= Args.Exposure;
