@@ -59,7 +59,7 @@ namespace Inferno::Game {
 
     bool EnableAi() {
         if (Settings::Cheats.DisableAI) return false;
-        return Game::GetState() == GameState::Game || Game::GetState() == GameState::ExitSequence;
+        return Game::GetState() == GameState::Game || Game::GetState() == GameState::EscapeSequence;
     }
 
     bool StartLevel();
@@ -225,7 +225,7 @@ namespace Inferno::Game {
 
         FixedUpdateEffects(dt);
 
-        if (State == GameState::ExitSequence)
+        if (State == GameState::EscapeSequence)
             UpdateEscapeSequence(dt);
 
         for (int i = 0; i < Level.Objects.size(); i++) {
@@ -437,7 +437,7 @@ namespace Inferno::Game {
                     }
                 }
 
-                if (State == GameState::ExitSequence) {
+                if (State == GameState::EscapeSequence) {
                     Settings::Editor.ShowTerrain = false;
                 }
 
@@ -480,14 +480,14 @@ namespace Inferno::Game {
                 Sound::SetMusicVolume(Settings::Inferno.MusicVolume);
                 break;
 
-            case GameState::ExitSequence:
+            case GameState::EscapeSequence:
                 // Turn off the player headlight during exit sequences because 3D art is missing
                 Player.TurnOffHeadlight();
                 Player.StopAfterburner();
                 break;
 
             case GameState::PhotoMode: {
-                if (State != GameState::Game && State != GameState::ExitSequence && State != GameState::PauseMenu) return;
+                if (State != GameState::Game && State != GameState::EscapeSequence && State != GameState::PauseMenu) return;
                 auto& player = GetPlayerObject();
                 Matrix transform = player.GetTransform(LerpAmount);
                 auto target = transform.Translation() + transform.Forward();
@@ -630,7 +630,7 @@ namespace Inferno::Game {
         Game::FrameTime = 0;
 
         // Stop time when not in game or in editor. Editor uses gametime to animate vclips.
-        if (Game::State == GameState::Game || Game::State == GameState::Editor || Game::State == GameState::ExitSequence) {
+        if (Game::State == GameState::Game || Game::State == GameState::Editor || Game::State == GameState::EscapeSequence) {
             Game::Time += dt * Game::TimeScale;
             Game::FrameTime = dt * Game::TimeScale;
         }
@@ -740,7 +740,7 @@ namespace Inferno::Game {
                 LerpAmount = GameUpdate(dt);
                 break;
 
-            case GameState::ExitSequence:
+            case GameState::EscapeSequence:
                 LerpAmount = GameUpdate(dt);
                 UpdateEscapeCamera(dt);
                 MoveCameraToObject(Game::MainCamera, Level.Objects[0], LerpAmount);

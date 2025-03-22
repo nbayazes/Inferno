@@ -815,7 +815,7 @@ namespace Inferno {
 
             if (Game::ControlCenterDestroyed &&
                 Game::CountdownSeconds >= 0 &&
-                Game::GetState() != GameState::ExitSequence) {
+                Game::GetState() != GameState::EscapeSequence) {
                 Render::DrawTextInfo info;
                 info.Font = FontSize::Small;
                 info.Color = GREEN_TEXT;

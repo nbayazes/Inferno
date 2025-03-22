@@ -171,7 +171,7 @@ namespace Inferno::Sound {
 
             if (dist < sound.Radius) {
                 // only hit test if sound is actually within range
-                if (sound.Looped && (Game::GetState() == GameState::Game || Game::GetState() == GameState::ExitSequence || Game::GetState() == GameState::Cutscene)) {
+                if (sound.Looped && (Game::GetState() == GameState::Game || Game::GetState() == GameState::EscapeSequence || Game::GetState() == GameState::Cutscene)) {
                     if (Effect->GetState() == SoundState::PAUSED) {
                         Effect->Resume();
                     }

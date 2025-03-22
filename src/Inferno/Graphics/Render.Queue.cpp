@@ -100,7 +100,7 @@ namespace Inferno::Render {
 
         // Draw effects and objects on the terrain
         auto& player = Game::GetPlayerObject();
-        if (player.Segment == SegID::Terrain || Game::GetState() == GameState::ExitSequence) {
+        if (player.Segment == SegID::Terrain || Game::GetState() == GameState::EscapeSequence) {
             UpdateSegmentEffects(level, SegID::Terrain);
 
             for (auto& oid : level.Terrain.Objects) {

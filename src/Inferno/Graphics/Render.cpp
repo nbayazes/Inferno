@@ -649,7 +649,7 @@ namespace Inferno::Render {
                  gameState == GameState::PauseMenu ||
                  gameState == GameState::Editor ||
                  gameState == GameState::PhotoMode ||
-                 gameState == GameState::ExitSequence) {
+                 gameState == GameState::EscapeSequence) {
             if (LevelChanged) {
                 Adapter->WaitForGpu();
                 RebuildLevelResources(Game::Level);

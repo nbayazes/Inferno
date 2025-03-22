@@ -615,7 +615,7 @@ namespace Inferno {
         State.ExplosionTimer = 0;
         State.ExplosionSoundTimer = 0;
         State.ShipRollSign = RandomInt(1) ? 1 : -1;
-        Game::SetState(GameState::ExitSequence);
+        Game::SetState(GameState::EscapeSequence);
 
         CinematicCamera.Segment = start.Segment;
 

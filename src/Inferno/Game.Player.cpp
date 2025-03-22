@@ -747,7 +747,7 @@ namespace Inferno {
     }
 
     void Player::ApplyDamage(float damage, bool playSound) {
-        if (Game::GetState() == GameState::ExitSequence)
+        if (Game::GetState() == GameState::EscapeSequence)
             return; // Can't take damage during cutscene
 
         // Keep player shields in sync with the object that represents it

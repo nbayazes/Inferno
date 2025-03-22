@@ -476,7 +476,7 @@ namespace Inferno {
                 HandleWeaponKeys();
                 break;
 
-            case GameState::ExitSequence:
+            case GameState::EscapeSequence:
                 if (Game::Bindings.Pressed(GameAction::Pause)) {
                     Sound::StopMusic();
                     StopEscapeSequence();

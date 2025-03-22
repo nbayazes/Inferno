@@ -5,7 +5,7 @@ namespace Inferno {
         Startup,
         Game, // In first person and running game logic
         PhotoMode, // In-game photo mode
-        ExitSequence, // exit tunnel sequence
+        EscapeSequence, // exit tunnel sequence
         Cutscene, // In-game cutscene, waits for input to cancel
         LoadLevel, // Show a loading screen and load the currently pending level
         ScoreScreen,
