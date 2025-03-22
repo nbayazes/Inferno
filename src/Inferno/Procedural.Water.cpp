@@ -106,61 +106,73 @@ namespace Inferno {
         return AverageColor(x0, x1);
     }
 
-    List<Palette::Color> BilinearUpscale(const PigBitmap& src, int outputWidth, bool wrap) {
-        assert(src.Info.Width == 64 && src.Info.Height == 64); // Only tested with 64x64 textures
+    //List<Palette::Color> BilinearUpscale(const PigBitmap& src, int outputWidth, bool wrap) {
+    //    assert(src.Info.Width == 64 && src.Info.Height == 64); // Only tested with 64x64 textures
 
-        auto srcWidth = src.Info.Width;
-        auto srcHeight = src.Info.Height;
+    //    auto srcWidth = src.Info.Width;
+    //    auto srcHeight = src.Info.Height;
 
-        List<Palette::Color> output;
-        output.resize(outputWidth * outputWidth);
+    //    List<Palette::Color> output;
+    //    output.resize(outputWidth * outputWidth);
 
-        auto ratioX = float(srcWidth) / outputWidth;
-        auto ratioY = float(srcHeight) / outputWidth;
+    //    auto ratioX = float(srcWidth) / outputWidth;
+    //    auto ratioY = float(srcHeight) / outputWidth;
 
-        // output size is 128
-        for (int y = 0; y < outputWidth; y++) {
-            for (int x = 0; x < outputWidth; x++) {
-                // offset uv by 0.5 to smooth the result
-                float u = x + 0.5f;
-                float v = y + 0.5f;
+    //    // output size is 128
+    //    for (int y = 0; y < outputWidth; y++) {
+    //        for (int x = 0; x < outputWidth; x++) {
+    //            // offset uv by 0.5 to smooth the result
+    //            float u = x + 0.5f;
+    //            float v = y + 0.5f;
 
-                int xl = (int)floor(ratioX * u);
-                int yl = (int)floor(ratioY * v);
-                int xh = (int)ceil(ratioX * u);
-                int yh = (int)ceil(ratioY * v);
+    //            int xl = (int)floor(ratioX * u);
+    //            int yl = (int)floor(ratioY * v);
+    //            int xh = (int)ceil(ratioX * u);
+    //            int yh = (int)ceil(ratioY * v);
 
-                if (wrap) {
-                    xl %= srcWidth;
-                    yl %= srcHeight;
-                    xh %= srcWidth;
-                    yh %= srcHeight;
-                }
-                else {
-                    xl = std::clamp(xl, 0, srcWidth - 1);
-                    yl = std::clamp(yl, 0, srcHeight - 1);
-                    xh = std::clamp(xh, 0, srcWidth - 1);
-                    yh = std::clamp(yh, 0, srcHeight - 1);
-                }
+    //            if (wrap) {
+    //                xl %= srcWidth;
+    //                yl %= srcHeight;
+    //                xh %= srcWidth;
+    //                yh %= srcHeight;
+    //            }
+    //            else {
+    //                xl = std::clamp(xl, 0, srcWidth - 1);
+    //                yl = std::clamp(yl, 0, srcHeight - 1);
+    //                xh = std::clamp(xh, 0, srcWidth - 1);
+    //                yh = std::clamp(yh, 0, srcHeight - 1);
+    //            }
 
-                float xWeight = (ratioX * u) - xl;
-                float yWeight = (ratioY * v) - yl;
+    //            float xWeight = (ratioX * u) - xl;
+    //            float yWeight = (ratioY * v) - yl;
 
-                auto& c00 = src.Data[yl * srcWidth + xl];
-                auto& c10 = src.Data[yl * srcWidth + xh];
-                auto& c01 = src.Data[yh * srcWidth + xl];
-                auto& c11 = src.Data[yh * srcWidth + xh];
+    //            auto& c00 = src.Data[yl * srcWidth + xl];
+    //            auto& c10 = src.Data[yl * srcWidth + xh];
+    //            auto& c01 = src.Data[yh * srcWidth + xl];
+    //            auto& c11 = src.Data[yh * srcWidth + xh];
 
-                auto bot = AverageColor(c00, c10, xWeight);
-                auto top = AverageColor(c01, c11, xWeight);
-                output[y * outputWidth + x] = AverageColor(bot, top, yWeight);
-            }
-        }
+    //            auto bot = AverageColor(c00, c10, xWeight);
+    //            auto top = AverageColor(c01, c11, xWeight);
+    //            output[y * outputWidth + x] = AverageColor(bot, top, yWeight);
+    //        }
+    //    }
 
-        return output;
+    //    return output;
+    //}
+
+    bool ResizeImage(const DirectX::Image& src, DirectX::ScratchImage& dest, bool wrapU, bool wrapV, uint8 width = 64, uint8 height = 64) {
+        using namespace DirectX;
+        auto flags = TEX_FILTER_DEFAULT;
+        if (wrapU) flags |= TEX_FILTER_WRAP_U;
+        if (wrapV) flags |= TEX_FILTER_WRAP_V;
+
+        if (SUCCEEDED(Resize(src, width, height, flags, dest)))
+            return true;
+
+        return false;
     }
 
-    bool LoadDDS(string_view filename, PigBitmap& dest, bool wrapU, bool wrapV, uint8 resize = 64) {
+    bool LoadDDS(string_view filename, PigBitmap& dest, bool wrapU, bool wrapV, uint8 size = 64) {
         auto filepath = Inferno::FileSystem::TryFindFile(filename);
         if (!filepath) return false;
 
@@ -176,12 +188,8 @@ namespace Inferno {
 
         auto image = decompressed.GetImage(0, 0, 0);
 
-        if (metadata.width != resize || metadata.height != resize) {
-            auto flags = TEX_FILTER_DEFAULT;
-            if (wrapU) flags |= TEX_FILTER_WRAP_U;
-            if (wrapV) flags |= TEX_FILTER_WRAP_V;
-
-            if (SUCCEEDED(Resize(*image, resize, resize, flags, resized)))
+        if (metadata.width != size || metadata.height != size) {
+            if (ResizeImage(*image, resized, wrapU, wrapV, size))
                 image = resized.GetImage(0, 0, 0);
         }
 
@@ -208,17 +216,31 @@ namespace Inferno {
             _material = Resources::GetMaterial(baseTexture);
             bool wrapu = HasFlag(_material.Flags, MaterialFlags::WrapU);
             bool wrapv = HasFlag(_material.Flags, MaterialFlags::WrapV);
+            constexpr int size = 128;
 
             // Search for a DDS file
-            if (LoadDDS(ti.Name + ".dds", _baseTexture, wrapu, wrapv, 128))
+            // todo: this should be built into GetTextureInfo()
+            if (LoadDDS(ti.Name + ".dds", _baseTexture, wrapu, wrapv, size))
                 return;
 
             // Fallback to built in data
             auto& texture = Resources::GetBitmap(baseTexture);
-            // todo: perform scaling using dxtex so per-axis wrapping is obeyed
-            _baseTexture.Data = BilinearUpscale(texture, _resolution, wrapu || wrapv);
-            _baseTexture.Info.Width = _resolution;
-            _baseTexture.Info.Height = _resolution;
+
+            size_t rowPitch, slicePitch;
+            if (SUCCEEDED(DirectX::ComputePitch(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, texture.Info.Width, texture.Info.Height, rowPitch, slicePitch))) {
+                DirectX::ScratchImage resized;
+                DirectX::Image image(texture.Info.Width, texture.Info.Height,
+                                     DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+                                     rowPitch, slicePitch, (uint8*)texture.Data.data());
+
+                if (ResizeImage(image, resized, wrapu, wrapv, size, size)) {
+                    image = *resized.GetImage(0, 0, 0);
+                    _baseTexture.Data.resize(image.slicePitch / 4);
+                    memcpy(_baseTexture.Data.data(), image.pixels, image.slicePitch);
+                    _baseTexture.Info.Width = _resolution;
+                    _baseTexture.Info.Height = _resolution;
+                }
+            }
         }
 
     protected:
