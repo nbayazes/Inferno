@@ -42,9 +42,9 @@ TextureCube Environment : register(t15);
 static const float PIDIV2 = PI / 2;
 static const float GAME_UNIT = 20; // value of 1 UV tiling in game units
 
-static const float DIRECT_LIGHT_MULT = 1.1; // Multiplier on direct (dynamic) lighting
+static const float DIRECT_LIGHT_MULT = 1.2; // Multiplier on direct (dynamic) lighting
 static const float EMISSIVE_MULT = 1; // Multiplier on emissive lighting
-static const float AMBIENT_MULT = 0.6; // Multiplier on ambient (baked static) lighting
+static const float AMBIENT_MULT = 0.8; // Multiplier on ambient (baked static) lighting
 
 struct InstanceConstants {
     float2 Scroll, Scroll2; // base and decal scrolling
@@ -237,6 +237,14 @@ float4 psmain(PS_INPUT input) : SV_Target {
     ambient.rgb = pow(ambient.rgb, 2.2); // sRGB to linear
     ambient = lerp(1, ambient, Args.LightingScale);
 
+    if (Args.HasOverlay) {
+        float overlay = Sample2D(Diffuse2, input.uv2, Sampler, Frame.FilterMode).a;
+        float mask = Sample2D(StMask, input.uv2, Sampler, Frame.FilterMode).r;
+
+        if (mask > 0 || overlay == 1)
+            discard; // Don't draw opaque pixels under overlay
+    }
+
     //if (diffuse.a <= 0.1) // comparing to 0 causes flickering on transparent edges
     //    discard; // discard transparent areas
 
@@ -271,20 +279,16 @@ float4 psmain(PS_INPUT input) : SV_Target {
         if (fullbright) {
             emissive += 1; // make lava and forcefields full bright
         }
-        else {
+        else if (any(Args.LightColor.rgb)) {
             // Boost the brightness of color lights to match white lights
             // Reduce the brightness of green and increase blue
             //float colorMult = 1 + (1 - dot(Args.LightColor.rgb, float3(1, 2, 0.25)) * .333) * 3;
             float colorMult = 1 + (1 - dot(Args.LightColor.rgb, float3(1, 1, 1)) * .333) * 4;
             emissive *= Args.LightColor.rgb * Args.LightColor.a * colorMult * EMISSIVE_MULT;
         }
-
-        if (Args.HasOverlay) {
-            float overlay = Sample2D(Diffuse2, input.uv2, Sampler, Frame.FilterMode).a;
-            float mask = Sample2D(StMask, input.uv2, Sampler, Frame.FilterMode).r;
-
-            if (mask > 0 || overlay == 1)
-                discard; // Don't draw opaque pixels under overlay
+        else if (Args.LightColor.a == -1) {
+            // Special case for lights that have been set to 0 in the editor
+            emissive = 0;
         }
 
         float3 directLight = float3(0, 0, 0);
@@ -324,29 +328,25 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //lighting += emissive + emissive * ambient * AMBIENT_MULT * material.LightReceived * diffuse.rgb;
 
         // add ambient, but lower contribution to metallic surfaces to keep highlights stronger
-        lighting += diffuse.rgb * ambient * AMBIENT_MULT * material.LightReceived * (1 - material.Metalness * .90);
+        float3 baseAmbient = diffuse.rgb * ambient * AMBIENT_MULT * material.LightReceived * (1 - material.Metalness * .4); // ambient
+
+        lighting += baseAmbient * material.SpecularColor.rgb;
 
         {
             // boost specular ambient contribution from dynamic lighting, so the specular effect is still visible in range of lights
             // setting this too high causes sparkling on doors
-            //float3 ramp = pow(ambient * AMBIENT_MULT, 1 / 2.5);
             float3 specularAmbient = ambient * AMBIENT_MULT + lighting * 40 /** saturate(1 - emissive)*/;
-   
-            float envBias = lerp(0, 9, saturate(material.Roughness - .3)  * 1.4); // this causes artifacts between pixel edges. find a different way to blur
-            float3 reflected = normalize(reflect(Frame.EyeDir + viewDir, normal));
+            float envBias = lerp(0, 9, saturate(material.Roughness - .4) * 1.667);
+
+            // Environment.SampleLevel(Sampler, viewDir, envBias).rgb // skybox
+            float3 reflected = reflect(Frame.EyeDir + viewDir, normal);
             float env = Environment.SampleLevel(Sampler, reflected, envBias).r;
+            //return float4(pow(Environment.SampleLevel(Sampler, viewDir, envBias).rgb, 2), 1);
             //env = pow(1 + saturate(env - 0.05), 2) - 1;
-            env = pow(1 + env * 0.5, 2) - 1;
             float3 highlight = diffuse.rgb * material.LightReceived * material.SpecularStrength * material.Metalness
                                * specularAmbient * material.SpecularColor.rgb * material.SpecularColor.a;
 
-            lighting += max(env * highlight, 0); // cubemap highlight
-
-            // make metal surfaces parallel to the camera brighter. they look oddly dark otherwise.
-            // fakes GI from ambient.
-            float3 viewspaceNormal = mul((float3x3)Frame.ViewMatrix, normal);
-            float3 xn = 1 - dot(viewspaceNormal, float3(0, 0, -1));
-            //lighting += xn * highlight * .1; 
+            lighting += env * highlight * 0.5; // cubemap highlight
         }
 
         //lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, specularAmbient, diffuse.rgb, .8) * diffuse.a * 2;
