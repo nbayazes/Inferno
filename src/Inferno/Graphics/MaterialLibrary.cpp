@@ -82,8 +82,7 @@ namespace Inferno::Render {
         // Textures for each object
         for (auto& object : level.Objects) {
             switch (object.Type) {
-                case ObjectType::Robot:
-                {
+                case ObjectType::Robot: {
                     auto& info = Resources::GetRobotInfo(object.ID);
                     GetTexturesForModel(info.Model, ids);
 
@@ -315,23 +314,26 @@ namespace Inferno::Render {
         for (int i = 0; i < Material2D::Count; i++)
             material.Handles[i] = Render::Uploads->GetGpuHandle(material.UploadIndex + i);
 
-        // remove the frame number when loading special textures, as they should share.
+        // remove the frame number when loading special textures, as they can usually share.
+        // doors are the exception
         string baseName = material.Name;
-        if (auto i = baseName.find("#"); i > 0)
-            baseName = baseName.substr(0, i);
+        if (!String::Contains(material.Name, "door")) {
+            if (auto i = String::IndexOf(baseName, "#"))
+                baseName = baseName.substr(0, *i);
+        }
 
         const auto width = upload.Bitmap.Info.Width;
         const auto height = upload.Bitmap.Info.Height;
 
         //SPDLOG_INFO("Loading texture `{}` to heap index: {}", ti->Name, material.Index);
-        if (Settings::Graphics.HighRes || String::Contains(baseName, "gauge")) {
-            if (auto path = FileSystem::TryFindFile(material.Name + ".dds"))
-                material.Textures[Material2D::Diffuse].LoadDDS(batch, *path, true);
+        //if (Settings::Graphics.HighRes || String::Contains(baseName, "gauge")) {
+        if (auto path = FileSystem::TryFindFile(material.Name + ".dds"))
+            material.Textures[Material2D::Diffuse].LoadDDS(batch, *path, true);
 
-            if (upload.SuperTransparent)
-                if (auto path = FileSystem::TryFindFile(baseName + "_st.dds"))
-                    material.Textures[Material2D::SuperTransparency].LoadDDS(batch, *path);
-        }
+        if (upload.SuperTransparent)
+            if (auto path = FileSystem::TryFindFile(baseName + "_st.dds"))
+                material.Textures[Material2D::SuperTransparency].LoadDDS(batch, *path);
+        //}
 
         auto cached = cache.GetEntry(upload.ID);
 
