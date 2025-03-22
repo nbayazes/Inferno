@@ -654,9 +654,8 @@ namespace Inferno::Game {
             if (Settings::Editor.EnablePhysics)
                 HandleEditorDebugInput(dt);
         }
-        else {
-            HandleInput(dt);
-        }
+        
+        HandleInput(dt);
 
         Graphics::BeginFrame(); // enable debug calls during updates
 

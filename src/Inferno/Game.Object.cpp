@@ -427,7 +427,7 @@ namespace Inferno {
             //auto vec = RandomVector(obj.Radius * 5);
             //debris.Velocity = vec + obj.LastHitVelocity / (4 + obj.Movement.Physics.Mass);
             //debris.Velocity =  RandomVector(obj.Radius * 5);
-            auto velocity = sm == 0 ? force : explosionDir * 20 + RandomVector(5) + force;
+            auto velocity = sm == 0 ? force : explosionDir * 10 + RandomVector(5) + force;
             velocity += obj.Physics.Velocity;
             Vector3 angularVelocity;
             angularVelocity.x = RandomN11();

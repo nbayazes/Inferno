@@ -475,7 +475,8 @@ namespace Inferno::Resources {
         // Don't search the HOG files because it would find the original models
         auto flags = LoadFlag::Filesystem | LoadFlag::Descent1 | LoadFlag::Dxa;
 
-        {
+        // todo: handle Descent 2. It does not define the exit models
+        if(data.ExitModel != ModelID::None) {
             auto exit = "exit01.pof";
             auto modelData = ReadBinaryFile(exit, flags);
             if (modelData) {
@@ -487,7 +488,7 @@ namespace Inferno::Resources {
             }
         }
 
-        {
+        if (data.DestroyedExitModel != ModelID::None) {
             auto exit = "exit01d.pof";
             auto modelData = ReadBinaryFile(exit, flags);
             if (modelData) {
@@ -499,7 +500,6 @@ namespace Inferno::Resources {
                 data.Models[(int)data.DestroyedExitModel].FirstTexture = firstTexture;
             }
         }
-
 
         data.Debris = (ModelID)data.Models.size();
         LoadCustomModel(data, "debris.pof", flags);
