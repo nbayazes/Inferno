@@ -12,6 +12,7 @@
 #include "Game.Automap.h"
 #include "Game.Cinematics.h"
 #include "Game.Input.h"
+#include "Game.Matcen.h"
 #include "Game.Object.h"
 #include "Game.Reactor.h"
 #include "Game.Room.h"

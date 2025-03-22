@@ -11,6 +11,7 @@
 #include "Game.AI.h"
 #include "Resources.h"
 #include "Editor/Events.h"
+#include "Game.Matcen.h"
 #include "VisualEffects.h"
 #include "Graphics.h"
 

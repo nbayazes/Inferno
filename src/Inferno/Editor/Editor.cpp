@@ -16,6 +16,7 @@
 #include "Editor.Geometry.h"
 #include "Editor.IO.h"
 #include "Editor.Undo.h"
+#include "Game.Matcen.h"
 #include "Game.Object.h"
 #include "Version.h"
 #include "Game.Segment.h"

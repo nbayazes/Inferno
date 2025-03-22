@@ -21,8 +21,9 @@ namespace Inferno {
         int8 Activations{}; // Number of times it can be activated
         bool Active{};
         int8 RobotCount{}; // Number of robots to create per activation
-        float Timer{};
+        float Timer{}; // Timer to the next robot.
         float Delay{}; // Randomized delay to the next robot
+        float CooldownTimer{}; // Delay in seconds before the matcen can be activated again
         bool CreateRobotState = false;
         List<NavPoint> TriggerPath; // Path to the trigger that last activated this matcen. Used for robot pathing.
         EffectID Light = EffectID::None; // Permanent light to indicate the matcen has activations remaining

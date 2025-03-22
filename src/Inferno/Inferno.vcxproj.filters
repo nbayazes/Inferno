@@ -116,6 +116,7 @@
     <ClCompile Include="Audio\pcm\stb_vorbis.c" />
     <ClCompile Include="zip\zip.c" />
     <ClCompile Include="Game.UI.ScoreScreen.cpp" />
+    <ClCompile Include="Game.Matcen.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\Audio.h" />
@@ -283,6 +284,7 @@
     <ClInclude Include="zip\zip.h" />
     <ClInclude Include="Game.IO.h" />
     <ClInclude Include="Resources.Common.h" />
+    <ClInclude Include="Game.Matcen.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />
