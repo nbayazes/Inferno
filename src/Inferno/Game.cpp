@@ -924,17 +924,6 @@ namespace Inferno::Game {
                 return;
             }
 
-            // load next level or exit to main menu
-            filesystem::path hogPath = mission.Path;
-            hogPath.replace_extension(".hog");
-
-            if (!Game::LoadMission(hogPath)) {
-                ShowErrorMessage(std::format("Unable to load mission {}", hogPath.string()));
-                return;
-            }
-
-            auto isShareware = Game::Mission->IsShareware();
-
             string levelEntry;
 
             if (levelNumber < 0) {
@@ -947,28 +936,48 @@ namespace Inferno::Game {
                 levelEntry = mission.Levels.at(levelNumber - 1);
             }
 
-            if (!levelEntry.empty()) {
-                auto data = Game::Mission->ReadEntry(levelEntry);
-                auto level = isShareware ? Level::DeserializeD1Demo(data) : Level::Deserialize(data);
-                Resources::LoadLevel(level);
-                Graphics::LoadLevel(level);
-                Game::LoadLevel(hogPath, levelEntry, autosave);
+            // load next level or exit to main menu
+            filesystem::path hogPath = mission.Path;
+            hogPath.replace_extension(".hog");
 
-                auto briefingName = mission.GetValue("briefing");
+            if (filesystem::exists(hogPath) && Game::LoadMission(hogPath)) {
+                auto isShareware = Game::Mission->IsShareware();
 
-                if (showBriefing && !briefingName.empty()) {
-                    ShowBriefing(mission, levelNumber, level, briefingName, false);
+                if (!levelEntry.empty()) {
+                    auto data = Game::Mission->ReadEntry(levelEntry);
+                    auto level = isShareware ? Level::DeserializeD1Demo(data) : Level::Deserialize(data);
+                    Resources::LoadLevel(level);
+                    Graphics::LoadLevel(level);
+                    Game::LoadLevel(hogPath, levelEntry, autosave);
+
+                    auto briefingName = mission.GetValue("briefing");
+
+                    if (showBriefing && !briefingName.empty()) {
+                        ShowBriefing(mission, levelNumber, level, briefingName, false);
+                    }
+                    else {
+                        Game::SetState(GameState::LoadLevel);
+                    }
+
+                    return;
                 }
-                else {
+            }
+            else if (!levelEntry.empty()) {
+                // hog doesn't exist, check filesystem for levels
+                auto path = mission.Path.parent_path() / levelEntry;
+                if (filesystem::exists(path)) {
+                    Game::LoadLevel(path, levelEntry, autosave);
                     Game::SetState(GameState::LoadLevel);
+                    return;
                 }
             }
         }
         catch (const std::exception& e) {
-            ShowErrorMessage(std::format("Unable to load mission {}\n{}", mission.Path.string(), e.what()));
-
-            Game::SetState(GameState::MainMenu);
+            SPDLOG_ERROR(std::format("Unable to load mission {}\n{}", mission.Path.string(), e.what()));
         }
+
+        ShowErrorMessage(std::format("Unable to load mission {}", mission.Path.string()));
+        Game::SetState(GameState::MainMenu);
     }
 
     int GetNextLevel(MissionInfo& mission, int levelNumber) {
@@ -1236,8 +1245,8 @@ namespace Inferno::Game {
     void RestartLevel() {
         SPDLOG_INFO("Restarting the current level");
         RestartingLevel = true;
-        SetState(GameState::LoadLevel);
         LoadingFrameDelay = 1;
         LoadLevel(Level.Path, Level.FileName);
+        SetState(GameState::LoadLevel);
     }
 }

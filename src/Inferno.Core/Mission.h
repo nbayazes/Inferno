@@ -64,8 +64,7 @@ namespace Inferno {
             while (std::getline(file, line)) {
                 if (String::Contains(line, "=")) {
                     // trim trailing comments (only applies to very old files)
-                    if (auto idx = String::IndexOf(line, ";"))
-                        line = line.substr(0, *idx);
+                    line = TrimComment(line);
 
                     string key, value;
                     if (auto idx = String::IndexOf(line, "=")) {
@@ -94,22 +93,20 @@ namespace Inferno {
                         case Hash("type"):
                             Type = value == "anarchy" ? "anarchy" : "normal";
                             break;
-                        case Hash("num_levels"):
-                        {
+                        case Hash("num_levels"): {
                             auto count = std::stoi(value);
                             for (int i = 0; i < count; i++) {
                                 std::getline(file, line);
-                                line = String::Trim(line);
+                                line = String::Trim(TrimComment(line));
                                 Levels.push_back(line);
                             }
                             break;
                         }
-                        case Hash("num_secrets"):
-                        {
+                        case Hash("num_secrets"): {
                             auto count = std::stoi(value);
                             for (int i = 0; i < count; i++) {
                                 std::getline(file, line);
-                                line = String::Trim(line);
+                                line = String::Trim(TrimComment(line));
                                 SecretLevels.push_back(line);
                             }
                             break;
@@ -201,6 +198,14 @@ namespace Inferno {
 
         static void WriteProperty(std::ostream& stream, const string& name, int value) {
             stream << name << " = " << std::to_string(value) << '\n';
+        }
+
+        // Removes a trailing comment
+        static string TrimComment(string line) {
+            if (auto idx = String::IndexOf(line, ";"))
+                return line.substr(0, *idx);
+
+            return line;
         }
     };
 }
