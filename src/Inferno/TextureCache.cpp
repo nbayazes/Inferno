@@ -15,11 +15,24 @@ namespace Inferno {
 
     // Expands a supertransparent mask by 1 pixel. Fixes artifacts around supertransparent pixels.
     void ExpandMask(const PigEntry& bmp, List<uint8>& data) {
+        auto& mi = Resources::GetMaterial(bmp.ID);
+
         auto getPixel = [&](int x, int y) -> uint8& {
-            if (x < 0) x += bmp.Width;
-            if (x > bmp.Width - 1) x -= bmp.Width;
-            if (y < 0) y += bmp.Height;
-            if (y > bmp.Height - 1) y -= bmp.Height;
+            if (HasFlag(mi.Flags, MaterialFlags::WrapU)) {
+                if (x < 0) x += bmp.Width;
+                if (x > bmp.Width - 1) x -= bmp.Width;
+            }
+            else {
+                x = std::clamp(x, 0, bmp.Width - 1);
+            }
+
+            if (HasFlag(mi.Flags, MaterialFlags::WrapV)) {
+                if (y < 0) y += bmp.Height;
+                if (y > bmp.Height - 1) y -= bmp.Height;
+            }
+            else {
+                y = std::clamp(y, 0, bmp.Height - 1);
+            }
 
             int offset = bmp.Width * y + x;
             return data[offset];

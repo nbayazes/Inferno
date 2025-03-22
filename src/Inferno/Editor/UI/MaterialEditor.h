@@ -298,10 +298,26 @@ namespace Inferno::Editor {
 
                         ImGui::TableRowLabel("Additive");
                         ImGui::SetNextItemWidth(-1);
-                        auto additive = (bool)material.Additive;
+                        auto additive = HasFlag(material.Flags, MaterialFlags::Additive);
                         if (ImGui::Checkbox("##Additive", &additive)) {
-                            material.Additive = additive;
+                            SetFlag(material.Flags, MaterialFlags::Additive, additive);
                             Events::MaterialsChanged(); // Rebuild meshes due to blend mode changing
+                        }
+
+                        ImGui::TableRowLabel("Wrap U");
+                        ImGui::SetNextItemWidth(-1);
+                        auto wrapu = HasFlag(material.Flags, MaterialFlags::WrapU);
+                        if (ImGui::Checkbox("##wrapu", &wrapu)) {
+                            SetFlag(material.Flags, MaterialFlags::WrapU, wrapu);
+                            Events::LevelChanged(); // Rebuild the level mesh, as this affects texture clamping
+                        }
+
+                        ImGui::TableRowLabel("Wrap V");
+                        ImGui::SetNextItemWidth(-1);
+                        auto wrapv = HasFlag(material.Flags, MaterialFlags::WrapV);
+                        if (ImGui::Checkbox("##wrapv", &wrapv)) {
+                            SetFlag(material.Flags, MaterialFlags::WrapV, wrapv);
+                            Events::LevelChanged(); // Rebuild the level mesh, as this affects texture clamping
                         }
 
                         ImGui::EndTable();
@@ -321,9 +337,6 @@ namespace Inferno::Editor {
                                 fps = std::clamp(fps, 1, 90);
                                 info.EvalTime = 1 / (float)fps;
                             }
-
-                            ImGui::TableRowLabel("Wrap");
-                            ImGui::Checkbox("##Wrap", &info.Wrap);
 
                             if (info.IsWater) {
                                 ImGui::TableRowLabel("Thickness");

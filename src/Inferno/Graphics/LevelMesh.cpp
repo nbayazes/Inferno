@@ -227,7 +227,7 @@ namespace Inferno {
 
     BlendMode GetWallBlendMode(LevelTexID id) {
         auto& mi = Resources::GetMaterial(id);
-        return mi.Additive ? BlendMode::Additive : BlendMode::Alpha;
+        return HasFlag(mi.Flags, MaterialFlags::Additive) ? BlendMode::Additive : BlendMode::Alpha;
     }
 
     void UpdateBounds(LevelChunk& chunk, span<LevelVertex> vertices) {
@@ -245,34 +245,52 @@ namespace Inferno {
 
     // unfinished UV fix for non-tiling textures. Emissive mipmaps still cause problems
     // and this UV shift causes a pixel loss around the border
-    Array<Vector2, 4> FixEdgeUVs(const SegmentSide& side) {
-        constexpr float UV_SHIFT = 1 / 200.0f;
-        constexpr float EPS = 0.005f;
+    Array<Vector2, 4> ClampEdgeUVs(const SegmentSide& side, bool clampU, bool clampV) {
         Array<Vector2, 4> uvs = side.UVs;
+        if (!clampU && !clampV) return side.UVs;
 
-        for (uint i = 0; i < 3; i++) {
+        constexpr float UV_SHIFT = 1 / 192.0f;
+        constexpr float EPS = 0.005f;
+
+        for (uint i = 0; i < 4; i++) {
             const auto& uv0 = side.UVs[i];
-            const auto& uv1 = side.UVs[i + 1];
+            const auto& uv1 = side.UVs[(i + 1) % 4];
             auto& uv0d = uvs[i];
-            auto& uv1d = uvs[i + 1];
+            auto& uv1d = uvs[(i + 1) % 4];
 
             // Check if the edge is aligned on u, and that it is close to a whole number
-            if (std::abs(uv0.x - uv1.x) < EPS && std::abs(uv0.x - std::round(uv0.x)) < EPS) {
-                // which direction to make bigger?
-                auto sign = Sign(uvs[(i + 2) % 4].x - uv0.x);
+            if (clampU) {
+                // check if edge uvs are in line with each other
+                auto alignment = std::abs(uv0.x - uv1.x);
 
-                // edge matches
-                uv0d.x = uv0.x + UV_SHIFT * sign;
-                uv1d.x = uv1.x + UV_SHIFT * sign;
+                // check if a point is close to a whole number
+                auto diff = remainderf(uv0.x, 1.0f);
+
+                if (abs(diff) < EPS && abs(alignment) < EPS) {
+                    // which direction to make bigger?
+                    auto sign = Sign(uvs[(i + 2) % 4].x - uv0.x);
+
+                    // edge matches
+                    uv0d.x = uv0.x + UV_SHIFT * sign;
+                    uv1d.x = uv1.x + UV_SHIFT * sign;
+                }
             }
 
             // Check if the edge is aligned on v, and that it is close to a whole number
-            if (std::abs(uv0.y - uv1.y) < EPS && std::abs(uv0.y - std::round(uv0.y)) < EPS) {
-                auto sign = Sign(uvs[(i + 2) % 4].y - uv0.y);
+            if (clampV) {
+                // check if edge uvs are in line with each other
+                auto alignment = std::abs(uv0.y - uv1.y);
 
-                // edge matches
-                uv0d.y = uv0.y + UV_SHIFT * sign;
-                uv1d.y = uv1.y + UV_SHIFT * sign;
+                // check if a point is close to a whole number
+                auto diff = remainderf(uv0.y, 1.0f);
+
+                if (abs(diff) < EPS && abs(alignment) < EPS) {
+                    auto sign = Sign(uvs[(i + 2) % 4].y - uv0.y);
+
+                    // edge matches
+                    uv0d.y = uv0.y + UV_SHIFT * sign;
+                    uv1d.y = uv1.y + UV_SHIFT * sign;
+                }
             }
         }
 
@@ -320,18 +338,35 @@ namespace Inferno {
                 auto& eclip = Resources::GetEffectClip(side.TMap2);
                 bool breakable = eclip.DestroyedEClip != EClipID::None;
 
-                if (!isLight && side.TMap2 > LevelTexID::None) {
+                bool clampU = !HasFlag(tmapi.Flags, MaterialFlags::WrapU);
+                bool clampV = !HasFlag(tmapi.Flags, MaterialFlags::WrapV);
+
+                if (!isLight && side.TMap2 > LevelTexID::Unset) {
                     auto& tmapi2 = Resources::Materials.GetMaterialInfo(side.TMap2);
                     isLight |= tmapi2.EmissiveStrength > 0 && tmapi2.LightReceived != 0;
+
+                    if (side.OverlayRotation == OverlayRotation::Rotate90 || side.OverlayRotation == OverlayRotation::Rotate270) {
+                        // Swap the wrap flags if the overlay is rotated
+                        clampU |= !HasFlag(tmapi2.Flags, MaterialFlags::WrapV);
+                        clampV |= !HasFlag(tmapi2.Flags, MaterialFlags::WrapU);
+                    }
+                    else {
+                        clampU |= !HasFlag(tmapi2.Flags, MaterialFlags::WrapU);
+                        clampV |= !HasFlag(tmapi2.Flags, MaterialFlags::WrapV);
+                    }
                 }
 
                 Array<Vector2, 4> uvs = side.UVs;
-                uvs = FixEdgeUVs(side);
+                uvs = ClampEdgeUVs(side, clampU, clampV);
+                auto tex2 = side.HasOverlay() ? Resources::LookupTexID(side.TMap2) : TexID::None;
+                // Don't cull overlay procedural textures as they might animate off of the original texture location
+                bool skipDecalCull = GetProcedural(tex2) != nullptr && Resources::GetTextureInfo(tex2).Transparent;
 
                 if (isWall || isLight || breakable) {
                     LevelChunk chunk; // always use a new chunk for walls
                     chunk.TMap1 = side.TMap;
                     chunk.TMap2 = side.TMap2;
+                    chunk.SkipDecalCull = skipDecalCull;
                     chunk.EffectClip1 = Resources::GetEffectClipID(side.TMap);
                     chunk.ID = id;
 
@@ -374,13 +409,11 @@ namespace Inferno {
 
                     auto verts = Face::FromSide(level, seg, sideId).CopyPoints();
                     //auto tex1 = Resources::LookupTexID(side.TMap);
-                    auto tex2 = side.HasOverlay() ? Resources::LookupTexID(side.TMap2) : TexID::None;
 
                     LevelChunk& chunk = _chunks[chunkId];
                     chunk.TMap1 = side.TMap;
                     chunk.TMap2 = side.TMap2;
-                    // Don't cull overlay procedural textures as they are not handled properly by the renderer
-                    chunk.SkipDecalCull = GetProcedural(tex2) != nullptr && Resources::GetTextureInfo(tex2).Transparent;
+                    chunk.SkipDecalCull = skipDecalCull;
                     chunk.EffectClip1 = Resources::GetEffectClipID(side.TMap);
                     chunk.ID = id;
 
@@ -463,7 +496,7 @@ namespace Inferno {
             auto face = ConstFace::FromSide(level, Game::Terrain.ExitTag);
 
             Array<uint32, 6> indices{ 2, 1, 0, 3, 2, 0 };
-            
+
             LevelVertex verts[] = {
                 LevelVertex(face.P0),
                 LevelVertex(face.P1),

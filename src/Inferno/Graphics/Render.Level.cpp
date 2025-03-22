@@ -177,7 +177,6 @@ namespace Inferno::Render {
                 cmdList->IASetIndexBuffer(&mesh.IndexBuffer);
                 cmdList->DrawIndexedInstanced(mesh.IndexCount, 1, 0, 0, 0);
             }
-
         }
 
         // Opaque geometry prepass
@@ -355,6 +354,10 @@ namespace Inferno::Render {
         if (auto segment = Seq::tryItem(SegmentLights, (uint)chunk.Tag.Segment)) {
             auto& side = segment->Sides[(uint)chunk.Tag.Side];
             constants.LightColor = side.AnimatedColor;
+
+            if (auto segSide = Game::Level.TryGetSide(chunk.Tag))
+                if (segSide->LightOverride && segSide->LightOverride->w == 0)
+                    constants.LightColor.w = -1; // Special flag for lights set to 0 in the editor
         }
 
         // Tell the shader to skip discards because procedurals do not handle transparency

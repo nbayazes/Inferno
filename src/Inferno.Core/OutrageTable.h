@@ -94,7 +94,6 @@ namespace Inferno::Outrage {
         uint8 OscillateValue = 0; // (Water) Oscillates the value of thickness over time
 
         bool IsWater = false; // Copied from parent texture info for convenience
-        bool Wrap = true; // Wrap the procedural effect
 
         struct Element {
             union {

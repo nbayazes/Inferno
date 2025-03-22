@@ -3,6 +3,14 @@
 #include "Types.h"
 
 namespace Inferno {
+    enum class MaterialFlags : int32 {
+        None = 0,
+        Additive = 1 << 1, // Additive blending
+        WrapU = 1 << 2, // Marks this material as not wrapping on the U axis
+        WrapV = 1 << 3, // Marks this material as not wrapping on the V axis
+        Default = WrapU | WrapV,
+    };
+
     // Must match MaterialInfo HLSL
     struct MaterialInfo {
         float NormalStrength = 1; // multiplier on normal map
@@ -13,8 +21,13 @@ namespace Inferno {
         float EmissiveStrength = 0;
         float LightReceived = 1; // 0 for unlit
         int32 ID = -1; // TexID
-        int32 Additive = false; // Additive blending
+        MaterialFlags Flags = MaterialFlags::Default;
         Color SpecularColor = Color(1, 1, 1, 1);
+    };
+
+    struct MaterialInfoExt : MaterialInfo {
+        bool WrapU = true; // Indicates that this texture wraps on the X direction. Used for texture clamping.
+        bool WrapV = true; // Indicates that this texture wraps on the Y direction. Used for texture clamping.
     };
 
     class MaterialInfoLibrary {

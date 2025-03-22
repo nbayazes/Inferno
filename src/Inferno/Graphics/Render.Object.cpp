@@ -653,7 +653,7 @@ namespace Inferno::Render {
 
                 if (isTransparent) {
                     auto& material = Resources::GetMaterial(mesh->Texture);
-                    if (material.Additive)
+                    if (HasFlag(material.Flags, MaterialFlags::Additive))
                         ctx.ApplyEffect(Effects->ObjectGlow); // Additive blend
                     else
                         ctx.ApplyEffect(Game::OnTerrain && object.IsPlayer() ? Effects->TerrainObject : Effects->Object); // Alpha blend

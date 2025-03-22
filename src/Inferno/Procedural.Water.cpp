@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Procedural.h"
 #include "Resources.h"
+#include <DirectXTex.h>
+#include "FileSystem.h"
 
 // Descent 3 procedural water effects
 //
@@ -158,17 +160,63 @@ namespace Inferno {
         return output;
     }
 
+    bool LoadDDS(string_view filename, PigBitmap& dest, bool wrapU, bool wrapV, uint8 resize = 64) {
+        auto filepath = Inferno::FileSystem::TryFindFile(filename);
+        if (!filepath) return false;
+
+        using namespace DirectX;
+        ScratchImage dds, decompressed, resized;
+        TexMetadata metadata;
+
+        if (FAILED(LoadFromDDSFile(filepath->wstring().c_str(), DDS_FLAGS_NONE, &metadata, dds)))
+            return false;
+
+        if (FAILED(Decompress(*dds.GetImage(0, 0, 0), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, decompressed)))
+            return false;
+
+        auto image = decompressed.GetImage(0, 0, 0);
+
+        if (metadata.width != resize || metadata.height != resize) {
+            auto flags = TEX_FILTER_DEFAULT;
+            if (wrapU) flags |= TEX_FILTER_WRAP_U;
+            if (wrapV) flags |= TEX_FILTER_WRAP_V;
+
+            if (SUCCEEDED(Resize(*image, resize, resize, flags, resized)))
+                image = resized.GetImage(0, 0, 0);
+        }
+
+        dest.Data.resize(image->slicePitch / 4);
+        memcpy(dest.Data.data(), image->pixels, image->slicePitch);
+        dest.Info.Width = (uint16)image->width;
+        dest.Info.Height = (uint16)image->height;
+        return true;
+    }
+
     class ProceduralWater : public ProceduralTextureBase {
         PigBitmap _baseTexture;
         List<int16> _waterBuffer[2]{};
+        MaterialInfo _material;
 
     public:
         ProceduralWater(const Outrage::TextureInfo& info, TexID baseTexture)
             : ProceduralTextureBase(info, baseTexture) {
             _waterBuffer[0].resize(_totalSize);
             _waterBuffer[1].resize(_totalSize);
+
+            auto& ti = Resources::GetTextureInfo(baseTexture);
+
+            _material = Resources::GetMaterial(baseTexture);
+            bool wrapu = HasFlag(_material.Flags, MaterialFlags::WrapU);
+            bool wrapv = HasFlag(_material.Flags, MaterialFlags::WrapV);
+
+            // Search for a DDS file
+            if (LoadDDS(ti.Name + ".dds", _baseTexture, wrapu, wrapv, 128))
+                return;
+
+            // Fallback to built in data
             auto& texture = Resources::GetBitmap(baseTexture);
-            _baseTexture.Data = BilinearUpscale(texture, _resolution, info.Procedural.Wrap);
+            // todo: perform scaling using dxtex so per-axis wrapping is obeyed
+            _baseTexture.Data = BilinearUpscale(texture, _resolution, wrapu || wrapv);
             _baseTexture.Info.Width = _resolution;
             _baseTexture.Info.Height = _resolution;
         }
@@ -538,13 +586,15 @@ namespace Inferno {
                     int xShift = int((horizHeight >> 3) + x * xScale);
                     int yShift = int((vertHeight >> 3) + y * yScale);
 
-                    if (Info.Procedural.Wrap) {
+                    if (HasFlag(_material.Flags, MaterialFlags::WrapU))
                         xShift %= texture.Info.Width;
-                        yShift %= texture.Info.Height;
-                    } else {
+                    else
                         xShift = std::clamp(xShift, 0, (int)texture.Info.Width - 1);
+
+                    if (HasFlag(_material.Flags, MaterialFlags::WrapV))
+                        yShift %= texture.Info.Height;
+                    else
                         yShift = std::clamp(yShift, 0, (int)texture.Info.Height - 1);
-                    }
 
                     int destOffset = y * _resolution + x;
 
@@ -579,7 +629,6 @@ namespace Inferno {
                     else
                         xHeight = heights[offset + 1];
 
-
                     if (y == _resolution - 1)
                         yHeight = heights[offset - ((_resolution - 1) * _resolution)];
                     else
@@ -588,8 +637,19 @@ namespace Inferno {
                     xHeight = std::max(0, height - xHeight);
                     yHeight = std::max(0, height - yHeight);
 
-                    int xShift = int((xHeight >> 3) + x * xScale) % texture.Info.Width;
-                    int yShift = int((yHeight >> 3) + y * yScale) % texture.Info.Width;
+                    int xShift = int((xHeight >> 3) + x * xScale);
+                    int yShift = int((yHeight >> 3) + y * yScale);
+
+                    if (HasFlag(_material.Flags, MaterialFlags::WrapU))
+                        xShift %= texture.Info.Width;
+                    else
+                        xShift = std::clamp(xShift, 0, (int)texture.Info.Width - 1);
+
+                    if (HasFlag(_material.Flags, MaterialFlags::WrapV))
+                        yShift %= texture.Info.Height;
+                    else
+                        yShift = std::clamp(yShift, 0, (int)texture.Info.Height - 1);
+
 
                     int destOffset = y * _resolution + x;
                     //int srcOffset = botshift * Resolution + rightshift;
@@ -605,6 +665,6 @@ namespace Inferno {
         if (WaterProcTableLo.empty() || WaterProcTableHi.empty())
             InitWaterTables();
 
-        return MakePtr<ProceduralWater>(texture, dest);
+        return make_unique<ProceduralWater>(texture, dest);
     }
 }

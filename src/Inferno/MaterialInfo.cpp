@@ -143,8 +143,8 @@ namespace Inferno {
         if (info.LightReceived != 1)
             node["LightReceived"] << info.LightReceived;
 
-        if (info.Additive != 0)
-            node["Additive"] << info.Additive;
+        if (info.Flags != MaterialFlags::Default)
+            node["Flags"] << (int)info.Flags;
 
         if (info.SpecularColor != Color(1, 1, 1, 1))
             node["SpecularColor"] << EncodeColor(info.SpecularColor);
@@ -156,7 +156,6 @@ namespace Inferno {
             auto& procInfo = proc->Info.Procedural;
 
             procNode["EvalTime"] << procInfo.EvalTime;
-            if (!procInfo.Wrap) procNode["Wrap"] << procInfo.Wrap;
 
             if (proc->Info.Procedural.IsWater)
                 SaveWaterProcedural(procNode, procInfo);
@@ -191,7 +190,12 @@ namespace Inferno {
         ReadValue(node["Roughness"], info.Roughness);
         ReadValue(node["EmissiveStrength"], info.EmissiveStrength);
         ReadValue(node["LightReceived"], info.LightReceived);
-        ReadValue(node["Additive"], info.Additive);
+        ReadValue(node["Flags"], info.Flags);
+
+        bool additive = false;
+        ReadValue(node["Additive"], additive);
+        if (additive) SetFlag(info.Flags, MaterialFlags::Additive);
+
         ReadValue(node["SpecularColor"], info.SpecularColor);
 
         materials[info.ID] = info;
@@ -220,7 +224,6 @@ namespace Inferno {
 
             ReadValue(procNode["IsWater"], proc.IsWater);
             ReadValue(procNode["EvalTime"], proc.EvalTime);
-            ReadValue(procNode["Wrap"], proc.Wrap);
 
             if (proc.IsWater)
                 ReadWaterProcedural(procNode, proc);
