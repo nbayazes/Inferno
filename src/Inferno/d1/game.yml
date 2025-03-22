@@ -227,7 +227,9 @@ Weapons:
     Chargable: 1
     Decal: scorchC
     DecalRadius: 3.25
-    Glow: .3, 0, 1, 30
+    Glow: .3, 0, 1, 35
+    LightColor: 0.6, 0.1, 1, 4
+    FlashColor: .6, .1, 1, 2
     EnergyUsage: 2
     ModelName: FusionBlobNewJ.OOF
     ModelScale: 1 # 0.85 # D3 fusion is huge
@@ -237,8 +239,6 @@ Weapons:
     ExplosionSize: 4.6
     ExplosionTime: 0.4
     LightRadius: 20
-    LightColor: 0.6, 0.1, 1, 4
-    FlashColor: .6, .1, 1, 2
     Mass: 2
     Behavior: fusion
     StunMult: 0.4
@@ -285,7 +285,7 @@ Weapons:
     FlashColor: 1, 0.25, 0.0, 2
     Size: 1 # was 1.5
     HomingFov: 45 # was 48.6 (dot = .75)
-    HomingDistance: 300
+    HomingDistance: 300 # how far away to search for targets
 
   - id: 21
     Name: robot homing missile
@@ -382,7 +382,7 @@ Weapons:
     Decal: scorchC
     DecalRadius: 8
     Mass: 2
-    ExplosionColor: 15, 0.5, 0.5
+    ExplosionColor: 1, 0.1, 0, 4
     LightRadius: 40
     LightColor: 1, 0.08, 0.08, 0.6
     Size: 1.25 # was 0.2 due odd length ratio
@@ -398,7 +398,7 @@ Weapons:
     Decal: scorchC
     DecalRadius: 8
     Mass: 2
-    ExplosionColor: 15, 0.5, 0.5
+    ExplosionColor: 1, 0.1, 0, 4
     LightRadius: 40
     LightColor: 1, 0.01, 0.01, 2
     Size: 1.25
@@ -603,7 +603,7 @@ Robots:
     # Speed: [ 40, 40, 45, 50, 60 ] # Speed boosted at lower difficulty 30, 30, 35, 40, 60
     Mass: 3.25
     Drag: 0.025
-    AlertRadius: 110 # Drones are scouts and have a larger radius than normal
+    AlertRadius: 120 # Drones are scouts and have a larger radius than normal
     FleeThreshold: 0.5
     ChaseChance: 1
     Curiosity: 0.95 # Scouts should nearly always investigate noises
@@ -659,9 +659,10 @@ Robots:
     Name: Secondary Lifter
     DevName: One Arm
     CircleDistance: 25
-    Mass: 3.5
+    Mass: 4.25
     Drag: 0.03
     FleeThreshold: 0.4 # Scout
+    AlertRadius: 100 # scout
     ChaseChance: 1
     Radius: 5.0
     Curiosity: 0.95 # Scout
@@ -677,7 +678,7 @@ Robots:
     Drag: 0.03
     ChaseChance: .75
     SuppressChance: .4
-    FireDelay: [ 1, .75, 1, .75, 0.9 ] # Was 1, .75, .75, .75, .75. Adjusted to compensate for extra shots on hotshot and insane
+    FireDelay: [ 1, .75, .75, .75, .75 ] # Was 1, .75, .75, .75, .75
     Shots: [ 2, 2, 4, 4, 6 ] # Was 2, 2, 3, 4, 5
     Curiosity: 0.25
   - id: 10
@@ -702,6 +703,7 @@ Robots:
     Curiosity: 0.5
     AimAngle: 35 # Looks odd to lead much
     GetBehind: 0
+    HitPoints: 70 # 70
   - id: 12
     Name:  Missile Platform
     DevName: Missile Bird
@@ -718,6 +720,7 @@ Robots:
     Drag: 0.03
     Curiosity: 0.25 # Usually hold position
     AimAngle: 20 # Looks odd to lead much
+    HitPoints: 110 # Reduced from 150. Was too high for their frequency, size, and score
   - id: 13
     Name: Splitter Pod
     DevName: Polyhedron
@@ -772,9 +775,8 @@ Robots:
     Multishot: 2
     CircleDistance: 200
     TurnTime: 0.3 # Fast turn time so circle strafing the boss isn't effective
-    # TurnTime: 0.025 # Turn time reduced to compensate for increased mass
-    # D2 has hit points of 4000
-    HitPoints: 3000 # Increased from 2000 due to teleporting and missiles being more generous to player
+    # Increased due to teleport changes and missiles being more generous to player
+    HitPoints: 3000  # 2000, 4000 (retail 1.4, retail 1.0)
     DeathRollSound: 185 # d1
     DeathRoll: 10 # maximum death roll
     SeeSound: 183 # d1
@@ -803,6 +805,7 @@ Robots:
     AimAngle: 20 # Don't let drillers lead very much for balance reasons
     Aim: 200 # Make slightly inaccurate
     GetBehind: 1
+    StunResist: 0.5 # Easy to stun
   - id: 20 
     Name: Light Hulk # Green hulk / Light hulk
     DevName: Toad
@@ -840,11 +843,11 @@ Robots:
     FireDelay: [ 0.5, 0.4, 0.3, 0.25, 0.2 ]
     Drag: 0.03
     SuppressChance: 1
-    HitPoints: 110 # Increased from 70 to not explode from one homing missile and to be tougher in general
+    HitPoints: 120 # Increased from 70 to not explode from one homing missile and to be tougher in general
   - id: 23 
     Name: Super Boss # level 27 boss
     DevName: Super Boss
-    Mass: 100
+    Mass: 50
     GatedRobots: [ 0, 1, 8, 9, 10, 11, 12, 15, 16, 18, 19, 20, 22, 0, 8, 11, 19, 20, 8, 20, 8 ]
     TurnTime: 0.3
     DeathRollSound: 185 # d1
@@ -855,7 +858,8 @@ Robots:
     Guns: 5 # Actually 4, but data is loaded incorrectly causing gun 2 to be blank
     AlertRadius: 240
     AimAngle: 25 # Looks odd if boss leads very much
-    # HitPoints: 5000, 7500 (D1, D2)
+    HitPoints: 6250 # Increased due to teleport changes and missiles being more generous to player
+    # HitPoints: 5000, 7500 (retail 1.4, retail 1.0)
 #  - id: 24 # BEPR
 #  - id: 25 # Smelter
 #Ice Spider

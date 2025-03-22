@@ -179,7 +179,7 @@ Lights:
       #Color: 0.8, 0.87, 1, .5
       Radius: 40
       Angle: 75
-      InnerAngle: 65
+      InnerAngle: 45
       ConeSpill: 0.2
 
     # Double edge wrapped lights
