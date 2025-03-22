@@ -2055,10 +2055,16 @@ namespace Inferno {
             return; // Can't act while dying
         }
 
-        if (ai.RemainingStun > 0)
-            return; // Can't act while stunned
+
         //else if (HasFlag(robot.Physics.Flags, PhysicsFlag::Gravity))
         //    ClearFlag(robot.Physics.Flags, PhysicsFlag::Gravity); // Unstunned
+
+        if (ai.RemainingStun > 0) {
+            if (ai.AnimationState == Animation::Flinch)
+                AnimateRobot(robot, ai, dt); // animate robots getting flinched by the stun
+
+            return; // Can't act while stunned
+        }
 
         AnimateRobot(robot, ai, dt);
 
