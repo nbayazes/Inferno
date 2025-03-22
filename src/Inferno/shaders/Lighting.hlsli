@@ -7,7 +7,7 @@ static const float SMOL_EPS = .000002;
 static const float PI = 3.14159265f;
 static const float GLOBAL_LIGHT_MULT = 50;
 static const float GLOBAL_SPECULAR_MULT = 0.5;
-static const float METAL_DIFFUSE_FACTOR = 1.5; // Direct lighting contribution on metal. Setting this too low makes robots look odd.
+static const float METAL_DIFFUSE_FACTOR = 1.5; // Direct lighting contribution on metal
 static const float METAL_SPECULAR_EXP = 2; // increase to get sharper metal highlights
 static const float METAL_SPECULAR_MULT = 1; // increase to get brighter metal
 static const float FRESNEL_MULT = GLOBAL_LIGHT_MULT * 1;
@@ -1080,8 +1080,8 @@ float3 ApplyRectLight3(
         //float falloff = Attenuate(min(distance(worldPos, l), lightDist), light.radius * .4);
         float falloff = Attenuate(length(l), light.radius * 3); // push specular out as far as possible without artifacts
         float3 lightDir = normalize(light.pos - worldPos);
-        // Fresnel, also check if point is behind light plane or surface plane
-        specularFactor *= 1 + FresnelSimple(dot(h, viewDir)) * FRESNEL_MULT * dot(-light.normal, lightDir);
+        specularFactor *= 1 + FresnelSimple(dot(h, viewDir)) * FRESNEL_MULT; // Fresnel
+        specularFactor *= dot(-light.normal, lightDir); // check if point is behind light plane or surface plane
 
         // reduce the specular light radius for surfaces aligned with the camera
         // otherwise a sharp edge appears on the surface (in particular doors with overhead lights)
@@ -1089,15 +1089,16 @@ float3 ApplyRectLight3(
         float radius = lerp(light.radius * 8, light.radius, pow(viewAlignment, 1));
 
         // Fade distant highlights
+        float specD = saturate(1 - distance(nearestReflectedPoint, reflectedPlanePoint)/ radius);
+        //specularFactor *= smoothstep(0, 1, specD * specD * specD);
+        specularFactor *= pow(specD, 3); // smooth the falloff curve
         //specularFactor *= saturate(1 - distance(nearestReflectedPoint, reflectedPlanePoint) / radius);
-        specularFactor *= saturate(1 - distance(nearestReflectedPoint, reflectedPlanePoint) / radius);
-        specularFactor *= 0.85; // tweak to match point lights and compensate for extra point specular
 
         // remove specular when view angle and reflected point are parallel. reduces sharp edge at certain viewing angles
         //specularFactor *= 1 - pow(saturate(dot(-r, viewDir)), 4); 
 
-        // fade specular close to the light plane. it behaves very oddly with individual points appearing.
-        specularFactor *= saturate(1 - dot(normal, light.normal));
+        // fade specular close to the light plane. it behaves very oddly with individual points appearing. no longer needed with cone lighting?
+        //specularFactor *= saturate(1 - dot(normal, light.normal));
         specularFactor *= saturate(dot(normal, lightDir) * 4); // fade specular behind the surface plane
         specular = max(0, specularMask * specularFactor * specularColor * falloff);
     }
@@ -1110,12 +1111,11 @@ float3 ApplyRectLight3(
     float specPlaneCutoff = saturate(planeFactor - 1);
 
     float nDotL = Lambert(normal, normalize(closestDiffusePoint - worldPos));
-
     float falloff = Attenuate(lightDist, light.radius);
 
     if (any(light.coneAngle0)) {
         float coneFalloff = GetConeFalloff(worldPos, closestDiffusePoint - light.normal, light.normal, light.coneAngle0, light.coneAngle1);
-        //falloff = falloff * light.coneSpill + falloff * coneFalloff;
+        falloff = falloff * light.coneSpill + falloff * coneFalloff;
     }
 
     return max(0, 0.15 * falloff * nDotL * lightColor * diffuse * diffCutoff * GLOBAL_LIGHT_MULT + specular * falloff * specPlaneCutoff);
@@ -1134,9 +1134,7 @@ void GetLightColors(LightData light, MaterialInfo material, float3 diffuse, out 
     specularColor = lerp(lightColor, (pow(diffuse + 1 , METAL_SPECULAR_EXP) - 1) * lightRgb * METAL_SPECULAR_MULT, material.Metalness) * material.SpecularColor.rgb * .5;
     //specularColor *= GLOBAL_SPECULAR_MULT * (1 + material.Metalness * METAL_SPECULAR_MULT);
     //specularColor *= GLOBAL_SPECULAR_MULT * (1 + material.Metalness * METAL_SPECULAR_MULT) * material.SpecularColor.rgb;
-    //specularColor = lerp(lightColor, material.SpecularColor.rgb, material.Metalness);
     //specularColor = lerp(lightColor, material.SpecularColor.rgb, material.Metalness /*material.SpecularColor.a*/);
-    //specularColor = lerp(lightColor, diffuse * lightRgb , material.Metalness) * material.SpecularStrength;
     //specularColor = lerp(lightColor, diffuse * lightRgb, material.Metalness) * material.SpecularStrength;
     //specularColor = clamp(specularColor, 0, 10); // clamp overly bright specular as it causes bloom flickering
 }
