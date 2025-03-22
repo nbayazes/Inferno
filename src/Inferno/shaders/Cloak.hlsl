@@ -33,13 +33,7 @@ PS_INPUT vsmain(ObjectVertex input) {
     output.pos = mul(wvp, float4(input.pos, 1));
     output.col = input.col;
     output.uv = input.uv;
-
-    // transform from object space to world space
-    output.normal = normalize(mul((float3x3)Instance.WorldMatrix, input.normal));
-    //output.normal =  normalize(mul((float3x3)wvp, input.normal));
-    //output.tangent = normalize(mul((float3x3)Instance.WorldMatrix, input.tangent));
-    //output.bitangent = normalize(mul((float3x3)Instance.WorldMatrix, input.bitangent));
-    //output.world = mul(Instance.WorldMatrix, float4(input.pos, 1)).xyz;
+    output.normal = normalize(mul((float3x3)wvp, input.normal));
     return output;
 }
 
@@ -49,14 +43,12 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
     float3 viewDir = normalize(input.pos.xyz - Frame.Eye);
 
-    float2 muv = mul(Frame.ViewMatrix, float4(input.normal, 0)).xy * 0.5 + 0.5;
+    float3 rf = refract(viewDir, input.normal, 2.4);
+    float2 muv = mul(Frame.ViewMatrix, float4(rf, 0)).xy * 0.5 + 0.5;
     //muv.y = 1 - muv.y;
 
     //return float4(muv, 0, 1);
 
-    //float3 deltax = ddx(input.pos.xyz);
-    //float3 deltay = ddy(input.pos.xyz);
-    //float3 normal = normalize(cross(deltax, deltay) );
     float noise = 1 - (Instance.Noise * 0.3);
     float2 scale =/* noise **/ BLUR_STRENGTH / Frame.Size * Frame.RenderScale * Frame.RenderScale;
 
@@ -65,9 +57,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     muv.x += noise * .2;
     float2 samplePos = (input.pos.xy) / Frame.Size * Frame.RenderScale;
     samplePos += NORMAL_STRENGTH * muv / Frame.Size * Frame.RenderScale;
-    //samplePos = saturate(samplePos + muv * NORMAL_STRENGTH * noise * Frame.RenderScale);
-    //samplePos = saturate(samplePos + noise * Frame.RenderScale);
-     //+ muv * NORMAL_STRENGTH
+
     float3 sample = float3(0, 0, 0);
     sample += FrameTexture.SampleLevel(LinearBorder, samplePos, 0).rgb;
     sample += FrameTexture.SampleLevel(LinearBorder, samplePos + float2(scale.x, -scale.y), 0).rgb * 0.25;
