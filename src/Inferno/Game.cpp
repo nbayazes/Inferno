@@ -58,7 +58,8 @@ namespace Inferno::Game {
     void SetActiveCamera(Camera& camera) { ActiveCamera = &camera; }
 
     bool EnableAi() {
-        return !Settings::Cheats.DisableAI && Game::GetState() == GameState::Game;
+        if (Settings::Cheats.DisableAI) return false;
+        return Game::GetState() == GameState::Game || Game::GetState() == GameState::ExitSequence;
     }
 
     bool StartLevel();
@@ -655,7 +656,7 @@ namespace Inferno::Game {
             if (Settings::Editor.EnablePhysics)
                 HandleEditorDebugInput(dt);
         }
-        
+
         HandleInput(dt);
 
         Graphics::BeginFrame(); // enable debug calls during updates
