@@ -170,6 +170,7 @@ namespace Inferno::Game {
             Graphics::LoadLevel(Level);
             Inferno::ResetEffects();
             InitObjects(Level);
+            Level.Objects.reserve(Level.Objects.size() + 100); // Give some working memory for new objects
 
             Editor::OnLevelLoad(reload);
             Graphics::PruneTextures();
@@ -220,27 +221,27 @@ namespace Inferno::Game {
         Shell::UpdateWindowTitle();
     }
 
-    struct Level LoadLevel(span<byte> buffer, const filesystem::path& srcPath) {
-        auto level = Level::Deserialize(buffer);
-        level.FileName = srcPath.filename().string();
-        level.Path = srcPath;
+    //struct Level LoadLevel(span<byte> buffer, const filesystem::path& srcPath) {
+    //    auto level = Level::Deserialize(buffer);
+    //    level.FileName = srcPath.filename().string();
+    //    level.Path = srcPath;
 
-        for (auto& seg : level.Segments) {
-            // Clamp volume light because some D1 levels use unscaled values
-            auto volumeLight = seg.VolumeLight.ToVector4();
-            volumeLight.Clamp({ 0, 0, 0, 1 }, { 1, 1, 1, 1 });
-            seg.VolumeLight = volumeLight;
-        }
+    //    for (auto& seg : level.Segments) {
+    //        // Clamp volume light because some D1 levels use unscaled values
+    //        auto volumeLight = seg.VolumeLight.ToVector4();
+    //        volumeLight.Clamp({ 0, 0, 0, 1 }, { 1, 1, 1, 1 });
+    //        seg.VolumeLight = volumeLight;
+    //    }
 
-        // Load metadata
-        filesystem::path metadataPath = srcPath;
-        metadataPath.replace_extension(METADATA_EXTENSION);
+    //    // Load metadata
+    //    filesystem::path metadataPath = srcPath;
+    //    metadataPath.replace_extension(METADATA_EXTENSION);
 
-        if (auto metadata = File::ReadAllText(metadataPath); !metadata.empty())
-            LoadLevelMetadata(level, metadata, Editor::EditorLightSettings);
+    //    if (auto metadata = File::ReadAllText(metadataPath); !metadata.empty())
+    //        LoadLevelMetadata(level, metadata, Editor::EditorLightSettings);
 
-        return level;
-    }
+    //    return level;
+    //}
 
     bool LoadMission(const filesystem::path& file) {
         try {
