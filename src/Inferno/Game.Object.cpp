@@ -260,7 +260,7 @@ namespace Inferno {
     const std::set BOSS_IDS = { 17, 23, 31, 45, 46, 52, 62, 64, 75, 76 };
 
     bool IsBossRobot(const Object& obj) {
-        return obj.Type == ObjectType::Robot && BOSS_IDS.contains(obj.ID);
+        return obj.IsAlive() && obj.Type == ObjectType::Robot && BOSS_IDS.contains(obj.ID);
     }
 
     void CreateRobot(SegID segment, const Vector3& position, int8 type, MatcenID srcMatcen) {
@@ -341,8 +341,7 @@ namespace Inferno {
 
     void SpawnContained(const Level& level, const ContainsData& contains, const Vector3& position, SegID segId, const Vector3& force) {
         switch (contains.Type) {
-            case ObjectType::Powerup:
-            {
+            case ObjectType::Powerup: {
                 auto pid = (PowerupID)contains.ID;
                 // Replace Vulcan/Gauss with ammo drops if player already has it
                 if ((pid == PowerupID::Vulcan && Game::Player.HasWeapon(PrimaryWeaponIndex::Vulcan)) ||
@@ -363,8 +362,7 @@ namespace Inferno {
 
                 break;
             }
-            case ObjectType::Robot:
-            {
+            case ObjectType::Robot: {
                 for (int i = 0; i < contains.Count; i++) {
                     Object spawn{};
                     InitObject(spawn, ObjectType::Robot, contains.ID, true);
@@ -470,14 +468,12 @@ namespace Inferno {
         obj.Flags |= ObjectFlag::Destroyed;
 
         switch (obj.Type) {
-            case ObjectType::Reactor:
-            {
+            case ObjectType::Reactor: {
                 //DestroyReactor(obj);
                 break;
             }
 
-            case ObjectType::Robot:
-            {
+            case ObjectType::Robot: {
                 constexpr float EXPLOSION_DELAY = 0.2f;
 
                 auto& robot = Resources::GetRobotInfo(obj.ID);
@@ -541,14 +537,12 @@ namespace Inferno {
                 break;
             }
 
-            case ObjectType::Player:
-            {
+            case ObjectType::Player: {
                 // Handled by DoDeathSequence(), as the player object is never actually destroyed
                 break;
             }
 
-            case ObjectType::Weapon:
-            {
+            case ObjectType::Weapon: {
                 // weapons are destroyed in WeaponHitWall, WeaponHitObject and ExplodeWeapon
                 break;
             }
@@ -616,8 +610,7 @@ namespace Inferno {
                 break;
             case ObjectType::Fireball:
                 break;
-            case ObjectType::Robot:
-            {
+            case ObjectType::Robot: {
                 // If final D1 boss add a green glow for the eye
                 if (obj.ID == 23) {
                     light.LightColor = Color(0.2f, 1, 0.2f, 1.75f);
@@ -634,8 +627,7 @@ namespace Inferno {
             case ObjectType::Player:
                 break;
 
-            case ObjectType::Weapon:
-            {
+            case ObjectType::Weapon: {
                 auto& weapon = Resources::GetWeapon((WeaponID)obj.ID);
                 light.LightColor = weapon.Extended.LightColor;
                 light.Radius = weapon.Extended.LightRadius;
@@ -643,8 +635,7 @@ namespace Inferno {
                 light.FadeTime = weapon.Extended.LightFadeTime;
                 break;
             }
-            case ObjectType::Powerup:
-            {
+            case ObjectType::Powerup: {
                 auto& info = Resources::GetPowerup((PowerupID)obj.ID);
                 light.LightColor = info.LightColor;
                 light.Radius = info.LightRadius;
@@ -653,8 +644,7 @@ namespace Inferno {
             }
             case ObjectType::Debris:
                 break;
-            case ObjectType::Reactor:
-            {
+            case ObjectType::Reactor: {
                 //obj.Light.Color = Color(1, 0, 0);
                 //obj.Light.Radius = 50;
                 //obj.Light.Mode = DynamicLightMode::BigPulse;
@@ -963,8 +953,7 @@ namespace Inferno {
             case ObjectType::Coop:
                 return playerRadius;
 
-            case ObjectType::Robot:
-            {
+            case ObjectType::Robot: {
                 auto& ri = Resources::GetRobotInfo(obj.ID);
                 if (ri.Radius > 0)
                     return ri.Radius;
@@ -981,16 +970,14 @@ namespace Inferno {
             case ObjectType::Powerup:
                 return Resources::GetPowerup((PowerupID)obj.ID).Size;
 
-            case ObjectType::Reactor:
-            {
+            case ObjectType::Reactor: {
                 if (auto info = Seq::tryItem(Resources::GameData.Reactors, obj.ID))
                     return Resources::GetModel(info->Model).Radius;
                 else
                     return obj.Radius;
             }
 
-            case ObjectType::Weapon:
-            {
+            case ObjectType::Weapon: {
                 if (obj.Render.Type == RenderType::Model) {
                     return Resources::GetModel(obj.Render.Model.ID).Radius;
                 }
@@ -1033,8 +1020,7 @@ namespace Inferno {
         }
 
         switch (type) {
-            case ObjectType::Player:
-            {
+            case ObjectType::Player: {
                 obj.Control.Type = obj.ID == 0 ? ControlType::None : ControlType::Slew; // Player 0 only
                 obj.Movement = MovementType::Physics;
 
@@ -1066,8 +1052,7 @@ namespace Inferno {
                 obj.ID = 0;
                 break;
 
-            case ObjectType::Robot:
-            {
+            case ObjectType::Robot: {
                 auto& ri = Resources::GetRobotInfo(id);
                 obj.Control.Type = ControlType::AI;
                 obj.Movement = MovementType::Physics;
@@ -1094,8 +1079,7 @@ namespace Inferno {
                 obj.Render.VClip = { .ID = VClipID(33) };
                 break;
 
-            case ObjectType::Powerup:
-            {
+            case ObjectType::Powerup: {
                 obj.Control.Type = ControlType::Powerup;
                 obj.Render.Type = RenderType::Powerup;
                 auto& info = Resources::GetPowerup((PowerupID)id);
@@ -1112,8 +1096,7 @@ namespace Inferno {
                 break;
             }
 
-            case ObjectType::Reactor:
-            {
+            case ObjectType::Reactor: {
                 obj.Control.Type = ControlType::Reactor;
                 obj.Render.Type = RenderType::Model;
 

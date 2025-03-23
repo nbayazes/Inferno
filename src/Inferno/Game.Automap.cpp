@@ -351,7 +351,10 @@ namespace Inferno {
             RobotScore += matcenSum;
         }
 
-        if (RobotScore > 80'000) {
+
+        auto boss = Seq::findIndex(level.Objects, IsBossRobot);
+
+        if (RobotScore > 80'000 || boss) {
             Threat = "threat: extreme";
         }
         else if (RobotScore > 60'000) {
