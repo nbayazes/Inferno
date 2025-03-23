@@ -115,11 +115,13 @@ namespace Inferno {
                     auto up = seg.Center - bottom.Center;
                     up.Normalize();
 
+                    auto& exitSide = level.GetSide(exitTag);
+                    auto offset = Vector3::Distance(exitSide.Center, seg.Center);
                     auto rotation = VectorToRotation(forward, up);
                     info.Transform = rotation;
                     info.InverseTransform = Matrix3x3(info.Transform.Invert());
                     info.Transform.Translation(bottom.Center);
-                    info.ExitTransform = Matrix::CreateRotationY(DirectX::XM_PI) * Matrix::CreateTranslation(Vector3(0, 9, 10)) * info.Transform;
+                    info.ExitTransform = Matrix::CreateRotationY(DirectX::XM_PI) * Matrix::CreateTranslation(Vector3(0, 9, offset)) * info.Transform;
                     info.ExitTag = exitTag;
 
                     auto lightDir = info.SatelliteDir * 1000 + Vector3(0, info.SatelliteHeight, 0);
@@ -470,8 +472,7 @@ namespace Inferno {
             //CinematicCamera.SetFov(Settings::Graphics.FieldOfView);
                 player.Render.Type = RenderType::None;
                 break;
-            case EscapeScene::LookBack:
-            {
+            case EscapeScene::LookBack: {
                 Game::SetActiveCamera(CinematicCamera);
 
                 // Use third person camera
@@ -498,8 +499,7 @@ namespace Inferno {
                 //Render::Debug::DrawLine(CinematicCamera.Position, target, Color(1, 1, 0));
                 break;
             }
-            case EscapeScene::Outside:
-            {
+            case EscapeScene::Outside: {
                 Game::SetActiveCamera(CinematicCamera);
 
                 //const auto targetPos = transform.Translation() + transform.Forward() * 100 + transform.Right() * 50 + transform.Up() * 5;
@@ -598,7 +598,6 @@ namespace Inferno {
     }
 
     void StartEscapeSequence(Tag start) {
-
         // Regenerate the escape path in case the level has multiple exit triggers
         if (!CreateEscapePath(Game::Level, Game::Terrain, start, true)) {
             SPDLOG_WARN("Unable to create escape path, skipping to score screen");
