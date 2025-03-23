@@ -174,9 +174,18 @@ namespace Inferno::Render {
 
     void RenderQueue::QueueSegmentObjects(Level& level, const Segment& seg, const Camera& camera) {
         _objects.clear();
+        auto state = Game::GetState();
 
         // queue objects in segment
         for (auto oid : seg.Objects) {
+            if (oid == ObjID(0)) {
+                if ((state == GameState::Game || state == GameState::PauseMenu) && !Game::Player.IsDead)
+                    continue;
+
+                if (GetEscapeScene() == EscapeScene::Start)
+                    continue;
+            }
+
             if (auto obj = level.TryGetObject(oid)) {
                 if (!ShouldDrawObject(*obj)) continue;
                 _objects.push_back({ obj, GetRenderDepth(obj->Position, camera) });
