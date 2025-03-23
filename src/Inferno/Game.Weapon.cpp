@@ -710,9 +710,9 @@ namespace Inferno::Game {
             ObjRef prevRef = player.Reference;
             int objGunpoint = gun;
 
-            auto beam = EffectLibrary.GetBeamInfo("omega_beam");
-            auto beam2 = EffectLibrary.GetBeamInfo("omega_beam2");
-            auto tracer = EffectLibrary.GetBeamInfo("omega_tracer");
+            auto beam = EffectLibrary.GetBeamInfo("omega beam");
+            auto beam2 = EffectLibrary.GetBeamInfo("omega beam2");
+            auto tracer = EffectLibrary.GetBeamInfo("omega tracer");
 
             auto damage = GetDamage(weapon);
 
@@ -803,8 +803,8 @@ namespace Inferno::Game {
                 tracerEnd = start + dir * MAX_DIST;
             }
 
-            if (auto miss = EffectLibrary.GetBeamInfo("omega_miss"))
-                AddBeam(*miss, weapon.FireDelay, player.Reference, tracerEnd, gun);
+            if (auto miss = EffectLibrary.GetBeamInfo("omega miss"))
+                AddBeam(*miss, player.Reference, tracerEnd, gun);
         }
 
         // Fire sound

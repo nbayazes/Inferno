@@ -206,6 +206,8 @@ namespace Inferno {
 
         NumericRange() = default;
 
+        NumericRange(T value) : Min(value), Max(value) {}
+
         NumericRange(T minimum, T maximum) : Min(minimum), Max(maximum) {
             if (Min > Max) std::swap(Min, Max);
         }

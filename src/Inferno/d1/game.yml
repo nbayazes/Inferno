@@ -228,8 +228,8 @@ Weapons:
     Decal: scorchC
     DecalRadius: 3.25
     Glow: .3, 0, 1, 35
-    LightColor: 0.6, 0.1, 1, 4
-    FlashColor: .6, .1, 1, 2
+    LightColor: .6, .1, 1, 4
+    FlashColor: .6, .1, 1, 1.5
     EnergyUsage: 2
     ModelName: FusionBlobNewJ.OOF
     ModelScale: 1 # 0.85 # D3 fusion is huge
@@ -249,7 +249,7 @@ Weapons:
   - id: 8
     Name: concussion missile
     StunMult: 2 # It's called a concussion missile, it should stun things
-    Speed: 115 # Original speed of 90 feels weak. Mercuries are 400. Lasers are 120
+    Speed: 120 # Original speed of 90 feels weak. Mercuries are 400. Lasers are 120
     Decal: scorchC
     DecalRadius: 4
     LightRadius: 14
@@ -577,7 +577,7 @@ Robots:
     Score: 500
     Shots: [ 2, 2, 2, 4, 4 ] # Was 1, 1, 2, 3, 3
     BurstDelay: 0.5
-    FireDelay: [ 5, 4, 3, 2.25, 1.25 ] # Was 5, 4, 3, 2, 1
+    FireDelay: [ 5, 4, 3, 2, 1 ] # Was 5, 4, 3, 2, 1. Missile damage reduced, balancing shot increase.
     Aim: 250
   - id: 1
     Name: Medium Lifter
@@ -589,6 +589,7 @@ Robots:
     ChaseChance: 1
     Curiosity: 0.4 # Don't always give away position
     GetBehind: 1
+    SeeSound: 171 # Should be their own "robot2" sound instead of class 1 drone's. Appears to have been messed up between the demo and release.
   - id: 2
     Name: Spider
     DevName: Spider
@@ -971,29 +972,31 @@ Effects:
       StrikeTime: 0.5
 
     - Name: matcen # lightning between the segment sides of matcens
-      Width:  [ 0.8, .9 ]
-      Color: 1, 0, 1, 15
+      Width:  [ 1, 2 ]
+      Color: 1, 0, 1, 30
       Texture: Lightning3
       Frequency: 0.0333 # 1/30
-      Amplitude: 1
+      Amplitude: 1.5
       FadeEnd: 1
       FadeStart: 1
       # RandomEnd: 1
       StrikeTime: .5
       FadeInOutTime: 0.4
+      Duration: 1.8
 
     - Name: matcen arcs # robot matcen arcs
-      Radius: [ 15, 20 ]
-      Width:  [ .35, .45 ]
-      Color: 1, .2, 1, 13
+      Radius: [ 20, 35 ]
+      Width:  [ .55, 0.9 ]
+      Color: 1, .2, 1, 30
       Texture: Lightning3
       Frequency: 0.0333 # 1/30
-      Amplitude: .4
+      Amplitude: 0.8
       FadeEnd: 1
       FadeStart: 1
       RandomEnd: 1
-      StrikeTime: .2
+      StrikeTime: .6
       FadeInOutTime: 0.3
+      Duration: 1.8
 
     - Name: damaged object arcs
       Width: [ 0.05, 0.065 ]
@@ -1037,7 +1040,7 @@ Effects:
       RandomObjStart: 1
       # Radius: [ 5, 8 ] Radius is set in code as a ratio of the object size
 
-    - Name: omega_beam # used when omega hits a target
+    - Name: omega beam # used when omega hits a target
       Width: [ 1.25, 1.5 ]
       Color: .666, .277, 1, 90
       Color2: 60, 25, 90 # todo: random colors?
@@ -1045,14 +1048,14 @@ Effects:
       Frequency: 0.0333 # 1/30
       Amplitude: 1
 
-    - Name: omega_beam2 # accent beams when hitting a target
+    - Name: omega beam2 # accent beams when hitting a target
       Width: 0.5
       Color: .666, .25, 1, 45
       Texture: Lightning4
       Frequency: 0.0333
       Amplitude: 0.55
 
-    - Name: omega_tracer # random arcs used after omega hits a target
+    - Name: omega tracer # random arcs used after omega hits a target
       Radius: 15
       Width: 0.5
       Color:  .666, .277, 1, 90
@@ -1062,13 +1065,14 @@ Effects:
       FadeEnd: 1
       RandomEnd: 1
 
-    - Name: omega_miss # used when omega hits no targets
+    - Name: omega miss # used when omega hits no targets
       Width: 1.0
       Color:  .666, .277, 1, 90
       Texture: Lightning4
       Frequency: 0.0166
       Amplitude: 0.7
       FadeEnd: 1
+      Duration: 0.125
 
   Sparks:
     - Name: omega_hit

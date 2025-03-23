@@ -20,7 +20,7 @@ namespace Inferno {
     };
 
     struct BeamInfo {
-        float Duration = 1;
+        float Duration = 1; // the total duration of the beam
         //ObjRef StartObj; // attaches start of beam to this object. Sets Start each update if valid.
         ObjRef EndObj; // attaches end of beam to this object. Sets End each update if valid
         SubmodelRef EndSubmodel;
@@ -38,7 +38,7 @@ namespace Inferno {
         float Amplitude = 0; // Peak to peak height of noise. 0 for straight beam.
         float StrikeTime = 1; // when using random end, how often to pick a new point
         float StartDelay = 0; // Delay in seconds before playing the effect
-        float FadeInOutTime = 0; // Fades in and out using this delay
+        float FadeInOutTime = 0; // Fades in and out each strike using this delay
         BeamFlag Flags{};
 
         bool HasRandomEndpoints() const {
@@ -200,8 +200,8 @@ namespace Inferno {
     inline class EffectLibrary EffectLibrary;
 
     void AddDecal(const Decal& info, Tag tag, const Vector3& position, const Vector3& normal, const Vector3& tangent, float duration);
-    void AddBeam(const BeamInfo&, SegID seg, float duration, const Vector3& start, const Vector3& end);
-    void AddBeam(const BeamInfo&, float duration, ObjRef start, const Vector3& end, int startGun);
+    void AddBeam(const BeamInfo&, SegID seg, const Vector3& start, const Vector3& end);
+    void AddBeam(const BeamInfo&, ObjRef start, const Vector3& end, int startGun);
     void AttachBeam(const BeamInfo&, float duration, ObjRef start, ObjRef end = {}, int startGun = -1);
 
     void AddParticle(const ParticleInfo&, SegID, const Vector3& position);

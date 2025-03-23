@@ -30,17 +30,17 @@ namespace Inferno {
         AddEffect(make_unique<BeamInstance>(beam));
     }
 
-    void AddBeam(const BeamInfo& info, SegID seg, float duration, const Vector3& start, const Vector3& end) {
+    void AddBeam(const BeamInfo& info, SegID seg, const Vector3& start, const Vector3& end) {
         BeamInstance beam;
         beam.Info = info;
         beam.Start = start;
         beam.End = end;
         beam.Segment = seg;
-        if (duration > 0) beam.Duration = duration;
+        beam.Duration = info.Duration;
         AddBeamInstance(beam);
     }
 
-    void AddBeam(const BeamInfo& info, float duration, ObjRef start, const Vector3& end, int startGun) {
+    void AddBeam(const BeamInfo& info,ObjRef start, const Vector3& end, int startGun) {
         if (auto obj = Game::GetObject(start)) {
             BeamInstance beam;
             beam.Info = info;
@@ -56,7 +56,7 @@ namespace Inferno {
 
             beam.Segment = obj->Segment;
             beam.End = end;
-            if (duration > 0) beam.Duration = duration;
+            beam.Duration = info.Duration;
             AddBeamInstance(beam);
         }
     }

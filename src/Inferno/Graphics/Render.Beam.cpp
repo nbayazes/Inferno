@@ -193,12 +193,17 @@ namespace Inferno::Render {
 
         float fade = 1;
         if (Info.FadeInOutTime > 0) {
-            auto elapsed = GetElapsedTime();
+            // option to fade each strike instead of the overall emitter. Tends to look weird.
+            //const float elapsed = Info.HasRandomEndpoints() ? Info.StrikeTime - (NextStrikeTime - Game::Time) : GetElapsedTime();
+            //const float duration = Info.HasRandomEndpoints() ? Info.StrikeTime : Duration;
+            const float elapsed = GetElapsedTime();
+            const float duration = Duration;
+
             if (elapsed < Info.FadeInOutTime) {
                 fade = 1 - (Info.FadeInOutTime - elapsed) / Info.FadeInOutTime;
             }
-            else if (elapsed > Duration - Info.FadeInOutTime) {
-                fade = (Duration - elapsed) / Info.FadeInOutTime;
+            else if (elapsed > duration - Info.FadeInOutTime) {
+                fade = (duration - elapsed) / Info.FadeInOutTime;
             }
         }
 

@@ -71,14 +71,14 @@ namespace Inferno {
             if (auto beam = EffectLibrary.GetBeamInfo("matcen")) {
                 for (int i = 0; i < 4; i++) {
                     //beam->StartDelay = i * 0.4f + Random() * 0.125f;
-                    AddBeam(*beam, segId, vclip.PlayTime, top, bottom);
+                    AddBeam(*beam, segId, top, bottom);
                 }
             }
 
             if (auto beam = EffectLibrary.GetBeamInfo("matcen arcs")) {
                 for (int i = 0; i < 8; i++) {
                     //beam->StartDelay = i * 0.4f + Random() * 0.125f;
-                    AddBeam(*beam, segId, vclip.PlayTime, seg->Center, {});
+                    AddBeam(*beam, segId, seg->Center, {});
                 }
             }
         }
@@ -138,6 +138,7 @@ namespace Inferno {
 
             bool wasBlocked = false;
 
+            // Check if there's something blocking the the matcen
             for (auto& objid : seg->Objects) {
                 if (auto obj = level.TryGetObject(objid)) {
                     if (!obj->IsAlive()) continue;
@@ -145,9 +146,22 @@ namespace Inferno {
                     if (obj->IsRobot()) {
                         auto dir = GetExitVector(level, *seg, matcen);
                         obj->Physics.Velocity += dir * 50;
+                        obj->ApplyDamage(1);
+
+                        ExplosionEffectInfo expl;
+                        expl.Clip = VClipID::Explosion;
+                        expl.Radius = { obj->Radius * .4f, obj->Radius * 0.6f };
+                        CreateExplosion(expl, Game::GetObjectRef(*obj));
+
+                        Sound::Play({ SoundID::Explosion }, *obj);
                         wasBlocked = true;
                     }
                     else if (obj->IsPlayer()) {
+                        ExplosionEffectInfo expl;
+                        expl.Clip = VClipID::HitPlayer;
+                        expl.Radius = obj->Radius;
+                        CreateExplosion(expl, Game::GetObjectRef(*obj));
+
                         Game::Player.ApplyDamage(4, true);
                         auto dir = GetExitVector(level, *seg, matcen);
                         dir += RandomVector(0.25f);
@@ -179,12 +193,6 @@ namespace Inferno {
 
             matcen.Timer = 0;
             matcen.Delay = 1.5f + Random() * 2.0f;
-
-            if (!matcen.Robots && !matcen.Robots2) {
-                SPDLOG_WARN("Tried activating matcen {} with no robots set", (int)matcenId);
-                matcen.Active = false;
-                return;
-            }
 
             auto robots = matcen.GetEnabledRobots();
             auto type = robots[RandomInt((int)robots.size() - 1)];
@@ -265,7 +273,12 @@ namespace Inferno {
             return; // Maximum robots already alive
         }
 
-        matcen->CooldownTimer = 30 - (int)Game::Difficulty * 2;
+        if (!matcen->Robots && !matcen->Robots2) {
+            SPDLOG_WARN("Tried activating matcen {} but it has no robots set", (int)matcenId);
+            return;
+        }
+
+        matcen->CooldownTimer = 30 - (float)Game::Difficulty * 2;
         SPDLOG_INFO("Triggering matcen {} Cooldown {}", (int)matcenId, matcen->CooldownTimer);
         matcen->Active = true;
         matcen->Timer = 0;
