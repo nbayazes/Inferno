@@ -16,12 +16,8 @@ namespace Inferno {
             auto exit = matcen.TriggerPath[1].Position - matcen.TriggerPath[0].Position;
             exit.Normalize();
 
-            if (exit == Vector3::Zero) {
-                SPDLOG_WARN("Zero vector in GetExitVector()");
-                exit = Vector3::Forward;
-            }
-
-            return exit;
+            if (exit != Vector3::Zero)
+                return exit;
         }
 
         // Fallback to open side
@@ -32,7 +28,7 @@ namespace Inferno {
             auto& side = seg.GetSide(sid);
 
             if (auto wall = level.TryGetWall(side.Wall)) {
-                if (wall->IsSolid()) continue;
+                if (wall->IsSolid() && wall->Type != WallType::Door) continue;
             }
 
             exit = side.Center - seg.Center;
@@ -40,8 +36,10 @@ namespace Inferno {
             break;
         }
 
-        if (exit == Vector3::Zero)
+        if (exit == Vector3::Zero) {
+            SPDLOG_WARN("Zero vector in GetExitVector()");
             exit = Vector3::Forward;
+        }
 
         return exit;
     }
