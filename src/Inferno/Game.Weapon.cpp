@@ -181,6 +181,14 @@ namespace Inferno::Game {
                     damage = 0;
 
                 Game::Player.ApplyDamage(damage * weapon.PlayerDamageScale, true);
+
+                if (auto parent = Game::GetObject(src.Parent)) {
+                    if (parent->IsRobot()) {
+                        auto& ai = GetAI(*parent);
+                        ai.Awareness = 1; // Make fully aware if a robot hits the player. This is so hitting a cloaked player keeps them awake.
+                        ai.TargetPosition = { target.Segment, target.Position };
+                    }
+                }
             }
             else if (target.IsRobot()) {
                 Vector3 srcDir;
