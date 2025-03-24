@@ -396,6 +396,9 @@ namespace Inferno {
             PlayAlertSound(robot, ai);
             SPDLOG_INFO("Robot {} can see the goal!", robot.Signature);
             ai.Path.clear();
+            ai.State = AIState::Alert; // Stay alert long enough to turn towards the goal
+            ai.Awareness = 1.0f;
+            ai.TargetPosition = goal; // turn towards the goal
             return false;
         }
 

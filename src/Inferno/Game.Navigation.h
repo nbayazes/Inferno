@@ -51,7 +51,7 @@ namespace Inferno {
             }
         }
 
-        List<NavPoint> NavigateTo(SegID start, const NavPoint& goal, NavigationFlag flags, struct Level& level, float maxDistance = FLT_MAX);
+        List<NavPoint> NavigateTo(SegID start, const NavPoint& goal, NavigationFlag flags, struct Level& level, float maxDistance = FLT_MAX, bool optimize = true);
 
     private:
         void UpdateNode(struct Level& level, SegID segId) {
@@ -99,6 +99,9 @@ namespace Inferno {
     void TraverseRoomsByDistance(Inferno::Level& level, RoomID startRoom, const Vector3& position, 
                                  float maxDistance, bool soundMode, const std::function<bool(Room&)>& action);
 
-    List<NavPoint> GenerateRandomPath(SegID start, uint depth, NavigationFlag flags = NavigationFlag::None, SegID avoid = SegID::None);
+    List<NavPoint> GenerateRandomPath(Inferno::Level& level, SegID start, uint depth, NavigationFlag flags = NavigationFlag::None, SegID avoid = SegID::None, bool optimize = true);
     void OptimizePath(List<NavPoint>& path);
+
+    // Removes all duplicate segments from the source
+    void DeduplicatePath(List<NavPoint>& source);
 }

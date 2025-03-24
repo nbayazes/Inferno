@@ -157,7 +157,7 @@ namespace Inferno {
         return path;
     }
 
-    List<NavPoint> NavigationNetwork::NavigateTo(SegID start, const NavPoint& goal, NavigationFlag flags, Level& level, float maxDistance) {
+    List<NavPoint> NavigationNetwork::NavigateTo(SegID start, const NavPoint& goal, NavigationFlag flags, Level& level, float maxDistance, bool optimize) {
         auto startRoom = level.GetRoom(start);
         auto endRoom = level.GetRoom(goal.Segment);
         if (!startRoom || !endRoom)
@@ -165,7 +165,9 @@ namespace Inferno {
 
         if (startRoom == endRoom) {
             auto path = NavigateWithinRoomBfs(level, start, goal.Segment, *endRoom);
-            OptimizePath(path);
+            if (optimize)
+                OptimizePath(path);
+
             return path;
         }
 
@@ -230,7 +232,8 @@ namespace Inferno {
             }
         }
 
-        OptimizePath(path);
+        if (optimize)
+            OptimizePath(path);
 
         //SPDLOG_INFO("Room path distance {}", totalDistance);
         return path;
@@ -546,11 +549,10 @@ namespace Inferno {
         }
     }
 
-    List<NavPoint> GenerateRandomPath(SegID start, uint depth, NavigationFlag flags, SegID avoid) {
+    List<NavPoint> GenerateRandomPath(Inferno::Level& level, SegID start, uint depth, NavigationFlag flags, SegID avoid, bool optimize) {
         List<NavPoint> path;
-        if (!Game::Level.SegmentExists(start)) return path;
+        if (!level.SegmentExists(start)) return path;
 
-        auto& level = Game::Level;
         ASSERT_STA();
 
         struct Visited {
@@ -619,7 +621,9 @@ namespace Inferno {
                 path.push_back({ node.id, seg.GetSide(connSide).Center });
         }
 
-        OptimizePath(path);
+        if (optimize)
+            OptimizePath(path);
+
         ranges::reverse(path);
         return path;
     }
@@ -840,5 +844,32 @@ namespace Inferno {
 
         //path = buffer;
 #endif
+    }
+
+    void DeduplicatePath(List<NavPoint>& source) {
+        if (source.empty()) return;
+
+        ASSERT_STA();
+        static List<NavPoint> buffer;
+        buffer.clear();
+
+        buffer.reserve(source.size());
+
+        for (auto& point : source) {
+            bool exists = false;
+
+            for (auto& p : buffer) {
+                if (point.Segment == p.Segment) {
+                    exists = true;
+                    break;
+                }
+            }
+
+            if (!exists)
+                buffer.push_back(point);
+        }
+
+        source = buffer;
+        buffer.clear();
     }
 }

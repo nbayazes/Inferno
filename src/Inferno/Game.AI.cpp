@@ -153,7 +153,7 @@ namespace Inferno {
         Sound::PlayFrom(sound, robot);
     }
 
-    void AlertEnemiesInSegment(Level& level, const Segment& seg, const NavPoint& source, float soundRadius, float awareness) {
+    void AlertEnemiesInSegment(Level& level, const Segment& seg, const NavPoint& source, float soundRadius, float awareness, const Object* sourceObj) {
         for (auto& objId : seg.Objects) {
             if (auto obj = level.TryGetObject(objId)) {
                 if (!obj->IsRobot()) continue;
@@ -166,10 +166,15 @@ namespace Inferno {
                 auto falloff = Saturate(2.0f - 2.0f * t) * 0.5f + 0.5f; // linear shoulder
 
                 ai.AddAwareness(awareness * falloff);
-
-                //auto prevAwareness = ai.Awareness;
                 ai.TargetPosition = source;
                 obj->NextThinkTime = 0;
+
+                if (sourceObj && sourceObj->IsPlayer() && ai.Awareness >= 1 && sourceObj->IsCloaked() && HasLineOfSight(*obj, source.Position)) {
+                    ai.State = AIState::Combat;
+                    ai.CombatState = AICombatState::BlindFire;
+                    ai.Target = Game::GetObjectRef(*sourceObj);
+                    Chat(*obj, "I think something is there!");
+                }
 
                 // Update chase target if we hear something
                 if (ai.State == AIState::Chase)
@@ -178,24 +183,24 @@ namespace Inferno {
         }
     }
 
-    void AlertEnemiesInRoom(Level& level, const Room& room, SegID soundSeg, const Vector3& soundPosition, float soundRadius, float awareness, float /*maxAwareness*/) {
-        for (auto& segId : room.Segments) {
-            auto pseg = level.TryGetSegment(segId);
-            if (!pseg) continue;
-            auto& seg = *pseg;
+    //void AlertEnemiesInRoom(Level& level, const Room& room, SegID soundSeg, const Vector3& soundPosition, float soundRadius, float awareness, float /*maxAwareness*/) {
+    //    for (auto& segId : room.Segments) {
+    //        auto pseg = level.TryGetSegment(segId);
+    //        if (!pseg) continue;
+    //        auto& seg = *pseg;
 
-            AlertEnemiesInSegment(level, seg, { soundSeg, soundPosition }, soundRadius, awareness);
-        }
-    }
+    //        AlertEnemiesInSegment(level, seg, { soundSeg, soundPosition }, soundRadius, awareness);
+    //    }
+    //}
 
     // adds awareness to robots in nearby rooms
-    void AlertRobotsOfNoise(const NavPoint& source, float soundRadius, float awareness) {
+    void AlertRobotsOfNoise(const Object& source, float soundRadius, float awareness, const Object* sourceObj) {
         for (auto& roomId : Game::ActiveRooms) {
             if (auto room = Game::Level.GetRoom(roomId)) {
                 for (auto& segId : room->Segments) {
                     auto seg = Game::Level.TryGetSegment(segId);
                     if (!seg) continue;
-                    AlertEnemiesInSegment(Game::Level, *seg, source, soundRadius, awareness);
+                    AlertEnemiesInSegment(Game::Level, *seg, source, soundRadius, awareness, sourceObj);
                 }
             }
         }
@@ -243,16 +248,16 @@ namespace Inferno {
                         if (obj->Signature == source.Signature) continue; // Don't alert self
 
                         // todo: when a robot is first woken up, decide whether it will hold position or investigate
-                        if (Random() < 0.5f) continue; // Don't alert at all half the time
+                        //if (Random() < 0.5f) continue; // Don't alert at all half the time
 
                         auto dist = Vector3::Distance(obj->Position, source.Position);
                         if (dist > radius) continue;
-                        auto random = 0.25f + Random() * 0.5; // Add some variance so robots in a room don't all wake up at same time
+                        auto random = 0.75f + Random() * 0.5f; // Add some variance so robots in a room don't all wake up at same time
                         auto& ai = GetAI(*obj);
                         if (ai.State == AIState::Idle || ai.State == AIState::Alert || ai.State == AIState::Roam) {
                             if (ai.State == AIState::Idle) {
                                 Chat(*obj, "Drone {} says it sees something", source.Signature);
-                                PlayAlertSound(*obj, ai);
+                                //PlayAlertSound(*obj, ai);
                             }
 
                             ai.State = AIState::Alert;
@@ -462,10 +467,10 @@ namespace Inferno {
     void FireRobotWeapon(Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, Vector3 target, bool primary, bool blind, bool lead) {
         if (!primary && robotInfo.WeaponType2 == WeaponID::None) return; // no secondary set
 
-        auto weaponId = primary ? robotInfo.WeaponType : robotInfo.WeaponType2;
-        auto& weapon = Resources::GetWeapon(weaponId);
+        const auto weaponId = primary ? robotInfo.WeaponType : robotInfo.WeaponType2;
+        const auto& weapon = Resources::GetWeapon(weaponId);
         uint8 gun = primary ? ai.GunIndex : 0;
-        auto forward = robot.Rotation.Forward();
+        const auto forward = robot.Rotation.Forward();
 
         // Find world position of gunpoint
         auto gunOffset = GetSubmodelOffset(robot, { robotInfo.GunSubmodels[gun], robotInfo.GunPoints[gun] });
@@ -489,7 +494,6 @@ namespace Inferno {
         auto aimDir = GetDirection(target, gunPosition);
         auto aimAngle = AngleBetweenVectors(aimDir, forward);
         //SPDLOG_INFO("Aim angle deg: {}", aimAngle * RadToDeg);
-
 
         if (aimAngle > DirectX::XM_PIDIV2) {
             // If the projected target is behind the gunpoint, fire straight instead.
@@ -542,11 +546,11 @@ namespace Inferno {
         Plane plane(gunPosition, forward);
         if (plane.DotCoordinate(target) <= 0) {
             SPDLOG_WARN("Robot tried to shoot backwards");
-            target = gunPosition + forward * 20;
+            targetDir = forward;
         }
 
         if (GunpointIntersectsWall(robot, gun)) {
-            //SPDLOG_INFO("Gun intersects!");
+            SPDLOG_WARN("Robot gun clips wall!");
         }
         else {
             // check if gunpoint is inside a wall before firing
@@ -1392,7 +1396,7 @@ namespace Inferno {
             ai.Fear = 100;
             // Fight back harder or run away randomly
 
-            ai.Path = GenerateRandomPath(robot.Segment, 8);
+            ai.Path = GenerateRandomPath(Game::Level, robot.Segment, 8);
             ai.PathIndex = 0;
             ai.PathDelay = AI_PATH_DELAY;
             return false;
@@ -1564,7 +1568,8 @@ namespace Inferno {
             return;
 
         constexpr float ALERT_FREQUENCY = 0.2f; // Smooth out alerts
-        auto skillMult = Game::Difficulty >= DifficultyLevel::Insane ? 1.5f : 1;
+        //auto skillMult = Game::Difficulty >= DifficultyLevel::Insane ? 1.5f : 1;
+        auto skillMult = 1;
         auto amount = robotInfo.AlertAwareness * ALERT_FREQUENCY * skillMult;
         AlertRobotsOfTarget(robot, robotInfo.AlertRadius, *ai.TargetPosition, amount);
         ai.AlertTimer = ALERT_FREQUENCY;
@@ -1659,7 +1664,7 @@ namespace Inferno {
         // Prevent attacking during phasing (matcens and teleports)
         if (ai.TargetPosition && !robot.IsPhasing()) {
             if (robotInfo.Attack == AttackType::Ranged)
-                UpdateRangedAI(robot, robotInfo, ai, dt, !hasLos);
+                UpdateRangedAI(robot, robotInfo, ai, dt, !hasLos || IsCloakEffective(Game::GetPlayerObject()));
             else if (robotInfo.Attack == AttackType::Melee)
                 UpdateMeleeAttackAI(robot, robotInfo, ai, target, targetDir, dt);
         }
@@ -1806,6 +1811,10 @@ namespace Inferno {
                 ai.DodgeTime = 0.6f;
             }
 
+            if (HasLineOfSight(robot, ai.TargetPosition->Position)) {
+                return;
+            }
+
             if (validState && ai.ChaseTimer <= 0 &&
                 ai.Awareness >= AI_AWARENESS_MAX &&
                 robot.Control.AI.Behavior != AIBehavior::Still) {
@@ -1861,7 +1870,7 @@ namespace Inferno {
                 auto target = Game::GetObject(ai.Target);
                 ai.State = AIState::Path;
                 ai.CombatState = AICombatState::Normal;
-                ai.Path = GenerateRandomPath(robot.Segment, 15, NavigationFlag::OpenKeyDoors, target ? target->Segment : SegID::None);
+                ai.Path = GenerateRandomPath(Game::Level, robot.Segment, 15, NavigationFlag::OpenKeyDoors, target ? target->Segment : SegID::None);
                 ai.PathIndex = 0;
                 ai.Awareness = 1;
                 Chat(robot, "Hostile sighted!");
@@ -1912,11 +1921,11 @@ namespace Inferno {
             auto target = Game::GetObject(ai.Target);
             ai.State = AIState::Path;
             ai.CombatState = AICombatState::Normal;
-            ai.Path = GenerateRandomPath(robot.Segment, 6, NavigationFlag::None, target ? target->Segment : SegID::None);
+            ai.Path = GenerateRandomPath(Game::Level, robot.Segment, 6, NavigationFlag::None, target ? target->Segment : SegID::None);
 
             // If path is short, it might be due to being cornered by the player. Try again ignoring the player.
             if (ai.Path.size() < 3)
-                ai.Path = GenerateRandomPath(robot.Segment, 6, NavigationFlag::None);
+                ai.Path = GenerateRandomPath(Game::Level, robot.Segment, 6, NavigationFlag::None);
 
             ai.PathIndex = 0;
             ai.AlertTimer = 1 + Random() * 2;
@@ -1937,7 +1946,7 @@ namespace Inferno {
         bool fromMatcen = robot.SourceMatcen != MatcenID::None;
 
         // Check if reached goal
-        if (!PathTowardsGoal(robot, ai, false, fromMatcen)) {
+        if (!PathTowardsGoal(robot, ai, false, false)) {
             ai.ClearPath();
             ai.State = AIState::Alert;
         }

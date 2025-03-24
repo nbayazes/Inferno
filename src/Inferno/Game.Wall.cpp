@@ -560,7 +560,7 @@ namespace Inferno {
         // Don't allow sleeping robots to open walls. Important because several
         // robots in official levels are positioned on top of secret doors.
         auto& ai = GetAI(robot);
-        if (ai.Awareness <= 0)
+        if (ai.State == AIState::Idle)
             return false;
 
         auto& robotInfo = Resources::GetRobotInfo(robot);

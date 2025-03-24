@@ -192,7 +192,7 @@ namespace Inferno {
                 return; // Wait until half way through animation to create robot
 
             matcen.Timer = 0;
-            matcen.Delay = 1.5f + Random() * 2.0f;
+            matcen.Delay = 2.5f + Random() * 2.0f;
 
             auto robots = matcen.GetEnabledRobots();
             auto type = robots[RandomInt((int)robots.size() - 1)];
@@ -218,12 +218,33 @@ namespace Inferno {
             matcen.CooldownTimer = std::max(matcen.CooldownTimer, 5.0f);
 
             if (auto newObj = Game::GetObject(ref)) {
+                auto minPath = std::min(2, (int)matcen.TriggerPath.size());
+                auto maxPath = (int)matcen.TriggerPath.size() - 1;
+
+                // for long paths only travel the first 5 segments with a rare chance to travel the full distance
+                if (matcen.TriggerPath.size() >= 10) {
+                    auto longChance = Random() <= 0.2f;
+                    maxPath = longChance ? maxPath : 5;
+                    minPath = longChance ? maxPath / 2 : 2;
+                }
+
+                auto length = RandomInt(minPath, maxPath);
+
+                if (length >= 2) {
+                    SPDLOG_INFO("Creating random matcen path of length {} out of {}", length, matcen.TriggerPath.size() - 1);
+                    List<NavPoint> path(matcen.TriggerPath.begin(), matcen.TriggerPath.begin() + length);
+                    AI::SetPath(*newObj, path);
+                }
+                else {
+                    AI::SetPath(*newObj, matcen.TriggerPath);
+                }
+
                 // Path newly created robots to their matcen triggers
-                AI::SetPath(*newObj, matcen.TriggerPath);
                 auto& ai = GetAI(*newObj);
-                ai.RemainingSlow = 2;
+                ai.RemainingSlow = 1.5f;
                 ai.State = AIState::MatcenPath;
                 ai.LastUpdate = Game::Time;
+                OptimizePath(ai.Path);
 
                 // Special case gophers to start in mine laying mode
                 if (obj.ID == 10) {
@@ -289,14 +310,16 @@ namespace Inferno {
         if (auto tseg = level.TryGetSegment(triggerSeg)) {
             // Try to generate a path to the trigger, prefering to avoid key doors.
             NavPoint goal = { triggerSeg, tseg->Center };
-            matcen->TriggerPath = Game::Navigation.NavigateTo(segId, goal, NavigationFlag::None, level);
+            matcen->TriggerPath = Game::Navigation.NavigateTo(segId, goal, NavigationFlag::None, level, FLT_MAX, false);
 
             if (matcen->TriggerPath.empty())
-                matcen->TriggerPath = Game::Navigation.NavigateTo(segId, goal, NavigationFlag::OpenKeyDoors, level);
+                matcen->TriggerPath = Game::Navigation.NavigateTo(segId, goal, NavigationFlag::OpenKeyDoors, level, FLT_MAX, false);
 
             if (matcen->TriggerPath.empty())
-                matcen->TriggerPath = GenerateRandomPath(segId, 8); // No path, generate random nearby location
+                matcen->TriggerPath = GenerateRandomPath(level, segId, 8, NavigationFlag::None, SegID::None, false); // No path, generate random nearby location
         }
+
+        DeduplicatePath(matcen->TriggerPath);
 
         // Light for when matcen is active and producing robots
         Object light{};

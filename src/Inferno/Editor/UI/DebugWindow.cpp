@@ -212,7 +212,7 @@ namespace Inferno::Editor {
                 if (auto obj = Game::Level.TryGetObject(Editor::Selection.Object)) {
                     auto flags = stopAtKeyDoors ? NavigationFlag::None : NavigationFlag::OpenKeyDoors;
                     //auto path = Game::Navigation.NavigateTo(obj->Segment, Editor::Selection.Segment, NavigationFlags::None, Game::Level);
-                    auto path = GenerateRandomPath(Editor::Selection.Segment, pathLength, flags);
+                    auto path = GenerateRandomPath(Game::Level, Editor::Selection.Segment, pathLength, flags);
                     List<NavPoint> original = path;
                     Debug::Path = path;
                     //OptimizePath(path);

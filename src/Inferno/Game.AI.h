@@ -324,7 +324,7 @@ namespace Inferno {
 
     void UpdateAI(Object& obj, float dt);
     void RobotTouchObject(const Object& robot, const Object& obj);
-    void AlertRobotsOfNoise(const NavPoint& source, float soundRadius, float awareness);
+    void AlertRobotsOfNoise(const Object& source, float soundRadius, float awareness, const Object* sourceObj = nullptr);
     void PlayRobotAnimation(const Object& robot, Animation state, float time = 0.4f, float moveMult = 5, float delay = 0);
 
     // Applies damage to a robot, applying stuns, slows, and waking it up if necessary.
@@ -342,7 +342,7 @@ namespace Inferno {
 
     void PlayAlertSound(const Object& robot, AIRuntime& ai);
 
-    void AlertEnemiesInSegment(Level& level, const Segment& seg, const NavPoint& source, float soundRadius, float awareness);
+    void AlertEnemiesInSegment(Level& level, const Segment& seg, const NavPoint& source, float soundRadius, float awareness, const Object* sourceObj = nullptr);
 
     bool DeathRoll(Object& obj, float rollDuration, float elapsedTime, SoundID soundId, bool& dyingSoundPlaying, float volume, float dt);
 
