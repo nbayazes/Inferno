@@ -40,15 +40,17 @@ namespace Inferno::Render {
 
         if (Settings::Editor.RenderMode == RenderMode::None) return;
 
-        // Queue commands for level meshes
-        for (auto& mesh : meshBuilder.GetMeshes()) {
-            if (!camera.Frustum.Contains(mesh.Chunk->Bounds)) continue;
-            _opaqueQueue.push_back({ &mesh, 0 });
-        }
+        if (!MineCollapsed()) {
+            // Queue commands for level meshes
+            for (auto& mesh : meshBuilder.GetMeshes()) {
+                if (!camera.Frustum.Contains(mesh.Chunk->Bounds)) continue;
+                _opaqueQueue.push_back({ &mesh, 0 });
+            }
 
-        for (auto& mesh : meshBuilder.GetDecals()) {
-            if (!camera.Frustum.Contains(mesh.Chunk->Bounds)) continue;
-            _decalQueue.push_back({ &mesh, 0 });
+            for (auto& mesh : meshBuilder.GetDecals()) {
+                if (!camera.Frustum.Contains(mesh.Chunk->Bounds)) continue;
+                _decalQueue.push_back({ &mesh, 0 });
+            }
         }
 
         if (Game::GetState() == GameState::Editor) {
@@ -478,8 +480,10 @@ namespace Inferno::Render {
 
         _visibleRooms.clear();
 
-        if (startSeg == SegID::Terrain)
+        if (startSeg == SegID::Terrain) {
+            if (MineCollapsed()) return; // don't draw segments the mine if it has exploded
             startSeg = Game::Terrain.ExitTag.Segment; // Assume the exit tunnel is visible
+        }
 
         if (startSeg < SegID(0)) return;
 

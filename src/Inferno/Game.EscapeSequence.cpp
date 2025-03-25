@@ -55,6 +55,10 @@ namespace Inferno {
     //    while (State.PathIndex < State.Path.size()) {}
     //}
 
+    bool MineCollapsed() {
+        return State.CollapseExplosion;
+    }
+
     bool CreateEscapePath(Level& level, TerrainInfo& info, Tag start, bool makeWallsIllusions) {
         if (!level.SegmentExists(start)) return false;
 
@@ -107,7 +111,13 @@ namespace Inferno {
                     points.push_back(curvePoints[2]);
                     points.push_back(curvePoints[3]);
 
-                    auto& bottom = seg.GetSide(SideID::Bottom);
+                    auto bottomSide = SideID::Bottom;
+
+                    // Check for malformed levels where the exit is using the bottom side
+                    if (exitTag.Side == SideID::Bottom || exitTag.Side == SideID::Top)
+                        bottomSide = SideID::Back;
+
+                    auto& bottom = seg.GetSide(bottomSide);
 
                     auto forward = seg.GetSide(opp.Side).Center - seg.Center;
                     forward.Normalize();
@@ -118,8 +128,16 @@ namespace Inferno {
                     auto& exitSide = level.GetSide(exitTag);
                     auto offset = Vector3::Distance(exitSide.Center, seg.Center);
                     auto rotation = VectorToRotation(forward, up);
+
                     info.Transform = rotation;
                     info.InverseTransform = Matrix3x3(info.Transform.Invert());
+
+                    if (std::isnan(info.InverseTransform.m[0][0]) || std::isnan(info.InverseTransform.m[0][1]) || std::isnan(info.InverseTransform.m[0][2])) {
+                        SPDLOG_WARN("Problem creating terrain matrix, escape sequence will be skipped");
+                        points.clear();
+                        return false;
+                    }
+
                     info.Transform.Translation(bottom.Center);
                     info.ExitTransform = Matrix::CreateRotationY(DirectX::XM_PI) * Matrix::CreateTranslation(Vector3(0, 9, offset)) * info.Transform;
                     info.ExitTag = exitTag;

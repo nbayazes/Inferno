@@ -15,6 +15,9 @@ namespace Inferno {
     void StopEscapeSequence();
     void DebugEscapeSequence();
 
+    // Returns true when the mine has exploded on the surface
+    bool MineCollapsed(); 
+
     bool CreateEscapePath(Level& level, TerrainInfo& info, Tag start, bool makeWallsIllusions);
 
     TerrainInfo ParseEscapeInfo(span<string> lines);

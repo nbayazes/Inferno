@@ -160,9 +160,12 @@ namespace Inferno::Render {
             //cmdList->OMSetRenderTargets(0, nullptr, false, &dsv);
 
             cmdList->OMSetStencilRef(1);
-            ctx.ApplyEffect(Effects->TerrainPortal);
-            ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-            _levelMeshBuilder.GetExitPortal().Draw(cmdList); // Mask the exit portal to 1
+
+            if (!MineCollapsed()) {
+                ctx.ApplyEffect(Effects->TerrainPortal);
+                ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+                _levelMeshBuilder.GetExitPortal().Draw(cmdList); // Mask the exit portal to 1
+            }
 
             // Draw terrain depth prepass
             if (auto terrainMesh = LevelResources.TerrainMesh.get()) {

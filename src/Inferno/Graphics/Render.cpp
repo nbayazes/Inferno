@@ -672,14 +672,16 @@ namespace Inferno::Render {
 
             // Create a terrain camera at the origin and orient it with the terrain
             // Always positioning it at the origin prevents any parallax effects on the planets
-            Camera terrainCamera = ctx.Camera;
-            terrainCamera.SetClipPlanes(50, 30'000);
-            auto terrainInverse = ctx.Camera.GetOrientation() * Game::Terrain.InverseTransform;
-            terrainCamera.MoveTo(Vector3::Zero, terrainInverse.Forward(), terrainInverse.Up());
-            terrainCamera.UpdatePerspectiveMatrices();
+            if (Settings::Editor.ShowTerrain) {
+                Camera terrainCamera = ctx.Camera;
+                terrainCamera.SetClipPlanes(50, 30'000);
+                auto terrainInverse = ctx.Camera.GetOrientation() * Game::Terrain.InverseTransform;
+                terrainCamera.MoveTo(Vector3::Zero, terrainInverse.Forward(), terrainInverse.Up());
+                terrainCamera.UpdatePerspectiveMatrices();
 
-            UpdateFrameConstants(terrainCamera, Adapter->GetTerrainConstants(), Settings::Graphics.RenderScale);
-
+                UpdateFrameConstants(terrainCamera, Adapter->GetTerrainConstants(), Settings::Graphics.RenderScale);
+                DrawLevel(ctx, Game::Level);
+            }
 
             DrawLevel(ctx, Game::Level);
         }
