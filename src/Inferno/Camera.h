@@ -100,7 +100,14 @@ namespace Inferno {
             if (position == Position && target == Target && up == Up) return;
             Position = position;
             Target = target;
-            Up = up;
+
+            // Recalculate
+            auto forward = target - position;
+            forward.Normalize();
+            auto right = forward.Cross(up);
+            Up = right.Cross(forward);
+            Up.Normalize();
+
             _changed = true;
         }
 

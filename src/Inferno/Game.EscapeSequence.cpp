@@ -276,6 +276,7 @@ namespace Inferno {
     }
 
     EscapeScene GetEscapeScene() {
+        if (Game::GetState() != GameState::EscapeSequence) return EscapeScene::None;
         return State.Scene;
     }
 
