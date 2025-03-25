@@ -109,5 +109,6 @@ namespace Inferno {
         float StunResist = 1.0; // Multiplier on life for purposes of resisting stuns and slows
 
         float ChargeTime = 1.0; // How long to charge the primary weapon
+        float AmbushDistance = 120; // How close the player has to be before the robot will move without being seen
     };
 }

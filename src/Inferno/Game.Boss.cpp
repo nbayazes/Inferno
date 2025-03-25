@@ -265,7 +265,7 @@ namespace Inferno::Game {
             return;
 
         if (ai.State == AIState::Combat) {
-            UpdateCombatAI(ai, boss, info, dt);
+            CombatRoutine(ai, boss, info, dt);
             ai.Awareness = 1; // The boss will stay in combat until it teleports again
             ai.TeleportDelay -= dt; // Only teleport when aware of player
 

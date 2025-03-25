@@ -40,6 +40,7 @@ namespace Inferno {
         Alert, // Awake but not in combat
         Roam, // Wander around randomly
         Combat, // Saw or recently saw target
+        BlindFire, // Shooting at the last known target location
         Chase, // Pursue target
         FindHelp, // Looking for help
         Path, // Path to a location, ignoring if a hostile is seen
@@ -54,13 +55,6 @@ namespace Inferno {
     //    FaceTarget // Always faces the target (enemy) if possible
     //};
 
-    // Sub-states used for the combat state
-    enum class AICombatState {
-        Normal, // Engages with the target normally (move to circle distance)
-        BlindFire, // Shoots at the last known target position
-        Wait, // Only dodges, won't blind fire or chase
-        Chase, // Moves to the last known target position
-    };
 
     //enum class AICombatFlags {
     //    None,
@@ -83,8 +77,6 @@ namespace Inferno {
         AIState State = AIState::Idle;
         double LastUpdate = -1; // time when this robot was last updated
         float LastHitByPlayer = -1; // time in seconds since last hit by the player
-
-        AICombatState CombatState;
 
         // How aware of the player this robot is. Ranges 0 to 1.
         // Only seeing the player can set awareness to 1.
@@ -355,7 +347,7 @@ namespace Inferno {
     bool ScanForTarget(const Object& robot, AIRuntime& ai, bool* isThroughWall = nullptr);
     bool HasLineOfSight(const Object& obj, const Vector3& point, bool precise = false);
     IntersectResult HasFiringLineOfSight(const Object& obj, uint8 gun, const Vector3& target, ObjectMask mask);
-    void UpdateCombatAI(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float dt);
+    void CombatRoutine(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float dt);
     void BeginAIFrame();
     bool IsAnimating(const Object& robot);
 
