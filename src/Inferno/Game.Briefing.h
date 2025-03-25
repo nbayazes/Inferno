@@ -17,11 +17,12 @@ namespace Inferno {
         float _elapsed = 0;
         Object _object{};
         AnimationState _animation;
+        bool _endgame = false;
 
     public:
         BriefingState() = default;
 
-        BriefingState(const Briefing& briefing, int level, bool isDescent1, bool endgame) : IsDescent1(isDescent1) {
+        BriefingState(const Briefing& briefing, int level, bool isDescent1, bool endgame) : _endgame(endgame), IsDescent1(isDescent1)  {
             bool foundLevel = false;
 
             for (auto& screen : briefing.Screens) {
@@ -55,6 +56,8 @@ namespace Inferno {
         void Back();
 
         void Update(float dt);
+
+        bool IsEndgame() const { return _endgame; }
 
         // Returns the current screen, or null if past the end
         const Briefing::Screen* GetScreen() const {

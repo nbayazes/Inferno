@@ -257,11 +257,10 @@ vaporization of the facility.
             Game::BriefingVisible = false;
 
             // the last level shows score screen after briefing
-            auto state = Game::IsFinalLevel() ? GameState::ScoreScreen : GameState::LoadLevel;
+            auto state = Game::Briefing.IsEndgame() ? GameState::ScoreScreen : GameState::LoadLevel;
             Game::SetState(state);
         }
     }
-
 
     void ShowBriefing(const MissionInfo& mission, int levelNumber, const Inferno::Level& level, string briefingName, bool endgame) {
         if (!Game::Mission)
@@ -289,7 +288,7 @@ vaporization of the facility.
                 AddPyroAndReactorPages(briefing);
             }
 
-            auto music = Game::IsFinalLevel() ? "endgame" : "briefing";
+            auto music = endgame ? "endgame" : "briefing";
             Game::PlayMusic(music, LoadFlag::Default | GetLevelLoadFlag(level));
         }
 
