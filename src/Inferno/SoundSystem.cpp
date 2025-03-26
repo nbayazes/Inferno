@@ -101,6 +101,9 @@ namespace Inferno::Sound {
         double StartTime = 0;
         bool Alive = false;
         int PlayCount = 0;
+        bool FadeOut = false; // Fades out the sound using fade time. Stops the sound when volume reaches 0.
+        float FadeTime = 0;
+        float FadeElapsed = 0;
 
         bool IsAlive() const { return Alive; }
 
@@ -198,10 +201,15 @@ namespace Inferno::Sound {
                 }
             }
 
-            if (Settings::Inferno.UseSoundOcclusion) {
-                auto diff = TargetMuffle - Muffle;
-                auto sign = Sign(diff);
-                Muffle += std::min(abs(diff), dt * 3) * sign; // Take 1/3 a second to reach muffle target
+            //if (Settings::Inferno.UseSoundOcclusion) {
+            //    auto diff = TargetMuffle - Muffle;
+            //    auto sign = Sign(diff);
+            //    Muffle += std::min(abs(diff), dt * 3) * sign; // Take 1/3 a second to reach muffle target
+            //}
+
+            if (FadeOut) {
+                Muffle = 1 - FadeElapsed / FadeTime;
+                FadeElapsed += dt;
             }
 
             //auto falloff = std::powf(1 - ratio, 3); // cubic falloff
@@ -278,8 +286,14 @@ namespace Inferno::Sound {
         Ptr<MusicStream> _musicStream;
         std::atomic<bool> _requestStopSounds = false, _requestStopMusic = false, _requestPauseSounds = false, _requestResumeSounds = false;
 
+        struct FadeInfo {
+            SoundUID id;
+            float duration;
+        };
+
         List<Tag> _stopSoundTags;
         List<SoundUID> _stopSoundUIDs;
+        List<FadeInfo> _fadeRequests;
         List<ObjRef> _stopSoundSources;
 
         AudioListener _listener;
@@ -388,6 +402,12 @@ namespace Inferno::Sound {
         void StopSound(ObjRef source) {
             std::scoped_lock lock(_threadMutex);
             _stopSoundSources.push_back(source);
+        }
+
+        void FadeOut(SoundUID id, float duration) {
+            if (id == SoundUID::None) return;
+            std::scoped_lock lock(_threadMutex);
+            _fadeRequests.push_back({ id, duration });
         }
 
         void Stop3DSounds() {}
@@ -612,6 +632,7 @@ namespace Inferno::Sound {
         void OnStopAllSounds() {
             _stopSoundTags.clear();
             _stopSoundUIDs.clear();
+            _fadeRequests.clear();
             _stopSoundSources.clear();
 
             for (auto& instance : _soundInstances) {
@@ -714,12 +735,20 @@ namespace Inferno::Sound {
                     instance.PlayCount++;
                 }
 
+                for (auto& fade : _fadeRequests) {
+                    if (fade.id == instance.Info.ID) {
+                        instance.FadeOut = true;
+                        instance.FadeTime = fade.duration;
+                        instance.FadeElapsed = 0;
+                    }
+                }
+
                 if (!instance.Info.Sound.Looped && instance.Effect->GetState() == SoundState::STOPPED && instance.PlayCount > 0) {
                     instance.Alive = false; // a one-shot sound finished playing
                 }
 
                 if (ShouldStop(instance)) {
-                    instance.Effect->Stop();
+                    instance.Effect->Stop(false);
                     instance.Effect.reset();
                     instance.Alive = false;
                 }
@@ -767,6 +796,7 @@ namespace Inferno::Sound {
             _requestResumeSounds = false;
 
             _stopSoundUIDs.clear();
+            _fadeRequests.clear();
             _stopSoundSources.clear();
             _stopSoundTags.clear();
         }
@@ -845,6 +875,9 @@ namespace Inferno::Sound {
                 if (sound.Info.Source == id)
                     return true;
             }
+
+            if (sound.FadeOut && sound.FadeElapsed >= sound.FadeTime)
+                return true;
 
             return false;
         }
@@ -1069,6 +1102,11 @@ namespace Inferno::Sound {
     void Stop(ObjRef id) {
         if (SoundThread)
             SoundThread->StopSound(id);
+    }
+
+    void FadeOut(SoundUID id, float duration) {
+        if (SoundThread)
+            SoundThread->FadeOut(id, duration);
     }
 
     void AddEmitter(AmbientSoundEmitter&& e) {

@@ -107,6 +107,7 @@ namespace Inferno::Sound {
     void Stop(Tag);
     void Stop(SoundUID);
     void Stop(ObjRef);
+    void FadeOut(SoundUID, float duration);
 
     void AddEmitter(AmbientSoundEmitter&&);
     void UpdateSoundEmitters(float dt);

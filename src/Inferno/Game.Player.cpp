@@ -102,7 +102,7 @@ namespace Inferno {
 
         // AB button released
         if (!active && AfterburnerActive) {
-            Sound::Stop(_afterburnerSoundSig);
+            Sound::FadeOut(_afterburnerSoundSig, 0.125f);
             SoundResource resource{ AFTERBURNER_OFF_SOUND };
             Sound3D sound(resource);
             sound.Radius = 125;
@@ -819,6 +819,7 @@ namespace Inferno {
         auto& player = Game::GetPlayerObject();
         stats.hostagesOnboard = 0;
         _prevAfterburnerCharge = AfterburnerCharge = 1;
+        _nextAfterburnerAlertTime = 0;
         AfterburnerActive = false;
         WeaponCharge = 0;
         HomingObjectDist = -1;
