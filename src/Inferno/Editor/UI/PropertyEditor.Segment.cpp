@@ -1052,8 +1052,7 @@ namespace Inferno::Editor {
                 };
 
                 switch (wall->Type) {
-                    case WallType::Destroyable:
-                    {
+                    case WallType::Destroyable: {
                         ImGui::TableRowLabel("Clip");
                         if (DoorClipDropdown(wall->Clip))
                             changeWallClip();
@@ -1083,8 +1082,7 @@ namespace Inferno::Editor {
                         break;
                     }
 
-                    case WallType::Door:
-                    {
+                    case WallType::Door: {
                         ImGui::TableRowLabel("Clip");
                         if (DoorClipDropdown(wall->Clip))
                             changeWallClip();
@@ -1117,15 +1115,13 @@ namespace Inferno::Editor {
                         break;
                     }
 
-                    case WallType::Illusion:
-                    {
+                    case WallType::Illusion: {
                         //ImGui::TableRowLabelEx("Off", "Set the wall to start invisible.\nTrigger with 'illusion on' to make visible.");
                         flagCheckbox("Off", WallFlag::IllusionOff, wall);
                         break;
                     }
 
-                    case WallType::Cloaked:
-                    {
+                    case WallType::Cloaked: {
                         ImGui::TableRowLabel("Cloak");
                         auto cloakValue = wall->CloakValue() * 100;
                         ImGui::SetNextItemWidth(-1);
@@ -1320,8 +1316,7 @@ namespace Inferno::Editor {
         };
 
         switch (mode) {
-            case SelectionMode::Segment:
-            {
+            case SelectionMode::Segment: {
                 ImGui::TableRowLabel("Segment position");
                 auto center = seg.Center;
                 auto original = center;
@@ -1339,8 +1334,7 @@ namespace Inferno::Editor {
                 break;
             }
 
-            case SelectionMode::Face:
-            {
+            case SelectionMode::Face: {
                 ImGui::TableRowLabel("Face position");
                 auto face = Face::FromSide(level, Editor::Selection.Tag());
                 auto center = face.Center();
@@ -1359,8 +1353,7 @@ namespace Inferno::Editor {
                 break;
             }
 
-            case SelectionMode::Edge:
-            {
+            case SelectionMode::Edge: {
                 ImGui::TableRowLabel("Edge position");
                 auto face = Face::FromSide(level, Editor::Selection.Tag());
                 auto center = face.GetEdgeMidpoint(Editor::Selection.Point);
@@ -1379,8 +1372,7 @@ namespace Inferno::Editor {
                 break;
             }
 
-            case SelectionMode::Point:
-            {
+            case SelectionMode::Point: {
                 ImGui::TableRowLabel("Vertex position");
                 auto face = Face::FromSide(level, Editor::Selection.Tag());
                 auto& point = face.GetPoint(Editor::Selection.Point);
@@ -1393,7 +1385,7 @@ namespace Inferno::Editor {
                 auto index = seg.GetVertexIndex(Editor::Selection.Side, Editor::Selection.Point);
                 ImGui::Text("%i", index);
 
-//#ifdef _DEBUG
+                //#ifdef _DEBUG
                 // only enable vertex override UI in debug builds. regular users shouldn't need this.
                 ImGui::TableRowLabelEx("Override", "Saves vertex position as an 'override'.\nOnly useful for tweaking geometry in official levels.");
 
@@ -1408,7 +1400,7 @@ namespace Inferno::Editor {
                             level.VertexOverrides.erase(i);
                     }
                 }
-//#endif
+                //#endif
 
                 break;
             }
@@ -1447,8 +1439,11 @@ namespace Inferno::Editor {
             }
         }
 
-        if (seg.Type == SegmentType::Matcen)
+        if (seg.Type == SegmentType::Matcen) {
             MatcenProperties(level, seg.Matcen, _matcenEditor);
+            ImGui::TableRowLabel("Matcen ID");
+            ImGui::Text("%i", (int)seg.Matcen);
+        }
 
         ImGui::TableRowLabel("Side");
         SideDropdown(Selection.Side);
@@ -1511,6 +1506,10 @@ namespace Inferno::Editor {
         if (Settings::Editor.SelectionMode == SelectionMode::Point || Settings::Editor.SelectionMode == SelectionMode::Edge) {
             ImGui::TableRowLabel("Edge length");
             ImGui::Text("%.2f", Vector3::Distance(face.GetPoint(Editor::Selection.Point), face.GetPoint(Editor::Selection.Point + 1)));
+        }
+        else if (Settings::Editor.SelectionMode == SelectionMode::Segment) {
+            ImGui::TableRowLabel("Segment volume");
+            ImGui::Text("%.2f", seg.GetEstimatedVolume());
         }
         else {
             ImGui::TableRowLabel("Face Size");

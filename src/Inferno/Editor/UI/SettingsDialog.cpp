@@ -8,7 +8,6 @@
 #include "Resources.h"
 
 namespace Inferno::Editor {
-
     void SettingsDialog::OnUpdate() {
         ImGui::BeginChild("prop_panel", { -1, 825 * Shell::DpiScale });
 
@@ -213,7 +212,9 @@ namespace Inferno::Editor {
 
             ImGui::ColumnLabelEx("Undos", "Must reload the level to take effect");
             ImGui::SetNextItemWidth(-1);
-            ImGui::InputInt("##Undos", &_editor.UndoLevels, 1, 5);
+            if (ImGui::InputInt("##Undos", &_editor.UndoLevels, 1, 5))
+                _editor.UndoLevels = std::clamp(_editor.UndoLevels, 10, 1000);
+
             ImGui::NextColumn();
 
             ImGui::ColumnLabel("Gizmo size");
