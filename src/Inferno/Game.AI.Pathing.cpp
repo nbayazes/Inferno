@@ -29,9 +29,9 @@ namespace Inferno {
 
         //auto path = Game::Navigation.NavigateTo(obj.Segment, soundSeg, !robotInfo.IsThief, Game::Level);
         ai.PathDelay = AI_PATH_DELAY;
-        ai.Path = path;
-        ai.PathIndex = 0;
-        ai.State = AIState::Chase; // Stop pathing after seeing target
+        ai.path.nodes = path;
+        ai.path.index = 0;
+        ai.State = AIState::Path;
         obj.NextThinkTime = 0;
     }
 
@@ -345,42 +345,42 @@ namespace Inferno {
         }
     }
 
+    // Creates a path to a goal point
     bool SetPathGoal(Level& level, const Object& obj, AIRuntime& ai, const NavPoint& goal, float maxDistance) {
-        // Calculate a new path
         auto& robotInfo = Resources::GetRobotInfo(obj);
 
         NavigationFlag flags{};
         if (robotInfo.IsThief)
             SetFlag(flags, NavigationFlag::OpenKeyDoors);
 
-        ai.Path = Game::Navigation.NavigateTo(obj.Segment, goal, flags, level, maxDistance);
+        ai.path.nodes = Game::Navigation.NavigateTo(obj.Segment, goal, flags, level, maxDistance);
         ai.PathDelay = AI_PATH_DELAY;
 
-        if (ai.Path.empty()) {
-            ai.PathIndex = -1;
+        if (ai.path.nodes.empty()) {
+            ai.path.index = -1;
             return false; // Unable to find a valid path, give up
         }
 
         //SPDLOG_INFO("Robot {} updating path goal to {}", obj.Signature, ai.GoalSegment);
-        ai.PathIndex = 0;
+        ai.path.index = 0;
         return true;
     }
 
     bool PathTowardsGoal(Object& robot, AIRuntime& ai, bool alwaysFaceGoal, bool stopOnceVisible) {
         // Travel along a designated path, incrementing the node index as we go
-        if (!Seq::inRange(ai.Path, ai.PathIndex))
+        if (!Seq::inRange(ai.path.nodes, ai.path.index))
             return false; // Empty or invalid index
 
-        auto& node = ai.Path[ai.PathIndex];
-        auto& goal = ai.Path.back();
+        auto& node = ai.path.nodes[ai.path.index];
+        auto& goal = ai.path.nodes.back();
         auto& robotInfo = Resources::GetRobotInfo(robot.ID);
 
         if (Settings::Cheats.ShowPathing) {
             Graphics::DrawLine(robot.Position, node.Position, Color(0, 1, 0));
 
-            for (int i = 0; i < ai.Path.size() - 1; i++) {
-                auto& a = ai.Path[i];
-                auto& b = ai.Path[i + 1];
+            for (int i = 0; i < ai.path.nodes.size() - 1; i++) {
+                auto& a = ai.path.nodes[i];
+                auto& b = ai.path.nodes[i + 1];
                 Graphics::DrawLine(a.Position, b.Position, Color(0, .8, 1));
             }
         }
@@ -392,10 +392,10 @@ namespace Inferno {
             ai.DodgeTime = 0.5f;
         }
 
-        if (stopOnceVisible && robot.Segment != ai.Path.front().Segment && HasLineOfSight(robot, goal.Position)) {
+        if (stopOnceVisible && robot.Segment != ai.path.nodes.front().Segment && HasLineOfSight(robot, goal.Position)) {
             PlayAlertSound(robot, ai);
             SPDLOG_INFO("Robot {} can see the goal!", robot.Signature);
-            ai.Path.clear();
+            ai.path.nodes.clear();
             ai.State = AIState::Alert; // Stay alert long enough to turn towards the goal
             ai.Awareness = 1.0f;
             ai.TargetPosition = goal; // turn towards the goal
@@ -413,7 +413,7 @@ namespace Inferno {
 
         // Move towards each path node until sufficiently close
         if (Vector3::Distance(robot.Position, node.Position) <= std::max(robot.Radius, 5.0f)) {
-            ai.PathIndex++;
+            ai.path.index++;
         }
 
         return true;

@@ -597,6 +597,14 @@ namespace Inferno {
                 if (node.parent != SegID::None || node.id == start)
                     continue; // already visited
 
+                if (auto cseg = level.TryGetSegment(conn)) {
+                    if (cseg->Type == SegmentType::Reactor)
+                        continue; // Don't path through reactor segments
+
+                    if (cseg->GetEstimatedVolume() < 10 * 10 * 20)
+                        continue; // Don't path into small segments
+                }
+
                 if (auto cseg = level.TryGetSegment(conn); cseg && cseg->Type == SegmentType::Reactor)
                     continue; // Don't path through reactor segments
 

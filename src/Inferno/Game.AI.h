@@ -11,7 +11,6 @@
 namespace Inferno {
     constexpr float AI_PATH_DELAY = 1; // Default delay for trying to path to the player
     constexpr float AI_MAX_CHASE_DISTANCE = 300; // how far a robot will travel when chasing
-
     constexpr float AI_AWARENESS_MAX = 1.0f;
     constexpr float AI_AWARENESS_COMBAT = 0.6f; // Robot will fire at its last known target position
     constexpr float AI_AWARENESS_INVESTIGATE = 0.5f; // when a robot exceeds this threshold it will investigate the point of interest
@@ -31,7 +30,7 @@ namespace Inferno {
         Vector3 Position;
         Vector3 Velocity;
 
-        AITarget()  = default;
+        AITarget() = default;
         AITarget(const Object& obj) : Position(obj.Position), Velocity(obj.Physics.Velocity) {}
     };
 
@@ -41,11 +40,14 @@ namespace Inferno {
         Roam, // Wander around randomly
         Combat, // Saw or recently saw target
         BlindFire, // Shooting at the last known target location
-        Chase, // Pursue target
-        FindHelp, // Looking for help
-        Path, // Path to a location, ignoring if a hostile is seen
-        MatcenPath // Path to a location
+        FindHelp, // Looking for help. Taking damage or seeing enemies does not interrupt this.
+        Path, // Pathing to a location
     };
+
+    constexpr auto AI_STATE_NAMES = std::to_array<string_view>({
+        "Idle", "Alert", "Roam", "Combat", "Blind Fire", "Chase", "Find Help", "Path"
+    });
+
 
     //enum class PathFlags {
     //    None,
@@ -67,9 +69,16 @@ namespace Inferno {
     //    //Dodge
     //};
 
-    enum class ChaseMode {
+    enum class PathMode {
         StopVisible, // Stops once the sound is visible
-        StopAtPosition // Moves to the position of target
+        StopAtEnd // Stops at the end of the path
+    };
+
+    struct PathingInfo {
+        PathMode mode = PathMode::StopVisible;
+        List<NavPoint> nodes; // For pathing to another segment
+        int16 index = -1;
+        bool interruptable = true; // Taking damage or seeing the player will interrupt pathing
     };
 
     // Runtime AI data
@@ -91,7 +100,7 @@ namespace Inferno {
         uint8 GunIndex = 0; // Which gun to fire from next
         GameTimer FireDelay; // Delay for firing primary weapons
         GameTimer FireDelay2; // Delay for firing secondary weapons
-        
+
         double LastSeenPlayer; // Time the player was last seen
         float AnimationTimer = 0; // How much of the animation has passed
         float AnimationDuration = 0; // Time in seconds to reach the goal angles
@@ -111,7 +120,11 @@ namespace Inferno {
         //SegID GoalSegment = SegID::None; // segment the robot wants to move to. Disables pathfinding when set to none.
         //RoomID GoalRoom = RoomID::None;
         //Vector3 GoalPosition; // position the robot wants to move to
-        ChaseMode Chase = ChaseMode::StopVisible;
+        PathingInfo path;
+
+        bool HasPath() const {
+            return !path.nodes.empty();
+        }
 
         GameTimer DodgeDelay = 0; // Delay before trying to dodge
         GameTimer DodgeTime = 0; // Remaining time to dodge for
@@ -127,7 +140,7 @@ namespace Inferno {
         float WeaponCharge = 0; // For robots with charging weapons (fusion hulks)
         float NextChargeSoundDelay = 0; // Delay to play a sound when charging up
         bool ChargingWeapon = false; // Set to true when charging a weapon
-        
+
         SoundUID SoundHandle = SoundUID::None; // Used to cancel a playing sound when the robot is destroyed
         float RemainingSlow = 0; // How long this robot is slowed (reduced movement and turn speed)
         float RemainingStun = 0; // How long this robot is stunned (unable to act)
@@ -136,9 +149,7 @@ namespace Inferno {
         float DeathRollTimer = 0; // time passed since dying
         float TeleportDelay = 0; // Delay before next teleport
 
-        List<NavPoint> Path; // For pathing to another segment
-        int16 PathIndex = -1;
-        GameTimer AlertTimer;  // For alerting nearby robots of the player location
+        GameTimer AlertTimer; // For alerting nearby robots of the player location
         GameTimer CombatSoundTimer; // For playing combat sounds
         GameTimer FleeTimer; // Finds help when this triggers
         GameTimer ChaseTimer; // Delay for chase attempts
@@ -153,8 +164,7 @@ namespace Inferno {
         }
 
         void ClearPath() {
-            Path.clear();
-            PathIndex = -1;
+            path = {};
         }
 
         void AddAwareness(float awareness, float maxAwareness = AI_AWARENESS_MAX) {
@@ -225,7 +235,7 @@ namespace Inferno {
             }
         }
 
-        Set<SegID> GetSegmentsByDistance(SegID start, float /*distance*/) {
+        Set<SegID> GetSegmentsByDistance(SegID start, float /*distance*/) const {
             Set<SegID> segs;
             auto& node = _nodes[(int)start];
 

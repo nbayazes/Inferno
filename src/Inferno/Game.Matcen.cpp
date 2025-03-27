@@ -242,16 +242,16 @@ namespace Inferno {
                 // Path newly created robots to their matcen triggers
                 auto& ai = GetAI(*newObj);
                 ai.RemainingSlow = 1.5f;
-                ai.State = AIState::MatcenPath;
+                ai.State = AIState::Path;
                 ai.LastUpdate = Game::Time;
-                OptimizePath(ai.Path);
+                OptimizePath(ai.path.nodes);
 
                 // Special case gophers to start in mine laying mode
                 if (obj.ID == 10) {
                     newObj->Control.AI.Behavior = AIBehavior::RunFrom;
                     ai.State = AIState::Alert;
                     ai.Awareness = 1;
-                    ai.Path = {};
+                    ai.path.nodes = {};
                 }
             }
         }
