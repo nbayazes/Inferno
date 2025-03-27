@@ -390,7 +390,7 @@ namespace Inferno {
 
                 // Add explosion behind the player
                 if (auto e = EffectLibrary.GetExplosion("tunnel chase fireball")) {
-                    auto pos = player.Position + player.Rotation.Backward() * 12.5f;
+                    auto pos = player.Position + player.Rotation.Backward() * 15.0f;
                     CreateExplosion(*e, SegID::Terrain, pos);
                 }
 
