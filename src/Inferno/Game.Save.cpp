@@ -130,7 +130,6 @@ namespace Inferno {
 
         READ_PROP(shields);
         READ_PROP(energy);
-
         READ_PROP(primaryWeapons);
         READ_PROP(secondaryWeapons);
 
@@ -207,7 +206,6 @@ namespace Inferno {
         WRITE_STAT(score);
         WRITE_STAT(totalKills);
         WRITE_STAT(totalTime);
-        WRITE_STAT(totalDeaths);
         WRITE_STAT(totalDeaths);
         WRITE_STAT(totalHostages);
 #undef WRITE_STAT

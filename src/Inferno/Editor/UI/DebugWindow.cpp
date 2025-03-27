@@ -155,8 +155,11 @@ namespace Inferno::Editor {
 
             ImGui::Combo("Ship wiggle", (int*)&Settings::Inferno.ShipWiggle, "Normal\0Reduced\0Off");
 
-            if (ImGui::Button("Reset inventory"))
+            if (ImGui::Button("Reset inventory")) {
                 ResetPlayerInventory();
+                Game::Player.Shields = 100;
+                Game::Player.Energy = 100;
+            }
         }
 
         {
@@ -279,7 +282,7 @@ namespace Inferno::Editor {
             ImGui::Separator();
 
             Color tint = Game::ScreenGlow;
-            if(ImGui::ColorEdit4("Tint", &tint.x))
+            if (ImGui::ColorEdit4("Tint", &tint.x))
                 Game::ScreenGlow.SetValue(tint);
         }
     }
