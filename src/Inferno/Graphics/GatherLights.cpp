@@ -429,8 +429,8 @@ namespace Inferno::Graphics {
                                     if (size.x < 30 && size.y < 30)
                                         // todo: calculate exact distance instead of hard coding it
                                         offset += -2.0f;
-                                        //offset += trueOffset;
-                                        //    light.normal = trueNormal;
+                                    //offset += trueOffset;
+                                    //    light.normal = trueNormal;
                                 }
                             }
 
@@ -568,10 +568,8 @@ namespace Inferno::Graphics {
 
             if (seg.Type == SegmentType::Energy) {
                 auto len = seg.GetLongestSide();
-
-                auto energyId = level.IsDescent1() ? LevelTexID(328) : LevelTexID(353);
-                auto mat = Resources::GetLightInfo(energyId);
-                auto color = mat ? mat->Color : Color(0.63f, 0.315f, 0.045f);
+                auto energyField = Resources::GetLightInfo("Energy Field");
+                auto color = energyField ? energyField->Color : Color(1, 0.443, 0.027, 0.3);
 
                 LightData light{};
                 light.color = color;

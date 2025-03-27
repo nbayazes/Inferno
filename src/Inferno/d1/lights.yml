@@ -308,6 +308,9 @@ Lights:
       Color: 1, 0.443, 0.027, 0.6
       Points: []      
 
+    - Name: Energy Field # Light added to the center of energy field segments
+      Color: 1, 0.443, 0.027, 0.3
+
     - Name: Headlight # Player ship headlight
       Color: 0.6, 0.6, 1, .8
       # Color: 1, 0.7, 0.4, .5
