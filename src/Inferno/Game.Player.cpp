@@ -768,6 +768,7 @@ namespace Inferno {
             if (Shields < 0) {
                 IsDead = true;
                 Input::ResetState(); // Reset state so fusion charging releases
+                Game::Player.StopAfterburner(); // stop afterburner when dead so sounds and effects stop
                 Shields = 0;
                 Energy = 0;
             }
