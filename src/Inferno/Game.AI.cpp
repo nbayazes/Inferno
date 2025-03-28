@@ -931,7 +931,7 @@ namespace Inferno {
         if (ai.NextChargeSoundDelay <= 0) {
             ai.NextChargeSoundDelay = 0.125f + Random() / 8;
 
-            if (auto fx = EffectLibrary.GetSparks("robot_fusion_charge")) {
+            if (auto fx = EffectLibrary.GetSparks("robot fusion charge")) {
                 auto parent = Game::GetObjectRef(robot);
                 Sound3D sound(SoundID::FusionWarmup);
                 sound.Radius = AI_SOUND_RADIUS;

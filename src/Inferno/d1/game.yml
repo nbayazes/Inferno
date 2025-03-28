@@ -229,7 +229,7 @@ Weapons:
     DecalRadius: 3.25
     Glow: .3, 0, 1, 35
     LightColor: .6, .1, 1, 4
-    FlashColor: .6, .1, 1, 1.5
+    FlashColor: .6, .1, 1, 4
     EnergyUsage: 2
     ModelName: FusionBlobNewJ.OOF
     ModelScale: 1 # 0.85 # D3 fusion is huge
@@ -1156,23 +1156,24 @@ Effects:
       Offset: 0, 0, -1.6 # Particle spawn offset
       Relative: 1 # Move the effect with the parent
 
-    - Name: robot_fusion_charge
-      Color: .6, 0, 1, 20
+    - Name: robot fusion charge
+      Color: .6, 0, 1, 100
       Count: 8
-      Duration: [ .45, .5 ]
+      Duration: [ .55, .6 ]
       Drag: 0.01
       Velocity: 0
-      FadeTime: .4
+      FadeTime: .6
       Texture: tracer
-      Width: 0.2
-      VelocitySmear: 0.05
+      Width: 0.35
+      VelocitySmear: 0.1
       UseWorldGravity: 0
       UsePointGravity: 1
       PointGravityStrength: 23 # How much velocity towards the point
-      PointGravityOffset: 0, 0, 2.5 # Starting offset for point gravity
+      PointGravityOffset: 0, 0, 4.5 # Starting offset for point gravity
       PointGravityVelocity: 0, 0, -10 # Moves the center of gravity relative to start location
       SpawnRadius: 3
-      Offset: 0, 0, -1.9 # Particle spawn offset
+      Offset: 0, 0, -3.9 # Particle spawn offset
+      Relative: 1 # Move the effect with the parent
 
     - Name: overlay_destroyed
       ConeRadius: 1
