@@ -501,7 +501,7 @@ namespace Inferno::Game {
         bool showFlash = info.showFlash;
 
         if (weapon.Extended.Recoil)
-            obj.Physics.Thrust += obj.Rotation.Backward() * weapon.Extended.Recoil;
+            ApplyForce(obj, obj.Rotation.Backward() * weapon.Extended.Recoil);
 
         auto renderFlag = RenderFlag::None;
 
