@@ -467,6 +467,71 @@ namespace Inferno::Render {
     //    }
     //}
 
+    Window CalcWindow(const Camera& camera, const Level& level, const Segment& seg, SideID side, const Window& parentWindow) {
+        auto indices = seg.GetVertexIndices(side);
+        int behindCount = 0;
+        Window bounds = { FLT_MAX, -FLT_MAX, -FLT_MAX, FLT_MAX };
+
+        for (auto& index : indices) {
+            // project point
+            auto& p = level.Vertices[index];
+            auto clip = Vector4::Transform(Vector4(p.x, p.y, p.z, 1), camera.ViewProjection);
+
+            if (clip.w < 0)
+                behindCount++; // point is behind camera plane
+
+            auto projected = Vector2{ clip / abs(clip.w) };
+            bounds.Expand(projected);
+        }
+
+        bool onScreen = bounds.Clip(parentWindow);
+
+        if (behindCount == 4 || !onScreen)
+            bounds = EMPTY_WINDOW; // portal is behind camera or offscreen
+        else if (behindCount > 0)
+            bounds = parentWindow; // a portal crosses view plane, use fallback
+
+        return bounds;
+    }
+
+    void RenderQueue::ProcessSegment(const Camera& camera, const Level& level, SegID segid, const Window& parentWindow) {
+        const auto& adjSeg = level.GetSegment(segid);
+
+        for (auto& sideid : SIDE_IDS) {
+            auto connid = adjSeg.Connections[(int)sideid];
+            if (connid < SegID(0))
+                continue;
+
+            if (!SideIsTransparent(level, { segid, sideid }))
+                continue; // Opaque wall or no connection
+
+            auto sideWindow = CalcWindow(camera, level, adjSeg, sideid, parentWindow);
+
+            if (sideWindow.IsEmpty())
+                continue; // Side isn't visible from portal
+
+            auto& conn = _segInfo[(int)connid];
+
+            if (conn.visited) {
+                if (conn.window.Expand(sideWindow))
+                    conn.processed = false; // force reprocess due to window changing
+
+                continue; // Already visited, don't add it to the render list again
+            }
+            else {
+                conn.window = sideWindow;
+            }
+
+            conn.visited = true;
+
+            if (Settings::Graphics.OutlineVisibleRooms)
+                Render::Debug::OutlineSegment(level, level.GetSegment(connid), Color(1, 1, 1));
+
+            _renderList.push_back(connid);
+        }
+    };
+
+
     void RenderQueue::TraverseSegments(Level& level, const Camera& camera, span<LevelMesh> wallMeshes, SegID startSeg) {
         _segInfo.resize(level.Segments.size());
         ranges::fill(_segInfo, SegmentInfo{});
@@ -488,70 +553,6 @@ namespace Inferno::Render {
         if (startSeg < SegID(0)) return;
 
         Window screenWindow = { -1, 1, 1, -1 };
-
-        const auto calcWindow = [&camera, &level](const Segment& seg, SideID side, const Window& parentWindow) {
-            auto indices = seg.GetVertexIndices(side);
-            int behindCount = 0;
-            Window bounds = { FLT_MAX, -FLT_MAX, -FLT_MAX, FLT_MAX };
-
-            for (auto& index : indices) {
-                // project point
-                auto& p = level.Vertices[index];
-                auto clip = Vector4::Transform(Vector4(p.x, p.y, p.z, 1), camera.ViewProjection);
-
-                if (clip.w < 0)
-                    behindCount++; // point is behind camera plane
-
-                auto projected = Vector2{ clip / abs(clip.w) };
-                bounds.Expand(projected);
-            }
-
-            bool onScreen = bounds.Clip(parentWindow);
-
-            if (behindCount == 4 || !onScreen)
-                bounds = EMPTY_WINDOW; // portal is behind camera or offscreen
-            else if (behindCount > 0)
-                bounds = parentWindow; // a portal crosses view plane, use fallback
-
-            return bounds;
-        };
-
-        const auto processSegment = [&](SegID segid, const Window& parentWindow) {
-            const auto& adjSeg = level.GetSegment(segid);
-
-            for (auto& sideid : SIDE_IDS) {
-                auto connid = adjSeg.Connections[(int)sideid];
-                if (connid < SegID(0))
-                    continue;
-
-                if (!SideIsTransparent(level, { segid, sideid }))
-                    continue; // Opaque wall or no connection
-
-                auto sideWindow = calcWindow(adjSeg, sideid, parentWindow);
-
-                if (sideWindow.IsEmpty())
-                    continue; // Side isn't visible from portal
-
-                auto& conn = _segInfo[(int)connid];
-
-                if (conn.visited) {
-                    if (conn.window.Expand(sideWindow))
-                        conn.processed = false; // force reprocess due to window changing
-
-                    continue; // Already visited, don't add it to the render list again
-                }
-                else {
-                    conn.window = sideWindow;
-                }
-
-                conn.visited = true;
-
-                if (Settings::Graphics.OutlineVisibleRooms)
-                    Render::Debug::OutlineSegment(level, level.GetSegment(connid), Color(1, 1, 1));
-
-                _renderList.push_back(connid);
-            }
-        };
 
         // Add the first seg to populate the stack
         _segInfo[(int)startSeg].window = screenWindow;
@@ -595,7 +596,7 @@ namespace Inferno::Render {
 
                 info.processed = true;
                 //Render::Debug::DrawCanvasBox(info.window.Left, info.window.Right, info.window.Top, info.window.Bottom, Color(0, 1, 0, 0.25f));
-                processSegment(segid, info.window);
+                ProcessSegment(camera, level, segid, info.window);
 
                 if (!info.queued) {
                     info.queued = true;

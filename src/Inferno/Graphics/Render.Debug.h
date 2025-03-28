@@ -47,14 +47,14 @@ namespace Inferno::Render::Debug {
     void DrawCrosshair(float size, const Camera& camera);
 
     void DrawSide(Level&, Tag, const Color&);
-    void DrawSide(const Level& level, Segment& seg, SideID side, const Color& color);
+    void DrawSide(const Level& level, const Segment& seg, SideID side, const Color& color);
     void DrawSideOutline(Level&, Tag, const Color&);
     void DrawSideOutline(const Level& level, const Segment& seg, SideID side, const Color& color);
     void DrawPlane(const Vector3& pos, const Vector3& right, const Vector3& up, const Color& color, float size);
 
     void DrawBoundingBox(const DirectX::BoundingOrientedBox&, const Color&);
     void DrawCanvasBox(float left, float right, float top, float bottom, const Color& color);
-    void OutlineSegment(const Level& level, Segment& seg, const Color& color, const Color* fill = nullptr);
+    void OutlineSegment(const Level& level, const Segment& seg, const Color& color, const Color* fill = nullptr);
     void OutlineRoom(Level& level, const Room& room, const Color& color);
 
     inline List<Vector3> DebugPoints, DebugPoints2;

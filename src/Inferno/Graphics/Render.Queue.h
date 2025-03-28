@@ -178,6 +178,7 @@ namespace Inferno::Render {
         //span<RenderCommand> Distortion() { return _distortionQueue; }
         span<RoomID> GetVisibleRooms() { return _visibleRooms; }
 
+        void ProcessSegment(const Camera& camera, const Level& level, SegID segid, const Window& parentWindow);
         void TraverseSegments(Level& level, const Camera& camera, span<LevelMesh> wallMeshes, SegID startSeg);
 
         // When false, uses per-segment lighting.

@@ -492,7 +492,7 @@ namespace Inferno::Render::Debug {
         DebugCanvas->Draw(payload);
     }
 
-    void OutlineSegment(const Level& level, Segment& seg, const Color& color, const Color* fill) {
+    void OutlineSegment(const Level& level, const Segment& seg, const Color& color, const Color* fill) {
         auto vs = seg.GetVertices(level);
 
         // Draw each of the 12 edges
@@ -526,7 +526,7 @@ namespace Inferno::Render::Debug {
         DrawTriangle(v[si[i[3]]], v[si[i[4]]], v[si[i[5]]], color);
     }
 
-    void DrawSide(const Level& level, Segment& seg, SideID side, const Color& color) {
+    void DrawSide(const Level& level, const Segment& seg, SideID side, const Color& color) {
         auto& i = seg.GetSide(side).GetRenderIndices();
         auto& v = level.Vertices;
         auto si = seg.GetVertexIndices(side);
