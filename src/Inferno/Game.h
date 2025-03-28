@@ -34,7 +34,7 @@ namespace Inferno::Game {
     inline bool LoadSecretLevel = false; // Indicates the next level loaded should be a secret level
     inline bool DemoMode = false; // When true, game started using demo data instead of retail
 
-    constexpr int DEFAULT_GRAVITY = 30;
+    constexpr int DEFAULT_GRAVITY = 10;
     inline Vector3 Gravity = { 0, -DEFAULT_GRAVITY, 0 }; // u/s acceleration
 
     // The loaded level. Only one level can be active at a time.
@@ -260,6 +260,9 @@ namespace Inferno {
         if (object.IsPlayer()) {
             if (Game::Player.GetHeadlightState() != HeadlightState::Off || Game::Player.AfterburnerActive)
                 return false;
+
+            //if (Game::Player.WeaponCharge && Game::Player.Primary == PrimaryWeaponIndex::Fusion)
+            //    return false; // Charging the fusion is noisy
         }
 
         return object.IsCloakEffective();

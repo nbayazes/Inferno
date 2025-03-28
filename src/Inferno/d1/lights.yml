@@ -165,7 +165,7 @@ Lights:
       #Color: 0.75, 0.833, 1, .5
       Radius: 40
       Angle: 75
-      InnerAngle: 65
+      InnerAngle: 45
       ConeSpill: 0.2
 
     - Name: ceil029
@@ -306,8 +306,8 @@ Lights:
 
     - Name: misc17#0 # energy field
       Color: 1, 0.443, 0.027, 0.6
-      Points: []      
-
+      Points: []  
+      
     - Name: Energy Field # Light added to the center of energy field segments
       Color: 1, 0.443, 0.027, 0.3
 

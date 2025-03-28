@@ -87,7 +87,7 @@ namespace Inferno {
     constexpr uint16 MAX_VERTICES = 8;
 
     // Segment point ids for a segment side
-    inline constexpr Array<Array<int16, 4>, MAX_SIDES> SIDE_INDICES{
+    constexpr Array<Array<int16, 4>, MAX_SIDES> SIDE_INDICES{
         {
             { { 7, 6, 2, 3 } }, // left
             { { 0, 4, 7, 3 } }, // top
@@ -99,7 +99,7 @@ namespace Inferno {
     };
 
     // Lookup for the edges of each side. Uses the same order / winding as the vertex lookup.
-    inline constexpr Array<Array<int16, 4>, MAX_SIDES> EDGES_OF_SIDE{
+    constexpr Array<Array<int16, 4>, MAX_SIDES> EDGES_OF_SIDE{
         {
             { { 4, 9, 0, 8 } }, // right
             { { 11, 7, 8, 3 } }, // top
@@ -110,7 +110,7 @@ namespace Inferno {
         }
     };
 
-    inline constexpr Array<Array<int16, 2>, 12> VERTS_OF_EDGE{
+    constexpr Array<Array<int16, 2>, 12> VERTS_OF_EDGE{
         {
             { { 0, 1 } }, // 0 // front
             { { 1, 2 } }, // 1

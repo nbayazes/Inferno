@@ -130,6 +130,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //highlight = pow(saturate(dot(input.normal, -viewDir)), 1.5);
         color.rgb *= 0.9;
         color.rgb += saturate(Luminance(input.color.rgb) * color.rgb) * .5; // Text becomes unreadable if map is too bright
+        //color.rgb = input.color.rgb * .75;
         color.rgb *= depth;
         //color.g += (input.color.r + input.color.g + input.color.b) / 3 * 0.6;
     }
@@ -157,7 +158,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //scanline += 0.5 * scanline2 * (1 + saturate(1 + cos(Frame.Time * 2 + screenUv.y * 50 + screenUv.x * -3)) * 0.3);
 
     //return float4(Vignette(uv).xxx, 1);
-    return color * highlight * Vignette(uv);
+    return color * highlight * Vignette(uv) + highlight * 0.01;
 
     //float2 fw = fwidth(d);
     //float fwd = pow(1 + (fw.x * fw.x + fw.y * fw.y), 0.4) - 1;

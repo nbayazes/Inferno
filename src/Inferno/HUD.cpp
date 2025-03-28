@@ -508,7 +508,7 @@ namespace Inferno {
         }
     }
 
-    void DrawGlare(bool flip, float opacity = 0.04f) {
+    void DrawGlare(bool flip, float opacity = 0.045f) {
         auto& material = Render::Materials->Get("Hilite");
         auto scale = Render::HudCanvas->GetScale() * 1.5f;
         auto& screen = Render::HudCanvas->GetSize();
@@ -517,14 +517,14 @@ namespace Inferno {
         auto height = (float)material.Textures[0].GetWidth() * scale;
         auto width = (float)material.Textures[0].GetHeight() * scale * fl;
 
-        constexpr float ambientFloor = 0.55f; // minimum ambient for glare to be visible
+        constexpr float ambientFloor = 0.58f; // minimum ambient for glare to be visible
         // Lower the floor for the glare to be visible
         Color ambient = Ambient;
         ambient.x = std::max(ambient.x - ambientFloor, 0.0f);
         ambient.y = std::max(ambient.y - ambientFloor, 0.0f);
         ambient.z = std::max(ambient.z - ambientFloor, 0.0f);
 
-        Color color = ambient + Direct * .65f;
+        Color color = ambient + Direct * .75f;
         color.w = opacity;
 
         constexpr int steps = 16;
