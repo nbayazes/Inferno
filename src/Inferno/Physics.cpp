@@ -315,8 +315,7 @@ namespace Inferno {
                 return CollisionType::None; // Don't hit objects recently hit by this weapon (for piercing)
 
             switch (target.Type) {
-                case ObjectType::Robot:
-                {
+                case ObjectType::Robot: {
                     auto targetId = Game::GetObjectRef(target);
                     if (src.Parent == targetId) return CollisionType::None; // Don't hit robot with their own shots
 
@@ -325,8 +324,7 @@ namespace Inferno {
                         return CollisionType::None; // weapons can't directly hit guidebots
                     break;
                 }
-                case ObjectType::Player:
-                {
+                case ObjectType::Player: {
                     if (target.ID > 0) return CollisionType::None; // Only hit player 0 in singleplayer
                     if (src.Parent.Id == ObjID(0)) return CollisionType::None; // Don't hit the player with their own shots
                     if (WeaponIsMine((WeaponID)src.ID) && src.Control.Weapon.AliveTime < Game::MINE_ARM_TIME)
@@ -476,8 +474,7 @@ namespace Inferno {
                 //vm_vec_scale(vm_vec_sub(&pos_hit, &obj->pos, &obj0p->pos), fixdiv(obj0p->size, obj0p->size + dist));
 
                 switch (target.Type) {
-                    case ObjectType::Weapon:
-                    {
+                    case ObjectType::Weapon: {
                         ApplyForce(target, forceVec);
                         // Mines can blow up under enough force
                         //if (obj.ID == (int)WeaponID::ProxMine || obj.ID == (int)WeaponID::SmartMine) {
@@ -489,8 +486,7 @@ namespace Inferno {
                         break;
                     }
 
-                    case ObjectType::Robot:
-                    {
+                    case ObjectType::Robot: {
                         float stunMult = 1;
                         if (source && source->IsWeapon()) {
                             auto& weapon = Resources::GetWeapon(WeaponID(source->ID));
@@ -520,8 +516,7 @@ namespace Inferno {
                         break;
                     }
 
-                    case ObjectType::Reactor:
-                    {
+                    case ObjectType::Reactor: {
                         // apply damage if source is player
                         if (!Settings::Cheats.DisableWeaponDamage && source && source->IsInFaction(Faction::Player))
                             target.ApplyDamage(damage);
@@ -529,8 +524,7 @@ namespace Inferno {
                         break;
                     }
 
-                    case ObjectType::Player:
-                    {
+                    case ObjectType::Player: {
                         ApplyForce(target, forceVec);
                         if (!source || source->LastHitObject != target.Signature)
                             ApplyRotationForcePlayer(target, forceVec);
@@ -1158,8 +1152,7 @@ namespace Inferno {
                         }
                         break;
 
-                    case CollisionType::SphereSphere:
-                    {
+                    case CollisionType::SphereSphere: {
                         auto r1 = obj.Radius;
                         auto r2 = other->Radius;
 
@@ -1331,7 +1324,12 @@ namespace Inferno {
         Debug::SegmentsChecked = 0;
 
         // At least two steps are necessary to prevent jitter in sharp corners (including against objects)
+#ifdef _DEBUG
+        constexpr int STEPS = 1;
+#else
         constexpr int STEPS = 2;
+#endif;
+
         dt /= STEPS;
 
         //for (int id = 0; id < level.Objects.size(); id++) {
