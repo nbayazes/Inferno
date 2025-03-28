@@ -228,7 +228,7 @@ namespace Inferno {
                     minPath = longChance ? maxPath / 2 : 2;
                 }
 
-                auto length = RandomInt(minPath, maxPath);
+                auto length = maxPath > minPath ? RandomInt(minPath, maxPath) : maxPath;
 
                 if (length >= 2) {
                     SPDLOG_INFO("Creating random matcen path of length {} out of {}", length, matcen.TriggerPath.size() - 1);
@@ -347,11 +347,11 @@ namespace Inferno {
             if (matcen.Light == EffectID::None) {
                 if (auto seg = level.TryGetSegment(matcen.Segment)) {
                     // Ambient light while matcen has energy remaining
-                    LightEffectInfo light;
-                    light.Radius = std::min(40.0f, seg->GetLongestEdge() * 1.5f);
-                    light.LightColor = Color(1, 0, 0.8f, 0.05f);
-                    light.Mode = DynamicLightMode::BigPulse;
-                    matcen.Light = AddLight(light, seg->Center, MAX_OBJECT_LIFE, matcen.Segment);
+                    //LightEffectInfo light;
+                    //light.Radius = std::min(40.0f, seg->GetLongestEdge() * 1.5f);
+                    //light.LightColor = Color(1, 0, 0.8f, 0.05f);
+                    //light.Mode = DynamicLightMode::BigPulse;
+                    //matcen.Light = AddLight(light, seg->Center, MAX_OBJECT_LIFE, matcen.Segment);
                 }
             }
         }
