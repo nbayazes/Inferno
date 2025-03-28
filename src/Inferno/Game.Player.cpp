@@ -29,7 +29,7 @@ namespace Inferno {
     float GetWeaponAlertRadius(const Weapon& weapon) {
         // Robots use half-linear falloff instead of inverse square because it doesn't require traversing nearly as far.
         float mult = 0.5f + std::min(2, (int)Game::Difficulty) / 4.0f; // hotshot, ace, insane = 1, trainee = 0.5, rookie = 0.75
-        return weapon.Extended.SoundRadius * mult * 0.5f; // Halve radius because weapons have a default sound radius of 300
+        return weapon.Extended.SoundRadius * mult * 0.65f; // Reduce radius because weapons have a default sound radius of 300
     }
 
     float Player::UpdateAfterburner(float dt, bool active) {

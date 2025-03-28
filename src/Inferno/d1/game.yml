@@ -575,10 +575,11 @@ Robots:
     Curiosity: 0.1 # Very rarely move to investigate sounds
     AimAngle: 15 # Unfair to lead much and looks odd
     Score: 500
-    Shots: [ 2, 2, 2, 4, 4 ] # Was 1, 1, 2, 3, 3
-    BurstDelay: 0.5
-    FireDelay: [ 5, 4, 3, 2, 1 ] # Was 5, 4, 3, 2, 1. Missile damage reduced, balancing shot increase.
+    BurstDelay: 0.6
+    Shots: [ 2, 2, 2, 4, 4 ] # Was 1, 1, 2, 3, 3. Missile damage and splash was greatly reduced on higher difficulty.
+    FireDelay: [ 4, 3, 2.5, 1.5, 1 ] # Was 5, 4, 3, 2, 1
     Aim: 250
+    AmbushDistance: 200 # Will reveal from far away to lob missiles
   - id: 1
     Name: Medium Lifter
     DevName: Green Claw
@@ -587,9 +588,10 @@ Robots:
     MeleeDamage: [ 6, 7, 8, 9, 10 ]
     Speed: [ 35, 40, 45, 50, 65 ] # Retail values. Demo has very slow melee robots.
     ChaseChance: 1
-    Curiosity: 0.4 # Don't always give away position
     GetBehind: 1
     SeeSound: 171 # Should be their own "robot2" sound instead of class 1 drone's. Appears to have been messed up between the demo and release.
+    AmbushDistance: 50 # Wait for player to be next to melee robots
+    Curiosity: 1 # If player is close, always attack
   - id: 2
     Name: Spider
     DevName: Spider
@@ -597,6 +599,7 @@ Robots:
     Mass: 6
     Radius: 4.5 # Default radius is too large and causes problems in level 10 tunnels
     BurstDelay: 0.15
+    StunResist: 1.25 # These are large and tough
   - id: 3
     Name: Class 1 Drone
     DevName: Josh
@@ -609,8 +612,10 @@ Robots:
     ChaseChance: 1
     Curiosity: 0.95 # Scouts should nearly always investigate noises
     GetBehind: 1
+    StunResist: 0.5 # Any nearby explosions should stun
+    AmbushRange: 150 # Looking for a fight!
   - id: 4 
-    Name: Class 2 drone
+    Name: Class 2 Drone
     DevName: Violet
     CircleDistance: 40
     Drag: 0.03
@@ -627,11 +632,13 @@ Robots:
     Drag: 0.03
     SuppressChance: .05
     ChaseChance: .4
+    ChaseDistance: 60 # Only chase if the player gets close
     Score: 1000 # Was 600, less than the regular driller
     Curiosity: 0.3 # Don't want these moving around too much
     AimAngle: 20 # Don't let drillers lead very much for balance reasons
     Aim: 200 # Make slightly inaccurate
     GetBehind: 1
+    AmbushDistance: 80
   - id: 6 
     Name: Cloaked Hulk
     DevName: Cloak Mech
@@ -643,10 +650,11 @@ Robots:
     Score: 800 # Was 700
     Curiosity: 0.05 # Very rarely move to investigate sounds
     AimAngle: 15 # Unfair to lead much and looks odd
-    Shots: [ 2, 2, 2, 4, 4 ] # Was 1, 1, 2, 3, 4
-    BurstDelay: 0.75
-    FireDelay: [ 7, 5, 3, 1.5, 1 ] # Was 7, 5, 3, 1, 1
-    Aim: 120
+    Shots: [ 2, 2, 4, 4, 6 ] # Was 1, 1, 2, 3, 4
+    FireDelay: [ 7, 5, 3, 1, 1 ] # Was 7, 5, 3, 1, 1
+    BurstDelay: 0.6
+    Aim: 250
+    AmbushDistance: 200
   - id: 7
     Name: Supervisor
     DevName: Brain
@@ -677,17 +685,20 @@ Robots:
     BurstDelay: 0.16 # Increase from 1/8 due to multishot
     Mass: 6
     Drag: 0.03
-    ChaseChance: .75
+    ChaseChance: .6
+    ChaseDistance: 300
     SuppressChance: .4
     FireDelay: [ 1, .75, .75, .75, .75 ] # Was 1, .75, .75, .75, .75
     Shots: [ 2, 2, 4, 4, 6 ] # Was 2, 2, 3, 4, 5
     Curiosity: 0.25
+    AmbushDistance: 80
   - id: 10
     Name: Class 3 Gopher
     DevName: Toaster 
     FleeThreshold: 0.4
     CircleDistance: 60
     Score: 400 # Was 200, too low for their mine laying annoyance and hit points
+    HitPoints: 120 # Was 150 for some reason, too much for their size
   - id: 11
     Name: Laser platform
     DevName: Bird  
@@ -697,31 +708,37 @@ Robots:
     # FireDelay: [ 1.5, 1.25, 0.8, 0.6, 0.4 ]
     FireDelay: [ 1.3, 1.15, 0.9, 0.85, 0.85 ] # originaly 1.5, 1.25, 1, 1, 1
     Shots: [ 2, 4, 6, 6, 8 ] # originally 3, 4, 4, 5, 7
+    Speed: [ 20, 30, 40, 45, 50 ] # was 20, 20, 20, 30, 40. too slow for a bird
     Aim: 60
     Drag: 0.03
     SuppressChance: 0.9
     Score: 400 # Was 300, these are now more dangerous
     Curiosity: 0.5
     AimAngle: 35 # Looks odd to lead much
-    GetBehind: 0
+    GetBehind: 1
     HitPoints: 70 # 70
+    StunResist: 0.75
   - id: 12
     Name:  Missile Platform
     DevName: Missile Bird
     FireDelay: [ 1.5, 1.5, 1.25, 1.25, 1 ]
     Shots: [ 2, 3, 3, 4, 5 ]
+    Speed: [ 20, 30, 40, 45, 50 ] # was 15, 15, 20, 30, 40. Overall firepower was reduced due to concussion nerf, add mobility in exchange
     #  a volley of 5 shots at 1/8s + 1s wait = 1.625 / 5 -> 0.325s avg delay per shot on insane
     # FireDelay: [ 0.875, 0.625, .55, 0.4375, .325 ] # originally 1.5, 1.5, 1.25, 1.25, 1
     #FireDelay: [ 0.9, 0.65, .55, 0.45, .35 ] # originally 1.5, 1.5, 1.25, 1.25, 1
     #Shots: 1 # originally 2, 3, 3, 4, 5
-    BurstDelay: 0.2 # default of 0.125
-    CircleDistance: 100
+    BurstDelay: 0.175 # default of 0.125
+    CircleDistance: 70
+    GetBehind: 1
     Aim: 220
-    Mass: 3.5
+    Mass: 3.0
     Drag: 0.03
+    SuppressChance: 0.3
     Curiosity: 0.25 # Usually hold position
     AimAngle: 20 # Looks odd to lead much
     HitPoints: 110 # Reduced from 150. Was too high for their frequency, size, and score
+    StunResist: 0.75
   - id: 13
     Name: Splitter Pod
     DevName: Polyhedron
@@ -745,13 +762,13 @@ Robots:
     FireDelay: [ 2.5, 2, 1.5, 1, 0.5 ] # Reduced due to charge time, was 3, 2, 2.5, 2, 1.5
     Shots: [ 2, 2, 2, 2, 2 ] # was 1, 1, 2, 2, 3
     TurnTime: [ 0.8, 0.7, 0.6, 0.5, 0.4 ]
-    CircleDistance: -1
     Mass: 20 # was 30
     Multishot: 2
     DeathRoll: 3
     ExplosionStrength: 15
     AlertRadius: 160 # Miniboss alert radius
-    ChaseChance: 0
+    ChaseChance: 0 # Hold position
+    ChaseDistance: 0 # Don't chase
     SuppressChance: 0.2
     Curiosity: 0 # Don't investigate sounds
     StunResist: 1.6 # immune to stuns from concussion missiles
@@ -760,14 +777,16 @@ Robots:
   - id: 16
     Name: Red Hulk
     DevName: Super Mech
-    CircleDistance: -1
+    CircleDistance: 60
     Multishot: 1
     Mass: 7
     ChaseChance: 0
     Curiosity: 0.05 # Very rarely move to investigate sounds
-    SuppressChance: .35
+    SuppressChance: .15
     BurstDelay: 0.4
     SeeSound: 177
+    AmbushDistance: 200
+    ChaseDistance: 100 # Only chase if the player gets very close
     # HitPoints: 270 # Was 325
   - id: 17
     Name: Boss # Level 7 boss
@@ -794,6 +813,8 @@ Robots:
     ChaseChance: 1
     Score: 800 # Was 1000
     GetBehind: 1
+    AmbushDistance: 60 # Wait for player to be next to melee robots
+    Curiosity: 1 # If player is close, always attack
   - id: 19 
     Name: Class 1 Driller
     DevName: Vulcan Mech
@@ -801,12 +822,14 @@ Robots:
     Mass: 5
     Drag: 0.03
     SuppressChance: .2
-    ChaseChance: .5 # they angy
+    ChaseChance: 1 # they angy
+    ChaseDistance: 100 # Only chase if the player gets close
     Score: 900 # Was 1000, but are quite flimsy. Moved down to make cloak drillers 1000.
     AimAngle: 20 # Don't let drillers lead very much for balance reasons
     Aim: 200 # Make slightly inaccurate
     GetBehind: 1
     StunResist: 0.5 # Easy to stun
+    AmbushDistance: 80
   - id: 20 
     Name: Light Hulk # Green hulk / Light hulk
     DevName: Toad
@@ -828,23 +851,28 @@ Robots:
     CircleDistance: 12
     Mass: 9
     MeleeDamage: [ 5, 5, 6, 7, 8 ]
-    ChaseChance: 1
+    ChaseChance: 0.5
     SeeSound: 179
     Score: 750 # Was 800
     GetBehind: 1
     Evasion: 1 # Lower evasion so they don't bounce off the walls at higher difficulty
+    AmbushDistance: 60 # Wait for player to be next to melee robots
+    Curiosity: 1 # If player is close, always attack
   - id: 22
     Name: Defense Prototype
     DevName: Quad-Laser
-    CircleDistance: 40
+    CircleDistance: 80
     Aim: 190 # 255 is perfect aim
     AimAngle: 25
     Multishot: 2
+    Mass: 4.5 # Was 4
     Shots: 2
     FireDelay: [ 0.5, 0.4, 0.3, 0.25, 0.2 ]
     Drag: 0.03
     SuppressChance: 1
-    HitPoints: 120 # Increased from 70 to not explode from one homing missile and to be tougher in general
+    ChaseChance: 0
+    ChaseDistance: 160
+    HitPoints: 130 # Increased from 70 to not explode from one homing missile and to be tougher in general due to where it appears in the game
   - id: 23 
     Name: Super Boss # level 27 boss
     DevName: Super Boss
@@ -1296,7 +1324,7 @@ Effects:
       FadeTime: 0.25
       Color: 1, .8, .8, 7.5
       Radius: [ 40, 50 ]
-      Delay: [ .18, .23 ]
+      Delay: .4
       Clip: 58
       Sound: 11
       Instances: 4

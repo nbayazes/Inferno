@@ -362,6 +362,7 @@ namespace Inferno {
         }
 
         //SPDLOG_INFO("Robot {} updating path goal to {}", obj.Signature, ai.GoalSegment);
+        ai.State = AIState::Path;
         ai.path.index = 0;
         return true;
     }

@@ -10,16 +10,16 @@
 
 namespace Inferno {
     constexpr float AI_PATH_DELAY = 1; // Default delay for trying to path to the player
-    constexpr float AI_MAX_CHASE_DISTANCE = 300; // how far a robot will travel when chasing
     constexpr float AI_AWARENESS_MAX = 1.0f;
     constexpr float AI_AWARENESS_COMBAT = 0.6f; // Robot will fire at its last known target position
     constexpr float AI_AWARENESS_INVESTIGATE = 0.5f; // when a robot exceeds this threshold it will investigate the point of interest
-    constexpr float AI_COUNT_ALLY_RANGE = 140; // How far to search for allies
+    constexpr float AI_COUNT_ALLY_RANGE = 160; // How far to search for allies
     constexpr uint AI_ALLY_FLEE_MIN = 2; // Will flee if fewer than this number of robots are in combat (counting self)
-    constexpr float AI_HELP_SEARCH_RADIUS = 300;
+    constexpr float AI_HELP_SEARCH_RADIUS = 600;
+    constexpr float AI_HELP_MIN_SEARCH_RADIUS = AI_COUNT_ALLY_RANGE; // Looks weird to run to a nearby ally
     constexpr float AI_MINE_LAYER_DELAY = 5; // Seconds between robots dropping mines
     constexpr float AI_DOOR_AWARENESS_RADIUS = 150; // Noise distance of opening a door
-    constexpr float AI_CURIOSITY_INTERVAL = 1.0f; // Interval to decide to investigate a noise
+    constexpr float AI_CURIOSITY_INTERVAL = 5.0f; // Interval to decide to investigate a noise
     constexpr float AI_VISION_FALLOFF_NEAR = 100.0f; // Vision starts getting worse at this range
     constexpr float AI_VISION_FALLOFF_FAR = 300.0f; // Max vision penalty distance
     constexpr float AI_VISION_MAX_PENALTY = 0.8f; // Max vision penalty
@@ -45,7 +45,7 @@ namespace Inferno {
     };
 
     constexpr auto AI_STATE_NAMES = std::to_array<string_view>({
-        "Idle", "Alert", "Roam", "Combat", "Blind Fire", "Chase", "Find Help", "Path"
+        "Idle", "Alert", "Roam", "Combat", "Blind Fire", "Find Help", "Path"
     });
 
 
@@ -96,7 +96,7 @@ namespace Inferno {
 
         float LostSightDelay = 0; // Time that the target must be out of sight to be considered 'lost'
 
-        uint8 BurstShots; // number of shots fired rapidly
+        uint8 BurstShots; // number of shots fired in the same volley. Resets to 0 when a firing pattern ends.
         uint8 GunIndex = 0; // Which gun to fire from next
         GameTimer FireDelay; // Delay for firing primary weapons
         GameTimer FireDelay2; // Delay for firing secondary weapons
@@ -108,7 +108,6 @@ namespace Inferno {
         Animation AnimationState = {};
 
         Option<NavPoint> TargetPosition; // Last known target position or point of interest. Can have a target position without a target object.
-        Option<NavPoint> LastSeenTargetPosition; // Last time the target was in LOS, used for suppression
         ObjRef Target; // Current thing we're fighting
         ObjRef Ally; // Robot to get help from
 
@@ -178,6 +177,11 @@ namespace Inferno {
         }
 
         float GetDeltaTime() const;
+
+        // Returns true if the robot is firing or about to fire
+        bool IsFiring() const {
+            return BurstShots > 0 || AnimationState == Animation::Fire || AnimationState == Animation::Recoil || ChargingWeapon;
+        }
     };
 
     class NavNetwork {
@@ -326,7 +330,7 @@ namespace Inferno {
 
     void UpdateAI(Object& obj, float dt);
     void RobotTouchObject(const Object& robot, const Object& obj);
-    void AlertRobotsOfNoise(const Object& source, float soundRadius, float awareness, const Object* sourceObj = nullptr);
+    void AlertRobotsOfNoise(const NavPoint& source, float soundRadius, float awareness, const Object* sourceObj = nullptr);
     void PlayRobotAnimation(const Object& robot, Animation state, float time = 0.4f, float moveMult = 5, float delay = 0);
 
     // Applies damage to a robot, applying stuns, slows, and waking it up if necessary.

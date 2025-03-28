@@ -18,7 +18,9 @@ namespace Inferno {
         float FireDelay, FireDelay2;
         float TurnTime; // time in seconds to rotate 360 degrees in a dimension
         float Speed; // How quickly the robot moves
-        float CircleDistance; // preferred distance from the player
+        // preferred distance from the player. Also counts as chasing, so the
+        // robot won't move to the circle distance unless the player is within the chase distance.
+        float CircleDistance; 
         uint8 ShotCount; // number of primary shots to fire per delay
         uint8 EvadeSpeed; // rate at which robot can evade shots, 0=none, 4=very fast
         float MeleeDamage; // Damage of a melee swing
@@ -109,6 +111,12 @@ namespace Inferno {
         float StunResist = 1.0; // Multiplier on life for purposes of resisting stuns and slows
 
         float ChargeTime = 1.0; // How long to charge the primary weapon
-        float AmbushDistance = 120; // How close the player has to be before the robot will move without being seen
+
+        // How close the player must be for the robot to chase. Used to prevent robots swarming through a single doorway in large rooms.
+        float ChaseDistance = 400;
+
+        // How close the player must be without being seen before the robot will move. Only applies when awareness is maxed.
+        // Ambush distance can be larger than chase distance, so robots will reveal themselves around distant corners without chasing.
+        float AmbushDistance = 120; 
     };
 }

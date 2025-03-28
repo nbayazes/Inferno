@@ -147,8 +147,8 @@ namespace Inferno::Game {
     constexpr int EXTRA_LIFE_POINTS = 50'000;
     constexpr uint HOSTAGE_SCORE = 1000;
     constexpr uint REACTOR_SCORE = 5000;
-    constexpr float PLAYER_HIT_WALL_NOISE = 1;
-    constexpr float PLAYER_HIT_WALL_RADIUS = 100;
+    constexpr float PLAYER_HIT_WALL_NOISE = 1.5f;
+    constexpr float PLAYER_HIT_WALL_RADIUS = 120;
     constexpr float PLAYER_FUSION_SOUND_RADIUS = 120;
     constexpr float PLAYER_AFTERBURNER_SOUND_RADIUS = 160;
     constexpr float FUSION_SHAKE_STRENGTH = 3.5f; // Amount charging fusion shakes the player
