@@ -120,4 +120,11 @@ float3 SampleNormal(Texture2D tex, float2 uv, SamplerState texSampler, int filte
 //     tex.Sample(texSampler, uv + dx + dy).rgb) * 0.25; // bottom right
 //return clamp(color * 2 - 1, -1, 1);
 
+#define SPRITE_RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
+    "CBV(b0),"\
+    "RootConstants(b1, num32BitConstants = 2), " \
+    "DescriptorTable(SRV(t0), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t1), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL)"
+
 #endif
