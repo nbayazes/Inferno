@@ -245,7 +245,7 @@ namespace Inferno {
             NavPoint soundSource = { tag.Segment, side.Center + side.AverageNormal };
 
             IterateNearbySegments(Game::Level, soundSource, AI_DOOR_AWARENESS_RADIUS, TraversalFlag::None, [&soundSource](const Segment& nearbySeg, bool) {
-                AlertEnemiesInSegment(Game::Level, nearbySeg, soundSource, AI_DOOR_AWARENESS_RADIUS, 1);
+                AlertEnemiesInSegment(Game::Level, nearbySeg, soundSource, AI_DOOR_AWARENESS_RADIUS, 10);
             });
         }
     }

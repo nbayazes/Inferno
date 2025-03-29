@@ -117,6 +117,6 @@ namespace Inferno {
 
         // How close the player must be without being seen before the robot will move. Only applies when awareness is maxed.
         // Ambush distance can be larger than chase distance, so robots will reveal themselves around distant corners without chasing.
-        float AmbushDistance = 120; 
+        float AmbushDistance = 140; 
     };
 }

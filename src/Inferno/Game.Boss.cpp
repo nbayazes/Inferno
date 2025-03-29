@@ -265,7 +265,7 @@ namespace Inferno::Game {
             return;
 
         if (ai.State == AIState::Combat) {
-            CombatRoutine(ai, boss, info, dt);
+            CombatRoutine(boss, ai, info, dt);
             ai.Awareness = 1; // The boss will stay in combat until it teleports again
             ai.TeleportDelay -= dt; // Only teleport when aware of player
 
@@ -277,8 +277,8 @@ namespace Inferno::Game {
         }
         else {
             // Always turn boss towards last known target location after teleporting
-            if (ai.TargetPosition) {
-                auto targetDir = GetDirection(ai.TargetPosition->Position, boss.Position);
+            if (ai.Target) {
+                auto targetDir = GetDirection(ai.Target->Position, boss.Position);
                 TurnTowardsDirection(boss, targetDir, info.Difficulty[(int)Game::Difficulty].TurnTime);
             }
         }

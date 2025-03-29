@@ -11,20 +11,19 @@
 namespace Inferno {
     constexpr float AI_PATH_DELAY = 1; // Default delay for trying to path to the player
     constexpr float AI_AWARENESS_MAX = 1.0f;
-    constexpr float AI_AWARENESS_COMBAT = 0.6f; // Robot will fire at its last known target position
-    constexpr float AI_AWARENESS_INVESTIGATE = 0.5f; // when a robot exceeds this threshold it will investigate the point of interest
     constexpr float AI_COUNT_ALLY_RANGE = 160; // How far to search for allies
     constexpr uint AI_ALLY_FLEE_MIN = 2; // Will flee if fewer than this number of robots are in combat (counting self)
     constexpr float AI_HELP_SEARCH_RADIUS = 600;
     constexpr float AI_HELP_MIN_SEARCH_RADIUS = AI_COUNT_ALLY_RANGE; // Looks weird to run to a nearby ally
     constexpr float AI_MINE_LAYER_DELAY = 5; // Seconds between robots dropping mines
-    constexpr float AI_DOOR_AWARENESS_RADIUS = 150; // Noise distance of opening a door
+    constexpr float AI_DOOR_AWARENESS_RADIUS = 160; // Alert distance of opening a door
     constexpr float AI_CURIOSITY_INTERVAL = 5.0f; // Interval to decide to investigate a noise
     constexpr float AI_VISION_FALLOFF_NEAR = 100.0f; // Vision starts getting worse at this range
-    constexpr float AI_VISION_FALLOFF_FAR = 300.0f; // Max vision penalty distance
-    constexpr float AI_VISION_MAX_PENALTY = 0.8f; // Max vision penalty
-    constexpr float AI_REACTION_TIME = 0.1f; // Seconds per difficulty to react to the player in a lit room
+    constexpr float AI_VISION_FALLOFF_FAR = 400.0f; // Max vision penalty distance
+    constexpr float AI_VISION_MAX_PENALTY = 0.5f; // Max vision penalty
+    constexpr float AI_REACTION_TIME = 0.05f; // Seconds per difficulty to react to the player in a lit room
     constexpr float AI_ANGER_SPEED = 0.6f; // Multiplier for attacks while angry
+    constexpr float AI_GLOBAL_FLEE_DELAY = 20.0f; // how often a robot can run away
 
     struct AITarget {
         Vector3 Position;
@@ -79,6 +78,7 @@ namespace Inferno {
         List<NavPoint> nodes; // For pathing to another segment
         int16 index = -1;
         bool interruptable = true; // Taking damage or seeing the player will interrupt pathing
+        bool faceGoal = false; // Look towards goal instead of the next node
     };
 
     // Runtime AI data
@@ -107,8 +107,11 @@ namespace Inferno {
         float MeleeHitDelay = 0; // How long before a melee swing deals damage
         Animation AnimationState = {};
 
-        Option<NavPoint> TargetPosition; // Last known target position or point of interest. Can have a target position without a target object.
-        ObjRef Target; // Current thing we're fighting
+        // Last known target position or point of interest. Can have a target position without a target object.
+        // This should be in line of sight if set from combat.
+        Option<NavPoint> Target; 
+        //Option<NavPoint> LastSeen; // Similar to target position, but persists shortly after the target goes out of sight to simulate the AI "guessing" where it went.
+        ObjRef TargetObject; // Current thing we're fighting
         ObjRef Ally; // Robot to get help from
 
         bool TriedFindingHelp = false;
@@ -147,6 +150,8 @@ namespace Inferno {
         bool DyingSoundPlaying = false;
         float DeathRollTimer = 0; // time passed since dying
         float TeleportDelay = 0; // Delay before next teleport
+
+        float ActiveTime = 0; // How long the robot will stay active before going idle
 
         GameTimer AlertTimer; // For alerting nearby robots of the player location
         GameTimer CombatSoundTimer; // For playing combat sounds
@@ -329,7 +334,7 @@ namespace Inferno {
     };
 
     void UpdateAI(Object& obj, float dt);
-    void RobotTouchObject(const Object& robot, const Object& obj);
+    void RobotTouchObject(Object& robot, const Object& obj);
     void AlertRobotsOfNoise(const NavPoint& source, float soundRadius, float awareness, const Object* sourceObj = nullptr);
     void PlayRobotAnimation(const Object& robot, Animation state, float time = 0.4f, float moveMult = 5, float delay = 0);
 
@@ -361,7 +366,7 @@ namespace Inferno {
     bool ScanForTarget(const Object& robot, AIRuntime& ai, bool* isThroughWall = nullptr);
     bool HasLineOfSight(const Object& obj, const Vector3& point, bool precise = false);
     IntersectResult HasFiringLineOfSight(const Object& obj, uint8 gun, const Vector3& target, ObjectMask mask);
-    void CombatRoutine(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float dt);
+    void CombatRoutine(Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, float dt);
     void BeginAIFrame();
     bool IsAnimating(const Object& robot);
 

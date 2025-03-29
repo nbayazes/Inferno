@@ -28,8 +28,8 @@ namespace Inferno {
 
     float GetWeaponAlertRadius(const Weapon& weapon) {
         // Robots use half-linear falloff instead of inverse square because it doesn't require traversing nearly as far.
-        float mult = 0.5f + std::min(2, (int)Game::Difficulty) / 4.0f; // hotshot, ace, insane = 1, trainee = 0.5, rookie = 0.75
-        return weapon.Extended.SoundRadius * mult * 0.65f; // Reduce radius because weapons have a default sound radius of 300
+        //float mult = 0.5f + std::min(2, (int)Game::Difficulty) / 4.0f; // hotshot, ace, insane = 1, trainee = 0.5, rookie = 0.75
+        return weapon.Extended.SoundRadius /** mult */ * 0.6f; // Reduce radius because weapons have a default sound radius of 300
     }
 
     float Player::UpdateAfterburner(float dt, bool active) {
@@ -573,7 +573,7 @@ namespace Inferno {
         WeaponCharge = 0;
         LastPrimaryFireTime = Game::Time;
 
-        AlertRobotsOfNoise(player, GetWeaponAlertRadius(weapon), weapon.Extended.Noise);
+        AlertRobotsOfNoise(player, GetWeaponAlertRadius(weapon), weapon.Extended.Noise * 2.0f);
 
         if (!CanFirePrimary(Primary) && Primary != PrimaryWeaponIndex::Omega)
             AutoselectPrimary();
@@ -623,7 +623,7 @@ namespace Inferno {
         SecondaryAmmo[(int)Secondary] -= battery.AmmoUsage;
         LastSecondaryFireTime = Game::Time;
 
-        AlertRobotsOfNoise(Game::GetPlayerObject(), GetWeaponAlertRadius(weapon), weapon.Extended.Noise);
+        AlertRobotsOfNoise(Game::GetPlayerObject(), GetWeaponAlertRadius(weapon), weapon.Extended.Noise * 2.0f);
 
         if (!CanFireSecondary(Secondary))
             AutoselectSecondary(); // Swap to different weapon if out of ammo
@@ -935,7 +935,7 @@ namespace Inferno {
             auto lum = Luminance(player->Ambient.GetValue().ToVector3());
             lum = Saturate(lum - 0.1f); // Make slightly darker so dim segments are stealthy
             if (LastPrimaryFireTime + .5f > Game::Time) lum = std::max(lum, 2.0f);
-            return lum;
+            return Saturate(lum);
         }
 
         return 1.0f;

@@ -62,11 +62,13 @@ namespace Inferno {
             p.Color = Color(.2f, 1, .2f, 5);
             AddParticle(p, segId, seg->Center);
 
-            LightEffectInfo light;
-            light.Radius = p.Radius * 2.0f;
-            light.LightColor = Color(1, 0, 0.8f, 5.0f);
-            light.FadeTime = vclip.PlayTime;
-            AddLight(light, seg->Center, vclip.PlayTime * 2, segId);
+            if (auto info = Resources::GetLightInfo("Matcen Create")) {
+                LightEffectInfo light;
+                light.Radius =  p.Radius * 2.0f;
+                light.LightColor = info->Color;
+                light.FadeTime = vclip.PlayTime;
+                AddLight(light, seg->Center, vclip.PlayTime * 2, segId);
+            }
 
             if (auto beam = EffectLibrary.GetBeamInfo("matcen")) {
                 for (int i = 0; i < 4; i++) {
@@ -218,7 +220,7 @@ namespace Inferno {
             matcen.CooldownTimer = std::max(matcen.CooldownTimer, 5.0f);
 
             if (auto newObj = Game::GetObject(ref)) {
-                auto minPath = std::min(2, (int)matcen.TriggerPath.size());
+                auto minPath = std::min(3, (int)matcen.TriggerPath.size());
                 auto maxPath = (int)matcen.TriggerPath.size() - 1;
 
                 // for long paths only travel the first 5 segments with a rare chance to travel the full distance
@@ -241,9 +243,10 @@ namespace Inferno {
 
                 // Path newly created robots to their matcen triggers
                 auto& ai = GetAI(*newObj);
-                ai.RemainingSlow = 1.5f;
+                //ai.RemainingSlow = 1.5f;
                 ai.State = AIState::Path;
                 ai.LastUpdate = Game::Time;
+                ai.path.mode = PathMode::StopAtEnd;
                 OptimizePath(ai.path.nodes);
 
                 // Special case gophers to start in mine laying mode
