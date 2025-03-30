@@ -740,7 +740,6 @@ namespace Inferno {
 
     void Player::LoseLife() {
         stats.deaths++;
-        stats.hostagesOnboard = 0;
 
         if (Lives > 0)
             Lives--;
