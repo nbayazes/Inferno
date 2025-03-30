@@ -1350,9 +1350,6 @@ namespace Inferno::Resources {
                         }
                     }
 
-                    if (D1DemoTextureCache.Entries.empty())
-                        D1DemoTextureCache = TextureMapCache(D1_DEMO_CACHE, 1800);
-
                     GameData = FullGameData(Descent1Demo);
                 }
                 else {
