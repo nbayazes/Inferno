@@ -502,7 +502,7 @@ namespace Inferno::UI {
                 dti.Color = _index == i ? FOCUS_COLOR : Color(1, 1, 1);
                 dti.Position = ScreenPosition + Padding * scale;
                 dti.Position.y += ((_fontHeight + ItemSpacing) * j + LINE_OFFSET) * scale;
-                Render::UICanvas->DrawRaw(item, dti, Layer);
+                Render::UICanvas->DrawRaw(item, dti, Layer + 1);
             }
 
             // Draw scrollbar
