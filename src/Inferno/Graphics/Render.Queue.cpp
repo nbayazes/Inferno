@@ -477,7 +477,9 @@ namespace Inferno::Render {
             auto& p = level.Vertices[index];
             auto clip = Vector4::Transform(Vector4(p.x, p.y, p.z, 1), camera.ViewProjection);
 
-            if (clip.w < 0)
+            // Use negative margin because rarely player will look through portal and lose visibility.
+            // Happens most often when the camera is perfectly perpendicular with the portal, such as the start of level 1 or 2.
+            if (clip.w < -0.3f)
                 behindCount++; // point is behind camera plane
 
             auto projected = Vector2{ clip / abs(clip.w) };
