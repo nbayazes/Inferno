@@ -216,8 +216,8 @@ namespace Inferno::Game {
                 CreateEscapePath(Level, Game::Terrain, exit, false);
 
             // Replace heightmap based terrain with random large terrain,
-            // but only for retail levels or if it has
-            if (isRetail || !hasConfig) {
+            // but only for retail levels or if mission didn't provide one
+            if (isRetail || Game::Terrain.Vertices.empty()) {
                 SPDLOG_INFO("Generating random terrain", exitConfigBinary);
                 TerrainGenInfo.Seed = String::Hash(Level.Name);
                 GenerateTerrain(Game::Terrain, TerrainGenInfo);
