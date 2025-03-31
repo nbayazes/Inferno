@@ -531,11 +531,7 @@ namespace Inferno {
 
                 // Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
                 if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), m_d3dMinFeatureLevel, _uuidof(ID3D12Device), nullptr))) {
-#ifdef _DEBUG
-                    wchar_t buff[256] = {};
-                    swprintf_s(buff, L"Direct3D Adapter (%u): VID:%04X, PID:%04X - %ls\n", adapterIndex, desc.VendorId, desc.DeviceId, desc.Description);
-                    OutputDebugStringW(buff);
-#endif
+                    SPDLOG_INFO("Direct3D Adapter ({}): VID:{:x}, PID:{:x} - {}", adapterIndex, desc.VendorId, desc.DeviceId, Narrow(desc.Description));
                     break;
                 }
             }
@@ -557,11 +553,7 @@ namespace Inferno {
 
                 // Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
                 if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), m_d3dMinFeatureLevel, _uuidof(ID3D12Device), nullptr))) {
-#ifdef _DEBUG
-                    wchar_t buff[256] = {};
-                    swprintf_s(buff, L"Direct3D Adapter (%u): VID:%04X, PID:%04X - %ls\n", adapterIndex, desc.VendorId, desc.DeviceId, desc.Description);
-                    OutputDebugStringW(buff);
-#endif
+                    SPDLOG_INFO("Direct3D Adapter ({}): VID:{:x}, PID:{:x} - {}", adapterIndex, desc.VendorId, desc.DeviceId, Narrow(desc.Description));
                     break;
                 }
             }
