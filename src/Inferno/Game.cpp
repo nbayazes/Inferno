@@ -1165,7 +1165,7 @@ namespace Inferno::Game {
         player.Physics.TurnRollScale = Game::Player.Ship.TurnRollScale;
 
         Navigation = NavigationNetwork(Level);
-        Level.Rooms = CreateRooms(Level);
+        Level.Rooms = CreateRooms(Level, player.Segment);
         Level.HasBoss = false;
         Graphics::NotifyLevelChanged(); // regenerate level meshes
 

@@ -150,7 +150,12 @@ namespace Inferno::Game {
             FreeProceduralTextures();
             Resources::LoadLevel(Level);
 
-            Level.Rooms = CreateRooms(Level);
+            // Rarely a custom level might have seg 0 detached from the rest of the level, try using the player start seg if present.
+            SegID start{ 0 };
+            if (Level.Objects.size() > 0)
+                start = Level.Objects[0].Segment;
+
+            Level.Rooms = CreateRooms(Level, start);
             Navigation = NavigationNetwork(Level);
             LevelNumber = GetLevelNumber(Level.FileName);
 

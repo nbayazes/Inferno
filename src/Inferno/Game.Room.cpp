@@ -1224,14 +1224,14 @@ namespace Inferno::Game {
         }
     }
 
-    List<Room> CreateRooms(Level& level, int preferredSegCount) {
+    List<Room> CreateRooms(Level& level, SegID start, int preferredSegCount) {
         Set<SegID> visited;
         List<Room> rooms;
 
         Stopwatch timer;
 
         Stack<SegID> search;
-        search.push(SegID(0));
+        search.push(start);
 
         while (!search.empty()) {
             auto id = search.top();

@@ -632,7 +632,7 @@ namespace Inferno::Render {
             }
         }
 
-        // Add lights inside the segment (explosions, objects)
+        // Add lights inside the segment such as energy centers or matcens
         for (auto& light : lights->Lights) {
             LightData l = light;
             l.color *= Game::GlobalDimming;
