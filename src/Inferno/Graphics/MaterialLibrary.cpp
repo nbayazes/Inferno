@@ -89,6 +89,9 @@ namespace Inferno::Render {
                     if (object.Render.Model.TextureOverride != LevelTexID::None) {
                         auto id = Resources::LookupTexID(object.Render.Model.TextureOverride);
                         ids.insert(id);
+
+                        auto& eclip = Resources::GetEffectClip(id);
+                        Seq::insert(ids, eclip.VClip.GetFrames());
                     }
 
                     break;
