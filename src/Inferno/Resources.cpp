@@ -1375,6 +1375,18 @@ namespace Inferno::Resources {
             //    }
             //}
 
+            // Doors that use TMap1 override their side's textures on level load
+            for (auto& wall : level.Walls) {
+                if (wall.Clip != DClipID::None) {
+                    auto& clip = Resources::GetDoorClip(wall.Clip);
+                    if (clip.HasFlag(DoorClipFlag::TMap1)) {
+                        auto& side = level.GetSide(wall.Tag);
+                        side.TMap = clip.Frames[0];
+                        side.TMap2 = LevelTexID::Unset;
+                    }
+                }
+            }
+
             Materials = { Render::MATERIAL_COUNT };
 
             for (auto& obj : level.Objects) {
