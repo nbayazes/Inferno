@@ -1366,13 +1366,13 @@ Effects:
     - Name: tunnel chase fireball
       FadeTime: 0.25
       Color: 1, .8, .8, 4
-      Radius: [ 13, 20 ]
-      Delay: [ 0.1, 0.25 ]
+      Radius: [ 15, 22 ]
+      Delay: [ 0.1, 0.175 ]
       LightColor: 1, 0.25, 0.025, 1
       Clip: 58
       Sound: 31 # Exploding wall
       Instances: 3
-      Variance: 12
+      Variance: 14
 
     - Name: mine collapse fireball
       FadeTime: 0.25

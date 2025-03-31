@@ -40,7 +40,7 @@ namespace Inferno::Render {
 
         if (Settings::Editor.RenderMode == RenderMode::None) return;
 
-        if (!MineCollapsed()) {
+        if (!(Game::GetState() == GameState::EscapeSequence && MineCollapsed())) {
             // Queue commands for level meshes
             for (auto& mesh : meshBuilder.GetMeshes()) {
                 if (!camera.Frustum.Contains(mesh.Chunk->Bounds)) continue;

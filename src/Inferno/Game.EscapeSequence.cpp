@@ -490,9 +490,11 @@ namespace Inferno {
             //Game::MoveCameraToObject(CinematicCamera, player, Game::LerpAmount);
             //CinematicCamera.SetFov(Settings::Graphics.FieldOfView);
                 player.Render.Type = RenderType::None;
+                CinematicCamera.Segment = player.Segment;
                 break;
             case EscapeScene::LookBack: {
                 Game::SetActiveCamera(CinematicCamera);
+                Game::UpdateCameraSegment(CinematicCamera);
 
                 // Use third person camera
                 float speed = player.Physics.Velocity.Length();
@@ -520,6 +522,7 @@ namespace Inferno {
             }
             case EscapeScene::Outside: {
                 Game::SetActiveCamera(CinematicCamera);
+                CinematicCamera.Segment = SegID::Terrain;
 
                 //const auto targetPos = transform.Translation() + transform.Forward() * 100 + transform.Right() * 50 + transform.Up() * 5;
                 //CinematicCamera.Target = (player.GetPosition(Game::LerpAmount)) / 2.0f;
@@ -540,8 +543,6 @@ namespace Inferno {
                 break;
             }
         }
-
-        Game::UpdateCameraSegment(CinematicCamera);
 
         auto& exit = Game::Terrain.ExitTransform;
 
