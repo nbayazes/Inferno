@@ -487,7 +487,7 @@ namespace Inferno {
                 ? PrimaryWeaponIndex::SuperLaser
                 : PrimaryWeaponIndex::Laser;
 
-            if (GetWeaponPriority(laserIndex) < GetWeaponPriority(Primary) && CanFirePrimary(laserIndex))
+            if (GetPrimaryWeaponPriority(laserIndex) < GetPrimaryWeaponPriority(Primary) && CanFirePrimary(laserIndex))
                 SelectPrimary(laserIndex);
         }
     }
@@ -511,7 +511,7 @@ namespace Inferno {
             return;
 
         if (!CanFirePrimary(Primary) && WeaponCharge <= 0) {
-            AutoselectPrimary();
+            AutoselectPrimary(true);
             return;
         }
 
@@ -576,7 +576,7 @@ namespace Inferno {
         AlertRobotsOfNoise(player, GetWeaponAlertRadius(weapon), weapon.Extended.Noise);
 
         if (!CanFirePrimary(Primary) && Primary != PrimaryWeaponIndex::Omega)
-            AutoselectPrimary();
+            AutoselectPrimary(true);
     }
 
     void Player::HoldPrimary() {}
@@ -659,7 +659,7 @@ namespace Inferno {
         return true;
     }
 
-    void Player::AutoselectPrimary() {
+    void Player::AutoselectPrimary(bool onEmpty) {
         int priority = -1;
         int index = -1;
         const int numWeapons = Game::Level.IsDescent1() ? 5 : 10;
@@ -673,7 +673,7 @@ namespace Inferno {
 
             if (!CanFirePrimary(idx)) continue;
 
-            auto p = GetWeaponPriority(idx);
+            auto p = GetPrimaryWeaponPriority(idx);
             if (p == NO_AUTOSELECT) continue;
 
             if (p < priority || priority == -1) {
@@ -683,7 +683,8 @@ namespace Inferno {
         }
 
         if (index == -1) {
-            PrintHudMessage("no primary weapons available!");
+            if (onEmpty)
+                PrintHudMessage("no primary weapons available!");
             // play sound first time this happens?
             return;
         }
@@ -695,15 +696,6 @@ namespace Inferno {
     }
 
     void Player::AutoselectSecondary() {
-        auto getPriority = [](SecondaryWeaponIndex secondary) {
-            for (uint8 i = 0; i < Settings::Inferno.SecondaryPriority.size(); i++) {
-                auto prio = Settings::Inferno.SecondaryPriority[i];
-                if (prio == NO_AUTOSELECT) return NO_AUTOSELECT;
-                if (prio == (int)secondary) return i;
-            }
-            return uint8(0);
-        };
-
         int priority = -1;
         int index = -1;
         const int numWeapons = Game::Level.IsDescent1() ? 5 : 10;
@@ -712,7 +704,7 @@ namespace Inferno {
             auto idx = (SecondaryWeaponIndex)i;
             if (!CanFireSecondary(idx)) continue;
 
-            auto p = getPriority(idx);
+            auto p = GetSecondaryWeaponPriority(idx);
             if (p == NO_AUTOSELECT) continue;
 
             if (p < priority || priority == -1) {
@@ -1026,7 +1018,7 @@ namespace Inferno {
         return quadFire ? energyUsage * 2 : energyUsage;
     }
 
-    int Player::GetWeaponPriority(PrimaryWeaponIndex primary) const {
+    int Player::GetPrimaryWeaponPriority(PrimaryWeaponIndex primary) const {
         for (int i = 0; i < Settings::Inferno.PrimaryPriority.size(); i++) {
             auto priority = Settings::Inferno.PrimaryPriority[i];
 
@@ -1042,6 +1034,20 @@ namespace Inferno {
             }
 
             if (priority == (int)primary)
+                return i;
+        }
+
+        return 0;
+    }
+
+    int Player::GetSecondaryWeaponPriority(SecondaryWeaponIndex secondary) const {
+        for (int i = 0; i < Settings::Inferno.SecondaryPriority.size(); i++) {
+            auto priority = Settings::Inferno.SecondaryPriority[i];
+
+            if (priority == NO_AUTOSELECT)
+                return NO_AUTOSELECT; // skip all weapons after autoselect
+
+            if (priority == (int)secondary) 
                 return i;
         }
 
@@ -1328,7 +1334,7 @@ namespace Inferno {
                             Sound::Play2D({ SoundID::SelectPrimary });
                             PrimaryDelay = RearmTime;
                         }
-                        else if (GetWeaponPriority(PrimaryWeaponIndex::SuperLaser) < GetWeaponPriority(Primary)) {
+                        else if (GetPrimaryWeaponPriority(PrimaryWeaponIndex::SuperLaser) < GetPrimaryWeaponPriority(Primary)) {
                             // Do a real weapon swap check
                             SelectPrimary(PrimaryWeaponIndex::Laser);
                         }
@@ -1527,7 +1533,7 @@ namespace Inferno {
 
         // Select the weapon we just picked up if it has a higher priority
         // Also check if the weapon we just picked up has ammo before selecting it
-        if (GetWeaponPriority(index) < GetWeaponPriority(Primary) && CanFirePrimary(index))
+        if (GetPrimaryWeaponPriority(index) < GetPrimaryWeaponPriority(Primary) && CanFirePrimary(index))
             SelectPrimary(index);
 
         return true;
@@ -1566,8 +1572,7 @@ namespace Inferno {
             PrintHudMessage(fmt::format("{}!", name));
         }
 
-        // todo: autoselect priority
-        if (!CanFireSecondary(Secondary) || (startAmmo == 0 && Secondary < index && index != SecondaryWeaponIndex::ProximityMine))
+        if (!CanFireSecondary(Secondary) || (startAmmo == 0 && GetSecondaryWeaponPriority(index) < GetSecondaryWeaponPriority(Secondary)))
             SelectSecondary(index);
 
         // todo: spawn individual missiles if count > 1 and full

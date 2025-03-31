@@ -240,7 +240,7 @@ namespace Inferno {
 
         bool CanOpenDoor(const Wall& wall) const;
 
-        void AutoselectPrimary();
+        void AutoselectPrimary(bool onEmpty = false);
         void AutoselectSecondary();
         void GiveExtraLife(uint8 lives = 1);
         void LoseLife();
@@ -266,7 +266,8 @@ namespace Inferno {
         void ReleaseFusionCharge();
 
         // Returns a value indicating the weapon's priority. Lower values are higher priority. 255 is disabled.
-        int GetWeaponPriority(PrimaryWeaponIndex primary) const;
+        int GetPrimaryWeaponPriority(PrimaryWeaponIndex primary) const;
+        int GetSecondaryWeaponPriority(SecondaryWeaponIndex secondary) const;
 
         WeaponID GetPrimaryWeaponID(PrimaryWeaponIndex index) const {
             if (index == PrimaryWeaponIndex::Laser) {
