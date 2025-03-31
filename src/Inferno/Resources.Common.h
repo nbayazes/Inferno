@@ -37,7 +37,7 @@ namespace Inferno {
         Descent2 = 1 << 2, // Search D2 data folder or hog
         Descent3 = 1 << 3, // Search D3 hog
         Filesystem = 1 << 4, // Search the filesystem for loose files. Requires D1, D2, D3 or Common to be set.
-        Mission = 1 << 5, // search the currently loaded mission
+        Mission = 1 << 5, // search the currently loaded mission. Also implies the 'unpacked' system folder adjacent to the mission file.
         Dxa = 1 << 6, // search DXAs in the D1, D2, or data folder
         BaseHog = 1 << 7, // descent1.hog or descent2.hog. Only valid when Descent1 or Descent2 is also set.
         Common = 1 << 8, // Search common data folder

@@ -837,9 +837,8 @@ namespace Inferno::Resources {
 
     bool LoadGameTables(LoadFlag flags) {
         // Load order matters. Changes get layered onto each other (root, game, mission)
-        auto data = ReadTextFile(GAME_TABLE_FILE, flags);
-        if (!data.empty()) {
-            LoadGameTable(data, GameData);
+        if (auto data = ReadTextFile(GAME_TABLE_FILE, flags)) {
+            LoadGameTable(*data, GameData);
             return true;
         }
 
@@ -847,9 +846,8 @@ namespace Inferno::Resources {
     }
 
     bool LoadLightTables(LoadFlag flags) {
-        auto data = ReadTextFile(LIGHT_TABLE_FILE, flags);
-        if (!data.empty()) {
-            LoadLightTable(data, Lights);
+        if (auto data = ReadTextFile(LIGHT_TABLE_FILE, flags)) {
+            LoadLightTable(*data, Lights);
             return true;
         }
 
@@ -1197,7 +1195,7 @@ namespace Inferno::Resources {
         //}
     }
 
-    string ReadTextFile(string_view name, LoadFlag flags) {
+    Option<string> ReadTextFile(string_view name, LoadFlag flags) {
         if (auto bytes = ReadBinaryFile(name, flags)) {
             string str((char*)bytes->data(), bytes->size());
             return str;
