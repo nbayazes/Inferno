@@ -26,7 +26,7 @@ namespace Inferno {
         uint FleeingDrones = 0, FleeingDronesCounter = 0;
 
         constexpr float AI_DODGE_TIME = 0.5f; // Time to dodge a projectile. Should probably scale based on mass.
-        constexpr float AI_MAX_DODGE_DISTANCE = 60; // Range at which projectiles are dodged
+        constexpr float AI_MAX_DODGE_DISTANCE = 100; // Range at which projectiles are dodged
         constexpr float DEATH_SOUND_DURATION = 2.68f;
         constexpr float AI_SOUND_RADIUS = 300.0f; // Radius for combat sound playback
 
@@ -837,12 +837,12 @@ namespace Inferno {
         auto& robotInfo = Resources::GetRobotInfo(robot);
         auto& ai = GetAI(robot);
 
-        if (ai.State == AIState::Idle) {
+        if (ai.State == AIState::Idle && !Settings::Cheats.DisableAI) {
             Chat(robot, "What hit me!?");
             ChangeState(robot, ai, AIState::Alert);
         }
 
-        if (source && ai.State != AIState::Combat) {
+        if (source && ai.State != AIState::Combat && !Settings::Cheats.DisableAI) {
             // Try randomly dodging if taking damage
             RandomDodge(robot, ai, robotInfo);
 
@@ -852,15 +852,20 @@ namespace Inferno {
                 ai.LastHitByPlayer = 0;
                 ai.Awareness = AI_AWARENESS_MAX;
 
-                // Hack: path towards player if robot takes damage, this is so they aren't easily sniped around corners.
+                // Path towards player if robot takes damage and is out of LOS. This is so they aren't easily sniped around corners.
                 if (ai.State == AIState::Alert || ai.State == AIState::Idle) {
-                    ChaseTarget(robot, ai, NavPoint(Game::GetPlayerObject()), PathMode::StopVisible, robotInfo.ChaseDistance);
-                    ai.path.faceGoal = true;
+                    bool hasLos = source ? HasLineOfSight(robot, source->Position) : false;
+                    if (!hasLos) {
+                        ChaseTarget(robot, ai, NavPoint(Game::GetPlayerObject()), PathMode::StopVisible, robotInfo.ChaseDistance);
+                        ai.path.faceGoal = true;
+                        ai.path.interruptable = true;
+                    }
                 }
-
-                // Break out of pathing if shot
-                if (ai.State == AIState::Path && ai.path.interruptable) {
-                    ChangeState(robot, ai, AIState::Combat);
+                else if (ai.State == AIState::Path && ai.path.interruptable) {
+                    // Break out of pathing if shot
+                    bool hasLos = source ? HasLineOfSight(robot, source->Position) : false;
+                    if (hasLos)
+                        ChangeState(robot, ai, AIState::Combat);
                 }
             }
             else if (source->IsRobot()) {
