@@ -314,7 +314,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         ShadeLights(directLight, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
 
         // allow light contribution to fullbright, otherwise lava looks odd
-        lighting += directLight * (fullbright ? 0.5 : material.LightReceived) * DIRECT_LIGHT_MULT;
+        lighting += directLight * (fullbright ? 0.1 : material.LightReceived) * DIRECT_LIGHT_MULT;
 
 
         //specularAmbient *= material.SpecularStrength * material.LightReceived;
