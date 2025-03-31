@@ -260,7 +260,7 @@ Lights:
 
     - Name: lava02#0
       Points: []
-      Color: 1, 0.43, 0, .5
+      Color: 1, 0.43, 0, 1
 
     - Name: misc073#0 # lavafall
       Points: []
@@ -312,7 +312,7 @@ Lights:
       Color: 1, 0.443, 0.027, 0.3
 
     - Name: Headlight # Player ship headlight
-      Color: 0.6, 0.6, 1, .8
+      Color: 0.6, 0.6, 1, .6
       # Color: 1, 0.7, 0.4, .5
       Radius: 180
       Angle: 22.5

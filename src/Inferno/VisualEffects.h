@@ -200,7 +200,7 @@ namespace Inferno {
     inline class EffectLibrary EffectLibrary;
 
     void AddDecal(const Decal& info, Tag tag, const Vector3& position, const Vector3& normal, const Vector3& tangent, float duration);
-    void AddBeam(const BeamInfo&, SegID seg, const Vector3& start, const Vector3& end);
+    void AddBeam(const BeamInfo&, SegID seg, const Vector3& start, const Vector3& end = {});
     void AddBeam(const BeamInfo&, ObjRef start, const Vector3& end, int startGun);
     void AttachBeam(const BeamInfo&, float duration, ObjRef start, ObjRef end = {}, int startGun = -1);
 

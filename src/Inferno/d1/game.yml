@@ -94,7 +94,7 @@ Weapons:
 
   - id: 6
     Name: reactor energy ball
-    Glow: 1, 0.2, 0.2, 6
+    Glow: 1, 0.2, 0.2, 10
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
@@ -1022,11 +1022,63 @@ Effects:
       Frequency: 0.0333 # 1/30
       Amplitude: 0.8
       FadeEnd: 1
-      FadeStart: 1
+      FadeStart: 0
       RandomEnd: 1
       StrikeTime: .6
       FadeInOutTime: 0.3
       Duration: 1.8
+
+    - Name: player spawn
+      Radius: [ 5, 7 ]
+      Width:  [ .3, 0.35 ]
+      Color: .3, .3, 1, 15
+      Texture: Lightning3
+      Frequency: 0.0333 # 1/30
+      Amplitude: 0.4
+      FadeEnd: 1
+      FadeStart: 0
+      RandomEnd: 1
+      StrikeTime: 1
+      FadeInOutTime: 0.3
+      Duration: .75
+
+    - Name: player spawn 2
+      Radius: [ 3, 4 ]
+      Width:  [ .05, 0.1 ]
+      Color: .1, .1, 1, 10
+      Texture: Lightning3
+      Frequency: 0.0333 # 1/30
+      Amplitude: 0.075
+      FadeEnd: 1
+      FadeStart: 0
+      RandomEnd: 1
+      StrikeTime: 0.4
+      FadeInOutTime: 0.3
+      Duration: .75
+
+    - Name: player spawn vertical
+      Width:  [ 0.4, .4 ]
+      Color: .1, .1, 1, 25
+      Texture: Lightning3
+      Frequency: 0.0333 # 1/30
+      Amplitude: 0.5
+      FadeEnd: 1
+      FadeStart: 0
+      StrikeTime: 1
+      FadeInOutTime: 0.25
+      Duration: 1
+
+    - Name: player spawn vertical 2
+      Width:  [ 0.1, .2 ]
+      Color: .2, .1, 1, 20
+      Texture: Lightning3
+      Frequency: 0.0333 # 1/30
+      Amplitude: 0.1
+      FadeEnd: 1
+      FadeStart: 0
+      StrikeTime: 1
+      FadeInOutTime: 0.25
+      Duration: 1
 
     - Name: damaged object arcs
       Width: [ 0.05, 0.065 ]
