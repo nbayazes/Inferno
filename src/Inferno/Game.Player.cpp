@@ -850,81 +850,12 @@ namespace Inferno {
 
         {
             // Play spawn effect
-
-            // Old sprite
-            //ParticleInfo p{};
-            //p.Clip = VClipID::PlayerSpawn;
-            //p.Radius = player.Radius;
-            //p.RandomRotation = false;
-            //Vector3 position = player.Position + player.Rotation.Forward() * 3;
-            //AddParticle(p, player.Segment, position);
-
-            //if (auto beam = EffectLibrary.GetBeamInfo("player spawn")) {
-            //    for (int i = 0; i < 5; i++) {
-            //        //Vector3 position = player.Position + player.Rotation.Forward() * 3;
-            //        //Vector3 position = player.Position + player.Rotation.Down() * 6 + player.Rotation.Forward() * 3;
-            //        Vector3 position = player.Position + player.Rotation.Forward() * 5;
-            //        AddBeam(*beam, player.Segment, position);
-            //    }
-
-            //    //for (int i = 0; i < 8; i++) {
-            //    //    //Vector3 position = player.Position + player.Rotation.Forward() * 3;
-            //    //    Vector3 position = player.Position + player.Rotation.Up() * 6 + player.Rotation.Forward() * 3;
-            //    //    AddBeam(*beam, player.Segment, position);
-            //    //}
-            //}
-
-            //if (auto beam = EffectLibrary.GetBeamInfo("player spawn 2")) {
-            //    for (int i = 0; i < 6; i++) {
-            //        //Vector3 position = player.Position + player.Rotation.Forward() * 3;
-            //        //Vector3 position = player.Position + player.Rotation.Down() * 6 + player.Rotation.Forward() * 3;
-            //        Vector3 position = player.Position + player.Rotation.Forward() * 5;
-            //        AddBeam(*beam, player.Segment, position);
-            //    }
-
-            //    //for (int i = 0; i < 8; i++) {
-            //    //    //Vector3 position = player.Position + player.Rotation.Forward() * 3;
-            //    //    Vector3 position = player.Position + player.Rotation.Up() * 6 + player.Rotation.Forward() * 3;
-            //    //    AddBeam(*beam, player.Segment, position);
-            //    //}
-            //}
-            const float size = 5.0f;
-            if (auto beam = EffectLibrary.GetBeamInfo("player spawn vertical")) {
-                //for (int i = 0; i < 2; i++) {
-                    Vector3 start = player.Position + player.Rotation.Forward() * 5;
-                    Vector3 end = player.Position + player.Rotation.Forward() * 5 + player.Rotation.Up() * size;
-                    AddBeam(*beam, player.Segment, start, end);
-
-                    end = player.Position + player.Rotation.Forward() * 5 + player.Rotation.Left() * size;
-                    AddBeam(*beam, player.Segment, start, end);
-
-                    end = player.Position + player.Rotation.Forward() * 5 + player.Rotation.Right() * size;
-                    AddBeam(*beam, player.Segment, start, end);
-
-                    end = player.Position + player.Rotation.Forward() * 5 + player.Rotation.Down() * size;
-                    AddBeam(*beam, player.Segment, start, end);
-                //}
-            }
-
-            if (auto beam = EffectLibrary.GetBeamInfo("player spawn vertical 2")) {
-                for (int i = 0; i < 2; i++) {
-                    //Vector3 position = player.Position + player.Rotation.Forward() * 3;
-                    //Vector3 position = player.Position + player.Rotation.Down() * 6 + player.Rotation.Forward() * 3;
-                    Vector3 start = player.Position + player.Rotation.Forward() * 5;
-                    Vector3 end = player.Position + player.Rotation.Forward() * 5 + player.Rotation.Up() * size;
-
-                    AddBeam(*beam, player.Segment, start, end);
-
-                    end = player.Position + player.Rotation.Forward() * 5 + player.Rotation.Left() * size;
-                    AddBeam(*beam, player.Segment, start, end);
-
-                    end = player.Position + player.Rotation.Forward() * 5 + player.Rotation.Right() * size;
-                    AddBeam(*beam, player.Segment, start, end);
-
-                    end = player.Position + player.Rotation.Forward() * 5 + player.Rotation.Down() * size;
-                    AddBeam(*beam, player.Segment, start, end);
-                }
-            }
+            ParticleInfo p{};
+            p.Clip = VClipID::PlayerSpawn;
+            p.Radius = player.Radius;
+            p.RandomRotation = false;
+            Vector3 position = player.Position + player.Rotation.Forward() * 3;
+            AddParticle(p, player.Segment, position);
 
             auto& vclip = Resources::GetVideoClip(VClipID::PlayerSpawn);
             Sound3D sound(vclip.Sound);
@@ -1114,7 +1045,7 @@ namespace Inferno {
             if (priority == NO_AUTOSELECT)
                 return NO_AUTOSELECT; // skip all weapons after autoselect
 
-            if (priority == (int)secondary)
+            if (priority == (int)secondary) 
                 return i;
         }
 
