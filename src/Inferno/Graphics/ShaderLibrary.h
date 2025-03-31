@@ -377,8 +377,7 @@ namespace Inferno {
             RootConstants,
             Diffuse,
             Depth,
-            Sampler,
-            RootParameterCount
+            Sampler
         };
 
     public:

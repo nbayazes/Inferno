@@ -155,6 +155,7 @@ namespace Inferno::Render {
         BeginDepthPrepass(ctx);
 
         if (!Game::Terrain.EscapePath.empty() && Settings::Editor.ShowTerrain) {
+            PIXScopedEvent(cmdList, PIX_COLOR_INDEX(6), "Terrain Depth Prepass");
             StaticModelDepthPrepass(ctx, Game::Terrain.ExitModel, Game::Terrain.ExitTransform);
             //auto dsv = Adapter->GetDepthBuffer().GetDSV();
             //cmdList->OMSetRenderTargets(0, nullptr, false, &dsv);
@@ -515,7 +516,7 @@ namespace Inferno::Render {
             ctx.ApplyEffect(effect);
             ctx.SetConstantBuffer(0, Adapter->GetTerrainConstants().GetGPUVirtualAddress());
             effect.Shader->SetConstants(cmdList, { 0, 0 });
-            //effect.Shader->SetDepthTexture(ctx.GetCommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
+            effect.Shader->SetDepthTexture(ctx.GetCommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
             effect.Shader->SetSampler(ctx.GetCommandList(), Render::GetClampedTextureSampler());
 
             for (auto& sat : terrainMesh->GetSatellites()) {
@@ -683,6 +684,7 @@ namespace Inferno::Render {
 
             // todo: OR game show terrain
             if (Settings::Editor.ShowTerrain) {
+                PIXScopedEvent(cmdList, PIX_COLOR_INDEX(6), "Terrain");
                 //cmdList->OMSetStencilRef(0);
                 DrawStars(ctx);
                 DrawTerrain(ctx);
