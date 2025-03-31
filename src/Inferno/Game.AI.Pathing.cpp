@@ -346,7 +346,7 @@ namespace Inferno {
     }
 
     // Creates a path to a goal point
-    bool SetPathGoal(Level& level, const Object& obj, AIRuntime& ai, const NavPoint& goal, float maxDistance) {
+    bool SetPathGoal(Level& level, const Object& obj, AIRuntime& ai, const NavPoint& goal, PathMode mode, float maxDistance) {
         auto& robotInfo = Resources::GetRobotInfo(obj);
 
         NavigationFlag flags{};
@@ -363,14 +363,19 @@ namespace Inferno {
 
         //SPDLOG_INFO("Robot {} updating path goal to {}", obj.Signature, ai.GoalSegment);
         ai.State = AIState::Path;
-        ai.path.index = 0;
+        ai.path.index = ai.path.nodes.size() > 2 ? 1 : 0; // skip the first node as it's where we already are
+        ai.path.mode = mode;
         return true;
     }
 
-    bool PathTowardsGoal(Object& robot, AIRuntime& ai, bool alwaysFaceGoal, bool stopOnceVisible) {
+    bool PathTowardsGoal(Object& robot, AIRuntime& ai) {
         // Travel along a designated path, incrementing the node index as we go
-        if (!Seq::inRange(ai.path.nodes, ai.path.index))
+        if (!Seq::inRange(ai.path.nodes, ai.path.index)) {
+            ai.ClearPath();
+            ai.State = AIState::Alert;
+            SPDLOG_INFO("Robot {} reached the end of the path", robot.Signature);
             return false; // Empty or invalid index
+        }
 
         auto& node = ai.path.nodes[ai.path.index];
         auto& goal = ai.path.nodes.back();
@@ -393,19 +398,19 @@ namespace Inferno {
             ai.DodgeTime = 0.5f;
         }
 
-        if (stopOnceVisible && robot.Segment != ai.path.nodes.front().Segment && HasLineOfSight(robot, goal.Position)) {
+        if (ai.path.mode == PathMode::StopVisible && robot.Segment != ai.path.nodes.front().Segment && HasLineOfSight(robot, goal.Position)) {
             PlayAlertSound(robot, ai);
             SPDLOG_INFO("Robot {} can see the goal!", robot.Signature);
             ai.path.nodes.clear();
             ai.State = AIState::Alert; // Stay alert long enough to turn towards the goal
             ai.Awareness = 1.0f;
-            ai.TargetPosition = goal; // turn towards the goal
+            ai.Target = goal; // turn towards the goal
             return false;
         }
 
         MoveTowardsPoint(robot, ai, node.Position, 1);
 
-        Vector3 targetPosition = alwaysFaceGoal ? goal.Position : node.Position;
+        Vector3 targetPosition = ai.path.faceGoal ? goal.Position : node.Position;
         auto goalDir = targetPosition - robot.Position;
         goalDir.Normalize();
 

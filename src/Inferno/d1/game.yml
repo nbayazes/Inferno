@@ -610,10 +610,10 @@ Robots:
     AlertRadius: 120 # Drones are scouts and have a larger radius than normal
     FleeThreshold: 0.5
     ChaseChance: 1
-    Curiosity: 0.95 # Scouts should nearly always investigate noises
+    Curiosity: 1 # Scouts should nearly always investigate noises
     GetBehind: 1
     StunResist: 0.5 # Any nearby explosions should stun
-    AmbushRange: 150 # Looking for a fight!
+    AmbushDistance: 180 # Looking for a fight!
   - id: 4 
     Name: Class 2 Drone
     DevName: Violet
@@ -624,6 +624,7 @@ Robots:
     AngerBehavior: 1 # Gets angry when alone
     AimAngle: 60 # Increased to make it a bit more unique
     GetBehind: 1
+    AmbushDistance: 180 # Looking for a fight!
   - id: 5
     Name: Cloaked Driller
     DevName: Cloak Vulcan
@@ -650,8 +651,8 @@ Robots:
     Score: 800 # Was 700
     Curiosity: 0.05 # Very rarely move to investigate sounds
     AimAngle: 15 # Unfair to lead much and looks odd
-    Shots: [ 2, 2, 4, 4, 6 ] # Was 1, 1, 2, 3, 4
-    FireDelay: [ 7, 5, 3, 1, 1 ] # Was 7, 5, 3, 1, 1
+    Shots: [ 2, 2, 2, 4, 4 ] # Was 1, 1, 2, 3, 4
+    FireDelay: [ 5, 4, 2, 1, 1 ] # Was 7, 5, 3, 1, 1
     BurstDelay: 0.6
     Aim: 250
     AmbushDistance: 200
@@ -756,6 +757,7 @@ Robots:
     Aim: 25 # Inaccurate
     BurstDelay: 0.15
     TurnTime: 0.15
+    StunResist: 0.5 # Any nearby explosions should stun
   - id: 15
     Name: Fusion hulk
     DevName: Miniboss

@@ -189,15 +189,15 @@ namespace Inferno {
         return true;
     }
 
-    TerrainInfo CreateRandomTerrain(const Level& level) {
+    TerrainInfo CreateRandomTerrain(const Level& level, string_view surfaceTexture = "moon01.bbm", string_view satelliteTexture = "sun.bbm") {
         TerrainInfo info{};
-        info.SurfaceTexture = "moon01.bbm";
-        info.SatelliteTexture = "sun.bbm";
+        info.SurfaceTexture = surfaceTexture;
+        info.SatelliteTexture = satelliteTexture;
         info.SatelliteAdditive = true;
         info.SatelliteColor = Color(3, 3, 3);
         info.SatelliteDir = Vector3(0.5f, 0.1f, 0.5f);
         info.SatelliteDir.Normalize();
-        info.ExitModel = Resources::GameData.ExitModel; // todo: hard code?
+        info.ExitModel = Resources::GameData.ExitModel;
 
         TerrainGenerationInfo args;
         args.Height = 31;

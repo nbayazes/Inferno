@@ -262,16 +262,6 @@ Lights:
       Points: []
       Color: 1, 0.43, 0, .5
 
-    - Name: misc073#0 # lavafall
-      Points: []
-      Color: 1, 0, 0, .1
-      # Points: 0.5, 0.5
-      # Type: 2
-      # Width: .1
-      # Wrap: 2
-      # Radius: 10
-      #Radius: 50
-
     # - Name: misc14#0 # matcen tendrils
     #   Points: []
     #   Color: 0.4, 0, 1, .4
@@ -300,6 +290,24 @@ Lights:
     #   Angle: 80
     #   InnerAngle: 25
 
+    # Misc
+    - ID: 423 # green particles
+      Type: 2
+      Radius: 20
+      Width: 0.001
+      Wrap: 1
+      Color: 0.05, 0.3, 0.05
+    - ID: 424 # orange particles
+      Type: 2
+      Radius: 20
+      Width: 0.001
+      Wrap: 1
+      Color: 0.35, 0.25, 0.05
+
+    - ID: 72 # Secret portal
+    - ID: 434 # Red goal
+    - ID: 433 # Blue goal
+  
     - Name: empty # blank light texture. only used for ambient lighting
       Color: 1, 1, 1, 1
       Points: []

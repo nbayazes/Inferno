@@ -122,7 +122,7 @@ namespace Inferno::Resources {
     //bool FileExists(string_view fileName, LoadFlag flags = LoadFlag::Default);
 
     // Tries to read a text file by checking the mission, the game specific directory, the shared directory, and finally the game HOG
-    string ReadTextFile(string_view name,LoadFlag flags = LoadFlag::Default);
+    Option<string> ReadTextFile(string_view name,LoadFlag flags = LoadFlag::Default);
 
     // Tries to read a binary file by checking the mission, the game specific directory, the shared directory, and finally the game HOG
     Option<List<byte>> ReadBinaryFile(string_view fileName, LoadFlag flags = LoadFlag::Default);

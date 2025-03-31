@@ -214,7 +214,7 @@ namespace Inferno {
                 totalDistance += sqrt(closestPortal);
                 if (totalDistance > maxDistance) {
                     path.clear();
-                    return path; // Max depth reached
+                    break; // Max depth reached
                 }
 
                 auto localPath = NavigateWithinRoomBfs(level, roomStartSeg, bestPortal.Segment, *room);
@@ -231,6 +231,8 @@ namespace Inferno {
                 roomStartSeg = level.GetConnectedSide(bestPortal).Segment;
             }
         }
+
+        path.push_back(goal);
 
         if (optimize)
             OptimizePath(path);

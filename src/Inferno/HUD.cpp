@@ -391,7 +391,7 @@ namespace Inferno {
 
             case PrimaryWeaponIndex::Vulcan:
             case PrimaryWeaponIndex::Gauss:
-                ammo = fmt::format("{:05}", player.PrimaryAmmo[weapon.AmmoType]);
+                ammo = fmt::format("{:04}", player.PrimaryAmmo[weapon.AmmoType] / 10);
                 break;
 
             case PrimaryWeaponIndex::Omega:

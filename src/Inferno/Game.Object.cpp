@@ -1210,7 +1210,7 @@ namespace Inferno {
             if (segid != SegID::None)
                 obj.Segment = segid;
 
-            SPDLOG_INFO("Shifted intersecting object {}", Game::GetObjectRef(obj).Id);
+            SPDLOG_INFO("Shifted object {} due to interesecting with level geometry", Game::GetObjectRef(obj).Id);
 
             //if (dir.Length() < obj.Radius) {}
             //else {

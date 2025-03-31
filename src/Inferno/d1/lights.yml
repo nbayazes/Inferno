@@ -330,6 +330,9 @@ Lights:
       Color: 1, .3, .0, 0.25
       Radius: 60
 
+    - Name: Matcen Create # light color when creating something from a matcen
+      Color: 1, 0, 0.8, 2.0
+      Radius: 60
 #    - Name: 343 # paired monitor
 #      Points:
 #        - 0.29, 0.35

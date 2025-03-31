@@ -605,7 +605,9 @@ namespace Inferno::Render {
             constants.EmissiveLight = Color(0, 0, 0);
 
             if (Game::GetState() == GameState::Editor) {
-                if (auto seg = Game::Level.TryGetSegment(object.Segment))
+                if (Settings::Editor.RenderMode == RenderMode::Flat || Settings::Editor.RenderMode == RenderMode::Textured)
+                    constants.Ambient = Color(1, 1, 1); // fullbright ambient in flat modes
+                else if (auto seg = Game::Level.TryGetSegment(object.Segment))
                     constants.Ambient = seg->VolumeLight;
             }
             else {

@@ -28,8 +28,8 @@ namespace Inferno {
 
     float GetWeaponAlertRadius(const Weapon& weapon) {
         // Robots use half-linear falloff instead of inverse square because it doesn't require traversing nearly as far.
-        float mult = 0.5f + std::min(2, (int)Game::Difficulty) / 4.0f; // hotshot, ace, insane = 1, trainee = 0.5, rookie = 0.75
-        return weapon.Extended.SoundRadius * mult * 0.65f; // Reduce radius because weapons have a default sound radius of 300
+        //float mult = 0.5f + std::min(2, (int)Game::Difficulty) / 4.0f; // hotshot, ace, insane = 1, trainee = 0.5, rookie = 0.75
+        return weapon.Extended.SoundRadius /** mult */ * 0.6f; // Reduce radius because weapons have a default sound radius of 300
     }
 
     float Player::UpdateAfterburner(float dt, bool active) {
@@ -102,7 +102,7 @@ namespace Inferno {
 
         // AB button released
         if (!active && AfterburnerActive) {
-            Sound::FadeOut(_afterburnerSoundSig, 0.125f);
+            Sound::FadeOut(_afterburnerSoundSig, 0.25f);
             SoundResource resource{ AFTERBURNER_OFF_SOUND };
             Sound3D sound(resource);
             sound.Radius = 125;
@@ -573,7 +573,7 @@ namespace Inferno {
         WeaponCharge = 0;
         LastPrimaryFireTime = Game::Time;
 
-        AlertRobotsOfNoise(player, GetWeaponAlertRadius(weapon), weapon.Extended.Noise);
+        AlertRobotsOfNoise(player, GetWeaponAlertRadius(weapon), weapon.Extended.Noise * 2.0f);
 
         if (!CanFirePrimary(Primary) && Primary != PrimaryWeaponIndex::Omega)
             AutoselectPrimary(true);
@@ -623,7 +623,7 @@ namespace Inferno {
         SecondaryAmmo[(int)Secondary] -= battery.AmmoUsage;
         LastSecondaryFireTime = Game::Time;
 
-        AlertRobotsOfNoise(Game::GetPlayerObject(), GetWeaponAlertRadius(weapon), weapon.Extended.Noise);
+        AlertRobotsOfNoise(Game::GetPlayerObject(), GetWeaponAlertRadius(weapon), weapon.Extended.Noise * 2.0f);
 
         if (!CanFireSecondary(Secondary))
             AutoselectSecondary(); // Swap to different weapon if out of ammo
@@ -732,7 +732,6 @@ namespace Inferno {
 
     void Player::LoseLife() {
         stats.deaths++;
-        stats.hostagesOnboard = 0;
 
         if (Lives > 0)
             Lives--;
@@ -927,7 +926,7 @@ namespace Inferno {
             auto lum = Luminance(player->Ambient.GetValue().ToVector3());
             lum = Saturate(lum - 0.1f); // Make slightly darker so dim segments are stealthy
             if (LastPrimaryFireTime + .5f > Game::Time) lum = std::max(lum, 2.0f);
-            return lum;
+            return Saturate(lum);
         }
 
         return 1.0f;
@@ -952,8 +951,7 @@ namespace Inferno {
 
     void Player::ToggleHeadlight() {
         switch (_headlight) {
-            case HeadlightState::Off:
-            {
+            case HeadlightState::Off: {
                 if (auto info = Resources::GetLightInfo("Headlight")) {
                     LightEffectInfo light;
                     light.Radius = info->Radius;
@@ -1204,8 +1202,7 @@ namespace Inferno {
                 used = PickUpEnergy();
                 break;
 
-            case PowerupID::ShieldBoost:
-            {
+            case PowerupID::ShieldBoost: {
                 if (Shields < MAX_SHIELDS) {
                     auto amount = 3 + 3 * (5 - (int)Game::Difficulty); // 18, 15, 12, 9, 6
 
@@ -1242,8 +1239,7 @@ namespace Inferno {
                 }
                 break;
 
-            case PowerupID::KeyBlue:
-            {
+            case PowerupID::KeyBlue: {
                 if (HasPowerup(PowerupFlag::BlueKey))
                     break;
 
@@ -1256,8 +1252,7 @@ namespace Inferno {
                 break;
             }
 
-            case PowerupID::KeyRed:
-            {
+            case PowerupID::KeyRed: {
                 if (HasPowerup(PowerupFlag::RedKey))
                     break;
 
@@ -1270,8 +1265,7 @@ namespace Inferno {
                 break;
             }
 
-            case PowerupID::KeyGold:
-            {
+            case PowerupID::KeyGold: {
                 if (HasPowerup(PowerupFlag::GoldKey))
                     break;
 
@@ -1285,8 +1279,7 @@ namespace Inferno {
             }
 
             case PowerupID::Vulcan:
-            case PowerupID::Gauss:
-            {
+            case PowerupID::Gauss: {
                 // Give ammo first so autoselect works properly
                 auto& ammo = obj.Control.Powerup.Count; // remaining ammo on the weapon
 
@@ -1318,8 +1311,7 @@ namespace Inferno {
                 used = tryPickUpPrimary(PrimaryWeaponIndex::Fusion);
                 break;
 
-            case PowerupID::SuperLaser:
-            {
+            case PowerupID::SuperLaser: {
                 if (LaserLevel >= MAX_SUPER_LASER_LEVEL) {
                     LaserLevel = MAX_SUPER_LASER_LEVEL;
                     PrintHudMessage("super laser maxed out!");
@@ -1416,13 +1408,12 @@ namespace Inferno {
                 used = PickUpSecondary(SecondaryWeaponIndex::Earthshaker);
                 break;
 
-            case PowerupID::VulcanAmmo:
-            {
+            case PowerupID::VulcanAmmo: {
                 auto amount = PickUpAmmo(PrimaryWeaponIndex::Vulcan, Game::VULCAN_AMMO_PICKUP);
 
                 if (amount > 0) {
                     AddScreenFlash(FLASH_PRIMARY * 0.66f);
-                    auto msg = fmt::format("{} vulcan rounds!", amount);
+                    auto msg = fmt::format("{} vulcan rounds!", amount / 10);
                     PrintHudMessage(msg);
                     used = true;
 
@@ -1431,13 +1422,12 @@ namespace Inferno {
                         AutoselectPrimary();
                 }
                 else {
-                    PrintHudMessage(fmt::format("you already have {} vulcan rounds!", PrimaryAmmo[1]));
+                    PrintHudMessage(fmt::format("you already have {} vulcan rounds!", PrimaryAmmo[1] / 10));
                 }
                 break;
             }
 
-            case PowerupID::Cloak:
-            {
+            case PowerupID::Cloak: {
                 if (Game::GetPlayerObject().IsCloaked()) {
                     auto msg = fmt::format("{} {}!", Resources::GetString(GameString::AlreadyAre), Resources::GetString(GameString::Cloaked));
                     PrintHudMessage(msg);

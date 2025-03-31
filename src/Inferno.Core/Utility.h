@@ -726,8 +726,10 @@ namespace Inferno {
             List<string> items;
             std::stringstream ss(str);
             string item;
-            while (std::getline(ss, item, separator))
+            while (std::getline(ss, item, separator)) {
+                std::erase(item, '\r'); // getline() returns \r even on windows
                 items.push_back(trim ? String::Trim(item) : item);
+            }
 
             return items;
         }
@@ -738,8 +740,10 @@ namespace Inferno {
             std::stringstream stream(source);
 
             string line;
-            while (std::getline(stream, line))
+            while (std::getline(stream, line)) {
+                std::erase(line, '\r'); // getline() returns \r even on windows
                 lines.push_back(line);
+            }
 
             return lines;
         }

@@ -1,12 +1,5 @@
 #include "Common.hlsli"
 
-#define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
-    "CBV(b0),"\
-    "RootConstants(b1, num32BitConstants = 1), " \
-    "DescriptorTable(SRV(t0), visibility=SHADER_VISIBILITY_PIXEL), " \
-    "DescriptorTable(SRV(t1), visibility=SHADER_VISIBILITY_PIXEL), " \
-    "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL)"
-
 struct Arguments {
     float DepthBias;
 };
@@ -15,6 +8,7 @@ ConstantBuffer<FrameConstants> Frame : register(b0);
 ConstantBuffer<Arguments> Args : register(b1);
 SamplerState Sampler : register(s0);
 Texture2D Diffuse : register(t0);
+Texture2D Depth : register(t1);
 
 struct VS_INPUT {
     float3 pos : POSITION;
@@ -28,7 +22,7 @@ struct PS_INPUT {
     float3 col : COLOR0;
 };
 
-[RootSignature(RS)]
+[RootSignature(SPRITE_RS)]
 PS_INPUT vsmain(VS_INPUT input) {
     PS_INPUT output;
     output.pos = mul(Frame.ViewProjectionMatrix, float4(input.pos, 1));

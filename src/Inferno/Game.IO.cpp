@@ -176,14 +176,27 @@ namespace Inferno::Game {
             Graphics::PruneTextures();
             Game::Terrain = {};
 
-            auto exitConfig = String::NameWithoutExtension(Level.FileName) + ".txb";
-            if (auto data = Resources::ReadBinaryFile(exitConfig)) {
+            bool isRetail = Game::Mission ? Game::Mission->IsRetailMission() : false;
+            bool hasConfig = false;
+
+            auto exitConfigBinary = String::NameWithoutExtension(Level.FileName) + ".txb";
+            auto exitConfig = String::NameWithoutExtension(Level.FileName) + ".end"; // Custom extension added to source ports
+
+            if (auto data = Resources::ReadBinaryFile(exitConfigBinary)) {
+                SPDLOG_INFO("Reading terrain from {}", exitConfigBinary);
                 DecodeText(*data);
                 auto lines = String::ToLines(String::OfBytes(*data));
                 Game::Terrain = ParseEscapeInfo(lines);
+                hasConfig = true;
+            }
+            else if (auto text = Resources::ReadTextFile(exitConfig, LoadFlag::Mission)) {
+                SPDLOG_INFO("Reading terrain from {}", exitConfig);
+                auto lines = String::ToLines(*text);
+                Game::Terrain = ParseEscapeInfo(lines);
+                hasConfig = true;
             }
             else {
-                Game::Terrain = {};
+                SPDLOG_INFO("{} not found. Using default terrain settings", exitConfigBinary);
                 Game::Terrain.SurfaceTexture = "moon01.bbm";
                 Game::Terrain.SatelliteTexture = "sun.bbm";
                 Game::Terrain.SatelliteAdditive = true;
@@ -197,9 +210,13 @@ namespace Inferno::Game {
             if (auto exit = FindExit(Level))
                 CreateEscapePath(Level, Game::Terrain, exit, false);
 
-            // Replace heightmap based terrain with random large terrain
-            TerrainGenInfo.Seed = String::Hash(Level.Name);
-            GenerateTerrain(Game::Terrain, TerrainGenInfo);
+            // Replace heightmap based terrain with random large terrain,
+            // but only for retail levels or if it has
+            if (isRetail || !hasConfig) {
+                SPDLOG_INFO("Generating random terrain", exitConfigBinary);
+                TerrainGenInfo.Seed = String::Hash(Level.Name);
+                GenerateTerrain(Game::Terrain, TerrainGenInfo);
+            }
 
             Graphics::LoadTerrain(Game::Terrain);
 
@@ -563,19 +580,19 @@ namespace Inferno::Game {
 
         auto sng = Resources::ReadTextFile("descent.sng", GetLevelLoadFlag(Game::Level) | LoadFlag::Dxa);
 
-        if (sng.empty())
+        if (!sng)
             sng = Resources::ReadTextFile("descent.sng", LoadFlag::Mission);
 
-        if (sng.empty())
+        if (!sng)
             sng = Resources::ReadTextFile("descent.sng", GetLevelLoadFlag(Game::Level) | LoadFlag::BaseHog);
 
-        if (sng.empty()) {
+        if (!sng) {
             SPDLOG_WARN("No SNG file found!");
             return;
         }
 
         // Determine the correct song to play based on the level number
-        auto songs = ParseSng(sng);
+        auto songs = ParseSng(*sng);
 
         constexpr uint FirstLevelSong = 5;
         if (songs.size() < FirstLevelSong) {

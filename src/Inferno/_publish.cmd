@@ -6,6 +6,7 @@ xcopy data\*.wav publish\data\ /y
 xcopy textures\ publish\textures\ /y /s
 
 xcopy d1\*.ied publish\d1\ /y
+xcopy d1\missions\vignette\ publish\d1\missions\vignette\ /y
 xcopy d1\*.yml publish\d1\ /y
 xcopy d1\*.pof publish\d1\ /y
 rem copy d1\demo publish\d1\demo /y

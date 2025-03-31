@@ -1049,6 +1049,7 @@ namespace Inferno::Game {
             "gauge01b#6",
             "gauge01b#7",
             "gauge01b#8",
+            // "gauge01b#9" // 9 is "no shields" and not needed
             "gauge01b#10",
             "gauge01b#11",
             "gauge01b#12",

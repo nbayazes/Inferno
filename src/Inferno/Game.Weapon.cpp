@@ -186,7 +186,7 @@ namespace Inferno::Game {
                     if (parent->IsRobot()) {
                         auto& ai = GetAI(*parent);
                         ai.Awareness = 1; // Make fully aware if a robot hits the player. This is so hitting a cloaked player keeps them awake.
-                        ai.TargetPosition = { target.Segment, target.Position };
+                        ai.Target = { target.Segment, target.Position };
                     }
                 }
             }

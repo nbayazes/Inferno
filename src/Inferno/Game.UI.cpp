@@ -208,7 +208,7 @@ namespace Inferno::UI {
             Screens.reserve(20);
         }
 
-        if (screen->Layer == -1) screen->Layer = (int)Screens.size() * 2;
+        if (screen->Layer == -1) screen->Layer = (int)Screens.size() * 4;
         screen->OnUpdateLayout();
         screen->OnUpdateLayout(); // Need to calculate layout twice due to sizing
 
@@ -223,24 +223,6 @@ namespace Inferno::UI {
         screen->OnUpdate();
         Screens.push_back(std::move(screen));
         return Screens.back().get();
-    }
-
-    template <class TScreen>
-    TScreen* ShowScreenT(Ptr<TScreen> screen) {
-        screen->Layer = (int)Screens.size() * 2;
-        screen->OnUpdateLayout();
-        screen->OnUpdateLayout(); // Need to calculate layout twice due to sizing
-
-        // Set initial selection based on how the screen was shown
-        if (Input::IsMouseButtonDown(Input::MouseButtons::LeftClick))
-            screen->SetSelection(screen->HitTestCursor());
-        else
-            screen->SelectFirst();
-
-        Input::ResetState(); // Reset input to prevent clicking a control as soon as the screen appears
-        screen->OnUpdate();
-        Screens.push_back(std::move(screen));
-        return (TScreen*)Screens.back().get();
     }
 
     bool CloseScreen() {
@@ -470,7 +452,7 @@ namespace Inferno::UI {
     }
 
     void ShowLevelSelect(MissionInfo& mission, int& level, DifficultyLevel& difficulty) {
-        auto screen = ShowScreenT(make_unique<LevelSelectDialog>((int)mission.Levels.size(), level));
+        auto screen = ShowScreen(make_unique<LevelSelectDialog>((int)mission.Levels.size(), level));
 
         screen->CloseCallback = [&mission, &difficulty, &level](CloseState state) {
             if (state == CloseState::Accept)
