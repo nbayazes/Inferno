@@ -1048,7 +1048,14 @@ namespace Inferno {
             case ObjectType::Coop:
                 obj.Movement = MovementType::Physics;
                 obj.Render.Type = RenderType::Model;
-                obj.Render.Model = { .ID = Resources::GetCoopShipModel(Game::Level) };
+                //obj.Render.Model = { .ID = Resources::GetCoopShipModel(Game::Level) };
+
+                // Always use player ship model instead of low poly co-op model
+                obj.Render.Model = {
+                    .ID = Resources::GameData.PlayerShip.Model,
+                    .TextureOverride = LevelTexID::None
+                };
+
                 obj.ID = 0;
                 break;
 

@@ -455,7 +455,6 @@ namespace Inferno::Resources {
     void LoadCustomModel(FullGameData& data, string_view fileName, LoadFlag flags) {
         auto modelData = ReadBinaryFile(fileName, flags);
         if (modelData) {
-
             auto model = ReadPof(*modelData, &data.palette);
             model.FileName = fileName;
             model.FirstTexture = (uint16)data.ObjectBitmaps.size();
@@ -476,12 +475,11 @@ namespace Inferno::Resources {
         auto flags = LoadFlag::Filesystem | LoadFlag::Descent1 | LoadFlag::Dxa;
 
         // todo: handle Descent 2. It does not define the exit models
-        if(data.ExitModel != ModelID::None) {
-            auto exit = "exit01.pof";
-            auto modelData = ReadBinaryFile(exit, flags);
-            if (modelData) {
+        if (data.ExitModel != ModelID::None) {
+            auto file = "exit01.pof";
+            if (auto modelData = ReadBinaryFile(file, flags)) {
                 auto model = ReadPof(*modelData, &data.palette);
-                model.FileName = exit;
+                model.FileName = file;
                 auto firstTexture = data.Models[(int)data.ExitModel].FirstTexture;
                 data.Models[(int)data.ExitModel] = model;
                 data.Models[(int)data.ExitModel].FirstTexture = firstTexture;
@@ -489,11 +487,10 @@ namespace Inferno::Resources {
         }
 
         if (data.DestroyedExitModel != ModelID::None) {
-            auto exit = "exit01d.pof";
-            auto modelData = ReadBinaryFile(exit, flags);
-            if (modelData) {
+            auto file = "exit01d.pof";
+            if (auto modelData = ReadBinaryFile(file, flags)) {
                 auto model = ReadPof(*modelData, &data.palette);
-                model.FileName = exit;
+                model.FileName = file;
 
                 auto firstTexture = data.Models[(int)data.DestroyedExitModel].FirstTexture;
                 data.Models[(int)data.DestroyedExitModel] = model;
@@ -501,6 +498,30 @@ namespace Inferno::Resources {
             }
         }
 
+        if (data.PlayerShip.Model != ModelID::None) {
+            auto file = "ship.pof";
+            if (auto modelData = ReadBinaryFile(file, flags)) {
+                auto model = ReadPof(*modelData, &data.palette);
+                model.FileName = file;
+                auto firstTexture = data.Models[(int)data.PlayerShip.Model].FirstTexture;
+                data.Models[(int)data.PlayerShip.Model] = model;
+                data.Models[(int)data.PlayerShip.Model].FirstTexture = firstTexture;
+            }
+        }
+
+        if (data.PlayerShip.Model != ModelID::None) {
+            auto file = "shipd.pof";
+            if (auto modelData = ReadBinaryFile(file, flags)) {
+                auto model = ReadPof(*modelData, &data.palette);
+                model.FileName = file;
+                auto id = (int)data.DyingModels[(int)data.PlayerShip.Model];
+                auto firstTexture = data.Models[id].FirstTexture;
+                data.Models[id] = model;
+                data.Models[id].FirstTexture = firstTexture;
+            }
+        }
+
+        // Append debris to the end of model list
         data.Debris = (ModelID)data.Models.size();
         LoadCustomModel(data, "debris.pof", flags);
         LoadCustomModel(data, "debris1.pof", flags);
