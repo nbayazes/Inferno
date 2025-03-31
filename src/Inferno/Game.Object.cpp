@@ -2,6 +2,7 @@
 
 #include "Level.h"
 #include "Game.Object.h"
+#include "Editor/Editor.Object.h"
 #include "VisualEffects.h"
 #include "Game.AI.h"
 #include "Game.h"
@@ -718,6 +719,7 @@ namespace Inferno {
                 seg->AddObject((ObjID)id);
 
             AttachLight(obj, { (ObjID)id, obj.Signature });
+            Editor::NormalizeObjectVectors(obj); // Some levels have incorrectly saved object rotations
         }
 
         ResizeAI(level.Objects.size());
