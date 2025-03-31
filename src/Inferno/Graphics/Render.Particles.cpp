@@ -887,7 +887,7 @@ namespace Inferno::Render {
             float flickerSpeeds[] = { 1.2f, 1.9f, 3.5f };
             float mults[] = { .35f, .5f, .65f }; // how much to dim
             auto noise = OpenSimplex2::Noise2((int)id, Game::Time * flickerSpeeds[index], 0);
-            auto t = 1.0f - abs(noise * noise * noise - .05f) * mults[index] * (Game::ControlCenterDestroyed ? 2 : 1);
+            auto t = 1.0f - abs(noise * noise * noise - .05f) * mults[index];
             lightColor.w *= t;
             //lightRadius += lightRadius * noise * flickerRadius;
         }
