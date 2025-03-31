@@ -1786,25 +1786,25 @@ Materials:
     Metalness: 1
     Roughness: 0.35
     EmissiveStrength: 1.5
-    LightReceived: 0.75
+    LightReceived: 0.5
   - Name: 'ctrl01#0'
     NormalStrength: 0.1
     Metalness: 1
     Roughness: 0.4
     EmissiveStrength: 1.2
-    LightReceived: 0.75
+    LightReceived: 0.5
   - Name: 'ctrl02#0'
     NormalStrength: 0.042
     Metalness: 1
     Roughness: 0.4
     EmissiveStrength: 1
-    LightReceived: 0.75
+    LightReceived: 0.5
   - Name: 'ctrl03#0'
     NormalStrength: 0.042
     Metalness: 1
     Roughness: 0.4
     EmissiveStrength: 1
-    LightReceived: 0.75
+    LightReceived: 0.5
   - Name: 'misc14#0'
     NormalStrength: 0
     Metalness: 0.751
