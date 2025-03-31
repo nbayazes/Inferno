@@ -420,6 +420,7 @@ namespace Inferno::Game {
                 if (!Game::Player.IsDead)
                     Game::Player.LoseLife(); // Lose a life if timed out (instead of dying)
 
+                Game::Player.ResetInventory(); // Lose all inventory
                 UI::ShowFailedEscapeDialog(Game::Player.Lives == 0);
                 Input::SetMouseMode(Input::MouseMode::Normal);
                 break;
