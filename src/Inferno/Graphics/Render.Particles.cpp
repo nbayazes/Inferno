@@ -18,8 +18,6 @@ namespace Inferno::Render {
     namespace {
         Array<DecalInstance, 100> Decals;
         Array<DecalInstance, 20> AdditiveDecals;
-        uint16 DecalIndex = 0;
-        uint16 AdditiveDecalIndex = 0;
     }
 
     bool IsExpired(const EffectBase& effect) {
@@ -408,7 +406,7 @@ namespace Inferno::Render {
         ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
         auto cmdList = ctx.GetCommandList();
         effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
-        effect.Shader->SetSampler(cmdList, Render::GetWrappedTextureSampler());
+        effect.Shader->SetSampler(cmdList, Heaps->States.AnisotropicClamp());
         effect.Shader->SetConstants(cmdList, { halfWidth, 0.1f });
 
         if (!Info.Texture.empty()) {
@@ -633,7 +631,7 @@ namespace Inferno::Render {
         ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
         auto cmdList = ctx.GetCommandList();
 
-        effect.Shader->SetSampler(cmdList, Render::GetClampedTextureSampler());
+        effect.Shader->SetSampler(cmdList, Heaps->States.AnisotropicClamp());
         auto& material = Render::Materials->Get(Info.Texture);
         effect.Shader->SetDiffuse(cmdList, material.Handle());
         effect.Shader->SetConstants(cmdList, { Info.Width.Max * 0.5f, 0.1f });

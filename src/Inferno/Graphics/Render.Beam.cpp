@@ -179,7 +179,7 @@ namespace Inferno::Render {
         auto cmdList = ctx.GetCommandList();
         effect.Shader->SetConstants(cmdList, { Width / 2, 0.2f });
         effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
-        effect.Shader->SetSampler(cmdList, Render::GetWrappedTextureSampler());
+        effect.Shader->SetSampler(cmdList, Heaps->States.AnisotropicWrap());
 
         auto& material = Render::Materials->Get(Info.Texture);
         effect.Shader->SetDiffuse(cmdList, material.Handle());
