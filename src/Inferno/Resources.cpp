@@ -1258,6 +1258,13 @@ namespace Inferno::Resources {
         LoadLightTables(flags);
         LoadMaterialTables(flags);
         LoadGameTables(flags);
+
+        // Copy guns from model data if present. The default model does not have gunpoint defs and relies on a table entry.
+        if (auto model = Seq::tryItem(GameData.Models, (int)GameData.PlayerShip.Model)) {
+            for (size_t i = 0; i < model->Guns.size(); i++) {
+                GameData.PlayerShip.Gunpoints[i] = model->Guns[i].Point;
+            }
+        }
     }
 
     span<JointPos> GetRobotJoints(int robotId, int gun, Animation state) {
