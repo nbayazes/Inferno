@@ -938,13 +938,17 @@ namespace Inferno {
     bool IntersectLevelMesh(Level& level, Object& obj, span<SegID> pvs, LevelHit& hit, float dt) {
         uint hits = 0;
         auto speed = obj.Physics.Velocity.Length();
+        //if (speed == 0) return false;
         float travelDistance = speed * dt;
 
         Vector3 direction;
         obj.Physics.Velocity.Normalize(direction);
         if (IsZero(direction)) direction = Vector3::UnitY;
-        Ray pathRay(obj.Position, direction);
-
+        // The position before moving this tick should be used for projecting mesh intersections,
+        // then correcting the new position based on any intersections.
+        // todo: this function is inconsistent on whether it uses the object's position or the previous position, revisit
+        Ray pathRay(obj.PrevPosition, direction);
+        
         for (auto& segId : pvs) {
             if (segId == SegID::Terrain) return false; // no terrain intersection
             Debug::SegmentsChecked++;
@@ -990,7 +994,7 @@ namespace Inferno {
                         if (triFacesObj &&
                             pathRay.Intersects(p0, p1, p2, dist) &&
                             dist < travelDistance) {
-                            hitPoint = obj.Position + direction * dist;
+                            hitPoint = pathRay.position + direction * dist;
                             if (WallPointIsTransparent(hitPoint, face, tri))
                                 continue; // skip projectiles that hit transparent part of a wall
 
@@ -1359,7 +1363,7 @@ namespace Inferno {
                 MoveObject(level, obj);
 
             if (HasFlag(obj.Flags, ObjectFlag::Attached))
-                continue; // don't test collision of attached objects
+                continue; // don't test collision of objects attached to walls
 
             //if (id != 0) continue; // player only testing
             LevelHit hit{ .Source = &obj };
