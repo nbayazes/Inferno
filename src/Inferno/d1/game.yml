@@ -195,7 +195,7 @@ Weapons:
     # Behavior: shotgun
     # FireCount: 5
     Behavior: spreadfire
-    Glow: 1, 1, 1, 5
+    Glow: .6, .6, 1, 12
     ExplosionTexture: EMDspinnerHit
     ExplosionSize: 1.3
     ExplosionTime: 0.4
@@ -948,6 +948,7 @@ Powerups:
     LightMode: 4 # Pulse
 
 EffectClips:
+  # Add destroyed clips to countdown monitors
   - id: 42
     DestroyedEClip: 35
     DestroyedTexture: 342
@@ -957,8 +958,8 @@ EffectClips:
     DestroyedTexture: 344
 
   - id: 44
-    DestroyedEClip: 22
-    DestroyedTexture: 41
+    DestroyedEClip: 41
+    DestroyedTexture: 346
 
   - id: 45
     DestroyedEClip: 37
@@ -1487,7 +1488,7 @@ Ships:
     TurnRollRate: 0.7854 # FixToFloat(0x2000) * 2PI
     DamageTaken: 1.0 # Multiplier on damage taken
     EnergyMultiplier: 1.0
-    Gunpoints:
+    Gunpoints: # NOTE: these gunpoints are overridden if a custom model containing gunpoints is loaded!
       - 2.22798157, -0.911682129, -0.545593262
       - -2.25032043, -0.913879395, -0.525360107
       - 3.38757324, -1.80775452, -2.26136780
