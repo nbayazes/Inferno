@@ -936,16 +936,13 @@ namespace Inferno {
     // todo: the level and object intersections should track the total distance travelled by the object.
     // If the total distance is met (due to sliding or repositioning), stop iteration. Also limit the total number of iterations.
     bool IntersectLevelMesh(Level& level, Object& obj, span<SegID> pvs, LevelHit& hit) {
-        uint hits = 0;
-        auto speed = obj.Physics.Velocity.Length();
+        Vector3 direction = obj.Position - obj.PrevPosition;
+        auto speed = direction.Length();
         if (speed <= 0.001f) return false;
-
-        Vector3 direction;
-        obj.Physics.Velocity.Normalize(direction);
+        direction.Normalize();
         if (IsZero(direction)) direction = Vector3::UnitY;
         // The position before moving this tick should be used for projecting mesh intersections,
         // then correcting the new position based on any intersections.
-        // todo: this function is inconsistent on whether it uses the object's position or the previous position, revisit
         Ray pathRay(obj.PrevPosition, direction);
 
         for (auto& segId : pvs) {
@@ -1083,8 +1080,6 @@ namespace Inferno {
                             obj.Position = hitPoint + hitNormal * obj.Radius;
                         }
 
-                        hits++;
-
                         // apply friction so robots pinned against the wall don't spin in place
                         //if (obj.Type == ObjectType::Robot) {
                         //    obj.Physics.AngularAcceleration *= 0.5f;
@@ -1209,7 +1204,7 @@ namespace Inferno {
 
     // Finds the nearest sphere-level intersection for debris
     // Debris only collide with robots, players and walls
-    bool IntersectLevelDebris(Level& level, const BoundingSphere& debris, SegID segId, LevelHit& hit) {
+    bool IntersectLevelDebris(Level& level, const BoundingSphere& debris, const Vector3& prevPosition, SegID segId, LevelHit& hit) {
         auto& pvs = GetPotentialSegments(level, segId, debris.Center, debris.Radius * 2, Vector3::Zero, Game::TICK_RATE, ObjectType::None);
 
         // Did we hit any objects?
@@ -1235,12 +1230,13 @@ namespace Inferno {
 
         Object dummyObj{};
         dummyObj.Position = debris.Center;
+        dummyObj.PrevPosition = prevPosition;
         dummyObj.Radius = debris.Radius;
         dummyObj.Type = ObjectType::Debris;
+        dummyObj.Physics.Velocity = Vector3(1,1,1);
         IntersectLevelMesh(level, dummyObj, pvs, hit);
         return (bool)hit;
     }
-
 
     void ScrapeWall(Object& obj, const LevelHit& hit, const LevelTexture& ti, float dt) {
         if (ti.HasFlag(TextureFlag::Volatile) || ti.HasFlag(TextureFlag::Water)) {

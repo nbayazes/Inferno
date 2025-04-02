@@ -31,5 +31,5 @@ namespace Inferno {
 
     // Returns true if a sphere intersects with a segment
     bool IntersectLevelSegment(Level& level, const Vector3& position, float radius, SegID segId, LevelHit& hit);
-    bool IntersectLevelDebris(Level& level, const DirectX::BoundingSphere&, SegID segId, LevelHit& hit);
+    bool IntersectLevelDebris(Level& level, const DirectX::BoundingSphere&, const Vector3& prevPosition, SegID segId, LevelHit& hit);
 }

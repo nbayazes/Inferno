@@ -283,7 +283,7 @@ namespace Inferno::Render {
         LevelHit hit;
         DirectX::BoundingSphere sphere{ Transform.Translation(), Info.Radius };
 
-        if (IntersectLevelDebris(Game::Level, sphere, Segment, hit)) {
+        if (IntersectLevelDebris(Game::Level, sphere, PrevTransform.Translation(), Segment, hit)) {
             Duration = 0; // destroy on contact
             // todo: scorch marks on walls
         }
