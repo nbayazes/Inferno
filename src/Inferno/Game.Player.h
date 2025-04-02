@@ -146,7 +146,7 @@ namespace Inferno {
                 totalRobots += robots;
                 robots = 0;
 
-                totalDeaths = deaths;
+                totalDeaths += deaths;
                 deaths = 0;
 
                 //TotalHostages += Hostages; // TotalHostages is updated on level load
