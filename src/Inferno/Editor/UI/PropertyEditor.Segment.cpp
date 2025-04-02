@@ -420,7 +420,7 @@ namespace Inferno::Editor {
 
         {
             ImGui::BeginGroup();
-            ImGui::ColorPicker3("##picker", &color.x, ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_DisplayHSV | ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview);
+            ImGui::ColorPicker3("##picker", &color.x, ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_DisplayHSV | ImGuiColorEditFlags_DisplayHex | ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview);
 
             if (ImGui::IsItemDeactivatedAfterEdit())
                 snapshot = true; // Snapshot after the user releases the mouse button
