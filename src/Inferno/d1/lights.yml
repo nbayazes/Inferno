@@ -272,6 +272,18 @@ Lights:
       # Radius: 10
       #Radius: 50
 
+    # - Name: misc14#0 # matcen
+    #   Points: []
+    #   Color: 0.465, 0.024, 1, .05
+
+    - Name: misc16#0 # matcen
+      Points: []
+      Color: 0.465, 0.024, 1, .1
+
+    - Name: misc044 # matcen
+      Points: []
+      Color: 0.465, 0.024, 1, .1
+
     # - Name: misc14#0 # matcen tendrils
     #   Points: []
     #   Color: 0.4, 0, 1, .4

@@ -646,6 +646,7 @@ Materials:
     NormalStrength: -0.802
     SpecularStrength: 0.57
     Roughness: 0.782
+    LightReceived: 1.5
   - Name: rock209
     NormalStrength: -0.819
     Roughness: 0.65
@@ -1650,9 +1651,19 @@ Materials:
     LightReceived: 0.255
     SpecularColor: '1, 0.928, 0.6, 0.051'
   - Name: misc044
-    NormalStrength: 0.25
-    Metalness: 0.4
-    Roughness: 0.7
+    NormalStrength: 0
+    Metalness: 0.751
+    Roughness: 0.723
+    SpecularColor: '0.575, 0.0675, 1, 1'
+    Procedural:
+      EvalTime: 0.033333335
+      IsWater: 1
+      Thickness: 8
+      Light: 31
+      OscillateTime: 0
+      OscillateValue: 5
+      Elements:
+        - '{"Type": 2,"X1": 64,"Y1": 64,"Frequency": 60,"Size": 64,"Speed": -116}'
   - Name: misc045
     NormalStrength: 0.7
     SpecularStrength: 0.59
@@ -1809,7 +1820,6 @@ Materials:
     NormalStrength: 0
     Metalness: 0.751
     Roughness: 0.723
-    EmissiveStrength: 0.1
     Flags: 8
     SpecularColor: '0.576, 0.0667, 1, 1'
     Procedural:
@@ -1825,7 +1835,6 @@ Materials:
     NormalStrength: 0
     Metalness: 0.751
     Roughness: 0.723
-    EmissiveStrength: 0.1
     SpecularColor: '0.575, 0.0675, 1, 1'
     Procedural:
       EvalTime: 0.033333335
