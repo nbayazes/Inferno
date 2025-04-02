@@ -185,18 +185,22 @@ namespace Inferno {
 
         auto id = TraceSegment(level, obj.Segment, obj.Position);
 
-        if (id == SegID::None && obj.Segment == Game::Terrain.ExitTag.Segment) {
+        if ((id == SegID::None || id == SegID::Exit) && obj.Segment == Game::Terrain.ExitTag.Segment) {
             obj.Segment = SegID::Terrain; // Assume that the object has entered the terrain
         }
         else if (id != SegID::None) {
             obj.Segment = id;
         }
-        // Otherwise leave the last good ID if nothing contains the object
 
-        auto& seg = level.GetSegment(obj.Segment);
-        auto transitionTime = Game::GetState() == GameState::Game ? 0.5f : 0;
-        obj.Ambient.SetTarget(seg.VolumeLight, Game::Time, transitionTime);
-        return true;
+        // Otherwise leave the last good ID if nothing contains the object
+        if (auto seg = level.TryGetSegment(obj.Segment)) {
+            auto transitionTime = Game::GetState() == GameState::Game ? 0.5f : 0;
+            obj.Ambient.SetTarget(seg->VolumeLight, Game::Time, transitionTime);
+            return true;
+        }
+        else {
+            return false;
+        }
     }
 
     void RelinkObject(Level& level, Object& obj, SegID newSegment) {
@@ -1050,9 +1054,9 @@ namespace Inferno {
             case ObjectType::Coop:
                 obj.Movement = MovementType::Physics;
                 obj.Render.Type = RenderType::Model;
-                //obj.Render.Model = { .ID = Resources::GetCoopShipModel(Game::Level) };
+            //obj.Render.Model = { .ID = Resources::GetCoopShipModel(Game::Level) };
 
-                // Always use player ship model instead of low poly co-op model
+            // Always use player ship model instead of low poly co-op model
                 obj.Render.Model = {
                     .ID = Resources::GameData.PlayerShip.Model,
                     .TextureOverride = LevelTexID::None

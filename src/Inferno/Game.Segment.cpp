@@ -93,7 +93,7 @@ namespace Inferno {
         for (auto& sideId : SIDE_IDS) {
             auto& dist = distances[(int)sideId];
             auto face = ConstFace::FromSide(level, seg, sideId);
-            if (face.Area() < 0.01f) 
+            if (face.Area() < 0.01f)
                 continue;
 
             if (face.Side.Type == SideSplitType::Tri02) {
@@ -189,8 +189,8 @@ namespace Inferno {
     }
 
     SegID TraceSegmentInternal(const Level& level, SegID start, const Vector3& point, int iterations) {
-        if (start == SegID::None)
-            return SegID::None;
+        if (start == SegID::None || start == SegID::Terrain || start == SegID::Exit)
+            return start; // passthrough special segments
 
         //ASSERT(iterations <= 50);
         if (iterations > 50) {

@@ -336,6 +336,7 @@ namespace Inferno {
             case EscapeScene::Start:
                 if (State.PathIndex >= Game::Terrain.LookbackPathIndex) {
                     State.Scene = EscapeScene::LookBack;
+                    RelinkObject(Game::Level, player, SegID::Terrain);
 
                     // Set the camera roughly 20 units away on the path
                     State.CameraPathIndex = State.PathIndex + 1;
@@ -346,20 +347,18 @@ namespace Inferno {
                 }
                 break;
             case EscapeScene::LookBack:
-
                 break;
             case EscapeScene::Outside:
-
                 break;
         }
 
         // Activate terrain once in the last segment and camera is in front of the exit portal
-        if (player.Segment == Game::Terrain.ExitTag.Segment && !Game::OnTerrain) {
+        if ((CinematicCamera.Segment == SegID::Exit || CinematicCamera.Segment == SegID::Terrain) && !Game::OnTerrain) {
+            CinematicCamera.Segment = SegID::Terrain;
             auto& side = Game::Level.GetSide(Game::Terrain.ExitTag);
 
             if (DistanceFromPlane(CinematicCamera.Position, side.Center, -side.AverageNormal) > 1.0f) {
                 Settings::Editor.ShowTerrain = true;
-                RelinkObject(Game::Level, player, SegID::Terrain);
                 Game::OnTerrain = true;
                 Game::StopSelfDestruct(); // Stop self destruct so the mine exit doesn't get global dimming
             }
@@ -390,7 +389,7 @@ namespace Inferno {
 
                 // Add explosion behind the player
                 if (auto e = EffectLibrary.GetExplosion("tunnel chase fireball")) {
-                    auto pos = player.Position + player.Rotation.Backward() * 15.0f;
+                    auto pos = player.Position + player.Rotation.Backward() * e->Radius.Max;
                     CreateExplosion(*e, SegID::Terrain, pos);
                 }
 
