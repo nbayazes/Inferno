@@ -1272,10 +1272,10 @@ Effects:
       Physics: 1
 
     - Name: robot destroyed
-      Duration: [ 0.8, 1.3 ]
+      Duration: [ 0.7, 1.7 ]
       Restitution: 0.6
       Velocity: [ 20, 30 ]
-      Count: [ 20, 30 ]
+      Count: [ 35, 45 ]
       Drag: 0.02
       FadeTime: 0.5
       Texture: tracer

@@ -672,7 +672,9 @@ Materials:
     Roughness: 0.796
   - Name: rock222
     NormalStrength: 2
-    Roughness: 0.582
+    SpecularStrength: 0.587
+    Roughness: 0.745
+    LightReceived: 0.764
   - Name: rock223
     NormalStrength: 1.6
     Roughness: 0.65
@@ -1695,9 +1697,10 @@ Materials:
     SpecularColor: '1, 1, 1, 0.5'
   - Name: misc058
     NormalStrength: 0.1
-    Metalness: 0.95
-    Roughness: 0.5
-    LightReceived: 0.75
+    Metalness: 1
+    Roughness: 0.307
+    LightReceived: 0.533
+    SpecularColor: '1, 1, 1, 0.762'
   - Name: misc059
     NormalStrength: 0.504
     Metalness: 0.501
