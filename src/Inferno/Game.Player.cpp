@@ -659,14 +659,14 @@ namespace Inferno {
     }
 
     void Player::PrimaryPickupAutoselect(PrimaryWeaponIndex weapon) {
-        if (Settings::Inferno.OnlyAutoselectWhenEmpty)
+        if (Settings::Inferno.OnlyAutoselectWhenEmpty && CanFirePrimary(Primary))
             return;
         if (GetPrimaryWeaponPriority(weapon) < GetPrimaryWeaponPriority(Primary) && CanFirePrimary(weapon))
             SelectPrimary(weapon);
     }
 
     void Player::SecondaryPickupAutoselect(SecondaryWeaponIndex weapon) {
-        if (Settings::Inferno.OnlyAutoselectWhenEmpty)
+        if (Settings::Inferno.OnlyAutoselectWhenEmpty && CanFireSecondary(Secondary))
             return;
         if (GetSecondaryWeaponPriority(weapon) < GetSecondaryWeaponPriority(Secondary) && CanFireSecondary(weapon))
             SelectSecondary(weapon);
@@ -1656,7 +1656,7 @@ namespace Inferno {
             PrintHudMessage(fmt::format("{}!", name));
         }
 
-        if (startAmmo == 0)
+        if (!CanFireSecondary(Secondary) || startAmmo == 0)
             SecondaryPickupAutoselect(index);
 
         // todo: spawn individual missiles if count > 1 and full
