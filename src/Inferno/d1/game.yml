@@ -1258,7 +1258,7 @@ Effects:
       Offset: 0, 0, -3.9 # Particle spawn offset
       Relative: 1 # Move the effect with the parent
 
-    - Name: overlay_destroyed
+    - Name: overlay destroyed
       ConeRadius: 1
       Duration: [ 0.75, 2.4 ]
       Restitution: 0.6
@@ -1270,6 +1270,17 @@ Effects:
       Width: 0.2
       Color: 1, .5, .166, 6
       Physics: 1
+
+    - Name: robot destroyed
+      Duration: [ 0.8, 1.3 ]
+      Restitution: 0.6
+      Velocity: [ 20, 30 ]
+      Count: [ 20, 30 ]
+      Drag: 0.02
+      FadeTime: 0.5
+      Texture: tracer
+      Width: 0.25
+      Color: 1, .2, .0, 6
 
     # - Name: reactor destroyed
     #   # Duration: [ 0.75, 0.95 ]

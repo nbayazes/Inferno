@@ -535,7 +535,9 @@ namespace Inferno {
                     CreateDebris(obj.Segment, obj.Position + random, hitForce);
                 }
 
-                // todo: spawn particles
+                if (auto e = EffectLibrary.GetSparks("robot destroyed")) {
+                    AddSparkEmitter(*e, obj.Segment, obj.Position);
+                }
 
                 DropContents(obj);
                 obj.Flags |= ObjectFlag::Dead;
