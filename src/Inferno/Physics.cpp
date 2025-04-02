@@ -935,11 +935,10 @@ namespace Inferno {
 
     // todo: the level and object intersections should track the total distance travelled by the object.
     // If the total distance is met (due to sliding or repositioning), stop iteration. Also limit the total number of iterations.
-    bool IntersectLevelMesh(Level& level, Object& obj, span<SegID> pvs, LevelHit& hit, float dt) {
+    bool IntersectLevelMesh(Level& level, Object& obj, span<SegID> pvs, LevelHit& hit) {
         uint hits = 0;
         auto speed = obj.Physics.Velocity.Length();
-        //if (speed == 0) return false;
-        float travelDistance = speed * dt;
+        if (speed <= 0.001f) return false;
 
         Vector3 direction;
         obj.Physics.Velocity.Normalize(direction);
@@ -948,7 +947,7 @@ namespace Inferno {
         // then correcting the new position based on any intersections.
         // todo: this function is inconsistent on whether it uses the object's position or the previous position, revisit
         Ray pathRay(obj.PrevPosition, direction);
-        
+
         for (auto& segId : pvs) {
             if (segId == SegID::Terrain) return false; // no terrain intersection
             Debug::SegmentsChecked++;
@@ -990,19 +989,21 @@ namespace Inferno {
                     if (obj.Type == ObjectType::Weapon && HasFlag(obj.Physics.Flags, PhysicsFlag::PointCollideWalls)) {
                         // Use raycasting for weapons because they are typically small and have high velocities
                         float dist{};
+                        float travelDistance = Vector3::Distance(obj.Position, obj.PrevPosition);
 
                         if (triFacesObj &&
-                            pathRay.Intersects(p0, p1, p2, dist) &&
-                            dist < travelDistance) {
-                            hitPoint = pathRay.position + direction * dist;
-                            if (WallPointIsTransparent(hitPoint, face, tri))
-                                continue; // skip projectiles that hit transparent part of a wall
+                            pathRay.Intersects(p0, p1, p2, dist)) {
+                            if (dist < travelDistance) {
+                                hitPoint = pathRay.position + direction * dist;
+                                if (WallPointIsTransparent(hitPoint, face, tri))
+                                    continue; // skip projectiles that hit transparent part of a wall
 
-                            // move the object to the surface and proceed as normal
-                            obj.Position = hitPoint - direction * 0.01f;
-                            hitNormal = side.Normals[tri];
-                            hitDistance = 0.01f; // exact hit
-                            edgeDistance = FaceEdgeDistance(seg, sideId, face, hitPoint);
+                                // move the object to the surface and proceed as normal
+                                obj.Position = hitPoint - direction * 0.01f;
+                                hitNormal = side.Normals[tri];
+                                hitDistance = 0.01f; // exact hit
+                                edgeDistance = FaceEdgeDistance(seg, sideId, face, hitPoint);
+                            }
                         }
                     }
                     else {
@@ -1236,7 +1237,7 @@ namespace Inferno {
         dummyObj.Position = debris.Center;
         dummyObj.Radius = debris.Radius;
         dummyObj.Type = ObjectType::Debris;
-        IntersectLevelMesh(level, dummyObj, pvs, hit, Game::TICK_RATE);
+        IntersectLevelMesh(level, dummyObj, pvs, hit);
         return (bool)hit;
     }
 
@@ -1359,9 +1360,6 @@ namespace Inferno {
             AngularPhysics(obj, dt);
             LinearPhysics(obj, dt);
 
-            if (obj.Physics.Velocity.Length() * dt > MIN_TRAVEL_DISTANCE)
-                MoveObject(level, obj);
-
             if (HasFlag(obj.Flags, ObjectFlag::Attached))
                 continue; // don't test collision of objects attached to walls
 
@@ -1405,7 +1403,7 @@ namespace Inferno {
                 }
             }
 
-            if (IntersectLevelMesh(level, obj, pvs, hit, dt)) {
+            if (IntersectLevelMesh(level, obj, pvs, hit)) {
                 if (obj.Type == ObjectType::Weapon)
                     WeaponHitWall(hit, obj, level, objId);
 
@@ -1440,7 +1438,12 @@ namespace Inferno {
                         CheckForImpact(obj, hit, nullptr);
                     }
                 }
+
             }
+
+            // Update object segment after physics is applied
+            if (obj.Physics.Velocity.Length() * dt > MIN_TRAVEL_DISTANCE)
+                MoveObject(level, obj);
         }
 
         if (objId == (ObjID)0) {
