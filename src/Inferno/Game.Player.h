@@ -13,6 +13,12 @@ namespace Inferno {
 
     enum class HeadlightState { Off, Normal, Bright };
 
+    enum class AutoselectCondition {
+        EnergyPickup,       // energy was picked up when the player had none
+        AmmoPickup,         // ammo was picked up when the player had none
+        AmmoDepletion       // the weapon the player was firing ran out of ammo
+    };
+
     constexpr float MAX_ENERGY = 200;
     constexpr float MAX_SHIELDS = 200;
     constexpr float OMEGA_CHARGE_COST = 1.0f / 8; // charge cost to fire one shot of omega
@@ -240,8 +246,11 @@ namespace Inferno {
 
         bool CanOpenDoor(const Wall& wall) const;
 
-        void AutoselectPrimary(bool onEmpty = false);
+        void PrimaryPickupAutoselect(PrimaryWeaponIndex weapon);
+        void SecondaryPickupAutoselect(SecondaryWeaponIndex weapon);
+        void AutoselectPrimary(AutoselectCondition condition, int16 ammoType = -1);
         void AutoselectSecondary();
+
         void GiveExtraLife(uint8 lives = 1);
         void LoseLife();
 

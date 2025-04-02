@@ -741,7 +741,7 @@ namespace Inferno {
         node["HalvePitchSpeed"] << settings.HalvePitchSpeed;
         node["ShipAutolevel"] << settings.ShipAutolevel;
         node["NoAutoselectWhileFiring"] << settings.NoAutoselectWhileFiring;
-        node["AutoselectAfterFiring"] << settings.AutoselectAfterFiring;
+        node["OnlyAutoselectWhenEmpty"] << settings.OnlyAutoselectWhenEmpty;
         node["StickyRearview"] << settings.StickyRearview;
         node["SlowmoFusion"] << settings.SlowmoFusion;
         node["HudGlare"] << settings.HudGlare;
@@ -779,7 +779,7 @@ namespace Inferno {
         ReadValue2(node, "HalvePitchSpeed", settings.HalvePitchSpeed);
         ReadValue2(node, "ShipAutolevel", settings.ShipAutolevel);
         ReadValue2(node, "NoAutoselectWhileFiring", settings.NoAutoselectWhileFiring);
-        ReadValue2(node, "AutoselectAfterFiring", settings.AutoselectAfterFiring);
+        ReadValue2(node, "OnlyAutoselectWhenEmpty", settings.OnlyAutoselectWhenEmpty);
         ReadValue2(node, "StickyRearview", settings.StickyRearview);
         ReadValue2(node, "SlowmoFusion", settings.SlowmoFusion);
         ReadValue2(node, "HudGlare", settings.HudGlare);
