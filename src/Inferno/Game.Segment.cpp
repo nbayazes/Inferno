@@ -86,121 +86,53 @@ namespace Inferno {
         }
     }
 
-    constexpr auto PLANE_DIST_TOLERANCE = FixToFloat(250);
 
-    Array<PointID, 6> create_abs_vertex_lists(const Segment& seg, SideID side) {
-        auto& indices = seg.Indices;
-        auto& sidep = seg.GetSide(side);
-        auto& sv = SIDE_INDICES[(int)side];
-        Array<PointID, 6> vertices{};
+    Array<float, 6> GetSideDistances(const Level& level, const Segment& seg, const Vector3& point) {
+        Array<float, 6> distances{};
 
-        //Assert((segnum <= Highest_segment_index) && (segnum >= 0));
+        for (auto& sideId : SIDE_IDS) {
+            auto& dist = distances[(int)sideId];
+            auto face = ConstFace::FromSide(level, seg, sideId);
+            if (face.Area() < 0.01f) 
+                continue;
 
-        switch (sidep.Type) {
-            case SideSplitType::Quad:
+            if (face.Side.Type == SideSplitType::Tri02) {
+                Plane p0(face[1], face.Side.Normals[0]);
+                Plane p1(face[3], face.Side.Normals[1]);
+                bool concave = p0.DotCoordinate(face[3]) > 0; // other triangle point is in front of plane
+                auto d0 = p0.DotCoordinate(point);
+                auto d1 = p1.DotCoordinate(point);
 
-                vertices[0] = indices[sv[0]];
-                vertices[1] = indices[sv[1]];
-                vertices[2] = indices[sv[2]];
-                vertices[3] = indices[sv[3]];
-                break;
-            case SideSplitType::Tri02:
-                vertices[0] = indices[sv[0]];
-                vertices[1] = indices[sv[1]];
-                vertices[2] = indices[sv[2]];
-
-                vertices[3] = indices[sv[2]];
-                vertices[4] = indices[sv[3]];
-                vertices[5] = indices[sv[0]];
-                break;
-            case SideSplitType::Tri13:
-                vertices[0] = indices[sv[3]];
-                vertices[1] = indices[sv[0]];
-                vertices[2] = indices[sv[1]];
-
-                vertices[3] = indices[sv[1]];
-                vertices[4] = indices[sv[2]];
-                vertices[5] = indices[sv[3]];
-                break;
-        }
-
-        return vertices;
-    }
-
-    // Returns a 6 bit mask indicating if the point is behind that side
-    uint8 GetSideDistances(const Level& level, const Segment& seg, const Vector3& point, Array<float, 6>& distances) {
-        uint8 mask = 0;
-
-        for (int sn = 0, facebit = 1, sidebit = 1; sn < 6; sn++, sidebit <<= 1) {
-            auto face = ConstFace::FromSide(level, seg, SideID(sn));
-            auto& sideVerts = SIDE_INDICES[sn];
-
-            auto vertex_list = create_abs_vertex_lists(seg, SideID(sn)); 
-
-            if (face.Side.Type == SideSplitType::Tri02 || face.Side.Type == SideSplitType::Tri13) {
-                int vertnum = std::min(vertex_list[0], vertex_list[2]);
-                float dist = 0;
-
-                if (vertex_list[4] < vertex_list[1]) {
-                    Plane plane(level.Vertices[vertnum], face.Side.Normals[0]);
-                    dist = plane.DotCoordinate(level.Vertices[vertex_list[4]]);
+                // when concave the point is outside if point is behind either plane
+                // when convex point must be behind both planes
+                if (concave) {
+                    dist = std::min({ dist, d0, d1 });
                 }
-                else {
-                    Plane plane(level.Vertices[vertnum], face.Side.Normals[1]);
-                    dist = plane.DotCoordinate(level.Vertices[vertex_list[1]]);
+                else if (d0 < 0 && d1 < 0) {
+                    dist = std::min({ dist, d0, d1 });
                 }
+            }
+            else if (face.Side.Type == SideSplitType::Tri13) {
+                Plane p0(face[0], face.Side.Normals[0]);
+                Plane p1(face[2], face.Side.Normals[1]);
+                bool concave = p0.DotCoordinate(face[2]) > 0; // other triangle point (2) is in front of plane
+                auto d0 = p0.DotCoordinate(point);
+                auto d1 = p1.DotCoordinate(point);
 
-                bool side_pokes_out = dist > PLANE_DIST_TOLERANCE;
-                int center_count = 0;
-
-                for (int fn = 0; fn < 2; fn++, facebit <<= 1) {
-                    Plane plane(level.Vertices[vertnum], face.Side.Normals[fn]);
-                    dist = plane.DotCoordinate(point);
-
-                    if (dist < -PLANE_DIST_TOLERANCE) //in front of face
-                    {
-                        center_count++;
-                        distances[sn] += dist;
-                    }
+                if (concave) {
+                    dist = std::min({ dist, d0, d1 });
                 }
-
-                if (!side_pokes_out) //must be behind both faces
-                {
-                    if (center_count == 2) {
-                        mask |= sidebit;
-                        distances[sn] /= 2; //get average
-                    }
-                }
-                else //must be behind at least one face
-                {
-                    if (center_count) {
-                        mask |= sidebit;
-                        if (center_count == 2)
-                            distances[sn] /= 2; //get average
-                    }
+                else if (d0 < 0 && d1 < 0) {
+                    dist = std::min({ dist, d0, d1 });
                 }
             }
             else {
-                //only one face on this side
-                //use lowest point number
-                int vertnum = seg.Indices[sideVerts[0]];
-                for (int i = 1; i < 4; i++)
-                    if (seg.Indices[sideVerts[0]] < vertnum)
-                        vertnum = seg.Indices[sideVerts[0]];
-
-                Plane plane(level.Vertices[vertnum], face.Side.Normals[0]);
-                float dist = plane.DotCoordinate(point);
-
-                if (dist < -PLANE_DIST_TOLERANCE) {
-                    mask |= sidebit;
-                    distances[sn] = dist;
-                }
-
-                facebit <<= 2;
+                Plane p(face.Side.Center, face.Side.AverageNormal);
+                dist = std::min(dist, p.DotCoordinate(point));
             }
         }
 
-        return mask;
+        return distances;
     }
 
     // Returns true if a point is inside of a segment
@@ -208,55 +140,102 @@ namespace Inferno {
         auto seg = level.TryGetSegment(id);
         if (!seg || level.Vertices.empty()) return false;
 
-        Array<float, 6> distances{};
-        auto mask = GetSideDistances(level, *seg, point, distances);
-        return mask == 0;
+        auto distances = GetSideDistances(level, *seg, point);
+        return ranges::all_of(distances, [](float d) { return d >= 0; });
+
+        //for (auto& d : distances) {
+        //    if (d < 0) return false;
+        //}
+
+        /*if (!ranges::all_of(distances, [](float d) { return d >= 0; }))
+            return false;
+
+        return true;*/
+
+        //// Check if the point is in front of all triangles of the segment
+        //return ranges::all_of(SideIDs, [&](SideID sideId) {
+        //    auto& side = level.GetSide(Tag{ id, sideId });
+        //    auto face = Face2::FromSide(level, Tag{ id, sideId });
+        //    if (side.Type == SideSplitType::Tri02) {
+        //        Plane p0(face[1], face.Side->Normals[0]);
+        //        if (p0.DotCoordinate(point) < 0) return false;
+
+        //        Plane p1(face[3], face.Side->Normals[1]);
+        //        if (p1.DotCoordinate(point) < 0) return false;
+        //        return true;
+        //    }
+        //    else if (side.Type == SideSplitType::Tri13) {
+        //        Plane p0(face[0], face.Side->Normals[0]);
+        //        if (p0.DotCoordinate(point) < 0) return false;
+
+        //        Plane p1(face[2], face.Side->Normals[1]);
+        //        if (p1.DotCoordinate(point) < 0) return false;
+        //        return true;
+        //    }
+        //    else {
+        //        Plane p(side.Center, side.AverageNormal);
+        //        return p.DotCoordinate(point) > 0;
+        //    }
+        //});
+
+        //for (auto& sideId : SideIDs) {
+        //    auto& side = level.GetSide(Tag{ id, sideId });
+        //    Plane p(side.Center, side.AverageNormal);
+        //    if (p.DotCoordinate(point) < 0)
+        //        return false;
+        //}
+
+        //return true;
     }
 
     SegID TraceSegmentInternal(const Level& level, SegID start, const Vector3& point, int iterations) {
-        if (iterations > 512) {
-            SPDLOG_ERROR("Trace depth limit reached, something is wrong");
+        if (start == SegID::None)
             return SegID::None;
+
+        //ASSERT(iterations <= 50);
+        if (iterations > 50) {
+            SPDLOG_ERROR("Trace depth limit reached, something is wrong");
+            return start;
         }
 
         auto startSeg = level.TryGetSegment(start);
         if (!startSeg) {
-            SPDLOG_ERROR("Trace start seg does not exist");
-            return SegID::None;
+            SPDLOG_ERROR("Trace start seg {} does not exist", start);
+            return start;
         }
 
-        Array<float, 6> distances{};
-        auto mask = GetSideDistances(level, *startSeg, point, distances);
-        if (mask == 0)
-            return start; // in current seg
+        auto distances = GetSideDistances(level, *startSeg, point);
+        if (ranges::all_of(distances, [](float d) { return d >= -0.001f; }))
+            return start;
 
-        //not in old seg.  trace through to find seg
         auto biggestSide = SideID::None;
 
         do {
-            int bit = 1;
-            auto& seg = level.GetSegment(start);
-
             biggestSide = SideID::None;
-            fix biggest_val = 0;
 
-            for (int sidenum = 0; sidenum < 6; sidenum++, bit <<= 1) {
-                if ((mask & bit) && seg.SideHasConnection((SideID)sidenum)) {
-                    if (distances[sidenum] < biggest_val) {
-                        biggest_val = distances[sidenum];
-                        biggestSide = (SideID)sidenum;
-                    }
+            auto seg = level.TryGetSegment(start);
+            float biggestVal = 0;
+
+            if (!seg) {
+                SPDLOG_WARN("Invalid trace segment {}", start);
+                return start;
+            }
+
+            for (auto& sid : SIDE_IDS) {
+                if (distances[(int)sid] < biggestVal) {
+                    biggestVal = distances[(int)sid];
+                    biggestSide = sid;
                 }
             }
 
             if (biggestSide != SideID::None) {
                 distances[(int)biggestSide] = 0;
-                auto check = TraceSegmentInternal(level, seg.GetConnection(biggestSide), point, iterations + 1); //trace into adjacent segment
-
-                if (check != SegID::None) //we've found a segment
+                auto check = TraceSegmentInternal(level, seg->GetConnection(biggestSide), point, iterations + 1);
+                if (check != SegID::None)
                     return check;
             }
-        } while (biggestSide != SideID::None);
+        }
+        while (biggestSide != SideID::None);
 
         return SegID::None;
     }
