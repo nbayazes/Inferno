@@ -661,12 +661,17 @@ namespace Inferno {
     void Player::PrimaryPickupAutoselect(PrimaryWeaponIndex weapon) {
         if (Settings::Inferno.OnlyAutoselectWhenEmpty && CanFirePrimary(Primary))
             return;
+        if (Settings::Inferno.NoAutoselectWhileFiring && (PrimaryState == FireState::Press || PrimaryState == FireState::Hold) && CanFirePrimary(Primary))
+            return;
+
         if (GetPrimaryWeaponPriority(weapon) < GetPrimaryWeaponPriority(Primary) && CanFirePrimary(weapon))
             SelectPrimary(weapon);
     }
 
     void Player::SecondaryPickupAutoselect(SecondaryWeaponIndex weapon) {
         if (Settings::Inferno.OnlyAutoselectWhenEmpty && CanFireSecondary(Secondary))
+            return;
+        if (Settings::Inferno.NoAutoselectWhileFiring && (SecondaryState == FireState::Press || SecondaryState == FireState::Hold) && CanFireSecondary(Secondary))
             return;
         if (GetSecondaryWeaponPriority(weapon) < GetSecondaryWeaponPriority(Secondary) && CanFireSecondary(weapon))
             SelectSecondary(weapon);
@@ -680,8 +685,10 @@ namespace Inferno {
         auto equippedPrio = GetPrimaryWeaponPriority(Primary);
         bool primaryUnusable = (condition == AutoselectCondition::AmmoDepletion) || !CanFirePrimary(Primary);
 
-
         if (Settings::Inferno.OnlyAutoselectWhenEmpty && !primaryUnusable)
+            return;
+
+        if (Settings::Inferno.NoAutoselectWhileFiring && (PrimaryState == FireState::Press || PrimaryState == FireState::Hold) && !primaryUnusable)
             return;
 
         for (int i = 0; i < numWeapons; i++) {
@@ -733,6 +740,9 @@ namespace Inferno {
         int priority = -1;
         int index = -1;
         const int numWeapons = Game::Level.IsDescent1() ? 5 : 10;
+        
+        if (Settings::Inferno.NoAutoselectWhileFiring && (SecondaryState == FireState::Press || SecondaryState == FireState::Hold) && CanFireSecondary(Secondary))
+            return;
 
         for (int i = 0; i < numWeapons; i++) {
             auto idx = (SecondaryWeaponIndex)i;
