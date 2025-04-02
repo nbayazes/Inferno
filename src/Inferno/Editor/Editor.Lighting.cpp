@@ -687,9 +687,18 @@ namespace Inferno::Editor {
             auto& seg = level.Segments[i];
 
             for (auto& sideId : SIDE_IDS) {
-                if (seg.SideHasConnection(sideId) && !seg.SideIsWall(sideId)) continue; // open sides can't have lights
-
                 auto& side = seg.GetSide(sideId);
+
+                if (!side.LightOverride) {
+                    if (seg.SideHasConnection(sideId) && !seg.SideIsWall(sideId)) 
+                        continue; // open sides can't have lights
+
+                    if (auto wall = level.TryGetWall({ segId, sideId })) {
+                        if (wall->Type == WallType::None || wall->Type == WallType::Open)
+                            continue; // invisible wall
+                    }
+                }
+
                 auto color = GetLightColor(side, settings.EnableColor);
                 if (color.w <= 0) continue;
                 color.Premultiply();
@@ -1178,10 +1187,9 @@ namespace Inferno::Editor {
             dest.VolumeLight = src.VolumeLight;
 
             for (uint side = 0; side < 6; side++) {
-                
                 for (int v = 0; v < 4; v++) {
                     // Only copy light to non-locked sides!
-                    if (!src.Sides[side].LockLight[v]) 
+                    if (!src.Sides[side].LockLight[v])
                         dest.Sides[side].Light[v] = src.Sides[side].Light[v];
                 }
 
