@@ -1572,7 +1572,7 @@ namespace Inferno {
                     if (helpAI.State == AIState::Alert || helpAI.State == AIState::Idle) {
                         // Found a robot that can help us
 
-                        auto dist = Vector3::DistanceSquared(help->Position, robot.Position);
+                        auto dist = Vector3::Distance(help->Position, robot.Position);
                         if (dist < nearestDist && dist > AI_HELP_MIN_SEARCH_RADIUS) {
                             nearestHelp = help;
                             nearestDist = dist;
