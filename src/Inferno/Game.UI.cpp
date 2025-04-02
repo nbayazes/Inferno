@@ -579,6 +579,7 @@ namespace Inferno::UI {
                     "another class 1 driller\nneeds dismantling",
                     "I promise the next\nlevel has fewer drillers",
                     "Are you sure?\nJosh will miss you",
+                    "That ship you destroyed\nis coming out of your pay"
                     //"Guide-bot is coming back to get you"
                 };
 

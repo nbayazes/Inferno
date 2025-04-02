@@ -732,6 +732,49 @@ namespace Inferno::Editor {
             }
 
             {
+                // Updated marked vertices
+                ImGui::TableRowLabelEx("Marked vertices", "Sets the color of adjacent vertices");
+
+                static auto vertexColor = Color(1, 1, 1);
+                static auto applyAdjacent = true;
+
+                ImGui::SetNextItemWidth(-1);
+                if (ImGui::ColorEdit3("##marked-vertices", &vertexColor.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float)) {
+                    if (applyAdjacent || Settings::Editor.SelectionMode != SelectionMode::Face) {
+                        auto markedVerts = Editor::GetSelectedVertices();
+                        for (auto& segment : level.Segments) {
+                            for (auto& sid : SIDE_IDS) {
+                                auto indices = segment.GetVertexIndices(sid);
+                                for (int i = 0; i < 4; i++) {
+                                    if (Seq::contains(markedVerts, indices[i])) {
+                                        segment.GetSide(sid).Light[i] = vertexColor;
+                                        segment.GetSide(sid).LockLight[i] = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else {
+                        for (auto tag : Editor::GetSelectedFaces()) {
+                            if (auto s = level.TryGetSide(tag)) {
+                                for (int i = 0; i < 4; i++) {
+                                    s->Light[i] = vertexColor;
+                                    s->LockLight[i] = true;
+                                }
+                            }
+                        }
+                    }
+
+                    levelChanged = true;
+                }
+
+                CheckForSnapshot(snapshot);
+                ImGui::TableRowLabelEx("Apply adjacent", "Changes the color of vertex lighting of adjacent sides");
+                ImGui::SetNextItemWidth(-1);
+                ImGui::Checkbox("##apply-adjacent", &applyAdjacent);
+            }
+
+            {
                 // Dynamic multiplier
                 bool overrideChanged = false;
                 bool hasOverride = side.DynamicMultiplierOverride.has_value();
