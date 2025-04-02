@@ -487,8 +487,7 @@ namespace Inferno {
                 ? PrimaryWeaponIndex::SuperLaser
                 : PrimaryWeaponIndex::Laser;
 
-            if (GetPrimaryWeaponPriority(laserIndex) < GetPrimaryWeaponPriority(Primary) && CanFirePrimary(laserIndex))
-                SelectPrimary(laserIndex);
+            PrimaryPickupAutoselect(laserIndex);
         }
     }
 
@@ -511,7 +510,7 @@ namespace Inferno {
             return;
 
         if (!CanFirePrimary(Primary) && WeaponCharge <= 0) {
-            AutoselectPrimary(true);
+            AutoselectPrimary(AutoselectCondition::AmmoDepletion);
             return;
         }
 
@@ -576,7 +575,7 @@ namespace Inferno {
         AlertRobotsOfNoise(player, GetWeaponAlertRadius(weapon), weapon.Extended.Noise * 2.0f);
 
         if (!CanFirePrimary(Primary) && Primary != PrimaryWeaponIndex::Omega)
-            AutoselectPrimary(true);
+            AutoselectPrimary(AutoselectCondition::AmmoDepletion);
     }
 
     void Player::HoldPrimary() {}
@@ -659,14 +658,45 @@ namespace Inferno {
         return true;
     }
 
-    void Player::AutoselectPrimary(bool onEmpty) {
+    void Player::PrimaryPickupAutoselect(PrimaryWeaponIndex weapon) {
+        if (Settings::Inferno.OnlyAutoselectWhenEmpty)
+            return;
+        if (GetPrimaryWeaponPriority(weapon) < GetPrimaryWeaponPriority(Primary) && CanFirePrimary(weapon))
+            SelectPrimary(weapon);
+    }
+
+    void Player::SecondaryPickupAutoselect(SecondaryWeaponIndex weapon) {
+        if (Settings::Inferno.OnlyAutoselectWhenEmpty)
+            return;
+        if (GetSecondaryWeaponPriority(weapon) < GetSecondaryWeaponPriority(Secondary) && CanFireSecondary(weapon))
+            SelectSecondary(weapon);
+    }
+
+    void Player::AutoselectPrimary(AutoselectCondition condition, int16 ammoType) {
         int priority = -1;
         int index = -1;
         const int numWeapons = Game::Level.IsDescent1() ? 5 : 10;
+        
+        auto equippedPrio = GetPrimaryWeaponPriority(Primary);
+        bool primaryUnusable = (condition == AutoselectCondition::AmmoDepletion) || !CanFirePrimary(Primary);
+
+
+        if (Settings::Inferno.OnlyAutoselectWhenEmpty && !primaryUnusable)
+            return;
 
         for (int i = 0; i < numWeapons; i++) {
             auto idx = (PrimaryWeaponIndex)i;
             auto& battery = Ship.Weapons[i];
+
+            if (condition == AutoselectCondition::AmmoPickup) {
+                if (!battery.AmmoUsage || ammoType != battery.AmmoType)
+                    continue;   // skip weapons that don't use the ammo type picked up
+            }
+
+            if (condition == AutoselectCondition::EnergyPickup) {
+                if (!battery.EnergyUsage)
+                    continue;   // skip weapons that don't use energy
+            }
 
             if (battery.EnergyUsage > 0 && Energy < 1)
                 continue; // don't switch to energy weapons at low energy
@@ -676,6 +706,10 @@ namespace Inferno {
             auto p = GetPrimaryWeaponPriority(idx);
             if (p == NO_AUTOSELECT) continue;
 
+            if (!primaryUnusable)
+                if (equippedPrio < p)
+                    continue;   // only switch to lower priority weapon when the current weapon is depleted
+
             if (p < priority || priority == -1) {
                 priority = p;
                 index = i;
@@ -683,7 +717,7 @@ namespace Inferno {
         }
 
         if (index == -1) {
-            if (onEmpty)
+            if (primaryUnusable)
                 PrintHudMessage("no primary weapons available!");
             // play sound first time this happens?
             return;
@@ -1129,7 +1163,7 @@ namespace Inferno {
             PrintHudMessage(msg);
 
             if (!CanFirePrimary(Primary))
-                AutoselectPrimary(); // maybe picking up energy lets us fire a weapon
+                AutoselectPrimary(AutoselectCondition::EnergyPickup); // maybe picking up energy lets us fire a weapon
 
             return true;
         }
@@ -1159,9 +1193,9 @@ namespace Inferno {
             ammo = max;
         }
 
-        // If picking up ammo allows player to fire a higher priority weapon, switch to it
+        // If picking up ammo allows player to fire a higher priority weapon, or if the current weapon is empty, switch to it
         if (wasEmpty)
-            AutoselectPrimary();
+            AutoselectPrimary(AutoselectCondition::AmmoPickup, (int)index);
 
         return amount;
     }
@@ -1394,10 +1428,8 @@ namespace Inferno {
                             Sound::Play2D({ SoundID::SelectPrimary });
                             PrimaryDelay = RearmTime;
                         }
-                        else if (GetPrimaryWeaponPriority(PrimaryWeaponIndex::SuperLaser) < GetPrimaryWeaponPriority(Primary)) {
-                            // Do a real weapon swap check
-                            SelectPrimary(PrimaryWeaponIndex::Laser);
-                        }
+                        else
+                            PrimaryPickupAutoselect(PrimaryWeaponIndex::Laser);
                     }
 
                     LaserLevel++;
@@ -1484,10 +1516,6 @@ namespace Inferno {
                     auto msg = fmt::format("{} vulcan rounds!", amount / 10);
                     PrintHudMessage(msg);
                     used = true;
-
-                    // Picking up ammo lets us fire a weapon!
-                    if (!CanFirePrimary(Primary))
-                        AutoselectPrimary();
                 }
                 else {
                     PrintHudMessage(fmt::format("you already have {} vulcan rounds!", PrimaryAmmo[1] / 10));
@@ -1590,9 +1618,7 @@ namespace Inferno {
         AddScreenFlash(FLASH_PRIMARY);
 
         // Select the weapon we just picked up if it has a higher priority
-        // Also check if the weapon we just picked up has ammo before selecting it
-        if (GetPrimaryWeaponPriority(index) < GetPrimaryWeaponPriority(Primary) && CanFirePrimary(index))
-            SelectPrimary(index);
+        PrimaryPickupAutoselect(index);
 
         return true;
     }
@@ -1630,8 +1656,8 @@ namespace Inferno {
             PrintHudMessage(fmt::format("{}!", name));
         }
 
-        if (!CanFireSecondary(Secondary) || (startAmmo == 0 && GetSecondaryWeaponPriority(index) < GetSecondaryWeaponPriority(Secondary)))
-            SelectSecondary(index);
+        if (startAmmo == 0)
+            SecondaryPickupAutoselect(index);
 
         // todo: spawn individual missiles if count > 1 and full
         return true;

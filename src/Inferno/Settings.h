@@ -222,6 +222,7 @@ namespace Inferno {
         bool ShipAutolevel = false;
         bool NoAutoselectWhileFiring = true;
         bool AutoselectAfterFiring = true;
+        bool OnlyAutoselectWhenEmpty = false;
         bool OnlyCycleAutoselectWeapons = true;
         bool StickyRearview = false;
         bool SlowmoFusion = true;
