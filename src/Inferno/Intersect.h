@@ -131,6 +131,7 @@ namespace Inferno {
         IntersectResult RayLevelEx(Ray ray, const RayQuery& query, LevelHit& hit, ObjectMask mask = ObjectMask::None, ObjID source = ObjID::None);
 
         // intersects a ray with the level, returning true if an object or wall is hit. Only tests objects if a mask is set.
+        // does not check for passing through a solid wall
         bool RayLevel(const Ray& ray, const RayQuery& query, LevelHit& hit, ObjectMask mask = ObjectMask::None, ObjID source = ObjID::None) {
             return Intersects(RayLevelEx(ray, query, hit, mask, source));
         }

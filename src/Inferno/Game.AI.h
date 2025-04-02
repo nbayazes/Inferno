@@ -74,7 +74,7 @@ namespace Inferno {
     };
 
     struct PathingInfo {
-        PathMode mode = PathMode::StopVisible;
+        PathMode mode = PathMode::StopAtEnd;
         List<NavPoint> nodes; // For pathing to another segment
         int16 index = -1;
         bool interruptable = true; // Taking damage or seeing the player will interrupt pathing
@@ -363,7 +363,7 @@ namespace Inferno {
     void MoveTowardsDir(Object& robot, const Vector3& dir, float dt, float scale = 1);
 
     // Returns true if a target is in line of sight. Has an optional parameter to return if the target is through a solid wall.
-    bool ScanForTarget(const Object& robot, AIRuntime& ai, bool* isThroughWall = nullptr);
+    bool ScanForTarget(const Object& robot, AIRuntime& ai, bool* isThroughWall = nullptr, float* distance = nullptr);
     bool HasLineOfSight(const Object& obj, const Vector3& point, bool precise = false);
     IntersectResult HasFiringLineOfSight(const Object& obj, uint8 gun, const Vector3& target, ObjectMask mask);
     void CombatRoutine(Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, float dt);

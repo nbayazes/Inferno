@@ -45,6 +45,9 @@ namespace Inferno {
         constexpr float MAX_STUN_PERCENT = 0.6f; // Percentage of life required in one hit to reach max stun time
         constexpr float MAX_STUN_TIME = 1.5f; // max stun in seconds
         constexpr float MIN_STUN_TIME = 0.25f; // min stun in seconds. Stuns under this duration are discarded.
+        constexpr auto SUPERVISOR_SCRIPT = "Supervisor";
+
+        constexpr auto MELEE_RANGE = 40.0f; // How close for a robot to be considered in melee for AI purposes. Will try moving directly towards target instead of pathing
 
         GameTimer GlobalFleeTimer;
     }
@@ -152,6 +155,7 @@ namespace Inferno {
         if (SetPathGoal(Game::Level, robot, ai, target, mode, maxDist)) {
             ChangeState(robot, ai, AIState::Path);
             ai.path.faceGoal = true;
+            ai.path.interruptable = true;
             //Chat(robot, "Chase path found");
             return true;
         }
@@ -286,6 +290,8 @@ namespace Inferno {
         if (srcRoom == RoomID::None) return false;
 
         bool alertedRobot = false;
+        auto& srcAi = Resources::GetRobotInfo(sourceRobot);
+        bool supervisor = srcAi.Script == SUPERVISOR_SCRIPT;
 
         auto action = [&](const Room& room) {
             for (auto& segId : room.Segments) {
@@ -306,6 +312,9 @@ namespace Inferno {
                         if (ai.State != AIState::Idle && ai.State != AIState::Alert && ai.State != AIState::Roam)
                             continue;
 
+                        if (supervisor && obj->ID == sourceRobot.ID)
+                            continue; // don't alert supervisors from other supervisors, they will never go to sleep
+
                         ai.Target = target; // Update target if not fighting
                         ai.AddAwareness(awareness * random);
 
@@ -320,6 +329,8 @@ namespace Inferno {
                                     PlayAlertSound(*obj, ai);
                                     Chat(*obj, "I'm close enough to check it out");
                                     ChangeState(*obj, ai, AIState::Path);
+                                    ai.path.interruptable = true;
+                                    ai.path.faceGoal = true;
                                     alertedRobot = true;
                                 }
                             }
@@ -695,24 +706,37 @@ namespace Inferno {
         if (!ai.Target) return;
 
         auto sight = HasLineOfSightEx(robot, ai.Target->Position, false);
+        auto distance = Vector3::Distance(ai.Target->Position, robot.Position);
 
-        if (robotInfo.Attack == AttackType::Melee && sight == IntersectResult::ThroughWall) {
+        if (robotInfo.Attack == AttackType::Melee) {
+            // Melee robots try to find a path around a wall
+            if (sight == IntersectResult::ThroughWall && distance > MELEE_RANGE) {
+                if (ChaseTarget(robot, ai, *ai.Target, PathMode::StopAtEnd, robotInfo.ChaseDistance))
+                    ai.path.faceGoal = true;
+            }
+
+            // Only avoid room geometry outside of melee range, so robots will actively attack around corners and grates
+            if (distance > MELEE_RANGE) {
+                Ray ray(robot.Position, objDir);
+                AvoidRoomEdges(level, ray, robot, ai.Target->Position);
+            }
+
+            MoveTowardsPoint(robot, ai, ai.Target->Position);
+        }
+        else if (!Intersects(sight)) {
+            // ranged robots
+            Ray ray(robot.Position, objDir);
+            AvoidRoomEdges(level, ray, robot, ai.Target->Position);
+            MoveTowardsPoint(robot, ai, ai.Target->Position);
+        }
+
+        if (robotInfo.Attack == AttackType::Melee && sight == IntersectResult::ThroughWall && distance > MELEE_RANGE) {
             // Melee robots try to find a path around a wall
             if (ChaseTarget(robot, ai, *ai.Target, PathMode::StopAtEnd, robotInfo.ChaseDistance))
                 ai.path.faceGoal = true;
             // path to target, but only if it's not tried recently
         }
 
-
-        if (!Intersects(sight)) {
-            Ray ray(robot.Position, objDir);
-            //AvoidConnectionEdges(level, ray, desiredIndex, obj, thrust);
-            AvoidRoomEdges(level, ray, robot, ai.Target->Position);
-            //auto& seg = level.GetSegment(robot.Segment);
-            //AvoidSideEdges(level, ray, seg, side, robot, 0, player.Position);
-            MoveTowardsPoint(robot, ai, ai.Target->Position);
-            //ai.PathDelay = 0;
-        }
         //else if (ai.PathDelay <= 0) {
         //    if (!ChaseTarget(ai, robot, ai.TargetSegment, ai.TargetPosition->Position))
         //        ai.PathDelay = 5; // Don't try pathing again for a while
@@ -1401,6 +1425,7 @@ namespace Inferno {
                 ai.Awareness = 1;
                 ai.ActiveTime = AI_DEFAULT_AWAKE_TIME * (1 + Random() * 0.25f);
                 ai.State = state;
+                ai.ChargingWeapon = false;
                 break;
             case AIState::Roam:
                 // NYI
@@ -1458,7 +1483,7 @@ namespace Inferno {
         }
     }
 
-    bool ScanForTarget(const Object& robot, AIRuntime& ai, bool* isThroughWall) {
+    bool ScanForTarget(const Object& robot, AIRuntime& ai, bool* isThroughWall, float* distance) {
         // For now always use the player object
         // Instead this should scan nearby targets (other robots or players)
         auto& target = Game::GetPlayerObject();
@@ -1487,6 +1512,7 @@ namespace Inferno {
         if (targetDist > AI_VISION_FALLOFF_NEAR && !IsBossRobot(robot))
             falloff *= Game::Player.GetShipVisibility();
 
+        if (distance) *distance = targetDist;
         auto reactionTime = AI_REACTION_TIME * (5 - (int)Game::Difficulty);
         ai.Awareness += falloff * ai.GetDeltaTime() / reactionTime;
         ai.Awareness = Saturate(ai.Awareness);
@@ -1638,6 +1664,7 @@ namespace Inferno {
                     ChangeState(robot, ai, AIState::Alert);
                     //SetPathGoal(Game::Level, robot, ai, *ai.Target, PathMode::StopAtEnd, allyInfo.ChaseDistance);
                     allyAI.path.interruptable = true;
+                    allyAI.path.faceGoal = true;
                     //ai.path.interruptable = true;
                 }
             }
@@ -1982,6 +2009,8 @@ namespace Inferno {
             if (ScanForTarget(robot, ai)) {
                 auto target = Game::GetObject(ai.TargetObject);
                 ai.path.nodes = GenerateRandomPath(Game::Level, robot.Segment, 15, NavigationFlag::OpenKeyDoors, target ? target->Segment : SegID::None);
+                ai.path.interruptable = false;
+                ai.path.mode = PathMode::StopAtEnd;
                 Chat(robot, "Hostile sighted!");
                 ChangeState(robot, ai, AIState::Path);
             }
@@ -2031,9 +2060,10 @@ namespace Inferno {
             ai.path.nodes = GenerateRandomPath(Game::Level, robot.Segment, 6, NavigationFlag::None, target ? target->Segment : SegID::None);
 
             // If path is short, it might be due to being cornered by the player. Try again ignoring the player.
-            if (ai.path.nodes.size() < 3)
+            if (ai.path.nodes.size() < 2)
                 ai.path.nodes = GenerateRandomPath(Game::Level, robot.Segment, 6, NavigationFlag::None);
 
+            ai.path.mode = PathMode::StopAtEnd;
             ai.AlertTimer = 1 + Random() * 2;
             ai.FireDelay = AI_MINE_LAYER_DELAY * Random();
             ai.ActiveTime = AI_MINE_LAYER_AWAKE_TIME * (1 + Random() * 0.25f);
@@ -2069,13 +2099,20 @@ namespace Inferno {
 
         // Saw an enemy
         bool throughWall = false;
-        if (ai.path.interruptable && ScanForTarget(robot, ai, &throughWall) && (!throughWall || robotInfo.Attack == AttackType::Ranged)) {
-            ai.ClearPath(); // Stop chasing if robot finds a target
-            Chat(robot, "You can't hide from me!");
-            ChangeState(robot, ai, AIState::Combat);
+        float distance = 0;
+        //if (ai.path.interruptable && ScanForTarget(robot, ai, &throughWall) && (!throughWall || robotInfo.Attack == AttackType::Ranged)) {
+        if (ai.path.interruptable && ScanForTarget(robot, ai, &throughWall, &distance)) {
+            // don't stop pathing for melee robots unless target is close to a wall so they can swing through it
+            if (robotInfo.Attack == AttackType::Ranged || (!throughWall || distance < MELEE_RANGE)) {
+                ai.ClearPath(); // Stop chasing if robot finds a target
+                Chat(robot, "You can't hide from me!");
+                ChangeState(robot, ai, AIState::Combat);
+            }
         }
 
-        PathTowardsGoal(robot, ai);
+        if (!PathTowardsGoal(robot, ai))
+            ChangeState(robot, ai, AIState::Alert);
+
 
         // todo: mode to follow path while fighting
         // Stop pathing if an enemy is seen and not still in the matcen
@@ -2180,7 +2217,7 @@ namespace Inferno {
 
         if (robotInfo.IsBoss && Game::Level.IsDescent1())
             Game::BossBehaviorD1(ai, robot, robotInfo, dt);
-        else if (robotInfo.Script == "Supervisor")
+        else if (robotInfo.Script == SUPERVISOR_SCRIPT)
             SupervisorBehavior(ai, robot, robotInfo, dt);
         else if (robot.Control.AI.Behavior == AIBehavior::RunFrom)
             MineLayerBehavior(ai, robot, robotInfo, dt);

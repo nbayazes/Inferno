@@ -182,7 +182,14 @@ namespace Inferno {
 
             if (room == endRoom || i + 1 >= roomPath.size()) {
                 auto localPath = NavigateWithinRoomBfs(level, roomStartSeg, goal.Segment, *endRoom);
-                if (!localPath.empty()) {
+                if (localPath.empty()) {
+                    // if the path within the room is empty, it means we're already at the goal.
+                    // But if this is the last room, add the goal to the path
+                    if (i > 0 && i + 1 >= roomPath.size()) {
+                        path.push_back(goal);
+                    }
+                }
+                else {
                     localPath.back().Position = goal.Position;
                     Seq::append(path, localPath);
                 }
@@ -232,7 +239,6 @@ namespace Inferno {
             }
         }
 
-        path.push_back(goal);
 
         if (optimize)
             OptimizePath(path);
@@ -727,7 +733,7 @@ namespace Inferno {
                     continue; // identical nodes, skip it
 
                 // Checking for > 1 is in the case where the segments are too small for the radius even without splitting
-                if (offset > 1 && Game::Intersect.RayLevel(ray, query, hit)) {
+                if (offset > 1 && Game::Intersect.RayLevelEx(ray, query, hit) != IntersectResult::None) {
                     /*if(offset > 1) {
                         SPDLOG_WARN("Original path is too close to wall with requested radius.
                     }*/
