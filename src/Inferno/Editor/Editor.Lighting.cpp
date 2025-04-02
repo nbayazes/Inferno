@@ -225,8 +225,7 @@ namespace Inferno::Editor {
             case WallType::WallTrigger: // triggers are always on a solid wall
                 return false;
 
-            default:
-            {
+            default: {
                 // Check if the textures are transparent
                 auto& tmap1 = Resources::GetTextureInfo(side.TMap);
                 bool transparent = tmap1.Transparent;
@@ -762,8 +761,8 @@ namespace Inferno::Editor {
         for (auto& seg : level.Segments) {
             for (auto& side : seg.Sides) {
                 for (int i = 0; i < 4; i++) {
-                    side.LightDirs[i] = Vector3(0, 0, 0);
-                    if (side.LockLight[i]) continue;
+                    // Init with face normal so unlit faces don't have invalid normals. Also smoothes lighting from nearby sources.
+                    side.LightDirs[i] = side.AverageNormal;
                     side.Light[i] = ambient;
                 }
             }
@@ -835,7 +834,6 @@ namespace Inferno::Editor {
             for (auto& [dest, l] : light.Accumulated) {
                 auto& side = level.GetSide(dest);
                 for (int vert = 0; vert < 4; vert++) {
-                    if (side.LockLight[vert]) continue;
                     side.Light[vert] += l.Light[vert];
                     side.LightDirs[vert] += l.RaySum[vert];
                     rayCount[dest][vert] += l.RayHits[vert];
@@ -1180,7 +1178,13 @@ namespace Inferno::Editor {
             dest.VolumeLight = src.VolumeLight;
 
             for (uint side = 0; side < 6; side++) {
-                dest.Sides[side].Light = src.Sides[side].Light;
+                
+                for (int v = 0; v < 4; v++) {
+                    // Only copy light to non-locked sides!
+                    if (!src.Sides[side].LockLight[v]) 
+                        dest.Sides[side].Light[v] = src.Sides[side].Light[v];
+                }
+
                 dest.Sides[side].LightDirs = src.Sides[side].LightDirs;
             }
         }
