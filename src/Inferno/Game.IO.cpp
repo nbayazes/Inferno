@@ -582,11 +582,19 @@ namespace Inferno::Game {
 
     void PlayLevelMusic() {
         auto flags = LoadFlag::Default | GetLevelLoadFlag(Game::Level);
+        Option<string> sng;
 
-        auto sng = Resources::ReadTextFile("descent.sng", GetLevelLoadFlag(Game::Level) | LoadFlag::Dxa);
-
-        if (!sng)
+        // For retail levels, DXAs get SNG priority, but for custom missions the mission file does
+        if (Game::Mission && Game::Mission->IsRetailMission()) {
+            sng = Resources::ReadTextFile("descent.sng", GetLevelLoadFlag(Game::Level) | LoadFlag::Dxa);
+            if (!sng)
+                sng = Resources::ReadTextFile("descent.sng", LoadFlag::Mission);
+        }
+        else {
             sng = Resources::ReadTextFile("descent.sng", LoadFlag::Mission);
+            if (!sng)
+                sng = Resources::ReadTextFile("descent.sng", GetLevelLoadFlag(Game::Level) | LoadFlag::Dxa);
+        }
 
         if (!sng)
             sng = Resources::ReadTextFile("descent.sng", GetLevelLoadFlag(Game::Level) | LoadFlag::BaseHog);
