@@ -209,6 +209,9 @@ namespace Inferno {
                         continue;
                 }
 
+                if (objType == ObjectType::Player && seg.SideIsSolid(sideId, level))
+                    continue; // Don't hit test segments through solid walls to prevent picking up powerups
+
                 //if (needsRaycast) {
                 //    auto raySide = IntersectRaySegmentSide(level, ray, { segId, sideId }, travelDist);
                 //    if (raySide != SideID::None) {
