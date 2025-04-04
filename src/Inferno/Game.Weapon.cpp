@@ -158,8 +158,8 @@ namespace Inferno::Game {
     }
 
     void WeaponHitObject(const LevelHit& hit, Object& src) {
-        assert(hit.HitObj);
-        assert(src.IsWeapon());
+        ASSERT(hit.HitObj);
+        ASSERT(src.IsWeapon());
         const auto& weapon = Resources::GetWeapon(src);
         float damage = GetDamage(weapon) * src.Control.Weapon.Multiplier;
 
@@ -193,12 +193,13 @@ namespace Inferno::Game {
             else if (target.IsRobot()) {
                 Vector3 srcDir;
                 src.Physics.Velocity.Normalize(srcDir);
-                auto parent = Game::Level.TryGetObject(src.Parent);
                 // Explosive weapons stun more due to their damage being split
                 NavPoint srcPos = { target.Segment, target.Position - srcDir * 10 };
 
-                if (weapon.Extended.DirectDamage)
+                if (weapon.Extended.DirectDamage) {
+                    auto parent = Game::Level.TryGetObject(src.Parent);
                     DamageRobot(srcPos, target, damage, weapon.Extended.StunMult, parent);
+                }
             }
             else if (weapon.Extended.DirectDamage) {
                 target.ApplyDamage(damage);
