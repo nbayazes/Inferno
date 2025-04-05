@@ -57,7 +57,7 @@ namespace Inferno {
 
     void FixedUpdateObject(float dt, ObjID id, Object& obj);
 
-    void CreateObjectDebris(const Object& obj, ModelID modelId, const Vector3& force);
+    void CreateObjectDebris(const Object& obj, ModelID modelId, float force = 10);
 
     // Modifies an object's rotation to face towards a vector at a given rate per second
     void TurnTowardsDirection(Object& obj, Vector3 direction, float rate);
