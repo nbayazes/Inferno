@@ -937,20 +937,22 @@ namespace Inferno {
             //    //    AddBeam(*beam, player.Segment, position);
             //    //}
             //}
+
+            auto start = player.Position + player.Rotation.Forward() * 4;
             constexpr float size = 5.0f;
+
             if (auto beam = EffectLibrary.GetBeamInfo("player spawn vertical")) {
                 //for (int i = 0; i < 2; i++) {
-                Vector3 start = player.Position + player.Rotation.Forward() * 3;
-                Vector3 end = player.Position + player.Rotation.Forward() * 3 + player.Rotation.Up() * size;
+                Vector3 end = start + player.Rotation.Up() * size;
                 AddBeam(*beam, player.Segment, start, end);
 
-                end = player.Position + player.Rotation.Forward() * 4 + player.Rotation.Left() * size;
+                end = start + player.Rotation.Left() * size;
                 AddBeam(*beam, player.Segment, start, end);
 
-                end = player.Position + player.Rotation.Forward() * 4 + player.Rotation.Right() * size;
+                end = start + player.Rotation.Right() * size;
                 AddBeam(*beam, player.Segment, start, end);
 
-                end = player.Position + player.Rotation.Forward() * 4 + player.Rotation.Down() * size;
+                end = start + player.Rotation.Down() * size;
                 AddBeam(*beam, player.Segment, start, end);
                 //}
             }
@@ -959,18 +961,16 @@ namespace Inferno {
                 for (int i = 0; i < 2; i++) {
                     //Vector3 position = player.Position + player.Rotation.Forward() * 3;
                     //Vector3 position = player.Position + player.Rotation.Down() * 6 + player.Rotation.Forward() * 3;
-                    Vector3 start = player.Position + player.Rotation.Forward() * 5;
-                    Vector3 end = player.Position + player.Rotation.Forward() * 5 + player.Rotation.Up() * size;
-
+                    Vector3 end = start + player.Rotation.Up() * size;
                     AddBeam(*beam, player.Segment, start, end);
 
-                    end = player.Position + player.Rotation.Forward() * 5 + player.Rotation.Left() * size;
+                    end = start + player.Rotation.Left() * size;
                     AddBeam(*beam, player.Segment, start, end);
 
-                    end = player.Position + player.Rotation.Forward() * 5 + player.Rotation.Right() * size;
+                    end = start + player.Rotation.Right() * size;
                     AddBeam(*beam, player.Segment, start, end);
 
-                    end = player.Position + player.Rotation.Forward() * 5 + player.Rotation.Down() * size;
+                    end = start + player.Rotation.Down() * size;
                     AddBeam(*beam, player.Segment, start, end);
                 }
             }
