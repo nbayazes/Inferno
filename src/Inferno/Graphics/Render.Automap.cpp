@@ -379,15 +379,30 @@ namespace Inferno::Render {
             info.TabStop = 20;
             info.Scanline = scanline;
             canvas->DrawText("Navigation:", info);
+
             info.Position.y += lineHeight;
             info.Color = Game::Automap.FoundEnergy ? TEXT_COLOR : DISABLED_TEXT;
             canvas->DrawText("1.\tEnergy center", info);
+
             info.Position.y += lineHeight;
             info.Color = Game::Automap.FoundReactor ? TEXT_COLOR : DISABLED_TEXT;
             canvas->DrawText("2.\tReactor", info);
+
             info.Position.y += lineHeight;
             info.Color = Game::Automap.FoundExit ? TEXT_COLOR : DISABLED_TEXT;
             canvas->DrawText("3.\tEmergency Exit", info);
+
+            info.Position.y += lineHeight;
+            info.Color = Game::Automap.FoundBlueDoor ? TEXT_COLOR : DISABLED_TEXT;
+            canvas->DrawText("4.\tBlue Door", info);
+
+            info.Position.y += lineHeight;
+            info.Color = Game::Automap.FoundGoldDoor ? TEXT_COLOR : DISABLED_TEXT;
+            canvas->DrawText("5.\tYellow Door", info);
+
+            info.Position.y += lineHeight;
+            info.Color = Game::Automap.FoundRedDoor ? TEXT_COLOR : DISABLED_TEXT;
+            canvas->DrawText("6.\tRed Door", info);
 
             //auto drawItem = [&info, &cursor, lineHeight](string_view label, string_view text) {
             //    cursor.y += lineHeight;
