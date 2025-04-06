@@ -18,6 +18,7 @@ namespace Inferno::Render {
         Texture2D Normal; // Flat normal texture
         Texture2D Black;
         Texture2D White;
+        Texture2D Transparent;
     };
 
     inline Ptr<StaticTextureDef> StaticTextures;

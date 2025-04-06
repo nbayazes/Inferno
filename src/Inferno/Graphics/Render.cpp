@@ -183,6 +183,10 @@ namespace Inferno::Render {
         StaticTextures->Missing.Load(batch, missingData, 2, 2, "missing", false, DXGI_FORMAT_R8G8B8A8_UNORM);
         StaticTextures->Missing.AddShaderResourceView();
 
+        uint transparentData[] = { 0x00000000, 0x00000000, 0x00000000, 0x00000000 };
+        StaticTextures->Transparent.Load(batch, transparentData, 2, 2, "transparent", false, DXGI_FORMAT_R8G8B8A8_UNORM);
+        StaticTextures->Transparent.AddShaderResourceView();
+
         try {
             ToneMapping->LoadResources(batch);
         }

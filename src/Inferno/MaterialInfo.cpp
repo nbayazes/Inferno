@@ -267,6 +267,15 @@ namespace Inferno {
                 }
             }
 
+            // Expand materials to all frames in effects
+            for (auto& effect : Resources::GameData.Effects) {
+                for (int i = 1; i < effect.VClip.NumFrames; i++) {
+                    auto src = effect.VClip.Frames[0];
+                    auto dest = effect.VClip.Frames[i];
+                    materials[(int)dest] = materials[(int)src];
+                }
+            }
+
             // Hard code special flat material
             if (materials.size() >= (int)Render::SHINY_FLAT_MATERIAL) {
                 auto& flat = materials[(int)Render::SHINY_FLAT_MATERIAL];

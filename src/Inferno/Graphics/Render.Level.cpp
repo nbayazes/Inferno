@@ -45,6 +45,13 @@ namespace Inferno::Render {
         return nullptr;
     }
 
+    ProceduralTextureBase* GetLevelProcedural(TexID id) {
+        if (!Settings::Graphics.EnableProcedurals) return nullptr;
+        auto proc = GetProcedural(id);
+        if (proc && proc->Enabled) return proc;
+        return nullptr;
+    }
+
     void AnimateLight(SegmentLight::SideLighting& side, DynamicLightMode mode, SegID segid) {
         const auto hash = PcgRandomFloat((int)side.Tag.Segment + (int)side.Tag.Side + (int)segid);
         const auto segHash = PcgRandomFloat((int)side.Tag.Segment + (int)segid);
@@ -85,6 +92,21 @@ namespace Inferno::Render {
         }
     }
 
+    const TexID GetEffectTexture(EClipID id, double time, bool critical) {
+        auto& eclip = Resources::GetEffectClip(id);
+        if (eclip.TimeLeft > 0) {
+            time = eclip.VClip.PlayTime - eclip.TimeLeft;
+        }
+
+        TexID tex = eclip.VClip.GetFrame(time);
+        if (critical && eclip.CritClip != EClipID::None) {
+            auto& crit = Resources::GetEffectClip(eclip.CritClip);
+            tex = crit.VClip.GetFrame(time);
+        }
+
+        return tex;
+    }
+
     void LevelDepthCutout(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd) {
         assert(cmd.Type == RenderCommandType::LevelMesh);
         auto& mesh = *cmd.Data.LevelMesh;
@@ -94,53 +116,53 @@ namespace Inferno::Render {
 
         DepthCutoutShader::Constants constants{};
         constants.Threshold = 0.01f;
-        constants.HasOverlay = chunk.TMap2 > LevelTexID::Unset;
+
+        auto tmap1 = chunk.TMap1;
+        auto tmap2 = chunk.TMap2;
+        auto eclip1 = chunk.EffectClip1;
+        auto eclip2 = chunk.EffectClip2;
+
+        // Only walls and decals have tags
+        auto side = Game::Level.TryGetSide(chunk.Tag);
+
+        if (side) {
+            tmap1 = side->TMap;
+            tmap2 = side->TMap2;
+            eclip1 = Resources::GetEffectClipID(side->TMap);
+            eclip2 = Resources::GetEffectClipID(side->TMap2);
+        }
+
+        // Check for eclips and self destruct
+        auto tid1 = eclip1 == EClipID::None ? Resources::LookupTexID(tmap1) : GetEffectTexture(eclip1, Game::Time, Game::ControlCenterDestroyed);
+        auto tid2 = eclip2 == EClipID::None ? Resources::LookupTexID(tmap2) : GetEffectTexture(eclip2, Game::Time, Game::ControlCenterDestroyed);
+
+        auto mat1 = &Materials->Get(tid1);
+        auto mat2 = &Materials->Get(tid2);
+        auto mat1Handle = mat1->Handle();
+        auto mat2Handle = mat2->Handle();
+
+        constants.HasOverlay = tmap2 > LevelTexID::Unset;
+
+        if (auto proc = GetLevelProcedural(tmap1))
+            mat1Handle = proc->GetHandle(); // For procedural textures the animation is baked into it
+
+        if (constants.HasOverlay) {
+            if (auto proc = GetLevelProcedural(tid2))
+                mat2Handle = proc->GetHandle();
+        }
+
+        auto& ti = Resources::GetLevelTextureInfo(tmap1);
+        constants.Scroll = ti.Slide;
+        constants.Scroll2 = chunk.OverlaySlide;
 
         auto& effect = Effects->DepthCutout;
         Adapter->GetGraphicsContext().ApplyEffect(effect);
 
         effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
         effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
-
-        auto side = Game::Level.TryGetSide(chunk.Tag);
-
-        // Same as level mesh texid lookup
-        if (SideIsDoor(side)) {
-            // Use the current texture for this side, as walls are drawn individually
-            effect.Shader->SetDiffuse1(cmdList, Materials->Get(side->TMap).Handle());
-            if (constants.HasOverlay) {
-                auto& tmap2 = Materials->Get(side->TMap2);
-                effect.Shader->SetDiffuse2(cmdList, tmap2.Handle());
-                effect.Shader->SetSuperTransparent(cmdList, tmap2);
-            }
-        }
-        else {
-            if (auto proc = GetLevelProcedural(chunk.TMap1)) {
-                // For procedural textures the animation is baked into it
-                effect.Shader->SetDiffuse1(cmdList, proc->GetHandle());
-            }
-            else {
-                auto& map1 = chunk.EffectClip1 == EClipID::None ? Materials->Get(chunk.TMap1) : Materials->Get(chunk.EffectClip1, Game::Time, false);
-                effect.Shader->SetDiffuse1(cmdList, map1.Handles[0]);
-            }
-
-            if (constants.HasOverlay) {
-                if (auto proc = GetLevelProcedural(chunk.TMap2)) {
-                    auto& map2 = Materials->Get(chunk.TMap2);
-                    effect.Shader->SetDiffuse2(cmdList, proc->GetHandle());
-                    effect.Shader->SetSuperTransparent(cmdList, map2);
-                }
-                else {
-                    auto& map2 = chunk.EffectClip2 == EClipID::None ? Materials->Get(chunk.TMap2) : Materials->Get(chunk.EffectClip2, Game::Time, Game::ControlCenterDestroyed);
-                    effect.Shader->SetDiffuse2(cmdList, map2.Handles[0]);
-                    effect.Shader->SetSuperTransparent(cmdList, map2);
-                }
-            }
-        }
-
-        auto& ti = Resources::GetLevelTextureInfo(chunk.TMap1);
-        constants.Scroll = ti.Slide;
-        constants.Scroll2 = chunk.OverlaySlide;
+        effect.Shader->SetDiffuse1(cmdList, mat1Handle);
+        effect.Shader->SetDiffuse2(cmdList, mat2Handle);
+        effect.Shader->SetSuperTransparent(cmdList, *mat2);
         effect.Shader->SetConstants(cmdList, constants);
 
         mesh.Draw(cmdList);
@@ -281,83 +303,77 @@ namespace Inferno::Render {
         LevelShader::InstanceConstants constants{};
         constants.LightingScale = Settings::Editor.RenderMode == RenderMode::Shaded ? 1.0f : 0.0f; // How much light to apply
 
-        auto cmdList = ctx.GetCommandList();
-        auto& ti = Resources::GetLevelTextureInfo(chunk.TMap1);
+        auto tmap1 = chunk.TMap1;
+        auto tmap2 = chunk.TMap2;
+        auto eclip1 = chunk.EffectClip1;
+        auto eclip2 = chunk.EffectClip2;
 
-        if (decalSubpass && chunk.TMap2 == LevelTexID::Unset) return;
+        // Only walls and decals have tags
+        auto side = Game::Level.TryGetSide(chunk.Tag);
 
-        auto* mat1 = &Materials->Black();
-        auto mat1Handle = Materials->Black().Handle();
+        if (side) {
+            tmap1 = side->TMap;
+            tmap2 = side->TMap2;
+            eclip1 = Resources::GetEffectClipID(side->TMap);
+            eclip2 = Resources::GetEffectClipID(side->TMap2);
+        }
 
-        auto* mat2 = &Materials->Black();
-        auto mat2Handle = Materials->Black().Handle();
+        if (decalSubpass && tmap2 <= LevelTexID::Unset)
+            return; // No decal texture!
 
-        if (chunk.Cloaked) {
-            // todo: cloaked walls will have to be rendered with a different shader -> prefer glass / distortion
-            constants.LightingScale = 1;
+        // Check for eclips and self destruct
+        auto tid1 = eclip1 == EClipID::None ? Resources::LookupTexID(tmap1) : GetEffectTexture(eclip1, Game::Time, Game::ControlCenterDestroyed);
+        auto tid2 = eclip2 == EClipID::None ? Resources::LookupTexID(tmap2) : GetEffectTexture(eclip2, Game::Time, Game::ControlCenterDestroyed);
+
+        auto mat1 = &Materials->Get(tid1);
+        auto mat2 = &Materials->Get(tid2);
+        auto mat1Handle = mat1->Handle();
+        auto mat2Handle = mat2->Handle();
+
+        //if (decalSubpass) return; // enable to check if the base texture under a decal is culled. it should appear black
+        //if (!decalSubpass) return;
+
+        if (decalSubpass) {
+            // We always draw using the first texture slot, even for decals
+            constants.Tex1 = (int)tid2;
+            constants.HasOverlay = false;
+            mat1 = mat2;
+            mat1Handle = mat2Handle;
+
+            // Special override for procedural textures, as they are not stored in materials
+            if (auto proc = GetLevelProcedural(tmap2))
+                mat1Handle = proc->GetHandle();
         }
         else {
-            constants.HasOverlay = !decalSubpass && chunk.TMap2 > LevelTexID::Unset;
-            constants.IsOverlay = decalSubpass;
+            constants.Tex1 = (int)tid1;
 
-            // Only walls and decals have tags
-            auto side = Game::Level.TryGetSide(chunk.Tag);
-
-            if (SideIsDoor(side)) {
-                // Use the current texture for this side, as walls are drawn individually
-
-                if (!decalSubpass) {
-                    mat1 = &Materials->Get(side->TMap);
-                    mat1Handle = mat1->Handle();
-                }
-                else {
-                    mat1 = &Materials->Get(side->TMap2);
-                    mat1Handle = mat1->Handle();
-                }
+            // Pass tex2 when drawing base texture to discard pixels behind the decal
+            if (tmap2 > LevelTexID::Unset) {
+                constants.Tex2 = (int)tid2;
+                constants.HasOverlay = true;
             }
-            else {
-                if (!decalSubpass) {
-                    if (auto proc = GetLevelProcedural(chunk.TMap1)) {
-                        // For procedural textures the animation is baked into it
-                        mat1 = &Materials->Get(chunk.TMap1);
-                        mat1Handle = proc->GetHandle();
-                    }
-                    else {
-                        auto& map1 = chunk.EffectClip1 == EClipID::None ? Materials->Get(chunk.TMap1) : Materials->Get(chunk.EffectClip1, Game::Time, false);
-                        mat1 = &map1;
-                        mat1Handle = map1.Handle();
-                    }
-                }
-                else {
-                    if (auto proc = GetLevelProcedural(chunk.TMap2)) {
-                        mat1 = &Materials->Get(chunk.TMap2);
-                        mat1Handle = proc->GetHandle();
-                    }
-                    else {
-                        auto decal = chunk.TMap2;
-                        auto effect = chunk.EffectClip2;
-                        if (side) {
-                            decal = side->TMap2;
-                            effect = Resources::GetEffectClipID(side->TMap2);
-                        }
 
-                        auto& map2 = effect == EClipID::None ? Materials->Get(decal) : Materials->Get(effect, Game::Time, Game::ControlCenterDestroyed);
-                        mat1 = &map2;
-                        mat1Handle = map2.Handle();
-                    }
-                }
-            }
+            // Special override for procedural textures, as they are not stored in materials
+            if (auto proc = GetLevelProcedural(tmap1))
+                mat1Handle = proc->GetHandle();
         }
 
+        //if (chunk.Cloaked) {
+        //    // todo: cloaked walls will have to be rendered with a different shader -> prefer glass / distortion
+        //    constants.LightingScale = 1;
+        //}
+
+        constants.IsOverlay = decalSubpass;
+
+        auto& ti = Resources::GetLevelTextureInfo(tmap1);
         constants.Scroll = ti.Slide;
         constants.Scroll2 = chunk.OverlaySlide;
         constants.Distort = ti.Slide != Vector2::Zero;
-        constants.Tex1 = (int)ti.TexID;
         constants.LightColor = Color(0, 0, 0);
 
+        // Copy custom side light color
         if (auto segment = Seq::tryItem(SegmentLights, (uint)chunk.Tag.Segment)) {
-            auto& side = segment->Sides[(uint)chunk.Tag.Side];
-            constants.LightColor = side.AnimatedColor;
+            constants.LightColor = segment->Sides[(uint)chunk.Tag.Side].AnimatedColor;
 
             if (auto segSide = Game::Level.TryGetSide(chunk.Tag))
                 if (segSide->LightOverride && segSide->LightOverride->w == 0)
@@ -367,17 +383,7 @@ namespace Inferno::Render {
         // Tell the shader to skip discards because procedurals do not handle transparency
         if (chunk.SkipDecalCull) constants.HasOverlay = false;
 
-        if (decalSubpass) {
-            constants.Tex1 = (int)Resources::LookupTexID(chunk.TMap2);
-        }
-        else if (constants.HasOverlay) {
-            // Pass tex2 when drawing base texture to discard pixels behind the decal
-            auto decal = chunk.EffectClip2 == EClipID::None ? Resources::LookupTexID(chunk.TMap2) : Resources::GetEffectClip(chunk.TMap2).VClip.GetFrame(Game::Time);
-            constants.Tex2 = (int)decal;
-            mat2 = &Materials->Get(decal);
-            mat2Handle = mat2->Handle();
-        }
-
+        auto cmdList = ctx.GetCommandList();
         Shaders->Level.SetDiffuse1(cmdList, mat1Handle);
         Shaders->Level.SetMaterial1(cmdList, *mat1);
         Shaders->Level.SetDiffuse2(cmdList, mat2Handle);

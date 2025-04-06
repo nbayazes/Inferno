@@ -70,8 +70,6 @@ struct LevelVertex {
     float3 tangent : TANGENT;
     float3 bitangent : BITANGENT;
     float3 lightDir: LIGHTDIR;
-    //nointerpolation int Tex1 : BASE;
-    //nointerpolation int Tex2 : OVERLAY;
 };
 
 struct PS_INPUT {
@@ -84,8 +82,6 @@ struct PS_INPUT {
     centroid float3 bitangent : BITANGENT;
     float3 world : TEXCOORD2;
     float3 lightDir: LIGHTDIR; // Light direction for ambient
-    //nointerpolation int Tex1 : BASE;
-    //nointerpolation int Tex2 : OVERLAY;
 };
 
 /*
@@ -105,8 +101,6 @@ PS_INPUT vsmain(LevelVertex input) {
     output.bitangent = input.bitangent;
     output.world = input.pos; // level geometry is already in world coordinates
     output.lightDir = input.lightDir;
-    //output.Tex1 = input.Tex1;
-    //output.Tex2 = input.Tex2;
     return output;
 }
 
@@ -240,7 +234,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     if (Args.HasOverlay) {
         float overlay = Sample2D(Diffuse2, input.uv2, Sampler, Frame.FilterMode).a;
         float mask = Sample2D(StMask, input.uv2, Sampler, Frame.FilterMode).r;
-
+        
         if (mask > 0 || overlay == 1)
             discard; // Don't draw opaque pixels under overlay
     }
