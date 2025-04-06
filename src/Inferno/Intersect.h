@@ -12,6 +12,11 @@ namespace Inferno {
         explicit operator bool() const { return Distance != FLT_MAX; }
     };
 
+    struct TexHitInfo {
+        LevelTexID tex = LevelTexID::Unset;
+        uint x = 0, y = 0;
+    };
+
     // Returns the nearest intersection point on a face
     HitInfo IntersectFaceSphere(const ConstFace& face, const DirectX::BoundingSphere& sphere);
     HitInfo IntersectSphereSphere(const DirectX::BoundingSphere& a, const DirectX::BoundingSphere& b);
@@ -87,6 +92,10 @@ namespace Inferno {
     // Returns the UVs on a face closest to a point in world coordinates
     Vector2 IntersectFaceUVs(const Vector3& point, const ConstFace& face, int tri);
     void FixOverlayRotation(uint& x, uint& y, int width, int height, OverlayRotation rotation);
+
+    // Uses given point to return the LevelTexID of the visible texture + coordinates at the given point, accounting for overlay transparency
+    // Returns Unset as tex if point is transparent
+    TexHitInfo GetTextureFromIntersect(const Vector3& pnt, const ConstFace& face, int tri);
 
     // Returns true if the point was transparent
     bool WallPointIsTransparent(const Vector3& pnt, const ConstFace& face, int tri);

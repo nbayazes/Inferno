@@ -1067,7 +1067,37 @@ namespace Inferno {
                         hitSpeed = abs(hitNormal.Dot(obj.Physics.Velocity));
                         auto& ti = Resources::GetLevelTextureInfo(side.TMap);
 
-                        if (obj.Physics.CanBounce() || ti.HasFlag(TextureFlag::ForceField)) {
+                        // probably best to replace this with something more generalised
+                        bool doRandomBounce = false;
+                        {
+                            constexpr int MINIMUM_RICOCHET_ANGLE = 30;  // minimum required angle to ricochet off surface of metalness 0
+                            constexpr int MAXIMUM_CHANCE_ANGLE = 10;    // angle below which ricochet has maximum chance
+                            constexpr int METALNESS_ANGLE_MULT = 3;     // multiplier to angle chance for metalness
+                            constexpr int BASE_RICOCHET_CHANCE = 20;    // chance to ricochet off surface of metalness 0
+                            constexpr int METALNESS_CHANCE_SCALE = 40;  // additional chance to ricochet off surface of metalness 1, linear
+                            constexpr int ROUGHNESS_SCALE = 5;          // maximum degrees by which shot can disperse at roughness 1
+
+                            if ((WeaponID)obj.ID == WeaponID::Vulcan || (WeaponID)obj.ID == WeaponID::Gauss) {
+                                float ang = AngleBetweenVectors(direction, hitNormal) * RadToDeg - 90;
+                                auto texInfo = GetTextureFromIntersect(hitPoint, face, tri);
+                                auto &matInfo = Resources::GetMaterial(texInfo.tex);
+
+                                float minimumAngle = MINIMUM_RICOCHET_ANGLE * ((METALNESS_ANGLE_MULT - 1) * matInfo.Metalness + 1);
+                                if (ang <= minimumAngle) {
+                                    float angleMult = 1;
+                                    float maximumChanceAngle = MAXIMUM_CHANCE_ANGLE * ((METALNESS_ANGLE_MULT - 1) * matInfo.Metalness + 1);
+                                    if (ang > maximumChanceAngle)
+                                        angleMult = 1 - ((ang - maximumChanceAngle) / (minimumAngle - maximumChanceAngle));
+                                    float chance = (BASE_RICOCHET_CHANCE + (METALNESS_CHANCE_SCALE * matInfo.Metalness)) * angleMult;
+                                    if (chance >= RandomInt(10000) / 100.0) {
+                                        // fill hit info with either deviation or texture hit info, I guess?
+                                        doRandomBounce = true;
+                                    }
+                                }
+                            }
+                        }
+
+                        if (doRandomBounce || obj.Physics.CanBounce() || ti.HasFlag(TextureFlag::ForceField)) {
                             hit.Bounced = true;
                             // bounce velocity is handled after all hits are resolved so that overlapping
                             // triangle edges don't double the effect

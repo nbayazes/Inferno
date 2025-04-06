@@ -264,11 +264,10 @@ namespace Inferno {
         }
     }
 
-    bool WallPointIsTransparent(const Vector3& pnt, const ConstFace& face, int tri) {
+    TexHitInfo GetTextureFromIntersect(const Vector3& pnt, const ConstFace& face, int tri) {
         auto& side = face.Side;
         auto tmap = side.TMap2 > LevelTexID::Unset ? side.TMap2 : side.TMap;
         auto& bitmap = Resources::GetBitmap(Resources::LookupTexID(tmap));
-        if (!bitmap.Info.Transparent) return false; // Must be flagged transparent
 
         auto uv = IntersectFaceUVs(pnt, face, tri);
         auto wrap = [](float x, uint16 size) {
@@ -280,25 +279,36 @@ namespace Inferno {
         auto x = wrap(uv.x, info.Width);
         auto y = wrap(uv.y, info.Height);
 
-        // for overlay textures, check the supertransparent mask
         if (side.TMap2 > LevelTexID::Unset) {
             FixOverlayRotation(x, y, info.Width, info.Height, side.OverlayRotation);
             const int idx = y * info.Width + x;
+
             if (!bitmap.Mask.empty() && bitmap.Mask[idx] == Palette::SUPER_MASK)
-                return true; // supertransparent overlay
-
-            if (bitmap.Data[idx].a != 0)
-                return false; // overlay wasn't transparent
-
-            // Check the base texture
-            auto& tmap1 = Resources::GetBitmap(Resources::LookupTexID(side.TMap));
-            x = wrap(uv.x, info.Width);
-            y = wrap(uv.y, info.Height);
-            return tmap1.Data[idx].a == 0;
+                tmap = LevelTexID::Unset;
+            else if (bitmap.Data[idx].a == 0) {
+                // Check the base texture
+                tmap = side.TMap;
+                auto& bm1 = Resources::GetBitmap(Resources::LookupTexID(tmap));
+                x = wrap(uv.x, bm1.Info.Width);
+                y = wrap(uv.y, bm1.Info.Height);
+                if (bm1.Data[y * info.Width + x].a == 0)
+                    tmap = LevelTexID::Unset;
+            }
         }
-        else {
-            return bitmap.Data[y * info.Width + x].a == 0;
-        }
+        else if (bitmap.Data[y * info.Width + x].a == 0)
+            tmap = LevelTexID::Unset;
+        
+        return { .tex = tmap, .x = x, .y = y };
+    }
+
+    bool WallPointIsTransparent(const Vector3& pnt, const ConstFace& face, int tri) {
+        auto& side = face.Side;
+        auto tmap = side.TMap2 > LevelTexID::Unset ? side.TMap2 : side.TMap;
+        auto& bitmap = Resources::GetBitmap(Resources::LookupTexID(tmap));
+        if (!bitmap.Info.Transparent) return false; // Must be flagged transparent
+
+        auto texInfo = GetTextureFromIntersect(pnt, face, tri);
+        return texInfo.tex == LevelTexID::Unset;
     }
 
     IntersectResult IntersectContext::RayLevelEx(Ray ray, const RayQuery& query, LevelHit& hit, ObjectMask mask, ObjID source) {
