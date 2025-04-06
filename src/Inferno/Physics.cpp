@@ -202,12 +202,19 @@ namespace Inferno {
             for (auto& sideId : SIDE_IDS) {
                 auto& side = seg.GetSide(sideId);
 
-                if (objType == ObjectType::Weapon) {
-                    // Don't hit the other side of doors with weapons. Note that projectiles will still pass through transparent pixels.
-                    auto wall = level.TryGetWall(side.Wall);
-                    if (wall && (wall->Type == WallType::Door || wall->Type == WallType::Destroyable))
-                        continue;
-                }
+                //if (objType == ObjectType::Weapon) {
+                //    if (auto wall = level.TryGetWall(side.Wall)) {
+                //        if (wall->Type == WallType::Destroyable)
+                //            continue;
+
+                //        // Don't hit the other side of doors with weapons. Note that projectiles will still pass through transparent pixels.
+                //        if (wall->Type == WallType::Door && !HasFlag(wall->Flags, WallFlag::DoorOpened))
+                //            continue;
+                //    }
+                //}
+
+                if (objType == ObjectType::Player && seg.SideIsSolid(sideId, level))
+                    continue; // Don't hit test segments through solid walls to prevent picking up powerups
 
                 //if (needsRaycast) {
                 //    auto raySide = IntersectRaySegmentSide(level, ray, { segId, sideId }, travelDist);
@@ -221,6 +228,7 @@ namespace Inferno {
                 if (index == 0 || p.DotCoordinate(point) <= 0) {
                     // Point was behind the plane or this was the starting segment
                     auto conn = seg.GetConnection(sideId);
+
                     if (conn > SegID::None && !Seq::contains(g_VisitedStack, conn)) {
                         g_VisitedStack.push_back(conn);
                     }
@@ -647,19 +655,30 @@ namespace Inferno {
         if (meshSource.Render.Type != RenderType::Model) return {};
         auto& model = Resources::GetModel(meshSource.Render.Model.ID);
 
-        const float speed = sphereSource.Physics.Velocity.Length();
-        const float travelDist = speed * dt;
+        const auto& position = sphereSource.PrevPosition;
+        const auto& meshPosition = meshSource.PrevPosition;
+        //const float speed = sphereSource.Physics.Velocity.Length();
+        //const float travelDist = speed * dt;
+        auto direction = sphereSource.Position - sphereSource.PrevPosition;
+        const float travelDist = direction.Length();
+        direction.Normalize();
+        const float speed = travelDist / dt;
+        //const float travelDist2 = Vector3::Distance(sphereSource.PrevPosition, sphereSource.Position);
         const bool needsRaycast = travelDist > sphereSource.Radius /** 1.5f*/;
-        Vector3 direction;
-        sphereSource.Physics.Velocity.Normalize(direction);
+        //Vector3 direction;
+        //sphereSource.Physics.Velocity.Normalize(direction);
 
-        const auto objDistance = Vector3::Distance(sphereSource.Position, meshSource.Position);
+        //const auto objDistance = Vector3::Distance(sphereSource.Position, colliderPosition);
+        const auto objDistance = Vector3::Distance(position, meshPosition);
         const auto radii = sphereSource.Radius + meshSource.Radius;
 
         if (needsRaycast) {
             // Add both radii together to ensure the ray doesn't miss the bounds
-            BoundingSphere sphere(meshSource.Position, radii);
-            Ray pathRay(sphereSource.Position, direction);
+            //BoundingSphere sphere(colliderPosition, radii);
+            //Ray pathRay(position, direction);
+            BoundingSphere sphere(meshPosition, radii);
+            Ray pathRay(position, direction);
+
             float dist;
             if (!pathRay.Intersects(sphere, dist))
                 return {}; // Ray doesn't intersect
@@ -676,7 +695,8 @@ namespace Inferno {
         auto transform = meshSource.GetTransform();
         auto invTransform = transform.Invert();
         auto invRotation = Matrix(meshSource.Rotation).Invert();
-        const auto localPos = Vector3::Transform(sphereSource.Position, invTransform);
+        //const auto localPos = Vector3::Transform(sphereSource.Position, invTransform);
+        const auto localPos = Vector3::Transform(position, invTransform);
         auto localDir = Vector3::TransformNormal(direction, invRotation);
         localDir.Normalize();
         Ray ray(localPos, localDir); // update the input ray
@@ -712,12 +732,14 @@ namespace Inferno {
                     //drawTriangleEdge(center, center + normal * 2, { 1, 0, 0 });
 
                     bool triFacesObj = localDir.Dot(normal) <= 0;
-                    auto offset = normal * sphereSource.Radius; // offset triangle by radius to account for object size
                     Vector3 faceLocalPos = localPos;
 
                     if (needsRaycast && triFacesObj) {
                         float dist{};
                         Plane basePlane(p0, p1, p2);
+
+                        //auto ri = ray.Intersects(p0, p1, p2, dist);
+                        //auto ri2 = ray.Intersects(basePlane, dist);
 
                         if (ray.Intersects(p0, p1, p2, dist) && dist < travelDist) {
                             // Move object to intersection of triangle and proceed
@@ -728,11 +750,15 @@ namespace Inferno {
                             // This allows the radius of raycasted projectiles to have effect
                             faceLocalPos += localDir * dist;
                         }
+                        else {
+                            continue;
+                        }
                     }
 
+                    auto offset = normal * sphereSource.Radius; // offset triangle by radius to account for object size
                     Plane plane(p2 + offset, p1 + offset, p0 + offset);
                     auto planeDist = plane.DotCoordinate(faceLocalPos);
-                    if (planeDist > 0 || planeDist < -sphereSource.Radius)
+                    if (planeDist > 0 || planeDist < -sphereSource.Radius - travelDist)
                         continue; // Object isn't close enough to the triangle plane
 
                     auto point = ProjectPointOntoPlane(faceLocalPos, plane);
@@ -809,7 +835,7 @@ namespace Inferno {
 
         averageHitPoint /= (float)hits;
         averageNormal /= (float)hits;
-        averageHitDistance /= hits;
+        averageHitDistance /= (float)hits;
 
         hit.Point = averageHitPoint;
         hit.Normal = averageNormal;
@@ -825,7 +851,7 @@ namespace Inferno {
             target.Physics.Velocity -= hit.Normal * nDotVel; // slide along triangle
         }
 
-        if (sphereSource.Type == ObjectType::Weapon) {
+        if (sphereSource.Type == ObjectType::Weapon && !needsRaycast) {
             // Use the weapon position as the hit location so the explosion doesn't "snap" to the model
             // Be careful that this doesn't reintroduce the gauss self damage problem...
             hit.Normal = sphereSource.Position - hit.Point;
@@ -1263,7 +1289,7 @@ namespace Inferno {
         dummyObj.PrevPosition = prevPosition;
         dummyObj.Radius = debris.Radius;
         dummyObj.Type = ObjectType::Debris;
-        dummyObj.Physics.Velocity = Vector3(1,1,1);
+        dummyObj.Physics.Velocity = Vector3(1, 1, 1);
         IntersectLevelMesh(level, dummyObj, pvs, hit);
         return (bool)hit;
     }
@@ -1391,6 +1417,7 @@ namespace Inferno {
 
             //if (id != 0) continue; // player only testing
             LevelHit hit{ .Source = &obj };
+            LevelHit objectHit{ .Source = &obj };
 
             // Don't hit test objects that haven't moved unless they are weapons (mines don't move).
             // Also always hit-test player so bouncing powerups will get collected.
@@ -1401,35 +1428,17 @@ namespace Inferno {
             // Needs testing against boss robots
             auto& pvs = GetPotentialSegments(level, obj.Segment, obj.Position, obj.Radius * 2, obj.Physics.Velocity, dt, obj.Type);
 
-            if (IntersectObjects(level, obj, objId, pvs, hit, dt)) {
-                if (obj.Type == ObjectType::Weapon) {
-                    Game::WeaponHitObject(hit, obj);
-                }
+            auto hitObject = IntersectObjects(level, obj, objId, pvs, objectHit, dt);
+            auto hitLevel = IntersectLevelMesh(level, obj, pvs, hit);
 
-                if (obj.Type == ObjectType::Player && hit.HitObj) {
-                    Game::Player.TouchObject(*hit.HitObj);
-                }
-
-                if (obj.IsRobot() && hit.HitObj) {
-                    RobotTouchObject(obj, *hit.HitObj);
-
-                    if (hit.HitObj->IsPlayer() || hit.HitObj->IsRobot())
-                        CheckForImpact(obj, hit);
-
-                    // tumble robots rammed by the player
-                    if (hit.HitObj->IsPlayer())
-                        ApplyRandomRotationalForce(obj, hit.Point, hit.Normal * hit.Speed);
-                }
-
-                if (hit.HitObj && hit.HitObj->IsRobot()) {
-                    RobotTouchObject(*hit.HitObj, obj);
-
-                    if (obj.IsPlayer() || obj.IsRobot())
-                        CheckForImpact(*hit.HitObj, hit);
-                }
+            if (hitObject && hitLevel) {
+                if (objectHit.HitObj && objectHit.HitObj->Segment != obj.Segment)
+                    hitObject = false; // level hit takes priority if hit object is in a different segment
+                else
+                    hitLevel = false; // hit the object so fast moving projectiles hit it
             }
 
-            if (IntersectLevelMesh(level, obj, pvs, hit)) {
+            if (hitLevel) {
                 if (obj.Type == ObjectType::Weapon)
                     WeaponHitWall(hit, obj, level, objId);
 
@@ -1464,7 +1473,34 @@ namespace Inferno {
                         CheckForImpact(obj, hit, nullptr);
                     }
                 }
+            }
 
+            if (hitObject && objectHit.HitObj) {
+                if (obj.Type == ObjectType::Weapon) {
+                    Game::WeaponHitObject(objectHit, obj);
+                }
+
+                if (obj.Type == ObjectType::Player && objectHit.HitObj) {
+                    Game::Player.TouchObject(*objectHit.HitObj);
+                }
+
+                if (obj.IsRobot() && objectHit.HitObj) {
+                    RobotTouchObject(obj, *objectHit.HitObj);
+
+                    if (objectHit.HitObj->IsPlayer() || objectHit.HitObj->IsRobot())
+                        CheckForImpact(obj, objectHit);
+
+                    // tumble robots rammed by the player
+                    if (objectHit.HitObj->IsPlayer())
+                        ApplyRandomRotationalForce(obj, objectHit.Point, objectHit.Normal * objectHit.Speed);
+                }
+
+                if (objectHit.HitObj->IsRobot()) {
+                    RobotTouchObject(*objectHit.HitObj, obj);
+
+                    if (obj.IsPlayer() || obj.IsRobot())
+                        CheckForImpact(*objectHit.HitObj, objectHit);
+                }
             }
 
             // Update object segment after physics is applied

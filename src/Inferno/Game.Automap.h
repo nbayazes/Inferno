@@ -14,6 +14,9 @@ namespace Inferno {
         string HostageText;
         int RobotScore = 0;
         bool FoundExit = false;
+        bool FoundBlueDoor = false;
+        bool FoundGoldDoor = false;
+        bool FoundRedDoor = false;
         bool FoundReactor = false;
         bool FoundEnergy = false;
 

@@ -223,7 +223,8 @@ namespace Inferno {
         bitmap.Height = header.Height;
 
         for (size_t i = 0; i < data.size(); i++) {
-            if (header.Mask == MaskType::TransparentColor && header.TransparentColor == data[i]) {
+            // Disable the transparent flag check, as it seems some custom textures don't set it properly
+            if (/*header.Mask == MaskType::TransparentColor && */header.TransparentColor == data[i]) {
                 bitmap.Data[i].a = 0;
             }
             else {

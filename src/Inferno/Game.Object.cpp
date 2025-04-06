@@ -413,7 +413,7 @@ namespace Inferno {
     }
 
     // Explodes an object into submodels
-    void CreateObjectDebris(const Object& obj, ModelID modelId, const Vector3& force) {
+    void CreateObjectDebris(const Object& obj, ModelID modelId, float force) {
         if (auto destroyedId = Resources::GameData.DyingModels[(int)modelId]; destroyedId != ModelID::None)
             modelId = destroyedId;
 
@@ -430,7 +430,7 @@ namespace Inferno {
             //auto vec = RandomVector(obj.Radius * 5);
             //debris.Velocity = vec + obj.LastHitVelocity / (4 + obj.Movement.Physics.Mass);
             //debris.Velocity =  RandomVector(obj.Radius * 5);
-            auto velocity = sm == 0 ? force : explosionDir * 10 + RandomVector(5) + force;
+            auto velocity = explosionDir * force + RandomVector(force * 0.5);
             velocity += obj.Physics.Velocity;
             Vector3 angularVelocity;
             angularVelocity.x = RandomN11();
@@ -527,12 +527,12 @@ namespace Inferno {
 
                 Game::Player.stats.kills++;
 
-                auto hitForce = obj.LastHitForce * (1.0f + Random() * 0.5f);
-                CreateObjectDebris(obj, robot.Model, hitForce);
+                //auto hitForce = obj.LastHitForce * (1.0f + Random() * 0.5f);
+                CreateObjectDebris(obj, robot.Model, 10 + obj.LastHitForce.Length() / 2);
 
                 for (size_t i = 0; i < 8; i++) {
                     auto random = RandomPointOnSphere() * obj.Radius * 0.35;
-                    CreateDebris(obj.Segment, obj.Position + random, hitForce);
+                    CreateDebris(obj.Segment, obj.Position + random);
                 }
 
                 if (auto e = EffectLibrary.GetSparks("robot destroyed")) {

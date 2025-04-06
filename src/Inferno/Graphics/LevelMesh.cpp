@@ -146,7 +146,7 @@ namespace Inferno {
             auto& uv = uvs[indices[i]];
             auto& lightDir = lightDirs[indices[i]];
             auto& color = colors[indices[i]];
-            Vector2 uv2 = side.HasOverlay() ? ApplyOverlayRotation(side, uv) : Vector2();
+            Vector2 uv2 = side.HasOverlay() ? ApplyOverlayRotation(side, uv) : uv;
             chunk.Center += pos;
 
             auto& tangent = i < 3 ? tangent1 : tangent2;
@@ -439,6 +439,11 @@ namespace Inferno {
                     //    AddPolygon(verts, side.UVs, side.Light, _geometry, chunk, side, tex1, TexID::None);
                     //}
 
+                    /*                 auto& door = Resources::GetDoorClip(wall->Clip);
+                                     if (door.NumFrames > 0)
+                                         chunk.EffectClip1*/
+
+                    // check for weird condition of doors with non-door textures applied to them
                     if (side.HasOverlay()) {
                         //uint16 overlayBit = needsOverlaySlide ? (uint16)side.OverlayRotation : 0;
                         //uint32 chunkId = 0 | (uint16)side.TMap2 << 15 | overlayBit << 30;

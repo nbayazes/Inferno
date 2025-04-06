@@ -23,6 +23,7 @@ namespace Inferno::Render {
     constexpr auto WHITE_MATERIAL = TexID(2901);
     constexpr auto BLACK_MATERIAL = TexID(2902);
     constexpr auto SHINY_FLAT_MATERIAL = TexID(2903); // For flat untextured polygons on models
+    constexpr auto TRANSPARENT_MATERIAL = TexID(2904);
 
     // Supports loading and unloading materials
     class MaterialLibrary {
@@ -55,6 +56,7 @@ namespace Inferno::Render {
         const Material2D& White() const { return _materials[(int)WHITE_MATERIAL]; }
         const Material2D& Black() const { return _materials[(int)BLACK_MATERIAL]; }
         const Material2D& Missing() const { return _materials[(int)MISSING_MATERIAL]; }
+        const Material2D& Transparent() const { return _materials[(int)TRANSPARENT_MATERIAL]; }
 
         TextureCube EnvironmentCube;
         Texture2D Matcap;
@@ -69,8 +71,6 @@ namespace Inferno::Render {
             if (!Seq::inRange(_materials, (int)id)) return _materials[(int)MISSING_MATERIAL];
             return _materials[(int)id];
         }
-
-        const Material2D& Get(EClipID id, double time, bool critical) const;
 
         // Gets a material based on a D1/D2 level texture ID
         const Material2D& Get(LevelTexID tid) const;

@@ -42,16 +42,42 @@ namespace Inferno::Game {
         // towards each corner and the center.
         auto seg = level.TryGetSegment(segId);
         if (!seg) return {};
-        float radius = boss.Radius * 4 / 3.0f;
+        float radius = boss.Radius * 1.01f;
 
         {
+            // Check the center of the segment
             LevelHit hit;
             if (!IntersectLevelSegment(level, seg->Center, radius, segId, hit))
                 return seg->Center;
         }
 
+        // Check half way to each side of segment
         for (auto& sideid : SIDE_IDS) {
             auto position = (seg->GetSide(sideid).Center + seg->Center) / 2;
+            LevelHit hit;
+            if (!IntersectLevelSegment(level, position, radius, segId, hit))
+                return position;
+        }
+
+        // check edge of each side
+        for (auto& sideid : SIDE_IDS) {
+            auto position = seg->GetSide(sideid).Center + seg->GetSide(sideid).AverageNormal;
+            auto conn = seg->GetConnection(sideid);
+            LevelHit hit;
+            if (conn == SegID::None) {
+                if (!IntersectLevelSegment(level, position, radius, segId, hit))
+                    return position;
+            }
+            else {
+                if (!IntersectLevelSegment(level, position, radius, segId, hit) && !IntersectLevelSegment(level, position, radius, conn, hit))
+                    return position;
+            }
+        }
+
+        // check corners
+        auto verts = seg->CopyVertices(level);
+        for (auto& vert : verts) {
+            auto position = (vert + seg->Center) / 2;
             LevelHit hit;
             if (!IntersectLevelSegment(level, position, radius, segId, hit))
                 return position;
@@ -165,6 +191,9 @@ namespace Inferno::Game {
     void TeleportBoss(Object& boss, AIRuntime& ai, const RobotInfo& info) {
         if (TeleportTargets.empty()) {
             SPDLOG_WARN("No teleport segments found for boss!");
+            boss.PhaseIn(BOSS_PHASE_TIME, BOSS_PHASE_COLOR);
+            ai.Awareness = 0; // Make unaware of player so teleport doesn't start counting down immediately
+            ai.State = AIState::Alert; // Wait until player is spotted again to start teleporting
             return;
         }
 
@@ -179,7 +208,19 @@ namespace Inferno::Game {
                 continue; // Avoid teleporting on top of self or the player
 
             if (auto seg = Game::Level.TryGetSegment(t.Segment)) {
-                auto mask = ObjectMask::Player | ObjectMask::Robot;
+                bool containsPlayer = false;
+                for (auto& objid : seg->Objects) {
+                    if (auto obj = Game::Level.TryGetObject(objid))
+                        if (obj->IsPlayer()) {
+                            containsPlayer = true;
+                            break;
+                        }
+                }
+
+                if (containsPlayer)
+                    continue; // check for multiple players
+
+                auto mask = ObjectMask::Robot;
                 if (NewObjectIntersects(Game::Level, *seg, t.Position, boss.Radius, mask))
                     continue; // Avoid teleporting on top of an existing object
 
@@ -192,7 +233,7 @@ namespace Inferno::Game {
             SPDLOG_WARN("Boss was unable to find a new segment to teleport to");
         }
         else {
-            TeleportObject(boss, target->Segment);
+            TeleportObject(boss, target->Segment, &target->Position);
         }
 
         // Face towards player after teleporting
@@ -222,7 +263,7 @@ namespace Inferno::Game {
 
             BossDyingElapsed += dt;
             bool explode = DeathRoll(boss, BOSS_DEATH_DURATION, BossDyingElapsed, info.DeathRollSound,
-                BossDyingSoundPlaying, BOSS_DEATH_SOUND_VOLUME, dt);
+                                     BossDyingSoundPlaying, BOSS_DEATH_SOUND_VOLUME, dt);
             if (explode) {
                 BeginSelfDestruct();
                 ExplodeObject(boss);

@@ -100,10 +100,6 @@ namespace Inferno::Editor {
     }
 
     void DebugWindow::OnUpdate() {
-        if (ImGui::Button("Start escape")) {
-            DebugEscapeSequence();
-        }
-
         {
             ImGui::SeparatorText("Game");
             ImGui::Combo("Difficulty", (int*)&Game::Difficulty, "Trainee\0Rookie\0Hotshot\0Ace\0Insane");

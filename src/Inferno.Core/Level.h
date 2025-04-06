@@ -341,7 +341,7 @@ namespace Inferno {
         }
 
         // Gets the wall connected to the other side of a wall (if present)
-        WallID GetConnectedWall(WallID wallId) {
+        WallID GetConnectedWall(WallID wallId) const {
             auto wall = TryGetWall(wallId);
             if (!wall) return WallID::None;
             auto other = GetConnectedSide(wall->Tag);

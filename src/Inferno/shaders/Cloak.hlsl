@@ -65,7 +65,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     sample += FrameTexture.SampleLevel(LinearBorder, samplePos + float2(-scale.x, -scale.y), 0).rgb * 0.25;
     sample += FrameTexture.SampleLevel(LinearBorder, samplePos + float2(scale.x, scale.y), 0).rgb * 0.25;
 
-    sample /= 8;
+    sample /= 2.5;
     return float4(sample.rgb * noise, 0.95); // make slightly transparent so powerups and sprites are visible
     //return float4(0, 0, 0, 0.8);
 }

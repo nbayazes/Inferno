@@ -309,7 +309,7 @@ namespace Inferno {
             HlslBool Distort;
             HlslBool IsOverlay; // Use UV2s
             HlslBool HasOverlay; // Discard pixels under overlay
-            int Tex1, Tex2;
+            int Tex1, Tex2; // TexIDs used to fetch material info
             float EnvStrength;
             float Pad;
             Color LightColor;

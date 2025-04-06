@@ -26,6 +26,7 @@ namespace Inferno {
         beam.Length = (beam.Start - beam.End).Length();
         beam.Width = beam.Info.Width.GetRandom();
         beam.OffsetU = Random();
+        beam.Position = beam.Start;
 
         AddEffect(make_unique<BeamInstance>(beam));
     }

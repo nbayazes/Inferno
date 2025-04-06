@@ -398,6 +398,15 @@ namespace Inferno {
                         if (IsExit(level, *trigger))
                             Game::Automap.FoundExit = true;
                     }
+
+                    if (HasFlag(wall->Keys, WallKey::Blue))
+                        Game::Automap.FoundBlueDoor = true;
+
+                    if (HasFlag(wall->Keys, WallKey::Gold))
+                        Game::Automap.FoundGoldDoor = true;
+
+                    if (HasFlag(wall->Keys, WallKey::Red))
+                        Game::Automap.FoundRedDoor = true;
                 }
             }
         }
@@ -480,6 +489,71 @@ namespace Inferno {
             PanAutomapTo(side->Center);
     }
 
+    List<Tag> FindDoors(const Level& level, WallKey key) {
+        List<Tag> doors;
+
+        for (auto& wall : level.Walls) {
+            if (HasFlag(wall.Keys, key)) {
+                auto conn = level.GetConnectedSide(wall.Tag);
+                if (Seq::contains(doors, conn)) continue; // Skip doors that were already added
+                doors.push_back(wall.Tag);
+            }
+        }
+
+        return doors;
+    }
+
+    void NavigateToBlueDoor() {
+        if (!Game::Automap.FoundBlueDoor) return;
+
+        List<Tag> doors = FindDoors(Game::Level, WallKey::Blue);
+
+        static int index = -1;
+        index++;
+        if (index >= doors.size())
+            index = 0;
+
+        if (auto door = Seq::tryItem(doors, index)) {
+            if (auto side = Game::Level.TryGetSide(*door)) {
+                PanAutomapTo(side->Center);
+            }
+        }
+    }
+
+    void NavigateToGoldDoor() {
+        if (!Game::Automap.FoundGoldDoor) return;
+
+        List<Tag> doors = FindDoors(Game::Level, WallKey::Gold);
+
+        static int index = -1;
+        index++;
+        if (index >= doors.size())
+            index = 0;
+
+        if (auto door = Seq::tryItem(doors, index)) {
+            if (auto side = Game::Level.TryGetSide(*door)) {
+                PanAutomapTo(side->Center);
+            }
+        }
+    }
+
+    void NavigateToRedDoor() {
+        if (!Game::Automap.FoundRedDoor) return;
+
+        List<Tag> doors = FindDoors(Game::Level, WallKey::Red);
+
+        static int index = -1;
+        index++;
+        if (index >= doors.size())
+            index = 0;
+
+        if (auto door = Seq::tryItem(doors, index)) {
+            if (auto side = Game::Level.TryGetSide(*door)) {
+                PanAutomapTo(side->Center);
+            }
+        }
+    }
+
     void ResetAutomapCamera(bool instant) {
         auto& player = Game::GetPlayerObject();
 
@@ -536,5 +610,14 @@ namespace Inferno {
 
         if (Input::OnKeyPressed(Keys::D3))
             NavigateToExit();
+
+        if (Input::OnKeyPressed(Keys::D4))
+            NavigateToBlueDoor();
+
+        if (Input::OnKeyPressed(Keys::D5))
+            NavigateToGoldDoor();
+
+        if (Input::OnKeyPressed(Keys::D6))
+            NavigateToRedDoor();
     }
 }

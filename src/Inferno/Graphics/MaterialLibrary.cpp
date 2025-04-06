@@ -626,20 +626,6 @@ namespace Inferno::Render {
         }
     }
 
-    const Material2D& MaterialLibrary::Get(EClipID id, double time, bool critical) const {
-        auto& eclip = Resources::GetEffectClip(id);
-        if (eclip.TimeLeft > 0)
-            time = eclip.VClip.PlayTime - eclip.TimeLeft;
-
-        TexID tex = eclip.VClip.GetFrame(time);
-        if (critical && eclip.CritClip != EClipID::None) {
-            auto& crit = Resources::GetEffectClip(eclip.CritClip);
-            tex = crit.VClip.GetFrame(time);
-        }
-
-        return Get(tex);
-    }
-
     const Material2D& MaterialLibrary::Get(LevelTexID tid) const {
         auto id = Resources::LookupTexID(tid);
         return Get(id);
@@ -875,6 +861,21 @@ namespace Inferno::Render {
                 Render::StaticTextures->Normal.CreateShaderResourceView(handle.GetCpuHandle());
             else
                 Render::StaticTextures->Black.CreateShaderResourceView(handle.GetCpuHandle());
+        }
+
+        for (uint i = 0; i < Material2D::Count; i++) {
+            auto handle = Render::Heaps->Materials.GetHandle((int)TRANSPARENT_MATERIAL * 5 + i);
+            //auto handle = Render::Heaps->Reserved.Allocate();
+            auto& material = _materials[(int)TRANSPARENT_MATERIAL];
+            material.Name = "transparent";
+            material.Handles[i] = handle.GetGpuHandle();
+            material.State = TextureState::Resident;
+            material.ID = TRANSPARENT_MATERIAL;
+
+            if (i == Material2D::Normal)
+                Render::StaticTextures->Normal.CreateShaderResourceView(handle.GetCpuHandle());
+            else
+                Render::StaticTextures->Transparent.CreateShaderResourceView(handle.GetCpuHandle());
         }
 
         for (uint i = 0; i < Material2D::Count; i++) {

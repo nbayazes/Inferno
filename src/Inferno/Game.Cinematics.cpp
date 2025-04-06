@@ -104,7 +104,7 @@ namespace Inferno {
                 if (auto e = EffectLibrary.GetExplosion("player explosion trail"))
                     CreateExplosion(*e, player.Segment, playerPos);
 
-                CreateObjectDebris(player, player.Render.Model.ID, Vector3::Zero);
+                CreateObjectDebris(player, player.Render.Model.ID);
 
                 for (size_t i = 0; i < 16; i++) {
                     auto random = RandomPointOnSphere() * player.Radius * 0.35;

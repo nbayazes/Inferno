@@ -391,7 +391,8 @@ namespace Inferno {
 
             case PrimaryWeaponIndex::Vulcan:
             case PrimaryWeaponIndex::Gauss:
-                ammo = fmt::format("{:04}", player.PrimaryAmmo[weapon.AmmoType] / 10);
+                if (Seq::inRange(player.PrimaryAmmo, weapon.AmmoType))
+                    ammo = fmt::format("{:04}", player.PrimaryAmmo[weapon.AmmoType] / 10);
                 break;
 
             case PrimaryWeaponIndex::Omega:
@@ -452,7 +453,8 @@ namespace Inferno {
         info.HorizontalAlign = AlignH::CenterRight;
         info.VerticalAlign = AlignV::CenterTop;
         info.Scanline = TEXT_SCANLINE;
-        auto ammo = fmt::format("{:03}", player.SecondaryAmmo[state.WeaponIndex]);
+
+        auto ammo = Seq::inRange(player.SecondaryAmmo, state.WeaponIndex) ? fmt::format("{:03}", player.SecondaryAmmo[state.WeaponIndex]) : "";
         UseWide1Char(ammo);
         DrawMonitorText(ammo, info, 0.6f * state.Opacity);
 
@@ -475,7 +477,7 @@ namespace Inferno {
             info.VerticalAlign = AlignV::Bottom;
             info.Scanline = TEXT_SCANLINE;
 
-            auto bombs = player.SecondaryAmmo[(int)bomb];
+            auto bombs = Seq::inRange(player.SecondaryAmmo, state.WeaponIndex) ? player.SecondaryAmmo[(int)bomb] : (uint16)0;
             if (bombs > 0)
                 DrawMonitorText(fmt::format("B:{:02}", std::min(bombs, (uint16)99)), info);
         }
