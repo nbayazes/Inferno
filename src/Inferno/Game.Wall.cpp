@@ -806,7 +806,7 @@ namespace Inferno {
             return;
         }
 
-        auto bounce = hit.Bounced;
+        auto bounce = hit.Bounce != BounceType::None;
         if (hitLava && weapon.SplashRadius > 0)
             bounce = false; // Explode bouncing explosive weapons (mines) when touching lava
 

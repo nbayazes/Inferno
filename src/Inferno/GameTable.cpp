@@ -172,6 +172,10 @@ namespace Inferno {
         READ_PROP_EXT(DirectDamage);
         READ_PROP_EXT(UseThrust);
 
+        READ_PROP_EXT(RicochetChance);
+        READ_PROP_EXT(RicochetAngle);
+        READ_PROP_EXT(RicochetMetalMultiplier);
+
         if (weapon.Extended.HomingFov > 0)
             weapon.Extended.HomingFov = ConvertFov(weapon.Extended.HomingFov);
 

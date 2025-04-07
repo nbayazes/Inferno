@@ -1093,40 +1093,34 @@ namespace Inferno {
                         hitSpeed = abs(hitNormal.Dot(obj.Physics.Velocity));
                         auto& ti = Resources::GetLevelTextureInfo(side.TMap);
 
-                        // probably best to replace this with something more generalised
-                        bool doRandomBounce = false;
-                        {
-                            constexpr int MINIMUM_RICOCHET_ANGLE = 30;  // minimum required angle to ricochet off surface of metalness 0
-                            constexpr int MAXIMUM_CHANCE_ANGLE = 10;    // angle below which ricochet has maximum chance
-                            constexpr int METALNESS_ANGLE_MULT = 3;     // multiplier to angle chance for metalness
-                            constexpr int BASE_RICOCHET_CHANCE = 20;    // chance to ricochet off surface of metalness 0
-                            constexpr int METALNESS_CHANCE_SCALE = 40;  // additional chance to ricochet off surface of metalness 1, linear
-                            constexpr int ROUGHNESS_SCALE = 5;          // maximum degrees by which shot can disperse at roughness 1
-
-                            if ((WeaponID)obj.ID == WeaponID::Vulcan || (WeaponID)obj.ID == WeaponID::Gauss) {
-                                float ang = AngleBetweenVectors(direction, hitNormal) * RadToDeg - 90;
+                        // bounce velocity is handled after all hits are resolved so that overlapping
+                        // triangle edges don't double the effect
+                        if (ti.HasFlag(TextureFlag::ForceField))
+                            hit.Bounce = BounceType::Standard;
+                        else if (obj.Physics.CanBounce()) {
+                            if (HasFlag(obj.Physics.Flags, PhysicsFlag::RandomBounce)) {
+                                auto& weapon = Resources::GetWeapon((WeaponID)obj.ID);
                                 auto texInfo = GetTextureFromIntersect(hitPoint, face, tri);
-                                auto &matInfo = Resources::GetMaterial(texInfo.tex);
+                                auto& matInfo = Resources::GetMaterial(texInfo.tex);
+                                float metalMult = weapon.Extended.RicochetMetalMultiplier * matInfo.Metalness;
 
-                                float minimumAngle = MINIMUM_RICOCHET_ANGLE * ((METALNESS_ANGLE_MULT - 1) * matInfo.Metalness + 1);
+                                float ang = AngleBetweenVectors(direction, hitNormal) * RadToDeg - 90;
+                                float minimumAngle = weapon.Extended.RicochetAngle * (1 + metalMult);
                                 if (ang <= minimumAngle) {
                                     float angleMult = 1;
-                                    float maximumChanceAngle = MAXIMUM_CHANCE_ANGLE * ((METALNESS_ANGLE_MULT - 1) * matInfo.Metalness + 1);
+                                    float maximumChanceAngle = minimumAngle / 3.0;
                                     if (ang > maximumChanceAngle)
                                         angleMult = 1 - ((ang - maximumChanceAngle) / (minimumAngle - maximumChanceAngle));
-                                    float chance = (BASE_RICOCHET_CHANCE + (METALNESS_CHANCE_SCALE * matInfo.Metalness)) * angleMult;
-                                    if (chance >= RandomInt(10000) / 100.0) {
-                                        // fill hit info with either deviation or texture hit info, I guess?
-                                        doRandomBounce = true;
+                                    float chance = (weapon.Extended.RicochetChance * (1 + metalMult)) * angleMult;
+                                    if (Random() < chance / 100) {
+                                        hit.TexHit = texInfo;
+                                        hit.Bounce = BounceType::Random;
+                                        hit.BounceAngle = ang;
                                     }
                                 }
                             }
-                        }
-
-                        if (doRandomBounce || obj.Physics.CanBounce() || ti.HasFlag(TextureFlag::ForceField)) {
-                            hit.Bounced = true;
-                            // bounce velocity is handled after all hits are resolved so that overlapping
-                            // triangle edges don't double the effect
+                            else
+                                hit.Bounce = BounceType::Standard;
                         }
                         else if (!HasFlag(obj.Physics.Flags, PhysicsFlag::Stick)) {
                             // Note that wall sliding is disabled when the object is touching the edge of a triangle.
@@ -1134,7 +1128,7 @@ namespace Inferno {
                             //SPDLOG_INFO("Sliding along wall, speed: {} vel: {}", hitSpeed, obj.Physics.Velocity.Length());
                             obj.Physics.Velocity += hitNormal * hitSpeed; // slide along wall
                             obj.Position = hitPoint + hitNormal * obj.Radius;
-                        }
+                        }                            
 
                         // apply friction so robots pinned against the wall don't spin in place
                         //if (obj.Type == ObjectType::Robot) {
@@ -1449,14 +1443,33 @@ namespace Inferno {
                 if (auto side = level.TryGetSide(hit.Tag))
                     ti = &Resources::GetLevelTextureInfo(side->TMap);
 
-                if (hit.Bounced) {
+                if (hit.Bounce != BounceType::None) {
                     obj.Physics.Velocity = Vector3::Reflect(obj.Physics.PrevVelocity, hit.Normal);
                     if (ti && ti->IsForceField())
                         obj.Physics.Velocity *= 1.5f;
 
                     // flip weapon to face the new direction
-                    if (obj.Type == ObjectType::Weapon)
+                    if (obj.Type == ObjectType::Weapon) {
                         obj.Rotation = Matrix3x3(obj.Physics.Velocity, obj.Rotation.Up());
+
+                        if (hit.Bounce == BounceType::Random) {
+                            // Only random bounces receive deviation
+                            constexpr int BASE_DEVIATION = 5;                       // maximum deviation by which a shot can disperse in degrees
+                            constexpr int ROUGHNESS_DEVIATION = 10;                 // extra amount by which shot can disperse at max roughness
+                            constexpr float MIN_ROUGHNESS = 0.25;
+                            constexpr float MAX_ROUGHNESS = 0.75;
+
+                            auto& matInfo = Resources::GetMaterial(hit.TexHit.tex);
+                            auto roughness = matInfo.Roughness;
+                            float roughnessScale = 0;
+                            if (roughness >= MAX_ROUGHNESS)
+                                roughnessScale = 1;
+                            else if (roughness > MIN_ROUGHNESS)
+                                roughnessScale = (roughness - MIN_ROUGHNESS) / (MAX_ROUGHNESS - MIN_ROUGHNESS);
+
+                            // Pick deviation direction - deviation towards the wall is proportionally less likely at shallower angles
+                        }
+                    }
 
                     obj.Position += hit.Normal * 0.1f; // Move object off of collision surface
                     obj.Physics.Bounces--;

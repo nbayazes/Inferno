@@ -69,6 +69,7 @@ namespace Inferno::Resources {
     const PigEntry& GetTextureInfo(TexID);
     const PigEntry& GetTextureInfo(LevelTexID);
     LevelTexID GetDestroyedTexture(LevelTexID);
+    const TexID GetEffectTexture(EClipID id, double time, bool critical);
 
     const Model& GetModel(ModelID);
     const Model& GetModel(const Object&);
