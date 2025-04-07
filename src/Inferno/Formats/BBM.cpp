@@ -60,7 +60,7 @@ namespace Inferno {
 
         List<byte> data;
         data.resize(header.Width * header.Height);
-        auto endPosition = stream.Position() + chunkLen;
+        //auto endPosition = stream.Position() + chunkLen;
 
         if (header.Compression == CompressionType::None) {
             for (int y = header.Height; y; y--) {

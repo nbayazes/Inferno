@@ -614,6 +614,7 @@ Robots:
     GetBehind: 1
     StunResist: 0.5 # Any nearby explosions should stun
     AmbushDistance: 180 # Looking for a fight!
+    AimAngle: 60
   - id: 4 
     Name: Class 2 Drone
     DevName: Violet
@@ -794,7 +795,7 @@ Robots:
     Name: Boss # Level 7 boss
     DevName: Boss # Shareware Boss
     Mass: 40
-    Multishot: 2
+    Multishot: 1
     CircleDistance: 200
     TurnTime: 0.3 # Fast turn time so circle strafing the boss isn't effective
     # Increased due to teleport changes and missiles being more generous to player
@@ -819,7 +820,7 @@ Robots:
     Curiosity: 1 # If player is close, always attack
   - id: 19 
     Name: Class 1 Driller
-    DevName: Vulcan Mech
+    DevName: Vulcan Guy
     CircleDistance: 100 # sniper
     Mass: 5
     Drag: 0.03
@@ -834,7 +835,7 @@ Robots:
     AmbushDistance: 80
   - id: 20 
     Name: Light Hulk # Green hulk / Light hulk
-    DevName: Toad
+    DevName: Toad # Rifleman
     CircleDistance: -1
     Mass: 6.5
     FireDelay: [ 3, 2, 1, 0.5, 0.5 ]
@@ -909,20 +910,20 @@ Robots:
 
 Powerups:
   - id: 0 # Extra life
-    LightColor: 0.05, 1, .05, 1.7
+    LightColor: 0.05, 1, .05, 0.7
     Glow: 1, 1, 1, 1
     LightRadius: 15
     LightMode: 4 # Pulse
 
   - id: 1 # Energy
     Glow: 1, 0.80, 0.80, 6.25
-    LightColor: 1, .55, 0.10, 1.5
+    LightColor: 1, .55, 0.10, 0.5
     LightRadius: 18
     LightMode: 2 # Flicker
 
   - id: 2 # Shield
     Glow: 1, 1, .5, 4.5
-    LightColor: 0.0125, 0.0125, 1, 1.75
+    LightColor: 0.0125, 0.0125, 1, 0.75
     LightRadius: 18
     LightMode: 4 # Pulse
 
@@ -1272,15 +1273,16 @@ Effects:
       Physics: 1
 
     - Name: robot destroyed
-      Duration: [ 0.7, 1.7 ]
+      Duration: [ 0.7, 1.5 ]
       Restitution: 0.6
-      Velocity: [ 20, 30 ]
+      Velocity: [ 25, 35 ]
       Count: [ 35, 45 ]
-      Drag: 0.02
-      FadeTime: 0.5
+      Drag: 0.03
+      FadeTime: 0.7
       Texture: tracer
-      Width: 0.25
+      Width: 0.225
       Color: 1, .2, .0, 6
+      Physics: 1
 
     # - Name: reactor destroyed
     #   # Duration: [ 0.75, 0.95 ]

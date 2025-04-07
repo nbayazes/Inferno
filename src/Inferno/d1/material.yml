@@ -114,7 +114,7 @@ Materials:
     LightReceived: 0.2
     SpecularColor: '0.8, 0.8, 1, 2'
   - Name: metl016
-    NormalStrength: 0.3
+    NormalStrength: 0.2
     Metalness: 1
     Roughness: 0.3
     LightReceived: 0.2
@@ -890,13 +890,13 @@ Materials:
     LightReceived: 0.2
     SpecularColor: '0.8, 0.8, 1, 2'
   - Name: metl030
-    NormalStrength: 0.3
+    NormalStrength: 0.2
     Metalness: 1
     Roughness: 0.3
     LightReceived: 0.2
     SpecularColor: '0.8, 0.8, 1, 2'
   - Name: metl031
-    NormalStrength: 0.25
+    NormalStrength: 0.2
     Metalness: 1
     Roughness: 0.35
     LightReceived: 0.2
@@ -947,29 +947,29 @@ Materials:
     LightReceived: 0.2
     SpecularColor: '0.8, 0.8, 1, 2'
   - Name: metl045
-    NormalStrength: 0.15
+    NormalStrength: 0.35
     Metalness: 1
-    Roughness: 0.5
+    Roughness: 0.6
     LightReceived: 2
   - Name: metl046
-    NormalStrength: 0.15
+    NormalStrength: 0.35
     Metalness: 1
-    Roughness: 0.5
+    Roughness: 0.6
     LightReceived: 2
   - Name: metl047
-    NormalStrength: 0.15
+    NormalStrength: 0.35
     Metalness: 1
-    Roughness: 0.5
+    Roughness: 0.6
     LightReceived: 2
   - Name: metl048
-    NormalStrength: 0.15
+    NormalStrength: 0.35
     Metalness: 1
-    Roughness: 0.5
+    Roughness: 0.6
     LightReceived: 2
   - Name: metl049
-    NormalStrength: 0.15
+    NormalStrength: 0.35
     Metalness: 1
-    Roughness: 0.5
+    Roughness: 0.6
     LightReceived: 2
   - Name: metl050
     NormalStrength: 0.1

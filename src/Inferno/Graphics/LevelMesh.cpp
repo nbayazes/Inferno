@@ -439,10 +439,6 @@ namespace Inferno {
                     //    AddPolygon(verts, side.UVs, side.Light, _geometry, chunk, side, tex1, TexID::None);
                     //}
 
-                    /*                 auto& door = Resources::GetDoorClip(wall->Clip);
-                                     if (door.NumFrames > 0)
-                                         chunk.EffectClip1*/
-
                     // check for weird condition of doors with non-door textures applied to them
                     if (side.HasOverlay()) {
                         //uint16 overlayBit = needsOverlaySlide ? (uint16)side.OverlayRotation : 0;
