@@ -402,6 +402,8 @@ namespace Inferno::Game {
             SetFlag(bullet.Physics.Flags, PhysicsFlag::UseThrust);
 
         bullet.Physics.Flags |= weapon.Bounce > 0 ? PhysicsFlag::Bounce : PhysicsFlag::None;
+        if (weapon.Extended.RicochetChance > 0)
+            bullet.Physics.Flags |= PhysicsFlag::RandomBounce;
         bullet.Physics.AngularVelocity = weapon.Extended.RotationalVelocity;
         bullet.Physics.Flags |= PhysicsFlag::FixedAngVel; // HACK
         if (weapon.Piercing) bullet.Physics.Flags |= PhysicsFlag::Piercing;

@@ -92,21 +92,6 @@ namespace Inferno::Render {
         }
     }
 
-    const TexID GetEffectTexture(EClipID id, double time, bool critical) {
-        auto& eclip = Resources::GetEffectClip(id);
-        if (eclip.TimeLeft > 0) {
-            time = eclip.VClip.PlayTime - eclip.TimeLeft;
-        }
-
-        TexID tex = eclip.VClip.GetFrame(time);
-        if (critical && eclip.CritClip != EClipID::None) {
-            auto& crit = Resources::GetEffectClip(eclip.CritClip);
-            tex = crit.VClip.GetFrame(time);
-        }
-
-        return tex;
-    }
-
     void LevelDepthCutout(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd) {
         assert(cmd.Type == RenderCommandType::LevelMesh);
         auto& mesh = *cmd.Data.LevelMesh;
@@ -133,8 +118,8 @@ namespace Inferno::Render {
         }
 
         // Check for eclips and self destruct
-        auto tid1 = eclip1 == EClipID::None ? Resources::LookupTexID(tmap1) : GetEffectTexture(eclip1, Game::Time, Game::ControlCenterDestroyed);
-        auto tid2 = eclip2 == EClipID::None ? Resources::LookupTexID(tmap2) : GetEffectTexture(eclip2, Game::Time, Game::ControlCenterDestroyed);
+        auto tid1 = eclip1 == EClipID::None ? Resources::LookupTexID(tmap1) : Resources::GetEffectTexture(eclip1, Game::Time, Game::ControlCenterDestroyed);
+        auto tid2 = eclip2 == EClipID::None ? Resources::LookupTexID(tmap2) : Resources::GetEffectTexture(eclip2, Game::Time, Game::ControlCenterDestroyed);
 
         auto mat1 = &Materials->Get(tid1);
         auto mat2 = &Materials->Get(tid2);
@@ -322,8 +307,8 @@ namespace Inferno::Render {
             return; // No decal texture!
 
         // Check for eclips and self destruct
-        auto tid1 = eclip1 == EClipID::None ? Resources::LookupTexID(tmap1) : GetEffectTexture(eclip1, Game::Time, Game::ControlCenterDestroyed);
-        auto tid2 = eclip2 == EClipID::None ? Resources::LookupTexID(tmap2) : GetEffectTexture(eclip2, Game::Time, Game::ControlCenterDestroyed);
+        auto tid1 = eclip1 == EClipID::None ? Resources::LookupTexID(tmap1) : Resources::GetEffectTexture(eclip1, Game::Time, Game::ControlCenterDestroyed);
+        auto tid2 = eclip2 == EClipID::None ? Resources::LookupTexID(tmap2) : Resources::GetEffectTexture(eclip2, Game::Time, Game::ControlCenterDestroyed);
 
         auto mat1 = &Materials->Get(tid1);
         auto mat2 = &Materials->Get(tid2);
