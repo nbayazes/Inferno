@@ -12,10 +12,21 @@ namespace Inferno {
         explicit operator bool() const { return Distance != FLT_MAX; }
     };
 
+    struct TexHitInfo {
+        TexID tex = TexID::None;
+        uint x = 0, y = 0;
+    };
+
     // Returns the nearest intersection point on a face
     HitInfo IntersectFaceSphere(const ConstFace& face, const DirectX::BoundingSphere& sphere);
     HitInfo IntersectSphereSphere(const DirectX::BoundingSphere& a, const DirectX::BoundingSphere& b);
     HitInfo IntersectPointSphere(const Vector3& point, const DirectX::BoundingSphere& sphere);
+
+    enum class BounceType {
+        None = 0,
+        Standard = 1,       // Projectile is of a bouncing type
+        Random = 2          // Projectile passed random bounce check
+    };
 
     struct LevelHit {
         Object* Source = nullptr;
@@ -27,7 +38,9 @@ namespace Inferno {
         Vector3 Normal, Tangent;
         int Tri = -1; // Triangle of the face hit. -1, 0 or 1
         float Speed = 0;
-        bool Bounced = false;
+        BounceType Bounce = BounceType::None;
+        float BounceAngle = 0; // relevant for random bounces, to prevent bouncing directly into hit surface
+        TexHitInfo TexHit;
 
         // Returns true if either object hit is the player
         bool PlayerHit() const {
@@ -87,6 +100,10 @@ namespace Inferno {
     // Returns the UVs on a face closest to a point in world coordinates
     Vector2 IntersectFaceUVs(const Vector3& point, const ConstFace& face, int tri);
     void FixOverlayRotation(uint& x, uint& y, int width, int height, OverlayRotation rotation);
+
+    // Uses given point to return the TexID of the visible texture + coordinates at the given point, accounting for overlay transparency
+    // Returns None as tex if point is transparent
+    TexHitInfo GetTextureFromIntersect(const Vector3& pnt, const ConstFace& face, int tri);
 
     // Returns true if the point was transparent
     bool WallPointIsTransparent(const Vector3& pnt, const ConstFace& face, int tri);

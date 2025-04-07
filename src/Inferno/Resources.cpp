@@ -236,6 +236,21 @@ namespace Inferno::Resources {
             return info.DestroyedTexture;
     }
 
+    const TexID GetEffectTexture(EClipID id, double time, bool critical) {
+        auto& eclip = Resources::GetEffectClip(id);
+        if (eclip.TimeLeft > 0) {
+            time = eclip.VClip.PlayTime - eclip.TimeLeft;
+        }
+
+        TexID tex = eclip.VClip.GetFrame(time);
+        if (critical && eclip.CritClip != EClipID::None) {
+            auto& crit = Resources::GetEffectClip(eclip.CritClip);
+            tex = crit.VClip.GetFrame(time);
+        }
+
+        return tex;
+    }
+
     PigEntry DefaultPigEntry = { .Name = "Unknown", .Width = 64, .Height = 64 };
 
     TexID FindTexture(string_view name) {
