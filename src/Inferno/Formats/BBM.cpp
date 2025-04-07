@@ -60,7 +60,7 @@ namespace Inferno {
 
         List<byte> data;
         data.resize(header.Width * header.Height);
-        //auto endPosition = stream.Position() + chunkLen;
+        auto endPosition = stream.Position() + chunkLen;
 
         if (header.Compression == CompressionType::None) {
             for (int y = header.Height; y; y--) {
@@ -73,10 +73,10 @@ namespace Inferno {
             }
         }
         else if (header.Compression == CompressionType::RLE) {
-            return data;
+            //return data;
 
-            // todo: some custom levels use compressed BBMs
-            // NOTE: this code is not tested. No descent BBMs appear to be compressed.
+            // todo: some custom levels use compressed BBMs and will crash
+            // NOTE: this code is not tested. No standard descent BBMs appear to be compressed.
             for (int count = width, plane = 0; count < offset + chunkLen && offset < data.size();) {
                 ASSERT(stream.Position() < endPosition);
                 auto n = stream.ReadByte();
