@@ -265,12 +265,9 @@ namespace Inferno {
         }
     }
 
-    Tuple <TexID, TexID> GetTexIDsFromSide(const SegmentSide& side) {
+    Tuple<TexID, TexID> GetTexIDsFromSide(const SegmentSide& side) {
         TexID base = Resources::LookupTexID(side.TMap);
-        TexID overlay = TexID::None;
-        if (side.TMap2 >= LevelTexID::Unset) {
-            overlay = Resources::LookupTexID(side.TMap2);
-        }
+        auto overlay = side.TMap2 > LevelTexID::Unset ? Resources::LookupTexID(side.TMap2) : TexID::None;
         return { base, overlay };
     }
 
@@ -314,7 +311,7 @@ namespace Inferno {
         }
         else if (bitmap.Data[y * info.Width + x].a == 0)
             tmap = TexID::None;
-        
+
         return { .tex = tmap, .x = x, .y = y };
     }
 
@@ -422,15 +419,13 @@ namespace Inferno {
                 bool intersects{}; // does this side intersect with rays?
 
                 switch (query.Mode) {
-                    case RayQueryMode::Visibility:
-                    {
+                    case RayQueryMode::Visibility: {
                         intersects = !SideIsTransparent(*_level, tag); // also checks if side is open
                         if (seg->SideIsSolid(tag.Side, *_level))
                             throughWall = true;
                         break;
                     }
-                    case RayQueryMode::Precise:
-                    {
+                    case RayQueryMode::Precise: {
                         if (auto wall = _level->TryGetWall(face.Side.Wall)) {
                             if (wall->Type == WallType::Illusion || wall->Type == WallType::Open || wall->Type == WallType::None) {
                                 intersects = false;
