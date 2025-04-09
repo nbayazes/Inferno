@@ -25,6 +25,7 @@ namespace Inferno {
     constexpr Color FLASH_GOLD = { FLASH * 0.9f, FLASH * 0.9f, FLASH * 0.4f };
     constexpr Color FLASH_POWERUP = { FLASH, 0, FLASH };
     constexpr Color FLASH_FUSION_CHARGE = { MAX_FLASH * Game::TICK_RATE * 2.0f, 0, MAX_FLASH * Game::TICK_RATE * 2.0f };
+    constexpr float AFTERBURNER_VOLUME = 1.2f;
 
     float GetWeaponAlertRadius(const Weapon& weapon) {
         // Robots use half-linear falloff instead of inverse square because it doesn't require traversing nearly as far.
@@ -76,7 +77,7 @@ namespace Inferno {
             SoundResource resource{ AFTERBURNER_SOUND };
             Sound3D sound(resource);
             sound.Radius = 125;
-            sound.Volume = 1.4;
+            sound.Volume = AFTERBURNER_VOLUME;
             _afterburnerSoundSig = Sound::PlayFrom(sound, Game::GetPlayerObject());
 
             //if (auto soundId = Seq::tryItem(Resources::Descent2.Sounds, (int)SoundID::AfterburnerIgnite)) {
@@ -106,7 +107,7 @@ namespace Inferno {
             SoundResource resource{ AFTERBURNER_OFF_SOUND };
             Sound3D sound(resource);
             sound.Radius = 125;
-            sound.Volume = 1.2;
+            sound.Volume = AFTERBURNER_VOLUME;
             Sound::PlayFrom(sound, Game::GetPlayerObject());
 
             StopEffect(_afterburnerEffect);
