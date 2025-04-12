@@ -381,6 +381,7 @@ namespace Inferno::Game {
             case GameState::MainMenu: {
                 Sound::StopAllSounds();
                 Game::Level = {};
+                Game::Mission = {};
                 Game::MainCamera.Up = Vector3::UnitY;
                 Game::MainCamera.Position = MenuCameraPosition;
                 Game::MainCamera.Target = MenuCameraTarget;
