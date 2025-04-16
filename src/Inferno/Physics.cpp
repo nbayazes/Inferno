@@ -1212,9 +1212,9 @@ namespace Inferno {
                             r2 *= 0.66f;
                         }
 
-                        // Make powerups slightly larger. The original game actually applied this on whether it in front of the player
-                        if (obj.IsPowerup()) r1 *= Game::POWERUP_RADIUS_MULT;
-                        if (other->IsPowerup()) r2 *= Game::POWERUP_RADIUS_MULT;
+                        // Make powerups a consistent size regardless of their render size
+                        if (obj.IsPowerup()) r1 = Game::POWERUP_RADIUS;
+                        if (other->IsPowerup()) r2 = Game::POWERUP_RADIUS;
 
                         if (auto info = IntersectSphereSphere({ obj.Position, r1 }, { other->Position, r2 })) {
                             if (Game::GetState() == GameState::EscapeSequence) {

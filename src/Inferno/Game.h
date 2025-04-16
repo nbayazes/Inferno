@@ -23,7 +23,7 @@ namespace Inferno::Game {
     constexpr Color MATCEN_PHASING_COLOR = { 8, 0, 8 };
     constexpr float MATCEN_SOUND_RADIUS = 300;
     constexpr float FRIENDLY_FIRE_MULT = 0.5f; // Damage multiplier robots do to each other or themselves
-    constexpr float POWERUP_RADIUS_MULT = 2.00f; // Make powerups easier to pick up
+    constexpr float POWERUP_RADIUS = 5.0f; // Make powerups easier to pick up
     constexpr float NEARBY_PORTAL_DEPTH = 150.0f; // How far to search when determining 'nearby' rooms
 
     constexpr auto FIRST_STRIKE_NAME = "Descent: First Strike"; // title of the main mission
