@@ -28,12 +28,15 @@ namespace Inferno {
     Vector3 FindDeathCameraPosition(const Vector3& start, SegID startSeg, float preferDist) {
         Vector3 bestDir;
         float bestDist = 0;
+        bool hitWall = false;
 
         for (int i = 0; i < 10; i++) {
             Ray ray(start, RandomVector());
             RayQuery query{ .MaxDistance = preferDist, .Start = startSeg };
             LevelHit hit{};
-            if (!Game::Intersect.RayLevel(ray, query, hit)) {
+            hitWall = Game::Intersect.RayLevel(ray, query, hit);
+
+            if (!hitWall) {
                 // Ray didn't hit anything so use it!
                 bestDist = preferDist;
                 bestDir = ray.direction;
@@ -46,7 +49,12 @@ namespace Inferno {
             }
         }
 
-        return start + bestDir * bestDist * 0.95f;
+        // Move camera off of wall if possible
+        if (hitWall && bestDist > 5) 
+            bestDist -= 4.0f;
+
+        SPDLOG_INFO("Hit wall: {}", hitWall);
+        return start + bestDir * bestDist;
     }
 
     void DoDeathSequence(Player& state, float dt) {
