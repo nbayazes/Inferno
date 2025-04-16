@@ -52,6 +52,7 @@ namespace Inferno {
         constexpr auto MELEE_RANGE = 40.0f; // How close for a robot to be considered in melee for AI purposes. Will try moving directly towards target instead of pathing
 
         GameTimer GlobalFleeTimer;
+        AIRuntime NULL_AI_RUNTIME; // don't use, only exists as a failsafe
     }
 
     void ChangeState(Object& robot, AIRuntime& ai, AIState state);
@@ -91,7 +92,13 @@ namespace Inferno {
     AIRuntime& GetAI(const Object& obj) {
         ASSERT(obj.IsRobot());
         auto ref = Game::GetObjectRef(obj);
-        ASSERT(Seq::inRange(RuntimeState, (int)ref.Id));
+
+        if (!Seq::inRange(RuntimeState, (int)ref.Id)) {
+            __debugbreak();
+            SPDLOG_WARN("Tried to access null AI data");
+            return NULL_AI_RUNTIME;
+        }
+
         return RuntimeState[(int)ref.Id];
     }
 
@@ -569,7 +576,7 @@ namespace Inferno {
             else {
                 // Back off by half the lead distance and try again
                 // No need to clamp by FOV again because we did it earlier
-                projectedTarget = (projectedTarget + target.Position) / 2; 
+                projectedTarget = (projectedTarget + target.Position) / 2;
                 projectedDir = projectedTarget - robot.Position;
                 projectedDir.Normalize();
                 ray = Ray(robot.Position, projectedDir);
@@ -1293,7 +1300,7 @@ namespace Inferno {
     }
 
     void MeleeRoutine(const Object& robot, const RobotInfo& robotInfo, AIRuntime& ai,
-                       Object& target, const Vector3& targetDir, float dt) {
+                      Object& target, const Vector3& targetDir, float dt) {
         constexpr float MELEE_ATTACK_RANGE = 10; // how close to actually deal damage
         constexpr float MELEE_SWING_TIME = 0.175f;
         constexpr float BACKSWING_TIME = 0.45f;
