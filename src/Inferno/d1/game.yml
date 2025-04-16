@@ -269,6 +269,7 @@ Weapons:
     StunMult: 2
     DecalRadius: 4
     LightRadius: 14
+    Glow: 1, .5, .25, 2
     LightColor: 1, .5, .25, 2
     ExplosionColor: 1, 0.25, 0.0, 2
     FlashColor: 1, .5, .25, 1.5
@@ -297,6 +298,7 @@ Weapons:
     StunMult: 1.5
     DecalRadius: 4
     LightRadius: 14
+    Glow: 0.25, 0.25, 0.75, 2 # make enemy missiles glow for gameplay purposes
     LightColor: 0.25, 0.25, 0.75, 2
     ExplosionColor: 1, 0.25, 0.0, 10
     FlashColor: 1, 0.25, 0.0, 2
@@ -405,6 +407,7 @@ Weapons:
     ExplosionColor: 1, 0.1, 0, 4
     LightRadius: 40
     LightColor: 1, 0.01, 0.01, 2
+    Glow: 1, 0.01, 0.01, 2
     Size: 1.25
     Recoil: 175
     HomingFov: 45
@@ -941,14 +944,14 @@ Powerups:
     Glow: 1, 1, 1, 1
 
   - id: 23 # Cloak
-    LightColor: .5, 0, 1, 2
+    LightColor: .5, 0, 1, 1
     Glow: 1, 1, 1, 1
     LightRadius: 18
     LightMode: 4 # Pulse
 
   - id: 25 # Invuln
     Glow: 1, 1, 1, 1
-    LightColor: 0.1, 0, 1, 4
+    LightColor: 0.1, 0, 1, 1
     LightRadius: 18
     LightMode: 4 # Pulse
 
