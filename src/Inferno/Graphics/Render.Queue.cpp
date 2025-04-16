@@ -104,21 +104,29 @@ namespace Inferno::Render {
         auto& player = Game::GetPlayerObject();
         if (player.Segment == SegID::Terrain || Game::GetState() == GameState::EscapeSequence) {
             UpdateSegmentEffects(level, SegID::Terrain);
+            _objects.clear();
 
-            for (auto& oid : level.Terrain.Objects) {
-                if (auto object = level.TryGetObject(oid)) {
-                    float depth = GetRenderDepth(object->Position, camera);
-                    _objects.push_back({ object, depth });
-                }
+            //for (auto& oid : level.Terrain.Objects) {
+            //    if (auto object = level.TryGetObject(oid)) {
+            //        float depth = GetRenderDepth(object->Position, camera);
+            //        _objects.push_back({ object, depth });
+            //    }
+            //}
+
+            //for (auto& effectId : level.Terrain.Effects) {
+            //    if (auto effect = GetEffect(effectId)) {
+            //        _objects.push_back({ nullptr, GetRenderDepth(effect->Position, camera), effect });
+            //    }
+            //}
+
+            // Always draw the player model during the cutscene except at the start.
+            // Prevents model flickering at the terrain transition
+            if (GetEscapeScene() != EscapeScene::Start) {
+                float depth = GetRenderDepth(player.Position, camera);
+                _objects.push_back({ &player, depth });
             }
 
-            for (auto& effectId : level.Terrain.Effects) {
-                if (auto effect = GetEffect(effectId)) {
-                    _objects.push_back({ nullptr, GetRenderDepth(effect->Position, camera), effect });
-                }
-            }
-
-            QueueSegmentObjects(level, level.Terrain, camera);
+            QueueSegmentObjects(level, level.Terrain, camera, false);
         }
 
         LegitProfiler::AddCpuTask(std::move(task));
@@ -174,8 +182,10 @@ namespace Inferno::Render {
         }
     }
 
-    void RenderQueue::QueueSegmentObjects(Level& level, const Segment& seg, const Camera& camera) {
-        _objects.clear();
+    void RenderQueue::QueueSegmentObjects(Level& level, const Segment& seg, const Camera& camera, bool clearObjects) {
+        if (clearObjects)
+            _objects.clear();
+
         auto state = Game::GetState();
 
         // queue objects in segment
@@ -184,8 +194,11 @@ namespace Inferno::Render {
                 if ((state == GameState::Game || state == GameState::PauseMenu) && !Game::Player.IsDead)
                     continue;
 
-                if (GetEscapeScene() == EscapeScene::Start)
-                    continue;
+                //if (GetEscapeScene() == EscapeScene::Start)
+                //    continue; // Don't draw the player model the first person part of the cutscene
+
+                if (Game::GetState() == GameState::EscapeSequence)
+                    continue; // Don't draw the player model during cutscenes, this is handled earlier
             }
 
             if (auto obj = level.TryGetObject(oid)) {

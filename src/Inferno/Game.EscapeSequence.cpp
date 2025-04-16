@@ -336,14 +336,12 @@ namespace Inferno {
             case EscapeScene::Start:
                 if (State.PathIndex >= Game::Terrain.LookbackPathIndex) {
                     State.Scene = EscapeScene::LookBack;
-                    RelinkObject(Game::Level, player, SegID::Terrain);
 
                     // Set the camera roughly 20 units away on the path
                     State.CameraPathIndex = State.PathIndex + 1;
                     auto cameraDir = Game::Terrain.EscapePath[State.CameraPathIndex] - player.Position;
                     cameraDir.Normalize();
                     CinematicCamera.Position = player.Position + cameraDir * 20;
-                    DetachEffects(Game::GetObjectRef(ObjID(0))); // Detach light from player so it's not visible in the cutscene
                 }
                 break;
             case EscapeScene::LookBack:
@@ -357,6 +355,7 @@ namespace Inferno {
             CinematicCamera.Segment = SegID::Terrain;
             auto& side = Game::Level.GetSide(Game::Terrain.ExitTag);
 
+            // Check distance to exit
             if (DistanceFromPlane(CinematicCamera.Position, side.Center, -side.AverageNormal) > 1.0f) {
                 Settings::Editor.ShowTerrain = true;
                 Game::OnTerrain = true;
@@ -374,15 +373,17 @@ namespace Inferno {
         if (!State.SurfaceExplosion) {
             if (State.ExplosionTimer < 0) {
                 // Add explosions on the walls of the current segment
-                if (auto seg = Game::Level.TryGetSegment(player.Segment)) {
-                    if (auto e = EffectLibrary.GetExplosion("tunnel wall fireballs")) {
-                        auto verts = seg->GetVertices(Game::Level);
+                if (player.Segment != SegID::Terrain) {
+                    if (auto seg = Game::Level.TryGetSegment(player.Segment)) {
+                        if (auto e = EffectLibrary.GetExplosion("tunnel wall fireballs")) {
+                            auto verts = seg->GetVertices(Game::Level);
 
-                        for (int i = 0; i < 8; i++) {
-                            if (RandomInt(8) > 6) continue;
-                            auto dir = seg->Center - *verts[i];
-                            dir.Normalize();
-                            CreateExplosion(*e, SegID::Terrain, *verts[i] + dir * e->Variance);
+                            for (int i = 0; i < 8; i++) {
+                                if (RandomInt(8) > 6) continue;
+                                auto dir = seg->Center - *verts[i];
+                                dir.Normalize();
+                                CreateExplosion(*e, player.Segment, *verts[i] + dir * e->Variance);
+                            }
                         }
                     }
                 }
@@ -419,7 +420,7 @@ namespace Inferno {
 
             // Blow up once the player is outside and far enough away
             if (!State.SurfaceExplosion &&
-                Vector3::Distance(Game::Terrain.ExitTransform.Translation(), player.Position) > MINE_EXPLODE_CLEARANCE) {
+                DistanceFromPlane(player.Position, Game::Terrain.ExitTransform.Translation(), Game::Terrain.ExitTransform.Forward()) > MINE_EXPLODE_CLEARANCE) {
                 if (auto e = EffectLibrary.GetExplosion("mine collapse fireball")) {
                     CreateExplosion(*e, SegID::Terrain, mineExplosionPos);
                 }
