@@ -21,7 +21,7 @@ namespace Inferno::Game {
     constexpr float WEAPON_HOMING_DELAY = 1 / 8.0f; // Delay before homing weapons start turning
     constexpr float CLOAK_FIRING_FLICKER = 0.75f; // How long a cloaked object 'flickers' after firing
     constexpr Color MATCEN_PHASING_COLOR = { 8, 0, 8 };
-    constexpr float MATCEN_SOUND_RADIUS = 300;
+    constexpr float MATCEN_SOUND_RADIUS = 400;
     constexpr float FRIENDLY_FIRE_MULT = 0.5f; // Damage multiplier robots do to each other or themselves
     constexpr float POWERUP_RADIUS = 5.0f; // Make powerups easier to pick up
     constexpr float NEARBY_PORTAL_DEPTH = 150.0f; // How far to search when determining 'nearby' rooms

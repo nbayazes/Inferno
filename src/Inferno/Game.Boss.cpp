@@ -169,7 +169,7 @@ namespace Inferno::Game {
         // use materialize effect
         auto& vclip = Resources::GetVideoClip(VClipID::Matcen);
         Sound3D sound(vclip.Sound);
-        sound.Radius = 400.0f;
+        sound.Radius = MATCEN_SOUND_RADIUS;
         Sound::Play(sound, point, segId);
 
         // Create a new robot
