@@ -11,7 +11,7 @@
 #include "Yaml.h"
 
 namespace Inferno {
-    void PrintNode(ryml::NodeRef node) {
+    void PrintNode(ryml::ConstNodeRef node) {
         std::stringstream ss;
         ss << ryml::as_json(node);
         string s = ss.str();

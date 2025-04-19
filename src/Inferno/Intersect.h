@@ -24,8 +24,8 @@ namespace Inferno {
 
     enum class BounceType {
         None = 0,
-        Standard = 1,       // Projectile is of a bouncing type
-        Random = 2          // Projectile passed random bounce check
+        Standard = 1, // Projectile bounced directly off a surface
+        Ricochet = 2 // Projectile ricocheted randomly off a surface
     };
 
     struct LevelHit {

@@ -189,10 +189,10 @@ Weapons:
     FlashColor: 1, 0.6, .3, 1
     StunMult: 2 # Increase slow so vulcan can tag small fast enemies
     Size: 0.75
-    RicochetChance: 20
-    RicochetAngle: 30
-    RicochetMetalMultiplier: 3
-    Bounces: 3
+    # RicochetChance: 0.5
+    # RicochetAngle: 30
+    # RicochetMetalMultiplier: 1.5
+    # Bounces: 2
     
   - id: 12 
     Name: spreadfire

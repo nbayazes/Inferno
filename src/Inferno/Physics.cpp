@@ -1098,29 +1098,31 @@ namespace Inferno {
                         if (ti.HasFlag(TextureFlag::ForceField))
                             hit.Bounce = BounceType::Standard;
                         else if (obj.Physics.CanBounce()) {
-                            if (HasFlag(obj.Physics.Flags, PhysicsFlag::RandomBounce)) {
+                            if (HasFlag(obj.Physics.Flags, PhysicsFlag::Ricochet)) {
                                 auto& weapon = Resources::GetWeapon((WeaponID)obj.ID);
                                 auto texInfo = GetTextureFromIntersect(hitPoint, face, tri);
                                 auto& matInfo = Resources::GetMaterial(texInfo.tex);
-                                float metalMult = weapon.Extended.RicochetMetalMultiplier * matInfo.Metalness;
+                                float metalMult = 1 + weapon.Extended.RicochetMetalMultiplier * matInfo.Metalness;
 
-                                float ang = AngleBetweenVectors(direction, hitNormal) * RadToDeg - 90;
-                                float minimumAngle = weapon.Extended.RicochetAngle * (1 + metalMult);
+                                float ang = AngleBetweenVectors(direction, hitNormal) * RadToDeg - 90.0f;
+                                float minimumAngle = weapon.Extended.RicochetAngle * metalMult;
                                 if (ang <= minimumAngle) {
                                     float angleMult = 1;
                                     float maximumChanceAngle = minimumAngle / 3.0;
                                     if (ang > maximumChanceAngle)
-                                        angleMult = 1 - ((ang - maximumChanceAngle) / (minimumAngle - maximumChanceAngle));
-                                    float chance = (weapon.Extended.RicochetChance * (1 + metalMult)) * angleMult;
-                                    if (Random() < chance / 100) {
+                                        angleMult = 1 - (ang - maximumChanceAngle) / (minimumAngle - maximumChanceAngle);
+                                    float chance = weapon.Extended.RicochetChance * metalMult * angleMult;
+
+                                    if (Random() < chance) {
                                         hit.TexHit = texInfo;
-                                        hit.Bounce = BounceType::Random;
+                                        hit.Bounce = BounceType::Ricochet;
                                         hit.BounceAngle = ang;
                                     }
                                 }
                             }
-                            else
+                            else {
                                 hit.Bounce = BounceType::Standard;
+                            }
                         }
                         else if (!HasFlag(obj.Physics.Flags, PhysicsFlag::Stick)) {
                             // Note that wall sliding is disabled when the object is touching the edge of a triangle.
@@ -1450,12 +1452,11 @@ namespace Inferno {
 
                     // flip weapon to face the new direction
                     if (obj.Type == ObjectType::Weapon) {
-                        obj.Rotation = Matrix3x3(obj.Physics.Velocity, obj.Rotation.Up());
 
-                        if (hit.Bounce == BounceType::Random) {
+                        if (hit.Bounce == BounceType::Ricochet) {
                             // Only random bounces receive deviation
-                            constexpr int BASE_DEVIATION = 5;                       // maximum deviation by which a shot can disperse in degrees
-                            constexpr int ROUGHNESS_DEVIATION = 10;                 // extra amount by which shot can disperse at max roughness
+                            constexpr float BASE_DEVIATION = 10; // Random ricochet angle. Should come from weapon info.
+                            constexpr float ROUGHNESS_DEVIATION = 10; // extra amount by which shot can disperse at max roughness
                             constexpr float MIN_ROUGHNESS = 0.25;
                             constexpr float MAX_ROUGHNESS = 0.75;
 
@@ -1468,6 +1469,18 @@ namespace Inferno {
                                 roughnessScale = (roughness - MIN_ROUGHNESS) / (MAX_ROUGHNESS - MIN_ROUGHNESS);
 
                             // Pick deviation direction - deviation towards the wall is proportionally less likely at shallower angles
+
+                            auto spreadAngle = (BASE_DEVIATION + ROUGHNESS_DEVIATION * roughnessScale) * DegToRad;
+                            auto spread = RandomPointInCircle(spreadAngle);
+                            auto direction = obj.Physics.Velocity;
+                            direction.Normalize();
+                            direction += obj.Rotation.Right() * spread.x;
+                            direction += obj.Rotation.Up() * spread.y;
+                            direction.Normalize();
+                            obj.Physics.Velocity = direction * obj.Physics.Velocity.Length();
+                            obj.Rotation = Matrix3x3(direction, obj.Rotation.Up());
+                        } else {
+                            obj.Rotation = Matrix3x3(obj.Physics.Velocity, obj.Rotation.Up());
                         }
                     }
 

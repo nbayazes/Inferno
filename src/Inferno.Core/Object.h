@@ -66,7 +66,7 @@ namespace Inferno {
         PointCollideWalls = 1 << 11, // Use raycasting against walls, otherwise use spheres
         Gravity = 1 << 12, // Apply gravity
         NoCollideRobots = 1 << 13, // Ignore collisions with robots, used by robots contained in robots.
-        RandomBounce = 1 << 14, // can randomly bounce when hitting walls
+        Ricochet = 1 << 14, // can ricochet (randomly bounce) when hitting walls
     };
 
     enum class PowerupID : uint8 {

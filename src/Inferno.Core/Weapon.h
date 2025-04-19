@@ -158,9 +158,9 @@ namespace Inferno {
         bool DirectDamage = true; // Enables direct damage on a hit. Disable for explosive weapons to make only the explosion do damage.
         bool UseThrust = false; // Uses thrust value
 
-        float RicochetChance = 0;                // Percentage chance to ricochet off walls
-        float RicochetAngle = 30;                // Angle below which ricochets begin, maximum chance is reached at 1/3 of angle
-        float RicochetMetalMultiplier = 3;       // Multiplier of metalness to both chance and angle
+        float RicochetChance = 0; // Percentage chance to ricochet off walls
+        float RicochetAngle = 30.0f; // Angle below which ricochets begin, maximum chance is reached at 1/3 of angle
+        float RicochetMetalMultiplier = 1.5f; // Multiplier of metalness to angle
     };
 
     struct Weapon {
