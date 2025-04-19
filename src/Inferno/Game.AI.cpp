@@ -1054,7 +1054,7 @@ namespace Inferno {
     // start charging when player is in FOV and can fire
     // keep charging even if player goes out of view
     // fire at last known location
-    void WeaponChargeBehavior(Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, float dt) {
+    void WeaponChargeBehavior(Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, bool blind, float dt) {
         ai.NextChargeSoundDelay -= dt;
         ai.WeaponCharge += dt;
 
@@ -1080,7 +1080,7 @@ namespace Inferno {
             // Release shot at last seen position even if target has moved out of view
             auto target = ai.Target ? *ai.Target : NavPoint(robot.Segment, robot.Position + robot.Rotation.Forward() * 40);
             //auto target = ai.TargetPosition ? *ai.TargetPosition : NavPoint(robot.Segment, robot.Position + robot.Rotation.Forward() * 40);
-            FireRobotPrimary(robot, ai, robotInfo, target, true);
+            FireRobotPrimary(robot, ai, robotInfo, target, blind);
 
             ai.WeaponCharge = 0;
             ai.ChargingWeapon = false;
@@ -1191,7 +1191,7 @@ namespace Inferno {
         const auto& lastSeen = *ai.Target;
 
         if (ai.ChargingWeapon) {
-            WeaponChargeBehavior(robot, ai, robotInfo, dt); // Charge up during fire animation
+            WeaponChargeBehavior(robot, ai, robotInfo, true, dt); // Charge up during fire animation
         }
         else if (ai.AnimationState != Animation::Fire && ai.FireDelay < 0.25f) {
             // Start firing
@@ -1257,7 +1257,7 @@ namespace Inferno {
             // Use the last time the target was seen instead of the delayed target tracking used for chasing.
 
             if (ai.ChargingWeapon) {
-                WeaponChargeBehavior(robot, ai, robotInfo, dt); // Charge up during fire animation
+                WeaponChargeBehavior(robot, ai, robotInfo, blind, dt); // Charge up during fire animation
             }
             else if (ai.AnimationState != Animation::Fire && ai.FireDelay < 0.25f) {
                 // Start firing
