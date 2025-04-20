@@ -86,11 +86,25 @@ namespace Inferno {
         }
     }
 
-    void ReadWeaponInfo(ryml::NodeRef node, HamFile& ham, int& id) {
+    void ReadWeaponInfo(ryml::NodeRef node, HamFile& ham) {
+        int id = -1;
         Yaml::ReadValue(node["id"], id);
-        if (!Seq::inRange(ham.Weapons, id)) return;
 
-        auto& weapon = ham.Weapons[id];
+        string name;
+        Yaml::ReadValue(node["Name"], name);
+
+        // Use an existing weapon slot, otherwise append a new one to end
+        auto& weapon = [&] () -> Weapon& {
+            if (Seq::inRange(ham.Weapons, id)) return ham.Weapons[id];
+
+            if (!name.empty()) {
+                if (auto index = Seq::findIndex(ham.Weapons, [&name](auto& w) { return String::InvariantEquals(w.Extended.Name, name); }))
+                    return ham.Weapons[*index];
+            }
+
+            return ham.Weapons.emplace_back();
+        }();
+
 #define READ_PROP(name) Yaml::ReadValue(node[#name], weapon.##name)
         Yaml::ReadValue(node["RenderType"], (int&)weapon.RenderType);
         READ_PROP(Thrust);
@@ -165,6 +179,7 @@ namespace Inferno {
         READ_PROP_EXT(ExplosionColor);
         READ_PROP_EXT(InheritParentVelocity);
         READ_PROP_EXT(Sparks);
+        READ_PROP_EXT(Tracer);
         READ_PROP_EXT(DeathSparks);
 
         READ_PROP_EXT(HomingFov);
@@ -409,6 +424,21 @@ namespace Inferno {
         READ_PROP(WeaponType2);
         READ_PROP(Guns);
 
+        // Lookup weapons by name
+        string weapon;
+
+        if (Yaml::ReadValue(node["Weapon"], weapon)) {
+            if (auto index = Seq::findIndex(ham.Weapons, [&weapon](auto& w) { return String::InvariantEquals(w.Extended.Name, weapon); })) {
+                robot.WeaponType = (WeaponID)*index;
+            }
+        }
+
+        if (Yaml::ReadValue(node["Weapon2"], weapon)) {
+            if (auto index = Seq::findIndex(ham.Weapons, [&weapon](auto& w) { return String::InvariantEquals(w.Extended.Name, weapon); })) {
+                robot.WeaponType2 = (WeaponID)*index;
+            }
+        }
+
         // todo: contains data
         READ_PROP(ContainsChance);
 
@@ -525,12 +555,11 @@ namespace Inferno {
 
             if (auto weapons = root["Weapons"]; !weapons.is_seed()) {
                 for (const auto& weapon : weapons.children()) {
-                    int id = -1;
                     try {
-                        ReadWeaponInfo(weapon, ham, id);
+                        ReadWeaponInfo(weapon, ham);
                     }
                     catch (const std::exception& e) {
-                        SPDLOG_WARN("Error reading weapon {}\n{}", id, e.what());
+                        SPDLOG_WARN("Error reading weapon\n{}", e.what());
                     }
                 }
             }

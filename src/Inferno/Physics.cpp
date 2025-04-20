@@ -1108,7 +1108,7 @@ namespace Inferno {
                                 float minimumAngle = weapon.Extended.RicochetAngle * metalMult;
                                 if (ang <= minimumAngle) {
                                     float angleMult = 1;
-                                    float maximumChanceAngle = minimumAngle / 3.0;
+                                    float maximumChanceAngle = minimumAngle / 3.0f;
                                     if (ang > maximumChanceAngle)
                                         angleMult = 1 - (ang - maximumChanceAngle) / (minimumAngle - maximumChanceAngle);
                                     float chance = weapon.Extended.RicochetChance * metalMult * angleMult;

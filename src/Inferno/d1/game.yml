@@ -189,10 +189,35 @@ Weapons:
     FlashColor: 1, 0.6, .3, 1
     StunMult: 2 # Increase slow so vulcan can tag small fast enemies
     Size: 0.75
+    Tracer: vulcan tracer
     # RicochetChance: 0.5
     # RicochetAngle: 30
     # RicochetMetalMultiplier: 1.5
     # Bounces: 2
+  
+  - Name: driller vulcan
+    Damage: [ 2, 2, 3, 3.5, 4 ] # Was 4 at all difficulties
+    Speed: [ 400, 400, 500, 500, 500 ] # Was 500 at all difficulties
+    Mass: 0.01
+    RenderType: -1
+    FlashSize: 2
+    FlashVClip: 11
+    FlashSound: 115
+    WallHitVClip: 1
+    ImpactSize: 2.5
+    Lifetime: 3
+    Decal: BulletHole01
+    DecalRadius: 1
+    ExplosionTexture: vaussimpact
+    ExplosionSize: 0.6
+    ExplosionTime: 0.4
+    ExplosionSound: #WpnVauseHitRicB
+    LightRadius: 3.75
+    ExplosionColor: 1.0, 0.36, 0.0, 1.2
+    Model: -1
+    FlashColor: 1, 0.6, .3, 1
+    Size: 0.75
+    Tracer: vulcan tracer
     
   - id: 12 
     Name: spreadfire
@@ -247,8 +272,40 @@ Weapons:
     Behavior: fusion
     StunMult: 0.4
     Recoil: 100
-    Damage: 60
-    PlayerDamageScale: 0.5 # Halve robot damage to players
+    Damage: 60 # As it should be
+    Speed: 150
+
+  - id: 14
+    Name: robot fusion
+    Damage: [ 30, 35, 40, 50, 60 ] # Was 60 at all difficulties. Fusion hulk always fires two blobs at once now.
+    Speed: [ 130, 135, 140, 145, 150 ] # Was 150 at all difficulties
+    RenderType: 2
+    FlashSize: 6
+    FlashVClip: 15
+    FlashSound: 24
+    WallHitVClip: 65
+    WallHitSound: 11
+    ImpactSize: 5
+    Lifetime: 10
+    Chargable: 1
+    Decal: scorchC
+    DecalRadius: 3.25
+    Glow: .3, 0, 1, 35
+    LightColor: .6, .1, 1, 4
+    FlashColor: .6, .1, 1, 4
+    EnergyUsage: 2
+    ModelName: FusionBlobNewJ.OOF
+    ModelScale: 1 # 0.85 # D3 fusion is huge
+    RotationalVelocity: 0, 0, 1.5708
+    Size: 2.1
+    ExplosionTexture: FusionHit
+    ExplosionSize: 4.6
+    ExplosionTime: 0.4
+    LightRadius: 20
+    Mass: 2
+    Behavior: fusion
+    StunMult: 0.4
+    Recoil: 100
 
   - id: 8
     Name: concussion missile
@@ -494,6 +551,7 @@ Weapons:
     Model: -1
     FlashColor: 1, 1, 1, 2
     StunMult: 0.5 
+    Tracer: gauss tracer
 
   - id: 33
     Name: helix
@@ -769,6 +827,7 @@ Robots:
   - id: 15
     Name: Fusion hulk
     DevName: Miniboss
+    Weapon: robot fusion
     FireDelay: [ 2.5, 2, 1.5, 1, 0.5 ] # Reduced due to charge time, was 3, 2, 2.5, 2, 1.5
     Shots: [ 2, 2, 2, 2, 2 ] # was 1, 1, 2, 2, 3
     TurnTime: [ 0.8, 0.7, 0.6, 0.5, 0.4 ]
@@ -779,7 +838,7 @@ Robots:
     AlertRadius: 160 # Miniboss alert radius
     ChaseChance: 0 # Hold position
     ChaseDistance: 0 # Don't chase
-    SuppressChance: 0.2
+    SuppressChance: 0.4
     Curiosity: 0 # Don't investigate sounds
     StunResist: 1.6 # immune to stuns from concussion missiles
     ChargeTime: 1
@@ -796,7 +855,7 @@ Robots:
     BurstDelay: 0.4
     SeeSound: 177
     AmbushDistance: 200
-    ChaseDistance: 100 # Only chase if the player gets very close
+    ChaseDistance: 40 # Only chase if the player gets very close
     # HitPoints: 270 # Was 325
   - id: 17
     Name: Boss # Level 7 boss
@@ -828,6 +887,7 @@ Robots:
   - id: 19 
     Name: Class 1 Driller
     DevName: Vulcan Guy
+    Weapon: driller vulcan
     CircleDistance: 100 # sniper
     Mass: 5
     Drag: 0.03
@@ -1480,7 +1540,7 @@ Effects:
       Instances: 3
 
   Tracers:
-    - Name: vulcan_tracer
+    - Name: vulcan tracer
       Length: 15
       Width: 0.25
       Texture: tracer
@@ -1488,7 +1548,7 @@ Effects:
       Color: 1, 0.5, .2, 100
       FadeSpeed: 0.2
 
-    - Name: gauss_tracer
+    - Name: gauss tracer
       Length: 25
       Width: 0.9
       Texture: tracer

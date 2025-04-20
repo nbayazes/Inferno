@@ -538,19 +538,11 @@ namespace Inferno::Game {
 
         auto objRef = AddObject(projectile);
 
-        if (info.id == WeaponID::Vulcan) {
-            if (auto tracer = EffectLibrary.GetTracer("vulcan_tracer"))
-                AddTracer(*tracer, objRef);
-        }
+        if (auto tracer = EffectLibrary.GetTracer(weapon.Extended.Tracer))
+            AddTracer(*tracer, objRef);
 
-        if (info.id == WeaponID::Gauss) {
-            if (auto tracer = EffectLibrary.GetTracer("gauss_tracer"))
-                AddTracer(*tracer, objRef);
-        }
-
-        if (auto sparks = EffectLibrary.GetSparks(weapon.Extended.Sparks)) {
+        if (auto sparks = EffectLibrary.GetSparks(weapon.Extended.Sparks))
             AttachSparkEmitter(*sparks, objRef);
-        }
 
         return objRef;
     }

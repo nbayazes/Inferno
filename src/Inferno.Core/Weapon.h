@@ -161,6 +161,8 @@ namespace Inferno {
         float RicochetChance = 0; // Percentage chance to ricochet off walls
         float RicochetAngle = 30.0f; // Angle below which ricochets begin, maximum chance is reached at 1/3 of angle
         float RicochetMetalMultiplier = 1.5f; // Multiplier of metalness to angle
+
+        string Tracer; // Name of tracer effect
     };
 
     struct Weapon {
