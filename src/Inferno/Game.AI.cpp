@@ -693,10 +693,13 @@ namespace Inferno {
     void DodgeProjectile(const Object& robot, AIRuntime& ai, const Object& projectile, const RobotInfo& robotInfo) {
         if (projectile.Physics.Velocity.LengthSquared() < 5 * 5) return; // Don't dodge slow projectiles. also prevents crash at 0 velocity.
 
+        auto& weapon = Resources::GetWeapon((WeaponID)projectile.ID);
         auto [projDir, projDist] = GetDirectionAndDistance(projectile.Position, robot.Position);
         // Looks weird to dodge distant projectiles. also they might hit another target
         // Consider increasing this for massive robots?
-        if (projDist > AI_MAX_DODGE_DISTANCE) return;
+        if (weapon.IsHoming && projDist > AI_MAX_DODGE_DISTANCE / 1.5f) return; // dodge homing weapons when they're closer
+        if (!weapon.IsHoming && projDist > AI_MAX_DODGE_DISTANCE) return;
+
         if (!PointIsInFOV(robot.Rotation.Forward(), projDir, DifficultyInfo(robotInfo).FieldOfView)) return;
 
         Vector3 projTravelDir;
@@ -705,7 +708,8 @@ namespace Inferno {
         auto dodgePoint = ProjectRayOntoPlane(projRay, robot.Position, -projTravelDir);
         if (!dodgePoint) return;
         auto dodgeDir = robot.Position - *dodgePoint;
-        if (dodgeDir.Length() > robot.Radius * 1.5f) return; // Don't dodge projectiles that won't hit us
+        if (weapon.IsHoming) dodgeDir += projDir * 1.25f; // move towards homing projectiles to dodge them
+        else if (dodgeDir.Length() > robot.Radius * 1.5f) return; // Don't dodge projectiles that won't hit us
         dodgeDir.Normalize();
 
         //if (robotInfo.Attack == AttackType::Melee && ai.Target) {
@@ -718,7 +722,6 @@ namespace Inferno {
         ai.DodgeVelocity = dodgeDir * DifficultyInfo(robotInfo).EvadeSpeed * 30;
         ai.DodgeDelay = (5 - (int)Game::Difficulty) / 2.0f + 0.25f + Random() * 0.5f; // (2 to 0) + 0.25 + (0..0.5) delay
         float dodgeTime = AI_DODGE_TIME * 0.5f + AI_DODGE_TIME * 0.5f * Random();
-        auto& weapon = Resources::GetWeapon((WeaponID)projectile.ID);
         if (weapon.IsHoming)
             dodgeTime += AI_DODGE_TIME; // homing weapons require a hard dodge to evade
 
@@ -1892,7 +1895,7 @@ namespace Inferno {
             return;
         }
 
-        if (robot.Control.AI.Behavior != AIBehavior::Still || robotInfo.Attack == AttackType::Melee)
+        if (ai.DodgeTime < 0 && (robot.Control.AI.Behavior != AIBehavior::Still || robotInfo.Attack == AttackType::Melee))
             MoveToCircleDistance(Game::Level, robot, ai, robotInfo);
 
         auto& target = *pTarget;
