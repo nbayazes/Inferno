@@ -1251,6 +1251,8 @@ namespace Inferno::UI {
         }
 
         int Min, Max;
+        int Step = 1;
+        int BigStep = 10;
         float LabelWidth = 0;
         float ValueWidth = 25;
         string ChangeSound; // MENU_SELECT_SOUND
@@ -1260,11 +1262,18 @@ namespace Inferno::UI {
 
         void UpdatePercent(float percent) {
             auto value = (int)std::floor((Max - Min) * percent) + Min;
+            UpdateValue(value);
+        }
+
+        void UpdateValue(int value) {
             if (*_value != value) {
                 *_value = value;
                 if (OnChange) OnChange(value);
-                Sound::Play2D(ChangeSound, 1, 0, 0.25f);
                 UpdateValueText();
+
+                //if (playSound)
+                //Sound::Play2D(ChangeSound, 1, 0, 0.25f);
+                Sound::Play2D(ChangeSound);
             }
         }
 
@@ -1396,6 +1405,24 @@ namespace Inferno::UI {
                 dti.Position = Vector2(ScreenPosition.x + ScreenSize.x - ValueWidth * GetScale(), ScreenPosition.y);
                 Render::UICanvas->DrawRaw(_valueText, dti, Layer + 1);
             }
+        }
+
+        bool OnMenuAction(Input::MenuActionState action) override {
+            const auto keyboardIncrement = Input::ShiftDown ? BigStep : Step;
+
+            if (action == MenuAction::Left) {
+                auto value = std::clamp(*_value - keyboardIncrement, Min, Max);
+                UpdateValue(value);
+                return true;
+            }
+
+            if (action == MenuAction::Right) {
+                auto value = std::clamp(*_value + keyboardIncrement, Min, Max);
+                UpdateValue(value);
+                return true;
+            }
+
+            return false;
         }
 
     private:
@@ -1751,7 +1778,10 @@ namespace Inferno::UI {
         void UpdatePercent(float percent, bool playSound = true) {
             percent = Saturate(percent);
             auto value = (_max - _min) * percent + _min;
+            UpdateValue(value, playSound);
+        }
 
+        void UpdateValue(float value, bool playSound = true) {
             if (*_value != value) {
                 *_value = value;
                 if (OnChange) OnChange(value);
@@ -1768,12 +1798,14 @@ namespace Inferno::UI {
             const float keyboardIncrement = Input::ShiftDown ? BigStep : Step;
 
             if (action == MenuAction::Left) {
-                UpdatePercent(GetPercent() - keyboardIncrement);
+                auto value = std::clamp(*_value - keyboardIncrement, _min, _max);
+                UpdateValue(value);
                 return true;
             }
 
             if (action == MenuAction::Right) {
-                UpdatePercent(GetPercent() + keyboardIncrement);
+                auto value = std::clamp(*_value + keyboardIncrement, _min, _max);
+                UpdateValue(value);
                 return true;
             }
 

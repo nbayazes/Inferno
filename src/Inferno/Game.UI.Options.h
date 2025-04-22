@@ -260,9 +260,8 @@ namespace Inferno::UI {
             renderScale->ShowValue = true;
             renderScale->LabelWidth = 250;
             renderScale->ValueWidth = 50;
-            renderScale->OnChange = [](float value) {
-                Settings::Graphics.RenderScale = std::floor(value * 20) / 20;
-            };
+            renderScale->Step = 0.05f;
+            renderScale->BigStep = 0.25f;
 
             auto brightness = panel->AddChild<SliderFloat>("Brightness", 0.5f, 1.5f, Inferno::Settings::Graphics.Brightness, 2);
             brightness->ShowValue = true;
@@ -274,6 +273,8 @@ namespace Inferno::UI {
             fov->ShowValue = true;
             fov->LabelWidth = 250;
             fov->ValueWidth = 50;
+            fov->Step = 1.0;
+            fov->BigStep = 5.0f;
 
             auto upscaleFilter = panel->AddChild<OptionSpinner>("upscale filtering", std::initializer_list<string_view>{ "Sharp", "Smooth" }, (int&)Settings::Graphics.UpscaleFilter);
             upscaleFilter->LabelWidth = 340;
