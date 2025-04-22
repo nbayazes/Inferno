@@ -1221,7 +1221,7 @@ namespace Inferno::UI {
                 dti.Color = Focused /*|| Hovered*/ ? FocusColor : TextColor;
                 dti.Position = ScreenPosition + Padding * scale;
                 auto textLen = MeasureString(_text, FontSize::Medium).x;
-                dti.Position.x += ScreenSize.x / 2 - textLen / 2 - Padding.x * scale; // center justify text
+                dti.Position.x += ScreenSize.x / 2 - (textLen / 2 + Padding.x) * scale; // center justify text
                 dti.Position.y += 1 * scale; // offset from top slightly
                 //dti.Position.x += ScreenSize.x / scale - textLen - Padding.x - Margin.x - size * 1.75f / scale; // right justify text
                 //dti.HorizontalAlign = AlignH::Center;
