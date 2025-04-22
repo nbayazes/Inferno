@@ -153,8 +153,9 @@ namespace Inferno {
         Array<float, 5> InitialSpeed; // Speed to spawn with
         bool PointCollideWalls = true; // Use raycasting against level geometry. Otherwise use spheres.
         float Recoil = 0; // How much backwards force to apply when firing
-        float HomingFov = 0; // Homing FOV in degrees
+        float HomingFov = 45; // Homing FOV in degrees
         float HomingDistance = 300; // Distance to look for new targets
+        float HomingTurnRate = 300; // Turn rate in degrees per second
         bool DirectDamage = true; // Enables direct damage on a hit. Disable for explosive weapons to make only the explosion do damage.
         bool UseThrust = false; // Uses thrust value
 

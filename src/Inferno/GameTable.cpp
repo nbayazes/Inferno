@@ -183,6 +183,7 @@ namespace Inferno {
         READ_PROP_EXT(DeathSparks);
 
         READ_PROP_EXT(HomingFov);
+        READ_PROP_EXT(HomingTurnRate);
         READ_PROP_EXT(HomingDistance);
         READ_PROP_EXT(DirectDamage);
         READ_PROP_EXT(UseThrust);

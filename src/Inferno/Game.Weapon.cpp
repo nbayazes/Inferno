@@ -976,14 +976,24 @@ namespace Inferno::Game {
         obj.Rotation = VectorToObjectRotation(fvec);
     }
 
+    Vector3 ClampTargetToFov(const Vector3& direction, const Vector3& origin, const Vector3& target, float rads) {
+        // project target to centerline of gunpoint
+        auto projTarget = direction * direction.Dot(target - origin) + origin;
+        auto projDist = Vector3::Distance(origin, projTarget);
+        auto projDir = target - projTarget;
+        projDir.Normalize();
+        auto maxLeadDist = tanf(rads) * projDist;
+        return projTarget + maxLeadDist * projDir;
+    }
+
     void UpdateHomingWeapon(Object& weapon, const Weapon& weaponInfo, float dt) {
         if (!weaponInfo.IsHoming) return;
 
-        if (!TimeHasElapsed(weapon.NextThinkTime))
-            return; // Not ready to think
+        //if (!TimeHasElapsed(weapon.NextThinkTime))
+        //    return; // Not ready to think
 
         // Homing weapons update slower to match the original behavior
-        weapon.NextThinkTime = Game::Time + HOMING_TICK_RATE;
+        //weapon.NextThinkTime = Game::Time + HOMING_TICK_RATE;
 
         if (weapon.Control.Weapon.AliveTime < WEAPON_HOMING_DELAY)
             return; // Not ready to start homing yet
@@ -1033,28 +1043,24 @@ namespace Inferno::Game {
             // turn towards target
             auto [targetDir, targetDist] = GetDirectionAndDistance(targetObj->Position, weapon.Position);
 
+            // Update player lock warning
             if (targetObj->IsPlayer()) {
                 if (Game::Player.HomingObjectDist < 0 || targetDist < Game::Player.HomingObjectDist)
                     Game::Player.HomingObjectDist = targetDist;
             }
 
+
+            auto forward = weapon.Rotation.Forward();
+            auto targetAngle = AngleBetweenVectors(forward, targetDir);
+            auto turnRate = weaponInfo.Extended.HomingTurnRate * DegToRad * dt;
             Vector3 dir = weapon.Physics.Velocity;
             auto speed = dir.Length();
-            dir.Normalize();
 
-            // Hack for smart missile blobs to speed up over time
-            /*auto maxSpeed = weaponInfo.Speed[Game::Difficulty];
-            if (speed + 1 < maxSpeed) {
-                speed += maxSpeed * HOMING_TICK_RATE / 2;
-                if (speed > maxSpeed) speed = maxSpeed;
-            }*/
-
-            dir *= 2; // NEW: Increase weighting of existing direction to smooth turn radius. This does slightly reduce turn speed.
-            dir += targetDir;
-
-            // make smart blobs track better (hacky, add homing speed to weapon info)
-            //if (weapon.Render.Type != RenderType::Model)
-            //    dir += targetDir;
+            // limit turn rate
+            if (targetAngle > turnRate) {
+                auto targetPosition = ClampTargetToFov(forward, weapon.Position, targetObj->Position, turnRate);
+                dir = targetPosition - weapon.Position;
+            }
 
             dir.Normalize();
             weapon.Physics.Velocity = dir * speed;

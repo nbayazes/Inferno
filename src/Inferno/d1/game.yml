@@ -347,10 +347,17 @@ Weapons:
     FlashColor: 1, 0.25, 0.0, 2
     Size: 1 # was 1.5
     HomingFov: 45 # was 48.6 (dot = .75)
-    HomingDistance: 300 # how far away to search for targets
+    HomingDistance: 300 # Scan for targets in this range
+    HomingTurnRate: 300
 
-  - id: 21
+  - id: 21 
     Name: robot homing missile
+    FlashVClip: 11
+    FlashSound: 44
+    WallHitVClip: 5
+    WallHitSound: 11
+    RobotHitVClip: 5
+    RobotHitSound: 11  
     Decal: scorchC
     StunMult: 1.5
     DecalRadius: 4
@@ -360,8 +367,9 @@ Weapons:
     ExplosionColor: 1, 0.25, 0.0, 10
     FlashColor: 1, 0.25, 0.0, 2
     Size: 1 # was 1.5
-    HomingFov: 44 # Slightly easier to evade than 45
+    HomingFov: 45
     HomingDistance: 300 # Scan for targets in this range
+    HomingTurnRate: 300
     Damage: [ 10, 15, 20, 25, 30 ] # Changed to D2 values
     # Damage: [ 15, 15, 20, 30, 49 ] # D1 values
     SplashRadius: 30 # Was 40
@@ -418,11 +426,37 @@ Weapons:
     HomingDistance: 150
     UseThrust: 1
 
+  - Name: robot smart missile # mostly copied from D2 data
+    RenderType: 2
+    Model: 69
+    FlashSize: 5
+    ImpactSize: 7
+    FlashVClip: 11
+    FlashSound: 130
+    WallHitVClip: 5
+    WallHitSound: 11
+    RobotHitVClip: 5
+    RobotHitSound: 11
+    Lifetime: 10  
+    ExplosionColor: .1, 1, .1, 2.5
+    FlashColor: 1, 0.25, 0.0, 2
+    Speed: [ 60, 60, 80, 90, 95 ]
+    Damage: [ 9, 13, 18, 23, 30 ]
+    ModelName: smartmissile.OOF
+    Decal: scorchC
+    DecalRadius: 4
+    LightRadius: 18
+    LightColor: 0.25, 0.75, 0, 1.5
+    Glow: 0.75, 1, 0.75, 1
+    SpawnCount: 6
+    Spawn: 29
+    Size: 1 # was 1.5
+
   - id: 29
     Name: robot smart missile blob
     Decal: scorchB
-    Damage: [ 11, 12, 13, 14, 15 ] # Damage and speed copied for demo data. note that D2 is different
-    Speed: 90
+    Damage: [ 11, 12, 13, 14, 15 ] # Damage and copied from demo data. note that D2 is different
+    Speed: 90 # Speed copied from demo data. note that D2 is different
     Size: 1.5
     ImpactSize: 4
     ExplosionSound: PlasmaHit1
@@ -438,6 +472,7 @@ Weapons:
     InitialSpeed: 22.5 # How fast when spawning
     HomingFov: 25 # Reduced due to overly aggressive tracking
     HomingDistance: 150
+    HomingTurnRate: 150 # turn slower than regular homing missiles
     UseThrust: 1
 
   - id: 18
@@ -841,6 +876,7 @@ Robots:
     SuppressChance: 0.4
     Curiosity: 0 # Don't investigate sounds
     StunResist: 1.6 # immune to stuns from concussion missiles
+    AimAngle: 30
     ChargeTime: 1
     # DeathRollSound: 185 # d1
   - id: 16
@@ -854,12 +890,14 @@ Robots:
     SuppressChance: .15
     BurstDelay: 0.4
     SeeSound: 177
+    AimAngle: 15
     AmbushDistance: 200
     ChaseDistance: 40 # Only chase if the player gets very close
     # HitPoints: 270 # Was 325
   - id: 17
     Name: Boss # Level 7 boss
     DevName: Boss # Shareware Boss
+    Weapon: robot smart missile
     Mass: 40
     Multishot: 1
     CircleDistance: 200
