@@ -326,11 +326,9 @@ namespace Inferno::Game {
                         side->TMap2 = clip.DestroyedTexture;
 
                     clip.OneShotTag = {};
-                    Graphics::NotifyLevelChanged(); // Need to update textures on mesh. This is not ideal.
                 }
             }
         }
-
 
         static double accumulator = 0;
         accumulator += dt;
