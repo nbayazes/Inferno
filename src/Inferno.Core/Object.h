@@ -48,6 +48,7 @@ namespace Inferno {
         PlayerDropped = 1 << 6, // Dropped by player (death?)
         AlwaysUpdate = 1 << 7, // Always update this object regardless of visibility. Thief, Weapons
         Updated = 1 << 8, // Was updated this frame
+        OutOfBounds = 1 << 9, // Object outside of the world
     };
 
     enum class PhysicsFlag : uint16 {

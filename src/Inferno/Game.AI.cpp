@@ -2269,6 +2269,31 @@ namespace Inferno {
         if (robot.NextThinkTime == NEVER_THINK || robot.NextThinkTime > Game::Time)
             return;
 
+        // try repositioning out of bounds robot inside of its segment
+        if (HasFlag(robot.Flags, ObjectFlag::OutOfBounds)) {
+            if (auto seg = Game::Level.TryGetSegment(robot.Segment)) {
+                bool blocked = false;
+
+                // Check if there's already a robot in this segment.
+                for (auto objid : seg->Objects) {
+                    if (auto obj = Game::Level.TryGetObject(objid)) {
+                        if (obj->Signature != robot.Signature && obj->IsRobot()) {
+                            // Check if there's space at the center of the segment
+                            if (Vector3::Distance(seg->Center, obj->Position) < obj->Radius + robot.Radius)
+                                blocked = true;
+                        }
+                    }
+                }
+
+                if (!blocked)
+                    TeleportObject(robot, robot.Segment);
+
+                robot.NextThinkTime = Game::Time + 1;
+            }
+
+            return; // Don't let out of bounds robots shoot
+        }
+
         if (robotInfo.IsBoss && Game::Level.IsDescent1())
             Game::BossBehaviorD1(ai, robot, robotInfo, dt);
         else if (robotInfo.Script == SUPERVISOR_SCRIPT)

@@ -186,21 +186,22 @@ namespace Inferno {
         auto id = TraceSegment(level, obj.Segment, obj.Position);
 
         if ((id == SegID::None || id == SegID::Exit) && obj.Segment == Game::Terrain.ExitTag.Segment) {
-            obj.Segment = SegID::Terrain; // Assume that the object has entered the terrain
+            id = SegID::Terrain; // Assume that the object has entered the terrain
         }
-        else if (id != SegID::None) {
-            obj.Segment = id;
+        else if (id == SegID::None) {
+            SetFlag(obj.Flags, ObjectFlag::OutOfBounds);
+            return false;
         }
 
-        // Otherwise leave the last good ID if nothing contains the object
+        obj.Segment = id;
+
+        // Leave the last known seg id if nothing contains the object
         if (auto seg = level.TryGetSegment(obj.Segment)) {
             auto transitionTime = Game::GetState() == GameState::Game ? 0.5f : 0;
             obj.Ambient.SetTarget(seg->VolumeLight, Game::Time, transitionTime);
-            return true;
         }
-        else {
-            return false;
-        }
+
+        return true;
     }
 
     void RelinkObject(Level& level, Object& obj, SegID newSegment) {
@@ -211,6 +212,7 @@ namespace Inferno {
         if (auto seg = level.TryGetSegment(newSegment)) {
             seg->AddObject(id);
             obj.Ambient.SetTarget(seg->VolumeLight, Game::Time, 0.25f);
+            ClearFlag(obj.Flags, ObjectFlag::OutOfBounds);
         }
 
         obj.Segment = newSegment;
@@ -222,8 +224,10 @@ namespace Inferno {
         if (!UpdateObjectSegment(level, obj))
             return; // already in the right segment
 
-        if (obj.Segment == SegID::None)
+        if (HasFlag(obj.Flags, ObjectFlag::OutOfBounds)) {
+            SPDLOG_WARN("Object {} moved outside of world", obj.ID);
             return; // Object was outside of world
+        }
 
         Tag connection{};
 
