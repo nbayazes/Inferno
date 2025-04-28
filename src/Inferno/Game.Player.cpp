@@ -794,16 +794,16 @@ namespace Inferno {
 
         // Keep player shields in sync with the object that represents it
         if (auto player = Game::Level.TryGetObject(Reference)) {
-            constexpr float SCALE = 20;
-            auto flash = std::max(damage / SCALE, 0.1f);
+            constexpr float SCALE = 40;
+            auto flash = std::max(damage / SCALE, 0.05f);
 
             if (!IsDead) {
                 if (player->IsInvulnerable() || Settings::Cheats.DisableWeaponDamage) {
-                    AddScreenFlash({ 0, 0, flash });
+                    Game::AddDamageTint({ 0, 0, flash });
                 }
                 else {
                     Shields -= damage;
-                    AddScreenFlash({ flash, -flash, -flash });
+                    Game::AddDamageTint({ flash, -flash, -flash });
                 }
             }
 
@@ -811,6 +811,7 @@ namespace Inferno {
                 IsDead = true;
                 Input::ResetState(); // Reset state so fusion charging releases
                 Game::Player.StopAfterburner(); // stop afterburner when dead so sounds and effects stop
+                Game::ResetTints();
                 Shields = 0;
                 Energy = 0;
             }
@@ -853,6 +854,7 @@ namespace Inferno {
         // Reset shields and energy to at least 100
         Shields = std::max(Shields, 100.0f);
         Energy = std::max(Energy, 100.0f);
+        Game::ResetTints();
 
         if (Settings::Cheats.LowShields) {
             Shields = 10;

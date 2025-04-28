@@ -279,16 +279,21 @@ namespace Inferno::Game {
         }
     }
 
-    void DecayScreenFlash(float dt) {
-        if (ScreenFlash.x > 0) ScreenFlash.x -= FLASH_DECAY_RATE * dt;
-        if (ScreenFlash.y > 0) ScreenFlash.y -= FLASH_DECAY_RATE * dt;
-        if (ScreenFlash.z > 0) ScreenFlash.z -= FLASH_DECAY_RATE * dt;
-        ClampColor(ScreenFlash);
+    void DecayColor(Color& color, float rate, float dt) {
+        if (color.x > 0) color.x -= rate * dt;
+        if (color.y > 0) color.y -= rate * dt;
+        if (color.z > 0) color.z -= rate * dt;
+        ClampColor(color);
     }
 
     void AddScreenFlash(const Color& color) {
         ScreenFlash += color;
         ClampColor(ScreenFlash, { 0, 0, 0 }, { MAX_FLASH, MAX_FLASH, MAX_FLASH });
+    }
+
+    void AddDamageTint(const Color& color) {
+        DamageTint += color;
+        ClampColor(DamageTint, { 0, 0, 0 }, { MAX_DAMAGE_TINT, MAX_DAMAGE_TINT, MAX_DAMAGE_TINT });
     }
 
     // Returns the lerp amount for the current tick. Executes every frame.
@@ -311,7 +316,9 @@ namespace Inferno::Game {
         Game::FusionTint.Update(Game::Time);
         Game::BloomStrength.Update(dt);
         Game::Exposure.Update(dt);
-        DecayScreenFlash(dt);
+        DecayColor(ScreenFlash, FLASH_DECAY_RATE, dt);
+        DecayColor(DamageTint, MAX_DAMAGE_TINT / 1.5f, dt);
+        
         Graphics::UpdateTimers();
 
         // Update global dimming (50% max ambient)

@@ -167,10 +167,12 @@ namespace Inferno::PostFx {
 
         Color screenTint = Game::ScreenGlow;
         Color fusionTint = Game::FusionTint;
+        Color damageTint = Game::DamageTint;
         screenTint.Premultiply();
         fusionTint.Premultiply();
+        damageTint.Premultiply();
 
-        auto tint = fusionTint + screenTint;
+        auto tint = fusionTint + screenTint + damageTint;
         auto gameState = Game::GetState();
         // Disable tint unless in-game. We don't want fusion to cause the menu to be unreadable.
         tint.w = gameState == GameState::Game || gameState == GameState::EscapeSequence ? 1.0f : 0.0f;

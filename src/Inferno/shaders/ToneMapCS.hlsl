@@ -207,7 +207,7 @@ void main(uint3 DTid : SV_DispatchThreadID) {
                 sdrColor = TonyMcMapface(hdrColor);
                 break;
             //case 2:
-            //    toneMappedColor = reinhard_extended_luminance(hdrColor, 8.0);
+            //    sdrColor = reinhard_extended_luminance(hdrColor, 8.0);
             //    break;
         }
 

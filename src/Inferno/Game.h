@@ -185,14 +185,24 @@ namespace Inferno::Game {
     constexpr float DEFAULT_BLOOM = 0.35f;
     inline LerpedColor ScreenGlow = Color(0, 0, 0, 0);
     inline LerpedColor FusionTint = Color(0, 0, 0, 0);
+    inline auto DamageTint = Color(0, 0, 0, 0);
     inline LerpedValue Exposure = 1;
     inline LerpedValue BloomStrength = DEFAULT_BLOOM;
 
     inline Color ScreenFlash = { 0, 0, 0 }; // Used when picking up an item or taking damage
     constexpr float MAX_FLASH = 0.4f;
     constexpr float FLASH_DECAY_RATE = MAX_FLASH * 0.75f;
+    constexpr float MAX_DAMAGE_TINT = 0.6f;
 
     void AddScreenFlash(const Color&);
+
+    void AddDamageTint(const Color& color);
+
+    inline void ResetTints() {
+        Game::DamageTint = Color(0, 0, 0);
+        Game::FusionTint = Color(0, 0, 0);
+        Game::ScreenFlash = Color(0, 0, 0);
+    }
 
     //bool ObjectIsInFOV(const Ray& ray, const Object& obj, float fov);
 
