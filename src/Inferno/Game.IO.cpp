@@ -583,6 +583,7 @@ namespace Inferno::Game {
     void PlayLevelMusic() {
         auto flags = LoadFlag::Default | GetLevelLoadFlag(Game::Level);
         Option<string> sng;
+        uint firstLevelSong = 5; // the first five songs are menu music
 
         // For retail levels, DXAs get SNG priority, but for custom missions the mission file does
         if (Game::Mission && Game::Mission->IsRetailMission()) {
@@ -591,7 +592,17 @@ namespace Inferno::Game {
                 sng = Resources::ReadTextFile("descent.sng", LoadFlag::Mission);
         }
         else {
-            sng = Resources::ReadTextFile("descent.sng", LoadFlag::Mission);
+            // check for sng using the mission name first, which is rebirth style
+            filesystem::path name = Game::Mission->Path.stem();
+            name.replace_extension("sng");
+            sng = Resources::ReadTextFile(name.string(), LoadFlag::Mission);
+
+            if (sng)
+                firstLevelSong = 0; // only contains the individual level songs
+
+            if (!sng)
+                sng = Resources::ReadTextFile("descent.sng", LoadFlag::Mission);
+
             if (!sng)
                 sng = Resources::ReadTextFile("descent.sng", GetLevelLoadFlag(Game::Level) | LoadFlag::Dxa);
         }
@@ -607,14 +618,13 @@ namespace Inferno::Game {
         // Determine the correct song to play based on the level number
         auto songs = ParseSng(*sng);
 
-        constexpr uint FirstLevelSong = 5;
-        if (songs.size() < FirstLevelSong) {
-            SPDLOG_WARN("Not enough songs in SNG file. Expected 5, was {}", songs.size());
+        if (songs.size() < firstLevelSong) {
+            SPDLOG_WARN("Not enough songs in SNG file. Expected {}, was {}", firstLevelSong, songs.size());
             return;
         }
 
-        auto availableLevelSongs = songs.size() - FirstLevelSong;
-        auto songIndex = FirstLevelSong + std::abs(LevelNumber - 1) % availableLevelSongs;
+        auto availableLevelSongs = songs.size() - firstLevelSong;
+        auto songIndex = firstLevelSong + std::abs(LevelNumber - 1) % availableLevelSongs;
         string song = songs[songIndex];
 
         PlayMusic(song, flags);

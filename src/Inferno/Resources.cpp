@@ -958,7 +958,7 @@ namespace Inferno::Resources {
             //}
 
             if (Game::Mission->Exists(file))
-                return ResourceHandle::FromHog(unpacked, fileName);
+                return ResourceHandle::FromHog(file, fileName);
         }
 
         if (HasFlag(flags, LoadFlag::Dxa)) {
@@ -998,56 +998,6 @@ namespace Inferno::Resources {
 
         return {}; // Wasn't found
     }
-
-    //bool FileExists(string_view fileName, LoadFlag flags) {
-    //    auto name = string(fileName);
-
-    //    // current HOG file
-    //    if (Game::Mission && HasFlag(flags, LoadFlag::Mission)) {
-    //        // Check unpacked data folder for mission
-    //        auto path = Game::Mission->Path.parent_path();
-    //        auto unpacked = path / Game::Mission->Path.stem() / name;
-    //        if (filesystem::exists(unpacked))
-    //            return true;
-
-    //        if (Game::Mission->Exists(name))
-    //            return true;
-    //    }
-
-    //    if (HasFlag(flags, LoadFlag::Dxa)) {
-    //        // Check for addon (dxa) data
-    //        if (HasFlag(flags, LoadFlag::Descent1) && FindDxaEntryInFolder(D1_FOLDER, fileName))
-    //            return true;
-
-    //        if (HasFlag(flags, LoadFlag::Descent2) && FindDxaEntryInFolder(D2_FOLDER, fileName))
-    //            return true;
-
-    //        if (HasFlag(flags, LoadFlag::Common) && FindDxaEntryInFolder(COMMON_FOLDER, fileName))
-    //            return true;
-    //    }
-
-    //    if (HasFlag(flags, LoadFlag::Filesystem)) {
-    //        if (HasFlag(flags, LoadFlag::Descent1) && filesystem::exists(D1_FOLDER / name))
-    //            return true;
-
-    //        if (HasFlag(flags, LoadFlag::Descent2) && filesystem::exists(D2_FOLDER / name))
-    //            return true;
-
-    //        if (HasFlag(flags, LoadFlag::Common) && filesystem::exists(COMMON_FOLDER / name))
-    //            return true;
-    //    }
-
-    //    // Base HOG file
-    //    if (HasFlag(flags, LoadFlag::BaseHog)) {
-    //        if (HasFlag(flags, LoadFlag::Descent1) && Descent1.hog.Exists(name))
-    //            return true;
-
-    //        if (HasFlag(flags, LoadFlag::Descent2) && Descent2.hog.Exists(name))
-    //            return true;
-    //    }
-
-    //    return false; // Wasn't found
-    //}
 
     Option<List<byte>> ReadBinaryFileFromZip(const filesystem::path& filePath, string_view name) {
         try {
@@ -1096,44 +1046,10 @@ namespace Inferno::Resources {
                 if (auto data = ReadBinaryFileFromZip(filePath, name))
                     return data;
             }
-
-            //    List<byte> data;
-            //    if (auto zip = zip_open(filePath.string().c_str(), 0, 'r')) {
-            //        if (zip_entry_open(zip, string(name).c_str()) == 0) {
-            //            void* buffer;
-            //            size_t bufferSize;
-            //            auto readBytes = zip_entry_read(zip, &buffer, &bufferSize);
-            //            if (readBytes > 0) {
-            //                SPDLOG_INFO("Read addon data: {}:{}", filePath.string(), name);
-            //                data.assign((byte*)buffer, (byte*)buffer + bufferSize);
-            //                return data;
-            //            }
-
-            //            zip_entry_close(zip);
-            //        }
-
-            //        zip_close(zip);
-            //    }
-
-            //    /*auto totalEntries = zip_entries_total(zip);
-
-            //    for (size_t i = 0; i < totalEntries; i++) {
-            //        zip_entry_openbyindex(zip, i);
-            //        auto entry = zip_entry_name(zip);
-            //        SPDLOG_INFO("{}", entry);
-            //        zip_entry_close(zip);
-            //    }*/
-            //}
         }
 
         return {};
     }
-
-    //Option<List<byte>> ReadFileFromFolder(filesystem::path& folder, string_view name) {
-    //    for (auto& file : filesystem::directory_iterator(folder)) {}
-
-    //    return {};
-    //}
 
     Option<List<byte>> ReadBinaryFile(string_view fileName, LoadFlag flags) {
         if (fileName.empty()) return {};
@@ -1141,12 +1057,14 @@ namespace Inferno::Resources {
 
         // current HOG file
         if (Game::Mission && HasFlag(flags, LoadFlag::Mission)) {
+            //if (HasFlag(flags, LoadFlag::Filesystem)) {
             // Check unpacked data folder for mission
-            //auto path = Game::Mission->Path.parent_path();
-            //auto unpacked = path / Game::Mission->Path.stem() / fileName;
-            //if (filesystem::exists(unpacked)) {
-            //    SPDLOG_INFO("Reading {}", unpacked.string());
-            //    return File::ReadAllBytes(unpacked);
+            auto path = Game::Mission->Path.parent_path();
+            auto unpacked = path / Game::Mission->Path.stem() / fileName;
+            if (filesystem::exists(unpacked)) {
+                SPDLOG_INFO("Reading {}", unpacked.string());
+                return File::ReadAllBytes(unpacked);
+            }
             //}
 
             if (auto data = Game::Mission->TryReadEntry(file)) {
