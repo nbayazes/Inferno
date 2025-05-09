@@ -337,6 +337,7 @@ namespace Inferno::Editor {
         }
 
         Settings::Editor.AddRecentFile(*path);
+        History.Reset();
         History.UpdateCleanSnapshot();
     }
 

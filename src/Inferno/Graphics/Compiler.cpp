@@ -113,6 +113,11 @@ namespace Inferno {
             LoadFile(binaryPath, shader);
         }
         else {
+            //if (!std::filesystem::exists("dxcompiler.dll") || !std::filesystem::exists("dxil.dll")) {
+            //    auto message = fmt::format("Compiled shader {} not exist and dxcompiler.dll or dxil.dll is missing", binaryPath.string());
+            //    throw Exception(message);
+            //}
+
             SPDLOG_INFO("Compiling compute shader {}:{}", file.string(), entryPoint);
             List<LPCWSTR> args;
             auto wideEntry = Widen(entryPoint); // args takes a pointer to string, must keep it allocated
