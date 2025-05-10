@@ -344,7 +344,6 @@ healthchecksdb
 .ionide 
 /groupa_pig
 *.tga
-*.png
 *.PIG
 /descent2.ham
 
@@ -352,7 +351,6 @@ healthchecksdb
 /vcpkg_installed/x64-windows
 inferno.cfg
 imgui.ini
-/src/Inferno/tony_mc_mapface.dds
 dxil.dll
 dxcompiler.dll
 dxc.exe
