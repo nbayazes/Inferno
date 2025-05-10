@@ -1,4 +1,4 @@
-![Inferno](/docs/banner.png)
+![Inferno](/docs/banner.jpg)
 Inferno is a single player remaster of the 1995 classic Descent 1. It is built on a completely new engine using modern technology and includes a level editor. It is not a source port.
 
 ![hud](/docs/hud.jpg)
