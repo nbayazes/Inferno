@@ -872,11 +872,13 @@ namespace Inferno::Resources {
     //}
 
     bool LoadGameTables(LoadFlag flags) {
-        // Load order matters. Changes get layered onto each other (root, game, mission)
         if (auto data = ReadTextFile(GAME_TABLE_FILE, flags)) {
-            LoadGameTable(*data, GameData);
+            LoadGameTable(*data, GameData, GameData);
             return true;
         }
+
+        // Load order matters. Changes get layered onto each other (root, game, mission)
+        // todo: add layered table loading. Base shared table, then d1 or d2, then mission
 
         return false;
     }
@@ -1191,13 +1193,6 @@ namespace Inferno::Resources {
         LoadLightTables(flags);
         LoadMaterialTables(flags);
         LoadGameTables(flags);
-
-        // Copy guns from model data if present. The default model does not have gunpoint defs and relies on a table entry.
-        if (auto model = Seq::tryItem(GameData.Models, (int)GameData.PlayerShip.Model)) {
-            for (size_t i = 0; i < model->Guns.size(); i++) {
-                GameData.PlayerShip.Gunpoints[i] = model->Guns[i].Point;
-            }
-        }
     }
 
     span<JointPos> GetRobotJoints(int robotId, int gun, Animation state) {
@@ -1355,11 +1350,12 @@ namespace Inferno::Resources {
                     level.TotalHostages++;
             }
 
+            LoadCustomModels(GameData); // Load models before tables, so the custom model gunpoints are used
+
             // it should prioritize the current mission then the data folder
             LoadDataTables(LoadFlag::Filesystem | LoadFlag::Mission | GetLevelLoadFlag(level));
             LoadStringTable(GameData.hog);
             UpdateAverageTextureColor();
-            LoadCustomModels(GameData);
 
             Inferno::Sound::CopySoundIds();
             //FixObjectModelIds(level);

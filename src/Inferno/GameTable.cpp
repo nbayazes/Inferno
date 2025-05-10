@@ -362,11 +362,6 @@ namespace Inferno {
             }
         }
 
-        //Yaml::ReadValue(node["Name"], ship.Name);
-        //Yaml::ReadValue(node["DamageTaken"], ship.DamageTaken);
-        //Yaml::ReadValue(node["Mass"], ship.Mass);
-        //Yaml::ReadValue(node["Drag"], ship.Drag);
-
         int16 i = 0;
         for (auto weaponNode : node["Weapons"].children()) {
             auto& weapon = ship.Weapons[i];
@@ -542,7 +537,7 @@ namespace Inferno {
 #undef READ_PROP
     }
 
-    void LoadGameTable(const string& data, HamFile& ham) {
+    void LoadGameTable(const string& data, HamFile& ham, FullGameData& gameData) {
         try {
             ryml::Tree doc = ryml::parse_in_arena(ryml::to_csubstr(data));
             ryml::NodeRef root = doc.rootref();
@@ -655,7 +650,14 @@ namespace Inferno {
 
             if (auto ships = root["Ships"]; !ships.is_seed()) {
                 for (const auto& child : ships.children()) {
-                    ReadShip(child, Resources::GameData.PlayerShip);
+                    ReadShip(child, gameData.PlayerShip);
+                }
+
+                // Copy guns from model data if present. The default model does not have gunpoint defs and relies on a table entry.
+                if (auto model = Seq::tryItem(gameData.Models, (int)gameData.PlayerShip.Model)) {
+                    for (size_t i = 0; i < model->Guns.size(); i++) {
+                        gameData.PlayerShip.Gunpoints[i] = model->Guns[i].Point;
+                    }
                 }
             }
         }
