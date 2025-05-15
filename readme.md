@@ -24,8 +24,16 @@ Inferno is a single player remaster of the 1995 classic Descent 1. It is built o
 Extract the archive and run inferno.exe. The shareware mission containing the first 7 level is included.
 To play the full game, copy the retail `descent.hog` and `descent.pig` to the `/d1` folder.
 
+### Music
 MIDI music is currently not supported and instead a song pack can be used. 
-Several song packs are available `TODO: here`, generously hosted by Pumo. Copy a music DXA to the `/d1` folder. 
+Several song packs are available, generously hosted by PuMo. Copy a single music DXA to the `/d1` folder.
+
+[SC55 MIDI](https://pumosoftware.com/files/descent/dxa/d1xr-sc55-music.dxa)
+[OPL3 MIDI](https://pumosoftware.com/files/descent/dxa/d1xr-opl3-music.dxa)
+[Roland SC MIDI](https://pumosoftware.com/files/descent/dxa/d1midi-rolandsc.dxa)
+[AWE64 MIDI](https://pumosoftware.com/files/descent/dxa/d1midi-awe64.dxa)
+[Playstation 1](https://pumosoftware.com/files/descent/dxa/d1-playstation.dxa)
+[Mac](https://pumosoftware.com/files/descent/dxa/d1cda-mac.dxa)
 
 ## System Requirements
 - Windows 10 64-bit
@@ -34,10 +42,11 @@ Several song packs are available `TODO: here`, generously hosted by Pumo. Copy a
 
 ## Major gameplay changes
 - PTMC stopped skimping on basic equipment! The headlight and afterburner are now baseline on all PyroGX models.
-- 'Stunning' has been reworked. In the original game quickly firing weapons could stunlock tough robots, trivializing their presence.
+- Robot stunning has been reworked. In the original game tough robots could be stunlocked by shooting them constantly, trivializing their presence.
 	- Primary weapons no longer stun enemies, except for the fusion cannon
 	- Missiles deal more damage to robots and inflict stun. Concussion missiles are very effective at this.
-- Proximity mines have been reworked and their damage against is robots significantly increased. 
+	- Weak enemies are more likely to be stunned, while tougher ones are nearly immune
+- Proximity mines have been reworked and their damage against robots is significantly increased. 
 	- Mines now attract homing weapons when placed which allows them to function as chaff
 	- Mines will lock onto nearby targets and propel themselves like a seeker mine
 	- Both of these behaviors affect enemy mines, be careful not to waste homing missiles around gophers!
