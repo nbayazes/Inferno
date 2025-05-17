@@ -66,7 +66,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
     if (Args.Softness != 0) {
         float depthScale = clamp(1 - Args.Softness, 0.05, 1); // sprite turns invisible under 0.05
-        diffuse *= SaturateSoft((sceneDepth - pixelDepth) * Frame.FarClip * depthScale, DEPTH_EXPONENT);
+        diffuse.a *= SaturateSoft((sceneDepth - pixelDepth) * Frame.FarClip * depthScale, DEPTH_EXPONENT);
     }
 
     return diffuse;
