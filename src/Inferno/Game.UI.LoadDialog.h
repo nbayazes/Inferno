@@ -31,7 +31,7 @@ namespace Inferno::UI {
             _titleWidth = MeasureString(_header, FontSize::Small).x;
             _header = _save.autosave ? fmt::format("{} - AUTOSAVE", _save.missionName) : _save.missionName;
 
-            _lives = fmt::format("lives: {}", _save.lives);
+            _lives = fmt::format("lives: {}", _save.lives - 1);
             _livesWidth = MeasureString(_lives, FontSize::Small).x;
 
             if (_save.levelNumber < 0)
