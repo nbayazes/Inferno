@@ -16,8 +16,8 @@ namespace Inferno {
         t.Damage = r.ReadFix();
         t.EffectClip = (EClipID)r.ReadInt16();
         t.DestroyedTexture = (LevelTexID)r.ReadInt16();
-        auto slideU = FixToFloat(r.ReadInt16());
-        auto slideV = FixToFloat(r.ReadInt16());
+        auto slideU = r.ReadInt16() / 256.0f; // 8:8 fixed point conversion
+        auto slideV = r.ReadInt16() / 256.0f;
         t.Slide = Vector2{ slideU, slideV };
         return t;
     }

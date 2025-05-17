@@ -94,8 +94,8 @@ PS_INPUT vsmain(LevelVertex input) {
     //output.col = float4(input.col.rgb, 1);
     output.col = input.col;
     output.col.a = clamp(output.col.a, 0, 1);
-    output.uv = input.uv + Args.Scroll * Frame.Time * 200;
-    output.uv2 = input.uv2 + Args.Scroll2 * Frame.Time * 200;
+    output.uv = input.uv + Args.Scroll * Frame.Time;
+    output.uv2 = input.uv2 + Args.Scroll2 * Frame.Time;
     output.normal = input.normal;
     output.tangent = input.tangent;
     output.bitangent = input.bitangent;
