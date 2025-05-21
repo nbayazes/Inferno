@@ -260,8 +260,7 @@ namespace Inferno {
             }
 
             switch (chunkType) {
-                case TableChunk::Robot:
-                {
+                case TableChunk::Robot: {
                     auto& robot = ham.Robots.emplace_back();
                     if (skip) continue;
 
@@ -315,8 +314,7 @@ namespace Inferno {
                     break;
                 }
 
-                case TableChunk::RobotAI:
-                {
+                case TableChunk::RobotAI: {
                     auto index = std::stoi(tokens[1]);
                     if (!Seq::inRange(ham.Robots, index) || skip) continue;
                     auto& robot = ham.Robots[index];
@@ -346,8 +344,7 @@ namespace Inferno {
                     break;
                 }
 
-                case TableChunk::Sound:
-                {
+                case TableChunk::Sound: {
                     ASSERT(tokens.size() > 2);
                     auto id = std::stoi(tokens[1]);
                     ham.Sounds.resize(id + 1);
@@ -363,8 +360,7 @@ namespace Inferno {
                     ham.Cockpits.push_back(pig.Find(tokens[0]));
                     break;
 
-                case TableChunk::Textures:
-                {
+                case TableChunk::Textures: {
                     auto texId = pig.Find(tokens[0]);
                     ham.AllTexIdx[totalTextures] = texId;
                     auto ltid = LevelTexID(totalTextures++);
@@ -385,8 +381,7 @@ namespace Inferno {
                     break;
                 }
 
-                case TableChunk::VClip:
-                {
+                case TableChunk::VClip: {
                     int clipNum = -1;
                     readTokenValue("clip_num", clipNum);
                     if (clipNum == -1) continue;
@@ -414,8 +409,7 @@ namespace Inferno {
                     break;
                 }
 
-                case TableChunk::EClip:
-                {
+                case TableChunk::EClip: {
                     // clip_num=5 time=0.50 abm_flag=1 crit_clip=48 dest_bm=blown06.bbm
                     // dest_vclip=3 dest_size=20 dest_eclip=40
                     int clipNum = -1;
@@ -452,6 +446,10 @@ namespace Inferno {
                         readTokenValue("dest_size", clip.ExplosionSize);
                         readTokenValue("dest_eclip", clip.DestroyedEClip);
                         readTokenValue("sound_num", clip.Sound);
+
+                        // Adjust crit clips from 0 to -1 to match retail data
+                        if (clip.CritClip == EClipID(0))
+                            clip.CritClip = EClipID::None;
 
                         if (levelTexture)
                             levelTexture->EffectClip = EClipID(clipNum);
@@ -493,8 +491,7 @@ namespace Inferno {
                     break;
                 }
 
-                case TableChunk::WClip:
-                {
+                case TableChunk::WClip: {
                     // Doors
 
                     // $WCLIP clip_num=6 time=1 abm_flag=1 tmap1_flag=1 open_sound=140 close_sound=141
@@ -549,8 +546,7 @@ namespace Inferno {
                     break;
                 }
 
-                case TableChunk::Weapon:
-                {
+                case TableChunk::Weapon: {
                     // $WEAPON picture=gauge06.bbm weapon_pof=laser1-1.pof weapon_pof_inner=laser1-2.pof
                     // lw_ratio=9.8 simple_model=laser11s.pof simple_model=laser12s.pof mass=0.5
                     // drag=0.0 blob_size=0.0 strength=10 10 10 10 10 flash_vclip=11
@@ -621,8 +617,7 @@ namespace Inferno {
                     break;
                 }
 
-                case TableChunk::Powerup:
-                {
+                case TableChunk::Powerup: {
                     // $POWERUP name="Vulcan" vclip_num=37 hit_sound=83 size=4.0
                     auto& powerup = ham.Powerups.emplace_back();
                     if (skip) continue;
@@ -635,8 +630,7 @@ namespace Inferno {
                     break;
                 }
 
-                case TableChunk::Object:
-                {
+                case TableChunk::Object: {
                     string type;
                     readTokenValue("type", type);
 
@@ -692,8 +686,7 @@ namespace Inferno {
                     break;
                 }
 
-                case TableChunk::Ship:
-                {
+                case TableChunk::Ship: {
                     // $PLAYER_SHIP mass=4.0 drag=0.033 max_thrust=7.8 wiggle=0.5 max_rotthrust=0.14
                     // model=pship1.pof glow04.bbm ship1-1.bbm ship1-2.bbm ship1-3.bbm ship1-4.bbm ship1-5.bbm
                     // dying_pof=pship1b.pof expl_vclip_num=58
@@ -731,8 +724,7 @@ namespace Inferno {
                     break;
                 }
 
-                case TableChunk::Gauges:
-                {
+                case TableChunk::Gauges: {
                     int abm = tokens[0].ends_with(".abm");
 
                     auto frames = pig.FindAnimation(tokens[0], 30);
