@@ -54,7 +54,6 @@ namespace Inferno {
                 Game::SetState(GameState::Editor);
             }
             else {
-                //Game::StartMission();
                 Game::PlayingFromEditor = true;
                 Game::Player.Lives = Player::INITIAL_LIVES;
                 Game::Player.stats.StartLevel();

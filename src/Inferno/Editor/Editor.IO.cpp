@@ -495,6 +495,8 @@ namespace Inferno::Editor {
                     SPDLOG_WARN("Temp file {} is read only", path.string());
                 }
                 else {
+                    SetStatusMessage("Autosaving to {}", backupPath);
+
                     if (Game::Mission) {
                         WriteHog(Game::Level, *Game::Mission, backupPath);
                     }
