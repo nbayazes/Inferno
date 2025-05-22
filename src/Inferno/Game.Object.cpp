@@ -458,6 +458,9 @@ namespace Inferno {
 
     // Creates random shrapnel at a location
     void CreateDebris(SegID segment, const Vector3& position, const Vector3& force, float randomScale) {
+        if (Game::Level.IsShareware)
+            return; // Shareware data doesn't have the textures for debris. Don't create them to prevent rendering problems.
+
         DebrisInfo debris;
         Vector3 velocity = RandomVector(randomScale) + force;
         Vector3 angularVelocity;
@@ -1060,9 +1063,9 @@ namespace Inferno {
             case ObjectType::Coop:
                 obj.Movement = MovementType::Physics;
                 obj.Render.Type = RenderType::Model;
-            //obj.Render.Model = { .ID = Resources::GetCoopShipModel(Game::Level) };
+                //obj.Render.Model = { .ID = Resources::GetCoopShipModel(Game::Level) };
 
-            // Always use player ship model instead of low poly co-op model
+                // Always use player ship model instead of low poly co-op model
                 obj.Render.Model = {
                     .ID = Resources::GameData.PlayerShip.Model,
                     .TextureOverride = LevelTexID::None
