@@ -255,7 +255,7 @@ namespace Inferno::UI {
             panel->AddChild<Checkbox>("VSync", _useVsync);
             panel->AddChild<Checkbox>("Procedural textures", Settings::Graphics.EnableProcedurals);
 
-            auto renderScale = panel->AddChild<SliderFloat>("Render scale", 0.25f, 1.0f, Settings::Graphics.RenderScale, 2);
+            auto renderScale = panel->AddChild<SliderFloat>("Render scale", 0.05f, 1.0f, Settings::Graphics.RenderScale, 2);
             //renderScale->LabelWidth = 300;
             renderScale->ShowValue = true;
             renderScale->LabelWidth = 250;
