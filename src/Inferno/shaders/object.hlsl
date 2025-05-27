@@ -160,7 +160,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
             lighting += colorSum * material.LightReceived;
 
             // ambient
-            const float AMBIENT_MULT = 0.5;
+            const float AMBIENT_MULT = 1;
             lighting += diffuse.rgb * ambient * material.LightReceived * (1 - material.Metalness * .6) * AMBIENT_MULT; // ambient
 
             // Matcap specular
