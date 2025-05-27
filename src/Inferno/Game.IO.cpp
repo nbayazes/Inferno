@@ -593,15 +593,17 @@ namespace Inferno::Game {
         }
         else {
             // check for sng using the mission name first, which is rebirth style
-            filesystem::path name = Game::Mission->Path.stem();
-            name.replace_extension("sng");
-            sng = Resources::ReadTextFile(name.string(), LoadFlag::Mission);
+            if (Game::Mission) {
+                filesystem::path name = Game::Mission->Path.stem();
+                name.replace_extension("sng");
+                sng = Resources::ReadTextFile(name.string(), LoadFlag::Mission);
 
-            if (sng)
-                firstLevelSong = 0; // only contains the individual level songs
+                if (sng)
+                    firstLevelSong = 0; // only contains the individual level songs
 
-            if (!sng)
-                sng = Resources::ReadTextFile("descent.sng", LoadFlag::Mission);
+                if (!sng)
+                    sng = Resources::ReadTextFile("descent.sng", LoadFlag::Mission);
+            }
 
             if (!sng)
                 sng = Resources::ReadTextFile("descent.sng", GetLevelLoadFlag(Game::Level) | LoadFlag::Dxa);
