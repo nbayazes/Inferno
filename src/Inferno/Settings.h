@@ -229,6 +229,7 @@ namespace Inferno {
         bool EnableJoystick = false;
         bool EnableGamepad = true;
         bool EnableMouse = true;
+        bool UseMouselook = false; // Direct mouse control of the player ship. Ignores physics.
         bool PreferHighResFonts = true;
         uint2 WindowSize;
         uint2 WindowPosition;

@@ -139,9 +139,9 @@ namespace Inferno::UI {
                 // mouse
                 auto& bindings = Game::Bindings.GetMouse();
                 auto& rotation = bindings.sensitivity.rotation;
-                addSlider("Pitch", 0.0f, 2.0f, rotation.x);
-                addSlider("Yaw", 0.0f, 2.0f, rotation.y);
-                addSlider("Roll", 0.0f, 2.0f, rotation.z);
+                addSlider("Pitch", 0.0f, 3.0f, rotation.x);
+                addSlider("Yaw", 0.0f, 3.0f, rotation.y);
+                addSlider("Roll", 0.0f, 3.0f, rotation.z);
 
                 _stack->AddChild<Label>("");
                 _stack->AddChild<Label>("automap", FontSize::MediumBlue);
@@ -214,6 +214,7 @@ namespace Inferno::UI {
             panel->AddChild<Checkbox>("Enable joystick", Settings::Inferno.EnableJoystick);
             panel->AddChild<Checkbox>("Enable gamepad", Settings::Inferno.EnableGamepad);
             panel->AddChild<Checkbox>("Classic pitch speed", Settings::Inferno.HalvePitchSpeed);
+            panel->AddChild<Checkbox>("Use mouselook [cheat]", Settings::Inferno.UseMouselook);
 
             panel->AddChild<Label>("");
             panel->AddChild<Button>("Customize bindings", [] {

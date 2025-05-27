@@ -739,6 +739,7 @@ namespace Inferno {
         node["AutomapInvertY"] << settings.AutomapInvertY;
         node["Difficulty"] << (int)Game::Difficulty;
         node["HalvePitchSpeed"] << settings.HalvePitchSpeed;
+        node["UseMouselook"] << settings.UseMouselook;
         node["ShipAutolevel"] << settings.ShipAutolevel;
         node["NoAutoselectWhileFiring"] << settings.NoAutoselectWhileFiring;
         node["OnlyAutoselectWhenEmpty"] << settings.OnlyAutoselectWhenEmpty;
@@ -777,6 +778,7 @@ namespace Inferno {
         ReadValue2(node, "AutomapInvertY", settings.AutomapInvertY);
         ReadValue2(node, "Difficulty", Game::Difficulty);
         ReadValue2(node, "HalvePitchSpeed", settings.HalvePitchSpeed);
+        ReadValue2(node, "UseMouselook", settings.UseMouselook);
         ReadValue2(node, "ShipAutolevel", settings.ShipAutolevel);
         ReadValue2(node, "NoAutoselectWhileFiring", settings.NoAutoselectWhileFiring);
         ReadValue2(node, "OnlyAutoselectWhenEmpty", settings.OnlyAutoselectWhenEmpty);

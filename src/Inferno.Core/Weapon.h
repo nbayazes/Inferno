@@ -143,7 +143,7 @@ namespace Inferno {
         bool Sticky = false; // Sticks to surfaces after running out of bounces
         bool InheritParentVelocity = false; // Adds the parent velocity to weapon when firing
         Vector3 RotationalVelocity; // Initial rotational velocity
-        float Size = -1; // Overrides Blob Size and Model Size
+        float Size = -1; // Overrides Blob Size and Model Size. Radius.
 
         float Spread = 0; // Amount of spread in degrees
         Color FlashColor = { 1, 1, 1 }; // Color for muzzle flash sprites and lighting

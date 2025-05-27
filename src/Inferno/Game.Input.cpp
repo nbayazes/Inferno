@@ -304,6 +304,16 @@ namespace Inferno {
         Game::Player.UpdateFireState(firePrimary, fireSecondary);
     }
 
+    void RotateObjectMouselook(Object& object, float yaw, float pitch) {
+        auto qyaw = Quaternion::CreateFromAxisAngle(object.Rotation.Up(), yaw);
+        auto qpitch = Quaternion::CreateFromAxisAngle(object.Rotation.Right(), pitch);
+
+        Matrix rotation = object.Rotation;
+        rotation = Matrix::Transform(rotation, qyaw);
+        rotation = Matrix::Transform(rotation, qpitch);
+
+        object.Rotation = Matrix3x3(rotation);
+    }
 
     void HandleShipInput(float dt) {
         if (dt <= 0 || Game::Level.Objects.empty())
@@ -382,6 +392,8 @@ namespace Inferno {
         physics.Thrust += player.Rotation.Up() * thrust.y;
         physics.Thrust += player.Rotation.Forward() * thrust.z;
 
+        float yaw = 0, pitch = 0;
+
         if (Settings::Inferno.EnableMouse) {
             auto& mouse = Game::Bindings.GetMouse();
             constexpr auto mouseSensitivityMultiplier = 0.012f; // Sensitivity is saved between 0 and 2, scale it down.
@@ -396,8 +408,7 @@ namespace Inferno {
                     value = Input::MouseDelta.y;
 
                 float sensitivity = mouse.sensitivity.rotation.y * Game::TICK_RATE / dt * mouseSensitivityMultiplier;
-
-                physics.AngularThrust.y += value * binding.GetInvertSign() * sensitivity; // yaw
+                yaw = value * binding.GetInvertSign() * sensitivity;
             }
 
             for (auto& binding : mouse.GetBinding(GameAction::PitchAxis)) {
@@ -410,8 +421,18 @@ namespace Inferno {
                     value = Input::MouseDelta.y;
 
                 float sensitivity = mouse.sensitivity.rotation.x * Game::TICK_RATE / dt * mouseSensitivityMultiplier;
-                physics.AngularThrust.x += value * binding.GetInvertSign() * sensitivity; // pitch
+                pitch = value * binding.GetInvertSign() * sensitivity;
             }
+        }
+
+
+        if (Settings::Inferno.UseMouselook) {
+            constexpr float mouselookMultiplier = 0.1;
+            RotateObjectMouselook(player, yaw * mouselookMultiplier, pitch * mouselookMultiplier);
+        }
+        else {
+            physics.AngularThrust.x += pitch;
+            physics.AngularThrust.y += yaw;
         }
 
         if (Game::Bindings.Held(GameAction::PitchUp))
