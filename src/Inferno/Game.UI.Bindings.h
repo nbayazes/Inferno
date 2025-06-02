@@ -575,7 +575,7 @@ namespace Inferno::UI {
         List<Input::InputDevice> _gamepads;
         ListBox2* _bindingList = nullptr;
         ComboSelect* _deviceList = nullptr;
-        int _index = 0; // the selected control. 0 is keyboard, 1 is mouse, 1 > is controllers and joysticks
+        gsl::strict_not_null<int*> _index; // the selected control. 0 is keyboard, 1 is mouse, 1 > is controllers and joysticks
         int _column = 0; // 0 to 2. Binding 1, Binding 2, Invert
         Label* _footer = nullptr;
 
@@ -604,10 +604,13 @@ namespace Inferno::UI {
             }
         }
 
-        BindingDialog() : DialogBase("customize bindings") {
+        BindingDialog(int& deviceIndex) : DialogBase("customize bindings"), _index(&deviceIndex) {
             Size = Vector2(620, 460);
 
-            _deviceList = AddChild<ComboSelect>("Input Device", GetDeviceNames(), _index);
+            auto deviceNames = GetDeviceNames();
+            if (*_index > deviceNames.size() - 1) *_index = 0;
+
+            _deviceList = AddChild<ComboSelect>("Input Device", deviceNames, *_index);
             _deviceList->LabelWidth = 225;
             //inputDropdown->ValueWidth = 350;
             _deviceList->Size = Vector2(Size.x - DIALOG_PADDING * 2, CONTROL_HEIGHT);
@@ -682,18 +685,18 @@ namespace Inferno::UI {
 
             if (Input::ControlDown && Input::OnKeyPressed(Input::Keys::R)) {
                 // Reset all bindings
-                if (_index == 0) {
+                if (*_index == 0) {
                     auto& keyboard = Game::Bindings.GetKeyboard();
                     ResetKeyboardBindings(keyboard);
                     UpdateBindingList(KeyboardInputs, keyboard);
                 }
-                else if (_index == 1) {
+                else if (*_index == 1) {
                     auto& mouse = Game::Bindings.GetMouse();
                     ResetMouseBindings(mouse);
                     UpdateBindingList(MouseInputs, mouse);
                 }
-                else if (_index > 1) {
-                    auto& device = _gamepads.at(_index - 2);
+                else if (*_index > 1) {
+                    auto& device = _gamepads.at(*_index - 2);
 
                     if (auto binds = Game::Bindings.GetDevice(device.guid)) {
                         ResetGamepadBindings(*binds);

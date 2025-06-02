@@ -93,14 +93,17 @@ namespace Inferno::UI {
         float _secondaryPosition = 240;
         List<Input::InputDevice> _devices;
         ComboSelect* _deviceList = nullptr;
-        int _index = 0; // the selected control. 0 is keyboard, 1 is mouse, 1 > is controllers and joysticks
         StackPanel* _stack = nullptr;
+        gsl::strict_not_null<int*> _index;
 
     public:
-        SensitivityDialog() : DialogBase("sensitivity and deadzone") {
+        SensitivityDialog(int& deviceIndex) : DialogBase("sensitivity and deadzone"), _index(&deviceIndex) {
             Size = Vector2(620, 460);
 
-            _deviceList = AddChild<ComboSelect>("Input Device", GetDeviceNames(), _index);
+            auto deviceNames = GetDeviceNames();
+            if (*_index > deviceNames.size() - 1) *_index = 0;
+
+            _deviceList = AddChild<ComboSelect>("Input Device", deviceNames, *_index);
             _deviceList->LabelWidth = 225;
             _deviceList->Size = Vector2(Size.x - DIALOG_PADDING * 2, CONTROL_HEIGHT);
 
@@ -127,7 +130,7 @@ namespace Inferno::UI {
                 slider->ValueWidth = 60;
             };
 
-            if (_index == 0) {
+            if (*_index == 0) {
                 // keyboard
                 auto& bindings = Game::Bindings.GetKeyboard();
                 auto& rotation = bindings.sensitivity.rotation;
@@ -135,7 +138,7 @@ namespace Inferno::UI {
                 addSlider("Yaw", 0.0f, 1.0f, rotation.y);
                 addSlider("Roll", 0.0f, 1.0f, rotation.z);
             }
-            else if (_index == 1) {
+            else if (*_index == 1) {
                 // mouse
                 auto& bindings = Game::Bindings.GetMouse();
                 auto& rotation = bindings.sensitivity.rotation;
@@ -153,7 +156,7 @@ namespace Inferno::UI {
             else {
                 // input device
 
-                if (auto device = Seq::tryItem(_devices, _index - 2)) {
+                if (auto device = Seq::tryItem(_devices, *_index - 2)) {
                     if (auto bindings = Game::Bindings.GetDevice(device->guid)) {
                         auto& rotation = bindings->sensitivity.rotation;
                         addSlider("Pitch", 0.0f, 2.0f, rotation.x);
@@ -199,6 +202,10 @@ namespace Inferno::UI {
     };
 
     class InputMenu : public DialogBase {
+        // the selected control. 0 is keyboard, 1 is mouse, 1 > is controllers and joysticks.
+        // located here so the selection stays in sync between bindings and sensitivity.
+        // Static so that selection is remembered between opening the menu
+        static inline int _deviceIndex = 0;  
     public:
         InputMenu() : DialogBase("Input Options") {
             Size = Vector2(620, 460);
@@ -217,11 +224,11 @@ namespace Inferno::UI {
             panel->AddChild<Checkbox>("Use mouselook [cheat]", Settings::Inferno.UseMouselook);
 
             panel->AddChild<Label>("");
-            panel->AddChild<Button>("Customize bindings", [] {
-                ShowScreen(make_unique<BindingDialog>());
+            panel->AddChild<Button>("Customize bindings", [this] {
+                ShowScreen(make_unique<BindingDialog>(_deviceIndex));
             });
-            panel->AddChild<Button>("sensitivity and deadzone", [] {
-                ShowScreen(make_unique<SensitivityDialog>());
+            panel->AddChild<Button>("sensitivity and deadzone", [this] {
+                ShowScreen(make_unique<SensitivityDialog>(_deviceIndex));
             });
 
             panel->AddChild<Label>("");
