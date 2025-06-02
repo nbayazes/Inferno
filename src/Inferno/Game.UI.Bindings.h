@@ -502,6 +502,13 @@ namespace Inferno::UI {
         GameAction::SlideUp,
         GameAction::SlideDown,
 
+        GameAction::PitchUp,
+        GameAction::PitchDown,
+        GameAction::YawLeft,
+        GameAction::YawRight,
+        GameAction::RollLeft,
+        GameAction::RollRight,
+
         GameAction::Weapon1,
         GameAction::Weapon2,
         GameAction::Weapon3,
