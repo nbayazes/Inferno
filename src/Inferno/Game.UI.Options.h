@@ -300,7 +300,7 @@ namespace Inferno::UI {
             panel->AddChild<Label>("Framerate limits", FontSize::MediumBlue);
             panel->AddChild<Checkbox>("Enable Foreground Limit", Inferno::Settings::Graphics.EnableForegroundFpsLimit);
 
-            auto foreground = panel->AddChild<Slider>("Foreground", 30, 240, Inferno::Settings::Graphics.ForegroundFpsLimit);
+            auto foreground = panel->AddChild<Slider>("Foreground", 30, 360, Inferno::Settings::Graphics.ForegroundFpsLimit);
             foreground->ShowValue = true;
             foreground->LabelWidth = 200;
             foreground->ValueWidth = 40;
