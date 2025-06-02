@@ -265,7 +265,7 @@ namespace Inferno {
                 AddEnergy(ENERGY_PER_SECOND * dt);
 
                 if (RefuelSoundTime <= Game::Time) {
-                    Sound::Play2D({ SoundID::Refuel }, 0.5f);
+                    Sound::Play2D({ SoundID::Refuel });
                     constexpr float REFUEL_SOUND_DELAY = 0.25f;
                     RefuelSoundTime = Game::Time + REFUEL_SOUND_DELAY;
                 }
