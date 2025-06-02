@@ -41,6 +41,7 @@ namespace Inferno {
         node["FilterMode"] << (int)s.FilterMode;
         node["FieldOfView"] << s.FieldOfView;
         node["Brightness"] << s.Brightness;
+        node["RenderScale"] << s.RenderScale;
     }
 
     GraphicsSettings LoadGraphicsSettings(ryml::NodeRef node) {
@@ -62,6 +63,7 @@ namespace Inferno {
         s.FieldOfView = std::clamp(s.FieldOfView, 60.0f, 100.0f);
 
         ReadValue(node["Brightness"], s.Brightness);
+        ReadValue(node["RenderScale"], s.RenderScale);
 
         s.ForegroundFpsLimit = std::max(s.ForegroundFpsLimit, 20);
         return s;
