@@ -172,5 +172,8 @@
     <ClCompile Include="POF.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Mission.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

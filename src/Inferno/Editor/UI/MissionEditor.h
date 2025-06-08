@@ -21,6 +21,11 @@ namespace Inferno::Editor {
         // todo: set enhancement based on contained HOG level versions
         MissionInfo _mission;
 
+        // Copies a string to a character buffer, leaving one character for null
+        //static void CopyToBuffer(const string& src, std::span<char> dest) {
+        //    src.copy(dest.data(), std::min(src.size(), dest.size() - 1));
+        //}
+
     public:
         MissionEditor() : ModalWindowBase("Mission Editor") {
             Width = 500 * Shell::DpiScale;
@@ -104,8 +109,8 @@ namespace Inferno::Editor {
 
             if (Game::Mission && Game::Mission->IsDescent1()) {
                 ImGui::Dummy({ 0, 10 * Shell::DpiScale });
-                ImGui::TextInputWide("Briefing TXB", _mission.Metadata["briefing"], 12);
-                ImGui::TextInputWide("Ending TXB", _mission.Metadata["ending"], 12);
+                ImGui::TextInputWide("Briefing TEX/TXB", _mission.Metadata["briefing"], 12); // 8.3 file name
+                ImGui::TextInputWide("Ending TEX/TXB", _mission.Metadata["ending"], 12);  // 8.3 file name
             }
 
             {
@@ -123,10 +128,10 @@ namespace Inferno::Editor {
                             _selection = n;
 
                         if (ImGui::IsItemActive() && !ImGui::IsItemHovered()) {
-                            int n_next = n + (ImGui::GetMouseDragDelta(0).y < 0.f ? -1 : 1);
-                            if (n_next >= 0 && n_next < _entries.size()) {
-                                std::swap(_entries[n], _entries[n_next]);
-                                _selection = n_next;
+                            int nNext = n + (ImGui::GetMouseDragDelta(0).y < 0.f ? -1 : 1);
+                            if (nNext >= 0 && nNext < _entries.size()) {
+                                std::swap(_entries[n], _entries[nNext]);
+                                _selection = nNext;
                                 ImGui::ResetMouseDragDelta();
                             }
                         }
@@ -140,7 +145,7 @@ namespace Inferno::Editor {
                 {
                     ImGui::BeginChild("level list btns", { -1, -1 });
 
-                    const ImVec2 btnSize = { -1, 0 };
+                    constexpr ImVec2 btnSize = { -1, 0 };
 
                     {
                         DisableControls disable(_selection == -1 || _selection >= _entries.size());

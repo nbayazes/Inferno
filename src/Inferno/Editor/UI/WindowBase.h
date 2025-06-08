@@ -27,11 +27,12 @@ namespace ImGui {
     }
 
     // Identical to TextInput but fills horizontal space
-    inline bool TextInputWide(std::string_view label, std::string& str, int maxSize) {
+    inline bool TextInputWide(const std::string& label, std::string& str, int maxSize) {
+        maxSize += 1; // add one for null
         if (str.size() < maxSize)
             str.resize(maxSize);
 
-        ImGui::Text(label.data());
+        ImGui::Text(label.c_str());
         std::string id("##");
         id.append(label);
         return ImGui::InputTextEx(id.data(), nullptr, str.data(), maxSize, { -1, 0 }, 0);

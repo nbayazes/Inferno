@@ -87,12 +87,12 @@ namespace Inferno {
 
                                 screens.push_back(screen);
                                 screen = {};
-                                firstLine = true;
                             }
 
                             if (token.size() > 2)
                                 String::TryParse(token.substr(2), screen.Number);
 
+                            firstLine = true;
                             break;
                         }
                         case 'P':
@@ -145,9 +145,12 @@ namespace Inferno {
     }
 
     Briefing Briefing::Read(span<ubyte> data, bool d1) {
-        // briefings can be either plain text or encoded text, but assume encoded for now
+        return Read(DecodeText(data), d1);
+    }
+
+    Briefing Briefing::Read(const string& text, bool d1) {
         Briefing briefing;
-        briefing.Raw = DecodeText(data);
+        briefing.Raw = text;
         auto lines = String::ToLines(briefing.Raw);
         briefing.Screens = ParseScreens(lines, d1);
         return briefing;

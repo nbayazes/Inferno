@@ -269,10 +269,21 @@ vaporization of the facility.
         if (!String::HasExtension(briefingName))
             briefingName += ".txb";
 
-        auto entry = Game::Mission->TryReadEntry(briefingName);
-        if (!entry) return;
+        auto ext = String::ToLower(String::Extension(briefingName));
+        Briefing briefing;
 
-        auto briefing = Briefing::Read(*entry, level.IsDescent1());
+        if (ext == "tex") {
+            // Plain text
+            auto entry = Game::Mission->TryReadEntryAsString(briefingName);
+            if (!entry) return;
+            briefing = Briefing::Read(*entry, level.IsDescent1());
+        }
+        else {
+            // assume encoded txb
+            auto entry = Game::Mission->TryReadEntry(briefingName);
+            if (!entry) return;
+            briefing = Briefing::Read(*entry, level.IsDescent1());
+        }
 
         auto isShareware = Game::Mission->IsShareware();
 

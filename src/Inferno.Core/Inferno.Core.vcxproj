@@ -147,6 +147,7 @@
     <ClCompile Include="Level.cpp" />
     <ClCompile Include="LevelReader.cpp" />
     <ClCompile Include="LevelWriter.cpp" />
+    <ClCompile Include="Mission.cpp" />
     <ClCompile Include="OutrageBitmap.cpp" />
     <ClCompile Include="OutrageModel.cpp" />
     <ClCompile Include="OutrageTable.cpp" />

@@ -27,7 +27,11 @@ namespace Inferno {
         List<Screen> Screens;
         string Raw;
 
+        // Reads encoded TXB byte data
         static Briefing Read(span<ubyte> data, bool d1);
+
+        // Reads plain briefing text
+        static Briefing Read(const string& text, bool d1);
     };
 
     void SetD1BriefingBackgrounds(Briefing& briefing, bool shareware);
