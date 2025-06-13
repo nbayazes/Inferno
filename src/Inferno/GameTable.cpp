@@ -207,6 +207,7 @@ namespace Inferno {
         Yaml::ReadValue(node["LightColor"], powerup.LightColor);
         Yaml::ReadValue(node["LightMode"], (int&)powerup.LightMode);
         Yaml::ReadValue(node["Glow"], powerup.Glow);
+        Yaml::ReadValue(node["Name"], powerup.Name);
     }
 
     Option<string> ReadEffectName(ryml::NodeRef node) {

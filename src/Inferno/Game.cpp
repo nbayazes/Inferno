@@ -604,7 +604,7 @@ namespace Inferno::Game {
         const auto size = MeasureString(text, FontSize::Medium);
 
         {
-            auto borderSize = (size + Vector2(41, 41)) * scale;
+            auto borderSize = (size + Vector2(42, 42)) * scale;
             Vector2 alignment = Render::GetAlignment(borderSize, AlignH::Center, AlignV::Center, Render::Canvas->GetSize());
             Render::Canvas->DrawRectangle(alignment, borderSize, Color(0.25f, 0.25f, 0.25f, 1));
         }

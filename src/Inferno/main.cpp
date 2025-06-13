@@ -157,19 +157,6 @@ void QuaternionTests() {
     }
 }
 
-void PrintRobotInfo() {
-    //Resources::LoadDescent2();
-    //Resources::LoadVertigo();
-
-    SPDLOG_INFO("Robot, HP");
-
-    for (uint i = 0; i < Resources::GameData.Robots.size(); i++) {
-        auto& robot = Resources::GetRobotInfo(i);
-        auto name = Resources::GetRobotName(i);
-        SPDLOG_INFO("{}, {:.0f}", name, robot.HitPoints);
-    }
-}
-
 struct RymlExceptionHandler {
     ryml::Callbacks CreateCallbacks() {
         return { this, nullptr, nullptr, RymlExceptionHandler::ThrowException };

@@ -780,7 +780,7 @@ Robots:
     GetBehind: 1
     AimAngle: 35
   - id: 9
-    Name: Heavy driller
+    Name: Heavy Driller
     DevName: Plasma Mech
     CircleDistance: 40
     Multishot: 2
@@ -802,7 +802,7 @@ Robots:
     Score: 400 # Was 200, too low for their mine laying annoyance and hit points
     HitPoints: 120 # Was 150 for some reason, too much for their size
   - id: 11
-    Name: Laser platform
+    Name: Laser Platform
     DevName: Bird  
     CircleDistance: 50
     Mass: 2.5
@@ -860,7 +860,7 @@ Robots:
     TurnTime: 0.15
     StunResist: 0.5 # Any nearby explosions should stun
   - id: 15
-    Name: Fusion hulk
+    Name: Fusion Hulk
     DevName: Miniboss
     Weapon: robot fusion
     FireDelay: [ 2.5, 2, 1.5, 1, 0.5 ] # Reduced due to charge time, was 3, 2, 2.5, 2, 1.5
@@ -954,11 +954,12 @@ Robots:
     HitPoints: 90 # Increased from 70 to better fill the 'hulk' role. Brown hulks have 100 health.
     AimAngle: 30
   - id: 21
-    Name: Advanced lifter
+    Name: Advanced Lifter
     DevName: "4-Claw"
     CircleDistance: 12
     Mass: 9
     MeleeDamage: [ 5, 5, 6, 7, 8 ]
+    # Speed: [ 45, 50, 60, 70, 80 ] # Reduce insane speed from 90
     ChaseChance: 0.5
     SeeSound: 179
     Score: 750 # Was 800
@@ -1014,45 +1015,155 @@ Robots:
 #    Mass: 2
 
 Powerups:
-  - id: 0 # Extra life
+  - id: 0
+    Name: Extra Life
     LightColor: 0.05, 1, .05, 0.7
     Glow: 1, 1, 1, 1
     LightRadius: 15
     LightMode: 4 # Pulse
 
-  - id: 1 # Energy
+  - id: 1
+    Name: Energy Boost
     Glow: 1, 0.80, 0.80, 6.25
     LightColor: 1, .55, 0.10, 0.5
     LightRadius: 18
     LightMode: 2 # Flicker
 
-  - id: 2 # Shield
+  - id: 2
+    Name: Shield Boost
     Glow: 1, 1, .5, 4.5
     LightColor: 0.0125, 0.0125, 1, 0.75
     LightRadius: 18
     LightMode: 4 # Pulse
 
-  - id: 4 # Blue key
+  - id: 3
+    Name: Laser
+
+  - id: 4
+    Name: Blue Key
     Glow: 1, 1, 1, 1
 
-  - id: 5 # Red key
+  - id: 5
+    Name: Red Key
     Glow: 1, 1, 1, 1
 
-  - id: 6 # Gold key
+  - id: 6
+    Name: Gold Key
     Glow: 1, 1, 1, 1
 
-  - id: 23 # Cloak
+  - id: 10
+    Name: Concussion Missile
+
+  - id: 11
+    Name: Concussion Missile Pack
+
+  - id: 12
+    Name: Quad Laser
+
+  - id: 13
+    Name: Vulcan Cannon
+
+  - id: 14
+    Name: Spreadfire
+
+  - id: 15
+    Name: Plasma Cannon
+
+  - id: 16
+    Name: Fusion Cannon
+
+  - id: 17
+    Name: Proximity Bombs
+
+  - id: 18
+    Name: Homing Missile
+
+  - id: 19
+    Name: Homing Missile Pack
+
+  - id: 20
+    Name: Smart Missile
+
+  - id: 21
+    Name: Mega Missile
+
+  - id: 22
+    Name: Vulcan Ammo
+
+  - id: 23
+    Name: Cloaking Device
     LightColor: .5, 0, 1, 1
     Glow: 1, 1, 1, 1
     LightRadius: 18
     LightMode: 4 # Pulse
 
-  - id: 25 # Invuln
+  - id: 25
+    Name: Invulnerability
     Glow: 1, 1, 1, 1
     LightColor: 0.1, 0, 1, 1
     LightRadius: 18
     LightMode: 4 # Pulse
 
+  - id: 28
+    Name: Gauss Cannon
+
+  - id: 29
+    Name: Helix Cannon
+
+  - id: 30
+    Name: Phoenix Cannon
+
+  - id: 31
+    Name: Omega Cannon
+
+  - id: 32
+    Name: Super Laser
+
+  - id: 33
+    Name: Full Map
+
+  - id: 34
+    Name: Shield Converter
+
+  - id: 35
+    Name: Ammo Rack
+
+  - id: 36
+    Name: Afterburner
+
+  - id: 37
+    Name: Headlight
+
+  - id: 38
+    Name: Flash Missile
+
+  - id: 39
+    Name: Flash Missile Pack
+
+  - id: 40
+    Name: Guided Missile
+
+  - id: 41
+    Name: Guided Missile Pack
+  
+  - id: 42
+    Name: Smart Mines
+  
+  - id: 43
+    Name: Mercury Missile
+  
+  - id: 44
+    Name: Mercury Missile Pack
+  
+  - id: 45
+    Name: Earth Shaker Missile
+  
+  - id: 46
+    Name: Blue Flag
+  
+  - id: 47
+    Name: Red Flag
+  
 EffectClips:
   # Add destroyed clips to countdown monitors
   - id: 42

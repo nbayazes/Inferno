@@ -1256,7 +1256,7 @@ namespace Inferno {
 
         auto& robotInfo = Resources::GetRobotInfo(object);
 
-        for (int gun = 0; gun <= robotInfo.Guns; gun++) {
+        for (uint gun = 0; gun <= robotInfo.Guns; gun++) {
             const auto robotJoints = Resources::GetRobotJoints(object.ID, gun, anim);
 
             for (auto& joint : robotJoints) {

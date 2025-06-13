@@ -40,8 +40,7 @@ namespace Inferno::Editor {
             case ObjectType::Coop: return fmt::format("Coop player {}", obj.ID);
             case ObjectType::Player: return fmt::format("Player {}", obj.ID);
             case ObjectType::Hostage: return "Hostage";
-            case ObjectType::Powerup:
-            {
+            case ObjectType::Powerup: {
                 if (auto name = Resources::GetPowerupName(obj.ID))
                     return name.value();
                 else
@@ -162,7 +161,7 @@ namespace Inferno::Editor {
     }
 
     // fake behavior id for UI
-    constexpr AIBehavior DROP_SMART_BOMBS = AIBehavior{ 231 };
+    constexpr auto DROP_SMART_BOMBS = AIBehavior{ 231 };
 
     struct BehaviorLabel {
         AIBehavior behavior;

@@ -160,6 +160,35 @@ namespace Yaml {
     }
 
     template <>
+    inline bool ReadValue2(ryml::ConstNodeRef parent, std::string_view name, DirectX::SimpleMath::Color& value) {
+        try {
+            auto bad = ryml::csubstr(name.data(), name.size());
+            if (!parent.has_child(bad)) return false;
+            auto node = parent[bad];
+            if (!node.readable() || !node.has_val() || node.val() == "") return false;
+            std::string str;
+            node >> str;
+            auto token = Inferno::String::Split(str, ',', true);
+            if (token.size() != 4 && token.size() != 3)
+                return false;
+
+            ParseFloat(token[0], value.x);
+            ParseFloat(token[1], value.y);
+            ParseFloat(token[2], value.z);
+
+            if (token.size() == 4)
+                ParseFloat(token[3], value.w);
+            else
+                Inferno::ColorRGBToRGBV(value);
+
+            return true;
+        }
+        catch (...) {
+            return false;
+        }
+    }
+
+    template <>
     inline bool ReadValue(ryml::ConstNodeRef node, std::filesystem::path& value) {
         try {
             if (!node.readable() || !node.has_val() || node.val() == "") return false;

@@ -22,8 +22,6 @@ namespace Inferno {
 
 namespace Inferno::Resources {
     namespace {
-        List<string> RobotNames;
-        List<string> PowerupNames;
         List<string> StringTable; // Text for the UI
 
         List<PaletteInfo> AvailablePalettes;
@@ -46,38 +44,15 @@ namespace Inferno::Resources {
     int GetTextureCount() { return (int)GameData.pig.Entries.size(); } // Current.bitmaps.size()?;
     const Palette& GetPalette() { return GameData.palette; }
 
-    void LoadRobotNames(const filesystem::path& path) {
-        try {
-            std::ifstream file(path);
-            string line;
-            while (std::getline(file, line))
-                RobotNames.push_back(line);
-        }
-        catch (...) {
-            SPDLOG_ERROR("Error reading robot names from `{}`", path.string());
-        }
-    }
-
     string GetRobotName(uint id) {
-        if (id >= RobotNames.size()) return "Unknown";
-        return RobotNames[id];
-    }
-
-    void LoadPowerupNames(const filesystem::path& path) {
-        try {
-            std::ifstream file(path);
-            string line;
-            while (std::getline(file, line))
-                PowerupNames.push_back(line);
-        }
-        catch (...) {
-            SPDLOG_ERROR("Error reading powerup names from `{}`", path.string());
-        }
+        auto& info = GetRobotInfo(id);
+        return info.Name.empty() ? "Unknown robot" : info.Name;
     }
 
     Option<string> GetPowerupName(uint id) {
-        if (id >= PowerupNames.size() || PowerupNames[id] == "(not used)") return {};
-        return { PowerupNames[id] };
+        auto& info = GetPowerup((PowerupID)id);
+        if (info.Name.empty()) return {};
+        return info.Name;
     }
 
     const Powerup& GetPowerup(PowerupID id) {
@@ -87,9 +62,6 @@ namespace Inferno::Resources {
 
     bool Init() {
         // Load some default resources.
-        LoadPowerupNames("powerups.txt");
-        LoadRobotNames("robots.txt");
-
         bool foundData = Resources::LoadDescent2Data();
         if (!foundData) foundData = Resources::LoadDescent1Data();
 
