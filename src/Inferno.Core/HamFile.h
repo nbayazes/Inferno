@@ -58,6 +58,7 @@ namespace Inferno {
         float LightRadius;
         Color Glow; // Self illumination
         DynamicLightMode LightMode;
+        string Name; // Editor name
     };
 
     // Stores Texture, Sound, and Animation metadata
