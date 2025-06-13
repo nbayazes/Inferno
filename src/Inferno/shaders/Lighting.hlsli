@@ -11,6 +11,7 @@ static const float METAL_DIFFUSE_FACTOR = 2; // Direct lighting contribution on 
 static const float METAL_SPECULAR_EXP = 2; // increase to get sharper metal highlights
 static const float METAL_SPECULAR_MULT = 1; // increase to get brighter metal
 static const float FRESNEL_MULT = GLOBAL_LIGHT_MULT * 1;
+static const float FRESNEL_EXPONENT = 2; // Should be 5, but 2 looks better in general. Allows overhead lights in regular tunnels to have floor reflections.
 
 struct MaterialInfo {
     float NormalStrength;
@@ -62,7 +63,7 @@ float FresnelRoughnessSimple(float cosTheta, float roughness) {
 }
 
 float FresnelSimple(float cosTheta) {
-    return pow(max(1.0 - cosTheta, 0), 5.0);
+    return pow(max(1.0 - cosTheta, 0), FRESNEL_EXPONENT);
 }
 
 float Lambert(float3 normal, float3 lightDir) {
