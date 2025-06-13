@@ -525,7 +525,7 @@ namespace Inferno::Sound {
             }
         }
 
-        bool PlayMusic(string file, bool loop) {
+        bool PlayMusicFromFile(string file, bool loop) {
             auto data = Resources::ReadBinaryFile(file, LoadFlag::Default | GetLevelLoadFlag(Game::Level));
 
             if (!data) {
@@ -680,18 +680,21 @@ namespace Inferno::Sound {
 
             if (!_musicInfo.data.empty()) {
                 // Play music from memory
-                _requestStopMusic = true;
-
                 _musicStream = CreateMusicStream(std::move(_musicInfo.data));
-                if (_musicStream) {
-                    _musicStream->Loop = _musicInfo.loop;
-                    _musicStream->Effect->SetVolume(_musicVolume);
-                    _musicStream->Effect->Play();
+
+                if (!_musicStream) {
+                    SPDLOG_WARN("Unable to create music stream");
+                    return;
                 }
+
+                SPDLOG_INFO("Playing music. Loop {}", _musicInfo.loop);
+                _musicStream->Loop = _musicInfo.loop;
+                _musicStream->Effect->SetVolume(_musicVolume);
+                _musicStream->Effect->Play();
             }
             else if (!_musicInfo.file.empty()) {
                 // Stream music from file
-                PlayMusic(_musicInfo.file, _musicInfo.loop);
+                PlayMusicFromFile(_musicInfo.file, _musicInfo.loop);
             }
         }
 
