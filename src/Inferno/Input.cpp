@@ -139,7 +139,7 @@ namespace Inferno::Input {
                     case EventType::Reset:
                         _keyboard.Reset();
                         _mouseButtons.Reset();
-                    //_controller.Reset();
+                        //_controller.Reset();
                         break;
 
                     case EventType::MouseMoved:
@@ -355,8 +355,7 @@ namespace Inferno::Input {
 
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
-                case SDL_EVENT_JOYSTICK_AXIS_MOTION:
-                {
+                case SDL_EVENT_JOYSTICK_AXIS_MOTION: {
                     if (SDL_IsGamepad(event.jaxis.which))
                         break; // Gamepads also fire a joystick event, ignore it
 
@@ -368,8 +367,7 @@ namespace Inferno::Input {
                     break;
                 }
 
-                case SDL_EVENT_JOYSTICK_BUTTON_DOWN:
-                {
+                case SDL_EVENT_JOYSTICK_BUTTON_DOWN: {
                     if (SDL_IsGamepad(event.jbutton.which))
                         break; // Gamepads also fire a joystick event, ignore it
 
@@ -381,8 +379,7 @@ namespace Inferno::Input {
                     break;
                 }
 
-                case SDL_EVENT_JOYSTICK_BUTTON_UP:
-                {
+                case SDL_EVENT_JOYSTICK_BUTTON_UP: {
                     if (SDL_IsGamepad(event.jbutton.which))
                         break; // Gamepads also fire a joystick event, ignore it
 
@@ -394,8 +391,7 @@ namespace Inferno::Input {
                     break;
                 }
 
-                case SDL_EVENT_JOYSTICK_HAT_MOTION:
-                {
+                case SDL_EVENT_JOYSTICK_HAT_MOTION: {
                     if (auto joystick = Devices.Get(event.jhat.which)) {
                         joystick->hat = event.jhat.value;
                     }
@@ -403,8 +399,7 @@ namespace Inferno::Input {
                     break;
                 }
 
-                case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
-                {
+                case SDL_EVENT_GAMEPAD_BUTTON_DOWN: {
                     auto buttonName = SDL_GetGamepadStringForButton((SDL_GamepadButton)event.gbutton.button);
                     SPDLOG_INFO("Button down {}:{}", event.gbutton.button, buttonName);
 
@@ -415,8 +410,7 @@ namespace Inferno::Input {
                     break;
                 }
 
-                case SDL_EVENT_GAMEPAD_BUTTON_UP:
-                {
+                case SDL_EVENT_GAMEPAD_BUTTON_UP: {
                     if (auto joystick = Devices.Get(event.gbutton.which)) {
                         joystick->Release(event.gbutton.button);
                     }
@@ -424,8 +418,7 @@ namespace Inferno::Input {
                     break;
                 }
 
-                case SDL_EVENT_GAMEPAD_SENSOR_UPDATE:
-                {
+                case SDL_EVENT_GAMEPAD_SENSOR_UPDATE: {
                     if (auto joystick = Devices.Get(event.gsensor.which)) {
                         switch (event.gsensor.sensor) {
                             case SDL_SENSOR_GYRO:
@@ -449,8 +442,7 @@ namespace Inferno::Input {
                     break;
                 }
 
-                case SDL_EVENT_GAMEPAD_AXIS_MOTION:
-                {
+                case SDL_EVENT_GAMEPAD_AXIS_MOTION: {
                     if (auto joystick = Devices.Get(event.gaxis.which)) {
                         auto value = NormalizeAxis(event.gaxis.value);
 
@@ -505,16 +497,14 @@ namespace Inferno::Input {
                 //    break;
                 //}
 
-                case SDL_EventType::SDL_EVENT_JOYSTICK_REMOVED:
-                {
+                case SDL_EventType::SDL_EVENT_JOYSTICK_REMOVED: {
                     Devices.Remove(event.gdevice.which);
                     //RemoveGamepad(event.gdevice.which);
                     break;
                 }
 
                 //case SDL_EventType::SDL_EVENT_GAMEPAD_ADDED:
-                case SDL_EventType::SDL_EVENT_JOYSTICK_ADDED:
-                {
+                case SDL_EventType::SDL_EVENT_JOYSTICK_ADDED: {
                     //SPDLOG_INFO("Joystick or Gamepad added {}", event.gdevice.which);
                     Devices.Add(event.gdevice.which);
                     if (auto device = Devices.Get(event.gdevice.which); device && AddDeviceCallback)
@@ -523,11 +513,11 @@ namespace Inferno::Input {
                     break;
                 }
 
-                //case SDL_EventType::SDL_EVENT_GAMEPAD_REMOVED:
-                //{
-                //    Joysticks.RemoveGamepad(event.gdevice.which);
-                //    break;
-                //}
+                    //case SDL_EventType::SDL_EVENT_GAMEPAD_REMOVED:
+                    //{
+                    //    Joysticks.RemoveGamepad(event.gdevice.which);
+                    //    break;
+                    //}
             }
         }
     }
@@ -789,8 +779,7 @@ namespace Inferno::Input {
 
     void ProcessMouseInput(UINT message, WPARAM wParam, LPARAM lParam) {
         switch (message) {
-            case WM_INPUT:
-            {
+            case WM_INPUT: {
                 HANDLE events[] = { RelativeModeEvent.get() };
                 switch (WaitForMultipleObjectsEx((DWORD)std::size(events), events, false, 0, false)) {
                     default:
@@ -884,8 +873,7 @@ namespace Inferno::Input {
                 Input::QueueEvent(EventType::KeyPress, wParam, lParam);
                 break;
 
-            case WM_KEYDOWN:
-            {
+            case WM_KEYDOWN: {
                 // Ignore key repeat messages. Otherwise IsKeyPressed checks will repeat.
                 WORD keyFlags = HIWORD(lParam);
                 auto wasKeyDown = (keyFlags & KF_REPEAT) == KF_REPEAT;

@@ -842,7 +842,7 @@ namespace Inferno {
         ai.AnimationTimer = -delay;
         ai.AnimationState = state;
 
-        for (int gun = 0; gun <= robotInfo.Guns; gun++) {
+        for (uint gun = 0; gun <= robotInfo.Guns; gun++) {
             const auto robotJoints = Resources::GetRobotJoints(robot.ID, gun, state);
 
             for (auto& joint : robotJoints) {

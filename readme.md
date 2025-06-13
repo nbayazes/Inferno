@@ -26,7 +26,7 @@ To play the full game, copy the retail `descent.hog` and `descent.pig` to the `/
 
 ### Music
 MIDI music is currently not supported and instead a song pack can be used. 
-Several song packs are available, generously hosted by [PuMo](https://pumosoftware.com/). Copy a single music DXA to the `/d1` folder.
+Several song packs are available, generously hosted by [PuMo](https://pumosoftware.com/). Copy a single music DXA to the `/d1` folder. SC55 is the 'default' pick.
 
 [SC55 MIDI](https://pumosoftware.com/files/descent/dxa/d1xr-sc55-music.dxa)
 [OPL3 MIDI](https://pumosoftware.com/files/descent/dxa/d1xr-opl3-music.dxa)
