@@ -3,7 +3,7 @@ Weapons:
     Name: laser 1
     Mass: 0.15
     FireDelay: 0.25
-    Size: 0.5
+    Size: 0.6
     ExplosionSound: LazorHitshrt
     ExplosionTexture: RedLaserHit
     ExplosionSize: 1.75
@@ -38,7 +38,7 @@ Weapons:
     Glow: 1, 0.0, 0.333, 20
     ModelName: PurpleLaser.OOF
     ModelScale: 0.7
-    Size: 0.5
+    Size: 0.6
     ExplosionTexture: PurpleLaserHit
     ExplosionSound: LazorHitshrt
     ExplosionSize: 1.75
@@ -55,7 +55,7 @@ Weapons:
     Glow: .125, .125, 1, 30
     ModelName: bluelaser.OOF
     ModelScale: 0.7
-    Size: 0.5
+    Size: 0.6
     ExplosionSound: LazorHitshrt
     ExplosionTexture: BlueLaserHit
     ExplosionSize: 1.75
@@ -72,7 +72,7 @@ Weapons:
     Glow: 0, 1, 0, 14
     ModelName: GreenLaser.OOF
     ModelScale: 0.7
-    Size: 0.5
+    Size: 0.6
     ExplosionSound: LazorHitshrt
     ExplosionTexture: GreenLaserHit
     ExplosionSize: 1.75
@@ -124,7 +124,7 @@ Weapons:
     Glow: 1, .45, .09, 5.5
     ModelName: YellowLaser.OOF
     ModelScale: 0.7
-    Size: 0.5
+    Size: 0.6
     ExplosionSound: LazorHitshrt
     ExplosionTexture: YellowLaserHit
     ExplosionSize: 1.75
@@ -140,7 +140,7 @@ Weapons:
     Glow: .5, .5, 1, 5
     ModelName: WhiteLaser.OOF
     ModelScale: 0.7
-    Size: 0.5
+    Size: 0.6
     ExplosionSound: LazorHitshrt
     ExplosionTexture: WhiteLaserHit
     ExplosionSize: 1.75
@@ -178,7 +178,7 @@ Weapons:
     ExplosionTexture: vaussimpact
     ExplosionSize: 0.6
     ExplosionTime: 0.4
-    Damage: 7 # Was 4
+    Damage: 7.5 # Was 4
     PlayerDamageScale: 0.57 # Adjust so damage equals 4 due to drillers
     Spread: 1.0 # spread in units. Was 1.8. Reduced due to smaller robots being difficult to hit with polygon hit testing.
     AmmoUsage: 10 # Was around 14
@@ -216,7 +216,7 @@ Weapons:
     ExplosionColor: 1.0, 0.36, 0.0, 1.2
     Model: -1
     FlashColor: 1, 0.6, .3, 1
-    Size: 0.75
+    Size: 0.65
     Tracer: vulcan tracer
     
   - id: 12 
@@ -353,7 +353,7 @@ Weapons:
   - id: 21 
     Name: robot homing missile
     FlashVClip: 11
-    FlashSound: 44
+    FlashSound: 131
     WallHitVClip: 5
     WallHitSound: 11
     RobotHitVClip: 5
@@ -562,7 +562,7 @@ Weapons:
 
   - id: 27
     Name: spider fireball # spider fireballs are signficantly more damaging than expected. Make them look angry.
-    Glow: .0, .2, 1, 50
+    Glow: .01, .0, 1, 150
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 24
