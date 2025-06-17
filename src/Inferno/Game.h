@@ -155,7 +155,7 @@ namespace Inferno::Game {
     constexpr uint16 VULCAN_AMMO_PICKUP = 1000; // Amount of ammo to give when picking up vulcan ammo. Reduced from 1250 due to vulcan being more efficient.
     constexpr float CLOAK_TIME = 30.0f;
     constexpr float INVULNERABLE_TIME = 30.0f;
-    constexpr float WEAPON_HIT_WALL_VOLUME = 0.8f; // Reduce volume of wall hits as they drown out everything else
+    constexpr float WEAPON_HIT_WALL_VOLUME = 0.95f; // Reduce volume of wall hits as they drown out everything else
     constexpr float WEAPON_HIT_OBJECT_VOLUME = 1.0f;
 
     inline bool Cheater = false;

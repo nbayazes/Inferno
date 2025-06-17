@@ -20,7 +20,7 @@ namespace Inferno {
 }
 
 namespace Inferno::Sound {
-    constexpr float SOUND_MERGE_RATIO = 0.1f; // percentage added to existing sounds when merged
+    constexpr float SOUND_MERGE_RATIO = 0.025f; // percentage added to existing sounds when merged
 
     void Init(HWND, const wstring* deviceId = nullptr, std::chrono::milliseconds pollRate = std::chrono::milliseconds(4));
 

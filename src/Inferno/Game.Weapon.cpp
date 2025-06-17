@@ -336,13 +336,13 @@ namespace Inferno::Game {
         return sound;
     }
 
-    void PlayWeaponSound(WeaponID id, float volume, SegID segment, const Vector3& position) {
-        if (volume <= 0)
-            return;
+    //void PlayWeaponSound(WeaponID id, float volume, SegID segment, const Vector3& position) {
+    //    if (volume <= 0)
+    //        return;
 
-        auto sound = InitWeaponSound(id, volume);
-        Sound::Play(sound, position, segment);
-    }
+    //    auto sound = InitWeaponSound(id, volume);
+    //    Sound::Play(sound, position, segment);
+    //}
 
     void PlayWeaponSound(WeaponID id, float volume, const Object& parent, uint8 gun) {
         if (volume <= 0)
@@ -508,7 +508,6 @@ namespace Inferno::Game {
 
         auto renderFlag = RenderFlag::None;
 
-        // todo: check if in first person, not just if in-game
         if (Game::GetState() == GameState::Game && obj.IsPlayer()) {
             if (info.gun == 6)
                 renderFlag = RenderFlag::ThirdPerson; // Hide center gun flash in first person (gun is under the ship, player can't see it!)

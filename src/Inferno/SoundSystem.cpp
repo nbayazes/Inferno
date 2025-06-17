@@ -23,8 +23,8 @@ namespace Inferno::Sound {
 
         constexpr int SAMPLE_RATE_11KHZ = 11025;
         constexpr int SAMPLE_RATE_22KHZ = 22050;
-        constexpr float DEFAULT_SILENCE = -50;
-        constexpr float MUSIC_SILENCE = -60; // Music tends to be louder than other sound sources
+        constexpr float DEFAULT_SILENCE = -20;
+        constexpr float MUSIC_SILENCE = -30; // Music tends to be louder than other sound sources
         constexpr float THREE_D_VOLUME_MULT = 1.3f; // 3D sounds are quieter than 2D and music, boost them
         constexpr float MERGE_WINDOW = 1 / 14.0f; // Merge the same sound being played by a source within a window
 
@@ -315,7 +315,7 @@ namespace Inferno::Sound {
             _effectsD2.resize(255);
             _listener.pCone = (X3DAUDIO_CONE*)&LISTENER_CONE;
 
-            auto flags = AudioEngine_EnvironmentalReverb | AudioEngine_ReverbUseFilters | AudioEngine_UseMasteringLimiter;
+            auto flags = AudioEngine_EnvironmentalReverb | AudioEngine_ReverbUseFilters /*| AudioEngine_UseMasteringLimiter*/;
 #ifdef _DEBUG
             flags |= AudioEngine_Debug;
 #endif

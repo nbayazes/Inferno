@@ -25,7 +25,7 @@ namespace Inferno {
     constexpr Color FLASH_GOLD = { FLASH * 0.9f, FLASH * 0.9f, FLASH * 0.4f };
     constexpr Color FLASH_POWERUP = { FLASH, 0, FLASH };
     constexpr Color FLASH_FUSION_CHARGE = { MAX_FLASH * Game::TICK_RATE * 2.0f, 0, MAX_FLASH * Game::TICK_RATE * 2.0f };
-    constexpr float AFTERBURNER_VOLUME = 1.2f;
+    constexpr float AFTERBURNER_VOLUME = 1.1f;
 
     float GetWeaponAlertRadius(const Weapon& weapon) {
         // Robots use half-linear falloff instead of inverse square because it doesn't require traversing nearly as far.
@@ -265,7 +265,7 @@ namespace Inferno {
                 AddEnergy(ENERGY_PER_SECOND * dt);
 
                 if (RefuelSoundTime <= Game::Time) {
-                    Sound::Play2D({ SoundID::Refuel });
+                    Sound::Play2D({ SoundID::Refuel }, ENERGY_CENTER_VOLUME);
                     constexpr float REFUEL_SOUND_DELAY = 0.25f;
                     RefuelSoundTime = Game::Time + REFUEL_SOUND_DELAY;
                 }
@@ -303,7 +303,7 @@ namespace Inferno {
                     }
                     else {
                         Sound3D sound(SoundID::FusionWarmup);
-                        sound.Volume = .6f;
+                        sound.Volume = .8f;
                         Sound::PlayFrom(sound, player);
                         AlertRobotsOfNoise(player, Game::PLAYER_FUSION_SOUND_RADIUS, 0.5f);
                     }
@@ -554,7 +554,7 @@ namespace Inferno {
         float volume = weapon.Extended.FireVolume;
 
         // Make quad lasers slightly louder
-        if (activeGunpoints >= 4) volume *= 1.1f;
+        //if (activeGunpoints >= 4) volume *= 1.1f;
 
         // Directly play sounds on the player, otherwise mixing gets too complicated to keep a consistent volume
         auto sound = Game::InitWeaponSound(id, volume);

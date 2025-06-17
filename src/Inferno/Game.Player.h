@@ -36,6 +36,7 @@ namespace Inferno {
     constexpr auto HEADLIGHT_ON_SOUND = "switch";
     constexpr auto AFTERBURNER_SOUND = "afterburner";
     constexpr auto AFTERBURNER_OFF_SOUND = "afterburner-off";
+    constexpr auto ENERGY_CENTER_VOLUME = 0.75f; // Recharge volume
 
     // Extracted player state that was scattered across methods or globals as static variables
     class Player {

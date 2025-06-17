@@ -505,9 +505,8 @@ namespace Inferno {
 
                 // Make stronger robots have bigger, slower explosions
                 float healthScale = Saturate((robot.HitPoints - 30.0f) / 200.0f);
-                auto scale = Random() + healthScale; // 0 to 2x based on hp and randomness
-                sound.Volume = 1.10f + scale * 0.2f;
-                sound.Pitch = -0.10f + -scale * 0.15f;
+                sound.Volume = 1.05f + healthScale * 0.2f;
+                sound.Pitch = -0.10f - healthScale * 0.15f;
                 sound.Merge = false;
                 //sound.Delay = 0.05f;
                 Sound::Play(sound, obj.Position, obj.Segment);
