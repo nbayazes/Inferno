@@ -110,6 +110,7 @@ namespace Inferno {
         READ_PROP(Thrust);
 
         READ_PROP(Drag);
+        READ_PROP(Piercing);
         READ_PROP(Mass);
         READ_PROP(AmmoUsage);
         READ_PROP(EnergyUsage);

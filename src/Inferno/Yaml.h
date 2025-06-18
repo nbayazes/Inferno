@@ -76,9 +76,8 @@ namespace Yaml {
         try {
             if (!node.readable() || !node.has_val() || node.val() == "") return false;
 
-            int val = 0;
-            node >> val;
-            value = (bool)val;
+            auto val = node.val();
+            value = val == "true" || val == "1";
             return true;
         }
         catch (...) {
@@ -110,9 +109,8 @@ namespace Yaml {
             auto node = parent[bad];
             if (!node.readable() || !node.has_val() || node.val() == "") return false;
 
-            int val = 0;
-            node >> val;
-            value = (bool)val;
+            auto val = node.val();
+            value = val == "true" || val == "1";
             return true;
         }
         catch (...) {

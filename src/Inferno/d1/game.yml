@@ -274,9 +274,9 @@ Weapons:
     Recoil: 100
     Damage: 60 # As it should be
     Speed: 150
+    Piercing: 1
 
-  - id: 14
-    Name: robot fusion
+  - Name: robot fusion
     Damage: [ 30, 35, 40, 50, 60 ] # Was 60 at all difficulties. Fusion hulk always fires two blobs at once now.
     Speed: [ 130, 135, 140, 145, 150 ] # Was 150 at all difficulties
     RenderType: 2
@@ -306,6 +306,7 @@ Weapons:
     Behavior: fusion
     StunMult: 0.4
     Recoil: 100
+    Piercing: 1
 
   - id: 8
     Name: concussion missile
