@@ -499,8 +499,8 @@ Weapons:
     Mass: 2
     ExplosionColor: 1, 0.1, 0, 4
     LightRadius: 40
-    LightColor: 1, 0.01, 0.01, 2
-    Glow: 1, 0.01, 0.01, 2
+    LightColor: 1, 0.08, 0.08, 0.6
+    Glow: 1, .6, .6, .75
     Size: 1.25
     Recoil: 175
     HomingFov: 45
