@@ -363,7 +363,7 @@ namespace Inferno {
     void Player::GiveWeapon(PrimaryWeaponIndex weapon) {
         PrimaryWeapons |= 1 << (uint16)weapon;
         if (weapon == PrimaryWeaponIndex::Vulcan || weapon == PrimaryWeaponIndex::Gauss)
-            PrimaryAmmo[(int)PrimaryWeaponIndex::Vulcan] += Game::VULCAN_AMMO_PICKUP * 2; // Start with 2000 ammo
+            PrimaryAmmo[(int)PrimaryWeaponIndex::Vulcan] += Game::VULCAN_AMMO_PICKUP * 2; // Start with two packs of ammo
     }
 
     SecondaryWeaponIndex Player::GetActiveBomb() const {
