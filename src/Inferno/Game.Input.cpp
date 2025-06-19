@@ -65,7 +65,7 @@ namespace Inferno {
             Settings::Editor.HideUI = !Settings::Editor.HideUI;
 
         if (Input::OnKeyPressed(Keys::F5)) {
-            Resources::LoadDataTables(LoadFlag::Default | GetLevelLoadFlag(Game::Level));
+            Resources::LoadDataTables(Game::Level);
             Graphics::ReloadResources();
             //Editor::Events::LevelChanged();
             Editor::Events::MaterialsChanged();

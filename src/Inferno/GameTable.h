@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include "HamFile.h"
 
 namespace Inferno {
-    void LoadGameTable(const string& data, HamFile& ham, FullGameData& gameData);
+    // Replaces game data with info from a yaml file
+    void LoadGameTable(const string& yaml, FullGameData& gameData);
 }

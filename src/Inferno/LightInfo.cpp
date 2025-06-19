@@ -73,12 +73,14 @@ namespace Inferno {
         node["Color"] << EncodeColor(info.Color);
     }
 
-    void LoadLightTable(const string& yaml, List<TextureLightInfo>& lightInfo) {
+    List<TextureLightInfo> LoadLightTable(const string& yaml) {
+        List<TextureLightInfo> lightInfo;
+
         try {
             ryml::Tree doc = ryml::parse_in_arena(ryml::to_csubstr(yaml));
             ryml::NodeRef root = doc.rootref();
 
-            if (!root.is_map()) return;
+            if (!root.is_map()) return lightInfo;
 
             if (auto node = root["Lights"]; node.readable()) {
                 for (const auto& child : node.children()) {
@@ -93,10 +95,12 @@ namespace Inferno {
         catch (const std::exception& e) {
             SPDLOG_ERROR("Error loading light info:\n{}", e.what());
         }
+
+        return lightInfo;
     }
 
 
-    void SaveLightTable(std::ostream& stream, const Dictionary<LevelTexID, TextureLightInfo>& lightInfo) {
+    bool SaveLightTable(std::ostream& stream, const Dictionary<LevelTexID, TextureLightInfo>& lightInfo) {
         try {
             ryml::Tree doc(30, 128);
             doc.rootref() |= ryml::MAP;
@@ -109,9 +113,11 @@ namespace Inferno {
             }
 
             stream << doc;
+            return true;
         }
         catch (const std::exception& e) {
-            SPDLOG_ERROR("Error saving level metadata:\n{}", e.what());
+            SPDLOG_ERROR("Error saving light info:\n{}", e.what());
+            return false;
         }
     }
 }

@@ -4,14 +4,19 @@
 
 namespace Inferno {
     constexpr auto METADATA_EXTENSION = ".ied"; // inferno engine data
+    constexpr auto LIGHT_TABLE_EXTENSION = ".lig"; // level specific light table (when packed in mission)
+    constexpr auto MATERIAL_TABLE_EXTENSION = ".ma"; // level specific materials (when packed in mission)
     inline const filesystem::path COMMON_FOLDER = "data"; // subdirectory containing shared data
     inline const filesystem::path D1_FOLDER = "d1"; // subdirectory containing the d1 hog and pig
     inline const filesystem::path D1_DEMO_FOLDER = "d1/demo"; // subdirectory containing the d1 demo hog and pig
     inline const filesystem::path D2_FOLDER = "d2"; // subdirectory containing the d2 hog and pig
     inline const filesystem::path D1_MATERIAL_FILE = D1_FOLDER / "material.yml";
-    inline const filesystem::path D2_MATERIAL_FILE = D1_FOLDER / "material.yml";
+    inline const filesystem::path D2_MATERIAL_FILE = D2_FOLDER / "material.yml";
     constexpr auto GAME_TABLE_FILE = "game.yml";
     constexpr auto LIGHT_TABLE_FILE = "lights.yml";
+
+    // Where to load a table file from (lights, materials and game table)
+    enum class TableSource { Undefined, Descent1, Descent2, Mission, Level, Descent3 };
 
     struct FullGameData : HamFile {
         SoundFile sounds;

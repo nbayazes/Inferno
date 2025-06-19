@@ -726,8 +726,8 @@ namespace Inferno::Render {
     }
 
     void UpdateEffect(float dt, EffectID id) {
-        if (auto& effect = VisualEffects[(int)id]) {
-            effect->Update(dt, id);
+        if (auto effect = Seq::tryItem(VisualEffects, (int)id)) {
+            effect->get()->Update(dt, id);
         }
     }
 

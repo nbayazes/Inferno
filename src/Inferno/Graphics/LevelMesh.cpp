@@ -226,7 +226,7 @@ namespace Inferno {
     }
 
     BlendMode GetWallBlendMode(LevelTexID id) {
-        auto& mi = Resources::GetMaterial(id);
+        auto& mi = Resources::GetMaterial(Resources::LookupTexID(id));
         return HasFlag(mi.Flags, MaterialFlags::Additive) ? BlendMode::Additive : BlendMode::Alpha;
     }
 
@@ -333,7 +333,8 @@ namespace Inferno {
                 // For sliding textures that have an overlay, we must store the overlay rotation sliding as well
                 auto& ti = Resources::GetLevelTextureInfo(side.TMap);
                 bool needsOverlaySlide = side.HasOverlay() && ti.Slide != Vector2::Zero;
-                auto& tmapi = Resources::Materials.GetMaterialInfo(side.TMap);
+
+                auto& tmapi = Resources::GetMaterial(Resources::LookupTexID(side.TMap));
                 bool isLight = tmapi.EmissiveStrength > 0 && tmapi.LightReceived != 0;
                 auto& eclip = Resources::GetEffectClip(side.TMap2);
                 bool breakable = eclip.DestroyedEClip != EClipID::None;
@@ -342,7 +343,7 @@ namespace Inferno {
                 bool clampV = !HasFlag(tmapi.Flags, MaterialFlags::WrapV);
 
                 if (!isLight && side.TMap2 > LevelTexID::Unset) {
-                    auto& tmapi2 = Resources::Materials.GetMaterialInfo(side.TMap2);
+                    auto& tmapi2 = Resources::GetMaterial(Resources::LookupTexID(side.TMap2));
                     isLight |= tmapi2.EmissiveStrength > 0 && tmapi2.LightReceived != 0;
 
                     if (side.OverlayRotation == OverlayRotation::Rotate90 || side.OverlayRotation == OverlayRotation::Rotate270) {

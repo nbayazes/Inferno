@@ -55,7 +55,7 @@ namespace Inferno::Render {
 
         Ptr<SpriteBatch> _postBatch;
 
-        Ptr<UploadBuffer<MaterialInfo>> MaterialInfoUploadBuffer;
+        Ptr<UploadBuffer<GpuMaterialInfo>> MaterialInfoUploadBuffer;
         Ptr<UploadBuffer<GpuVClip>> VClipUploadBuffer;
         Ptr<FrameUploadBuffer> FrameUploadBuffers[2];
 
@@ -201,9 +201,9 @@ namespace Inferno::Render {
         Shaders = make_unique<ShaderResources>();
         Effects = make_unique<EffectResources>(Shaders.get());
         ToneMapping = make_unique<PostFx::ToneMapping>();
-        MaterialInfoUploadBuffer = make_unique<UploadBuffer<MaterialInfo>>(MATERIAL_COUNT, "Material upload buffer");
+        MaterialInfoUploadBuffer = make_unique<UploadBuffer<GpuMaterialInfo>>(MATERIAL_COUNT, "Material upload buffer");
         MaterialInfoBuffer = make_unique<StructuredBuffer>();
-        MaterialInfoBuffer->Create("MaterialInfo", sizeof MaterialInfo, MATERIAL_COUNT);
+        MaterialInfoBuffer->Create("MaterialInfo", sizeof GpuMaterialInfo, MATERIAL_COUNT);
         MaterialInfoBuffer->AddShaderResourceView();
 
         VClipUploadBuffer = make_unique<UploadBuffer<GpuVClip>>(VCLIP_COUNT, "vclip buffer");
@@ -457,8 +457,16 @@ namespace Inferno::Render {
     }
 
     void CopyMaterialData(ID3D12GraphicsCommandList* cmdList) {
+        auto materials = Resources::GetAllMaterials();
+        List<GpuMaterialInfo> gpuMaterials;
+        gpuMaterials.resize(materials.size());
+
+        for (size_t i = 0; i < materials.size(); i++) {
+            gpuMaterials[i] = materials[i]; // slices off the extra editor data
+        }
+
         MaterialInfoUploadBuffer->Begin();
-        MaterialInfoUploadBuffer->Copy(Resources::Materials.GetAllMaterialInfo());
+        MaterialInfoUploadBuffer->Copy(gpuMaterials);
         MaterialInfoUploadBuffer->End();
 
         MaterialInfoBuffer->Transition(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);

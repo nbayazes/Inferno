@@ -13,6 +13,7 @@
 #include "Settings.h"
 #include "Sound.h"
 #include "SoundSystem.h"
+#include "MaterialInfo.h"
 
 namespace Inferno {
     LoadFlag GetLevelLoadFlag(const Level& level) {
@@ -32,6 +33,7 @@ namespace Inferno::Resources {
         const Powerup DEFAULT_POWERUP{};
         const DoorClip DEFAULT_DOOR_CLIP{};
         const RobotInfo DEFAULT_ROBOT{};
+        MaterialInfo DEFAULT_MATERIAL = {};
 
         struct ModelEntry {
             string Name;
@@ -39,6 +41,7 @@ namespace Inferno::Resources {
         };
 
         List<ModelEntry> OutrageModels;
+        List<MaterialInfo> MergedMaterials;
     }
 
     int GetTextureCount() { return (int)GameData.pig.Entries.size(); } // Current.bitmaps.size()?;
@@ -181,10 +184,10 @@ namespace Inferno::Resources {
         return GameData.AllTexIdx;
     }
 
-    TexID LookupTexID(LevelTexID tid) {
+    TexID LookupTexIDFromData(LevelTexID tid, const FullGameData& data) {
         auto id = (int)tid;
-        if (!Seq::inRange(GameData.AllTexIdx, id)) return TexID::None;
-        return TexID((int)GameData.AllTexIdx[id]);
+        if (!Seq::inRange(data.AllTexIdx, id)) return TexID::None;
+        return TexID((int)data.AllTexIdx[id]);
     }
 
     const LevelTexture& GetLevelTextureInfo(LevelTexID id) {
@@ -225,8 +228,8 @@ namespace Inferno::Resources {
 
     PigEntry DefaultPigEntry = { .Name = "Unknown", .Width = 64, .Height = 64 };
 
-    TexID FindTexture(string_view name) {
-        auto index = Seq::findIndex(GameData.pig.Entries, [name](const PigEntry& entry) { return entry.Name == name; });
+    TexID FindTexture(string_view name, const FullGameData& data) {
+        auto index = Seq::findIndex(data.pig.Entries, [name](const PigEntry& entry) { return entry.Name == name; });
         return index ? TexID(*index) : TexID::None;
     }
 
@@ -843,25 +846,21 @@ namespace Inferno::Resources {
     //    return data;
     //}
 
-    bool LoadGameTables(LoadFlag flags) {
+    bool LoadGameTables(LoadFlag flags, FullGameData& dest) {
         if (auto data = ReadTextFile(GAME_TABLE_FILE, flags)) {
-            LoadGameTable(*data, GameData, GameData);
+            LoadGameTable(*data, dest);
             return true;
         }
-
-        // Load order matters. Changes get layered onto each other (root, game, mission)
-        // todo: add layered table loading. Base shared table, then d1 or d2, then mission
 
         return false;
     }
 
-    bool LoadLightTables(LoadFlag flags) {
+    List<TextureLightInfo> LoadLightTables(LoadFlag flags) {
         if (auto data = ReadTextFile(LIGHT_TABLE_FILE, flags)) {
-            LoadLightTable(*data, Lights);
-            return true;
+            return LoadLightTable(*data);
         }
 
-        return false;
+        return {};
     }
 
     //class ZipFile {
@@ -1123,6 +1122,12 @@ namespace Inferno::Resources {
         //}
     }
 
+    template <class T>
+    string BytesToString(span<T> bytes) {
+        string str((char*)bytes.data(), bytes.size());
+        return str;
+    }
+
     Option<string> ReadTextFile(string_view name, LoadFlag flags) {
         if (auto bytes = ReadBinaryFile(name, flags)) {
             string str((char*)bytes->data(), bytes->size());
@@ -1132,42 +1137,188 @@ namespace Inferno::Resources {
         return {};
     }
 
-    bool LoadMaterialTables(LoadFlag flags) {
-        // todo: replace with Find()
-        //auto commonPath = COMMON_FOLDER / "material.yml";
-        //if (FileSystem::TryFindFile(commonPath)) {
-        //    auto data = File::ReadAllText(commonPath);
-        //    SPDLOG_INFO("Reading material table from `{}`", commonPath.string());
-        //    LoadMaterialTable(data, Resources::Materials.GetAllMaterialInfo());
-        //}
+    void ExpandMaterialFrames(List<MaterialInfo>& materials) {
+        for (auto& material : materials) {
+            auto dclipId = Resources::GetDoorClipID(Resources::LookupLevelTexID((TexID)material.ID));
+            auto& dclip = Resources::GetDoorClip(dclipId);
 
-        auto& gamePath = GetMaterialTablePath(HasFlag(flags, LoadFlag::Descent1));
+            // copy material from base frame to all frames of door
+            material.ID = -1; // unset ID so it doesn't get saved later for individual frames
 
-        if (Game::Mission) {
-            if (auto data = Game::Mission->TryReadEntryAsString("material.yml")) {
-                SPDLOG_INFO("Reading material table from mission");
-                LoadMaterialTable(*data, Resources::Materials.GetAllMaterialInfo());
-                return true;
+            for (int i = 1; i < dclip.NumFrames; i++) {
+                auto frameId = Resources::LookupTexIDFromData(dclip.Frames[i], GameData);
+                if (Seq::inRange(materials, (int)frameId)) {
+                    materials[(int)frameId] = material;
+                }
             }
         }
 
-        if (FileSystem::TryFindFile(gamePath)) {
-            auto data = File::ReadAllText(gamePath);
-            SPDLOG_INFO("Reading material table from `{}`", gamePath.string());
-            LoadMaterialTable(data, Resources::Materials.GetAllMaterialInfo());
-            return true;
+        // Expand materials to all frames in effects
+        for (auto& effect : Resources::GameData.Effects) {
+            for (int i = 1; i < effect.VClip.NumFrames; i++) {
+                auto src = effect.VClip.Frames[0];
+                auto dest = effect.VClip.Frames[i];
+                if (Seq::inRange(materials, (int)src) && Seq::inRange(materials, (int)dest))
+                    materials[(int)dest] = materials[(int)src];
+            }
         }
 
-        return false;
+        // Hard code special flat material
+        if (materials.size() >= (int)Render::SHINY_FLAT_MATERIAL) {
+            auto& flat = materials[(int)Render::SHINY_FLAT_MATERIAL];
+            flat.ID = (int)Render::SHINY_FLAT_MATERIAL;
+            flat.Metalness = 1.0f;
+            flat.Roughness = 0.375f;
+            flat.LightReceived = 0.5f;
+            flat.SpecularStrength = 0.8f;
+        }
     }
 
-    void LoadDataTables(LoadFlag flags) {
-        LoadLightTables(flags);
-        LoadMaterialTables(flags);
-        LoadGameTables(flags);
+    void MergeMaterials(span<MaterialInfo> source, span<MaterialInfo> dest) {
+        for (auto& material : source) {
+            auto texId = Resources::FindTexture(material.Name);
+            if (Seq::inRange(dest, (int)texId)) {
+                material.ID = (int)texId;
+                dest[(int)texId] = material;
+            }
+        }
     }
 
-    span<JointPos> GetRobotJoints(int robotId, int gun, Animation state) {
+    // Enables procedural textures for a level
+    void EnableProcedurals(span<MaterialInfo> materials) {
+        // todo: this should only add procedurals for textures used in the level
+        for (size_t texId = 0; texId < materials.size(); texId++) {
+            auto& material = materials[texId];
+
+            // todo: reset all procedurals first
+            // todo: if IsWater changes, recreate procedural
+
+            if (!material.Procedural.Elements.empty()) {
+                if (auto existing = GetProcedural(TexID(texId))) {
+                    existing->Info.Procedural = material.Procedural;
+                }
+                else {
+                    // Insert new procedural
+                    Outrage::TextureInfo ti{};
+                    ti.Procedural = material.Procedural;
+                    ti.Name = Resources::GetTextureInfo(TexID(texId)).Name;
+                    SetFlag(ti.Flags, Outrage::TextureFlag::Procedural);
+                    if (material.Procedural.IsWater)
+                        SetFlag(ti.Flags, Outrage::TextureFlag::WaterProcedural);
+
+                    AddProcedural(ti, TexID(texId));
+                }
+            }
+        }
+    }
+
+    // Merge all available materials for a level. Replaces the contents of dest.
+    void MergeMaterials(const Level& level, List<MaterialInfo>& dest) {
+        //auto& gameData = level.IsDescent1() ? Descent1 : Descent2;
+        dest.clear();
+        dest.resize(Render::MATERIAL_COUNT);
+
+        MergeMaterials(Descent1Materials, dest);
+
+        // Merge D1 data for D2 levels
+        if (level.IsDescent2())
+            MergeMaterials(Descent2Materials, dest);
+
+        MergeMaterials(MissionMaterials, dest);
+        MergeMaterials(LevelMaterials, dest);
+
+        //for (auto& material : Descent1Materials) {
+        //    auto texId = Resources::FindTexture(material.Name);
+        //    if (Seq::inRange(mergedMaterials, (int)texId)) {
+        //        mergedMaterials[(int)texId] = material;
+        //    }
+        //}
+        ExpandMaterialFrames(dest);
+    }
+
+    // Loads and merges material tables for the level
+    void LoadMaterialTables(const Level& level) {
+        //auto& gamePath = GetMaterialTablePath(HasFlag(flags, LoadFlag::Descent1));
+
+        //if (auto text = Resources::ReadTextFile("material.yml", flags)) {
+        //    SPDLOG_INFO("Reading material table from `{}`", gamePath.string());
+
+        //    return LoadMaterialTable(*text);
+        //}
+
+        //return {};
+
+        const auto setTableSource = [](span<MaterialInfo> materials, TableSource source) {
+            for (auto& material : materials) {
+                material.Source = source;
+            }
+        };
+
+        // Load the base material tables from the d1 and d2 folders
+        if (auto text = Resources::ReadTextFile("material.yml", LoadFlag::Filesystem | LoadFlag::Descent1)) {
+            SPDLOG_INFO("Reading D1 material table");
+            Descent1Materials = LoadMaterialTable(*text);
+            setTableSource(Descent1Materials, TableSource::Descent1);
+        }
+
+        if (auto text = Resources::ReadTextFile("material.yml", LoadFlag::Filesystem | LoadFlag::Descent2)) {
+            SPDLOG_INFO("Reading D2 material table");
+            Descent2Materials = LoadMaterialTable(*text);
+            setTableSource(Descent2Materials, TableSource::Descent2);
+        }
+
+        auto levelFile = String::NameWithoutExtension(level.FileName) + MATERIAL_TABLE_EXTENSION;
+
+        if (Game::Mission) {
+            //filesystem::path path = Game::Mission->Path;
+            //path.replace_extension("
+            //Game::Mission->Path.stem(); // get path without extension
+            //auto& gameData = level.IsDescent1() ? Descent1 : Descent2;
+
+            if (auto text = Resources::ReadTextFile("material.yml", LoadFlag::Mission)) {
+                SPDLOG_INFO("Reading mission material table");
+                MissionMaterials = LoadMaterialTable(*text);
+                setTableSource(Descent1Materials, TableSource::Mission);
+            }
+
+
+            if (auto text = Resources::ReadTextFile(levelFile, LoadFlag::Mission)) {
+                SPDLOG_INFO("Reading level material table {}", levelFile);
+                LevelMaterials = LoadMaterialTable(*text);
+                setTableSource(Descent1Materials, TableSource::Mission);
+            }
+        }
+        else {
+            // read table adjacent to level
+            filesystem::path path = level.Path;
+            path.replace_extension(MATERIAL_TABLE_EXTENSION);
+
+            if (filesystem::exists(path)) {
+                SPDLOG_INFO("Reading level material table {}", path.string());
+                auto text = File::ReadAllText(path);
+                LevelMaterials = LoadMaterialTable(text);
+            }
+        }
+    }
+
+    void LoadDataTables(const Level& level) {
+        //LoadDataTables(level, LoadFlag::Filesystem | LoadFlag::Common);
+        //LoadDataTables(level, LoadFlag::Filesystem | GetLevelLoadFlag(level));
+        //LoadDataTables(level, LoadFlag::Mission);
+
+        // todo: reload lights on GPU
+
+        // todo: merge light and game tables
+        auto flags = LoadFlag::Filesystem | GetLevelLoadFlag(level);
+        Lights = LoadLightTables(flags);
+        LoadGameTables(flags, GameData);
+        LoadMaterialTables(level);
+        MergeMaterials(level, MergedMaterials);
+
+        EnableProcedurals(MergedMaterials);
+    }
+
+    span<JointPos> GetRobotJoints(int robotId, uint gun, Animation state) {
         ASSERT((int)state <= 4 && (int)state >= 0);
         auto& robotInfo = GetRobotInfo(robotId);
         ASSERT(gun <= robotInfo.Guns && gun >= 0);
@@ -1175,6 +1326,15 @@ namespace Inferno::Resources {
         if (GameData.RobotJoints.empty()) return {};
         auto& joints = GameData.RobotJoints[animStates.Offset];
         return span{ &joints, (uint)animStates.Count };
+    }
+
+    MaterialInfo& Resources::GetMaterial(TexID id) {
+        if (!Seq::inRange(MergedMaterials, (int)id)) return DEFAULT_MATERIAL;
+        return MergedMaterials[(int)id];
+    }
+
+    span<MaterialInfo> Resources::GetAllMaterials() {
+        return MergedMaterials;
     }
 
     // Resets all object sizes to their resource defined values
@@ -1315,7 +1475,6 @@ namespace Inferno::Resources {
                 }
             }
 
-            Materials = { Render::MATERIAL_COUNT };
 
             for (auto& obj : level.Objects) {
                 if (obj.Type == ObjectType::Hostage)
@@ -1323,9 +1482,8 @@ namespace Inferno::Resources {
             }
 
             LoadCustomModels(GameData); // Load models before tables, so the custom model gunpoints are used
+            LoadDataTables(level);
 
-            // it should prioritize the current mission then the data folder
-            LoadDataTables(LoadFlag::Filesystem | LoadFlag::Mission | GetLevelLoadFlag(level));
             LoadStringTable(GameData.hog);
             UpdateAverageTextureColor();
 

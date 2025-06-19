@@ -63,7 +63,9 @@ namespace Inferno::Resources {
     const LevelTexture& GetLevelTextureInfo(LevelTexID);
     const LevelTexture& GetLevelTextureInfo(TexID);
 
-    TexID FindTexture(string_view name);
+    // Finds a texture by name from specific game data
+    TexID FindTexture(string_view name, const FullGameData& data = GameData);
+
     LevelTexID FindLevelTexture(string_view name);
 
     const PigEntry& GetTextureInfo(TexID);
@@ -86,7 +88,12 @@ namespace Inferno::Resources {
     }
 
     List<TexID> CopyLevelTextureLookup();
-    TexID LookupTexID(LevelTexID);
+    TexID LookupTexIDFromData(LevelTexID tid, const FullGameData& data);
+
+    inline TexID LookupTexID(LevelTexID tid) {
+        return LookupTexIDFromData(tid, GameData);
+    }
+
     TexID LookupModelTexID(const Model&, int16);
 
     inline LevelTexID LookupLevelTexID(TexID id) {
@@ -188,22 +195,21 @@ namespace Inferno::Resources {
     const string_view GetPrimaryNameShort(bool descent1, PrimaryWeaponIndex id);
     const string_view GetSecondaryNameShort(bool descent1, SecondaryWeaponIndex id);
 
-    bool LoadGameTables(LoadFlag flags);
-    bool LoadLightTables(LoadFlag flags);
-    bool LoadMaterialTables(LoadFlag flags);
-    void LoadDataTables(LoadFlag flags);
+    bool LoadGameTables(LoadFlag flags, FullGameData& dest = GameData);
+    //bool LoadLightTables(LoadFlag flags);
+    //bool LoadMaterialTables(LoadFlag flags);
+    //void LoadDataTables(LoadFlag flags);
+    void LoadDataTables(const Level& level);
 
-    span<JointPos> GetRobotJoints(int robotId, int gun, Animation state);
+    span<JointPos> GetRobotJoints(int robotId, uint gun, Animation state);
 
-    inline MaterialInfoLibrary Materials;
+    //inline MaterialInfoLibrary Materials;
 
-    inline MaterialInfo& GetMaterial(TexID id) {
-        return Materials.GetMaterialInfo(id);
-    }
+    // Returns a material from the merged materials
+    MaterialInfo& GetMaterial(TexID id);
 
-    inline MaterialInfo& GetMaterial(LevelTexID id) {
-        return Materials.GetMaterialInfo(id);
-    }
+    // Returns all merged materials
+    span<MaterialInfo> GetAllMaterials();
 
     struct PaletteInfo {
         string Name;

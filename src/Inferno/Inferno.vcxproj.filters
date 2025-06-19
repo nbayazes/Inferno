@@ -342,5 +342,8 @@
     <None Include="d1\lights.yml" />
     <None Include="d1\material.yml" />
     <None Include="shaders\TerrainDepth.hlsl" />
+    <None Include="d2\game.yml" />
+    <None Include="d2\lights.yml" />
+    <None Include="d2\material.yml" />
   </ItemGroup>
 </Project>

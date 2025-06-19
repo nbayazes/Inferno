@@ -539,9 +539,9 @@ namespace Inferno {
 #undef READ_PROP
     }
 
-    void LoadGameTable(const string& data, HamFile& ham, FullGameData& gameData) {
+    void LoadGameTable(const string& yaml, FullGameData& gameData) {
         try {
-            ryml::Tree doc = ryml::parse_in_arena(ryml::to_csubstr(data));
+            ryml::Tree doc = ryml::parse_in_arena(ryml::to_csubstr(yaml));
             ryml::NodeRef root = doc.rootref();
 
             if (!root.is_map()) {
@@ -554,7 +554,7 @@ namespace Inferno {
             if (auto weapons = root["Weapons"]; !weapons.is_seed()) {
                 for (const auto& weapon : weapons.children()) {
                     try {
-                        ReadWeaponInfo(weapon, ham);
+                        ReadWeaponInfo(weapon, gameData);
                     }
                     catch (const std::exception& e) {
                         SPDLOG_WARN("Error reading weapon\n{}", e.what());
@@ -566,7 +566,7 @@ namespace Inferno {
                 for (const auto& robot : robots.children()) {
                     int id = -1;
                     try {
-                        ReadRobotInfo(robot, ham, id);
+                        ReadRobotInfo(robot, gameData, id);
                     }
                     catch (const std::exception& e) {
                         SPDLOG_WARN("Error reading robot {}\n{}", id, e.what());
@@ -578,7 +578,7 @@ namespace Inferno {
                 for (const auto& child : node.children()) {
                     int id = -1;
                     try {
-                        ReadEffectClip(child, ham, id);
+                        ReadEffectClip(child, gameData, id);
                     }
                     catch (const std::exception& e) {
                         SPDLOG_WARN("Error reading effect clip {}\n{}", id, e.what());
@@ -590,7 +590,7 @@ namespace Inferno {
                 for (const auto& powerup : powerups.children()) {
                     int id = -1;
                     try {
-                        ReadPowerupInfo(powerup, ham, id);
+                        ReadPowerupInfo(powerup, gameData, id);
                     }
                     catch (const std::exception& e) {
                         SPDLOG_WARN("Error reading powerup {}\n{}", id, e.what());

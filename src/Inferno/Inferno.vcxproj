@@ -231,6 +231,9 @@
     <None Include="d1\game.yml" />
     <None Include="d1\lights.yml" />
     <None Include="d1\material.yml" />
+    <None Include="d2\game.yml" />
+    <None Include="d2\lights.yml" />
+    <None Include="d2\material.yml" />
     <None Include="shaders\AutomapOutline.hlsl">
       <DeploymentContent>true</DeploymentContent>
       <FileType>Document</FileType>
