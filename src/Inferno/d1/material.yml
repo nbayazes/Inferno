@@ -310,14 +310,15 @@ Materials:
     Roughness: 0.319
   - Name: rock001
     NormalStrength: 0.86
-    Roughness: 0.635
+    Roughness: 0.663
     LightReceived: 0.65
   - Name: rock021
     NormalStrength: 2
     Roughness: 0.7
   - Name: rock071
     NormalStrength: 1.6
-    Roughness: 0.7
+    SpecularStrength: 0.404
+    Roughness: 0.65
     LightReceived: 1.5
   - Name: rock002
     NormalStrength: 0.6
@@ -347,12 +348,12 @@ Materials:
     Roughness: 0.666
   - Name: rock014
     NormalStrength: 4
-    SpecularStrength: 0.62
-    Roughness: 0.8
+    SpecularStrength: 0.441
+    Roughness: 0.748
     LightReceived: 1.5
   - Name: rock019
     SpecularStrength: 0.5
-    Roughness: 0.65
+    Roughness: 0.601
   - Name: rock020
     NormalStrength: 1.5
     Roughness: 0.725
@@ -485,7 +486,7 @@ Materials:
     SpecularColor: '0.814, 0.282, 0, 1'
   - Name: rock113
     NormalStrength: 0.624
-    Roughness: 0.6
+    Roughness: 0.794
   - Name: rock117
     NormalStrength: 0.666
     SpecularStrength: 0.791
@@ -593,12 +594,12 @@ Materials:
   - Name: rock184
     NormalStrength: 0.807
     SpecularStrength: 0.394
-    Roughness: 0.7
+    Roughness: 0.568
     LightReceived: 0.508
   - Name: rock185
     NormalStrength: -0.797
-    Metalness: 0.847
-    Roughness: 0.589
+    Metalness: 0.903
+    Roughness: 0.51
     SpecularColor: '0.956, 0.238, 1, 2'
   - Name: rock187
     NormalStrength: 0.4
@@ -1383,7 +1384,7 @@ Materials:
     Roughness: 0.396
     LightReceived: 1.5
   - Name: exit02
-    Roughness: 0.548
+    Roughness: 0.665
   - Name: ceil001
     NormalStrength: 0.512
     Roughness: 0.581
@@ -1428,7 +1429,7 @@ Materials:
     NormalStrength: 0.657
     SpecularStrength: 0.5
     Metalness: 0.402
-    Roughness: 0.493
+    Roughness: 0.563
     LightReceived: 1.5
   - Name: ceil015
     NormalStrength: 0.799
