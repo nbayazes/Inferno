@@ -458,10 +458,11 @@ namespace Inferno::Render {
 
     void CopyMaterialData(ID3D12GraphicsCommandList* cmdList) {
         auto materials = Resources::GetAllMaterials();
-        List<GpuMaterialInfo> gpuMaterials;
-        gpuMaterials.resize(materials.size());
+        static List<GpuMaterialInfo> gpuMaterials;
+        gpuMaterials.clear();
+        gpuMaterials.resize(Render::MATERIAL_COUNT);
 
-        for (size_t i = 0; i < materials.size(); i++) {
+        for (size_t i = 0; i < materials.size() && i < gpuMaterials.size(); i++) {
             gpuMaterials[i] = materials[i]; // slices off the extra editor data
         }
 

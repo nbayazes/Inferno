@@ -240,6 +240,7 @@ namespace Inferno {
         style.FrameRounding = 0;
         style.ItemSpacing.x *= Shell::DpiScale;
         style.ItemSpacing.y *= Shell::DpiScale;
+        style.DisabledAlpha = 0.15f;
 
         //// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
         //ImGuiStyle& style = ImGui::GetStyle();

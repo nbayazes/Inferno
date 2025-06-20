@@ -196,6 +196,9 @@ namespace Inferno::Resources {
     const string_view GetSecondaryNameShort(bool descent1, SecondaryWeaponIndex id);
 
     bool LoadGameTables(LoadFlag flags, FullGameData& dest = GameData);
+
+    // Merges materials from individual tables. Must be called after adding or removing entries from a table.
+    void MergeMaterials(const Level& level);
     //bool LoadLightTables(LoadFlag flags);
     //bool LoadMaterialTables(LoadFlag flags);
     //void LoadDataTables(LoadFlag flags);
@@ -207,6 +210,9 @@ namespace Inferno::Resources {
 
     // Returns a material from the merged materials
     MaterialInfo& GetMaterial(TexID id);
+
+    // Returns a material from the merged materials
+    MaterialInfo* TryGetMaterial(TexID id);
 
     // Returns all merged materials
     span<MaterialInfo> GetAllMaterials();

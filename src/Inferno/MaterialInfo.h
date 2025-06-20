@@ -61,10 +61,113 @@ namespace Inferno {
         }
     };
 
-    using MaterialTable = List<MaterialInfo>;
-
     void SaveMaterialTable(std::ostream& stream, span<MaterialInfo> materials);
-    MaterialTable LoadMaterialTable(const string& yaml);
+    List<MaterialInfo> LoadMaterialTable(const string& yaml);
+
+    class MaterialTable {
+        List<MaterialInfo> _materials;
+
+    public:
+        //void Merge(span<MaterialInfo> source) {
+        //    for (auto& material : source) {
+        //        AddOrUpdate(material, material.Name);
+        //    }
+        //}
+
+        bool IsModified(const MaterialTable& original) const {
+            // Check for deletions or additions
+            if (_materials.size() != original._materials.size())
+                return true;
+
+            // Check for individual material changes
+            for (auto& material : _materials) {
+                if (material.Modified) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        MaterialInfo* Find(string_view name) {
+            return Seq::find(_materials, [name](const MaterialInfo& mat) {
+                return mat.Name == name;
+            });
+        }
+
+        span<MaterialInfo> Data() { return _materials; }
+        span<const MaterialInfo> Data() const { return _materials; }
+
+        // Gets a material or creates a new default material with the given name
+        MaterialInfo& GetOrAdd(string_view name) {
+            ASSERT(!name.empty());
+
+            if (auto existing = Find(name)) {
+                return *existing;
+            }
+            else {
+                auto& material = _materials.emplace_back();
+                material.Name = name;
+                return material;
+            }
+        }
+
+        bool Erase(string_view name) {
+            return std::erase_if(_materials, [name](auto& mat) { return mat.Name == name; }) > 0;
+        }
+
+        // Adds a material or updates an existing material using the given name
+        MaterialInfo& AddOrUpdate(const MaterialInfo& info, string_view name) {
+            MaterialInfo material = info;
+            material.Name = name;
+
+            if (auto existing = Find(name)) {
+                *existing = material;
+                return *existing;
+            }
+            else {
+                return _materials.emplace_back(material);
+            }
+        }
+
+        void Save(std::ostream& stream) {
+            SaveMaterialTable(stream, _materials);
+        }
+
+        static MaterialTable Load(const string& yaml, TableSource source) {
+            MaterialTable table;
+            table._materials = LoadMaterialTable(yaml);
+
+            for (auto& material : table._materials) {
+                material.Source = source;
+            }
+
+            return table;
+        }
+    };
+
+    // Similar to material table, but assigns named textures to specific indices
+    class IndexedMaterialTable {
+        List<MaterialInfo> _materials;
+
+    public:
+        void Add(MaterialInfo& material);
+
+        void Merge(MaterialTable& table) {
+            for (auto& material : table.Data()) {
+                Add(material);
+            }
+        }
+
+        void Reset(size_t capacity) {
+            _materials.clear();
+            _materials.resize(capacity);
+        }
+
+        span<MaterialInfo> Data() { return _materials; }
+
+        void ExpandAnimatedFrames();
+    };
 
     // Materials loaded from the game data folders. Only contains entries that exist in the file.
     // Refer to Resources::Materials for the merged table

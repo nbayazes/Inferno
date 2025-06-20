@@ -223,6 +223,12 @@ namespace Inferno {
 
             doc["Materials"] |= ryml::SEQ;
 
+            // sort materials so save order is consistent
+            //Seq::sortBy(materials, [](const MaterialInfo& a, const MaterialInfo& b) {
+            //    //return a.Name < b.Name;
+            //    return _stricmp(a.Name.c_str(), b.Name.c_str()) < 0;
+            //});
+
             for (auto& material : materials) {
                 //if (material.ID == (int)TexID::None || material.ID == (int)Render::SHINY_FLAT_MATERIAL) continue;
                 auto node = doc["Materials"].append_child();
@@ -233,6 +239,50 @@ namespace Inferno {
         }
         catch (const std::exception& e) {
             SPDLOG_ERROR("Error saving level metadata:\n{}", e.what());
+        }
+    }
+
+    void IndexedMaterialTable::Add(MaterialInfo& material) {
+        auto texId = Resources::FindTexture(material.Name);
+        if (Seq::inRange(_materials, (int)texId)) {
+            material.ID = (int)texId;
+            _materials[(int)texId] = material;
+        }
+    }
+    void IndexedMaterialTable::ExpandAnimatedFrames() {
+        for (auto& material : _materials) {
+            auto dclipId = Resources::GetDoorClipID(Resources::LookupLevelTexID((TexID)material.ID));
+            auto& dclip = Resources::GetDoorClip(dclipId);
+
+            // copy material from base frame to all frames of door
+            material.ID = -1; // unset ID so it doesn't get saved later for individual frames
+
+            for (int i = 1; i < dclip.NumFrames; i++) {
+                auto frameId = Resources::LookupTexIDFromData(dclip.Frames[i], Resources::GameData);
+                if (Seq::inRange(_materials, (int)frameId)) {
+                    _materials[(int)frameId] = material;
+                }
+            }
+        }
+
+        // Expand materials to all frames in effects
+        for (auto& effect : Resources::GameData.Effects) {
+            for (int i = 1; i < effect.VClip.NumFrames; i++) {
+                auto src = effect.VClip.Frames[0];
+                auto dest = effect.VClip.Frames[i];
+                if (Seq::inRange(_materials, (int)src) && Seq::inRange(_materials, (int)dest))
+                    _materials[(int)dest] = _materials[(int)src];
+            }
+        }
+
+        // Hard code special flat material
+        if (_materials.size() >= (int)Render::SHINY_FLAT_MATERIAL) {
+            auto& flat = _materials[(int)Render::SHINY_FLAT_MATERIAL];
+            flat.ID = (int)Render::SHINY_FLAT_MATERIAL;
+            flat.Metalness = 1.0f;
+            flat.Roughness = 0.375f;
+            flat.LightReceived = 0.5f;
+            flat.SpecularStrength = 0.8f;
         }
     }
 }

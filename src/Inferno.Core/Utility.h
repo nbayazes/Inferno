@@ -651,17 +651,27 @@ namespace Inferno {
         // Returns true if two strings are equal ignoring capitalization
         inline bool InvariantEquals(const string_view s1, const string_view s2) {
             // string views might not be null terminated
-            return _stricmp(string{ s1 }.data(), string{ s2 }.data()) == 0;
+            return _stricmp(string{ s1 }.c_str(), string{ s2 }.c_str()) == 0;
+        }
+
+        // Returns true if two strings are equal ignoring capitalization
+        inline bool InvariantEquals(const string& s1, const string& s2) {
+            return _stricmp(s1.c_str(), s2.c_str()) == 0;
         }
 
         // Returns true if two strings are equal ignoring capitalization, up to a number of characters
         inline bool InvariantEquals(const string_view s1, const string_view s2, size_t maxCount) {
-            return _strnicmp(string{ s1 }.data(), string{ s2 }.data(), maxCount) == 0;
+            return _strnicmp(string{ s1 }.c_str(), string{ s2 }.c_str(), maxCount) == 0;
         }
 
         // Returns true if two strings are equal ignoring capitalization
         inline bool InvariantEquals(const wstring_view s1, const wstring_view s2) {
-            return _wcsicmp(wstring{ s1 }.data(), wstring{ s2 }.data()) == 0;
+            return _wcsicmp(wstring{ s1 }.c_str(), wstring{ s2 }.c_str()) == 0;
+        }
+
+        // Returns < 0 when s1 < s2, 0 if equal, and > 0 when s2 > s1
+        inline int InvariantComparison(const string_view s1, const string_view s2) {
+            return _stricmp(string{ s1 }.c_str(), string{ s2 }.c_str());
         }
 
         // Returns the file name without the extension. Returns original string if no extension.
