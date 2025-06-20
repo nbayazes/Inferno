@@ -341,8 +341,8 @@ namespace Inferno {
         // Increase number of activations on ace and insane.
         // Replaces the infinite spawns on insane that D2 added.
         int8 activations = 3;
-        if (Game::Difficulty == DifficultyLevel::Ace) activations = 4;
-        if (Game::Difficulty >= DifficultyLevel::Insane) activations = 5;
+        //if (Game::Difficulty == DifficultyLevel::Ace) activations = 4;
+        //if (Game::Difficulty >= DifficultyLevel::Insane) activations = 5;
 
         for (auto& matcen : level.Matcens) {
             matcen.Activations = activations;

@@ -15,7 +15,7 @@ namespace Inferno {
     constexpr uint AI_ALLY_FLEE_MIN = 2; // Will flee if fewer than this number of robots are in combat (counting self)
     constexpr float AI_HELP_SEARCH_RADIUS = 600;
     constexpr float AI_HELP_MIN_SEARCH_RADIUS = 200; // Looks weird to run to a nearby ally
-    constexpr float AI_MINE_LAYER_DELAY = 5; // Seconds between robots dropping mines
+    constexpr float AI_MINE_LAYER_DELAY = 6; // Seconds between robots dropping mines
     constexpr float AI_DOOR_AWARENESS_RADIUS = 160; // Alert distance of opening a door
     constexpr float AI_CURIOSITY_INTERVAL = 5.0f; // Interval to decide to investigate a noise
     constexpr float AI_VISION_FALLOFF_NEAR = 100.0f; // Vision starts getting worse at this range
