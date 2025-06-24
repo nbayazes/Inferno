@@ -445,7 +445,7 @@ namespace Inferno::Editor {
 
             ImGui::SetNextWindowSize({ 110 * Shell::DpiScale, 0 });
             if (ImGui::BeginCombo("##drp", nullptr, ImGuiComboFlags_NoPreview)) {
-                static constexpr float snapValues[] = { 0, 20.0f / 64, 1, 2.5f, 5, 10, 20 };
+                static constexpr float snapValues[] = { 0, 20.0f / 64, 0.5f, 1, 2.5f, 5, 10, 20 };
                 for (int i = 0; i < std::size(snapValues); i++) {
                     auto label = i == 1 ? "Pixel" : fmt::format("{:.1f}", snapValues[i]);
                     if (ImGui::Selectable(label.c_str()))
