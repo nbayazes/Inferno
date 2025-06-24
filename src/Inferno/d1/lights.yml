@@ -48,8 +48,8 @@ Lights:
       Width: 0.1
       Color: 1, .88, .88, .3
       Radius: 40
-      Angle: 85
-      InnerAngle: 60
+      Angle: 89
+      InnerAngle: 75
       
     - Name: metl133 # red
       Type: 2
@@ -58,8 +58,8 @@ Lights:
       Width: 0.1
       Color: 1, .01, .01, .4
       Radius: 40
-      Angle: 85
-      InnerAngle: 60
+      Angle: 89
+      InnerAngle: 75
       
     - Name: metl134 # blue
       Type: 2
@@ -68,8 +68,8 @@ Lights:
       Width: 0.1
       Color: .05, .05, 1, .6 # blue is perceptually darker than green and blue
       Radius: 40
-      Angle: 85
-      InnerAngle: 60
+      Angle: 89
+      InnerAngle: 75
   
     - Name: metl135 # yellow
       Type: 2
@@ -78,8 +78,8 @@ Lights:
       Width: 0.1
       Radius: 40
       Color: 1, 0.75, 0, .33 # yellow has more energy than blue and red
-      Angle: 85
-      InnerAngle: 60
+      Angle: 89
+      InnerAngle: 75
 
     # Yellow ceiling lights
     - Name: ceil002  # Big rectangle
@@ -324,7 +324,7 @@ Lights:
       Color: 1, 0.443, 0.027, 0.3
 
     - Name: Headlight # Player ship headlight
-      Color: 0.6, 0.6, 1, .6
+      Color: 0.6, 0.6, 1, 1
       # Color: 1, 0.7, 0.4, .5
       Radius: 180
       Angle: 22.5
@@ -332,7 +332,7 @@ Lights:
       ConeSpill: 0.015 # Very slightly illuminate the surrounding area
 
     - Name: Boosted Headlight # Player ship headlight with powerup
-      Color: 0.6, 0.6, 1, .6
+      Color: 0.6, 0.6, 1, 1
       Radius: 300
       Angle: 35
       InnerAngle: 5

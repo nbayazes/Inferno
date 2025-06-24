@@ -173,7 +173,7 @@ float Attenuate(float lightDist, float lightRadius) {
     // https://lisyarus.github.io/blog/posts/point-light-attenuation.html
     float s = lightDist / lightRadius;
     if (s >= 1) return 0;
-    const float f = 1; // controls falloff curve
+    const float f = 2; // controls falloff curve, higher is faster falloff
     const float s2 = s * s;
     return pow(1 - s2, 2) / (1 + f * s2);
 }

@@ -73,9 +73,26 @@ float4 Sample2D(Texture2D tex, float2 uv, SamplerState texSampler, int filterMod
     uvTex = (uvTex - seam) / fwidth(uvTex) + seam;
 
     uvTex = clamp(uvTex, seam - .5, seam + .5);
-    float4 color = tex.SampleBias(texSampler, uvTex / texsize, -1); // Negative LOD bias reduces artifacting at low res
-    return color;
+    return tex.SampleBias(texSampler, uvTex / texsize, -1); // Negative LOD bias reduces artifacting at low res
 }
+
+// Alternative implementation of Sample2D, no visible difference?
+//float4 Sample2D__(Texture2D tex, float2 uv, SamplerState texSampler, int filterMode) {
+//    if (filterMode == FILTER_POINT)
+//        return tex.SampleLevel(texSampler, uv, 0); // always use biggest LOD in point mode
+//    if (filterMode == FILTER_SMOOTH)
+//        return tex.Sample(texSampler, uv); // Normal filtering for smooth mode
+
+//    float width, height;
+//    tex.GetDimensions(width, height);
+//    float2 texsize = float2(width, height); // 64x64
+
+//    float2 boxSize = clamp(fwidth(uv) * 1 * texsize, 1e-5, 1);
+//    float2 tx = uv * texsize - 0.5 * boxSize;
+//    float2 txOffset = smoothstep(1 - boxSize, 1, frac(tx));
+//    float2 sampleuv = (floor(tx) + 0.5 + txOffset) / texsize;
+//    return tex.SampleGrad(texSampler, sampleuv, ddx(uv), ddy(uv));
+//}
 
 float3 SampleNormal(Texture2D tex, float2 uv, SamplerState texSampler, int filterMode) {
     float3 color;
