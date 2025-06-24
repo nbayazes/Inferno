@@ -112,8 +112,11 @@ namespace Inferno::Editor {
         }
 
         void OpenBriefing(const HogEntry& entry) {
-            auto data = Game::Mission->ReadEntry(entry);
-            _briefing = Briefing::Read(data, Game::Level.IsDescent1());
+            {
+                HogReader mission(Game::Mission->Path);
+                auto data = mission.ReadEntry(entry.Name);
+                _briefing = Briefing::Read(data, Game::Level.IsDescent1());
+            }
 
             string briefing = "briefing.txb";
             string ending = "ending.txb";

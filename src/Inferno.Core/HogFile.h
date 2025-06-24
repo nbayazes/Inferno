@@ -1,5 +1,4 @@
 #pragma once
-#include <fstream>
 #include "Streams.h"
 #include "Types.h"
 #include "Utility.h"
@@ -40,30 +39,14 @@ namespace Inferno {
         }
     };
 
+    List<ubyte> ReadHogEntry(StreamReader stream, const HogEntry& entry);
+
     // Contains menu backgrounds, palettes, music, levels
     // A hog file is simply a list of files joined together with name and length headers.
     class HogFile {
     public:
         List<HogEntry> Entries;
         filesystem::path Path;
-
-        // Reads data from an entry. Can come from the HogFile Path or a file system path.
-        List<ubyte> ReadEntry(const HogEntry& entry) const;
-
-        List<ubyte> ReadEntry(string_view name) const {
-            return ReadEntry(FindEntry(name));
-        }
-
-        // Tries to read an entry, returns empty data if invalid.
-        Option<List<ubyte>> TryReadEntry(int index) const;
-        Option<List<ubyte>> TryReadEntry(string_view entry) const;
-
-        // Tries to read an entry as ASCII text
-        Option<string> TryReadEntryAsString(string_view entry) const {
-            auto data = TryReadEntry(entry);
-            if (!data) return {};
-            return string((char*)data->data(), data->size());
-        }
 
         bool Exists(string_view entry) const;
         const HogEntry& FindEntry(string_view entry) const;
@@ -126,23 +109,51 @@ namespace Inferno {
         }
     };
 
+    // Creates a new hog file and writes to it
     class HogWriter {
-        std::ofstream _stream;
         StreamWriter _writer;
-        int _entries = 0;
-        //static constexpr int MAX_ENTRIES = 250;
     public:
-        HogWriter(const filesystem::path& path) : _stream(path, std::ios::binary), _writer(_stream) {
+        HogWriter(const filesystem::path& path) : _writer(path) {
             _writer.WriteString("DHF", 3);
         }
 
-        void WriteEntry(string_view name, span<ubyte> data) {
-            if (data.empty()) return;
-            //if (_entries >= MAX_ENTRIES) throw Exception("Cannot have more than 250 entries!");
-            _writer.WriteString(string(name), 13);
-            _writer.Write((int32)data.size());
-            _writer.WriteBytes(data);
-            _entries++;
+        void WriteEntry(string_view name, span<ubyte> data);
+    };
+
+    // Opens a hog file for reading. Locks the file for the lifetime of the object.
+    class HogReader {
+        StreamReader _reader;
+        List<HogEntry> _entries;
+        filesystem::path _path;
+        //static constexpr int MAX_ENTRIES = 250;
+    public:
+        HogReader(filesystem::path path);
+
+        // Tries to read an entry from the hog
+        Option<List<ubyte>> TryReadEntry(string_view name);
+
+        // Reads an entry from the hog and throws if it is not found
+        List<ubyte> ReadEntry(string_view name) {
+            if(auto entry = TryReadEntry(name))
+                return *entry;
+
+            throw Exception(fmt::format("Unable to read file `{}` from `{}`", name, _path.string()));
+        }
+
+        // Tries to read an entry as ASCII text
+        Option<string> TryReadEntryAsString(string_view entry) {
+            auto data = TryReadEntry(entry);
+            if (!data) return {};
+            return string((char*)data->data(), data->size());
+        }
+    private:
+        const Option<HogEntry> TryFindEntry(string_view entry) const {
+            for (auto& e : _entries)
+                if (String::InvariantEquals(e.Name, entry)) return e;
+
+            return {};
         }
     };
+
+    List<HogEntry> ReadHogEntries(StreamReader& reader);
 }

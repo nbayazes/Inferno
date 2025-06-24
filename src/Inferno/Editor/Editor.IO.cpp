@@ -105,10 +105,15 @@ namespace Inferno::Editor {
             }
 
             // Insert vertigo data
-            auto xhog = HogFile::Read(FileSystem::FindFile("d2x.hog"));
-            auto vertigoData = xhog.ReadEntry("d2x.ham");
-            writer.WriteEntry(hamName, vertigoData);
-            SPDLOG_INFO("Copied Vertigo d2x.ham into HOG");
+            HogReader xhog(FileSystem::FindFile("d2x.hog"));
+
+            if (auto vertigoData = xhog.TryReadEntry("d2x.ham")) {
+                writer.WriteEntry(hamName, *vertigoData);
+                SPDLOG_INFO("Copied Vertigo d2x.ham into HOG");
+            }
+            else {
+                SPDLOG_ERROR("d2x.ham not found in d2x.hog, unable to add vertigo data");
+            }
         }
         catch (const std::exception& e) {
             SPDLOG_ERROR("Unable to add vertigo data: {}", e.what());
@@ -137,8 +142,8 @@ namespace Inferno::Editor {
     }
 
     // Writes a HOG file and updates the level
-    void WriteHog(Level& level, HogFile& mission, filesystem::path path) {
-        filesystem::path tempPath = path;
+    void WriteHog(Level& level, HogFile& mission, filesystem::path hogDest) {
+        filesystem::path tempPath = hogDest;
         tempPath.replace_extension(".tmp");
 
         try {
@@ -148,6 +153,8 @@ namespace Inferno::Editor {
             auto baseName = String::NameWithoutExtension(level.FileName);
             auto metadataName = baseName + METADATA_EXTENSION;
             HogWriter writer(tempPath); // write to temp
+            HogReader reader(mission.Path);
+
             fmt::print("Copying existing HOG files:\n");
 
             for (auto& entry : mission.Entries) {
@@ -160,7 +167,7 @@ namespace Inferno::Editor {
                         continue;
                 }
 
-                auto data = mission.ReadEntry(entry);
+                auto data = reader.ReadEntry(entry.Name);
                 writer.WriteEntry(entry.Name, data);
                 fmt::print("{}:{}\n", entry.Name, data.size());
             }
@@ -178,7 +185,7 @@ namespace Inferno::Editor {
             fmt::print("{}:{} ", metadataName, levelMetadata.size());
 
             if (level.IsVertigo() && !mission.ContainsFileType(".ham"))
-                AppendVertigoData(writer, path.stem().string() + ".ham");
+                AppendVertigoData(writer, hogDest.stem().string() + ".ham");
 
             if (Resources::CustomTextures.Any()) {
                 if (mission.IsDescent1()) {
@@ -199,13 +206,13 @@ namespace Inferno::Editor {
         }
         catch (const std::exception& e) {
             ShowErrorMessage(e);
-            SPDLOG_ERROR(path.string() + ": " + e.what());
+            SPDLOG_ERROR(hogDest.string() + ": " + e.what());
             return;
         }
 
-        BackupFile(path);
-        filesystem::remove(path); // Remove existing
-        filesystem::rename(tempPath, path); // Rename temp to destination
+        BackupFile(hogDest);
+        filesystem::remove(hogDest); // Remove existing
+        filesystem::rename(tempPath, hogDest); // Rename temp to destination
         fmt::print("\n");
     }
 
@@ -254,10 +261,12 @@ namespace Inferno::Editor {
         auto originalName = String::NameWithoutExtension(level.FileName);
 
         if (Game::Mission) {
+            HogReader reader(Game::Mission->Path);
+
             for (auto& entry : Game::Mission->Entries) {
                 // Copy any matching files from the HOG as loose files
                 if (String::InvariantEquals(entry.NameWithoutExtension(), originalName)) {
-                    auto data = Game::Mission->ReadEntry(entry);
+                    auto data = reader.ReadEntry(entry.Name);
                     auto fpath = folder / (newFileName + entry.Extension());
                     try {
                         File::WriteAllBytes(fpath, data);
@@ -423,6 +432,8 @@ namespace Inferno::Editor {
         bool wroteHam = false;
 
         if (mission) {
+            HogReader reader(mission->Path);
+
             auto missionFileName = mission->GetMissionPath().stem().string();
             auto baseName = String::NameWithoutExtension(level.FileName);
 
@@ -434,13 +445,13 @@ namespace Inferno::Editor {
                     continue; // skip custom textures and the level as they are written after
 
                 if (String::InvariantEquals(entry.NameWithoutExtension(), baseName)) {
-                    auto data = mission->ReadEntry(entry);
+                    auto data = reader.ReadEntry(entry.Name);
                     writer.WriteEntry("_test" + entry.Extension(), data);
                 }
 
                 // Copy HAM if present
                 if (entry.IsHam() && String::InvariantEquals(entry.NameWithoutExtension(), missionFileName)) {
-                    auto data = mission->ReadEntry(entry);
+                    auto data = reader.ReadEntry(entry.Name);
                     writer.WriteEntry("_test.ham", data);
                     wroteHam = true;
                 }

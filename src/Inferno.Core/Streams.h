@@ -251,6 +251,7 @@ namespace Inferno {
         std::ostream* _stream;
         std::streampos _start = std::streampos(0);
         std::unique_ptr<std::ofstream> _fileStream;
+        std::filesystem::path _path;
 
     public:
         // Creates a stream writer over an output stream.
@@ -261,14 +262,18 @@ namespace Inferno {
         }
 
         // Creates a file writer at the given path
-        StreamWriter(std::filesystem::path file) {
-            _fileStream = std::make_unique<std::ofstream>(file, std::ios::binary);
+        StreamWriter(std::filesystem::path path) {
+            _fileStream = std::make_unique<std::ofstream>(path, std::ios::binary);
             if (_fileStream->bad())
-                throw Exception(fmt::format("Unable to open file stream: {}", file.string()));
+                throw Exception(fmt::format("Unable to open file stream: {}", path.string()));
 
             _stream = _fileStream.get();
             _start = _stream->tellp();
+            _path = path;
         }
+
+        // Gets the path this writer was opened with. Will be empty if created using a stream.
+        const filesystem::path& Path() { return _path; };
 
         template<class T>
         void Write(const T value) {

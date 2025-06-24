@@ -128,6 +128,8 @@ namespace Inferno::Editor {
                     }
                 }
 
+                _modified = false;
+
                 // Reload data tables after saving
                 Resources::LoadDataTables(Game::Level);
             }

@@ -332,8 +332,11 @@ namespace Inferno::Resources {
     List<ubyte> TryReadMissionFile(const filesystem::path& path) {
         // Search mounted mission first
         auto fileName = path.filename().string();
-        if (Game::Mission && Game::Mission->Exists(fileName))
-            return Game::Mission->ReadEntry(fileName);
+
+        if (Game::Mission && Game::Mission->Exists(fileName)) {
+            HogReader reader(Game::Mission->Path);
+            return reader.ReadEntry(fileName);
+        }
 
         // Then the filesystem
         if (filesystem::exists(path))
@@ -346,12 +349,16 @@ namespace Inferno::Resources {
     // Searches the mounted mission, then the hog, then the filesystem
     List<ubyte> ReadGameResource(string file) {
         // Search mounted mission first
-        if (Game::Mission && Game::Mission->Exists(file))
-            return Game::Mission->ReadEntry(file);
+        if (Game::Mission && Game::Mission->Exists(file)) {
+            HogReader reader(Game::Mission->Path);
+            return reader.ReadEntry(file);
+        }
 
         // Then main hog file
-        if (GameData.hog.Exists(file))
-            return GameData.hog.ReadEntry(file);
+        if (GameData.hog.Exists(file)) {
+            HogReader reader(GameData.hog.Path);
+            return reader.ReadEntry(file);
+        }
 
         // Then the filesystem
         if (auto path = FileSystem::TryFindFile(file))
@@ -542,7 +549,8 @@ namespace Inferno::Resources {
             }
 
             auto hog = HogFile::Read(hogPath);
-            auto paletteData = hog.ReadEntry("palette.256");
+            HogReader reader(hogPath);
+            auto paletteData = reader.ReadEntry("palette.256");
             auto palette = ReadPalette(paletteData);
             auto pigData = File::ReadAllBytes(pigPath);
 
@@ -600,18 +608,19 @@ namespace Inferno::Resources {
 
             auto pigData = File::ReadAllBytes(pigPath);
             auto hog = HogFile::Read(FileSystem::FindFile(hogPath));
+            HogReader reader(hog.Path);
             ReadD1Pig(pigData, pig, sounds);
             sounds.Path = pig.Path = pigPath;
             sounds.Compressed = true;
 
-            auto table = hog.ReadEntry("bitmaps.bin");
-            auto paletteData = hog.ReadEntry("palette.256");
+            auto table = reader.ReadEntry("bitmaps.bin");
+            auto paletteData = reader.ReadEntry("palette.256");
             auto palette = ReadPalette(paletteData);
 
             // Load and fix raw POF files from HOG
             for (auto& entry : hog.Entries) {
                 if (entry.Name.ends_with(".pof")) {
-                    auto modelData = hog.TryReadEntry(entry.Name);
+                    auto modelData = reader.TryReadEntry(entry.Name);
                     if (!modelData) {
                         SPDLOG_WARN("No model data found for {}", entry.Name);
                         continue;
@@ -708,10 +717,10 @@ namespace Inferno::Resources {
     //    }
     //};
 
-    void LoadPalette(FullGameData& data, string_view palette) {
+    void LoadPalette(FullGameData& data, string_view palette, HogReader& hog) {
         // Find the 256 for the palette first. In most cases it is located inside of the hog.
         // But for custom palettes it is on the filesystem
-        auto paletteData = data.hog.TryReadEntry(palette);
+        auto paletteData = hog.TryReadEntry(palette);
         auto pigName = ReplaceExtension(palette, ".pig");
         auto pigPath = FileSystem::FindFile(pigName);
 
@@ -723,12 +732,12 @@ namespace Inferno::Resources {
             }
             else {
                 // Give up and load groupa
-                paletteData = data.hog.ReadEntry("GROUPA.256");
+                paletteData = hog.TryReadEntry("GROUPA.256");
             }
         }
 
         data.pig = ReadPigFile(pigPath);
-        data.palette = ReadPalette(*paletteData);
+        if (paletteData) data.palette = ReadPalette(*paletteData);
     }
 
     bool LoadDescent2Data() {
@@ -749,6 +758,7 @@ namespace Inferno::Resources {
 
             auto ham = ReadHam(reader);
             auto hog = HogFile::Read(FileSystem::FindFile("descent2.hog"));
+            HogReader hogReader(hog.Path);
 
             // Everything loaded okay, set data
             Descent2 = FullGameData(ham, FullGameData::Descent2);
@@ -758,7 +768,7 @@ namespace Inferno::Resources {
                 Descent2.sounds = ReadSoundFile(*s22);
             }
 
-            LoadPalette(Descent2, "groupa.256"); // default to groupa
+            LoadPalette(Descent2, "groupa.256", hogReader); // default to groupa
             Descent2.bitmaps = ReadAllBitmaps(Descent2.pig, Descent2.palette);
 
             // todo: write other caches?
@@ -792,8 +802,14 @@ namespace Inferno::Resources {
     void LoadStringTable(const HogFile& hog) {
         StringTable.clear();
         StringTable.reserve(700);
-        auto data = hog.ReadEntry("descent.txb");
-        auto text = DecodeText(data);
+        HogReader reader(hog.Path);
+        auto data = reader.TryReadEntry("descent.txb");
+        if (!data) {
+            SPDLOG_WARN("Unable to load descent.txb");
+            return;
+        }
+
+        auto text = DecodeText(*data);
 
         std::stringstream ss(text);
         std::string line;
@@ -1040,7 +1056,9 @@ namespace Inferno::Resources {
             }
             //}
 
-            if (auto data = Game::Mission->TryReadEntry(file)) {
+            HogReader hog(Game::Mission->Path);
+
+            if (auto data = hog.TryReadEntry(file)) {
                 SPDLOG_INFO("Reading {} from mission", file);
                 return data;
             }
@@ -1081,12 +1099,14 @@ namespace Inferno::Resources {
         if (HasFlag(flags, LoadFlag::BaseHog)) {
             if (HasFlag(flags, LoadFlag::Descent1) && Descent1.hog.Exists(file)) {
                 SPDLOG_INFO("Reading {} from descent1.hog", file);
-                return Descent1.hog.TryReadEntry(file);
+                HogReader hog(Descent1.hog.Path);
+                return hog.TryReadEntry(file);
             }
 
             if (HasFlag(flags, LoadFlag::Descent2) && Descent2.hog.Exists(file)) {
                 SPDLOG_INFO("Reading {} from descent2.hog", file);
-                return Descent1.hog.TryReadEntry(file);
+                HogReader hog(Descent2.hog.Path);
+                return hog.TryReadEntry(file);
             }
         }
 
@@ -1356,7 +1376,8 @@ namespace Inferno::Resources {
                 // todo: it is not ideal to reload palettes and their textures each time. Cache them.
                 // Find the 256 for the palette first. In most cases it is located inside of the d2 hog.
                 // But for custom palettes it is on the filesystem
-                auto paletteData = Descent2.hog.TryReadEntry(level.Palette);
+                HogReader d2Hog(Descent2.hog.Path);
+                auto paletteData = d2Hog.TryReadEntry(level.Palette);
                 auto pigName = ReplaceExtension(level.Palette, ".pig");
                 auto pigPath = FileSystem::FindFile(pigName);
 
@@ -1367,8 +1388,8 @@ namespace Inferno::Resources {
                         pigPath = path256->replace_extension(".pig");
                     }
                     else {
-                        // Give up and load groupa
-                        paletteData = Descent2.hog.ReadEntry("GROUPA.256");
+                        // Give up and load groupa, but fail if it's not found
+                        paletteData = d2Hog.ReadEntry("GROUPA.256");
                     }
                 }
 

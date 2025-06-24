@@ -182,7 +182,6 @@ namespace Inferno::Game {
             Game::Terrain = {};
 
             bool isRetail = Game::Mission ? Game::Mission->IsRetailMission() : false;
-            bool hasConfig = false;
 
             auto exitConfigBinary = String::NameWithoutExtension(Level.FileName) + ".txb";
             auto exitConfig = String::NameWithoutExtension(Level.FileName) + ".end"; // Custom extension added to source ports
@@ -192,13 +191,11 @@ namespace Inferno::Game {
                 DecodeText(*data);
                 auto lines = String::ToLines(String::OfBytes(*data));
                 Game::Terrain = ParseEscapeInfo(lines);
-                hasConfig = true;
             }
             else if (auto text = Resources::ReadTextFile(exitConfig, LoadFlag::Mission)) {
                 SPDLOG_INFO("Reading terrain from {}", exitConfig);
                 auto lines = String::ToLines(*text);
                 Game::Terrain = ParseEscapeInfo(lines);
-                hasConfig = true;
             }
             else {
                 SPDLOG_INFO("{} not found. Using default terrain settings", exitConfigBinary);
@@ -324,7 +321,8 @@ namespace Inferno::Game {
             auto ext = Level.IsDescent1() ? "msn" : "mn2";
 
             if (auto entry = mission.FindEntryOfType(ext)) {
-                auto bytes = mission.ReadEntry(*entry);
+                HogReader reader(mission.Path);
+                auto bytes = reader.ReadEntry(entry->Name);
                 string str((char*)bytes.data(), bytes.size());
                 std::stringstream stream(str);
                 info.Read(stream);
@@ -365,10 +363,15 @@ namespace Inferno::Game {
         return -1;
     }
 
+    // reads IED files for the level
     void LoadLevelMetadata(Inferno::Level& level) {
+        if (!Game::Mission) return;
+
         auto metadataFile = String::NameWithoutExtension(level.FileName) + METADATA_EXTENSION;
         filesystem::path path = metadataFile;
-        auto metadata = Game::Mission->TryReadEntryAsString(metadataFile);
+        HogReader hog(Game::Mission->Path);
+
+        auto metadata = hog.TryReadEntryAsString(metadataFile);
 
         if (!metadata) {
             auto mission = String::ToLower(Game::Mission->Path.filename().string());
@@ -403,13 +406,18 @@ namespace Inferno::Game {
     Inferno::Level LoadLevelFromMission(const string& name) {
         ASSERT(Game::Mission);
 
-        auto data = Game::Mission->ReadEntry(name);
+        HogReader hog(Game::Mission->Path);
+
+        auto data = hog.TryReadEntry(name);
+        if (!data) {
+            throw Exception(fmt::format("Level `{}` not found in mission hog", name));
+        }
 
         auto shareware = String::ToLower(name).ends_with(".sdl");
         if (shareware)
             SPDLOG_INFO("Shareware level loaded! Certain functionality will be unavailable.");
 
-        auto level = shareware ? Level::DeserializeD1Demo(data) : Level::Deserialize(data);
+        auto level = shareware ? Level::DeserializeD1Demo(*data) : Level::Deserialize(*data);
         level.FileName = name;
         level.Path = Mission->Path;
 
@@ -495,7 +503,7 @@ namespace Inferno::Game {
                 // Hog file
                 Game::Mission = HogFile::Read(info.Path);
 
-                if (!Game::Mission->TryReadEntry(info.HogEntry)) {
+                if (!Game::Mission->Exists(info.HogEntry)) {
                     // No level specified, try loading the first one
                     auto name = LevelNameByIndex(1);
                     // no levels in mission, create an empty level
@@ -662,8 +670,12 @@ namespace Inferno::Game {
             }
 
             for (auto& ext : extensions) {
+                if (!Game::Mission) continue;
+
                 base.replace_extension(ext);
-                if (auto entry = Game::Mission->TryReadEntry(base.string())) {
+                HogReader hog(Game::Mission->Path);
+
+                if (auto entry = hog.TryReadEntry(base.string())) {
                     Sound::PlayMusic(std::move(*entry), loop);
                     return;
                 }

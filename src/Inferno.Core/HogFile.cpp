@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "HogFile.h"
+#include <spdlog/spdlog.h>
 #include "Pig.h"
 
 namespace Inferno {
@@ -19,36 +20,6 @@ namespace Inferno {
         stream.seekg(offset, stream.beg);
         stream.read((char*)buffer.data(), length);
         return buffer;
-    }
-
-    List<ubyte> HogFile::ReadEntry(const HogEntry& entry) const {
-        if (entry.Path != "") {
-            auto size = filesystem::file_size(entry.Path);
-            if (size == 0) return {};
-
-            std::ifstream src(entry.Path, std::ios::binary);
-            List<ubyte> data(size);
-            src.read((char*)data.data(), size);
-            return data;
-        }
-        else {
-            return ReadFileToMemory(Path, entry.Offset, entry.Size);
-        }
-    }
-
-    Option<List<ubyte>>HogFile::TryReadEntry(int index) const {
-        if (auto entry = Seq::tryItem(Entries, index))
-            return ReadFileToMemory(Path, entry->Offset, entry->Size);
-        else
-            return {};
-    }
-
-    Option<List<ubyte>> HogFile::TryReadEntry(string_view entry) const {
-        for (auto& e : Entries)
-            if (String::InvariantEquals(e.Name, entry)) 
-                return ReadFileToMemory(Path, e.Offset, e.Size);
-
-        return {};
     }
 
     bool HogFile::Exists(string_view entry) const {
@@ -72,10 +43,15 @@ namespace Inferno {
         return nullptr;
     }
 
-    HogFile HogFile::Read(const filesystem::path& file) {
-        HogFile hog{};
-        hog.Path = file;
-        StreamReader reader(file);
+    List<ubyte> ReadHogEntry(StreamReader stream, const HogEntry& entry) {
+        List<ubyte> data(entry.Size);
+        stream.Seek(entry.Offset);
+        stream.ReadBytes(data);
+        return data;
+    }
+
+    List<HogEntry> ReadHogEntries(StreamReader& reader) {
+        List<HogEntry> entries;
 
         auto id = reader.ReadString(3);
         if (id != "DHF") // Descent Hog File
@@ -90,10 +66,48 @@ namespace Inferno {
             //if (entry.Size == 0) throw Exception("Hog entry has size of zero");
             entry.Offset = reader.Position();
             entry.Index = index++;
-            hog.Entries.push_back(entry);
+            entries.push_back(entry);
             reader.SeekForward(entry.Size);
         }
 
+        return entries;
+    }
+
+    HogFile HogFile::Read(const filesystem::path& file) {
+        HogFile hog{};
+        hog.Path = file;
+        StreamReader reader(file);
+        hog.Entries = ReadHogEntries(reader);
         return hog;
+    }
+
+    void HogWriter::WriteEntry(string_view name, span<ubyte> data) {
+        if (data.empty()) return;
+        // the original game seems to indicate an entry limit of 250, but it's unclear if this is enforced
+        //if (_entries >= MAX_ENTRIES) throw Exception("Cannot have more than 250 entries!");
+        if (_writer.Path().empty())
+            SPDLOG_INFO("Writing hog entry: {}", name);
+        else
+            SPDLOG_INFO("Writing {}:{}", _writer.Path().string(), name);
+
+        _writer.WriteString(string(name), 13);
+        _writer.Write((int32)data.size());
+        _writer.WriteBytes(data);
+        //_entries++;
+    }
+
+    HogReader::HogReader(filesystem::path path): _reader(path), _path(std::move(path)) {
+        _entries = ReadHogEntries(_reader);
+    }
+
+    Option<List<ubyte>> HogReader::TryReadEntry(string_view name) {
+        if (auto entry = TryFindEntry(name)) {
+            List<ubyte> data(entry->Size);
+            _reader.Seek(entry->Offset);
+            _reader.ReadBytes(data);
+            return data;
+        }
+
+        return {};
     }
 }

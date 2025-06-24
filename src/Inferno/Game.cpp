@@ -951,22 +951,24 @@ namespace Inferno::Game {
                 auto isShareware = Game::Mission->IsShareware();
 
                 if (!levelEntry.empty()) {
-                    auto data = Game::Mission->ReadEntry(levelEntry);
-                    auto level = isShareware ? Level::DeserializeD1Demo(data) : Level::Deserialize(data);
-                    Resources::LoadLevel(level);
-                    Graphics::LoadLevel(level);
-                    Game::LoadLevel(hogPath, levelEntry, autosave);
+                    HogReader hog(Game::Mission->Path);
+                    if (auto data = hog.TryReadEntry(levelEntry)) {
+                        auto level = isShareware ? Level::DeserializeD1Demo(*data) : Level::Deserialize(*data);
+                        Resources::LoadLevel(level);
+                        Graphics::LoadLevel(level);
+                        Game::LoadLevel(hogPath, levelEntry, autosave);
 
-                    auto briefingName = mission.GetValue("briefing");
+                        auto briefingName = mission.GetValue("briefing");
 
-                    if (showBriefing && !briefingName.empty()) {
-                        ShowBriefing(mission, levelNumber, level, briefingName, false);
+                        if (showBriefing && !briefingName.empty()) {
+                            ShowBriefing(mission, levelNumber, level, briefingName, false);
+                        }
+                        else {
+                            Game::SetState(GameState::LoadLevel);
+                        }
+
+                        return;
                     }
-                    else {
-                        Game::SetState(GameState::LoadLevel);
-                    }
-
-                    return;
                 }
             }
             else if (!levelEntry.empty()) {

@@ -5,15 +5,15 @@
 #include "Game.h"
 #include "Editor/Editor.h"
 #include "Editor/Editor.IO.h"
+#include "FileSystem.h"
 
 namespace Inferno::Editor {
-
     class HogEditor : public ModalWindowBase {
         RenameHogFileDialog _renameDialog;
         List<HogEntry> _entries;
         List<int> _selections;
         bool _onlyShowLevels = true;
-        bool _dirty = false;
+        bool _skipDeleteConfirmation = false;
 
     public:
         HogEditor() : ModalWindowBase("HOG Editor") {
@@ -43,7 +43,6 @@ namespace Inferno::Editor {
 
                 string originalName = renamed.NameWithoutExtension();
                 renamed.Name = newName;
-                _dirty = true;
 
                 // when renaming a level also rename aux files (pog, hxm, ...)
                 if (renamed.IsLevel()) {
@@ -56,12 +55,32 @@ namespace Inferno::Editor {
 
                 SaveChanges(*Game::Mission);
             };
-        };
+        }
+
+        void OnDelete() {
+            if (!_skipDeleteConfirmation && !ShowYesNoMessage("Are you sure you want to delete the selected items?", "Confirm delete")) {
+                return;
+            }
+
+            Seq::sortDescending(_selections);
+            for (auto& i : _selections) {
+                if (String::InvariantEquals(_entries[i].Name, Game::Level.FileName)) {
+                    if (!ShowYesNoMessage("Are you sure you want to delete the currently opened level?", "Confirm delete"))
+                        continue;
+                }
+
+                SPDLOG_INFO("Deleting entry {}", _entries[i].Name);
+                Seq::removeAt(_entries, i);
+            }
+
+            _selections.clear();
+            SaveChanges(*Game::Mission);
+        }
 
         void OnUpdate() override {
-            const float PanelHeight = 600 * Shell::DpiScale;
+            const float panelHeight = 600 * Shell::DpiScale;
 
-            ImGui::BeginChild("list", { 300 * Shell::DpiScale, PanelHeight }, true);
+            ImGui::BeginChild("list", { 300 * Shell::DpiScale, panelHeight }, true);
 
             for (int i = 0; i < _entries.size(); i++) {
                 auto& entry = _entries[i];
@@ -107,7 +126,7 @@ namespace Inferno::Editor {
             ImGui::EndChild();
 
             ImGui::SameLine();
-            ImGui::BeginChild("buttons", { -1, PanelHeight });
+            ImGui::BeginChild("buttons", { -1, panelHeight });
 
             HogEntry* entry = _selections.size() == 1 ? &_entries[_selections[0]] : nullptr;
             {
@@ -148,7 +167,7 @@ namespace Inferno::Editor {
             if (ImGui::Button("Import for\neach level", { -1, 0 }))
                 OnImportToLevels();
 
-            if (ImGui::IsItemHovered()) 
+            if (ImGui::IsItemHovered())
                 ImGui::SetTooltip(
                     "Inserts a copy of a file for each level in the HOG. \n"
                     "It renames each copy to match the level file name.\n\n"
@@ -165,7 +184,6 @@ namespace Inferno::Editor {
             //    if (ImGui::Button("Move up", { -1, 0 })) {
             //        std::swap(_entries[selection - 1], _entries[selection]);
             //        _selections[0]--;
-            //        _dirty = true;
             //    }
             //}
 
@@ -175,34 +193,27 @@ namespace Inferno::Editor {
             //    if (ImGui::Button("Move down", { -1, 0 })) {
             //        std::swap(_entries[selection + 1], _entries[selection]);
             //        _selections[0]++;
-            //        _dirty = true;
             //    }
             //}
 
             ImGui::Dummy({ 0, 10 * Shell::DpiScale });
 
             {
-                DisableControls disable(!entry);
-                if (ImGui::Button("Delete", { -1, 0 })) {
-                    Seq::sortDescending(_selections);
-                    for (auto& i : _selections) {
-                        if (String::InvariantEquals(_entries[i].Name, Game::Level.FileName)) {
-                            if (!ShowYesNoMessage("Are you sure you want to delete the currently opened level?", "Confirm delete"))
-                                continue;
-                        }
-                        Seq::removeAt(_entries, i);
-                    }
-
-                    _selections.clear();
-                    _dirty = true;
-                    SaveChanges(*Game::Mission);
-                }
+                DisableControls disable(_selections.empty());
+                if (ImGui::Button("Delete", { -1, 0 }))
+                    OnDelete();
             }
 
             ImGui::Dummy({ 0, 10 * Shell::DpiScale });
 
+            ImGui::Checkbox("Skip confirmation", &_skipDeleteConfirmation);
+
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Skips the confirmation when deleting items");
+
             if (ImGui::Checkbox("Only show levels", &_onlyShowLevels))
                 _selections.clear();
+
 
             if (entry) {
                 ImGui::Text("Size: %i", entry->Size);
@@ -215,7 +226,6 @@ namespace Inferno::Editor {
 
             _renameDialog.Update();
         }
-
 
     protected:
         bool OnOpen() override {
@@ -238,7 +248,6 @@ namespace Inferno::Editor {
             Game::LoadMission(Game::Mission->Path);
             _entries.clear();
             _selections.clear();
-            _dirty = false;
             _entries = Game::Mission->Entries;
             SortEntries();
         }
@@ -249,10 +258,11 @@ namespace Inferno::Editor {
             tempPath.replace_extension(".tmp");
 
             try {
+                HogReader reader(source.Path);
                 HogWriter writer(tempPath);
 
                 for (auto& entry : _entries) {
-                    auto data = source.ReadEntry(entry);
+                    auto data = reader.ReadEntry(entry.Name);
                     writer.WriteEntry(entry.Name, data);
                 }
             }
@@ -262,11 +272,14 @@ namespace Inferno::Editor {
                 return;
             }
 
-            BackupFile(source.Path);
-            filesystem::remove(source.Path); // Remove existing
-            filesystem::rename(tempPath, source.Path); // Rename temp to destination
-
+            ReplaceDestWithTemp(source.Path, tempPath);
             LoadMission();
+        }
+
+        static void ReplaceDestWithTemp(const filesystem::path& dest, const filesystem::path& temp) {
+            BackupFile(dest); // create backup of original
+            filesystem::remove(dest); // Remove existing
+            filesystem::rename(temp, dest); // Rename temp to destination
         }
 
         static void OpenLevel(const HogEntry& entry) {
@@ -280,7 +293,7 @@ namespace Inferno::Editor {
         }
 
         void SortEntries() {
-            Seq::sortBy(_entries, [](HogEntry& a, HogEntry& b) { return a.Name < b.Name; });
+            Seq::sortBy(_entries, [](const HogEntry& a, const HogEntry& b) { return a.Name < b.Name; });
         }
 
         void OnImport() {
@@ -297,28 +310,47 @@ namespace Inferno::Editor {
                 if (files.empty()) return;
 
                 _selections.clear();
-                _dirty = true;
 
-                for (auto& file : files) {
-                    if (_entries.size() >= HogFile::MAX_ENTRIES)
-                        throw Exception("HOG files can only contain 250 entries");
+                filesystem::path source = Game::Mission->Path;
+                filesystem::path tempPath = source;
+                tempPath.replace_extension(".tmp");
 
-                    auto size = filesystem::file_size(file);
-                    auto shortName = FormatShortFileName(file.filename().string());
+                {
+                    HogReader reader(source);
+                    HogWriter writer(tempPath);
 
-                    if (auto existing = FindEntry(shortName)) {
-                        // Replace duplicates
-                        existing->Path = file;
-                        existing->Size = size;
+                    SPDLOG_INFO("Importing files to {}", Game::Mission->Path.string());
+
+                    // write the existing entries
+                    for (auto& entry : _entries) {
+                        // check if the imported file matches an existing entry and update it
+                        auto importPath = Seq::find(files, [&entry](const filesystem::path& path) {
+                            auto shortName = FormatShortFileName(path.filename().string());
+                            return String::InvariantEquals(entry.Name, shortName);
+                        });
+
+                        if (importPath) {
+                            SPDLOG_INFO("Skipping existing file {} (will insert new copy later)", entry.Name);
+                        }
+                        else {
+                            auto data = reader.ReadEntry(entry.Name);
+                            writer.WriteEntry(entry.Name, data);
+                        }
                     }
-                    else {
-                        HogEntry entry = { .Name = shortName, .Size = size, .Path = file };
-                        _entries.push_back(entry);
-                    }
-                }
 
-                SortEntries();
-                SaveChanges(*Game::Mission);
+                    for (auto& file : files) {
+                        //if (_entries.size() >= HogFile::MAX_ENTRIES)
+                        //    throw Exception("HOG files can only contain 250 entries");
+
+                        SPDLOG_INFO("Inserting file {}", file.string());
+                        auto shortName = FormatShortFileName(file.filename().string());
+                        auto data = File::ReadAllBytes(file);
+                        writer.WriteEntry(shortName, data);
+                    }
+                } // scoped for read/write locks
+
+                ReplaceDestWithTemp(source, tempPath);
+                LoadMission();
             }
             catch (const std::exception& e) {
                 ShowErrorMessage(e);
@@ -369,7 +401,6 @@ namespace Inferno::Editor {
                     throw Exception("HOG files can only contain 250 entries");
 
                 _selections.clear();
-                _dirty = true;
 
                 // Replace existing
                 for (auto& entry : _entries) {
@@ -386,7 +417,6 @@ namespace Inferno::Editor {
                 for (auto& entry : newEntries)
                     _entries.push_back(entry);
 
-                SortEntries();
                 SaveChanges(*Game::Mission);
             }
             catch (const std::exception& e) {
@@ -395,12 +425,15 @@ namespace Inferno::Editor {
         }
 
         // Exports an entry to a destination
-        void ExportEntry(const HogEntry& entry, const filesystem::path& dest) {
-            auto data = Game::Mission->ReadEntry(entry);
-            if (data.empty()) throw Exception("Entry does not exist");
+        static void ExportEntry(const HogEntry& entry, const filesystem::path& dest) {
+            if (!Game::Mission) throw Exception("No hog is loaded");
+
+            HogReader reader(Game::Mission->Path);
+            auto data = reader.TryReadEntry(entry.Name);
+            if (!data) throw Exception("Entry does not exist");
 
             std::ofstream file(dest, std::ios::binary);
-            file.write((char*)data.data(), data.size());
+            file.write((char*)data->data(), data->size());
         }
 
         void ExportFiles() {
@@ -438,10 +471,9 @@ namespace Inferno::Editor {
         }
 
         HogEntry* FindEntry(string_view name) {
-            return Seq::find(_entries, [&name](HogEntry& e) {
+            return Seq::find(_entries, [&name](const HogEntry& e) {
                 return String::InvariantEquals(e.Name, name);
             });
         }
     };
-
 }

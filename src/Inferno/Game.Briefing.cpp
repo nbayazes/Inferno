@@ -272,15 +272,17 @@ vaporization of the facility.
         auto ext = String::ToLower(String::Extension(briefingName));
         Briefing briefing;
 
+        HogReader hog(Game::Mission->Path);
+
         if (ext == "tex") {
             // Plain text
-            auto entry = Game::Mission->TryReadEntryAsString(briefingName);
+            auto entry = hog.TryReadEntryAsString(briefingName);
             if (!entry) return;
             briefing = Briefing::Read(*entry, level.IsDescent1());
         }
         else {
             // assume encoded txb
-            auto entry = Game::Mission->TryReadEntry(briefingName);
+            auto entry = hog.TryReadEntry(briefingName);
             if (!entry) return;
             briefing = Briefing::Read(*entry, level.IsDescent1());
         }
