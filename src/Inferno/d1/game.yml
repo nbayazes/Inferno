@@ -179,6 +179,7 @@ Weapons:
     ExplosionSize: 0.6
     ExplosionTime: 0.4
     Damage: 7.5 # Was 4
+    Speed: 600 # Was 500
     PlayerDamageScale: 0.57 # Adjust so damage equals 4 due to drillers
     Spread: 1.0 # spread in units. Was 1.8. Reduced due to smaller robots being difficult to hit with polygon hit testing.
     AmmoUsage: 10 # Was around 14
@@ -232,10 +233,12 @@ Weapons:
     LightRadius: 14
     LightColor: 0.3, 0.3, 0.75, 1
     Mass: 0.05
-    Damage: 12 # Was 10. Increase damage
-    Speed: 200 # 200
+    Damage: 12 # Was 10. Increase damage. 195 DPS at 13. 180 DPS at 12
+    Speed: 300 # 200
+    Lifetime: 10
+    # DeathSparks: spreadfire death sparks
     Size: .75 # Was 0.5. Increase size to increase area and feel more powerful
-    Spread: 3.0 # Was 3.6. Reduce spread to improve effectiveness at medium range
+    Spread: 3.3 # Was 3.6. Reduce spread to improve effectiveness at medium range
     FlashColor: 1, 1, 1, 1
 
   - id: 13
@@ -260,6 +263,7 @@ Weapons:
     LightColor: .6, .1, 1, 4
     FlashColor: .6, .1, 1, 4
     EnergyUsage: 2
+    Model: 66
     ModelName: FusionBlobNewJ.OOF
     ModelScale: 1 # 0.85 # D3 fusion is huge
     RotationalVelocity: 0, 0, 1.5708
@@ -294,6 +298,7 @@ Weapons:
     LightColor: .6, .1, 1, 4
     FlashColor: .6, .1, 1, 4
     EnergyUsage: 2
+    Model: 66
     ModelName: FusionBlobNewJ.OOF
     ModelScale: 1 # 0.85 # D3 fusion is huge
     RotationalVelocity: 0, 0, 1.5708
@@ -334,7 +339,7 @@ Weapons:
     Damage: [ 8, 12, 18, 23, 30 ] # Changed to D2 values
     # Damage: [ 10, 15, 20, 30, 50 ] # D1 values
     Size: 1 # was 1.5
-    SplashRadius: 30 # Was 40
+    SplashRadius: 35 # Was 40
     SoundRadius: 350 # Large radius so player hears them coming
 
   - id: 15
@@ -368,7 +373,7 @@ Weapons:
     ExplosionColor: 1, 0.25, 0.0, 10
     FlashColor: 1, 0.25, 0.0, 2
     Size: 1 # was 1.5
-    HomingFov: 45
+    HomingFov: 40 # Was 45, but too many reports of missiles looping back after being dodged
     HomingDistance: 300 # Scan for targets in this range
     HomingTurnRate: 300
     Damage: [ 10, 15, 20, 25, 30 ] # Changed to D2 values
@@ -486,8 +491,9 @@ Weapons:
     LightColor: 1, 0.08, 0.08, 0.6
     Size: 1.25 # was 0.2 due odd length ratio
     Recoil: 175
-    HomingFov: 45
+    HomingFov: 40
     HomingDistance: 300
+    HomingTurnRate: 150 # Half the rate of regular homing missiles, these are big and slow
     FlashColor: 0.75, 0.125, 0.125, 2
     SoundRadius: 500
     StunMult: 2 # Max stun whatever we hit
@@ -503,8 +509,9 @@ Weapons:
     Glow: 1, .6, .6, .75
     Size: 1.25
     Recoil: 175
-    HomingFov: 45
+    HomingFov: 40
     HomingDistance: 300
+    HomingTurnRate: 150 # Half the rate of regular homing missiles, these are big and slow
     FlashSize: 12
     FlashColor: 0.75, 0.125, 0.125, 2
     SoundRadius: 500 # Large radius so player hears them coming
@@ -539,6 +546,7 @@ Weapons:
     Name: robot green laser
     Mass: 0.05
     Size: 0.5
+    # FlashSound: 16
     ExplosionSound: LazorHitshrt
     ExplosionTexture: GreenLaserHit
     ExplosionSize: 1.75
@@ -567,9 +575,11 @@ Weapons:
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 24
-    Size: 1.6 # Was size 1
-    LightColor: .0, .8, 1, 1
-    FlashColor: .0, .1, 1, 2
+    Size: 1.4 # Was size 1
+    # LightColor: 1, .1, .8, 1
+    # FlashColor: .01, .0, 1, 2
+    LightColor: 0.4, .0, 1, 1
+    FlashColor: 0.4, .0, 1, 2
 
   - id: 32
     Name: gauss
@@ -734,7 +744,7 @@ Robots:
     Mass: 5.5 # Heavier than regular due to cloaking device
     Drag: 0.03
     SuppressChance: .05
-    ChaseChance: .4
+    ChaseChance: .8
     ChaseDistance: 60 # Only chase if the player gets close
     Score: 1000 # Was 600, less than the regular driller
     Curiosity: 0.3 # Don't want these moving around too much
@@ -781,20 +791,21 @@ Robots:
     GetBehind: 1
     AimAngle: 35
   - id: 9
-    Name: Heavy Driller
+    Name: Heavy Driller # Aggressive, close range fighter that actively chases the player
     DevName: Plasma Mech
-    CircleDistance: 40
+    CircleDistance: 20 # Heavy drillers are most dangerous when very close
+    Speed: [ 30, 30, 35, 40, 50 ] # Increased from 25, 25, 30, 35, 50. Allow them to close distance quicker (except on insane)
     Multishot: 2
     BurstDelay: 0.16 # Increase from 1/8 due to multishot
-    Mass: 6
+    Mass: 5
     Drag: 0.03
-    ChaseChance: .6
+    ChaseChance: .8
     ChaseDistance: 300
-    SuppressChance: .4
+    SuppressChance: .2
     FireDelay: [ 1, .75, .75, .75, .75 ] # Was 1, .75, .75, .75, .75
     Shots: [ 2, 2, 4, 4, 6 ] # Was 2, 2, 3, 4, 5
     Curiosity: 0.25
-    AmbushDistance: 80
+    AmbushDistance: 100
   - id: 10
     Name: Class 3 Gopher
     DevName: Toaster 
@@ -890,7 +901,7 @@ Robots:
     Curiosity: 0.05 # Very rarely move to investigate sounds
     SuppressChance: .15
     BurstDelay: 0.4
-    SeeSound: 177
+    # SeeSound: 177 # people don't like the spider cry
     AimAngle: 15
     AmbushDistance: 200
     ChaseDistance: 40 # Only chase if the player gets very close
@@ -974,10 +985,13 @@ Robots:
     CircleDistance: 80
     Aim: 190 # 255 is perfect aim
     AimAngle: 25
-    Multishot: 2
     Mass: 4.5 # Was 4
-    Shots: 2
-    FireDelay: [ 0.5, 0.4, 0.3, 0.25, 0.2 ]
+    Multishot: 1
+    Shots: 1 
+    FireDelay: [ 0.25, 0.2, 0.15, 0.125, 0.1 ]
+    # Multishot: 2
+    # Shots: 2
+    # FireDelay: [ 0.5, 0.4, 0.3, 0.25, 0.2 ]
     Drag: 0.03
     SuppressChance: 1
     ChaseChance: 0
@@ -987,17 +1001,21 @@ Robots:
     Name: Super Boss # level 27 boss
     DevName: Super Boss
     Mass: 50
+    Speed: [ 30, 30, 35, 40, 45 ] # Was 60, 60, 70, 80, 90 which is way too fast. Will stay glued to player
+    # Was 10 for some reason. With the fixed gunpoints and slower megas, needs to maintain distance from the player
+    # otherwise the missiles will fly past at close range
+    CircleDistance: 140 
     GatedRobots: [ 0, 1, 8, 9, 10, 11, 12, 15, 16, 18, 19, 20, 22, 0, 8, 11, 19, 20, 8, 20, 8 ]
-    TurnTime: 0.3
+    TurnTime: 0.3 # was 0.6, which was too easy to get behind. Also mass difference.
     DeathRollSound: 185 # d1
     DeathRoll: 10 # max death roll
     SeeSound: 183 # d1
     TeleportInterval: 7 # 8 original. lowered due to removing engine reductions in teleport delay such as firing or taking damage.
     FireDelay: 1
-    Guns: 5 # Actually 4, but data is loaded incorrectly causing gun 2 to be blank
+    Guns: 5 # Actually 4, but the model data is wrong causing gun 2 to be blank
     AlertRadius: 240
     AimAngle: 25 # Looks odd if boss leads very much
-    HitPoints: 6250 # Increased due to teleport changes and missiles being more generous to player
+    HitPoints: 6250 # Increased due to teleport changes and missile damage being higher against robots
     # HitPoints: 5000, 7500 (retail 1.4, retail 1.0)
 #  - id: 24 # BEPR
 #  - id: 25 # Smelter
@@ -1410,6 +1428,17 @@ Effects:
       Width: 0.15
       VelocitySmear: 0.02
 
+    - Name: spreadfire death sparks
+      Color: .6, .6, 1, 10
+      Count: 6
+      Duration: [ 0.25, .325 ]
+      Drag: 0.15
+      Velocity: [ 25, 45 ]
+      FadeTime: 0.2
+      Texture: tracer
+      Width: 0.35
+      VelocitySmear: 0.03
+
     - Name: flare death sparks
       Color: 1, 0.66, 0.1, 10
       Count: 6
@@ -1751,6 +1780,7 @@ Ships:
         Firing:
           # - Delay: 0.15 # original
           #   Gunpoints: [ 0, 1 ]
+          # 0.1 * 5 + 0.4 = 0.9 total delay 0.9 / 6 = 0.15 which is the original delay
           - Delay: 0.1
             Gunpoints: [ 0, 1 ]
           - Delay: 0.1
