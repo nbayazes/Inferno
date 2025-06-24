@@ -243,7 +243,7 @@ namespace Inferno {
 
                 // Path newly created robots to their matcen triggers
                 auto& ai = GetAI(*newObj);
-                //ai.RemainingSlow = 1.5f;
+                ai.RemainingSlow = 1.0f;
                 ai.State = AIState::Path;
                 ai.LastUpdate = Game::Time;
                 ai.path.mode = PathMode::StopAtEnd;

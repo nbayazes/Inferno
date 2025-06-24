@@ -85,7 +85,7 @@ namespace Inferno {
             SPDLOG_INFO("Resizing AI state");
         }
 
-        if (size > RuntimeState.capacity())
+        if (size > RuntimeState.capacity() || size > RuntimeState.size())
             RuntimeState.resize(size);
     }
 

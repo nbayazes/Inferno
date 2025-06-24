@@ -515,7 +515,7 @@ namespace Inferno {
                     GameExplosion ge{};
                     ge.Damage = robot.ExplosionStrength;
                     ge.Radius = robot.ExplosionStrength * 4.0f;
-                    ge.Force = robot.ExplosionStrength * 20.0f;
+                    ge.Force = robot.ExplosionStrength * 10.0f;
                     ge.Segment = obj.Segment;
                     ge.Position = obj.Position;
                     ge.Room = Game::Level.GetRoomID(obj);

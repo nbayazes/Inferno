@@ -292,9 +292,9 @@ namespace Inferno::Game {
 
             if (ai.AmbientSound == SoundUID::None) {
                 Sound3D sound(info.SeeSound);
-                sound.Radius = 400;
+                sound.Radius = 800;
                 sound.Looped = true;
-                sound.Volume = 0.85f;
+                sound.Volume = 0.95f;
                 sound.Occlusion = false;
                 ai.AmbientSound = Sound::PlayFrom(sound, boss);
             }

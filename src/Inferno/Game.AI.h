@@ -12,7 +12,7 @@ namespace Inferno {
     constexpr float AI_PATH_DELAY = 1; // Default delay for trying to path to the player
     constexpr float AI_AWARENESS_MAX = 1.0f;
     constexpr float AI_COUNT_ALLY_RANGE = 160; // How far to search for allies
-    constexpr uint AI_ALLY_FLEE_MIN = 2; // Will flee if fewer than this number of robots are in combat (counting self)
+    constexpr uint AI_ALLY_FLEE_MIN = 1; // Will flee if fewer than this number of robots are in combat (counting self)
     constexpr float AI_HELP_SEARCH_RADIUS = 600;
     constexpr float AI_HELP_MIN_SEARCH_RADIUS = 200; // Looks weird to run to a nearby ally
     constexpr float AI_MINE_LAYER_DELAY = 6; // Seconds between robots dropping mines

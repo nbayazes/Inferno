@@ -47,7 +47,7 @@ namespace Inferno {
     bool IsBossRobot(const Object& obj);
     void CreateRobot(SegID segment, const Vector3& position, int8 type, MatcenID srcMatcen = MatcenID::None);
 
-    // Flags an object to be destroyed
+    // Flags an object to be destroyed. Refer to DestroyObject() for the actual explosion and item drop logic.
     void ExplodeObject(Object& obj, float delay = 0);
 
     // Filter predicates

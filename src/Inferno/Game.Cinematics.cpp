@@ -149,7 +149,7 @@ namespace Inferno {
             if (!Game::ControlCenterDestroyed) {
                 info.VerticalAlign = AlignV::Bottom;
                 info.Position = Vector2(0, -10 - height);
-                Render::UICanvas->DrawRaw("press fire to continue...", info, 1);
+                Render::UICanvas->DrawRaw("press fire to continue", info, 1);
             }
         }
         else {
