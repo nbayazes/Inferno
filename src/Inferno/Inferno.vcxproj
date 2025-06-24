@@ -656,12 +656,6 @@
     <CopyFileToFolders Include="d2filter.txt">
       <DeploymentContent>true</DeploymentContent>
     </CopyFileToFolders>
-    <CopyFileToFolders Include="powerups.txt">
-      <DeploymentContent>true</DeploymentContent>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="robots.txt">
-      <DeploymentContent>true</DeploymentContent>
-    </CopyFileToFolders>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\BloomExtractDownsampleCS.hlsl">

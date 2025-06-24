@@ -292,8 +292,6 @@
   <ItemGroup>
     <CopyFileToFolders Include="d1filter.txt" />
     <CopyFileToFolders Include="d2filter.txt" />
-    <CopyFileToFolders Include="powerups.txt" />
-    <CopyFileToFolders Include="robots.txt" />
     <CopyFileToFolders Include="..\..\thirdparty.txt" />
   </ItemGroup>
   <ItemGroup>
