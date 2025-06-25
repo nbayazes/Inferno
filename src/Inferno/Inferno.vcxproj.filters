@@ -345,5 +345,6 @@
     <None Include="d2\game.yml" />
     <None Include="d2\lights.yml" />
     <None Include="d2\material.yml" />
+    <None Include="_publish.cmd" />
   </ItemGroup>
 </Project>

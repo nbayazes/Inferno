@@ -109,6 +109,8 @@ rem cd ..
 rem cd publish
 
 rem set /p "NAME=release name: "
+.\publish\7z.exe a publish\publish.zip *.txt
+.\publish\7z.exe a publish\publish.zip ..\..\thirdparty.txt
 .\publish\7z.exe a publish\publish.zip d1\*.ied
 .\publish\7z.exe a publish\publish.zip d1\*.pof
 .\publish\7z.exe a publish\publish.zip d1\*.yml
