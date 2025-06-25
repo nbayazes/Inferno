@@ -35,6 +35,16 @@ Several song packs are available, generously hosted by [PuMo](https://pumosoftwa
 [Playstation 1 CD](https://pumosoftware.com/files/descent/dxa/d1-playstation.dxa)
 [Mac CD](https://pumosoftware.com/files/descent/dxa/d1cda-mac.dxa)
 
+### Inferno Enhanced Missions
+These missions have custom lighting and music to enhance the Inferno experience. 
+Simply place the `zip` file next to the mission `hog` file in the `d1` folder and it will be loaded automatically.
+
+Enhanced missions require retail game data.
+
+- [Vignettes](https://sectorgame.com/dxma/mission/?m=560) Addon data is bundled with release. Credit to Fiendzy
+- [Cererian Expedition](https://sectorgame.com/dxma/mission/?m=1561) [Addon](https://pumosoftware.com/files/descent/inferno_addons/cererian.zip) Credit to PuMo
+- [Orion Nebula Project](https://sectorgame.com/dxma/mission/?m=220) [Addon](https://pumosoftware.com/files/descent/inferno_addons/orion.zip) Credit to PuMo
+
 ## System Requirements
 - Windows 10 64-bit
 - DirectX 12 capable GPU (Feature level 12 required)
