@@ -48,9 +48,15 @@ namespace Inferno::UI {
             }
 
             // D2 uses level number for shield and energy bonus, D1 uses difficulty level
-            //score.ShieldBonus = (int)player.Shields * 5 * levelNumber;
-            //score.EnergyBonus = (int)player.Energy * 2 * levelNumber;
-            score.ShieldBonus = (int)player.Shields * 10 * (difficulty + 1);
+            //score.ShieldBonus = (int)player.Shields * 5 * levelNumber; // D2
+            //score.EnergyBonus = (int)player.Energy * 2 * levelNumber; // D2
+
+            /* Reworked shield scoring:
+             * Give 20 points per shield instead of 10 to compensate for the removal of energy bonus
+             * Give an extra 20 points per shield over 100
+             */
+            score.ShieldBonus = (int)player.Shields * 20 * (difficulty + 1);
+            score.ShieldBonus += std::max((int)player.Shields - 100, 0) * 20 * (difficulty + 1);
 
             // Remove energy bonus, it's kind of lame and rewards guass / backtracking to an energy center
             //score.EnergyBonus = (int)player.Energy * 5 * (difficulty + 1);
