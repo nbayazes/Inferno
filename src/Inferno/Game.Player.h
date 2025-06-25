@@ -276,8 +276,8 @@ namespace Inferno {
         void ReleaseFusionCharge();
 
         // Returns a value indicating the weapon's priority. Lower values are higher priority. 255 is disabled.
-        int GetPrimaryWeaponPriority(PrimaryWeaponIndex primary) const;
-        int GetSecondaryWeaponPriority(SecondaryWeaponIndex secondary) const;
+        uint8 GetPrimaryWeaponPriority(PrimaryWeaponIndex primary) const;
+        uint8 GetSecondaryWeaponPriority(SecondaryWeaponIndex secondary) const;
 
         WeaponID GetPrimaryWeaponID(PrimaryWeaponIndex index) const {
             if (index == PrimaryWeaponIndex::Laser) {

@@ -360,12 +360,6 @@ namespace Inferno {
         AlertRobotsOfNoise(player, GetWeaponAlertRadius(weapon), weapon.Extended.Noise);
     }
 
-    void Player::GiveWeapon(PrimaryWeaponIndex weapon) {
-        PrimaryWeapons |= 1 << (uint16)weapon;
-        if (weapon == PrimaryWeaponIndex::Vulcan || weapon == PrimaryWeaponIndex::Gauss)
-            PrimaryAmmo[(int)PrimaryWeaponIndex::Vulcan] += Game::VULCAN_AMMO_PICKUP * 2; // Start with two packs of ammo
-    }
-
     SecondaryWeaponIndex Player::GetActiveBomb() const {
         return BombIndex == 0 || Game::Level.IsDescent1() ? SecondaryWeaponIndex::ProximityMine : SecondaryWeaponIndex::SmartMine;
     }
@@ -688,7 +682,7 @@ namespace Inferno {
         int priority = -1;
         int index = -1;
         const int numWeapons = Game::Level.IsDescent1() ? 5 : 10;
-        
+
         auto equippedPrio = GetPrimaryWeaponPriority(Primary);
         bool primaryUnusable = (condition == AutoselectCondition::AmmoDepletion) || !CanFirePrimary(Primary);
 
@@ -704,12 +698,12 @@ namespace Inferno {
 
             if (condition == AutoselectCondition::AmmoPickup) {
                 if (!battery.AmmoUsage || ammoType != battery.AmmoType)
-                    continue;   // skip weapons that don't use the ammo type picked up
+                    continue; // skip weapons that don't use the ammo type picked up
             }
 
             if (condition == AutoselectCondition::EnergyPickup) {
                 if (!battery.EnergyUsage)
-                    continue;   // skip weapons that don't use energy
+                    continue; // skip weapons that don't use energy
             }
 
             if (battery.EnergyUsage > 0 && Energy < 1)
@@ -722,7 +716,7 @@ namespace Inferno {
 
             if (!primaryUnusable)
                 if (equippedPrio < p)
-                    continue;   // only switch to lower priority weapon when the current weapon is depleted
+                    continue; // only switch to lower priority weapon when the current weapon is depleted
 
             if (p < priority || priority == -1) {
                 priority = p;
@@ -747,7 +741,7 @@ namespace Inferno {
         int priority = -1;
         int index = -1;
         const int numWeapons = Game::Level.IsDescent1() ? 5 : 10;
-        
+
         if (Settings::Inferno.NoAutoselectWhileFiring && (SecondaryState == FireState::Press || SecondaryState == FireState::Hold) && CanFireSecondary(Secondary))
             return;
 
@@ -1137,7 +1131,7 @@ namespace Inferno {
         return quadFire ? energyUsage * 2 : energyUsage;
     }
 
-    int Player::GetPrimaryWeaponPriority(PrimaryWeaponIndex primary) const {
+    uint8 Player::GetPrimaryWeaponPriority(PrimaryWeaponIndex primary) const {
         for (int i = 0; i < Settings::Inferno.PrimaryPriority.size(); i++) {
             auto priority = Settings::Inferno.PrimaryPriority[i];
 
@@ -1159,7 +1153,7 @@ namespace Inferno {
         return 0;
     }
 
-    int Player::GetSecondaryWeaponPriority(SecondaryWeaponIndex secondary) const {
+    uint8 Player::GetSecondaryWeaponPriority(SecondaryWeaponIndex secondary) const {
         for (int i = 0; i < Settings::Inferno.SecondaryPriority.size(); i++) {
             auto priority = Settings::Inferno.SecondaryPriority[i];
 
@@ -1621,8 +1615,15 @@ namespace Inferno {
         }
     }
 
+    void Player::GiveWeapon(PrimaryWeaponIndex weapon) {
+        PrimaryWeapons |= 1 << (uint16)weapon;
+
+        if (weapon == PrimaryWeaponIndex::Vulcan || weapon == PrimaryWeaponIndex::Gauss)
+            PrimaryAmmo[(int)PrimaryWeaponIndex::Vulcan] += Game::VULCAN_AMMO_PICKUP; // Start with an extra pack of ammo on first pickup
+    }
+
     bool Player::PickUpPrimary(PrimaryWeaponIndex index) {
-        uint16 flag = 1 << (int)index;
+        uint16 flag = 1 << (uint16)index;
         auto name = Resources::GetPrimaryName(index);
 
         if (index != PrimaryWeaponIndex::Laser && PrimaryWeapons & flag) {
@@ -1633,7 +1634,7 @@ namespace Inferno {
         if (index != PrimaryWeaponIndex::Laser)
             PrintHudMessage(fmt::format("{}!", name));
 
-        PrimaryWeapons |= flag;
+        GiveWeapon(index);
         AddScreenFlash(FLASH_PRIMARY);
 
         // Select the weapon we just picked up if it has a higher priority
