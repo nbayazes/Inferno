@@ -7,6 +7,7 @@
 #include "Game.h"
 #include "GameTable.h"
 #include "Graphics/MaterialLibrary.h"
+#include "Hog.IO.h"
 #include "logging.h"
 #include "Pig.h"
 #include "Settings.h"
@@ -1174,12 +1175,18 @@ namespace Inferno::Resources {
         //ExpandMaterialFrames(dest);
     }
 
-    //void MergeMaterials(const Level& level) {
-    //    MergeMaterials(level/*, MergedMaterials*/);
-    //}
+    void Resources::ExpandAnimatedFrames(TexID id) {
+        IndexedMaterials.ExpandAnimatedFrames(id);
+    }
 
     // Loads and merges material tables for the level
     void LoadMaterialTables(const Level& level) {
+        // Clear existing tables
+        Descent1Materials = {};
+        Descent2Materials = {};
+        MissionMaterials = {};
+        LevelMaterials = {};
+
         // Load the base material tables from the d1 and d2 folders
         if (auto text = Resources::ReadTextFile("material.yml", LoadFlag::Filesystem | LoadFlag::Descent1)) {
             SPDLOG_INFO("Reading D1 material table");
@@ -1199,14 +1206,14 @@ namespace Inferno::Resources {
                 SPDLOG_INFO("Reading mission material table");
                 MissionMaterials = MaterialTable::Load(*text, TableSource::Mission);
             }
-        }
-        else {
+
             if (auto text = Resources::ReadTextFile(levelFile, LoadFlag::Mission)) {
                 SPDLOG_INFO("Reading level material table {}", levelFile);
                 LevelMaterials = MaterialTable::Load(*text, TableSource::Level);
             }
-
-            // read table adjacent to level
+        }
+        else {
+            // read table adjacent to level for standalone levels
             filesystem::path path = level.Path;
             path.replace_extension(MATERIAL_TABLE_EXTENSION);
 

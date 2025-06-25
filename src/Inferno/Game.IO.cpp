@@ -11,6 +11,7 @@
 #include "Game.Save.h"
 #include "Game.Segment.h"
 #include "Graphics.h"
+#include "Hog.IO.h"
 #include "LevelMetadata.h"
 #include "Procedural.h"
 #include "Resources.h"

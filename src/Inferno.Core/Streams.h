@@ -248,7 +248,7 @@ namespace Inferno {
 
     // Specialized stream writer for Descent binary files
     class StreamWriter {
-        std::ostream* _stream;
+        std::ostream* _stream; // This will always have a value as long as a constructor succeeds
         std::streampos _start = std::streampos(0);
         std::unique_ptr<std::ofstream> _fileStream;
         std::filesystem::path _path;
@@ -271,6 +271,9 @@ namespace Inferno {
             _start = _stream->tellp();
             _path = path;
         }
+
+        // Returns the underlying stream
+        std::ostream& Stream() const { return *_stream; }
 
         // Gets the path this writer was opened with. Will be empty if created using a stream.
         const filesystem::path& Path() { return _path; };

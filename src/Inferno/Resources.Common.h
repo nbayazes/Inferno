@@ -5,7 +5,7 @@
 namespace Inferno {
     constexpr auto METADATA_EXTENSION = ".ied"; // inferno engine data
     constexpr auto LIGHT_TABLE_EXTENSION = ".lig"; // level specific light table (when packed in mission)
-    constexpr auto MATERIAL_TABLE_EXTENSION = ".ma"; // level specific materials (when packed in mission)
+    constexpr auto MATERIAL_TABLE_EXTENSION = ".ma"; // level specific material extension. Mission and global material tables are always named material.yml
     inline const filesystem::path COMMON_FOLDER = "data"; // subdirectory containing shared data
     inline const filesystem::path D1_FOLDER = "d1"; // subdirectory containing the d1 hog and pig
     inline const filesystem::path D1_DEMO_FOLDER = "d1/demo"; // subdirectory containing the d1 demo hog and pig

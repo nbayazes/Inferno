@@ -6,6 +6,7 @@
 #include "Editor/Editor.h"
 #include "Editor/Editor.IO.h"
 #include "FileSystem.h"
+#include "Hog.IO.h"
 
 namespace Inferno::Editor {
     class HogEditor : public ModalWindowBase {
@@ -26,13 +27,13 @@ namespace Inferno::Editor {
         }
 
         void OnRename(string newName) try {
+            if (!Game::Mission) return;
             auto entries = GetEntries();
 
             if (_selections.empty() || !Seq::inRange(entries, _selections[0]))
                 return;
 
-            filesystem::path tempPath = Game::Mission->Path;
-            tempPath.replace_extension(".tmp");
+            auto tempPath = HogWriter::GetTemporaryPath(*Game::Mission);
 
             {
                 HogReader reader(Game::Mission->Path);

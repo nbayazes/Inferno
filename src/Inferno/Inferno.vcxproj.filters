@@ -117,6 +117,7 @@
     <ClCompile Include="zip\zip.c" />
     <ClCompile Include="Game.UI.ScoreScreen.cpp" />
     <ClCompile Include="Game.Matcen.cpp" />
+    <ClCompile Include="Hog.IO.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\Audio.h" />
@@ -285,6 +286,7 @@
     <ClInclude Include="Game.IO.h" />
     <ClInclude Include="Resources.Common.h" />
     <ClInclude Include="Game.Matcen.h" />
+    <ClInclude Include="Hog.IO.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />

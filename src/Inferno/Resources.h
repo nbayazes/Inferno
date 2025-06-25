@@ -199,6 +199,8 @@ namespace Inferno::Resources {
 
     // Merges materials from individual tables. Must be called after adding or removing entries from a table.
     void MergeMaterials(const Level& level);
+    void ExpandAnimatedFrames(TexID id = TexID::None);
+
     //bool LoadLightTables(LoadFlag flags);
     //bool LoadMaterialTables(LoadFlag flags);
     //void LoadDataTables(LoadFlag flags);

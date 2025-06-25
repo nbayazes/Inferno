@@ -1,5 +1,7 @@
 #pragma once
+#include "Editor/Editor.IO.h"
 #include "Editor/Events.h"
+#include "Hog.IO.h"
 #include "Procedural.h"
 #include "Resources.h"
 #include "WindowBase.h"
@@ -28,7 +30,7 @@ namespace Inferno::Editor {
         MaterialTable* _table = nullptr;
 
         bool _enableLoading = true;
-        bool _onlyShowModified = false;
+        bool _onlyShowDefined = false;
 
         // Whether to modify the materials for the base game (D1 or D2) or specific to the mission (Requires a hog)
         TableSource _source = TableSource::Descent1;
@@ -73,6 +75,9 @@ namespace Inferno::Editor {
             };
 
             Events::LevelLoaded += [this] {
+                if (_source == TableSource::Mission && !Game::Mission)
+                    _source = TableSource::Level;
+
                 _table = GetMaterialTableForSource(_source);
                 if (_table)
                     _backupTable = *_table;
@@ -92,6 +97,8 @@ namespace Inferno::Editor {
                     return;
                 }
 
+                // todo: this should delete the material file if there are no entries left
+
                 switch (_source) {
                     case TableSource::Descent1: {
                         SPDLOG_INFO("Saving materials to {}", D1_MATERIAL_FILE.string());
@@ -109,13 +116,26 @@ namespace Inferno::Editor {
                         // not implemented
                         break;
                     case TableSource::Mission:
-
                         // save into hog
-                        // MissionMaterials;
+                        if (Game::Mission) {
+                            auto data = SerializeMaterialInfo(MissionMaterials);
+                            HogWriter::AddOrUpdate(Game::Mission->Path, "material.yml", data);
+                        }
                         break;
                     case TableSource::Level:
-                        // save into hog or filesystem
-                        // LevelMaterials;
+                        if (Game::Mission) {
+                            // save level specific table into hog
+                            auto data = SerializeMaterialInfo(LevelMaterials);
+                            auto fileName = String::NameWithoutExtension(Game::Level.FileName) + MATERIAL_TABLE_EXTENSION;
+                            HogWriter::AddOrUpdate(Game::Mission->Path, fileName, data);
+                        }
+                        else {
+                            // save level specific table next to level
+                            filesystem::path path = Game::Level.Path;
+                            path.replace_extension(MATERIAL_TABLE_EXTENSION);
+                            std::ofstream stream(path);
+                            LevelMaterials.Save(stream);
+                        }
                         break;
                 }
 
@@ -129,13 +149,13 @@ namespace Inferno::Editor {
                 }
 
                 _modified = false;
-
-                // Reload data tables after saving
-                Resources::LoadDataTables(Game::Level);
             }
             catch (const std::exception& e) {
                 ShowErrorMessage(e);
             }
+
+            // Reload data tables after saving
+            Resources::LoadDataTables(Game::Level);
         }
 
         void OnUpdate() override {
@@ -183,25 +203,32 @@ namespace Inferno::Editor {
                                 continue; // No mission (hog) file to save to
 
                             if (ImGui::Selectable(itemLabel.c_str(), isSelected)) {
-                                _source = (TableSource)i;
-                                bool canSwitch = true;
+                                if ((TableSource)i != _source) {
+                                    bool switchTables = true;
 
-                                if (_modified) {
-                                    auto resp = ShowYesNoCancelMessage("Do you want to save the current table?", "Unsaved Changes");
-                                    if (resp) {
-                                        // yes or no
-                                        if (*resp) OnSave(); // yes
+                                    if (_modified) {
+                                        auto resp = ShowYesNoCancelMessage("Do you want to save the current table?", "Unsaved Changes");
+                                        if (resp) {
+                                            // yes or no
+                                            if (*resp) OnSave(); // yes, save
+                                        }
+                                        else {
+                                            switchTables = false; // cancel
+                                        }
                                     }
-                                    else {
-                                        canSwitch = false; // cancel
-                                    }
-                                }
 
-                                if (canSwitch) {
-                                    // switch loaded table, make new copy
-                                    _table = GetMaterialTableForSource(_source);
-                                    if (_table) _backupTable = *_table;
-                                    _modified = false;
+                                    if (switchTables) {
+                                        _source = (TableSource)i;
+
+                                        // Reload data tables after switching
+                                        Resources::LoadDataTables(Game::Level);
+
+                                        // switch loaded table, make new copy
+                                        _table = GetMaterialTableForSource(_source);
+                                        if (_table) _backupTable = *_table;
+                                        _modified = false;
+                                        Events::MaterialsChanged();
+                                    }
                                 }
                             }
 
@@ -214,16 +241,15 @@ namespace Inferno::Editor {
                 }
 
                 ImGui::SameLine();
-                static bool defined = false;
                 // only shows materials defined in the selected source.
                 // for example picking mission will only show textures defined by the mission materials.
-                ImGui::Checkbox("Only defined", &defined);
+                ImGui::Checkbox("Only defined", &_onlyShowDefined);
 
                 ImGui::SameLine(contentMax.x - 150);
 
-
-                ImGui::BeginDisabled(!_modified);
-                if (_modified) {
+                auto modified = _modified;
+                ImGui::BeginDisabled(!modified);
+                if (modified) {
                     ImGui::PushStyleColor(ImGuiCol_Button, { 0.5f, 1, 0.5f, .75f });
                     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.5f, 1, 0.5f, 1 });
                     ImGui::PushStyleColor(ImGuiCol_Text, { 0, 0, 0, 1 });
@@ -232,7 +258,7 @@ namespace Inferno::Editor {
                 if (ImGui::Button("Save Materials", { 150 * Shell::DpiScale, 0 }))
                     OnSave();
 
-                if (_modified) ImGui::PopStyleColor(3);
+                if (modified) ImGui::PopStyleColor(3);
                 ImGui::EndDisabled();
 
                 ImGui::Dummy({ 0, 4 });
@@ -263,6 +289,10 @@ namespace Inferno::Editor {
                 for (int i = 1; i < Resources::GetTextureCount(); i++) {
                     auto id = TexID(i);
                     auto& ti = Resources::GetTextureInfo(id);
+
+                    if (_onlyShowDefined && _table) {
+                        if (!_table->Find(ti.Name)) continue;
+                    }
 
                     if (!searchstr.empty()) {
                         if (!String::Contains(String::ToLower(ti.Name), searchstr))
@@ -344,8 +374,6 @@ namespace Inferno::Editor {
             ImGui::SameLine();
             ImGui::BeginChild("details", { contentMax.x - listWidth - 10, contentMax.y - topRowHeight });
 
-            //ImGui::Checkbox("Only show modified", &_onlyShowModified);
-
             auto& bmp = Resources::GetBitmap(_selection);
             auto& ti = bmp.Info;
             if (ti.ID > TexID::Invalid) {
@@ -353,11 +381,10 @@ namespace Inferno::Editor {
 
                 MaterialInfo defaultMaterial = {};
                 auto existing = _table->Find(ti.Name);
+                auto merged = Resources::TryGetMaterial(ti.ID);
 
-                if (!existing) {
-                    // try the merged table
-                    if (auto merged = Resources::TryGetMaterial(ti.ID))
-                        existing = merged;
+                if (!existing && merged) {
+                    existing = merged;
                 }
 
                 if (!existing)
@@ -380,6 +407,20 @@ namespace Inferno::Editor {
                     ImGui::BeginChild("previewdetails", { 0, 128 * Shell::DpiScale });
                     ImGui::Text("%s", ti.Name.c_str());
 
+                    bool discard = false;
+
+                    if (material.Source != TableSource::Undefined && material.Source != TableSource::Descent1) {
+                        // Discarding a material removes it from the current table
+                        ImGui::SameLine();
+                        if (ImGui::SmallButton("Discard")) {
+                            _table->Erase(ti.Name);
+                            _modified = _table->IsModified(_backupTable);
+                            Resources::MergeMaterials(Game::Level);
+                            Events::MaterialsChanged();
+                            discard = true;
+                        }
+                    }
+
                     string label;
                     if (auto ltid = Resources::LookupLevelTexID(ti.ID); (int)ltid != 255)
                         label = fmt::format("Tex ID: {}  Level ID: {}", (int)ti.ID, (int)ltid);
@@ -388,18 +429,16 @@ namespace Inferno::Editor {
 
                     ImGui::Text(label.c_str());
 
-                    ImGui::Text("Source table: %s", SourceToString(material.Source).c_str());
-
-                    if (material.Source != TableSource::Undefined && material.Source != TableSource::Descent1) {
-                        // Discarding a material removes it from the current table
-                        ImGui::SameLine();
-                        if (ImGui::SmallButton("Discard")) {
-                            _table->Erase(ti.Name);
-                            Resources::MergeMaterials(Game::Level);
-                            _modified = _table->IsModified(_backupTable);
-                            Events::MaterialsChanged();
-                        }
+                    if (!discard && merged && merged->Source != material.Source) {
+                        ImGui::PushStyleColor(ImGuiCol_Text, { 0, 1, 0, 1 });
+                        ImGui::Text("Overidden in %s table", SourceToString(merged->Source).c_str());
+                        ImGui::PopStyleColor();
                     }
+                    else {
+                        ImGui::Text(" ");
+                    }
+
+                    //ImGui::Text("Source table: %s", SourceToString(material.Source).c_str());
 
                     ImGui::Dummy({ 0, 5 * Shell::DpiScale });
 
@@ -449,28 +488,10 @@ namespace Inferno::Editor {
                         *indexedMaterial = material;
                     }
 
+                    if (ti.Animated)
+                        Resources::ExpandAnimatedFrames(ti.ID);
+
                     _modified = _table->IsModified(_backupTable);
-
-                    //if (!table->Find(ti.Name)) {
-                    //    SPDLOG_INFO("Adding new material to table `{}`", TableSourceToString(_source));
-                    //    table->AddOrUpdate(material, ti.Name);
-                    //    Resources::MergeMaterials(Game::Level);
-                    //}
-
-                    //table->AddOrUpdate(material, ti.Name);
-                    //// update the material in the individual table or add it
-                    //if (auto tableEntry = TryFindMaterial(*table, ti.Name)) {
-                    //    // update the entry in both the merged table and the individual table
-                    //    *tableEntry = material;
-                    //    if (auto merged = Resources::TryGetMaterial(ti.ID))
-                    //        *merged = material;
-                    //}
-                    //else {
-                    //    SPDLOG_INFO("Adding new material to table `{}`", TableSourceToString(_editSource));
-                    //    material.Name = ti.Name;
-                    //    table->push_back(material);
-                    //    Resources::MergeMaterials(Game::Level);
-                    //}
 
                     Events::MaterialsChanged();
                 };
@@ -507,6 +528,10 @@ namespace Inferno::Editor {
                     }
 
                     _modified = _table->IsModified(_backupTable);
+
+                    if (ti.Animated)
+                        Resources::ExpandAnimatedFrames(ti.ID);
+
                     Events::MaterialsChanged();
                 }
 

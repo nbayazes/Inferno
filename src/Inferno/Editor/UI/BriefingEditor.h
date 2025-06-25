@@ -3,9 +3,9 @@
 #include "Briefing.h"
 #include "Game.Briefing.h"
 #include "Game.h"
-#include "Resources.h"
 #include "Settings.h"
 #include "WindowBase.h"
+#include "Hog.IO.h"
 
 namespace Inferno::Editor {
     class BriefingEditor : public WindowBase {

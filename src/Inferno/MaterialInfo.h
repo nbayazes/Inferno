@@ -166,7 +166,9 @@ namespace Inferno {
 
         span<MaterialInfo> Data() { return _materials; }
 
-        void ExpandAnimatedFrames();
+        // Copies the first frame of an animation to the others.
+        // If an id is provided, only that texture is expanded.
+        void ExpandAnimatedFrames(TexID id = TexID::None);
     };
 
     // Materials loaded from the game data folders. Only contains entries that exist in the file.

@@ -4,6 +4,10 @@
 #include "Level.h"
 #include "Types.h"
 
+namespace Inferno {
+    class MaterialTable;
+}
+
 namespace Inferno::Editor {
     struct NewLevelInfo {
         string Title;
@@ -25,4 +29,6 @@ namespace Inferno::Editor {
         extern Command ConvertToD2, ConvertToVertigo;
         extern Command NewLevel, Open, Save, SaveAs;
     }
+
+    std::vector<ubyte> SerializeMaterialInfo(MaterialTable& materials);
 }

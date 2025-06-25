@@ -8,6 +8,7 @@
 #include "FileSystem.h"
 #include "Game.h"
 #include "Graphics.h"
+#include "Hog.IO.h"
 #include "LevelMetadata.h"
 #include "logging.h"
 #include "Resources.h"
@@ -140,6 +141,24 @@ namespace Inferno::Editor {
         stream.read((char*)data.data(), data.size());
         return data;
     }
+
+    std::vector<ubyte> SerializeMaterialInfo(MaterialTable& materials) {
+        std::stringstream stream;
+        stream.unsetf(std::ios::skipws);
+        materials.Save(stream);
+        std::vector<ubyte> data(stream.tellp());
+        stream.read((char*)data.data(), data.size());
+        return data;
+    }
+
+    //std::vector<ubyte> SerializeLightInfo(LightData& materials) {
+    //    std::stringstream stream;
+    //    stream.unsetf(std::ios::skipws);
+    //    materials.Save(stream);
+    //    std::vector<ubyte> data(stream.tellp());
+    //    stream.read((char*)data.data(), data.size());
+    //    return data;
+    //}
 
     // Writes a HOG file and updates the level
     void WriteHog(Level& level, HogFile& mission, filesystem::path hogDest) {

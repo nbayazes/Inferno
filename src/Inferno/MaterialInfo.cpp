@@ -249,8 +249,12 @@ namespace Inferno {
             _materials[(int)texId] = material;
         }
     }
-    void IndexedMaterialTable::ExpandAnimatedFrames() {
+
+
+    void IndexedMaterialTable::ExpandAnimatedFrames(TexID id) {
         for (auto& material : _materials) {
+            if (id != TexID::None && material.ID != (int)id) continue;
+
             auto dclipId = Resources::GetDoorClipID(Resources::LookupLevelTexID((TexID)material.ID));
             auto& dclip = Resources::GetDoorClip(dclipId);
 
@@ -267,6 +271,8 @@ namespace Inferno {
 
         // Expand materials to all frames in effects
         for (auto& effect : Resources::GameData.Effects) {
+            if (id != TexID::None && effect.VClip.Frames[0] != id) continue;
+
             for (int i = 1; i < effect.VClip.NumFrames; i++) {
                 auto src = effect.VClip.Frames[0];
                 auto dest = effect.VClip.Frames[i];

@@ -80,34 +80,4 @@ namespace Inferno {
         hog.Entries = ReadHogEntries(reader);
         return hog;
     }
-
-    void HogWriter::WriteEntry(string_view name, span<ubyte> data) {
-        if (data.empty()) return;
-        // the original game seems to indicate an entry limit of 250, but it's unclear if this is enforced
-        //if (_entries >= MAX_ENTRIES) throw Exception("Cannot have more than 250 entries!");
-        //if (_writer.Path().empty())
-        //    SPDLOG_INFO("Writing hog entry: {}", name);
-        //else
-        //    SPDLOG_INFO("Writing {}:{}", _writer.Path().string(), name);
-
-        _writer.WriteString(string(name), 13);
-        _writer.Write((int32)data.size());
-        _writer.WriteBytes(data);
-        //_entries++;
-    }
-
-    HogReader::HogReader(filesystem::path path): _reader(path), _path(std::move(path)) {
-        _entries = ReadHogEntries(_reader);
-    }
-
-    Option<List<ubyte>> HogReader::TryReadEntry(string_view name) {
-        if (auto entry = TryFindEntry(name)) {
-            List<ubyte> data(entry->Size);
-            _reader.Seek(entry->Offset);
-            _reader.ReadBytes(data);
-            return data;
-        }
-
-        return {};
-    }
 }

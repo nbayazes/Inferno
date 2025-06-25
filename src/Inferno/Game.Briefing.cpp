@@ -3,6 +3,7 @@
 #include "Game.Bindings.h"
 #include "Game.h"
 #include "Graphics.h"
+#include "Hog.IO.h"
 #include "Input.h"
 #include "Resources.h"
 
