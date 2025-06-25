@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Game.Player.h"
+#include <utility>
 #include "VisualEffects.h"
 #include "Game.AI.h"
 #include "Game.Bindings.h"
@@ -683,7 +684,7 @@ namespace Inferno {
         int index = -1;
         const int numWeapons = Game::Level.IsDescent1() ? 5 : 10;
 
-        auto equippedPrio = GetPrimaryWeaponPriority(Primary);
+        auto equippedPrio = (int)GetPrimaryWeaponPriority(Primary);
         bool primaryUnusable = (condition == AutoselectCondition::AmmoDepletion) || !CanFirePrimary(Primary);
 
         if (Settings::Inferno.OnlyAutoselectWhenEmpty && !primaryUnusable)
@@ -715,10 +716,10 @@ namespace Inferno {
             if (p == NO_AUTOSELECT) continue;
 
             if (!primaryUnusable)
-                if (equippedPrio < p)
+                if (std::cmp_less(equippedPrio, p))
                     continue; // only switch to lower priority weapon when the current weapon is depleted
 
-            if (p < priority || priority == -1) {
+            if (std::cmp_less(p, priority) || priority == -1) {
                 priority = p;
                 index = i;
             }
@@ -752,7 +753,7 @@ namespace Inferno {
             auto p = GetSecondaryWeaponPriority(idx);
             if (p == NO_AUTOSELECT) continue;
 
-            if (p < priority || priority == -1) {
+            if (std::cmp_less(p, priority) || priority == -1) {
                 priority = p;
                 index = i;
             }
@@ -1132,7 +1133,7 @@ namespace Inferno {
     }
 
     uint8 Player::GetPrimaryWeaponPriority(PrimaryWeaponIndex primary) const {
-        for (int i = 0; i < Settings::Inferno.PrimaryPriority.size(); i++) {
+        for (uint8 i = 0; i < Settings::Inferno.PrimaryPriority.size(); i++) {
             auto priority = Settings::Inferno.PrimaryPriority[i];
 
             if (priority == NO_AUTOSELECT)
@@ -1154,7 +1155,7 @@ namespace Inferno {
     }
 
     uint8 Player::GetSecondaryWeaponPriority(SecondaryWeaponIndex secondary) const {
-        for (int i = 0; i < Settings::Inferno.SecondaryPriority.size(); i++) {
+        for (uint8 i = 0; i < Settings::Inferno.SecondaryPriority.size(); i++) {
             auto priority = Settings::Inferno.SecondaryPriority[i];
 
             if (priority == NO_AUTOSELECT)
@@ -1726,11 +1727,11 @@ namespace Inferno {
         maybeArmMine(SecondaryWeaponIndex::SmartMine);
 
         if (LaserLevel > 3) {
-            for (int i = 3; i < LaserLevel; i++)
+            for (uint i = 3; i < LaserLevel; i++)
                 Game::DropPowerup(PowerupID::SuperLaser, player.Position, player.Segment);
         }
         else if (LaserLevel > 0) {
-            for (int i = 0; i < LaserLevel; i++)
+            for (uint i = 0; i < LaserLevel; i++)
                 Game::DropPowerup(PowerupID::Laser, player.Position, player.Segment);
         }
 
