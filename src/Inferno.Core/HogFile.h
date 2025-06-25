@@ -146,7 +146,9 @@ namespace Inferno {
             if (!data) return {};
             return string((char*)data->data(), data->size());
         }
-    private:
+
+        span<const HogEntry> Entries() const { return _entries; }
+
         const Option<HogEntry> TryFindEntry(string_view entry) const {
             for (auto& e : _entries)
                 if (String::InvariantEquals(e.Name, entry)) return e;

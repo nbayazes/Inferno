@@ -155,7 +155,7 @@ namespace Inferno::Editor {
             HogWriter writer(tempPath); // write to temp
             HogReader reader(mission.Path);
 
-            fmt::print("Copying existing HOG files:\n");
+            fmt::print("Writing existing HOG files:\n");
 
             for (auto& entry : mission.Entries) {
                 // Does the file match the level name?

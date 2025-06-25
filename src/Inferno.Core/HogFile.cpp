@@ -85,10 +85,10 @@ namespace Inferno {
         if (data.empty()) return;
         // the original game seems to indicate an entry limit of 250, but it's unclear if this is enforced
         //if (_entries >= MAX_ENTRIES) throw Exception("Cannot have more than 250 entries!");
-        if (_writer.Path().empty())
-            SPDLOG_INFO("Writing hog entry: {}", name);
-        else
-            SPDLOG_INFO("Writing {}:{}", _writer.Path().string(), name);
+        //if (_writer.Path().empty())
+        //    SPDLOG_INFO("Writing hog entry: {}", name);
+        //else
+        //    SPDLOG_INFO("Writing {}:{}", _writer.Path().string(), name);
 
         _writer.WriteString(string(name), 13);
         _writer.Write((int32)data.size());

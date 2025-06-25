@@ -21,40 +21,70 @@ namespace Inferno::Editor {
 
             _renameDialog.Callback = [this](bool accepted) {
                 if (!accepted) return;
+                OnRename(_renameDialog.Name);
+            };
+        }
 
-                auto& renamed = _entries[_selections[0]];
-                if (renamed.Name == _renameDialog.Name) return; // name didn't change
+        void OnRename(string newName) try {
+            auto entries = GetEntries();
 
-                if (Seq::find(_entries, [this, &renamed](auto x) { return x.Name == _renameDialog.Name; })) {
-                    ShowWarningMessage("File name is already in use");
+            if (_selections.empty() || !Seq::inRange(entries, _selections[0]))
+                return;
+
+            filesystem::path tempPath = Game::Mission->Path;
+            tempPath.replace_extension(".tmp");
+
+            {
+                HogReader reader(Game::Mission->Path);
+
+                if (reader.TryFindEntry(newName)) {
+                    ShowWarningMessage("File name is already in use", "Cannot rename");
                     _renameDialog.Show();
                     return;
                 }
 
-                string newName = _renameDialog.Name;
-                if (String::Extension(newName).empty())
-                    newName += renamed.Extension();
+                HogEntry original = entries[_selections[0]];
 
-                // Replace the current level's path if it matches
-                if (Game::Level.FileName == renamed.Name) {
+                // Append the extension of the original name if one wasn't provided
+                if (String::Extension(newName).empty())
+                    newName += String::Extension(original.Name);
+
+                HogWriter writer(tempPath);
+
+                // rewrite all entries
+                for (auto& entry : entries) {
+                    //HogEntry local = entry;
+                    auto data = reader.ReadEntry(entry.Name);
+                    string name = entry.Name;
+
+                    // when renaming a level also rename aux files (pog, hxm, ...)
+                    if (original.IsLevel()) {
+                        if (String::InvariantEquals(original.NameWithoutExtension(), entry.NameWithoutExtension()))
+                            name = String::NameWithoutExtension(newName) + entry.Extension();
+                    }
+                    else if (String::InvariantEquals(original.Name, entry.Name)) {
+                        name = newName;
+                    }
+
+                    if (name != entry.Name)
+                        SPDLOG_INFO("Renaming {} to {}", entry.Name, name);
+
+                    writer.WriteEntry(name, data);
+                }
+
+                // Replace the current level's file name if it matches
+                if (Game::Level.FileName == original.Name) {
                     Game::Level.FileName = newName;
                     Shell::UpdateWindowTitle();
                 }
+            } // hog read/write scope
 
-                string originalName = renamed.NameWithoutExtension();
-                renamed.Name = newName;
-
-                // when renaming a level also rename aux files (pog, hxm, ...)
-                if (renamed.IsLevel()) {
-                    for (auto& entry : _entries) {
-                        if (String::InvariantEquals(originalName, entry.NameWithoutExtension())) {
-                            entry.Name = renamed.NameWithoutExtension() + entry.Extension();
-                        }
-                    }
-                }
-
-                SaveChanges(*Game::Mission);
-            };
+            ReplaceDestWithTemp(Game::Mission->Path, tempPath);
+            LoadMission();
+        }
+        catch (const std::exception& e) {
+            ShowErrorMessage(e);
+            SPDLOG_ERROR(e.what());
         }
 
         void OnDelete() {
@@ -62,19 +92,28 @@ namespace Inferno::Editor {
                 return;
             }
 
+            auto entries = GetEntries();
+
             Seq::sortDescending(_selections);
             for (auto& i : _selections) {
-                if (String::InvariantEquals(_entries[i].Name, Game::Level.FileName)) {
-                    if (!ShowYesNoMessage("Are you sure you want to delete the currently opened level?", "Confirm delete"))
-                        continue;
-                }
+                //if (String::InvariantEquals(entries[i].Name, Game::Level.FileName)) {
+                //    if (!ShowYesNoMessage("Are you sure you want to delete the currently opened level?", "Confirm delete"))
+                //        continue;
+                //}
 
-                SPDLOG_INFO("Deleting entry {}", _entries[i].Name);
-                Seq::removeAt(_entries, i);
+                SPDLOG_INFO("Deleting entry {}", entries[i].Name);
+                Seq::removeAt(entries, i);
             }
 
             _selections.clear();
-            SaveChanges(*Game::Mission);
+            SaveChanges(*Game::Mission, entries);
+        }
+
+        static List<HogEntry> GetEntries() {
+            HogReader reader(Game::Mission->Path);
+            List<HogEntry> entries = { reader.Entries().begin(), reader.Entries().end() };
+            Seq::sortBy(entries, [](const HogEntry& a, const HogEntry& b) { return a.Name < b.Name; });
+            return entries;
         }
 
         void OnUpdate() override {
@@ -129,6 +168,7 @@ namespace Inferno::Editor {
             ImGui::BeginChild("buttons", { -1, panelHeight });
 
             HogEntry* entry = _selections.size() == 1 ? &_entries[_selections[0]] : nullptr;
+
             {
                 DisableControls disable(!entry || !entry->IsLevel() || entry->IsImport());
                 if (ImGui::Button("Open", { -1, 0 }))
@@ -246,34 +286,31 @@ namespace Inferno::Editor {
         void LoadMission() {
             if (!Game::Mission) return;
             Game::LoadMission(Game::Mission->Path);
-            _entries.clear();
             _selections.clear();
-            _entries = Game::Mission->Entries;
-            SortEntries();
+            _entries = GetEntries();
         }
 
     private:
-        void SaveChanges(const HogFile& source) {
+        void SaveChanges(const HogFile& source, span<HogEntry> entries) try {
             filesystem::path tempPath = source.Path;
             tempPath.replace_extension(".tmp");
 
-            try {
+            {
                 HogReader reader(source.Path);
                 HogWriter writer(tempPath);
 
-                for (auto& entry : _entries) {
+                for (auto& entry : entries) {
                     auto data = reader.ReadEntry(entry.Name);
                     writer.WriteEntry(entry.Name, data);
                 }
-            }
-            catch (const std::exception& e) {
-                ShowErrorMessage(e);
-                SPDLOG_ERROR(e.what());
-                return;
-            }
+            } // hog read / write scope
 
             ReplaceDestWithTemp(source.Path, tempPath);
             LoadMission();
+        }
+        catch (const std::exception& e) {
+            ShowErrorMessage(e);
+            SPDLOG_ERROR(e.what());
         }
 
         static void ReplaceDestWithTemp(const filesystem::path& dest, const filesystem::path& temp) {
@@ -292,69 +329,61 @@ namespace Inferno::Editor {
             return _selections.empty() || _selections.size() > 1 ? -1 : _selections.front();
         }
 
-        void SortEntries() {
-            Seq::sortBy(_entries, [](const HogEntry& a, const HogEntry& b) { return a.Name < b.Name; });
+        void OnImport() try {
+            static const COMDLG_FILTERSPEC filter[] = {
+                { L"Level", L"*.RL2;*.RDL" },
+                { L"Robots", L"*.HXM" },
+                { L"Textures", L"*.POG" },
+                { L"Descent 1 Data", L"*.DTX" },
+                { L"All Files", L"*.*" }
+            };
+
+            auto files = OpenMultipleFilesDialog(filter, "Import files to HOG");
+            if (files.empty()) return;
+
+            filesystem::path source = Game::Mission->Path;
+            filesystem::path tempPath = source;
+            tempPath.replace_extension(".tmp");
+
+            {
+                HogReader reader(source);
+                HogWriter writer(tempPath);
+
+                SPDLOG_INFO("Importing files to {}", Game::Mission->Path.string());
+
+                // write the existing entries
+                for (auto& entry : reader.Entries()) {
+                    // check if the imported file matches an existing entry and update it
+                    auto importPath = Seq::find(files, [&entry](const filesystem::path& path) {
+                        auto shortName = FormatShortFileName(path.filename().string());
+                        return String::InvariantEquals(entry.Name, shortName);
+                    });
+
+                    if (importPath) {
+                        SPDLOG_INFO("Skipping existing file {} (will insert new copy later)", entry.Name);
+                    }
+                    else {
+                        auto data = reader.ReadEntry(entry.Name);
+                        writer.WriteEntry(entry.Name, data);
+                    }
+                }
+
+                for (auto& file : files) {
+                    //if (_entries.size() >= HogFile::MAX_ENTRIES)
+                    //    throw Exception("HOG files can only contain 250 entries");
+
+                    SPDLOG_INFO("Inserting file {}", file.string());
+                    auto shortName = FormatShortFileName(file.filename().string());
+                    auto data = File::ReadAllBytes(file);
+                    writer.WriteEntry(shortName, data);
+                }
+            } // hog read / write scope
+
+            ReplaceDestWithTemp(source, tempPath);
+            LoadMission();
         }
-
-        void OnImport() {
-            try {
-                static const COMDLG_FILTERSPEC filter[] = {
-                    { L"Level", L"*.RL2;*.RDL" },
-                    { L"Robots", L"*.HXM" },
-                    { L"Textures", L"*.POG" },
-                    { L"Descent 1 Data", L"*.DTX" },
-                    { L"All Files", L"*.*" }
-                };
-
-                auto files = OpenMultipleFilesDialog(filter, "Import files to HOG");
-                if (files.empty()) return;
-
-                _selections.clear();
-
-                filesystem::path source = Game::Mission->Path;
-                filesystem::path tempPath = source;
-                tempPath.replace_extension(".tmp");
-
-                {
-                    HogReader reader(source);
-                    HogWriter writer(tempPath);
-
-                    SPDLOG_INFO("Importing files to {}", Game::Mission->Path.string());
-
-                    // write the existing entries
-                    for (auto& entry : _entries) {
-                        // check if the imported file matches an existing entry and update it
-                        auto importPath = Seq::find(files, [&entry](const filesystem::path& path) {
-                            auto shortName = FormatShortFileName(path.filename().string());
-                            return String::InvariantEquals(entry.Name, shortName);
-                        });
-
-                        if (importPath) {
-                            SPDLOG_INFO("Skipping existing file {} (will insert new copy later)", entry.Name);
-                        }
-                        else {
-                            auto data = reader.ReadEntry(entry.Name);
-                            writer.WriteEntry(entry.Name, data);
-                        }
-                    }
-
-                    for (auto& file : files) {
-                        //if (_entries.size() >= HogFile::MAX_ENTRIES)
-                        //    throw Exception("HOG files can only contain 250 entries");
-
-                        SPDLOG_INFO("Inserting file {}", file.string());
-                        auto shortName = FormatShortFileName(file.filename().string());
-                        auto data = File::ReadAllBytes(file);
-                        writer.WriteEntry(shortName, data);
-                    }
-                } // scoped for read/write locks
-
-                ReplaceDestWithTemp(source, tempPath);
-                LoadMission();
-            }
-            catch (const std::exception& e) {
-                ShowErrorMessage(e);
-            }
+        catch (const std::exception& e) {
+            ShowErrorMessage(e);
         }
 
         // Imports a robot or texture file to all levels in the mission
@@ -375,14 +404,21 @@ namespace Inferno::Editor {
                 auto size = filesystem::file_size(*file);
 
                 List<HogEntry> newEntries;
+                List<HogEntry> entries;
                 int existingCount = 0;
 
+                {
+                    // load entries from disk
+                    HogReader reader(Game::Mission->Path);
+                    entries = { reader.Entries().begin(), reader.Entries().end() };
+                }
+
                 // Scan for new and existing entries
-                for (auto& entry : _entries) {
+                for (auto& entry : entries) {
                     if (!entry.IsLevel()) continue;
                     auto name = entry.NameWithoutExtension() + file->extension().string();
 
-                    if (FindEntry(name)) {
+                    if (FindEntry(name, entries)) {
                         existingCount++;
                     }
                     else {
@@ -397,17 +433,15 @@ namespace Inferno::Editor {
                         return;
                 }
 
-                if (_entries.size() + newEntries.size() > HogFile::MAX_ENTRIES)
-                    throw Exception("HOG files can only contain 250 entries");
-
-                _selections.clear();
+                //if (_entries.size() + newEntries.size() > HogFile::MAX_ENTRIES)
+                //    throw Exception("HOG files can only contain 250 entries");
 
                 // Replace existing
-                for (auto& entry : _entries) {
+                for (auto& entry : entries) {
                     if (!entry.IsLevel()) continue;
                     auto name = entry.NameWithoutExtension() + file->extension().string();
 
-                    if (auto existing = FindEntry(name)) {
+                    if (auto existing = FindEntry(name, entries)) {
                         existing->Path = *file;
                         existing->Size = size;
                     }
@@ -415,9 +449,10 @@ namespace Inferno::Editor {
 
                 // Insert new
                 for (auto& entry : newEntries)
-                    _entries.push_back(entry);
+                    entries.push_back(entry);
 
-                SaveChanges(*Game::Mission);
+                SaveChanges(*Game::Mission, entries);
+                LoadMission();
             }
             catch (const std::exception& e) {
                 ShowErrorMessage(e);
@@ -436,42 +471,39 @@ namespace Inferno::Editor {
             file.write((char*)data->data(), data->size());
         }
 
-        void ExportFiles() {
-            try {
-                auto path = BrowseFolderDialog();
-                if (!path) return;
+        void ExportFiles() try {
+            auto path = BrowseFolderDialog();
+            if (!path) return;
 
-                for (auto& index : _selections) {
-                    auto entry = Seq::tryItem(_entries, index);
-                    if (!entry) continue;
-                    ExportEntry(*entry, *path / entry->Name);
-                }
-            }
-            catch (const std::exception& e) {
-                SetStatusMessage("Error exporting files: {}", e.what());
+            for (auto& index : _selections) {
+                auto entry = Seq::tryItem(_entries, index);
+                if (!entry) continue;
+                ExportEntry(*entry, *path / entry->Name);
             }
         }
-
-        void ExportFile() {
-            try {
-                auto entry = Seq::tryItem(_entries, _selections[0]);
-                if (!entry) return;
-
-                static constexpr COMDLG_FILTERSPEC filter[] = {
-                    { L"All Files", L"*.*" }
-                };
-
-                if (auto path = SaveFileDialog(filter, 1, entry->Name, "Export File")) {
-                    ExportEntry(*entry, *path);
-                }
-            }
-            catch (const std::exception& e) {
-                SetStatusMessage("Error exporting file: {}", e.what());
-            }
+        catch (const std::exception& e) {
+            SetStatusMessage("Error exporting files: {}", e.what());
         }
 
-        HogEntry* FindEntry(string_view name) {
-            return Seq::find(_entries, [&name](const HogEntry& e) {
+        void ExportFile() try {
+            if (_selections.empty()) return;
+            auto entry = Seq::tryItem(_entries, _selections[0]);
+            if (!entry) return;
+
+            static constexpr COMDLG_FILTERSPEC filter[] = {
+                { L"All Files", L"*.*" }
+            };
+
+            if (auto path = SaveFileDialog(filter, 1, entry->Name, "Export File")) {
+                ExportEntry(*entry, *path);
+            }
+        }
+        catch (const std::exception& e) {
+            SetStatusMessage("Error exporting file: {}", e.what());
+        }
+
+        static HogEntry* FindEntry(string_view name, span<HogEntry> entries) {
+            return Seq::find(entries, [&name](const HogEntry& e) {
                 return String::InvariantEquals(e.Name, name);
             });
         }
