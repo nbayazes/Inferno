@@ -399,7 +399,8 @@ namespace Inferno {
     void DropContents(const Object& obj) {
         assert(obj.Type == ObjectType::Robot);
 
-        if (obj.Contains.Type != ObjectType::None) {
+        // Check if type is powerup or robot instead of None (255). Other editors sometimes default the type to 0.
+        if (obj.Contains.Type == ObjectType::Powerup || obj.Contains.Type == ObjectType::Robot) {
             // Editor specified contents override robot contents
             SpawnContained(Game::Level, obj.Contains, obj.Position, obj.Segment, obj.LastHitForce);
         }
