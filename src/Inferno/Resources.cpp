@@ -2,7 +2,6 @@
 #include "Resources.h"
 #include <fstream>
 #include <mutex>
-#include <zip/zip.h>
 #include "BitmapTable.h"
 #include "FileSystem.h"
 #include "Game.h"
@@ -879,51 +878,17 @@ namespace Inferno::Resources {
         return {};
     }
 
-    //class ZipFile {
-    //    zip_t* _zip;
-
-    //public:
-    //    static Option<ZipFile> Open(const filesystem::path& path) {
-    //        ZipFile file;
-
-    //        file._zip = zip_open(path.string().c_str(), 0, 'r');
-    //        if (!file._zip) return {};
-    //        return file;
-    //    }
-
-    //    ~ZipFile() {
-    //        zip_close(_zip);
-    //    }
-
-    //    ResourceHandle Find(string_view fileName) {
-    //        
-    //    }
-
-    //    ZipFile(const ZipFile&) = delete;
-    //    ZipFile(ZipFile&&) = default;
-    //    ZipFile& operator=(const ZipFile&) = delete;
-    //    ZipFile& operator=(ZipFile&&) = default;
-
-    //private:
-    //    ZipFile() = default;
-    //};
-
     Option<ResourceHandle> FindDxaEntryInFolder(const filesystem::path& folder, string_view fileName) {
         Option<ResourceHandle> handle;
 
-        for (auto& folderItem : filesystem::directory_iterator(folder)) {
-            auto name = string(fileName);
-            auto& itemPath = folderItem.path();
+        for (auto& item : filesystem::directory_iterator(folder)) {
+            //auto name = string(fileName);
+            auto& path = item.path();
 
-            if (String::InvariantEquals(itemPath.extension().string(), ".dxa")) {
-                if (auto zip = zip_open(itemPath.string().c_str(), 0, 'r')) {
-                    if (zip_entry_open(zip, name.c_str()) == 0) {
-                        handle = ResourceHandle(itemPath, string(fileName));
-                        zip_entry_close(zip);
-                    }
-
-                    zip_close(zip);
-                }
+            if (String::InvariantEquals(path.extension().string(), ".dxa")) {
+                auto zip = File::OpenZip(path);
+                if (zip->Contains(fileName))
+                    return ResourceHandle(path, string(fileName));
             }
 
             if (handle) break; // found
@@ -988,43 +953,6 @@ namespace Inferno::Resources {
         return {}; // Wasn't found
     }
 
-    Option<List<byte>> ReadBinaryFileFromZip(const filesystem::path& filePath, string_view name) {
-        try {
-            List<byte> data;
-            if (auto zip = zip_open(filePath.string().c_str(), 0, 'r')) {
-                if (zip_entry_open(zip, string(name).c_str()) == 0) {
-                    void* buffer;
-                    size_t bufferSize;
-                    auto readBytes = zip_entry_read(zip, &buffer, &bufferSize);
-                    if (readBytes > 0) {
-                        SPDLOG_INFO("Read file from {}:{}", filePath.string(), name);
-                        data.assign((byte*)buffer, (byte*)buffer + bufferSize);
-                    }
-
-                    zip_entry_close(zip);
-                }
-
-                zip_close(zip);
-            }
-
-            if (!data.empty())
-                return data;
-            /*auto totalEntries = zip_entries_total(zip);
-
-            for (size_t i = 0; i < totalEntries; i++) {
-                zip_entry_openbyindex(zip, i);
-                auto entry = zip_entry_name(zip);
-                SPDLOG_INFO("{}", entry);
-                zip_entry_close(zip);
-            }*/
-        }
-        catch (const std::exception& e) {
-            SPDLOG_ERROR("Error reading {}: {}", filePath.string(), e.what());
-        }
-
-        return {};
-    }
-
     Option<List<byte>> ReadFromDxaFolder(const filesystem::path& folder, string_view name) {
         for (auto& file : filesystem::directory_iterator(folder)) {
             if (!file.is_regular_file()) continue;
@@ -1032,7 +960,8 @@ namespace Inferno::Resources {
             auto& filePath = file.path();
 
             if (String::InvariantEquals(filePath.extension().string(), ".dxa")) {
-                if (auto data = ReadBinaryFileFromZip(filePath, name))
+                auto zip = File::OpenZip(filePath);
+                if (auto data = zip->TryReadEntry(name))
                     return data;
             }
         }
@@ -1046,20 +975,33 @@ namespace Inferno::Resources {
 
         // current HOG file
         if (Game::Mission && HasFlag(flags, LoadFlag::Mission)) {
-            //if (HasFlag(flags, LoadFlag::Filesystem)) {
-            // Check unpacked data folder for mission
-            auto path = Game::Mission->Path.parent_path();
-            auto unpacked = path / Game::Mission->Path.stem() / fileName;
+            const auto& missionPath = Game::Mission->Path;
+
+            // Check the unpacked development folder first
+            auto unpacked = missionPath.parent_path() / missionPath.stem() / fileName;
+
             if (filesystem::exists(unpacked)) {
-                SPDLOG_INFO("Reading {}", unpacked.string());
+                SPDLOG_INFO("Reading from unpacked mission folder {}", unpacked.string());
                 return File::ReadAllBytes(unpacked);
             }
-            //}
 
-            HogReader hog(Game::Mission->Path);
+            // Then check for packaged zips
+            filesystem::path modZip = missionPath;
+            modZip.replace_extension(".zip");
+
+            if (filesystem::exists(modZip)) {
+                auto zip = File::OpenZip(modZip);
+                if (auto data = zip->TryReadEntry(fileName)) {
+                    SPDLOG_INFO("Reading {}:{}", modZip.string(), fileName);
+                    return data;
+                }
+            }
+
+            // Finally check the original hog
+            HogReader hog(missionPath);
 
             if (auto data = hog.TryReadEntry(file)) {
-                SPDLOG_INFO("Reading {} from mission", file);
+                SPDLOG_INFO("Reading from mission {}:{}", missionPath.string(), file);
                 return data;
             }
         }
@@ -1111,35 +1053,6 @@ namespace Inferno::Resources {
         }
 
         return {}; // Wasn't found
-
-        //auto resource = Find(name, flags);
-        //if (!resource) return {};
-
-        //switch (resource->source) {
-        //    case Filesystem:
-        //        break;
-        //    case Hog:
-        //    {
-        //        auto hog = HogFile::Read(resource->path);
-        //        //hog.ReadEntry(
-        //    }
-
-        //        if (HasFlag(flags, LoadFlag::Descent1)) {
-        //            if (auto data = Resources::Descent1.hog.TryReadEntry(name)) {
-        //                SPDLOG_INFO("Reading {} from descent1.hog", name);
-        //                return *data;
-        //            }
-        //        }
-        //        else if (HasFlag(flags, LoadFlag::Descent2)) {
-        //            if (auto data = Resources::Descent2.hog.TryReadEntry(name)) {
-        //                SPDLOG_INFO("Reading {} from descent2.hog", name);
-        //                return *data;
-        //            }
-        //        }
-        //        break;
-        //    case Zip:
-        //        return ReadBinaryFileFromZip(resource->path, name);
-        //}
     }
 
     template <class T>

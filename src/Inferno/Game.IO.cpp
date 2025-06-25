@@ -363,43 +363,49 @@ namespace Inferno::Game {
         return -1;
     }
 
-    // reads IED files for the level
-    void LoadLevelMetadata(Inferno::Level& level) {
-        if (!Game::Mission) return;
-
+    string LoadLevelMetadataInternal(const Inferno::Level& level) {
         auto metadataFile = String::NameWithoutExtension(level.FileName) + METADATA_EXTENSION;
-        filesystem::path path = metadataFile;
-        HogReader hog(Game::Mission->Path);
 
-        auto metadata = hog.TryReadEntryAsString(metadataFile);
+        if (Game::Mission) {
+            const auto& missionPath = Game::Mission->Path;
 
-        if (!metadata) {
-            auto mission = String::ToLower(Game::Mission->Path.filename().string());
+            auto mission = String::ToLower(missionPath.filename().string());
+            auto loadFlags = LoadFlag::Filesystem;
 
             // Read IED from data directories for official missions
             if (mission == "descent.hog")
-                path = D1_FOLDER / metadataFile;
+                loadFlags |= LoadFlag::Descent1;
             else if (mission == "descent2.hog")
-                path = D2_FOLDER / metadataFile;
+                loadFlags |= LoadFlag::Descent2;
             //else if (mission == "d2x.hog")
             //    path = D2_FOLDER / "vertigo" / metadataFile; // Vertigo
 
+            if (auto data = Resources::ReadTextFile(metadataFile, loadFlags))
+                return *data;
+
+            // try reading from mission (includes zip, unpacked folder and hog)
+            if (auto data = Resources::ReadTextFile(metadataFile, LoadFlag::Filesystem | LoadFlag::Mission))
+                return *data;
+        }
+        else {
+            // for loose levels, check adjacent to the file
+            auto path = level.Path.parent_path() / metadataFile;
+
             if (filesystem::exists(path)) {
-                metadata = File::ReadAllText(path);
-            }
-            else {
-                // check for unpacked data folder with same name as mission
-                if (!metadata) {
-                    // search for unpacked
-                    auto unpackedPath = Game::Mission->Path.parent_path() / Game::Mission->Path.stem() / metadataFile;
-                    metadata = File::ReadAllText(unpackedPath);
-                }
+                SPDLOG_INFO("Reading level metadata from `{}`", path.string());
+                return File::ReadAllText(path);
             }
         }
 
-        if (metadata) {
-            SPDLOG_INFO("Reading level metadata from `{}`", path.string());
-            LoadLevelMetadata(level, *metadata, Editor::EditorLightSettings);
+        return {};
+    }
+
+    // reads IED files for the level
+    void LoadLevelMetadata(Inferno::Level& level) {
+        auto metadata = LoadLevelMetadataInternal(level);
+
+        if (!metadata.empty()) {
+            LoadLevelMetadata(level, metadata, Editor::EditorLightSettings);
         }
     }
 
@@ -656,16 +662,33 @@ namespace Inferno::Game {
         }
 
         if (Game::Mission) {
-            // Check the unpacked mission data folder and mission file for music
             auto base = std::filesystem::path(song).stem();
             std::array extensions = { ".ogg", ".mp3", ".flac" };
 
             for (auto& ext : extensions) {
-                auto unpacked = Game::Mission->Path.parent_path() / Game::Mission->Path.stem() / base;
-                unpacked.replace_extension(ext);
-                if (filesystem::exists(unpacked)) {
-                    Sound::PlayMusic(File::ReadAllBytes(unpacked), loop);
-                    return;
+                {
+                    // Check the unpacked mission folder
+                    auto unpacked = Game::Mission->Path.parent_path() / Game::Mission->Path.stem() / base;
+                    unpacked.replace_extension(ext);
+                    if (filesystem::exists(unpacked)) {
+                        Sound::PlayMusic(File::ReadAllBytes(unpacked), loop);
+                        return;
+                    }
+                }
+
+                {
+                    // check the mission zip
+                    auto zipPath = Game::Mission->Path.parent_path() / Game::Mission->Path.stem();
+                    zipPath.replace_extension(".zip");
+
+                    if (filesystem::exists(zipPath)) {
+                        auto zip = File::OpenZip(zipPath);
+                        auto file = base.string() + ext;
+                        if (auto data = zip->TryReadEntry(file)) {
+                            SPDLOG_INFO("Reading {} from mission zip", file);
+                            return;
+                        }
+                    }
                 }
             }
 
