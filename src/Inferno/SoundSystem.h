@@ -42,11 +42,9 @@ namespace Inferno::Sound {
     // Plays a sound attached to an object that stops if it is destroyed
     SoundUID PlayFrom(const Sound3D& sound, const Object& source);
 
-    // Plays a raw music stream
+    // Plays a raw music file. Returns true if playback started. Ogg, flac, and MP3 are supported.
     bool PlayMusic(const List<byte>&& data, bool loop);
 
-    // Plays a music file. Returns true if playback started.
-    bool PlayMusic(string_view file, bool loop = true);
 
     // Stops the currently playing music
     void StopMusic();

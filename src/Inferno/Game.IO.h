@@ -41,6 +41,6 @@ namespace Inferno::Game {
 
     // Plays a specific music file. Extension is optional.
     // Non-level songs include: briefing, credits, descent, endgame, endlevel
-    void PlayMusic(string_view song, LoadFlag flag = LoadFlag::Default, bool loop = true);
+    void PlayMusic(string_view song, LoadFlag priority = LoadFlag::None, bool loop = true);
 
 }

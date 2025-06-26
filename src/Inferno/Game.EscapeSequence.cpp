@@ -638,7 +638,7 @@ namespace Inferno {
 
         CinematicCamera.Segment = start.Segment;
 
-        Game::PlayMusic("endlevel", LoadFlag::Default | GetLevelLoadFlag(Game::Level), false);
+        Game::PlayMusic("endlevel", LoadFlag::None, false);
     }
 
     void DebugEscapeSequence() {
@@ -682,6 +682,6 @@ namespace Inferno {
         State.ExplosionTimer = 0;
         State.ExplosionSoundTimer = 0;
 
-        Game::PlayMusic("endlevel", LoadFlag::Default | GetLevelLoadFlag(Game::Level), false);
+        Game::PlayMusic("endlevel", LoadFlag::None, false);
     }
 }

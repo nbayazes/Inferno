@@ -974,7 +974,7 @@ namespace Inferno::Resources {
         if (fileName.empty()) return {};
         auto file = string(fileName);
 
-        // current HOG file
+        // Check current mission
         if (Game::Mission && HasFlag(flags, LoadFlag::Mission)) {
             const auto& missionPath = Game::Mission->Path;
 

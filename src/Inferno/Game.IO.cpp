@@ -596,7 +596,6 @@ namespace Inferno::Game {
     }
 
     void PlayLevelMusic() {
-        auto flags = LoadFlag::Default | GetLevelLoadFlag(Game::Level);
         Option<string> sng;
         uint firstLevelSong = 5; // the first five songs are menu music
 
@@ -644,90 +643,36 @@ namespace Inferno::Game {
         auto songIndex = firstLevelSong + std::abs(LevelNumber - 1) % availableLevelSongs;
         string song = songs[songIndex];
 
-        PlayMusic(song, flags);
+        PlayMusic(song);
     }
 
-    void PlayMusic(string_view song, LoadFlag flag, bool loop) {
+    void PlayMusic(string_view song, LoadFlag priority, bool loop) {
         SPDLOG_INFO("Trying to play song `{}`", song);
 
         //Sound::PlayMusic("Resignation.mp3");
         //Sound::PlayMusic("Title.ogg");
         //Sound::PlayMusic("Hostility.flac");
 
-        //PlayMusic("endlevel.hmp");
+        std::array extensions = { ".ogg", ".mp3", ".flac" };
 
-        // Try playing the given file name if it exists (ignore hmp / midi for now)
-        if (!song.ends_with(".hmp") && Resources::Find(song, flag)) {
-            Sound::PlayMusic(song);
-            return;
-        }
-
-        if (Game::Mission) {
-            auto base = std::filesystem::path(song).stem();
-            std::array extensions = { ".ogg", ".mp3", ".flac" };
-
+        const auto play = [&](LoadFlag flag) {
             for (auto& ext : extensions) {
-                {
-                    // Check the unpacked mission folder
-                    auto unpacked = Game::Mission->Path.parent_path() / Game::Mission->Path.stem() / base;
-                    unpacked.replace_extension(ext);
-                    if (filesystem::exists(unpacked)) {
-                        Sound::PlayMusic(File::ReadAllBytes(unpacked), loop);
-                        return;
-                    }
-                }
+                auto name = String::NameWithoutExtension(song) + ext;
 
-                {
-                    // check the mission zip
-                    auto zipPath = Game::Mission->Path.parent_path() / Game::Mission->Path.stem();
-                    zipPath.replace_extension(".zip");
-
-                    if (filesystem::exists(zipPath)) {
-                        auto zip = File::OpenZip(zipPath);
-                        auto file = base.string() + ext;
-                        if (auto data = zip->TryReadEntry(file)) {
-                            SPDLOG_INFO("Reading {} from mission zip", file);
-                            return;
-                        }
-                    }
+                if (auto data = Resources::ReadBinaryFile(name, flag)) {
+                    Sound::PlayMusic(std::move(*data), loop);
+                    return true;
                 }
             }
 
-            for (auto& ext : extensions) {
-                if (!Game::Mission) continue;
+            return false;
+        };
 
-                base.replace_extension(ext);
-                HogReader hog(Game::Mission->Path);
-
-                if (auto entry = hog.TryReadEntry(base.string())) {
-                    Sound::PlayMusic(std::move(*entry), loop);
-                    return;
-                }
-            }
-        }
-
-        // Check the file system for music. Priority is arbitrary.
-        filesystem::path path(song);
-
-        path.replace_extension(".ogg");
-        if (Resources::Find(path.string(), flag)) {
-            Sound::PlayMusic(path.string(), loop);
+        if (priority != LoadFlag::None && play(priority))
             return;
-        }
 
-        path.replace_extension(".mp3");
-        if (Resources::Find(path.string(), flag)) {
-            Sound::PlayMusic(path.string(), loop);
+        if (play(GetLevelLoadFlag(Game::Level) | LoadFlag::Default))
             return;
-        }
-
-        path.replace_extension(".flac");
-        if (Resources::Find(path.string(), flag)) {
-            Sound::PlayMusic(path.string(), loop);
-            return;
-        }
-
-        // todo: play the original midi if no replacement music
 
         Sound::StopMusic(); // Stop playing existing music in case the requested song isn't found
     }

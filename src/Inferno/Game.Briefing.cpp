@@ -303,7 +303,7 @@ vaporization of the facility.
             }
 
             auto music = endgame ? "endgame" : "briefing";
-            Game::PlayMusic(music, LoadFlag::Default | GetLevelLoadFlag(level));
+            Game::PlayMusic(music);
         }
 
         Game::Briefing = BriefingState(briefing, levelNumber, level.IsDescent1(), endgame);

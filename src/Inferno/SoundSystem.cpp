@@ -69,7 +69,6 @@ namespace Inferno::Sound {
     Ptr<MusicStream> CreateMusicStream(List<byte>&& data);
 
     struct PlayMusicInfo {
-        string file; // Play from file
         List<byte> data; // Play from memory
         bool loop = true;
     };
@@ -525,33 +524,6 @@ namespace Inferno::Sound {
             }
         }
 
-        bool PlayMusicFromFile(string file, bool loop) {
-            auto data = Resources::ReadBinaryFile(file, LoadFlag::Default | GetLevelLoadFlag(Game::Level));
-
-            if (!data) {
-                SPDLOG_WARN("Music file {} not found", file);
-                return false;
-            }
-
-            if (file.ends_with(".hmp")) {
-                SPDLOG_WARN("HMP / MIDI music not implemented!");
-                return false;
-            }
-
-            _musicStream = CreateMusicStream(std::move(*data));
-
-            if (!_musicStream) {
-                SPDLOG_WARN("Unable to create music stream from {}", file);
-                return false;
-            }
-
-            SPDLOG_INFO("Playing music {}. Loop {}", file, loop);
-            _musicStream->Loop = loop;
-            _musicStream->Effect->SetVolume(_musicVolume);
-            _musicStream->Effect->Play();
-            return true;
-        }
-
         void PlaySound3DInternal(const PlaySound3DInfo& playInfo) {
             //ASSERT(playInfo.Segment != SegID::None || playInfo.AtListener);
             auto& sound = playInfo.Sound;
@@ -678,24 +650,23 @@ namespace Inferno::Sound {
             if (_musicVolume == 0)
                 return; // Don't waste resources playing silenced music
 
-            if (!_musicInfo.data.empty()) {
-                // Play music from memory
-                _musicStream = CreateMusicStream(std::move(_musicInfo.data));
-
-                if (!_musicStream) {
-                    SPDLOG_WARN("Unable to create music stream");
-                    return;
-                }
-
-                SPDLOG_INFO("Playing music. Loop {}", _musicInfo.loop);
-                _musicStream->Loop = _musicInfo.loop;
-                _musicStream->Effect->SetVolume(_musicVolume);
-                _musicStream->Effect->Play();
+            if (_musicInfo.data.empty()) {
+                _requestStopMusic = true;
+                return;
             }
-            else if (!_musicInfo.file.empty()) {
-                // Stream music from file
-                PlayMusicFromFile(_musicInfo.file, _musicInfo.loop);
+
+            _musicStream = CreateMusicStream(std::move(_musicInfo.data));
+
+            if (!_musicStream) {
+                SPDLOG_WARN("Unable to create music stream");
+                return;
             }
+
+            SPDLOG_INFO("Playing music. Loop {}", _musicInfo.loop);
+            _musicStream->Loop = _musicInfo.loop;
+            _musicStream->Effect->SetVolume(_musicVolume);
+            _musicStream->Effect->Play();
+            _requestStopMusic = false;
         }
 
         void Update() {
@@ -1175,14 +1146,10 @@ namespace Inferno::Sound {
     }
 
     bool PlayMusic(const List<byte>&& data, bool loop) {
-        SoundThread->PlayMusic({ {}, data, loop });
+        SoundThread->PlayMusic({ data, loop });
         return true;
     }
 
-    bool PlayMusic(string_view file, bool loop) {
-        SoundThread->PlayMusic({ string(file), {}, loop });
-        return true;
-    }
 
     void StopMusic() {
         if (!SoundThread) return;
