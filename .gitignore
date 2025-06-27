@@ -362,6 +362,7 @@ dxc.exe
 /src/Inferno/data/d1/*.pof
 /src/Inferno/d1/missions
 /src/Inferno/d2/missions
+/src/Inferno/d2/*.rl2
 *.wav
 *.bak
 *.sav

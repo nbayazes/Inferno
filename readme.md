@@ -35,9 +35,12 @@ Several song packs are available, generously hosted by [PuMo](https://pumosoftwa
 [Playstation 1 CD](https://pumosoftware.com/files/descent/dxa/d1-playstation.dxa)
 [Mac CD](https://pumosoftware.com/files/descent/dxa/d1cda-mac.dxa)
 
+### Custom Missions
+Custom user missions should be placed in the `d1/missions` folder (the hog and msn).
+
 ### Inferno Enhanced Missions
 These missions have custom lighting and music to enhance the Inferno experience. 
-Simply place the `zip` file next to the mission `hog` file in the `d1` folder and it will be loaded automatically.
+Simply place the `zip` file next to the mission `hog` file in the `d1/missions` folder and it will be loaded automatically.
 
 Enhanced missions require retail game data.
 
