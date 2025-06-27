@@ -505,13 +505,11 @@ namespace Inferno::Sound {
                 string info = "Available sound devices:\n";
                 for (auto& device : devices) {
                     info += Narrow(device.description);
-
                     if (&device != &devices.back())
                         info += '\n';
                 }
 
                 SPDLOG_INFO(info);
-
                 SetMasterVolume(masterVolume);
                 SetMusicVolume(musicVolume);
                 SetEffectVolume(effectVolume);

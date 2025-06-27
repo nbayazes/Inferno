@@ -783,22 +783,22 @@ namespace Inferno {
             Lives--;
     }
 
-    void Player::ApplyDamage(float damage, bool playSound) {
+    void Player::ApplyDamage(float damage, bool playSound, bool showTint) {
         if (Game::GetState() == GameState::EscapeSequence)
             return; // Can't take damage during cutscene
 
         // Keep player shields in sync with the object that represents it
         if (auto player = Game::Level.TryGetObject(Reference)) {
             constexpr float SCALE = 40;
-            auto flash = std::max(damage / SCALE, 0.05f);
+            auto flash = std::max(damage / SCALE, 0.0f);
 
             if (!IsDead) {
                 if (player->IsInvulnerable() || Settings::Cheats.DisableWeaponDamage) {
-                    Game::AddDamageTint({ 0, 0, flash });
+                    if (showTint) Game::AddDamageTint({ 0, 0, flash });
                 }
                 else {
                     Shields -= damage;
-                    Game::AddDamageTint({ flash, -flash, -flash });
+                    if (showTint) Game::AddDamageTint({ flash, -flash, -flash });
                 }
             }
 

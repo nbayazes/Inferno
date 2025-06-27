@@ -1363,7 +1363,7 @@ namespace Inferno {
         if (damage > DAMAGE_THRESHOLD) {
             if (hit.PlayerHit()) {
                 if (Game::Player.Shields > 10 || isForceField)
-                    Game::Player.ApplyDamage(damage, false);
+                    Game::Player.ApplyDamage(damage, false, false);
             }
             else {
                 obj.ApplyDamage(damage);

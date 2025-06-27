@@ -255,7 +255,7 @@ namespace Inferno {
         void GiveExtraLife(uint8 lives = 1);
         void LoseLife();
 
-        void ApplyDamage(float damage, bool playSound);
+        void ApplyDamage(float damage, bool playSound, bool showTint = true);
 
         // Fully resets the player inventory
         void ResetInventory();
