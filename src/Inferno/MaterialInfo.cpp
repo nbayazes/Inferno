@@ -229,7 +229,13 @@ namespace Inferno {
             //    return _stricmp(a.Name.c_str(), b.Name.c_str()) < 0;
             //});
 
+            List<string> written;
+
             for (auto& material : materials) {
+                // Prevent duplicates
+                if (Seq::contains(written, material.Name)) continue;
+                written.push_back(material.Name);
+
                 //if (material.ID == (int)TexID::None || material.ID == (int)Render::SHINY_FLAT_MATERIAL) continue;
                 auto node = doc["Materials"].append_child();
                 SaveMaterialInfo(node, material);

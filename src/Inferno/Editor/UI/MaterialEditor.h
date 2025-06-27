@@ -78,6 +78,11 @@ namespace Inferno::Editor {
                 if (_source == TableSource::Mission && !Game::Mission)
                     _source = TableSource::Level;
 
+                if (Game::Level.IsDescent1() && _source == TableSource::Descent2)
+                    _source = TableSource::Descent1;
+                else if (Game::Level.IsDescent2() && _source == TableSource::Descent1)
+                    _source = TableSource::Descent2;
+
                 _table = GetMaterialTableForSource(_source);
                 if (_table)
                     _backupTable = *_table;
@@ -364,6 +369,8 @@ namespace Inferno::Editor {
         //}
 
         void MaterialEdit(float listWidth, const ImVec2& contentMax, float topRowHeight) {
+            ImGui::SameLine();
+
             if (!_table) {
                 ImGui::Text("No data table");
                 return;
@@ -371,7 +378,6 @@ namespace Inferno::Editor {
 
             ImVec2 buttonSize{ 125 * Shell::DpiScale, 0 };
 
-            ImGui::SameLine();
             ImGui::BeginChild("details", { contentMax.x - listWidth - 10, contentMax.y - topRowHeight });
 
             auto& bmp = Resources::GetBitmap(_selection);
@@ -429,9 +435,10 @@ namespace Inferno::Editor {
 
                     ImGui::Text(label.c_str());
 
-                    if (!discard && merged && merged->Source != material.Source) {
+                    // material.Source
+                    if (!discard && merged && merged->Source != _source && merged->Source != TableSource::Undefined) {
                         ImGui::PushStyleColor(ImGuiCol_Text, { 0, 1, 0, 1 });
-                        ImGui::Text("Overidden in %s table", SourceToString(merged->Source).c_str());
+                        ImGui::Text("Source: %s", SourceToString(merged->Source).c_str());
                         ImGui::PopStyleColor();
                     }
                     else {
@@ -480,7 +487,7 @@ namespace Inferno::Editor {
                     }
 
                     material.Modified = true;
-                    //material.Source = _source;
+                    material.Source = _source;
 
                     // Update the indexed material so views respond properly.
                     // Indexed materials are uploaded to the GPU.

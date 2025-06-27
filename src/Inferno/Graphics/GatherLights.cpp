@@ -192,7 +192,8 @@ namespace Inferno::Graphics {
 
         // Prioritize overlay texture lights
         if (useOverlay) {
-            if (auto mat2 = Resources::GetLightInfo(side.TMap2))
+            auto& ti = Resources::GetTextureInfo(side.TMap2);
+            if (auto mat2 = Resources::GetLightInfo(ti.Name))
                 return mat2;
             else {
                 if (!Resources::GetTextureInfo(side.TMap2).Transparent)
@@ -201,7 +202,8 @@ namespace Inferno::Graphics {
         }
 
         // Try base texture
-        return Resources::GetLightInfo(side.TMap);
+        auto& ti = Resources::GetTextureInfo(side.TMap2);
+        return Resources::GetLightInfo(ti.Name);
     }
 
     void GatherSideLights(const ConstFace& face, TextureLightInfo& info, List<LightData>& sources) {

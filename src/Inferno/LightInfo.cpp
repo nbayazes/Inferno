@@ -10,9 +10,6 @@ namespace Inferno {
     TextureLightInfo ReadLightInfo(ryml::NodeRef node) {
         TextureLightInfo info;
         ReadValue(node["Name"], info.Name);
-
-        info.Id = Resources::FindLevelTexture(info.Name);
-
         ReadValue(node["Type"], (int&)info.Type);
         ReadValue(node["Wrap"], (int&)info.Wrap);
 
@@ -56,7 +53,7 @@ namespace Inferno {
 
     void SaveLightInfo(ryml::NodeRef node, const TextureLightInfo& info) {
         node |= ryml::MAP;
-        node["ID"] << (int)info.Id;
+        node["Name"] << info.Name;
         node["Type"] << (int)info.Type;
         node["Wrap"] << (int)info.Wrap;
 

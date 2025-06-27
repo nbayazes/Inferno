@@ -1,3 +1,5 @@
+#include <utility>
+
 #include "pch.h"
 #include "../Editor.h"
 #include "Editor/Editor.Lighting.h"
@@ -694,7 +696,7 @@ namespace Inferno::Editor {
             }
 
             auto vertexLightSlider = [&levelChanged, &snapshot, &side](const char* label, int point) {
-                if (point == (int)Editor::Selection.Point)
+                if (std::cmp_equal(point, Editor::Selection.Point))
                     ImGui::PushStyleColor(ImGuiCol_Text, { 0, 1, 0, 1 });
 
                 ImGui::TableNextRow();
@@ -702,7 +704,7 @@ namespace Inferno::Editor {
                 if (ImGui::Checkbox(label, &side.LockLight[point]))
                     snapshot = true;
 
-                if (point == (int)Editor::Selection.Point)
+                if (std::cmp_equal(point, Editor::Selection.Point))
                     ImGui::PopStyleColor();
 
                 ImGui::TableNextColumn();
@@ -755,7 +757,7 @@ namespace Inferno::Editor {
                         }
                     }
                     else {
-                        for (auto tag : Editor::GetSelectedFaces()) {
+                        for (const auto& tag : Editor::GetSelectedFaces()) {
                             if (auto s = level.TryGetSide(tag)) {
                                 for (int i = 0; i < 4; i++) {
                                     s->Light[i] = vertexColor;

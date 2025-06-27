@@ -339,8 +339,9 @@ namespace Inferno {
             return { 1, 1, 1, light };
 
         Color baseColor(0, 0, 0, 0), overlayColor(0, 0, 0, 0);
+        auto& ti = Resources::GetTextureInfo(side.TMap);
 
-        auto lightInfo1 = Resources::GetLightInfo(side.TMap);
+        auto lightInfo1 = Resources::GetLightInfo(ti.Name);
         if (lightInfo1 && lightInfo1->Color != LIGHT_UNSET) {
             baseColor += lightInfo1->Color;
         }
@@ -349,7 +350,8 @@ namespace Inferno {
         }
 
         if (side.HasOverlay()) {
-            auto lightInfo2 = Resources::GetLightInfo(side.TMap2);
+            auto& ti2 = Resources::GetTextureInfo(side.TMap2);
+            auto lightInfo2 = Resources::GetLightInfo(ti2.Name);
 
             if (lightInfo2 && lightInfo2->Color != LIGHT_UNSET) {
                 overlayColor = lightInfo2->Color;
