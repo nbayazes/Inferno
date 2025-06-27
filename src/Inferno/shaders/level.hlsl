@@ -278,7 +278,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
             // Reduce the brightness of green and increase blue
             //float colorMult = 1 + (1 - dot(Args.LightColor.rgb, float3(1, 2, 0.25)) * .333) * 3;
             float colorMult = 1 + (1 - dot(Args.LightColor.rgb, float3(1, 1, 1)) * .333) * 4;
-            emissive *= Args.LightColor.rgb * Args.LightColor.a * colorMult * EMISSIVE_MULT;
+            emissive *= Args.LightColor.rgb * Args.LightColor.a * max(colorMult, 0) * EMISSIVE_MULT;
         }
         else if (Args.LightColor.a == -1) {
             // Special case for lights that have been set to 0 in the editor
