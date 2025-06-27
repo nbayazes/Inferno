@@ -230,6 +230,13 @@ namespace Inferno::Editor {
                 auto& tmap1 = Resources::GetTextureInfo(side.TMap);
                 bool transparent = tmap1.Transparent;
 
+                // Special override for energy fields, as they oversaturate very easily without blocking
+                if (level.IsDescent1() && side.TMap == LevelTexID(328))
+                    return false;
+
+                if (level.IsDescent2() && side.TMap == LevelTexID(353))
+                    return false;
+
                 if (side.HasOverlay()) {
                     auto& tmap2 = Resources::GetTextureInfo(side.TMap2);
                     transparent |= tmap2.SuperTransparent;
@@ -690,7 +697,7 @@ namespace Inferno::Editor {
                 auto& side = seg.GetSide(sideId);
 
                 if (!side.LightOverride) {
-                    if (seg.SideHasConnection(sideId) && !seg.SideIsWall(sideId)) 
+                    if (seg.SideHasConnection(sideId) && !seg.SideIsWall(sideId))
                         continue; // open sides can't have lights
 
                     if (auto wall = level.TryGetWall({ segId, sideId })) {

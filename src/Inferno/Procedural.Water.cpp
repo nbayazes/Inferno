@@ -75,7 +75,6 @@ namespace Inferno {
             uint8((a.g + b.g) >> 1),
             uint8((a.b + b.b) >> 1),
             uint8((a.a + b.a) >> 1)
-
         };
     }
 

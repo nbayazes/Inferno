@@ -324,6 +324,11 @@ namespace Inferno::Resources {
             auto& bmp = GetBitmap(entry.ID);
             entry.AverageColor = GetAverageColor(bmp.Data);
             entry.AverageColor.AdjustSaturation(2); // boost saturation to look nicer
+
+            // Colors can go negative due to saturation
+            entry.AverageColor.x = std::max(entry.AverageColor.x, 0.0f);
+            entry.AverageColor.y = std::max(entry.AverageColor.y, 0.0f);
+            entry.AverageColor.z = std::max(entry.AverageColor.z, 0.0f);
         }
     }
 
@@ -1225,16 +1230,41 @@ namespace Inferno::Resources {
         }
     }
 
+    void MergeLights(List<TextureLightInfo>& dest, const List<TextureLightInfo>& source) {
+        for (auto& light : source) {
+            if (auto existing = Seq::find(dest, [&light](const TextureLightInfo& t) { return t.Name == light.Name; })) {
+                // Replace existing lights
+                *existing = light;
+            }
+            else {
+                // Add new ones
+                dest.push_back(light);
+            }
+        }
+    }
+
     void LoadDataTables(const Level& level) {
         //LoadDataTables(level, LoadFlag::Filesystem | LoadFlag::Common);
         //LoadDataTables(level, LoadFlag::Filesystem | GetLevelLoadFlag(level));
         //LoadDataTables(level, LoadFlag::Mission);
 
-        // todo: reload lights on GPU
+        {
+            // merge light tables
+            Lights = LoadLightTables(LoadFlag::Filesystem | LoadFlag::Descent1);
 
-        // todo: merge light and game tables
+            if (level.IsDescent2()) {
+                auto d2Lights = LoadLightTables(LoadFlag::Filesystem | LoadFlag::Descent2);
+                MergeLights(Lights, d2Lights);
+            }
+
+            auto missionLights = LoadLightTables(LoadFlag::Mission);
+            MergeLights(Lights, missionLights);
+
+            // reload lights on GPU
+            Editor::Events::LevelChanged();
+        }
+
         auto flags = LoadFlag::Filesystem | GetLevelLoadFlag(level);
-        Lights = LoadLightTables(flags);
         LoadGameTables(flags, GameData);
         LoadMaterialTables(level);
         MergeMaterials(level);

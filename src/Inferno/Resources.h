@@ -167,14 +167,6 @@ namespace Inferno::Resources {
         return nullptr;
     }
 
-    inline TextureLightInfo* GetLightInfo(LevelTexID id) {
-        for (auto& info : Lights) {
-            if (info.Id == id) return &info;
-        }
-
-        return nullptr;
-    }
-
     void MountDescent3();
 
     Option<StreamReader> OpenFile(const string& name);

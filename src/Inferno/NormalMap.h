@@ -4,14 +4,16 @@
 
 namespace Inferno {
     inline float GetIntensity(const Palette::Color& color, bool invert = false) {
+#if defined(_DEBUG)
         // assumes color is clamped 0..1
-        //Vector3 rgb = { (float)color.r / 255.0f, (float)color.g / 255.0f, (float)color.b / 255.0f };
-        //auto height = Luminance(rgb);
+        // hsv calculation is very expensive in debug builds, fallback to luminance
+        Vector3 rgb = { (float)color.r / 255.0f, (float)color.g / 255.0f, (float)color.b / 255.0f };
+        auto v = Luminance(rgb);
+#else
         auto c = color.ToColor();
-        //c.AdjustSaturation(0);
-        //auto v = c.x;
         auto hsv = Vector3(DirectX::XMColorRGBToHSV(c));
         auto v = hsv.z;
+#endif
         return invert ? 1.0f - v : v;
     }
 
