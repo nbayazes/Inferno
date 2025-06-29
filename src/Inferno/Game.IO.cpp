@@ -640,8 +640,8 @@ namespace Inferno::Game {
         }
 
         auto availableLevelSongs = songs.size() - firstLevelSong;
-        auto songIndex = firstLevelSong + std::abs(LevelNumber - 1) % availableLevelSongs;
-        string song = songs[songIndex];
+        auto songIndex = (LevelNumber <= 0 ? std::abs(LevelNumber) : LevelNumber - 1) % availableLevelSongs;
+        string song = songs[firstLevelSong + songIndex];
 
         PlayMusic(song);
     }
