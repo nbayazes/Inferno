@@ -40,10 +40,37 @@ namespace Inferno {
         return (b0 << 24) + (b1 << 16) + (b2 << 8) + b3;
     }
 
+    // Converts ILBM image data to PBM
+    List<byte> ConvertILBMToPBM(List<byte>& data, const IffHeader& header) {
+        List<byte> newData;
+        newData.resize(header.Width * header.Height);
+
+        uint rowLength = (header.Width + 7) / 8;
+        uint destPos = 0;
+
+        for (uint y = 0; y < header.Height; y++) {
+            auto rowStart = rowLength * y * header.Planes;
+            byte checkMask = 0x80;
+
+            for (uint x = 0; x < header.Width; x++) {
+                byte result = 0;
+                for (int p = 0; p < header.Planes; p++) {
+                    if (data[rowStart + p * rowLength + (x >> 3)] & checkMask)
+                        result |= 1 << p;
+                }
+
+                newData[destPos++] = result;
+                if ((checkMask >>= 1) == 0)
+                    checkMask = 0x80;
+            }
+        }
+
+        return newData;
+    }
+
     List<byte> ParseBody(StreamReader& stream, int32 chunkLen, const IffHeader& header) {
         int width = 0;
         int8 depth = 0;
-        int rowCount = 0;
         int offset = 0;
 
         if (header.Type == BbmType::PBM) {
@@ -51,7 +78,7 @@ namespace Inferno {
             depth = 1;
         }
         else if (header.Type == BbmType::ILBM) {
-            width = (header.Width + 7) / 89;
+            width = (header.Width + 7) / 8;
             depth = header.Planes;
         }
         else {
@@ -73,11 +100,15 @@ namespace Inferno {
             }
         }
         else if (header.Compression == CompressionType::RLE) {
-            //return data;
+            int endCount = (width & 1) ? -1 : 0;
+            for (int count = width, plane = 0; offset < data.size();) {
+                if (count == endCount) {
+                    count = width;
+                    plane++;
+                    if ((header.Mask == MaskType::Mask && plane == depth + 1) || (header.Mask != MaskType::Mask && plane == depth))
+                        plane = 0;
+                }
 
-            // todo: some custom levels use compressed BBMs and will crash
-            // NOTE: this code is not tested. No standard descent BBMs appear to be compressed.
-            for (int count = width, plane = 0; count < offset + chunkLen && offset < data.size();) {
                 ASSERT(stream.Position() < endPosition);
                 auto n = stream.ReadByte();
 
@@ -117,20 +148,13 @@ namespace Inferno {
                         offset += len;
                     }
                 }
-
-                if (width == 0 || offset % width == 0)
-                    rowCount++;
-
-                ASSERT(offset - (width * rowCount) < width);
-
-                if (header.Type == BbmType::ILBM) {
-                    throw NotImplementedException();
-                    //ConvertToPbm(data);
-                }
             }
         }
 
-        return data;
+        if (header.Type == BbmType::ILBM)
+            return ConvertILBMToPBM(data, header);
+        else
+            return data;
     }
 
     Bitmap2D Parse(StreamReader& stream, int type) {
