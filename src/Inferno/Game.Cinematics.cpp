@@ -196,6 +196,7 @@ namespace Inferno {
         if (Game::Player.TimeDead < 2) return;
 
         if (Input::OnKeyPressed(Input::Keys::Space) ||
+            Input::OnKeyPressed(Input::Keys::Escape) ||
             Game::Bindings.Pressed(GameAction::FirePrimary) ||
             Game::Bindings.Pressed(GameAction::FireSecondary) ||
             Input::MouseButtonPressed(Input::MouseButtons::LeftClick)) {

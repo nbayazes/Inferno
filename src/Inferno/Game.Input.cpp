@@ -486,16 +486,18 @@ namespace Inferno {
                 break;
 
             case GameState::Game:
-                if (Game::Bindings.Pressed(GameAction::Automap)) {
-                    Game::SetState(GameState::Automap);
-                }
+                if (!Game::Player.IsDead) {
+                    if (Game::Bindings.Pressed(GameAction::Automap)) {
+                        Game::SetState(GameState::Automap);
+                    }
 
-                if (Game::Bindings.Pressed(GameAction::Pause)) {
-                    Game::SetState(GameState::PauseMenu);
-                }
+                    if (Game::Bindings.Pressed(GameAction::Pause)) {
+                        Game::SetState(GameState::PauseMenu);
+                    }
 
-                HandleShipInput(dt);
-                HandleWeaponKeys();
+                    HandleShipInput(dt);
+                    HandleWeaponKeys();
+                }
                 break;
 
             case GameState::EscapeSequence:
