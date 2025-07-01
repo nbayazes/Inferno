@@ -607,7 +607,7 @@ namespace Inferno::Game {
 
         // For retail levels, DXAs get SNG priority, but for custom missions the mission file does
         if (Game::Mission && Game::Mission->IsRetailMission()) {
-            sng = Resources::ReadTextFile("descent.sng", GetLevelLoadFlag(Game::Level) | LoadFlag::Dxa);
+            sng = Resources::ReadTextFile("descent.sng", LoadFlag::LevelType | LoadFlag::Dxa);
             if (!sng)
                 sng = Resources::ReadTextFile("descent.sng", LoadFlag::Mission);
         }
@@ -626,11 +626,11 @@ namespace Inferno::Game {
             }
 
             if (!sng)
-                sng = Resources::ReadTextFile("descent.sng", GetLevelLoadFlag(Game::Level) | LoadFlag::Dxa);
+                sng = Resources::ReadTextFile("descent.sng", LoadFlag::LevelType | LoadFlag::Dxa);
         }
 
         if (!sng)
-            sng = Resources::ReadTextFile("descent.sng", GetLevelLoadFlag(Game::Level) | LoadFlag::BaseHog);
+            sng = Resources::ReadTextFile("descent.sng", LoadFlag::LevelType | LoadFlag::BaseHog);
 
         if (!sng) {
             SPDLOG_WARN("No SNG file found!");
@@ -677,7 +677,7 @@ namespace Inferno::Game {
         if (priority != LoadFlag::None && play(priority))
             return;
 
-        if (play(GetLevelLoadFlag(Game::Level) | LoadFlag::Default))
+        if (play(LoadFlag::LevelType | LoadFlag::Default))
             return;
 
         Sound::StopMusic(); // Stop playing existing music in case the requested song isn't found

@@ -361,13 +361,13 @@ namespace Inferno::Render {
         }
 
         if (auto data = Resources::ReadBinaryFile(baseName + "_e.dds", loadFlag))
-            material.Textures[Material2D::Diffuse].LoadDDS(batch, *data);
+            material.Textures[Material2D::Emissive].LoadDDS(batch, *data);
 
         if (auto data = Resources::ReadBinaryFile(baseName + "_s.dds", loadFlag))
-            material.Textures[Material2D::Diffuse].LoadDDS(batch, *data);
+            material.Textures[Material2D::Specular].LoadDDS(batch, *data);
 
         if (auto data = Resources::ReadBinaryFile(baseName + "_n.dds", loadFlag))
-            material.Textures[Material2D::Diffuse].LoadDDS(batch, *data);
+            material.Textures[Material2D::Normal].LoadDDS(batch, *data);
 
         if (!material.Textures[Material2D::Specular] && !upload.Bitmap.Data.empty()) {
             if (cached && cached->SpecularLength) {
@@ -507,7 +507,7 @@ namespace Inferno::Render {
             List<Material2D> uploads;
 
             auto& cache = Game::Level.IsDescent1() ? Game::Level.IsShareware ? D1DemoTextureCache : D1TextureCache : D2TextureCache;
-            auto loadFlag = LoadFlag::Default | LoadFlag::Texture | GetLevelLoadFlag(Game::Level);
+            auto loadFlag = LoadFlag::Default | LoadFlag::Texture | LoadFlag::LevelType;
 
             List<ubyte> buffer;
 
@@ -564,7 +564,7 @@ namespace Inferno::Render {
         auto& cache = Game::Level.IsDescent1() ? Game::Level.IsShareware ? D1DemoTextureCache : D1TextureCache : D2TextureCache;
         List<ubyte> buffer;
 
-        auto loadFlag = LoadFlag::Default | LoadFlag::Texture | GetLevelLoadFlag(Game::Level);
+        auto loadFlag = LoadFlag::Default | LoadFlag::Texture | LoadFlag::LevelType;
 
         for (auto& id : tids) {
             if (auto upload = PrepareUpload(id, forceLoad)) {

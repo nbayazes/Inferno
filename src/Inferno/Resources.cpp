@@ -475,7 +475,7 @@ namespace Inferno::Resources {
     // Load the custom exit models. Note this requires the D1 ham for proper texturing.
     void LoadCustomModels(FullGameData& data) {
         // Don't search the HOG files because it would find the original models
-        auto flags = LoadFlag::Filesystem | LoadFlag::Descent1 | LoadFlag::Dxa;
+        auto flags = LoadFlag::Filesystem | LoadFlag::Common | LoadFlag::Descent1 | LoadFlag::Dxa;
 
         // todo: handle Descent 2. It does not define the exit models
         if (data.ExitModel != ModelID::None) {
@@ -985,6 +985,9 @@ namespace Inferno::Resources {
         auto file = string(fileName);
         auto ext = String::ToLower(String::Extension(file));
 
+        if (HasFlag(flags, LoadFlag::LevelType))
+            flags |= GetLevelLoadFlag(Game::Level);
+
         if (ext == "wav") flags |= LoadFlag::Sound;
         if (ext == "pof" || ext == "oof") flags |= LoadFlag::Model;
         if (ext == "dds" || ext == "png") flags |= LoadFlag::Texture;
@@ -994,7 +997,7 @@ namespace Inferno::Resources {
 
         if (HasFlag(flags, LoadFlag::Texture)) subPath = "textures";
         else if (HasFlag(flags, LoadFlag::Sound)) subPath = "sounds";
-        else if (HasFlag(flags, LoadFlag::Model)) subPath = "model";
+        else if (HasFlag(flags, LoadFlag::Model)) subPath = "models";
 
         if (HasFlag(flags, LoadFlag::Level)) {
             auto levelFolder = String::NameWithoutExtension(Game::Level.FileName);
@@ -1003,6 +1006,12 @@ namespace Inferno::Resources {
                 levelSubPath = levelFolder + "/" + file;
             else
                 levelSubPath = subPath + "/" + levelFolder + "/" + file;
+        }
+        else {
+            if (subPath.empty())
+                subPath = file;
+            else
+                subPath += "/" + file;
         }
 
         // Check current mission
@@ -1078,12 +1087,6 @@ namespace Inferno::Resources {
             }
 
             if (HasFlag(flags, LoadFlag::Common) && filesystem::exists(ASSET_FOLDER / subPath)) {
-                SPDLOG_INFO("Reading {}", (ASSET_FOLDER / subPath).string());
-                return File::ReadAllBytes(ASSET_FOLDER / subPath);
-            }
-
-            if ((HasFlag(flags, LoadFlag::Texture) || HasFlag(flags, LoadFlag::Sound)) &&
-                filesystem::exists(ASSET_FOLDER / subPath)) {
                 SPDLOG_INFO("Reading {}", (ASSET_FOLDER / subPath).string());
                 return File::ReadAllBytes(ASSET_FOLDER / subPath);
             }
@@ -1310,7 +1313,8 @@ namespace Inferno::Resources {
             Editor::Events::LevelChanged();
         }
 
-        auto flags = LoadFlag::Filesystem | GetLevelLoadFlag(level);
+        // todo: merge game tables
+        auto flags = LoadFlag::Filesystem | LoadFlag::LevelType;
         LoadGameTables(flags, GameData);
         LoadMaterialTables(level);
         MergeMaterials(level);

@@ -48,11 +48,11 @@ namespace Inferno {
         Common = 1 << 8, // Search common asset folder
         Texture = 1 << 9, // Search `textures` subfolder
         Sound = 1 << 10, // Search `sounds` subfolder
-        Model = 1 << 10, // Search `models` subfolder
-        Music = 1 << 11, // Search `music` subfolder
-        Level = 1 << 12, // Search the level specific subfolder
+        Model = 1 << 11, // Search `models` subfolder
+        Music = 1 << 12, // Search `music` subfolder
+        Level = 1 << 13, // Search the level specific subfolder
+        LevelType = 1 << 14, // Adds the Descent1 or Descent2 flag based on the current level
         Default = Mission | Dxa | Filesystem | BaseHog | Common
-        // todo: add a flag to use the current level type (D1 or D2)
     };
 
     struct Level;

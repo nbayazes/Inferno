@@ -307,7 +307,7 @@ vaporization of the facility.
         }
 
         Game::Briefing = BriefingState(briefing, levelNumber, level.IsDescent1(), endgame);
-        LoadBriefingResources(Game::Briefing, GetLevelLoadFlag(level));
+        LoadBriefingResources(Game::Briefing, LoadFlag::LevelType);
         Game::SetState(GameState::Briefing);
     }
 }

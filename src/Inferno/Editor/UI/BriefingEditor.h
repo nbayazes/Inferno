@@ -142,7 +142,7 @@ namespace Inferno::Editor {
 
             _buffer = _briefing.Raw;
             Game::Briefing = BriefingState(_briefing, 0, Game::Level.IsDescent1(), endgame);
-            LoadBriefingResources(Game::Briefing, GetLevelLoadFlag(Game::Level));
+            LoadBriefingResources(Game::Briefing, LoadFlag::LevelType);
         }
     };
 }

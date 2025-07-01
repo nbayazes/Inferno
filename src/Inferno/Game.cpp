@@ -1138,7 +1138,7 @@ namespace Inferno::Game {
         StuckObjects = {};
         Sound::WaitInitialized();
         Sound::StopAllSounds();
-        Resources::LoadGameTables(LoadFlag::Default | GetLevelLoadFlag(Level));
+        Resources::LoadGameTables(LoadFlag::Default | LoadFlag::LevelType);
         ResetEffects();
         //Render::Materials->UnloadNamedTextures(); // was this necessary to fix HUD icons?
         Render::Materials->LoadGameTextures();
