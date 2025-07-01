@@ -64,7 +64,7 @@ namespace Inferno::Render {
 
         auto& model = Resources::GetModel(id);
 
-        for (int16 i = 0; i < model.TextureCount; i++) {
+        for (uint8 i = 0; i < model.TextureCount; i++) {
             auto tid = Resources::LookupModelTexID(model, i);
             ids.insert(tid);
 
@@ -275,8 +275,8 @@ namespace Inferno::Render {
         };
 
         // row pass. starts at top left.
-        for (int y = 0; y < bmp.Height; y++) {
-            for (int x = 0; x < bmp.Width; x++) {
+        for (int y = 0; std::cmp_less(y, bmp.Height); y++) {
+            for (int x = 0; std::cmp_less(x, bmp.Width); x++) {
                 auto& px = data[bmp.Width * y + x];
                 auto& below = getPixel(x, y + 1);
                 auto& above = getPixel(x, y - 1);
@@ -289,8 +289,8 @@ namespace Inferno::Render {
         }
 
         // column pass. starts at top left.
-        for (int x = 0; x < bmp.Width; x++) {
-            for (int y = 0; y < bmp.Height; y++) {
+        for (int x = 0; std::cmp_less(x, bmp.Width); x++) {
+            for (int y = 0; std::cmp_less(y, bmp.Height); y++) {
                 auto& px = data[bmp.Width * y + x];
                 auto& left = getPixel(x - 1, y);
                 auto& right = getPixel(x + 1, y);
@@ -306,7 +306,8 @@ namespace Inferno::Render {
     Option<Material2D> UploadMaterial(ResourceUploadBatch& batch,
                                       const MaterialUpload& upload,
                                       const TextureMapCache& cache,
-                                      List<ubyte>& buffer) {
+                                      List<ubyte>& buffer,
+                                      LoadFlag loadFlag) {
         if (upload.ID <= TexID::Invalid) return {};
         Material2D material;
         material.ID = upload.ID;
@@ -328,15 +329,12 @@ namespace Inferno::Render {
         const auto width = upload.Bitmap.Info.Width;
         const auto height = upload.Bitmap.Info.Height;
 
-        //SPDLOG_INFO("Loading texture `{}` to heap index: {}", ti->Name, material.Index);
-        //if (Settings::Graphics.HighRes || String::Contains(baseName, "gauge")) {
-        if (auto path = FileSystem::TryFindFile(material.Name + ".dds"))
-            material.Textures[Material2D::Diffuse].LoadDDS(batch, *path, true);
+        if (auto data = Resources::ReadBinaryFile(baseName + ".dds", loadFlag))
+            material.Textures[Material2D::Diffuse].LoadDDS(batch, *data, true);
 
         if (upload.SuperTransparent)
-            if (auto path = FileSystem::TryFindFile(baseName + "_st.dds"))
-                material.Textures[Material2D::SuperTransparency].LoadDDS(batch, *path);
-        //}
+            if (auto data = Resources::ReadBinaryFile(baseName + "_st.dds", loadFlag))
+                material.Textures[Material2D::SuperTransparency].LoadDDS(batch, *data);
 
         auto cached = cache.GetEntry(upload.ID);
 
@@ -362,14 +360,14 @@ namespace Inferno::Render {
             }
         }
 
-        if (auto path = FileSystem::TryFindFile(baseName + "_e.dds"))
-            material.Textures[Material2D::Emissive].LoadDDS(batch, *path);
+        if (auto data = Resources::ReadBinaryFile(baseName + "_e.dds", loadFlag))
+            material.Textures[Material2D::Diffuse].LoadDDS(batch, *data);
 
-        if (auto path = FileSystem::TryFindFile(baseName + "_s.dds"))
-            material.Textures[Material2D::Specular].LoadDDS(batch, *path);
+        if (auto data = Resources::ReadBinaryFile(baseName + "_s.dds", loadFlag))
+            material.Textures[Material2D::Diffuse].LoadDDS(batch, *data);
 
-        if (auto path = FileSystem::TryFindFile(baseName + "_n.dds"))
-            material.Textures[Material2D::Normal].LoadDDS(batch, *path);
+        if (auto data = Resources::ReadBinaryFile(baseName + "_n.dds", loadFlag))
+            material.Textures[Material2D::Diffuse].LoadDDS(batch, *data);
 
         if (!material.Textures[Material2D::Specular] && !upload.Bitmap.Data.empty()) {
             if (cached && cached->SpecularLength) {
@@ -509,6 +507,8 @@ namespace Inferno::Render {
             List<Material2D> uploads;
 
             auto& cache = Game::Level.IsDescent1() ? Game::Level.IsShareware ? D1DemoTextureCache : D1TextureCache : D2TextureCache;
+            auto loadFlag = LoadFlag::Default | LoadFlag::Texture | GetLevelLoadFlag(Game::Level);
+
             List<ubyte> buffer;
 
             for (auto& upload : queuedUploads) {
@@ -516,7 +516,7 @@ namespace Inferno::Render {
                     continue;
 
                 try {
-                    if (auto material = UploadMaterial(batch, upload, cache, buffer))
+                    if (auto material = UploadMaterial(batch, upload, cache, buffer, loadFlag))
                         uploads.emplace_back(std::move(material.value()));
                 }
                 catch (const std::exception& e) {
@@ -564,9 +564,11 @@ namespace Inferno::Render {
         auto& cache = Game::Level.IsDescent1() ? Game::Level.IsShareware ? D1DemoTextureCache : D1TextureCache : D2TextureCache;
         List<ubyte> buffer;
 
+        auto loadFlag = LoadFlag::Default | LoadFlag::Texture | GetLevelLoadFlag(Game::Level);
+
         for (auto& id : tids) {
             if (auto upload = PrepareUpload(id, forceLoad)) {
-                if (auto material = UploadMaterial(batch, *upload, cache, buffer))
+                if (auto material = UploadMaterial(batch, *upload, cache, buffer, loadFlag))
                     uploads.emplace_back(std::move(material.value()));
             }
 

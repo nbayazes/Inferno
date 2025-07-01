@@ -42,6 +42,7 @@ namespace Inferno::Resources {
 
         List<ModelEntry> OutrageModels;
         IndexedMaterialTable IndexedMaterials;
+        Ptr<IZipFile> _addonData;
     }
 
     int GetTextureCount() { return (int)GameData.pig.Entries.size(); } // Current.bitmaps.size()?;
@@ -909,14 +910,18 @@ namespace Inferno::Resources {
 
         // current HOG file
         if (Game::Mission && HasFlag(flags, LoadFlag::Mission)) {
-            //if (HasFlag(flags, LoadFlag::Filesystem)) {
-            // Check unpacked data folder for mission
-            auto path = Game::Mission->Path.parent_path();
-            auto unpacked = path / Game::Mission->Path.stem() / fileName;
+            const auto& missionPath = Game::Mission->Path;
+
+            // Check the unpacked development folder first
+            auto unpacked = missionPath.parent_path() / missionPath.stem() / fileName;
             if (filesystem::exists(unpacked))
                 return ResourceHandle::FromFilesystem(unpacked);
-            //}
 
+            // Check the addon archive
+            if (_addonData && _addonData->Contains(fileName))
+                return ResourceHandle::FromZip(_addonData->Path(), fileName);
+
+            // Finally check the mission hog
             if (Game::Mission->Exists(file))
                 return ResourceHandle::FromHog(file, fileName);
         }
@@ -931,9 +936,9 @@ namespace Inferno::Resources {
                 if (auto handle = FindDxaEntryInFolder(D2_FOLDER, fileName))
                     return handle;
 
-            if (HasFlag(flags, LoadFlag::Common))
-                if (auto handle = FindDxaEntryInFolder(COMMON_FOLDER, fileName))
-                    return handle;
+            //if (HasFlag(flags, LoadFlag::Common))
+            //    if (auto handle = FindDxaEntryInFolder(COMMON_FOLDER, fileName))
+            //        return handle;
         }
 
         if (HasFlag(flags, LoadFlag::Filesystem)) {
@@ -943,8 +948,8 @@ namespace Inferno::Resources {
             if (HasFlag(flags, LoadFlag::Descent2) && filesystem::exists(D2_FOLDER / file))
                 return ResourceHandle::FromFilesystem(D2_FOLDER / fileName);
 
-            if (HasFlag(flags, LoadFlag::Common) && filesystem::exists(COMMON_FOLDER / file))
-                return ResourceHandle::FromFilesystem(COMMON_FOLDER / fileName);
+            if (HasFlag(flags, LoadFlag::Common) && filesystem::exists(ASSET_FOLDER / file))
+                return ResourceHandle::FromFilesystem(ASSET_FOLDER / fileName);
         }
 
         // Base HOG file
@@ -978,32 +983,66 @@ namespace Inferno::Resources {
     Option<List<byte>> ReadBinaryFile(string_view fileName, LoadFlag flags) {
         if (fileName.empty()) return {};
         auto file = string(fileName);
+        auto ext = String::ToLower(String::Extension(file));
+
+        if (ext == "wav") flags |= LoadFlag::Sound;
+        if (ext == "pof" || ext == "oof") flags |= LoadFlag::Model;
+        if (ext == "dds" || ext == "png") flags |= LoadFlag::Texture;
+        if (ext == "mp3" || ext == "flac" || ext == "ogg") flags |= LoadFlag::Music;
+
+        string subPath, levelSubPath;
+
+        if (HasFlag(flags, LoadFlag::Texture)) subPath = "textures";
+        else if (HasFlag(flags, LoadFlag::Sound)) subPath = "sounds";
+        else if (HasFlag(flags, LoadFlag::Model)) subPath = "model";
+
+        if (HasFlag(flags, LoadFlag::Level)) {
+            auto levelFolder = String::NameWithoutExtension(Game::Level.FileName);
+
+            if (subPath.empty())
+                levelSubPath = levelFolder + "/" + file;
+            else
+                levelSubPath = subPath + "/" + levelFolder + "/" + file;
+        }
 
         // Check current mission
         if (Game::Mission && HasFlag(flags, LoadFlag::Mission)) {
             const auto& missionPath = Game::Mission->Path;
 
             // Check the unpacked development folder first
-            auto unpacked = missionPath.parent_path() / missionPath.stem() / fileName;
+            if (HasFlag(flags, LoadFlag::Level)) {
+                // mission/textures/level01
+                auto unpacked = missionPath.parent_path() / missionPath.stem() / levelSubPath;
+
+                if (filesystem::exists(unpacked)) {
+                    SPDLOG_INFO("Reading from unpacked mission folder {}", unpacked.string());
+                    return File::ReadAllBytes(unpacked);
+                }
+            }
+
+            auto unpacked = missionPath.parent_path() / missionPath.stem() / subPath;
 
             if (filesystem::exists(unpacked)) {
                 SPDLOG_INFO("Reading from unpacked mission folder {}", unpacked.string());
                 return File::ReadAllBytes(unpacked);
             }
 
-            // Then check for packaged zips
-            filesystem::path modZip = missionPath;
-            modZip.replace_extension(".zip");
+            // Check the addon archive
+            if (_addonData) {
+                if (HasFlag(flags, LoadFlag::Level)) {
+                    if (auto data = _addonData->TryReadEntry(levelSubPath)) {
+                        SPDLOG_INFO("Reading {}:{}", _addonData->Path().string(), levelSubPath);
+                        return data;
+                    }
+                }
 
-            if (filesystem::exists(modZip)) {
-                auto zip = File::OpenZip(modZip);
-                if (auto data = zip->TryReadEntry(fileName)) {
-                    SPDLOG_INFO("Reading {}:{}", modZip.string(), fileName);
+                if (auto data = _addonData->TryReadEntry(subPath)) {
+                    SPDLOG_INFO("Reading {}:{}", _addonData->Path().string(), subPath);
                     return data;
                 }
             }
 
-            // Finally check the original hog
+            // Finally check the mission hog
             HogReader hog(missionPath);
 
             if (auto data = hog.TryReadEntry(file)) {
@@ -1015,31 +1054,38 @@ namespace Inferno::Resources {
         // Check for DXA (zip) data
         if (HasFlag(flags, LoadFlag::Dxa)) {
             if (HasFlag(flags, LoadFlag::Descent1))
-                if (auto data = ReadFromDxaFolder(D1_FOLDER, fileName))
+                if (auto data = ReadFromDxaFolder(D1_FOLDER, file))
                     return data;
 
             if (HasFlag(flags, LoadFlag::Descent2))
-                if (auto data = ReadFromDxaFolder(D2_FOLDER, fileName))
+                if (auto data = ReadFromDxaFolder(D2_FOLDER, file))
                     return data;
 
-            if (HasFlag(flags, LoadFlag::Common))
-                if (auto data = ReadFromDxaFolder(COMMON_FOLDER, fileName))
-                    return data;
+            //if (HasFlag(flags, LoadFlag::Common))
+            //    if (auto data = ReadFromDxaFolder(COMMON_FOLDER, file))
+            //        return data;
         }
 
         if (HasFlag(flags, LoadFlag::Filesystem)) {
-            if (HasFlag(flags, LoadFlag::Descent1) && filesystem::exists(D1_FOLDER / file)) {
-                SPDLOG_INFO("Reading {}", (D1_FOLDER / fileName).string());
-                return File::ReadAllBytes(D1_FOLDER / fileName);
+            if (HasFlag(flags, LoadFlag::Descent1) && filesystem::exists(D1_FOLDER / subPath)) {
+                SPDLOG_INFO("Reading {}", (D1_FOLDER / subPath).string());
+                return File::ReadAllBytes(D1_FOLDER / subPath);
             }
 
-            if (HasFlag(flags, LoadFlag::Descent2) && filesystem::exists(D2_FOLDER / file)) {
-                SPDLOG_INFO("Reading {}", (D2_FOLDER / fileName).string());
-                return File::ReadAllBytes(D2_FOLDER / fileName);
+            if (HasFlag(flags, LoadFlag::Descent2) && filesystem::exists(D2_FOLDER / subPath)) {
+                SPDLOG_INFO("Reading {}", (D2_FOLDER / subPath).string());
+                return File::ReadAllBytes(D2_FOLDER / subPath);
             }
-            if (HasFlag(flags, LoadFlag::Common) && filesystem::exists(COMMON_FOLDER / file)) {
-                SPDLOG_INFO("Reading {}", (COMMON_FOLDER / fileName).string());
-                return File::ReadAllBytes(COMMON_FOLDER / fileName);
+
+            if (HasFlag(flags, LoadFlag::Common) && filesystem::exists(ASSET_FOLDER / subPath)) {
+                SPDLOG_INFO("Reading {}", (ASSET_FOLDER / subPath).string());
+                return File::ReadAllBytes(ASSET_FOLDER / subPath);
+            }
+
+            if ((HasFlag(flags, LoadFlag::Texture) || HasFlag(flags, LoadFlag::Sound)) &&
+                filesystem::exists(ASSET_FOLDER / subPath)) {
+                SPDLOG_INFO("Reading {}", (ASSET_FOLDER / subPath).string());
+                return File::ReadAllBytes(ASSET_FOLDER / subPath);
             }
         }
 
@@ -1307,6 +1353,11 @@ namespace Inferno::Resources {
     void LoadLevel(Level& level) {
         try {
             ResetResources();
+            UnmountAddonData();
+
+            if (Game::Mission)
+                MountAddonData(Game::Mission->Path);
+
             //Resources::LoadSounds();
 
             if (level.IsDescent2()) {
@@ -1537,6 +1588,26 @@ namespace Inferno::Resources {
         }
         catch (const std::exception& e) {
             SPDLOG_ERROR("Error loading Descent 3\n{}", e.what());
+        }
+    }
+
+    bool Resources::MountAddonData(filesystem::path path) {
+        // Then check for packaged zips
+        path.replace_extension(".zip");
+
+        if (filesystem::exists(path)) {
+            SPDLOG_INFO("Mounting addon data {}", path.string());
+            _addonData = File::OpenZip(path);
+            return true;
+        }
+
+        return false;
+    }
+
+    void Resources::UnmountAddonData() {
+        if (_addonData) {
+            SPDLOG_INFO("Unmounting addon data {}", _addonData->Path().string());
+            _addonData = {};
         }
     }
 

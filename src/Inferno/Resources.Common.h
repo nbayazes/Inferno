@@ -6,7 +6,7 @@ namespace Inferno {
     constexpr auto METADATA_EXTENSION = ".ied"; // inferno engine data
     constexpr auto LIGHT_TABLE_EXTENSION = ".lig"; // level specific light table (when packed in mission)
     constexpr auto MATERIAL_TABLE_EXTENSION = ".ma"; // level specific material extension. Mission and global material tables are always named material.yml
-    inline const filesystem::path COMMON_FOLDER = "data"; // subdirectory containing shared data
+    inline const filesystem::path ASSET_FOLDER = "assets"; // subdirectory containing shared data
     inline const filesystem::path D1_FOLDER = "d1"; // subdirectory containing the d1 hog and pig
     inline const filesystem::path D1_DEMO_FOLDER = "d1/demo"; // subdirectory containing the d1 demo hog and pig
     inline const filesystem::path D2_FOLDER = "d2"; // subdirectory containing the d2 hog and pig
@@ -42,10 +42,15 @@ namespace Inferno {
         Descent2 = 1 << 2, // Search D2 data folder or hog
         Descent3 = 1 << 3, // Search D3 hog
         Filesystem = 1 << 4, // Search the filesystem for loose files. Requires D1, D2, D3 or Common to be set.
-        Mission = 1 << 5, // search the currently loaded mission. Also implies the 'unpacked' system folder adjacent to the mission file.
+        Mission = 1 << 5, // search the currently loaded mission. Also implies the 'unpacked' system folder adjacent to the mission file and the addon zip.
         Dxa = 1 << 6, // search DXAs in the D1, D2, or data folder
         BaseHog = 1 << 7, // descent1.hog or descent2.hog. Only valid when Descent1 or Descent2 is also set.
-        Common = 1 << 8, // Search common data folder
+        Common = 1 << 8, // Search common asset folder
+        Texture = 1 << 9, // Search `textures` subfolder
+        Sound = 1 << 10, // Search `sounds` subfolder
+        Model = 1 << 10, // Search `models` subfolder
+        Music = 1 << 11, // Search `music` subfolder
+        Level = 1 << 12, // Search the level specific subfolder
         Default = Mission | Dxa | Filesystem | BaseHog | Common
         // todo: add a flag to use the current level type (D1 or D2)
     };

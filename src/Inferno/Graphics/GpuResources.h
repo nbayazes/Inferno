@@ -480,6 +480,29 @@ namespace Inferno {
             return info;
         }
 
+        bool LoadDDS(DirectX::ResourceUploadBatch& batch, span<uint8> data, bool srgb = false) {
+            try {
+                auto loadFlags = srgb ? DirectX::DDS_LOADER_FORCE_SRGB : DirectX::DDS_LOADER_DEFAULT;
+                ThrowIfFailed(DirectX::CreateDDSTextureFromMemoryEx(Render::Device, batch, data.data(), data.size(), 0, D3D12_RESOURCE_FLAG_NONE, loadFlags, _resource.ReleaseAndGetAddressOf()));
+                _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE; // CreateDDS transitions state
+                batch.Transition(_resource.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+                _desc = _resource->GetDesc();
+
+                _srvDesc.Format = _desc.Format;
+                _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+                _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+                _srvDesc.Texture2D.MostDetailedMip = 0;
+                _srvDesc.Texture2D.MipLevels = _desc.MipLevels;
+                return true;
+            }
+            catch (const std::exception& e) {
+                SPDLOG_ERROR(fmt::format("Error loading texture. Check that width and height are a multiple of 4.\nStatus: {}", e.what()));
+                // if HRESULT = 80070057, the texture likely does not have a multiple of 4 for width and height
+                __debugbreak();
+                return false;
+            }
+        }
+
         bool LoadDDS(DirectX::ResourceUploadBatch& batch, const filesystem::path& path, bool srgb = false) {
             if (!filesystem::exists(path)) {
                 SPDLOG_WARN("File not found: {}", path.string());
@@ -601,6 +624,24 @@ namespace Inferno {
 
         bool LoadDDS(DirectX::ResourceUploadBatch& batch, const filesystem::path& path) {
             ThrowIfFailed(DirectX::CreateDDSTextureFromFile(Render::Device, batch, path.c_str(), _resource.ReleaseAndGetAddressOf()));
+            _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE; // CreateDDS transitions state
+            //Transition(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            batch.Transition(_resource.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            _desc = _resource->GetDesc();
+            _uavDesc.Format = _desc.Format;
+            _uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
+            _uavDesc.Texture3D.WSize = _desc.DepthOrArraySize;
+
+            _srvDesc.Format = _desc.Format;
+            _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+            _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            _srvDesc.Texture2D.MostDetailedMip = 0;
+            _srvDesc.Texture2D.MipLevels = _desc.MipLevels;
+            return true;
+        }
+
+        bool LoadDDS(DirectX::ResourceUploadBatch& batch, span<uint8> data) {
+            ThrowIfFailed(DirectX::CreateDDSTextureFromMemory(Render::Device, batch, data.data(), data.size(), _resource.ReleaseAndGetAddressOf()));
             _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE; // CreateDDS transitions state
             //Transition(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
             batch.Transition(_resource.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);

@@ -368,3 +368,6 @@ dxc.exe
 *.sav
 *.pof
 *.dds
+*.rdl
+*.txb
+*.rl2

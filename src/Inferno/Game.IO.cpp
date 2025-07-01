@@ -241,6 +241,11 @@ namespace Inferno::Game {
         Shell::UpdateWindowTitle();
     }
 
+    void UnloadMission() {
+        Mission = {};
+        Resources::UnmountAddonData();
+    }
+
     //struct Level LoadLevel(span<byte> buffer, const filesystem::path& srcPath) {
     //    auto level = Level::Deserialize(buffer);
     //    level.FileName = srcPath.filename().string();
@@ -371,18 +376,19 @@ namespace Inferno::Game {
             const auto& missionPath = Game::Mission->Path;
 
             auto mission = String::ToLower(missionPath.filename().string());
-            auto loadFlags = LoadFlag::Filesystem;
+            //auto loadFlags = LoadFlag::Filesystem;
 
             // Read IED from data directories for official missions
-            if (mission == "descent.hog")
-                loadFlags |= LoadFlag::Descent1;
-            else if (mission == "descent2.hog")
-                loadFlags |= LoadFlag::Descent2;
+            //if (mission == "descent.hog")
+            //    loadFlags |= LoadFlag::Descent1;
+            //else if (mission == "descent2.hog")
+            //    loadFlags |= LoadFlag::Descent2;
             //else if (mission == "d2x.hog")
             //    path = D2_FOLDER / "vertigo" / metadataFile; // Vertigo
 
-            if (auto data = Resources::ReadTextFile(metadataFile, loadFlags))
-                return *data;
+
+            //if (auto data = Resources::ReadTextFile(metadataFile, loadFlags))
+            //    return *data;
 
             // try reading from mission (includes zip, unpacked folder and hog)
             if (auto data = Resources::ReadTextFile(metadataFile, LoadFlag::Filesystem | LoadFlag::Mission))

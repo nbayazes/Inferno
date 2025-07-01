@@ -5,6 +5,7 @@
 #include "Game.h"
 #include "WindowsDialogs.h"
 #include "Render.h"
+#include "Resources.h"
 
 namespace Inferno::PostFx {
     void ScanlineCS::Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, PixelBuffer& dest) const {
@@ -277,8 +278,8 @@ namespace Inferno::PostFx {
     }
 
     void ToneMapping::LoadResources(DirectX::ResourceUploadBatch& batch) {
-        if (auto path = FileSystem::TryFindFile("tony_mc_mapface.dds")) {
-            TonyMcMapFace.LoadDDS(batch, *path);
+        if (auto data = Resources::ReadBinaryFile("tony_mc_mapface.dds", LoadFlag::Filesystem | LoadFlag::Common)) {
+            TonyMcMapFace.LoadDDS(batch, *data);
             TonyMcMapFace.AddShaderResourceView();
         }
         else {

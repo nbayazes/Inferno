@@ -169,6 +169,10 @@ namespace Inferno::Resources {
 
     void MountDescent3();
 
+    // Mounts the addon data for a mission. Returns true if found.
+    bool MountAddonData(filesystem::path path);
+    void UnmountAddonData();
+
     Option<StreamReader> OpenFile(const string& name);
 
     Option<Outrage::Bitmap> ReadOutrageBitmap(const string& fileName);

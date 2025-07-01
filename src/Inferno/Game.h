@@ -67,7 +67,7 @@ namespace Inferno::Game {
 
     void InitLevel(Inferno::Level&& level);
 
-    inline void UnloadMission() { Mission = {}; }
+    void UnloadMission();
 
     inline bool ResetGameTime = false;
     inline double Time = 0; // Elapsed game time since level start in seconds. Stops when paused.

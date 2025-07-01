@@ -210,7 +210,7 @@ namespace Inferno {
             SPDLOG_INFO("Loaded {} material definitions", materials.size());
         }
         catch (const std::exception& e) {
-            SPDLOG_ERROR("Error loading light info:\n{}", e.what());
+            SPDLOG_ERROR("Error loading material info:\n{}", e.what());
         }
 
         return materials;

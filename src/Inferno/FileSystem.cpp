@@ -73,16 +73,18 @@ namespace Inferno {
             return {};
         }
 
-        //ZipFile(const ZipFile&) = delete;
-        //ZipFile(ZipFile&&) = default;
-        //ZipFile& operator=(const ZipFile&) = delete;
-        //ZipFile& operator=(ZipFile&&) = default;
+        ZipFile(const ZipFile&) = delete;
+        ZipFile(ZipFile&&) = default;
+        ZipFile& operator=(const ZipFile&) = delete;
+        ZipFile& operator=(ZipFile&&) = default;
 
         ~ZipFile() override {
             zip_close(_zip);
         }
 
         ZipFile() {}
+
+        const filesystem::path& Path() const override { return _path; }
     };
 
     List<ubyte> File::ReadAllBytes(const std::filesystem::path& path) {
