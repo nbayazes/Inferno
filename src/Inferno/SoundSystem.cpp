@@ -232,7 +232,7 @@ namespace Inferno::Sound {
         auto wavData = make_unique<uint8[]>(wavDataSize);
 
         if (trimEnd) {
-            for (int i = 0; i < wavDataSize; i++)
+            for (uint i = 0; i < wavDataSize; i++)
                 wavData[i] = 128; // constant value is silence
         }
 
@@ -875,11 +875,9 @@ namespace Inferno::Sound {
 
             // Prioritize reading wavs from filesystem
             if (auto info = Seq::tryItem(_soundsD1.Sounds, id)) {
-                if (auto data = LoadWav(fmt::format("d1/{}.wav", info->Name)))
-                    return (_effectsD1[int(id)] = std::move(data)).get();
-
-                if (auto data = LoadWav(fmt::format("data/{}.wav", info->Name)))
-                    return (_effectsD1[int(id)] = std::move(data)).get();
+                if (auto data = Resources::ReadBinaryFile(info->Name, LoadFlag::Default | LoadFlag::Descent1)) {
+                    return (_effectsD1[int(id)] = make_unique<SoundEffect>(CreateSoundEffectWav(*_engine, *data))).get();
+                }
             }
 
             // Read sound from game data
@@ -903,13 +901,12 @@ namespace Inferno::Sound {
 
             int sampleRate = SAMPLE_RATE_22KHZ;
 
+
             // Prioritize reading wavs from filesystem
             if (auto info = Seq::tryItem(_soundsD2.Sounds, id)) {
-                if (auto data = LoadWav(fmt::format("d2/{}.wav", info->Name)))
-                    return (_effectsD2[int(id)] = std::move(data)).get();
-
-                if (auto data = LoadWav(fmt::format("data/{}.wav", info->Name)))
-                    return (_effectsD2[int(id)] = std::move(data)).get();
+                if (auto data = Resources::ReadBinaryFile(info->Name, LoadFlag::Default | LoadFlag::Descent2)) {
+                    return (_effectsD2[int(id)] = make_unique<SoundEffect>(CreateSoundEffectWav(*_engine, *data))).get();
+                }
             }
 
             // Read sound from game data
@@ -923,14 +920,16 @@ namespace Inferno::Sound {
             return (_effectsD2[int(id)] = make_unique<SoundEffect>(CreateSoundEffect(*_engine, data, sampleRate))).get();
         }
 
-        SoundEffect* LoadSoundD3(const string& fileName) {
+        SoundEffect* LoadSoundD3(string fileName) {
             if (fileName.empty()) return nullptr;
+
+            if (!String::HasExtension(fileName))
+                fileName += ".wav";
+
             if (_soundsD3[fileName]) return _soundsD3[fileName].get();
 
-            // Check data folder first
-            {
-                if (auto data = LoadWav(fmt::format("data/{}.wav", fileName)))
-                    return (_soundsD3[fileName] = std::move(data)).get();
+            if (auto data = Resources::ReadBinaryFile(fileName/*, LoadFlag::Default LoadFlag::Filesystem | LoadFlag::Common*/)) {
+                return (_soundsD3[fileName] = make_unique<SoundEffect>(CreateSoundEffectWav(*_engine, *data))).get();
             }
 
             auto info = Resources::ReadOutrageSoundInfo(fileName);
