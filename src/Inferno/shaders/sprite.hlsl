@@ -3,6 +3,7 @@
 struct Arguments {
     float DepthBias;
     float Softness;
+    int FilterMode;
 };
 
 ConstantBuffer<FrameConstants> Frame : register(b0);
@@ -44,7 +45,7 @@ float SaturateSoft(float depth, float contrast) {
 
 float4 psmain(PS_INPUT input) : SV_Target {
     //float4 diffuse = Diffuse.Sample(Sampler, input.uv);
-    float4 diffuse = Sample2D(Diffuse, input.uv, Sampler, Frame.FilterMode);
+    float4 diffuse = Sample2D(Diffuse, input.uv, Sampler, Args.FilterMode);
     //diffuse.xyz = pow(diffuse.xyz, 2.2);
     diffuse.rgb *= input.col;
     diffuse.a = clamp(diffuse.a, 0, 1);

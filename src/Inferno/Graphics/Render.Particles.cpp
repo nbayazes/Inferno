@@ -407,7 +407,7 @@ namespace Inferno::Render {
         auto cmdList = ctx.GetCommandList();
         effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
         effect.Shader->SetSampler(cmdList, Heaps->States.AnisotropicClamp());
-        effect.Shader->SetConstants(cmdList, { halfWidth, 0.1f });
+        effect.Shader->SetConstants(cmdList, { halfWidth, 0.1f, TextureFilterMode::Smooth });
 
         if (!Info.Texture.empty()) {
             auto& material = Render::Materials->Get(Info.Texture);
@@ -502,7 +502,7 @@ namespace Inferno::Render {
                     ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
                     effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
                     effect.Shader->SetSampler(cmdList, Render::GetWrappedTextureSampler());
-                    effect.Shader->SetConstants(cmdList, { 2, 0.1f });
+                    effect.Shader->SetConstants(cmdList, { 2, 0.1f, Settings::Graphics.FilterMode });
                 }
 
                 decal.Update(dt, EffectID(0));
@@ -634,7 +634,7 @@ namespace Inferno::Render {
         effect.Shader->SetSampler(cmdList, Heaps->States.AnisotropicClamp());
         auto& material = Render::Materials->Get(Info.Texture);
         effect.Shader->SetDiffuse(cmdList, material.Handle());
-        effect.Shader->SetConstants(cmdList, { Info.Width.Max * 0.5f, 0.1f });
+        effect.Shader->SetConstants(cmdList, { Info.Width.Max * 0.5f, 0.1f, TextureFilterMode::Smooth });
         g_SpriteBatch->Begin(cmdList);
 
         auto remaining = GetRemainingTime();

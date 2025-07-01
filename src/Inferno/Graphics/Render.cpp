@@ -106,7 +106,8 @@ namespace Inferno::Render {
 
         SpriteShader::Constants constants{
             .DepthBias = info.DepthBias,
-            .Softness = info.Softness
+            .Softness = info.Softness,
+            .FilterMode = Settings::Graphics.FilterMode
         };
 
         effect.Shader->SetConstants(cmdList, constants);

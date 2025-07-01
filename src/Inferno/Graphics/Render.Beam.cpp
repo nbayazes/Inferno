@@ -177,7 +177,7 @@ namespace Inferno::Render {
         ctx.ApplyEffect(effect);
         ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
         auto cmdList = ctx.GetCommandList();
-        effect.Shader->SetConstants(cmdList, { Width / 2, 0.2f });
+        effect.Shader->SetConstants(cmdList, { Width / 2, 0.2f, TextureFilterMode::Smooth });
         effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
         effect.Shader->SetSampler(cmdList, Heaps->States.AnisotropicWrap());
 
