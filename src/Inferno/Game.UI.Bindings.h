@@ -156,7 +156,7 @@ namespace Inferno::UI {
                                 binding.type = BindType::Button;
                                 finishBinding();
                             }
-
+                            
                             if (joystick->CheckAxisPressed(bindId, dir)) {
                                 // this doesn't seem necessary anymore, tested on PS5 and xbox controllers
                                 //bool halfAxis = bindId == SDL_GAMEPAD_AXIS_LEFT_TRIGGER || bindId == SDL_GAMEPAD_AXIS_RIGHT_TRIGGER;
@@ -187,6 +187,11 @@ namespace Inferno::UI {
                             if (joystick->CheckButtonDown(bindId)) {
                                 binding.id = bindId;
                                 binding.type = BindType::Button;
+                                finishBinding();
+                            }
+                            if (joystick->CheckHat(bindId)) {
+                                binding.id = bindId;
+                                binding.type = BindType::Hat;
                                 finishBinding();
                             }
                         }
