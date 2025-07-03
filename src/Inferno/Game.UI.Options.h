@@ -159,9 +159,9 @@ namespace Inferno::UI {
                 if (auto device = Seq::tryItem(_devices, *_index - 2)) {
                     if (auto bindings = Game::Bindings.GetDevice(device->guid)) {
                         auto& rotation = bindings->sensitivity.rotation;
-                        addSlider("Pitch", 0.0f, 2.0f, rotation.x);
-                        addSlider("Yaw", 0.0f, 2.0f, rotation.y);
-                        addSlider("Roll", 0.0f, 2.0f, rotation.z);
+                        addSlider("Pitch", 1.0f, 5.0f, rotation.x);
+                        addSlider("Yaw", 1.0f, 5.0f, rotation.y);
+                        addSlider("Roll", 1.0f, 5.0f, rotation.z);
 
                         auto& thrust = bindings->sensitivity.thrust;
                         addSlider("fwd/Rev", 0.0f, 2.0f, thrust.z);

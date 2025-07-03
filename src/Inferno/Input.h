@@ -279,7 +279,7 @@ namespace Inferno::Input {
     inline std::function<void(InputDevice&)> AddDeviceCallback;
 
     Vector2 CircularDampen(const Vector2& input, float innerDeadzone, float outerDeadzone);
-    float LinearDampen(float value, float innerDeadzone, float outerDeadzone);
+    float LinearDampen(float value, float innerDeadzone, float outerDeadzone, float linearity);
 
     enum class MouseButtons : uint8_t {
         None,
