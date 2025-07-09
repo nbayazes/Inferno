@@ -40,4 +40,8 @@ namespace Inferno {
 
     ModManifest ReadModManifest(const string& yaml);
     Option<ModManifest> ReadModManifest(const IZipFile& zip);
+
+    Option<ModManifest> ReadModManifest(const std::filesystem::path& path);
+
+    List<string> ReadModOrder(const std::filesystem::path& path);
 }

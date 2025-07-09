@@ -1,16 +1,16 @@
 #include "pch.h"
+#include "FileSystem.h"
 #include <fstream>
 #include <ranges>
-#include "FileSystem.h"
-#include "Game.h"
-#include "Settings.h"
-#include "Logging.h"
+#include <unordered_dense.h>
 #include <zip/zip.h>
+#include "Game.h"
 #include "Hog.IO.h"
 #include "Hog2.h"
+#include "Logging.h"
 #include "Mods.h"
 #include "Resources.h"
-#include "unordered_dense.h"
+#include "Settings.h"
 
 namespace Inferno {
     class ZipFile final : public IZipFile {
@@ -245,7 +245,7 @@ namespace Inferno::FileSystem {
     }
 
     void MountDirectory(const std::filesystem::path& path, bool includeSpecialFolders = true, string_view extFilter = {}) {
-        if (!filesystem::exists(path)) return;
+        if (!filesystem::exists(path) || !filesystem::is_directory(path)) return;
 
         SPDLOG_INFO("Mounting directory: {}", path.string());
 
@@ -435,21 +435,16 @@ namespace Inferno::FileSystem {
         //if ( Settings::Inferno.Descent3Enhanced) {}
         MountDirectory(Settings::Inferno.Descent3Path);
 
-        {
-            // todo: check a load order list and enabled flags
-            for (auto& entry : filesystem::directory_iterator("mods")) {
-                auto ext = entry.path().extension().string();
-                if (String::InvariantEquals(ext, ".zip"))
-                    MountModZip(level, entry.path());
-            }
+        for (auto& mod : ReadModOrder(MOD_INDEX_FILE)) {
+            auto zipPath = MOD_FOLDER / mod;
+            zipPath.replace_extension(".zip");
+            auto path = MOD_FOLDER / mod;
 
-            // Then scan for unpacked mods, overriding packed entries
-            for (auto& entry : filesystem::directory_iterator("mods")) {
-                auto name = String::ToLower(entry.path().filename().string());
-
-                if (entry.is_directory())
-                    MountModDirectory(level, entry.path());
-            }
+            // Prioritize the unpacked directory
+            if (filesystem::exists(path))
+                MountModDirectory(level, path);
+            else if (filesystem::exists(zipPath))
+                MountModZip(level, zipPath);
         }
 
         if (!missionPath.empty()) {

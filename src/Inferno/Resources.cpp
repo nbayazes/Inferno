@@ -858,35 +858,30 @@ namespace Inferno::Resources {
             }
         }
 
-        // Merge packed mods
-        for (auto& entry : filesystem::directory_iterator(MOD_FOLDER)) {
-            auto ext = entry.path().extension().string();
+        // Load mods
+        for (auto& mod : ReadModOrder(MOD_INDEX_FILE)) {
+            auto zipPath = MOD_FOLDER / mod;
+            zipPath.replace_extension(".zip");
+            auto path = MOD_FOLDER / mod;
+            auto tableFilePath = MOD_FOLDER / mod / GAME_TABLE_FILE;
 
-            if (String::InvariantEquals(ext, ".zip")) {
-                if (auto zip = File::OpenZip(entry.path())) {
+            if (filesystem::exists(path) && filesystem::exists(tableFilePath)) {
+                auto manifest = ReadModManifest(path / MOD_MANIFEST_FILE);
+                if (!manifest || !manifest->SupportsLevel(level)) continue;
+
+                SPDLOG_INFO("Merging game data from {}", tableFilePath.string());
+                auto text = File::ReadAllText(tableFilePath);
+                LoadGameTable(text, dest);
+            }
+            else if (filesystem::exists(zipPath)) {
+                if (auto zip = File::OpenZip(zipPath)) {
                     auto manifest = ReadModManifest(*zip);
                     if (!manifest || !manifest->SupportsLevel(level)) continue;
 
                     if (auto bytes = zip->TryReadEntry(GAME_TABLE_FILE)) {
-                        auto text = BytesToString(*bytes);
-                        SPDLOG_INFO("Merging game data from {}", entry.path().string());
-                        LoadGameTable(text, dest);
+                        SPDLOG_INFO("Merging game data from {}", zipPath.string());
+                        LoadGameTable(BytesToString(*bytes), dest);
                     }
-                }
-            }
-        }
-
-        // Merge unpacked mods
-        for (auto& entry : filesystem::directory_iterator(MOD_FOLDER)) {
-            if (!entry.is_directory()) continue;
-            auto entryName = String::ToLower(entry.path().filename().string());
-
-            // Check subfolders
-            for (auto& subentry : filesystem::directory_iterator(entry.path())) {
-                if (String::ToLower(subentry.path().filename().string()) == GAME_TABLE_FILE) {
-                    SPDLOG_INFO("Merging game data from {}", entry.path().string());
-                    auto text = File::ReadAllText(subentry.path());
-                    LoadGameTable(text, dest);
                 }
             }
         }
@@ -930,37 +925,32 @@ namespace Inferno::Resources {
             }
         }
 
-        // Merge packed mods
-        for (auto& entry : filesystem::directory_iterator(MOD_FOLDER)) {
-            auto ext = entry.path().extension().string();
+        // Load mods
+        for (auto& mod : ReadModOrder(MOD_INDEX_FILE)) {
+            auto zipPath = MOD_FOLDER / mod;
+            zipPath.replace_extension(".zip");
+            auto path = MOD_FOLDER / mod;
+            auto tableFilePath = MOD_FOLDER / mod / LIGHT_TABLE_FILE;
 
-            if (String::InvariantEquals(ext, ".zip")) {
-                if (auto zip = File::OpenZip(entry.path())) {
+            if (filesystem::exists(path) && filesystem::exists(tableFilePath)) {
+                auto manifest = ReadModManifest(path / MOD_MANIFEST_FILE);
+                if (!manifest || !manifest->SupportsLevel(level)) continue;
+
+                SPDLOG_INFO("Merging lights from {}", tableFilePath.string());
+                auto text = File::ReadAllText(tableFilePath);
+                auto table = LoadLightTable(text);
+                MergeLights(mergedLights, table);
+            }
+            else if (filesystem::exists(zipPath)) {
+                if (auto zip = File::OpenZip(zipPath)) {
                     auto manifest = ReadModManifest(*zip);
                     if (!manifest || !manifest->SupportsLevel(level)) continue;
 
                     if (auto bytes = zip->TryReadEntry(LIGHT_TABLE_FILE)) {
-                        auto text = BytesToString(*bytes);
-                        auto table = LoadLightTable(text);
-                        SPDLOG_INFO("Merging lights from {}", entry.path().string());
+                        auto table = LoadLightTable(BytesToString(*bytes));
+                        SPDLOG_INFO("Merging lights from {}", zipPath.string());
                         MergeLights(mergedLights, table);
                     }
-                }
-            }
-        }
-
-        // Merge unpacked mods
-        for (auto& entry : filesystem::directory_iterator(MOD_FOLDER)) {
-            if (!entry.is_directory()) continue;
-            auto entryName = String::ToLower(entry.path().filename().string());
-
-            // Check subfolders
-            for (auto& subentry : filesystem::directory_iterator(entry.path())) {
-                if (String::ToLower(subentry.path().filename().string()) == LIGHT_TABLE_FILE) {
-                    SPDLOG_INFO("Merging lights from {}", subentry.path().string());
-                    auto text = File::ReadAllText(subentry.path());
-                    auto table = LoadLightTable(text);
-                    MergeLights(mergedLights, table);
                 }
             }
         }
@@ -1245,6 +1235,37 @@ namespace Inferno::Resources {
         if (level.IsDescent2())
             IndexedMaterials.Merge(Descent2Materials);
 
+        // Merge mods
+        for (auto& mod : ReadModOrder(MOD_INDEX_FILE)) {
+            auto zipPath = MOD_FOLDER / mod;
+            zipPath.replace_extension(".zip");
+            auto path = MOD_FOLDER / mod;
+            auto tableFilePath = MOD_FOLDER / mod / MATERIAL_TABLE_FILE;
+
+            if (filesystem::exists(path) && filesystem::exists(tableFilePath)) {
+                auto manifest = ReadModManifest(path / MOD_MANIFEST_FILE);
+                if (!manifest || !manifest->SupportsLevel(level)) continue;
+
+                SPDLOG_INFO("Merging materials from {}", tableFilePath.string());
+                auto text = File::ReadAllText(tableFilePath);
+                auto table = MaterialTable::Load(text, TableSource::Mod);
+                IndexedMaterials.Merge(table);
+            }
+            else if (filesystem::exists(zipPath)) {
+                if (auto zip = File::OpenZip(zipPath)) {
+                    auto manifest = ReadModManifest(*zip);
+                    if (!manifest || !manifest->SupportsLevel(level)) continue;
+
+                    if (auto bytes = zip->TryReadEntry(MATERIAL_TABLE_FILE)) {
+                        auto table = MaterialTable::Load(BytesToString(*bytes), TableSource::Mod);
+                        SPDLOG_INFO("Merging materials from {}", zipPath.string());
+                        IndexedMaterials.Merge(table);
+                    }
+                }
+            }
+        }
+
+
         // Merge packed mods
         for (auto& entry : filesystem::directory_iterator(MOD_FOLDER)) {
             auto ext = entry.path().extension().string();
@@ -1337,10 +1358,6 @@ namespace Inferno::Resources {
     }
 
     void LoadDataTables(const Level& level) {
-        //LoadDataTables(level, LoadFlag::Filesystem | LoadFlag::Common);
-        //LoadDataTables(level, LoadFlag::Filesystem | GetLevelLoadFlag(level));
-        //LoadDataTables(level, LoadFlag::Mission);
-
         Lights = LoadLightTables(level);
 
         LoadGameTables(level, GameData);

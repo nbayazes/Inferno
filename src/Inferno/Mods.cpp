@@ -41,4 +41,22 @@ namespace Inferno {
 
         return {};
     }
+
+    Option<ModManifest> ReadModManifest(const std::filesystem::path& path) {
+        auto text = File::ReadAllText(path);
+        if (text.empty()) return {};
+        return ReadModManifest(text);
+    }
+
+    List<string> ReadModOrder(const std::filesystem::path& path) {
+        List<string> mods;
+        if (!filesystem::exists(path)) return mods;
+
+        auto yaml = File::ReadAllText(path);
+        ryml::Tree doc = ryml::parse_in_arena(ryml::to_csubstr(yaml));
+        ryml::NodeRef root = doc.rootref();
+
+        Yaml::ReadSequence(root, "mods", mods);
+        return mods;
+    }
 }

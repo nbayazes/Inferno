@@ -19,6 +19,7 @@ namespace Inferno {
 
     inline const filesystem::path D1_MATERIAL_FILE = D1_FOLDER / MATERIAL_TABLE_FILE;
     inline const filesystem::path D2_MATERIAL_FILE = D2_FOLDER / MATERIAL_TABLE_FILE;
+    inline const filesystem::path MOD_INDEX_FILE = MOD_FOLDER / "mods.yml";
 
     // Where to load a table file from (lights, materials and game table)
     enum class TableSource { Undefined, Descent1, Descent2, Mod, Mission, Level, Descent3 };
