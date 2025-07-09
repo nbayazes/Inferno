@@ -7,6 +7,7 @@ namespace Inferno {
     // Descent 3 HOG2 file
     class Hog2 {
         Dictionary<string, int> _lookup;
+
     public:
         struct Entry {
             string name;
@@ -18,6 +19,12 @@ namespace Inferno {
 
         filesystem::path Path;
         List<Entry> Entries;
+
+        static bool IsHog2(const filesystem::path& path) {
+            StreamReader reader(path);
+            auto id = reader.ReadString(4);
+            return id == "HOG2";
+        }
 
         static Hog2 Read(const filesystem::path& path) {
             Hog2 hog;
@@ -68,7 +75,7 @@ namespace Inferno {
             name = String::ToLower(name);
             if (!_lookup.contains(name))
                 return {};
-            
+
             return ReadEntry(_lookup[name]);
         }
     };

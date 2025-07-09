@@ -202,7 +202,7 @@ namespace Inferno {
 
     struct InfernoSettings {
         List<filesystem::path> DataPaths;
-        filesystem::path Descent1Path, Descent2Path;
+        filesystem::path Descent1Path, Descent2Path, Descent3Path;
         bool AutomapInvertX = false;
         bool AutomapInvertY = false;
         AutomapMode AutomapMode = AutomapMode::Mouselook;

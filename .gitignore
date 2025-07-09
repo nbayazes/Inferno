@@ -371,3 +371,5 @@ dxc.exe
 *.rdl
 *.txb
 *.rl2
+/src/Inferno/mods/*
+!/src/Inferno/mods/*.md

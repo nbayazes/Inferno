@@ -6,6 +6,11 @@
 #include "Settings.h"
 #include "Logging.h"
 #include <zip/zip.h>
+#include "Hog.IO.h"
+#include "Hog2.h"
+#include "Mods.h"
+#include "Resources.h"
+#include "unordered_dense.h"
 
 namespace Inferno {
     class ZipFile final : public IZipFile {
@@ -140,10 +145,21 @@ namespace Inferno {
     Ptr<IZipFile> File::OpenZip(const filesystem::path& path) {
         return ZipFile::Open(path);
     }
+
+    Option<List<ubyte>> File::ReadZipEntry(const filesystem::path& path, string_view entry) {
+        if (auto zip = File::OpenZip(path)) {
+            return zip->TryReadEntry(entry);
+        }
+
+        return {};
+    }
 }
 
 namespace Inferno::FileSystem {
-    List<filesystem::path> Directories;
+    namespace {
+        ankerl::unordered_dense::map<string, ResourceHandle> Assets;
+        List<filesystem::path> Directories;
+    }
 
     filesystem::path FindFile(const filesystem::path& file) {
         if (auto path = TryFindFile(file))
@@ -169,8 +185,8 @@ namespace Inferno::FileSystem {
         if (!Settings::Inferno.Descent1Path.empty())
             AddDataDirectory(Settings::Inferno.Descent1Path.parent_path());
 
-        AddDataDirectory("./data");
-        AddDataDirectory("./textures");
+        if (!Settings::Inferno.Descent3Path.empty())
+            AddDataDirectory(Settings::Inferno.Descent3Path);
 
         for (auto& path : Settings::Inferno.DataPaths)
             AddDataDirectory(path);
@@ -206,6 +222,278 @@ namespace Inferno::FileSystem {
             path = dir / "missions" / file; // for vertigo
             if (filesystem::exists(path))
                 return path;
+        }
+
+        return {};
+    }
+
+    void MountZip(const std::filesystem::path& path) {
+        auto zip = ZipFile::Open(path);
+
+        if (!zip) {
+            SPDLOG_WARN("Unable to open zip {}", path.string());
+            return;
+        }
+
+        SPDLOG_INFO("Mounting zip: {}", path.string());
+
+        for (auto& entry : zip->GetEntries()) {
+            //auto key = fmt::format("{}:{}", path.filename().string(), entry);
+            auto key = String::ToLower(entry);
+            Assets[key] = ResourceHandle::FromZip(path, entry);
+        }
+    }
+
+    void MountDirectory(const std::filesystem::path& path, bool includeSpecialFolders = true, string_view extFilter = {}) {
+        if (!filesystem::exists(path)) return;
+
+        SPDLOG_INFO("Mounting directory: {}", path.string());
+
+        for (auto& entry : filesystem::directory_iterator(path)) {
+            if (entry.is_directory()) {
+                // mount files in special directories
+                auto folder = entry.path().filename().string(); // filename returns the folder 
+
+                if (includeSpecialFolders) {
+                    if (String::InvariantEquals(folder, "models") ||
+                        String::InvariantEquals(folder, "textures") ||
+                        String::InvariantEquals(folder, "sounds") ||
+                        String::InvariantEquals(folder, "music")) {
+                        MountDirectory(entry.path(), false, extFilter);
+                    }
+                }
+            }
+            else {
+                auto ext = entry.path().extension().string();
+                if (!extFilter.empty() && !String::InvariantEquals(ext, extFilter)) continue;
+
+                if (String::InvariantEquals(ext, ".hog") ||
+                    String::InvariantEquals(ext, ".dxa") ||
+                    String::InvariantEquals(ext, ".zip") ||
+                    String::InvariantEquals(ext, ".bak") ||
+                    String::InvariantEquals(ext, ".sav"))
+                    continue; // don't index archives or level backup files
+
+                auto key = String::ToLower(entry.path().filename().string());
+
+                if (Assets.contains(key)) {
+                    SPDLOG_INFO("Updating {} to {}", key, entry.path().string());
+                }
+
+                Assets[key] = ResourceHandle::FromFilesystem(entry.path());
+            }
+        }
+    }
+
+    void MountModZip(const Level& level, const std::filesystem::path& path) {
+        auto zip = ZipFile::Open(path);
+
+        if (!zip) {
+            SPDLOG_WARN("Unable to open zip {}", path.string());
+            return;
+        }
+
+        if (auto manifest = ReadModManifest(*zip)) {
+            if (!manifest->SupportsLevel(level)) return;
+        }
+        else {
+            SPDLOG_WARN("Mod {} is missing manifest.yml", path.string());
+            return;
+        }
+
+        SPDLOG_INFO("Mounting mod: {}", path.string());
+
+        for (auto& entry : zip->GetEntries()) {
+            //auto key = fmt::format("{}:{}", path.filename().string(), entry);
+            auto key = String::ToLower(entry);
+            Assets[key] = ResourceHandle::FromZip(path, entry);
+        }
+    }
+
+    void MountModDirectory(const Level& level, const std::filesystem::path& path) {
+        auto manifestPath = path / MOD_MANIFEST_FILE;
+
+        if (!filesystem::exists(manifestPath)) {
+            SPDLOG_WARN("Mod {} is missing manifest.yml", path.string());
+            return;
+        }
+
+        auto text = File::ReadAllText(manifestPath);
+        auto manifest = ReadModManifest(text);
+        if (!manifest.SupportsLevel(level))
+            return;
+
+        MountDirectory(path);
+    }
+
+    // Mounts the contents of a hog, zip, or dxa
+    bool MountArchive(const std::filesystem::path& path) {
+        auto ext = path.extension().string();
+
+        if (String::InvariantEquals(ext, ".hog")) {
+            // try mounting a D1, D2, or D3 hog
+
+            if (HogFile::IsHog(path)) {
+                SPDLOG_INFO("Mounting D1/D2 hog: {}", path.string());
+                auto prefix = "";
+
+                if (String::ToLower(path.parent_path().string()).starts_with("d1")) {
+                    prefix = "d1:";
+                }
+                else if (String::ToLower(path.parent_path().string()).starts_with("d2")) {
+                    prefix = "d2:";
+                }
+
+                HogReader reader(path);
+                for (auto& entry : reader.Entries()) {
+                    auto key = String::ToLower(entry.Name);
+
+                    // Add the resource twice, once with scope prefix and once as a global resource
+                    Assets[prefix + key] = ResourceHandle::FromHog(path, entry.Name);
+                    Assets[key] = ResourceHandle::FromHog(path, entry.Name);
+                }
+
+                return true;
+            }
+            else if (Hog2::IsHog2(path)) {
+                SPDLOG_INFO("Mounting D3 hog: {}", path.string());
+                auto hog = Hog2::Read(path);
+                auto prefix = "d3:";
+
+                for (auto& entry : hog.Entries) {
+                    auto key = String::ToLower(entry.name);
+                    Assets[prefix + key] = ResourceHandle::FromHog(path, entry.name);
+                    Assets[key] = ResourceHandle::FromHog(path, entry.name);
+                }
+
+                return true;
+            }
+            else {
+                SPDLOG_WARN("Tried to read unknown hog type: {}", path.string());
+            }
+        }
+        else if (String::InvariantEquals(ext, ".zip")) {
+            MountZip(path);
+            return true;
+        }
+
+        return false;
+    }
+
+    // Mounts dxas, zips, and hogs in the directory
+    void MountArchives(const std::filesystem::path& path, string_view extFilter = {}) {
+        SPDLOG_INFO("Mounting archives in directory: {}", path.string());
+
+        for (auto& entry : filesystem::directory_iterator(path)) {
+            if (!entry.is_directory()) {
+                auto ext = entry.path().extension().string();
+                if (!extFilter.empty() && !String::InvariantEquals(ext, extFilter)) continue;
+
+                if (String::InvariantEquals(ext, ".dxa") ||
+                    String::InvariantEquals(ext, ".zip") ||
+                    String::InvariantEquals(ext, ".hog")) {
+                    MountArchive(entry);
+                }
+            }
+        }
+    }
+
+    void FileSystem::Mount(const std::filesystem::path& path) {
+        if (path.empty()) return;
+
+        if (is_directory(path)) {
+            MountDirectory(path, true);
+        }
+        else {
+            MountArchive(path);
+        }
+    }
+
+    void Unmount() {
+        Assets.clear();
+    }
+
+    void MountMainMenu() {
+        MountArchives("d1/", ".dxa");
+        MountDirectory("assets", true);
+    }
+
+    void MountLevel(const Level& level, const filesystem::path& missionPath) {
+        Assets.clear();
+
+        if (level.IsDescent1()) {
+            MountArchives("d1/", ".dxa");
+            MountDirectory("assets", true);
+            MountDirectory("d1", true);
+        }
+        else {
+            MountArchives("d2/", ".dxa");
+            MountDirectory("assets", true);
+            MountDirectory("d2", true);
+        }
+
+        //if ( Settings::Inferno.Descent3Enhanced) {}
+        MountDirectory(Settings::Inferno.Descent3Path);
+
+        {
+            // todo: check a load order list and enabled flags
+            for (auto& entry : filesystem::directory_iterator("mods")) {
+                auto ext = entry.path().extension().string();
+                if (String::InvariantEquals(ext, ".zip"))
+                    MountModZip(level, entry.path());
+            }
+
+            // Then scan for unpacked mods, overriding packed entries
+            for (auto& entry : filesystem::directory_iterator("mods")) {
+                auto name = String::ToLower(entry.path().filename().string());
+
+                if (entry.is_directory())
+                    MountModDirectory(level, entry.path());
+            }
+        }
+
+        if (!missionPath.empty()) {
+            Mount(missionPath);
+
+            filesystem::path addon = missionPath;
+            addon.replace_extension(".zip");
+            if (filesystem::exists(addon))
+                MountZip(addon);
+
+            addon.replace_extension("");
+            if (filesystem::exists(addon) && filesystem::is_directory(addon)) {
+                MountDirectory(addon, true);
+            }
+        }
+
+        //for (auto& [key, value] : Assets) {
+        //    SPDLOG_INFO("{} - {}", key, value.path.string());
+        //}
+    }
+
+    Option<List<ubyte>> ReadAsset(const string& file) {
+        if (auto resource = Assets.find(file); resource != Assets.end()) {
+            auto& asset = resource->second;
+            switch (asset.source) {
+                case Filesystem:
+                    return File::ReadAllBytes(asset.path);
+                case Hog: {
+                    HogReader hog(asset.path);
+                    return hog.TryReadEntry(file);
+                }
+                case Zip: {
+                    if (auto zip = File::OpenZip(asset.path)) {
+                        return zip->TryReadEntry(asset.name);
+                    }
+                    else {
+                        SPDLOG_ERROR("Unable to read {} from {}", file, asset.path.string());
+                    }
+                    break;
+                }
+                default: {
+                    SPDLOG_WARN("Unknown asset source {}:{}", (int)asset.source, asset.name);
+                }
+            }
         }
 
         return {};

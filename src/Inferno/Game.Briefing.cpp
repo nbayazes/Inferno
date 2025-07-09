@@ -275,7 +275,7 @@ vaporization of the facility.
 
         HogReader hog(Game::Mission->Path);
 
-        if (ext == "tex") {
+        if (ext == ".tex") {
             // Plain text
             auto entry = hog.TryReadEntryAsString(briefingName);
             if (!entry) return;

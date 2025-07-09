@@ -875,7 +875,8 @@ namespace Inferno::Sound {
 
             // Prioritize reading wavs from filesystem
             if (auto info = Seq::tryItem(_soundsD1.Sounds, id)) {
-                if (auto data = Resources::ReadBinaryFile(info->Name, LoadFlag::Default | LoadFlag::Descent1)) {
+                if (auto data = FileSystem::ReadAsset(info->Name + ".wav")) {
+                    //if (auto data = Resources::ReadBinaryFile(info->Name + ".wav", LoadFlag::Default | LoadFlag::Descent1)) {
                     return (_effectsD1[int(id)] = make_unique<SoundEffect>(CreateSoundEffectWav(*_engine, *data))).get();
                 }
             }
@@ -904,7 +905,8 @@ namespace Inferno::Sound {
 
             // Prioritize reading wavs from filesystem
             if (auto info = Seq::tryItem(_soundsD2.Sounds, id)) {
-                if (auto data = Resources::ReadBinaryFile(info->Name, LoadFlag::Default | LoadFlag::Descent2)) {
+                if (auto data = FileSystem::ReadAsset(info->Name + ".wav")) {
+                    //if (auto data = Resources::ReadBinaryFile(info->Name + ".wav", LoadFlag::Default | LoadFlag::Descent2)) {
                     return (_effectsD2[int(id)] = make_unique<SoundEffect>(CreateSoundEffectWav(*_engine, *data))).get();
                 }
             }
@@ -928,14 +930,14 @@ namespace Inferno::Sound {
 
             if (_soundsD3[fileName]) return _soundsD3[fileName].get();
 
-            if (auto data = Resources::ReadBinaryFile(fileName/*, LoadFlag::Default LoadFlag::Filesystem | LoadFlag::Common*/)) {
+            if (auto data = FileSystem::ReadAsset(fileName)) {
                 return (_soundsD3[fileName] = make_unique<SoundEffect>(CreateSoundEffectWav(*_engine, *data))).get();
             }
 
-            auto info = Resources::ReadOutrageSoundInfo(fileName);
-            if (!info) return nullptr;
+            //auto info = Resources::ReadOutrageSoundInfo(fileName);
+            //if (!info) return nullptr;
 
-            if (auto data = Resources::Descent3Hog.ReadEntry(info->FileName)) {
+            if (auto data = Resources::Descent3Hog.ReadEntry(fileName)) {
                 return (_soundsD3[fileName] = make_unique<SoundEffect>(CreateSoundEffectWav(*_engine, *data))).get();
             }
             else {

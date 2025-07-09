@@ -178,6 +178,7 @@ namespace Inferno {
             if (selectedFilterIndex > 0) {
                 // note that filter indices are 1 based not 0 based
                 auto ext = String::Extension(wstring(filter[selectedFilterIndex - 1].pszSpec));
+                ext = ext.substr(1); // discard the period, as SetDefaultExtension does not want it
                 ThrowIfFailed(dialog->SetDefaultExtension(ext.c_str()));
             }
 

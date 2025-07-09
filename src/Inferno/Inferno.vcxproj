@@ -234,6 +234,7 @@
     <None Include="d2\game.yml" />
     <None Include="d2\lights.yml" />
     <None Include="d2\material.yml" />
+    <None Include="mods\mods.md" />
     <None Include="shaders\AutomapOutline.hlsl">
       <DeploymentContent>true</DeploymentContent>
       <FileType>Document</FileType>
@@ -244,6 +245,7 @@
     <ClCompile Include="Hog.IO.cpp" />
     <ClCompile Include="Icosphere.cpp" />
     <ClCompile Include="Game.UI.Options.cpp" />
+    <ClCompile Include="Mods.cpp" />
     <ClCompile Include="TextureCache.cpp" />
     <ClCompile Include="VisualEffects.cpp" />
     <ClCompile Include="Formats\BBM.cpp" />
@@ -393,6 +395,7 @@
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='DebugGpu|x64'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
     </None>
+    <ClInclude Include="Mods.h" />
     <ClInclude Include="Resources.Common.h" />
     <ClInclude Include="TextureCache.h" />
     <ClInclude Include="VisualEffects.h" />

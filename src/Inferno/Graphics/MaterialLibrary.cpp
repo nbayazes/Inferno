@@ -329,12 +329,13 @@ namespace Inferno::Render {
         const auto width = upload.Bitmap.Info.Width;
         const auto height = upload.Bitmap.Info.Height;
 
-        if (auto data = Resources::ReadBinaryFile(baseName + ".dds", loadFlag))
+        if (auto data = FileSystem::ReadAsset(baseName + ".dds"))
             material.Textures[Material2D::Diffuse].LoadDDS(batch, *data, true);
 
-        if (upload.SuperTransparent)
-            if (auto data = Resources::ReadBinaryFile(baseName + "_st.dds", loadFlag))
+        if (upload.SuperTransparent) {
+            if (auto data = FileSystem::ReadAsset(baseName + "_st.dds"))
                 material.Textures[Material2D::SuperTransparency].LoadDDS(batch, *data);
+        }
 
         auto cached = cache.GetEntry(upload.ID);
 
@@ -360,13 +361,13 @@ namespace Inferno::Render {
             }
         }
 
-        if (auto data = Resources::ReadBinaryFile(baseName + "_e.dds", loadFlag))
+        if (auto data = FileSystem::ReadAsset(baseName + "_e.dds"))
             material.Textures[Material2D::Emissive].LoadDDS(batch, *data);
 
-        if (auto data = Resources::ReadBinaryFile(baseName + "_s.dds", loadFlag))
+        if (auto data = FileSystem::ReadAsset(baseName + "_s.dds"))
             material.Textures[Material2D::Specular].LoadDDS(batch, *data);
 
-        if (auto data = Resources::ReadBinaryFile(baseName + "_n.dds", loadFlag))
+        if (auto data = FileSystem::ReadAsset(baseName + "_n.dds"))
             material.Textures[Material2D::Normal].LoadDDS(batch, *data);
 
         if (!material.Textures[Material2D::Specular] && !upload.Bitmap.Data.empty()) {

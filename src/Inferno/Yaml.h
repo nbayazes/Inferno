@@ -90,9 +90,9 @@ namespace Yaml {
         static_assert(!std::is_same_v<T, const char*>, "Must be writable value");
 
         try {
-            auto bad = ryml::csubstr(name.data(), name.size());
-            if (!parent.has_child(bad)) return false;
-            auto node = parent[bad];
+            auto rname = ryml::csubstr(name.data(), name.size());
+            if (!parent.has_child(rname)) return false;
+            auto node = parent[rname];
             if (!node.readable() || !node.has_val() || node.val() == "") return false;
             node >> value;
             return true;
@@ -104,9 +104,9 @@ namespace Yaml {
 
     inline bool ReadValue2(ryml::ConstNodeRef parent, std::string_view name, bool& value) {
         try {
-            auto bad = ryml::csubstr(name.data(), name.size());
-            if (!parent.has_child(bad)) return false;
-            auto node = parent[bad];
+            auto rname = ryml::csubstr(name.data(), name.size());
+            if (!parent.has_child(rname)) return false;
+            auto node = parent[rname];
             if (!node.readable() || !node.has_val() || node.val() == "") return false;
 
             auto val = node.val();
@@ -121,9 +121,9 @@ namespace Yaml {
     template <Inferno::IsEnum T>
     bool ReadValue2(ryml::ConstNodeRef parent, std::string_view name, T& id) {
         try {
-            auto bad = ryml::csubstr(name.data(), name.size());
-            if (!parent.has_child(bad)) return false;
-            auto node = parent[bad];
+            auto rname = ryml::csubstr(name.data(), name.size());
+            if (!parent.has_child(rname)) return false;
+            auto node = parent[rname];
             if (!node.readable() || !node.has_val() || node.val() == "") return false;
 
             node >> (std::underlying_type_t<T>&)id;
@@ -137,9 +137,9 @@ namespace Yaml {
     template <>
     inline bool ReadValue2(ryml::ConstNodeRef parent, std::string_view name, DirectX::SimpleMath::Vector3& value) {
         try {
-            auto bad = ryml::csubstr(name.data(), name.size());
-            if (!parent.has_child(bad)) return false;
-            auto node = parent[bad];
+            auto rname = ryml::csubstr(name.data(), name.size());
+            if (!parent.has_child(rname)) return false;
+            auto node = parent[rname];
             if (!node.readable() || !node.has_val() || node.val() == "") return false;
             std::string str;
             node >> str;
@@ -160,9 +160,9 @@ namespace Yaml {
     template <>
     inline bool ReadValue2(ryml::ConstNodeRef parent, std::string_view name, DirectX::SimpleMath::Color& value) {
         try {
-            auto bad = ryml::csubstr(name.data(), name.size());
-            if (!parent.has_child(bad)) return false;
-            auto node = parent[bad];
+            auto rname = ryml::csubstr(name.data(), name.size());
+            if (!parent.has_child(rname)) return false;
+            auto node = parent[rname];
             if (!node.readable() || !node.has_val() || node.val() == "") return false;
             std::string str;
             node >> str;
@@ -198,10 +198,19 @@ namespace Yaml {
         catch (...) {
             return false;
         }
-        /*if (std::filesystem::exists(path))
-            value = path;
-        else
-            SPDLOG_WARN("Invalid path in config:\n{}", path);*/
+    }
+
+    template <>
+    inline bool ReadValue2(ryml::ConstNodeRef parent, std::string_view name, std::filesystem::path& value) {
+        try {
+            auto rname = ryml::csubstr(name.data(), name.size());
+            if (!parent.has_child(rname)) return false;
+            auto node = parent[rname];
+            return ReadValue(node, value);
+        }
+        catch (...) {
+            return false;
+        }
     }
 
     inline bool ReadValue(ryml::ConstNodeRef node, std::array<bool, 4>& a) {
@@ -383,5 +392,32 @@ namespace Yaml {
 
         for (auto& item : src)
             node.append_child() << item.string();
+    }
+
+    // Reads a yaml sequence into a vector
+    template <class T>
+    bool ReadSequence(ryml::NodeRef parent, std::string_view name, std::vector<T>& values) {
+        auto rname = ryml::csubstr(name.data(), name.size());
+        if (!parent.has_child(rname)) return false;
+        auto node = parent[rname];
+        if (!node.readable()) return false;
+
+        if (node.has_children()) {
+            // Array of values
+            for (const auto& child : node.children()) {
+                T value{};
+                Yaml::ReadValue(child, value);
+                values.push_back(value);
+            }
+        }
+        else if (node.has_val()) {
+            // Single value
+            T value{};
+            Yaml::ReadValue(node, value);
+            for (auto& v : values)
+                v = value;
+        }
+
+        return true;
     }
 }

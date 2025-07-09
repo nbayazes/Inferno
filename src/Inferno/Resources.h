@@ -2,7 +2,6 @@
 #include "CustomTextureLibrary.h"
 #include "HamFile.h"
 #include "Hog2.h"
-#include "HogFile.h"
 #include "Level.h"
 #include "LightInfo.h"
 #include "MaterialInfo.h"
@@ -191,7 +190,7 @@ namespace Inferno::Resources {
     const string_view GetPrimaryNameShort(bool descent1, PrimaryWeaponIndex id);
     const string_view GetSecondaryNameShort(bool descent1, SecondaryWeaponIndex id);
 
-    bool LoadGameTables(LoadFlag flags, FullGameData& dest = GameData);
+    bool LoadGameTables(const Level& level, FullGameData& dest = GameData);
 
     // Merges materials from individual tables. Must be called after adding or removing entries from a table.
     void MergeMaterials(const Level& level);

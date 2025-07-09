@@ -808,6 +808,7 @@ namespace Inferno {
 
             doc["Descent1Path"] << Settings::Inferno.Descent1Path.string();
             doc["Descent2Path"] << Settings::Inferno.Descent2Path.string();
+            doc["Descent3Path"] << Settings::Inferno.Descent3Path.string();
             doc["MasterVolume"] << Settings::Inferno.MasterVolume;
             doc["MusicVolume"] << Settings::Inferno.MusicVolume;
             doc["EffectVolume"] << Settings::Inferno.EffectVolume;
@@ -869,16 +870,17 @@ namespace Inferno {
             ryml::NodeRef root = doc.rootref();
 
             if (root.is_map()) {
-                ReadValue(root["Descent1Path"], Settings::Inferno.Descent1Path);
-                ReadValue(root["Descent2Path"], Settings::Inferno.Descent2Path);
-                ReadValue(root["MasterVolume"], Settings::Inferno.MasterVolume);
-                ReadValue(root["MusicVolume"], Settings::Inferno.MusicVolume);
-                ReadValue(root["EffectVolume"], Settings::Inferno.EffectVolume);
-                ReadValue(root["GenerateMaps"], Settings::Inferno.GenerateMaps);
-                ReadValue(root["Descent3Enhanced"], Settings::Inferno.Descent3Enhanced);
+                ReadValue2(root, "Descent1Path", Settings::Inferno.Descent1Path);
+                ReadValue2(root, "Descent2Path", Settings::Inferno.Descent2Path);
+                ReadValue2(root, "Descent3Path", Settings::Inferno.Descent3Path);
+                ReadValue2(root, "MasterVolume", Settings::Inferno.MasterVolume);
+                ReadValue2(root, "MusicVolume", Settings::Inferno.MusicVolume);
+                ReadValue2(root, "EffectVolume", Settings::Inferno.EffectVolume);
+                ReadValue2(root, "GenerateMaps", Settings::Inferno.GenerateMaps);
+                ReadValue2(root, "Descent3Enhanced", Settings::Inferno.Descent3Enhanced);
 
-                ReadValue(root["Fullscreen"], Settings::Inferno.Fullscreen);
-                ReadValue(root["Maximized"], Settings::Inferno.Maximized);
+                ReadValue2(root, "Fullscreen", Settings::Inferno.Fullscreen);
+                ReadValue2(root, "Maximized", Settings::Inferno.Maximized);
                 ReadValue(root["WindowSize"], Settings::Inferno.WindowSize);
                 ReadValue(root["WindowPosition"], Settings::Inferno.WindowPosition);
 

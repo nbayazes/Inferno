@@ -118,6 +118,7 @@
     <ClCompile Include="Game.UI.ScoreScreen.cpp" />
     <ClCompile Include="Game.Matcen.cpp" />
     <ClCompile Include="Hog.IO.cpp" />
+    <ClCompile Include="Mods.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\Audio.h" />
@@ -287,6 +288,7 @@
     <ClInclude Include="Resources.Common.h" />
     <ClInclude Include="Game.Matcen.h" />
     <ClInclude Include="Hog.IO.h" />
+    <ClInclude Include="Mods.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />
@@ -346,5 +348,6 @@
     <None Include="d2\lights.yml" />
     <None Include="d2\material.yml" />
     <None Include="_publish.cmd" />
+    <None Include="mods\mods.md" />
   </ItemGroup>
 </Project>

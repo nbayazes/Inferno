@@ -124,7 +124,7 @@ namespace Inferno::Editor {
                         // save into hog
                         if (Game::Mission) {
                             auto data = SerializeMaterialInfo(MissionMaterials);
-                            HogWriter::AddOrUpdate(Game::Mission->Path, "material.yml", data);
+                            HogWriter::AddOrUpdate(Game::Mission->Path, MATERIAL_TABLE_FILE, data);
                         }
                         break;
                     case TableSource::Level:

@@ -47,7 +47,7 @@ namespace Inferno::Editor {
                 HogEntry original = entries[_selections[0]];
 
                 // Append the extension of the original name if one wasn't provided
-                if (String::Extension(newName).empty())
+                if (!String::HasExtension(newName))
                     newName += String::Extension(original.Name);
 
                 HogWriter writer(tempPath);

@@ -115,11 +115,11 @@ namespace Inferno {
 
     // Typed concept that allows iterating over a range
     // Usage: Function(IEnumerable<Type> auto items)
-    template <class _Rng, class T>
+    template <class Rng, class T>
     concept IEnumerable =
-        std::ranges::range<_Rng> && // is a range
-        std::input_iterator<std::ranges::iterator_t<_Rng>> && // can forward iterate
-        std::is_same_v<T, std::ranges::range_value_t<_Rng>>; // Check that element type matches T
+        std::ranges::range<Rng> && // is a range
+        std::input_iterator<std::ranges::iterator_t<Rng>> && // can forward iterate
+        std::is_same_v<T, std::ranges::range_value_t<Rng>>; // Check that element type matches T
 
     // Scoped unique pointer.
     template<typename T, typename Deleter = std::default_delete<T>>

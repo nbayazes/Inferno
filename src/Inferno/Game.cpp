@@ -393,12 +393,12 @@ namespace Inferno::Game {
                 Sound::SetMusicVolume(Settings::Inferno.MusicVolume);
                 Input::SetMouseMode(Input::MouseMode::Normal);
                 Game::ScreenGlow.SetTarget(Color(0, 0, 0, 0), Game::Time, 0);
+                FileSystem::MountMainMenu();
                 PlayMainMenuMusic();
 
                 Graphics::UnloadTextures();
                 string extraTextures[] = { "noise" };
                 Graphics::LoadTextures(extraTextures);
-
                 UI::ShowMainMenu();
 
                 break;
@@ -1138,7 +1138,7 @@ namespace Inferno::Game {
         StuckObjects = {};
         Sound::WaitInitialized();
         Sound::StopAllSounds();
-        Resources::LoadGameTables(LoadFlag::Default | LoadFlag::LevelType);
+        Resources::LoadDataTables(Game::Level);
         ResetEffects();
         //Render::Materials->UnloadNamedTextures(); // was this necessary to fix HUD icons?
         Render::Materials->LoadGameTextures();

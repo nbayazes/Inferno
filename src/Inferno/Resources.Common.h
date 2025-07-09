@@ -7,16 +7,21 @@ namespace Inferno {
     constexpr auto LIGHT_TABLE_EXTENSION = ".lig"; // level specific light table (when packed in mission)
     constexpr auto MATERIAL_TABLE_EXTENSION = ".ma"; // level specific material extension. Mission and global material tables are always named material.yml
     inline const filesystem::path ASSET_FOLDER = "assets"; // subdirectory containing shared data
+    inline const filesystem::path MOD_FOLDER = "mods"; // subdirectory containing shared data
     inline const filesystem::path D1_FOLDER = "d1"; // subdirectory containing the d1 hog and pig
     inline const filesystem::path D1_DEMO_FOLDER = "d1/demo"; // subdirectory containing the d1 demo hog and pig
     inline const filesystem::path D2_FOLDER = "d2"; // subdirectory containing the d2 hog and pig
-    inline const filesystem::path D1_MATERIAL_FILE = D1_FOLDER / "material.yml";
-    inline const filesystem::path D2_MATERIAL_FILE = D2_FOLDER / "material.yml";
+
     constexpr auto GAME_TABLE_FILE = "game.yml";
     constexpr auto LIGHT_TABLE_FILE = "lights.yml";
+    constexpr auto MATERIAL_TABLE_FILE = "material.yml";
+    constexpr auto MOD_MANIFEST_FILE = "manifest.yml";
+
+    inline const filesystem::path D1_MATERIAL_FILE = D1_FOLDER / MATERIAL_TABLE_FILE;
+    inline const filesystem::path D2_MATERIAL_FILE = D2_FOLDER / MATERIAL_TABLE_FILE;
 
     // Where to load a table file from (lights, materials and game table)
-    enum class TableSource { Undefined, Descent1, Descent2, Mission, Level, Descent3 };
+    enum class TableSource { Undefined, Descent1, Descent2, Mod, Mission, Level, Descent3 };
 
     struct FullGameData : HamFile {
         SoundFile sounds;
@@ -64,12 +69,6 @@ namespace Inferno {
     };
 
     struct ResourceHandle {
-        //ResourceHandle(filesystem::path path, string_view name, Source source)
-        //    : path(std::move(path)), name(string(name)), source(source) {
-        //    // if path matches the filename it is an unpackaged file
-        //    if (!path.has_filename()) path /= name; // append filename to path
-        //}
-
         static ResourceHandle FromHog(const filesystem::path& path, string_view name) {
             return {
                 .path = path,

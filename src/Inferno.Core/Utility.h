@@ -87,6 +87,11 @@ namespace Inferno {
         return (offset + (alignment - 1)) & ~(alignment - 1);
     }
 
+    // Converts a span of bytes into a string
+    inline string BytesToString(span<ubyte> bytes) {
+        string str((char*)bytes.data(), bytes.size());
+        return str;
+    }
 
     void InitRandom();
 
@@ -681,14 +686,14 @@ namespace Inferno {
             return string(str.substr(0, i));
         }
 
-        // Returns the extension without the dot. Returns empty if no extension.
+        // Returns the extension with the dot. Returns empty if no extension.
         constexpr string Extension(const string& str) {
             auto i = str.find('.');
             if (i == string::npos) return "";
-            return str.substr(i + 1);
+            return str.substr(i);
         }
 
-        // Returns the extension without the dot. Returns empty if no extension.
+        // Returns the extension with the dot. Returns empty if no extension.
         constexpr wstring Extension(const wstring& str) {
             auto i = str.find('.');
             if (i == wstring::npos) return L"";
@@ -718,16 +723,15 @@ namespace Inferno {
 
         // Returns an uppercase copy of the string
         [[nodiscard]] auto ToUpper(const auto str) {
-            auto buffer = string{ str };
-            std::transform(buffer.begin(), buffer.end(), buffer.begin(), [](auto c) { return (char)std::toupper(c); });
+            string buffer{ str };
+            CharUpperA(buffer.data());
             return buffer;
         };
 
         // Returns a lowercase copy of the string.
-        // Not safe for non-ascii
         [[nodiscard]] auto ToLower(const auto str) {
-            auto buffer = string{ str };
-            std::transform(buffer.begin(), buffer.end(), buffer.begin(), [](auto c) { return (char)std::tolower(c); });
+            string buffer{ str };
+            CharLowerA(buffer.data());
             return buffer;
         }
 

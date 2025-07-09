@@ -14,6 +14,7 @@
 #include "Sound.h"
 #include "SoundSystem.h"
 #include "MaterialInfo.h"
+#include "Mods.h"
 
 namespace Inferno {
     LoadFlag GetLevelLoadFlag(const Level& level) {
@@ -518,9 +519,14 @@ namespace Inferno::Resources {
                 auto model = ReadPof(*modelData, &data.palette);
                 model.FileName = file;
                 auto id = (int)data.DyingModels[(int)data.PlayerShip.Model];
-                auto firstTexture = data.Models[id].FirstTexture;
-                data.Models[id] = model;
-                data.Models[id].FirstTexture = firstTexture;
+                if (Seq::inRange(data.Models, id)) {
+                    auto firstTexture = data.Models[id].FirstTexture;
+                    data.Models[id] = model;
+                    data.Models[id].FirstTexture = firstTexture;
+                }
+                else {
+                    SPDLOG_WARN("Dying model id not found for player ship");
+                }
             }
         }
 
@@ -839,50 +845,135 @@ namespace Inferno::Resources {
         CustomTextures.Clear();
     }
 
-    // Searches the mission HOG, then the game data folder, then the common data folder
-    //string ReadTextFile(string_view file, bool descent1) {
-    //    auto commonPath = DATA_FOLDER / file;
-    //    auto gamePath = (descent1 ? D1_FOLDER : D2_FOLDER) / file;
-    //    string data;
+    bool LoadGameTables(const Level& level, FullGameData& dest) {
+        if (auto text = ReadTextFile(GAME_TABLE_FILE, LoadFlag::Filesystem | LoadFlag::Descent1)) {
+            SPDLOG_INFO("Loading D1 game table");
+            LoadGameTable(*text, dest);
+        }
 
-    //    if (Game::Mission) {
-    //        data = Game::Mission->TryReadEntryAsString(file);
-    //        if (!data.empty()) {
-    //            SPDLOG_INFO("Reading {} from mission", file);
-    //            return data;
-    //        }
-    //    }
+        if (level.IsDescent2()) {
+            if (auto text = ReadTextFile(GAME_TABLE_FILE, LoadFlag::Filesystem | LoadFlag::Descent2)) {
+                SPDLOG_INFO("Loading D2 game table");
+                LoadGameTable(*text, dest);
+            }
+        }
 
-    //    if (FileSystem::TryFindFile(gamePath)) {
-    //        SPDLOG_INFO("Reading game table from `{}`", gamePath.string());
-    //        data = File::ReadAllText(gamePath);
-    //    }
-    //    else if (FileSystem::TryFindFile(commonPath)) {
-    //        SPDLOG_INFO("Reading game table from `{}`", commonPath.string());
-    //        data = File::ReadAllText(commonPath);
-    //    }
+        // Merge packed mods
+        for (auto& entry : filesystem::directory_iterator(MOD_FOLDER)) {
+            auto ext = entry.path().extension().string();
 
-    //    if (data.empty())
-    //        SPDLOG_WARN("Unable to find `{}`", file);
+            if (String::InvariantEquals(ext, ".zip")) {
+                if (auto zip = File::OpenZip(entry.path())) {
+                    auto manifest = ReadModManifest(*zip);
+                    if (!manifest || !manifest->SupportsLevel(level)) continue;
 
-    //    return data;
-    //}
+                    if (auto bytes = zip->TryReadEntry(GAME_TABLE_FILE)) {
+                        auto text = BytesToString(*bytes);
+                        SPDLOG_INFO("Merging game data from {}", entry.path().string());
+                        LoadGameTable(text, dest);
+                    }
+                }
+            }
+        }
 
-    bool LoadGameTables(LoadFlag flags, FullGameData& dest) {
-        if (auto data = ReadTextFile(GAME_TABLE_FILE, flags)) {
-            LoadGameTable(*data, dest);
-            return true;
+        // Merge unpacked mods
+        for (auto& entry : filesystem::directory_iterator(MOD_FOLDER)) {
+            if (!entry.is_directory()) continue;
+            auto entryName = String::ToLower(entry.path().filename().string());
+
+            // Check subfolders
+            for (auto& subentry : filesystem::directory_iterator(entry.path())) {
+                if (String::ToLower(subentry.path().filename().string()) == GAME_TABLE_FILE) {
+                    SPDLOG_INFO("Merging game data from {}", entry.path().string());
+                    auto text = File::ReadAllText(subentry.path());
+                    LoadGameTable(text, dest);
+                }
+            }
+        }
+
+        // Only load a single light table for the mission, regardless of how many are present
+        if (auto text = ReadTextFile(GAME_TABLE_FILE, /*LoadFlag::Filesystem |*/ LoadFlag::Mission)) {
+            SPDLOG_INFO("Merging game data from mission");
+            LoadGameTable(*text, dest);
         }
 
         return false;
     }
 
-    List<TextureLightInfo> LoadLightTables(LoadFlag flags) {
-        if (auto data = ReadTextFile(LIGHT_TABLE_FILE, flags)) {
-            return LoadLightTable(*data);
+    void MergeLights(List<TextureLightInfo>& dest, const List<TextureLightInfo>& source) {
+        for (auto& light : source) {
+            if (auto existing = Seq::find(dest, [&light](const TextureLightInfo& t) { return t.Name == light.Name; })) {
+                // Replace existing lights
+                *existing = light;
+            }
+            else {
+                // Add new ones
+                dest.push_back(light);
+            }
+        }
+    }
+
+    List<TextureLightInfo> LoadLightTables(const Level& level) {
+        List<TextureLightInfo> mergedLights;
+
+        if (auto data = ReadTextFile(LIGHT_TABLE_FILE, LoadFlag::Filesystem | LoadFlag::Descent1)) {
+            SPDLOG_INFO("Loading D1 light table");
+            auto lights = LoadLightTable(*data);
+            MergeLights(mergedLights, lights);
         }
 
-        return {};
+        if (level.IsDescent2()) {
+            if (auto data = ReadTextFile(LIGHT_TABLE_FILE, LoadFlag::Filesystem | LoadFlag::Descent2)) {
+                SPDLOG_INFO("Loading D2 light table");
+                auto lights = LoadLightTable(*data);
+                MergeLights(mergedLights, lights);
+            }
+        }
+
+        // Merge packed mods
+        for (auto& entry : filesystem::directory_iterator(MOD_FOLDER)) {
+            auto ext = entry.path().extension().string();
+
+            if (String::InvariantEquals(ext, ".zip")) {
+                if (auto zip = File::OpenZip(entry.path())) {
+                    auto manifest = ReadModManifest(*zip);
+                    if (!manifest || !manifest->SupportsLevel(level)) continue;
+
+                    if (auto bytes = zip->TryReadEntry(LIGHT_TABLE_FILE)) {
+                        auto text = BytesToString(*bytes);
+                        auto table = LoadLightTable(text);
+                        SPDLOG_INFO("Merging lights from {}", entry.path().string());
+                        MergeLights(mergedLights, table);
+                    }
+                }
+            }
+        }
+
+        // Merge unpacked mods
+        for (auto& entry : filesystem::directory_iterator(MOD_FOLDER)) {
+            if (!entry.is_directory()) continue;
+            auto entryName = String::ToLower(entry.path().filename().string());
+
+            // Check subfolders
+            for (auto& subentry : filesystem::directory_iterator(entry.path())) {
+                if (String::ToLower(subentry.path().filename().string()) == LIGHT_TABLE_FILE) {
+                    SPDLOG_INFO("Merging lights from {}", subentry.path().string());
+                    auto text = File::ReadAllText(subentry.path());
+                    auto table = LoadLightTable(text);
+                    MergeLights(mergedLights, table);
+                }
+            }
+        }
+
+        // Only load a single light table for the mission, regardless of how many are present
+        if (auto data = ReadTextFile(LIGHT_TABLE_FILE, /*LoadFlag::Filesystem |*/ LoadFlag::Mission)) {
+            auto lights = LoadLightTable(*data);
+            MergeLights(mergedLights, lights);
+        }
+
+        // reload lights on GPU
+        Editor::Events::LevelChanged();
+        return mergedLights;
     }
 
     Option<ResourceHandle> FindDxaEntryInFolder(const filesystem::path& folder, string_view fileName) {
@@ -988,10 +1079,10 @@ namespace Inferno::Resources {
         if (HasFlag(flags, LoadFlag::LevelType))
             flags |= GetLevelLoadFlag(Game::Level);
 
-        if (ext == "wav") flags |= LoadFlag::Sound;
-        if (ext == "pof" || ext == "oof") flags |= LoadFlag::Model;
-        if (ext == "dds" || ext == "png") flags |= LoadFlag::Texture;
-        if (ext == "mp3" || ext == "flac" || ext == "ogg") flags |= LoadFlag::Music;
+        if (ext == ".wav") flags |= LoadFlag::Sound;
+        if (ext == ".pof" || ext == ".oof") flags |= LoadFlag::Model;
+        if (ext == ".dds" || ext == ".png") flags |= LoadFlag::Texture;
+        if (ext == ".mp3" || ext == ".flac" || ext == ".ogg") flags |= LoadFlag::Music;
 
         string subPath, levelSubPath;
 
@@ -1110,67 +1201,12 @@ namespace Inferno::Resources {
         return {}; // Wasn't found
     }
 
-    template <class T>
-    string BytesToString(span<T> bytes) {
-        string str((char*)bytes.data(), bytes.size());
-        return str;
-    }
-
     Option<string> ReadTextFile(string_view name, LoadFlag flags) {
-        if (auto bytes = ReadBinaryFile(name, flags)) {
-            string str((char*)bytes->data(), bytes->size());
-            return str;
-        }
+        if (auto bytes = ReadBinaryFile(name, flags))
+            return BytesToString(*bytes);
 
         return {};
     }
-
-    //void ExpandMaterialFrames(List<MaterialInfo>& materials) {
-    //    for (auto& material : materials) {
-    //        auto dclipId = Resources::GetDoorClipID(Resources::LookupLevelTexID((TexID)material.ID));
-    //        auto& dclip = Resources::GetDoorClip(dclipId);
-
-    //        // copy material from base frame to all frames of door
-    //        material.ID = -1; // unset ID so it doesn't get saved later for individual frames
-
-    //        for (int i = 1; i < dclip.NumFrames; i++) {
-    //            auto frameId = Resources::LookupTexIDFromData(dclip.Frames[i], GameData);
-    //            if (Seq::inRange(materials, (int)frameId)) {
-    //                materials[(int)frameId] = material;
-    //            }
-    //        }
-    //    }
-
-    //    // Expand materials to all frames in effects
-    //    for (auto& effect : Resources::GameData.Effects) {
-    //        for (int i = 1; i < effect.VClip.NumFrames; i++) {
-    //            auto src = effect.VClip.Frames[0];
-    //            auto dest = effect.VClip.Frames[i];
-    //            if (Seq::inRange(materials, (int)src) && Seq::inRange(materials, (int)dest))
-    //                materials[(int)dest] = materials[(int)src];
-    //        }
-    //    }
-
-    //    // Hard code special flat material
-    //    if (materials.size() >= (int)Render::SHINY_FLAT_MATERIAL) {
-    //        auto& flat = materials[(int)Render::SHINY_FLAT_MATERIAL];
-    //        flat.ID = (int)Render::SHINY_FLAT_MATERIAL;
-    //        flat.Metalness = 1.0f;
-    //        flat.Roughness = 0.375f;
-    //        flat.LightReceived = 0.5f;
-    //        flat.SpecularStrength = 0.8f;
-    //    }
-    //}
-
-    //void MergeMaterials(span<MaterialInfo> source, span<MaterialInfo> dest) {
-    //    for (auto& material : source) {
-    //        auto texId = Resources::FindTexture(material.Name);
-    //        if (Seq::inRange(dest, (int)texId)) {
-    //            material.ID = (int)texId;
-    //            dest[(int)texId] = material;
-    //        }
-    //    }
-    //}
 
     // Enables procedural textures for a level
     void EnableProcedurals(span<MaterialInfo> materials) {
@@ -1200,33 +1236,54 @@ namespace Inferno::Resources {
         }
     }
 
-    // Merge all available materials for a level. Replaces the contents of dest.
-    void MergeMaterials(const Level& level/*, List<MaterialInfo>& dest*/) {
-        //auto& gameData = level.IsDescent1() ? Descent1 : Descent2;
+    // Merge all available materials for a level
+    void MergeMaterials(const Level& level) {
         IndexedMaterials.Reset(Render::MATERIAL_COUNT);
         IndexedMaterials.Merge(Descent1Materials);
-        //MergeMaterials(Descent1Materials, dest);
 
         // Merge D1 data for D2 levels
         if (level.IsDescent2())
             IndexedMaterials.Merge(Descent2Materials);
-        //MergeMaterials(Descent2Materials, dest);
+
+        // Merge packed mods
+        for (auto& entry : filesystem::directory_iterator(MOD_FOLDER)) {
+            auto ext = entry.path().extension().string();
+
+            if (String::InvariantEquals(ext, ".zip")) {
+                if (auto zip = File::OpenZip(entry.path())) {
+                    auto manifest = ReadModManifest(*zip);
+                    if (!manifest || !manifest->SupportsLevel(level)) continue;
+
+                    if (auto bytes = zip->TryReadEntry(MATERIAL_TABLE_FILE)) {
+                        auto text = BytesToString(*bytes);
+                        auto table = MaterialTable::Load(text, TableSource::Mod);
+                        SPDLOG_INFO("Merging materials from {}", entry.path().string());
+                        IndexedMaterials.Merge(table);
+                    }
+                }
+            }
+        }
+
+        // Merge unpacked mods
+        for (auto& entry : filesystem::directory_iterator(MOD_FOLDER)) {
+            if (!entry.is_directory()) continue;
+
+            auto entryName = String::ToLower(entry.path().filename().string());
+
+            // Check subfolder contents
+            for (auto& subentry : filesystem::directory_iterator(entry.path())) {
+                if (String::ToLower(subentry.path().filename().string()) == MATERIAL_TABLE_FILE) {
+                    SPDLOG_INFO("Merging materials from {}", subentry.path().string());
+                    auto text = File::ReadAllText(subentry.path());
+                    auto table = MaterialTable::Load(text, TableSource::Mod);
+                    IndexedMaterials.Merge(table);
+                }
+            }
+        }
 
         IndexedMaterials.Merge(MissionMaterials);
         IndexedMaterials.Merge(LevelMaterials);
-
-        //MergeMaterials(MissionMaterials, dest);
-        //MergeMaterials(LevelMaterials, dest);
-
-        //for (auto& material : Descent1Materials) {
-        //    auto texId = Resources::FindTexture(material.Name);
-        //    if (Seq::inRange(mergedMaterials, (int)texId)) {
-        //        mergedMaterials[(int)texId] = material;
-        //    }
-        //}
-
         IndexedMaterials.ExpandAnimatedFrames();
-        //ExpandMaterialFrames(dest);
     }
 
     void Resources::ExpandAnimatedFrames(TexID id) {
@@ -1242,13 +1299,13 @@ namespace Inferno::Resources {
         LevelMaterials = {};
 
         // Load the base material tables from the d1 and d2 folders
-        if (auto text = Resources::ReadTextFile("material.yml", LoadFlag::Filesystem | LoadFlag::Descent1)) {
+        if (auto text = Resources::ReadTextFile(MATERIAL_TABLE_FILE, LoadFlag::Filesystem | LoadFlag::Descent1)) {
             SPDLOG_INFO("Reading D1 material table");
 
             Descent1Materials = MaterialTable::Load(*text, TableSource::Descent1);
         }
 
-        if (auto text = Resources::ReadTextFile("material.yml", LoadFlag::Filesystem | LoadFlag::Descent2)) {
+        if (auto text = Resources::ReadTextFile(MATERIAL_TABLE_FILE, LoadFlag::Filesystem | LoadFlag::Descent2)) {
             SPDLOG_INFO("Reading D2 material table");
             Descent2Materials = MaterialTable::Load(*text, TableSource::Descent2);
         }
@@ -1256,7 +1313,7 @@ namespace Inferno::Resources {
         auto levelFile = String::NameWithoutExtension(level.FileName) + MATERIAL_TABLE_EXTENSION;
 
         if (Game::Mission) {
-            if (auto text = Resources::ReadTextFile("material.yml", LoadFlag::Mission)) {
+            if (auto text = Resources::ReadTextFile(MATERIAL_TABLE_FILE, LoadFlag::Mission)) {
                 SPDLOG_INFO("Reading mission material table");
                 MissionMaterials = MaterialTable::Load(*text, TableSource::Mission);
             }
@@ -1279,43 +1336,14 @@ namespace Inferno::Resources {
         }
     }
 
-    void MergeLights(List<TextureLightInfo>& dest, const List<TextureLightInfo>& source) {
-        for (auto& light : source) {
-            if (auto existing = Seq::find(dest, [&light](const TextureLightInfo& t) { return t.Name == light.Name; })) {
-                // Replace existing lights
-                *existing = light;
-            }
-            else {
-                // Add new ones
-                dest.push_back(light);
-            }
-        }
-    }
-
     void LoadDataTables(const Level& level) {
         //LoadDataTables(level, LoadFlag::Filesystem | LoadFlag::Common);
         //LoadDataTables(level, LoadFlag::Filesystem | GetLevelLoadFlag(level));
         //LoadDataTables(level, LoadFlag::Mission);
 
-        {
-            // merge light tables
-            Lights = LoadLightTables(LoadFlag::Filesystem | LoadFlag::Descent1);
+        Lights = LoadLightTables(level);
 
-            if (level.IsDescent2()) {
-                auto d2Lights = LoadLightTables(LoadFlag::Filesystem | LoadFlag::Descent2);
-                MergeLights(Lights, d2Lights);
-            }
-
-            auto missionLights = LoadLightTables(LoadFlag::Mission);
-            MergeLights(Lights, missionLights);
-
-            // reload lights on GPU
-            Editor::Events::LevelChanged();
-        }
-
-        // todo: merge game tables
-        auto flags = LoadFlag::Filesystem | LoadFlag::LevelType;
-        LoadGameTables(flags, GameData);
+        LoadGameTables(level, GameData);
         LoadMaterialTables(level);
         MergeMaterials(level);
 
@@ -1359,8 +1387,10 @@ namespace Inferno::Resources {
             ResetResources();
             UnmountAddonData();
 
-            if (Game::Mission)
-                MountAddonData(Game::Mission->Path);
+            auto missionPath = Game::Mission ? Game::Mission->Path : "";
+
+            //if (Game::Mission)
+            //    MountAddonData(Game::Mission->Path);
 
             //Resources::LoadSounds();
 
@@ -1438,6 +1468,9 @@ namespace Inferno::Resources {
                         CustomTextures.LoadPog(GameData.pig.Entries, pogData, GameData.palette);
                     }
                 }
+
+                // Merge resources
+                FileSystem::MountLevel(level, missionPath);
             }
             else if (level.IsDescent1()) {
                 SPDLOG_INFO("Loading Descent 1 level: '{}'\r\n Version: {} Segments: {} Vertices: {}",
@@ -1464,6 +1497,8 @@ namespace Inferno::Resources {
                     GameData = FullGameData(Descent1);
                     LoadDtx(level, GameData.palette, GameData.pig);
                 }
+
+                FileSystem::MountLevel(level, missionPath);
             }
             else {
                 throw Exception("Unsupported level version");

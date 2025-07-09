@@ -85,6 +85,12 @@ namespace Inferno {
             return path.replace_extension(ext);
         }
 
+        static bool IsHog(const filesystem::path& path) {
+            StreamReader reader(path);
+            auto id = reader.ReadString(3);
+            return id == "DHF";
+        }
+
         HogFile() = default;
         ~HogFile() = default;
         explicit HogFile(const HogFile&) = default;

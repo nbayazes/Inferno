@@ -50,6 +50,13 @@ namespace Inferno {
         return data;
     }
 
+    bool IsHog1(StreamReader& reader) {
+        auto id = reader.ReadString(3);
+        bool isHog1 = id == "DHF";
+        reader.Seek(0);
+        return isHog1;
+    }
+
     List<HogEntry> ReadHogEntries(StreamReader& reader) {
         List<HogEntry> entries;
 

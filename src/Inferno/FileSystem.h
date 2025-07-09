@@ -3,6 +3,8 @@
 #include "Types.h"
 
 namespace Inferno {
+    struct Level;
+
     struct IZipFile {
         virtual span<string> GetEntries() = 0;
         virtual Option<List<ubyte>> TryReadEntry(string_view entryName) const = 0;
@@ -16,7 +18,7 @@ namespace Inferno {
         IZipFile(const IZipFile&) = delete;
         IZipFile(IZipFile&&) = default;
         virtual IZipFile& operator=(const IZipFile&) = delete;
-        virtual IZipFile& operator=(IZipFile&&) = default;
+        IZipFile& operator=(IZipFile&&) = default;
     };
 
 }
@@ -24,12 +26,16 @@ namespace Inferno {
 namespace Inferno::File {
     Ptr<IZipFile> OpenZip(const filesystem::path& path);
 
+    // Tries to read an entry from a zip file. Immediately closes the zip afterwards.
+    Option<List<ubyte>> ReadZipEntry(const filesystem::path& path, string_view entry);
+
     // Reads the file at the given path. Throws an exception if not found.
     List<ubyte> ReadAllBytes(const std::filesystem::path& path);
     void WriteAllBytes(const std::filesystem::path& path, span<ubyte> data);
     string ReadAllText(const filesystem::path& path);
     std::vector<std::string> ReadLines(const filesystem::path& path);
-    Option<List<byte>> ReadFromZip(const filesystem::path& path, string_view fileName);
+
+
 }
 
 /*
@@ -39,6 +45,16 @@ namespace Inferno::FileSystem {
     void Init();
     void AddDataDirectory(const std::filesystem::path&);
     Option<std::filesystem::path> TryFindFile(const std::filesystem::path&);
+
+    void MountMainMenu();
+
+    // Mounts custom assets for a level from the filesystem
+    void MountLevel(const Level& level, const filesystem::path& missionPath = {});
+
+    Option<List<ubyte>> ReadAsset(const string& file);
     filesystem::path FindFile(const std::filesystem::path&);
     span<filesystem::path> GetDirectories();
+
+    // Mounts a directory, zip, hog
+    void Mount(const std::filesystem::path& path);
 }
