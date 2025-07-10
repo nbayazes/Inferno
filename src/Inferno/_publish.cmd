@@ -2,8 +2,8 @@ xcopy shaders\*.hlsl publish\shaders\ /y
 xcopy shaders\*.hlsli publish\shaders\ /y
 
 xcopy *.txt publish\ /y
-xcopy data\*.wav publish\data\ /y
-xcopy textures\ publish\textures\ /y /s
+xcopy assets\sounds\*.wav publish\assets\sounds /y
+xcopy assets\textures\ publish\assets\textures\ /y /s
 
 xcopy d1\*.ied publish\d1\ /y
 xcopy d1\missions\vignette\ publish\d1\missions\vignette\ /y
@@ -111,27 +111,32 @@ rem cd publish
 rem set /p "NAME=release name: "
 .\publish\7z.exe a publish\publish.zip *.txt
 .\publish\7z.exe a publish\publish.zip ..\..\thirdparty.txt
-.\publish\7z.exe a publish\publish.zip d1\*.ied
-.\publish\7z.exe a publish\publish.zip d1\*.pof
+.\publish\7z.exe a publish\publish.zip d1\descent\*.ied
 .\publish\7z.exe a publish\publish.zip d1\*.yml
+.\publish\7z.exe a publish\publish.zip d1\models\*.pof
+.\publish\7z.exe a publish\publish.zip d1\sounds\*.wav
+.\publish\7z.exe a publish\publish.zip d1\textures\*.dds
 
 .\publish\7z.exe a publish\publish.zip d2\*.ied
-.\publish\7z.exe a publish\publish.zip d2\*.pof
 .\publish\7z.exe a publish\publish.zip d2\*.yml
+.\publish\7z.exe a publish\publish.zip d2\descent2\*.ied
+.\publish\7z.exe a publish\publish.zip d2\models\*.pof
+.\publish\7z.exe a publish\publish.zip d2\sounds\*.wav
+.\publish\7z.exe a publish\publish.zip d2\textures\*.dds
 
 .\publish\7z.exe a publish\publish.zip d1\d1xr-hires.dxa
 .\publish\7z.exe a publish\publish.zip d1\missions\vignette\*.ied
-.\publish\7z.exe a publish\publish.zip data\*.wav
+.\publish\7z.exe a publish\publish.zip assets\sounds\*.wav
 .\publish\7z.exe a publish\publish.zip shaders\*.hlsli
 .\publish\7z.exe a publish\publish.zip shaders\*.hlsl
 .\publish\7z.exe a publish\publish.zip shaders\*.bin
-.\publish\7z.exe a publish\publish.zip textures\
+.\publish\7z.exe a publish\publish.zip assets\textures\
 
 .\publish\7z.exe a publish\publish.zip ..\..\bin\Inferno\x64\Release\Inferno.exe
 .\publish\7z.exe a publish\publish.zip ..\..\bin\Inferno\x64\Release\fmt.dll
 .\publish\7z.exe a publish\publish.zip ..\..\bin\Inferno\x64\Release\SDL3.dll
 
-rem zip demo data and dxcompiler
+rem add demo data and dxcompiler
 cd publish
 
 copy publish.zip publish-full.zip /Y
