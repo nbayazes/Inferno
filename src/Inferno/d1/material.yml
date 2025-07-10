@@ -398,8 +398,9 @@ Materials:
     SpecularStrength: 0.791
     Roughness: 0.666
   - Name: rock065
-    NormalStrength: -0.389
-    Roughness: 0.47
+    NormalStrength: -0.666
+    SpecularStrength: 0.153
+    Roughness: 0.636
   - Name: rock066
     NormalStrength: -0.389
     Roughness: 0.47
@@ -540,6 +541,7 @@ Materials:
   - Name: rock168
     NormalStrength: -0.676
     Roughness: 0.849
+    SpecularColor: '0.5, 1, 0.5, 1'
   - Name: rock169
     NormalStrength: 0.833
     SpecularStrength: 0.489
@@ -697,8 +699,8 @@ Materials:
   - Name: rock226
     NormalStrength: -0.498
     SpecularStrength: 0.856
-    Roughness: 0.536
-    SpecularColor: '0.244, 0.719, 0.18, 1'
+    Roughness: 0.65
+    SpecularColor: '0.5, 1, 0.5, 1'
   - Name: rock227
     Roughness: 0.755
     SpecularColor: '1, 0.767, 0.565, 1'
@@ -3588,5 +3590,5 @@ Materials:
     Roughness: 1
     SpecularColor: '1, 1, 1, 0.5'
   - Name: rock216
-    Roughness: 0.6
+    Roughness: 0.8
     SpecularColor: '0.413, 0.765, 0.302, 1'
