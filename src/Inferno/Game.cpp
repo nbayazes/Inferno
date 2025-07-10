@@ -505,6 +505,7 @@ namespace Inferno::Game {
                 Game::MainCamera.MoveTo(position, target, up);
                 GetPlayerObject().Render.Type = RenderType::Model; // Make player visible
                 Input::SetMouseMode(Input::MouseMode::Mouselook);
+                Game::FrameTime = 0; // Zero frame time so the frame that switches game state doesn't break photo mode for tracers
                 break;
             }
 
@@ -515,6 +516,7 @@ namespace Inferno::Game {
                 Input::SetMouseMode(Input::MouseMode::Normal);
                 Input::ResetState();
                 UI::ShowPauseDialog();
+                Game::FrameTime = 0; // Zero frame time so the frame that switches game state doesn't break photo mode for tracers
                 break;
         }
 

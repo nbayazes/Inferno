@@ -36,7 +36,7 @@ namespace Inferno::Render {
     };
 
     struct Tracer final : EffectBase {
-        explicit Tracer(const TracerInfo& info): Info(info) {}
+        explicit Tracer(TracerInfo info): Info(std::move(info)) {}
         TracerInfo Info;
 
         // Runtime vars

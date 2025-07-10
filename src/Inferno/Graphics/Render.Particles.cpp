@@ -806,11 +806,8 @@ namespace Inferno::Render {
         StartDelay -= dt;
         if (StartDelay > 0 /*|| Updates > 0*/) return;
 
-        if (Inferno::Game::GetState() == GameState::PauseMenu ||
-            Inferno::Game::GetState() == GameState::PhotoMode)
-            return; // Game is paused
-
-        PrevPosition = Position;
+        if (dt > 0)
+            PrevPosition = Position;
 
         if (Parent && !UpdatePositionFromParent())
             DetachEffects(*this);
