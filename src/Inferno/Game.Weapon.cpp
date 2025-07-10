@@ -38,8 +38,22 @@ namespace Inferno::Game {
             float damage = GetDamage(weapon);
 
             // Mine was hit before it armed, do no splash damage
-            if (ObjectIsMine(obj) && obj.Control.Weapon.AliveTime < Game::MINE_ARM_TIME) {
-                damage = 0;
+            if (ObjectIsMine(obj)) {
+                float scale = 1;
+
+                if (obj.Control.Weapon.AliveTime < Game::MINE_ARM_TIME) {
+                    damage = 0;
+                    scale = 0.5f;
+                }
+
+                // Create visual effect and sound here, as mines do not directly hit enemies or walls
+                CreateWeaponExplosion(obj, weapon, scale);
+
+                SoundResource resource = { weapon.RobotHitSound };
+                resource.D3 = weapon.Extended.ExplosionSound;
+                Sound3D sound(resource);
+                sound.Volume = Game::WEAPON_HIT_WALL_VOLUME;
+                Sound::Play(sound, obj.Position, obj.Segment);
             }
 
             GameExplosion ge{};
