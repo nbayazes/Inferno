@@ -317,10 +317,10 @@ Lights:
       Points: []
 
     - Name: misc17#0 # energy field
-      Color: 1, 0.443, 0.027, 0.6
+      Color: 1, 0.443, 0.027, 1.0
       Points: []  
       
-    - Name: Energy Field # Light added to the center of energy field segments
+    - Name: Energy Field # Light added to the center of energy field segments for specular highlights
       Color: 1, 0.443, 0.027, 0.3
 
     - Name: Headlight # Player ship headlight
