@@ -32,7 +32,7 @@ namespace Inferno::Sound {
         MusicStream(const MusicStream&) = delete;
         MusicStream(MusicStream&&) = default;
         virtual MusicStream& operator=(const MusicStream&) = delete;
-        virtual MusicStream& operator=(MusicStream&&) = default;
+        MusicStream& operator=(MusicStream&&) = default;
         virtual ~MusicStream() = default;
     };
 
@@ -48,6 +48,11 @@ namespace Inferno::Sound {
         ~Mp3Stream() override {
             drmp3_uninit(&_decoder);
         }
+
+        Mp3Stream(const Mp3Stream&) = delete;
+        Mp3Stream(Mp3Stream&&) = default;
+        Mp3Stream& operator=(const Mp3Stream&) = delete;
+        Mp3Stream& operator=(Mp3Stream&&) = default;
 
     private:
         // Returns the size in bytes
@@ -71,6 +76,11 @@ namespace Inferno::Sound {
             stb_vorbis_close(_vorbis);
         }
 
+        OggStream(const OggStream&) = delete;
+        OggStream(OggStream&&) = default;
+        OggStream& operator=(const OggStream&) = delete;
+        OggStream& operator=(OggStream&&) = default;
+
     private:
         // Returns the size in bytes
         size_t ReadNextFrame(FrameBuffer& dest) const {
@@ -90,6 +100,11 @@ namespace Inferno::Sound {
         ~FlacStream() override {
             drflac_close(_flac);
         }
+
+        FlacStream(const FlacStream&) = delete;
+        FlacStream(FlacStream&&) = default;
+        FlacStream& operator=(const FlacStream&) = delete;
+        FlacStream& operator=(FlacStream&&) = default;
 
     private:
         // Returns the size in bytes

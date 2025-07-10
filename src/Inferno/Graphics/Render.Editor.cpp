@@ -413,18 +413,32 @@ namespace Inferno::Render {
                 }
                 break;
 
-            case Editor::SelectionMode::Object:
-            {
+            case Editor::SelectionMode::Object: {
                 drawScaleGizmo = false;
 
-                if (auto obj = level.TryGetObject(Editor::Selection.Object))
+                if (auto obj = level.TryGetObject(Editor::Selection.Object)) {
                     DrawObjectOutline(*obj, Colors::SelectedObject, ctx.Camera);
-                else
+
+                    // Draw arrow to station segment
+                    //if (obj->IsRobot() && obj->Control.AI.Behavior == AIBehavior::Station) {
+                    //    if (auto end = level.TryGetSegment(obj->Control.AI.HideSegment))
+                    //        Debug::DrawArrow(obj->Position, end->Center, Colors::Path, ctx.Camera);
+                    //}
+                }
+                else {
                     drawTranslationGizmo = drawRotationGizmo = drawScaleGizmo = false;
+                }
 
                 for (auto& id : Editor::Marked.Objects) {
-                    if (auto obj = level.TryGetObject(id))
+                    if (auto obj = level.TryGetObject(id)) {
                         DrawObjectOutline(*obj, Colors::MarkedObject, ctx.Camera, 1.1f);
+
+                        // Draw arrow to station segment
+                        //if (obj->IsRobot() && obj->Control.AI.Behavior == AIBehavior::Station) {
+                        //    if (auto end = level.TryGetSegment(obj->Control.AI.HideSegment))
+                        //        Debug::DrawArrow(obj->Position, end->Center, Colors::Path, ctx.Camera);
+                        //}
+                    }
                 }
                 break;
             }

@@ -48,7 +48,7 @@ namespace Inferno {
         void RenderDrawData(const ImDrawData* drawData, ID3D12GraphicsCommandList* ctx) const;
     };
 
-    inline Ptr<ImGuiBatch> g_ImGuiBatch;
+    inline std::unique_ptr<ImGuiBatch> g_ImGuiBatch;
     void InitializeImGui(HWND hwnd, float fontSize);
 }
 
