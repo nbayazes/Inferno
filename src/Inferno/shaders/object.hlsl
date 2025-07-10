@@ -163,13 +163,13 @@ float4 psmain(PS_INPUT input) : SV_Target {
             const float AMBIENT_MULT = 1;
             lighting += diffuse.rgb * ambient * material.LightReceived * (1 - material.Metalness * .6) * AMBIENT_MULT; // ambient
 
-            //// Matcap specular
-            //float2 muv = mul(Frame.ViewMatrix, float4(normal, 0)).xy * 0.5 + 0.5;
-            //muv.y = 1 - muv.y;
-            //float3 matcap = Matcap.Sample(Sampler, muv).rgb;
-            //float3 matcapSum = diffuse.rgb * ambient * material.LightReceived * material.Metalness *
-            //                   material.SpecularColor.rgb * material.SpecularColor.a * material.SpecularStrength;
-            //lighting += matcapSum * matcap * 5;
+            // Matcap specular
+            float2 muv = mul(Frame.ViewMatrix, float4(normal, 0)).xy * 0.5 + 0.5;
+            muv.y = 1 - muv.y;
+            float3 matcap = Matcap.Sample(Sampler, muv).rgb;
+            float3 matcapSum = diffuse.rgb * ambient * material.LightReceived * material.Metalness *
+                               material.SpecularColor.rgb * material.SpecularColor.a * material.SpecularStrength;
+            lighting += matcapSum * matcap * 5;
         }
 
         lighting.rgb += phaseColor;
