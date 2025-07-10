@@ -9,9 +9,9 @@ static const float GLOBAL_LIGHT_MULT = 50;
 static const float GLOBAL_SPECULAR_MULT = 0.5;
 static const float METAL_DIFFUSE_FACTOR = 2; // Direct lighting contribution on metal
 static const float METAL_SPECULAR_EXP = 2; // increase to get sharper metal highlights
-static const float METAL_SPECULAR_MULT = 1; // increase to get brighter metal
-static const float FRESNEL_MULT = GLOBAL_LIGHT_MULT * 1;
-static const float FRESNEL_EXPONENT = 2; // Should be 5, but 2 looks better in general. Allows overhead lights in regular tunnels to have floor reflections.
+static const float METAL_SPECULAR_MULT = 2; // increase to get brighter metal
+static const float FRESNEL_MULT = GLOBAL_LIGHT_MULT * 0.25;
+static const float FRESNEL_EXPONENT = 2; // Should be 5, but lower values look better. Allows overhead lights in regular tunnels to have floor reflections.
 
 struct MaterialInfo {
     float NormalStrength;
@@ -1018,7 +1018,7 @@ float3 RectSpecular(
     float rDotL = Lambert(r, lightDir);
 
 
-    return specularFactor /** GLOBAL_LIGHT_MULT*/ * specularColor /** GLOBAL_SPECULAR_MULT * 2*/ * falloff * GLOBAL_SPECULAR_MULT;
+    return specularFactor /** GLOBAL_LIGHT_MULT*/ * specularColor * falloff * GLOBAL_SPECULAR_MULT;
 
     // this doesn't behave well at sharp angles
     //float nDotV = max(dot(normal, -viewDir), 0);
@@ -1132,7 +1132,8 @@ void GetLightColors(LightData light, MaterialInfo material, float3 diffuse, out 
     lightColor = lerp(lightRgb, lightRgb * diffuse * METAL_DIFFUSE_FACTOR * material.SpecularColor.rgb, material.Metalness); // Allow some diffuse contribution even at max metal for visibility reasons
     //float3 metalDiffuse = GetMetalDiffuse(diffuse);
     //specularColor = lerp(lightColor, (pow(diffuse + 1, METAL_SPECULAR_EXP) - 1) * lightRgb, material.Metalness);
-    specularColor = lerp(lightColor, (pow(diffuse + 1 , METAL_SPECULAR_EXP) - 1) * lightRgb * METAL_SPECULAR_MULT, material.Metalness) * material.SpecularColor.rgb * .5;
+    specularColor = lerp(lightColor, (pow(diffuse + 1 , METAL_SPECULAR_EXP) - 1) * lightRgb * METAL_SPECULAR_MULT, material.Metalness) * material.SpecularColor.rgb;
+    specularColor *= GLOBAL_SPECULAR_MULT;
     //specularColor *= GLOBAL_SPECULAR_MULT * (1 + material.Metalness * METAL_SPECULAR_MULT);
     //specularColor *= GLOBAL_SPECULAR_MULT * (1 + material.Metalness * METAL_SPECULAR_MULT) * material.SpecularColor.rgb;
     //specularColor = lerp(lightColor, material.SpecularColor.rgb, material.Metalness /*material.SpecularColor.a*/);
