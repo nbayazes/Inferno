@@ -491,11 +491,13 @@ namespace Inferno {
                     return HasFlag(mask, ObjectMask::Powerup);
 
                 case ObjectType::Weapon:
+                    if (HasFlag(mask, ObjectMask::Weapon))
+                        return true;
+
                     if (HasFlag(mask, ObjectMask::Mine))
                         return ID == (int8)WeaponID::ProxMine || ID == (int8)WeaponID::SmartMine || ID == (int8)WeaponID::LevelMine;
-                    else
-                        return HasFlag(mask, ObjectMask::Weapon);
 
+                    return false;
                 default:
                     return false;
             }

@@ -230,7 +230,7 @@ namespace Inferno::Game {
     // Stupid intellisense
 #undef GetObject
 
-    // Gets an object by reference. Returns null if not found.
+    // Gets an object by reference. Returns null if not found or dead.
     Object* GetObject(ObjRef);
     inline List<RoomID> ActiveRooms; // Rooms that are visible or near the player
 

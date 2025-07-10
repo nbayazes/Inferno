@@ -343,12 +343,15 @@ namespace Inferno {
             FireSecondary();
         }
 
-        if (Energy > 0 && OmegaCharge < 1 &&
-            LastPrimaryFireTime + OMEGA_RECHARGE_DELAY < Game::Time) {
-            // Recharge omega
-            float chargeUp = std::min(dt / OMEGA_RECHARGE_TIME, 1 - OmegaCharge);
-            OmegaCharge += chargeUp;
-            AddEnergy(-chargeUp * OMEGA_RECHARGE_ENERGY);
+        // Recharge omega
+        if (HasWeapon(PrimaryWeaponIndex::Omega) && Energy > 0) {
+            auto& battery = Ship.Weapons[(int)PrimaryWeaponIndex::Omega];
+
+            if (OmegaCharge < battery.Ammo && LastPrimaryFireTime + OMEGA_RECHARGE_DELAY < Game::Time) {
+                float chargeUp = std::min(battery.Ammo * dt / OMEGA_RECHARGE_TIME, battery.Ammo - OmegaCharge);
+                OmegaCharge += chargeUp;
+                AddEnergy(-chargeUp * battery.EnergyUsage);
+            }
         }
     }
 
@@ -514,13 +517,14 @@ namespace Inferno {
             return;
         }
 
-        // must do a different check for omega so running out of charge doesn't cause an autoswap
-        if (Primary == PrimaryWeaponIndex::Omega && OmegaCharge < OMEGA_CHARGE_COST)
-            return;
 
         auto id = GetPrimaryWeaponID(Primary);
         auto& weapon = Resources::GetWeapon(id);
         auto& battery = Ship.Weapons[(int)Primary];
+
+        // must do a different check for omega so running out of charge doesn't cause an autoswap
+        if (Primary == PrimaryWeaponIndex::Omega && OmegaCharge < battery.EnergyUsage)
+            return;
 
         // Charged weapons drain energy on button down instead of here
         if (!weapon.Extended.Chargable) {
@@ -1233,7 +1237,7 @@ namespace Inferno {
         }
 
         if (index == PrimaryWeaponIndex::Omega)
-            canFire &= Energy > 1 || OmegaCharge > OMEGA_CHARGE_COST; // it's annoying to switch to omega with no energy
+            canFire &= Energy > 1 || OmegaCharge > battery.EnergyUsage; // it's annoying to switch to omega with no energy
 
         canFire &= GetWeaponEnergyCost(battery.EnergyUsage) <= Energy;
         return canFire;

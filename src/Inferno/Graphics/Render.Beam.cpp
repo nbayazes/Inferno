@@ -88,8 +88,8 @@ namespace Inferno::Render {
             return;
         }
 
-        auto startObj = Game::Level.TryGetObject(Parent);
-        auto endObj = Game::Level.TryGetObject(EndObj);
+        auto startObj = Game::GetObject(Parent);
+        auto endObj = Game::GetObject(EndObj);
 
         if (!Parent.IsNull() && !HasFlag(Info.Flags, BeamFlag::RandomObjStart)) {
             if (startObj) {

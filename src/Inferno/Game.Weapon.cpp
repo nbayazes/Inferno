@@ -642,7 +642,7 @@ namespace Inferno::Game {
         return inFov && !Intersect.RayLevel(targetRay, query, hit);
     }
 
-    // Used for omega and homing weapons
+    // Used for omega and homing weapons. Fov is expressed in cos(theta), use ConvertFov() if needed.
     ObjRef GetClosestObjectInFOV(const Object& src, float fov, float maxDist, ObjectMask mask, Faction faction) {
         ObjRef target;
         float bestDotFov = -1;
@@ -671,15 +671,16 @@ namespace Inferno::Game {
     }
 
     void OmegaBehavior(Inferno::Player& player, uint8 gun, WeaponID wid) {
-        constexpr auto FOV = 12.5f * DegToRad;
         constexpr auto MAX_DIST = 60;
         constexpr auto MAX_TARGETS = 3;
         constexpr auto MAX_CHAIN_DIST = 30;
 
-        player.OmegaCharge -= OMEGA_CHARGE_COST;
-        player.OmegaCharge = std::max(0.0f, player.OmegaCharge);
-
         const auto& weapon = Resources::GetWeapon(wid);
+
+        auto& battery = player.Ship.Weapons[(int)PrimaryWeaponIndex::Omega];
+
+        player.OmegaCharge -= battery.EnergyUsage;
+        player.OmegaCharge = std::max(0.0f, player.OmegaCharge);
 
         auto pObj = Game::Level.TryGetObject(player.Reference);
         if (!pObj) return;
@@ -688,9 +689,16 @@ namespace Inferno::Game {
         auto gunSubmodel = GetGunpointSubmodelOffset(playerObj, gun);
         auto objOffset = GetSubmodelOffset(playerObj, gunSubmodel);
         auto start = Vector3::Transform(objOffset, playerObj.GetTransform());
-        auto initialTarget = GetClosestObjectInFOV(playerObj, FOV, MAX_DIST, ObjectMask::Robot | ObjectMask::Mine, Faction::Robot | Faction::Neutral);
+        auto targetMask = ObjectMask::Robot | ObjectMask::Mine;
+        auto targetFactions = Faction::Robot | Faction::Neutral;
+        auto initialTarget = GetClosestObjectInFOV(playerObj, weapon.Extended.HomingFov, MAX_DIST, targetMask, targetFactions);
+        auto spark = EffectLibrary.GetSparks("omega hit");
 
-        auto spark = EffectLibrary.GetSparks("omega_hit");
+        LightEffectInfo light{};
+        light.LightColor = weapon.Extended.LightColor;
+        light.Radius = weapon.Extended.LightRadius;
+        light.FadeTime = weapon.Extended.LightFadeTime;
+        AddLight(light, playerObj.Position, weapon.Lifetime, playerObj.Segment);
 
         if (initialTarget) {
             // found a target! try chaining to others
@@ -702,7 +710,7 @@ namespace Inferno::Game {
                 if (!targets[i]) break;
 
                 if (auto src = Game::Level.TryGetObject(targets[i])) {
-                    auto [id, dist] = Game::FindNearestVisibleObject({ src->Segment, src->Position }, MAX_CHAIN_DIST, ObjectMask::Robot, targets);
+                    auto [id, dist] = Game::FindNearestVisibleObject({ src->Segment, src->Position }, MAX_CHAIN_DIST, targetMask, targets, targetFactions);
                     if (id)
                         targets[i + 1] = id;
                 }
@@ -728,23 +736,26 @@ namespace Inferno::Game {
                         Player.ApplyDamage(damage, true);
                     else if (target->IsRobot())
                         DamageRobot(playerObj, *target, damage, weapon.Extended.StunMult, pObj);
+                    if (target->IsWeapon())
+                        // a bomb or other weapon was shot. cause it to explode by expiring.
+                        target->Lifespan = -1;
                     else
-                        target->ApplyDamage(GetDamage(weapon));
+                        target->ApplyDamage(damage);
                 }
 
                 // Beams between previous and next target
-                if (beam) AttachBeam(*beam, weapon.FireDelay, prevRef, targetRef, objGunpoint);
+                if (beam) AttachBeam(*beam, 0, prevRef, targetRef, objGunpoint);
                 if (beam2) {
-                    AttachBeam(*beam2, weapon.FireDelay, prevRef, targetRef, objGunpoint);
-                    AttachBeam(*beam2, weapon.FireDelay, prevRef, targetRef, objGunpoint);
+                    AttachBeam(*beam2, 0, prevRef, targetRef, objGunpoint);
+                    AttachBeam(*beam2, 0, prevRef, targetRef, objGunpoint);
                 }
 
                 prevRef = targetRef;
                 objGunpoint = -1;
 
                 if (tracer) {
-                    AttachBeam(*tracer, weapon.FireDelay, targetRef);
-                    AttachBeam(*tracer, weapon.FireDelay, targetRef);
+                    AttachBeam(*tracer, 0, targetRef);
+                    AttachBeam(*tracer, 0, targetRef);
                 }
 
                 // Sparks and explosion
@@ -772,7 +783,7 @@ namespace Inferno::Game {
         }
         else {
             // no target: pick a random point within FOV
-            auto offset = RandomPointInCircle(FOV * 0.75f);
+            auto offset = RandomPointInCircle(acos(weapon.Extended.HomingFov) * 0.5f);
             auto dir = playerObj.Rotation.Forward();
             dir += playerObj.Rotation.Right() * offset.x;
             dir += playerObj.Rotation.Up() * offset.y;
@@ -795,6 +806,7 @@ namespace Inferno::Game {
                 dummy.ID = (int)WeaponID::Omega;
                 dummy.Type = ObjectType::Weapon;
                 dummy.Control.Weapon.ParentType = ObjectType::Player; // needed for wall triggers to work correctly
+                dummy.Segment = hit.Tag.Segment;
                 WeaponHitWall(hit, dummy, Game::Level, ObjID::None);
 
                 if (auto wall = Game::Level.TryGetWall(hit.Tag))
@@ -815,11 +827,17 @@ namespace Inferno::Game {
         sound.AttachOffset = gunSubmodel.offset;
         Sound::PlayFrom(sound, playerObj);
 
+        auto renderFlag = RenderFlag::None;
+
+        if (Game::GetState() == GameState::Game && !Settings::Inferno.ShowWeaponFlash)
+            renderFlag = RenderFlag::ThirdPerson; // Hide first-person weapon flash if setting is disabled
+
         ParticleInfo p{};
         p.Clip = weapon.FlashVClip;
         p.Radius = weapon.FlashSize;
         p.FadeTime = 0.175f;
         p.Color = weapon.Extended.FlashColor;
+        p.Flags = renderFlag;
         AttachParticle(p, player.Reference, gunSubmodel);
     }
 
@@ -1071,10 +1089,11 @@ namespace Inferno::Game {
 
     void UpdateWeapon(Object& weapon, float dt) {
         weapon.Control.Weapon.AliveTime += dt;
-        if (weapon.ID == (int)WeaponID::ProxMine)
+        auto& weaponInfo = Resources::GetWeapon(weapon);
+
+        if (weaponInfo.Extended.Behavior == "proxmine")
             ProxMineBehavior(weapon);
 
-        auto& weaponInfo = Resources::GetWeapon(weapon);
         UpdateHomingWeapon(weapon, weaponInfo, dt);
     }
 }

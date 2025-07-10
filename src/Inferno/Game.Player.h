@@ -21,9 +21,9 @@ namespace Inferno {
 
     constexpr float MAX_ENERGY = 200;
     constexpr float MAX_SHIELDS = 200;
-    constexpr float OMEGA_CHARGE_COST = 1.0f / 8; // charge cost to fire one shot of omega
+    //constexpr float OMEGA_CHARGE_COST = 1.0f / 8; // charge cost to fire one shot of omega
     constexpr float OMEGA_RECHARGE_TIME = 3; // time to fully recharge omega (original: 4)
-    constexpr float OMEGA_RECHARGE_ENERGY = 4; // energy to fully recharge omega
+    //constexpr float OMEGA_RECHARGE_ENERGY = 4; // energy to fully recharge omega
     constexpr float OMEGA_RECHARGE_DELAY = 1.0f / 4; // how long before recharging starts
     constexpr auto PLAYER_ENGINE_GLOW = Color(1, 0.7f, 0.4f, 0.03f); // Light attached to the player
     constexpr float PLAYER_ENGINE_GLOW_RADIUS = 35.0f; // Light attached to the player
@@ -271,6 +271,20 @@ namespace Inferno {
 
         void ToggleHeadlight();
 
+        WeaponID GetPrimaryWeaponID(PrimaryWeaponIndex index) const {
+            if (index == PrimaryWeaponIndex::Laser) {
+                if (LaserLevel < 4) return WeaponID{ (int)WeaponID::Laser1 + LaserLevel };
+                if (LaserLevel == 4) return WeaponID::Laser5;
+                if (LaserLevel == 5) return WeaponID::Laser6;
+            }
+
+            return PrimaryToWeaponID[(int)index % 10];
+        }
+
+        static WeaponID GetSecondaryWeaponID(SecondaryWeaponIndex index) {
+            return SecondaryToWeaponID[(int)index % 10];
+        }
+
     private:
         float GetWeaponEnergyCost(float baseCost) const;
         void ReleaseFusionCharge();
@@ -279,18 +293,5 @@ namespace Inferno {
         uint8 GetPrimaryWeaponPriority(PrimaryWeaponIndex primary) const;
         uint8 GetSecondaryWeaponPriority(SecondaryWeaponIndex secondary) const;
 
-        WeaponID GetPrimaryWeaponID(PrimaryWeaponIndex index) const {
-            if (index == PrimaryWeaponIndex::Laser) {
-                if (LaserLevel < 4) return WeaponID{ (int)WeaponID::Laser1 + LaserLevel };
-                if (LaserLevel == 4) return WeaponID::Laser5;
-                if (LaserLevel == 5) return WeaponID::Laser6;
-            }
-
-            return PrimaryToWeaponID[(int)index];
-        }
-
-        static WeaponID GetSecondaryWeaponID(SecondaryWeaponIndex index) {
-            return SecondaryToWeaponID[(int)index];
-        }
     };
 }

@@ -125,6 +125,7 @@ namespace Inferno::Game {
         if (!Seq::inRange(Level.Objects, (int)ref.Id)) return nullptr;
         auto& obj = Level.Objects[(int)ref.Id];
         if (obj.Signature != ref.Signature) return nullptr;
+        if (!obj.IsAlive()) return nullptr;
         return &obj;
     }
 
@@ -318,7 +319,7 @@ namespace Inferno::Game {
         Game::Exposure.Update(dt);
         DecayColor(ScreenFlash, FLASH_DECAY_RATE, dt);
         DecayColor(DamageTint, MAX_DAMAGE_TINT / 1.5f, dt);
-        
+
         Graphics::UpdateTimers();
 
         // Update global dimming (50% max ambient)
@@ -693,13 +694,13 @@ namespace Inferno::Game {
                 Game::MainCamera.SetFov(50);
                 Inferno::UI::Update();
 
-            //Game::MainCamera.Up = Vector3::UnitY;
-            //Game::MainCamera.Position = MenuCameraPosition;
-            //Game::MainCamera.Target = MenuCameraTarget;
-            //Game::MainCamera.UpdatePerspectiveMatrices();
+                //Game::MainCamera.Up = Vector3::UnitY;
+                //Game::MainCamera.Position = MenuCameraPosition;
+                //Game::MainCamera.Target = MenuCameraTarget;
+                //Game::MainCamera.UpdatePerspectiveMatrices();
 
-            //Input::SetMouseMode(Input::MouseMode::Mouselook);
-            //GenericCameraController(MainCamera, 300);
+                //Input::SetMouseMode(Input::MouseMode::Mouselook);
+                //GenericCameraController(MainCamera, 300);
                 break;
 
             case GameState::FailedEscape:
@@ -732,7 +733,7 @@ namespace Inferno::Game {
 
             case GameState::Game:
                 LerpAmount = GameUpdate(dt);
-            //UpdateCommsMessage();
+                //UpdateCommsMessage();
                 SetActiveCamera(Game::MainCamera);
                 Game::MainCamera.SetFov(Settings::Graphics.FieldOfView);
 
@@ -1138,6 +1139,7 @@ namespace Inferno::Game {
         // Reset resources
         ResetCountdown();
         StuckObjects = {};
+        FileSystem::MountLevel(Game::Level, Mission ? Mission->Path : "");
         Sound::WaitInitialized();
         Sound::StopAllSounds();
         Resources::LoadDataTables(Game::Level);

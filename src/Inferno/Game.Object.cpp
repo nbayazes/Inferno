@@ -587,7 +587,7 @@ namespace Inferno {
         return { ref, dist };
     }
 
-    Tuple<ObjRef, float> Game::FindNearestVisibleObject(const NavPoint& point, float maxDist, ObjectMask mask, span<ObjRef> objFilter) {
+    Tuple<ObjRef, float> Game::FindNearestVisibleObject(const NavPoint& point, float maxDist, ObjectMask mask, span<ObjRef> objFilter, Faction faction) {
         ObjRef id;
         float bestDist = FLT_MAX;
 
@@ -595,6 +595,7 @@ namespace Inferno {
             for (auto& objid : seg.Objects) {
                 auto obj = Game::Level.TryGetObject(objid);
                 if (!obj->PassesMask(mask) || !obj->IsAlive() || obj->IsCloaked()) continue;
+                if (faction != Faction::None && !obj->IsInFaction(faction)) continue;
                 ObjRef ref = { objid, obj->Signature };
                 if (Seq::contains(objFilter, ref)) continue;
                 auto dir = obj->Position - point.Position;

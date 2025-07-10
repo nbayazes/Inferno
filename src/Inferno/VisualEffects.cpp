@@ -41,7 +41,7 @@ namespace Inferno {
         AddBeamInstance(beam);
     }
 
-    void AddBeam(const BeamInfo& info,ObjRef start, const Vector3& end, int startGun) {
+    void AddBeam(const BeamInfo& info, ObjRef start, const Vector3& end, int startGun) {
         if (auto obj = Game::GetObject(start)) {
             BeamInstance beam;
             beam.Info = info;
@@ -78,7 +78,11 @@ namespace Inferno {
 
             beam.Segment = obj->Segment;
             beam.EndObj = end;
-            if (duration > 0) beam.Duration = duration;
+
+            if (auto endObj = Game::GetObject(end))
+                beam.End = endObj->Position;
+
+            beam.Duration = duration > 0 ? duration : info.Duration;
             AddBeamInstance(beam);
         }
     }
@@ -316,7 +320,7 @@ namespace Inferno {
     }
 
     void StopEffect(EffectID& id) {
-        if (id == EffectID::None) 
+        if (id == EffectID::None)
             return;
 
         if (auto effect = GetEffect(id)) {

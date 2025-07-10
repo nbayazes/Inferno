@@ -423,7 +423,6 @@ namespace Inferno {
 
     // Creates an explosion that can cause damage or knockback
     void CreateExplosion(Level& level, const Object* source, const GameExplosion& explosion) {
-        ASSERT(explosion.Room != RoomID::None);
         ASSERT(explosion.Segment != SegID::None);
 
         if (explosion.Damage == 0 && explosion.Force == 0)
