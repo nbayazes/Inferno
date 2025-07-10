@@ -15,6 +15,7 @@
 #include "SoundSystem.h"
 #include "MaterialInfo.h"
 #include "Mods.h"
+#include "VisualEffects.h"
 
 namespace Inferno {
     LoadFlag GetLevelLoadFlag(const Level& level) {
@@ -846,15 +847,27 @@ namespace Inferno::Resources {
     }
 
     bool LoadGameTables(const Level& level, FullGameData& dest) {
+        EffectLibrary = {}; // Reset effect library
+
+        // Reset data so removing a property from the game table clears properly
+        if (level.IsDescent1()) {
+            GameData.Weapons = Descent1.Weapons;
+            GameData.Robots = Descent1.Robots;
+        }
+        else {
+            GameData.Weapons = Descent2.Weapons;
+            GameData.Robots = Descent2.Robots;
+        }
+
         if (auto text = ReadTextFile(GAME_TABLE_FILE, LoadFlag::Filesystem | LoadFlag::Descent1)) {
             SPDLOG_INFO("Loading D1 game table");
-            LoadGameTable(*text, dest);
+            LoadGameTable(*text, dest, EffectLibrary);
         }
 
         if (level.IsDescent2()) {
             if (auto text = ReadTextFile(GAME_TABLE_FILE, LoadFlag::Filesystem | LoadFlag::Descent2)) {
                 SPDLOG_INFO("Loading D2 game table");
-                LoadGameTable(*text, dest);
+                LoadGameTable(*text, dest, EffectLibrary);
             }
         }
 
@@ -871,7 +884,7 @@ namespace Inferno::Resources {
 
                 SPDLOG_INFO("Merging game data from {}", tableFilePath.string());
                 auto text = File::ReadAllText(tableFilePath);
-                LoadGameTable(text, dest);
+                LoadGameTable(text, dest, EffectLibrary);
             }
             else if (filesystem::exists(zipPath)) {
                 if (auto zip = File::OpenZip(zipPath)) {
@@ -880,7 +893,7 @@ namespace Inferno::Resources {
 
                     if (auto bytes = zip->TryReadEntry(GAME_TABLE_FILE)) {
                         SPDLOG_INFO("Merging game data from {}", zipPath.string());
-                        LoadGameTable(BytesToString(*bytes), dest);
+                        LoadGameTable(BytesToString(*bytes), dest, EffectLibrary);
                     }
                 }
             }
@@ -889,7 +902,7 @@ namespace Inferno::Resources {
         // Only load a single light table for the mission, regardless of how many are present
         if (auto text = ReadTextFile(GAME_TABLE_FILE, /*LoadFlag::Filesystem |*/ LoadFlag::Mission)) {
             SPDLOG_INFO("Merging game data from mission");
-            LoadGameTable(*text, dest);
+            LoadGameTable(*text, dest, EffectLibrary);
         }
 
         return false;
@@ -1359,7 +1372,6 @@ namespace Inferno::Resources {
 
     void LoadDataTables(const Level& level) {
         Lights = LoadLightTables(level);
-
         LoadGameTables(level, GameData);
         LoadMaterialTables(level);
         MergeMaterials(level);
@@ -1485,9 +1497,6 @@ namespace Inferno::Resources {
                         CustomTextures.LoadPog(GameData.pig.Entries, pogData, GameData.palette);
                     }
                 }
-
-                // Merge resources
-                FileSystem::MountLevel(level, missionPath);
             }
             else if (level.IsDescent1()) {
                 SPDLOG_INFO("Loading Descent 1 level: '{}'\r\n Version: {} Segments: {} Vertices: {}",
@@ -1514,12 +1523,12 @@ namespace Inferno::Resources {
                     GameData = FullGameData(Descent1);
                     LoadDtx(level, GameData.palette, GameData.pig);
                 }
-
-                FileSystem::MountLevel(level, missionPath);
             }
             else {
                 throw Exception("Unsupported level version");
             }
+
+            FileSystem::MountLevel(level, missionPath);
 
             // Read replacement models
             //for (auto& model : Current.Models) {

@@ -104,7 +104,7 @@ namespace Inferno {
     struct WeaponExtended {
         WeaponID ID; // Associate with this existing weapon ID in the HAM
         string Name; // Name in fullscreen HUD
-        string ShortName; // Name in cockpit window
+        string HudName; // Name in cockpit window
         string Behavior; // Function to call when firing this weapon. Fusion, Omega, Spreadfire, Helix, Mass Driver (zoom)
         string Decal = "scorchA"; // Texture to apply to walls when hit
         float DecalRadius = 1; // Radius of decals. 0 uses a ratio of impact size.

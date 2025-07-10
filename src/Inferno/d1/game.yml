@@ -1,6 +1,7 @@
 Weapons:
   - id: 0
-    Name: laser 1
+    Name: laser level 1
+    HudName: "laser\nlvl: 1"
     Mass: 0.15
     FireDelay: 0.25
     Size: 0.6
@@ -32,7 +33,8 @@ Weapons:
   #  FlashColor: 1, 0.25, 0.25, 20
 
   - id: 1
-    Name: laser 2
+    Name: laser level 2
+    HudName: "laser\nlvl: 2"
     Mass: 0.05
     FireDelay: 0.25
     Glow: 1, 0.0, 0.333, 20
@@ -49,7 +51,8 @@ Weapons:
     EnergyUsage: 0.25
 
   - id: 2
-    Name: laser 3
+    Name: laser level 3
+    HudName: "laser\nlvl: 3"
     Mass: 0.05
     FireDelay: 0.25
     Glow: .125, .125, 1, 30
@@ -66,7 +69,8 @@ Weapons:
     EnergyUsage: 0.25
 
   - id: 3
-    Name: laser 4
+    Name: laser level 4
+    HudName: "laser\nlvl: 4"
     Mass: 0.05
     FireDelay: 0.25
     Glow: 0, 1, 0, 14
@@ -222,6 +226,7 @@ Weapons:
     
   - id: 12 
     Name: spreadfire
+    HudName: spread
     # Behavior: shotgun
     # FireCount: 5
     Behavior: spreadfire
@@ -315,6 +320,7 @@ Weapons:
 
   - id: 8
     Name: concussion missile
+    HudName: "concsn\nmissile"
     StunMult: 2 # It's called a concussion missile, it should stun things
     Speed: 120 # Original speed of 90 feels weak. Mercuries are 400. Lasers are 120
     Decal: scorchC
@@ -340,10 +346,11 @@ Weapons:
     # Damage: [ 10, 15, 20, 30, 50 ] # D1 values
     Size: 1 # was 1.5
     SplashRadius: 35 # Was 40
-    SoundRadius: 350 # Large radius so player hears them coming
+    SoundRadius: 600 # Large radius so player hears them coming
 
   - id: 15
     Name: homing missile
+    HudName: "homing\nmissile"
     Decal: scorchC
     StunMult: 1.5
     DecalRadius: 4
@@ -379,11 +386,12 @@ Weapons:
     Damage: [ 10, 15, 20, 25, 30 ] # Changed to D2 values
     # Damage: [ 15, 15, 20, 30, 49 ] # D1 values
     SplashRadius: 30 # Was 40
-    SoundRadius: 350 # Large radius so player hears them coming
+    SoundRadius: 600 # Large radius so player hears them coming
 
   - id: 16
-    Name: proximity mine
-    behavior: proxmine
+    Name: proximity bomb
+    HudName: "proximity\nbomb"
+    Behavior: proxmine
     InheritParentVelocity: 1
     PointCollideWalls: 0
     FlashColor: 0, 0, 0
@@ -401,6 +409,7 @@ Weapons:
 
   - id: 17
     Name: smart missile
+    HudName: "smart\nmissile"
     ExplosionColor: .1, 1, .1, 2.5
     FlashColor: 1, 0.25, 0.0, 2
     ModelName: smartmissile.OOF
@@ -483,6 +492,7 @@ Weapons:
 
   - id: 18
     Name: mega missile
+    HudName: "mega\nmissile"
     Decal: scorchC
     DecalRadius: 8
     Mass: 2
@@ -546,6 +556,8 @@ Weapons:
     Name: robot green laser
     Mass: 0.05
     Size: 0.5
+    Speed: 200
+    FlashSound: 12
     # FlashSound: 16
     ExplosionSound: LazorHitshrt
     ExplosionTexture: GreenLaserHit
@@ -555,6 +567,8 @@ Weapons:
     Glow: 0, 1, 0, 14
     LightColor: 0.075, 0.6, 0.075
     FlashColor: 1, 1, .125, .5
+    Tracer: green tracer
+    Model: -1
 
   - id: 26
     Name: robot plasma
@@ -581,99 +595,6 @@ Weapons:
     LightColor: 0.4, .0, 1, 1
     FlashColor: 0.4, .0, 1, 2
 
-  - id: 32
-    Name: gauss
-    Decal: BulletHole02
-    DecalRadius: 1.25
-    ExplosionTexture: vaussimpact
-    ExplosionSize: 2.4
-    ExplosionTime: 0.6
-    Damage: 25 # Original value of 25 is 167 DPS with no direct damage, 30 is 200 DPS
-    DirectDamage: 0 # Only deal splash damage for balance reasons
-    SplashRadius: 20 # Increased from 10 to make more distinct from vulcan, similar to a flak cannon. Missiles are 30
-    AmmoUsage: 40
-    LightRadius: 6
-    ExplosionSound: # ExpHardBullet
-    Model: -1
-    FlashColor: 1, 1, 1, 2
-    StunMult: 0.5 
-    Tracer: gauss tracer
-
-  - id: 33
-    Name: helix
-    Behavior: helix
-    Glow: .933, 1, .933, 1.5
-    ExplosionTexture: Bright Blue Energy1
-    ExplosionSize: 1.4
-    ExplosionTime: 0.4
-    ExplosionSound: ExpEMDHitB
-    LightRadius: 14
-    LightColor: 0.2, 0.5, 0.5
-    FlashColor: 1, 1, 1, 2
-
-  - id: 34
-    Name: phoenix
-    Bounces: 2
-    Glow: 1, .2, 1, 5
-    ExplosionSound: emdBounce
-    ExplosionTexture: EMDOrangeHit
-    ExplosionSize: 2.1
-    ExplosionTime: 0.4
-    LightRadius: 16
-    LightColor: 0.6, 0.2, 0
-    FlashColor: 1, 1, 1, 2
-    PlayerDamageScale: 0.5 # Halve self damage
-
-  - id: 35
-    Name: omega cannon
-    Behavior: omega
-    FireDelay: 0.125
-    Damage: 32
-    WallHitSound: -1
-    WallHitVClip: -1
-    RobotHitVClip: -1
-    ExplosionTexture: EmdConcept1
-    ExplosionSize: 1.2
-    ExplosionTime: 0.4
-    FlashColor: .4, .4, 1, 2
-
-  - id: 36
-    Name: flash missile
-    Decal: scorchC
-    DecalRadius: 3
-    StunMult: 6 # Base damage of 9
-
-  - id: 37
-    Name: guided missile
-    Decal: scorchC
-    DecalRadius: 4
-    StunMult: 1.5
-
-  - id: 38
-    Name: smart mine
-    InheritParentVelocity: 1
-    Decal: scorchC
-    DecalRadius: 3
-
-  - id: 39
-    Name: mercury
-    Decal: scorchC
-    DecalRadius: 5            
-    StunMult: 1.5
-
-  - id: 40
-    Name: earthshaker
-    Decal: scorchC
-    DecalRadius: 8
-    ExplosionColor: .05, .05, 1, 100
-    LightRadius: 120
-    StunMult: 2
-
-  - id: 51
-    Name: level mine
-    LightRadius: 14
-    LightColor: 1, 0, 0
-    
 Robots:
   - id: 0
     Name: Medium Hulk
@@ -793,16 +714,17 @@ Robots:
   - id: 9
     Name: Heavy Driller # Aggressive, close range fighter that actively chases the player
     DevName: Plasma Mech
-    CircleDistance: 20 # Heavy drillers are most dangerous when very close
+    CircleDistance: 50 # Heavy drillers are most dangerous when very close, but not too close otherwise it's unfair.
     Speed: [ 30, 30, 35, 40, 50 ] # Increased from 25, 25, 30, 35, 50. Allow them to close distance quicker (except on insane)
     Multishot: 2
-    BurstDelay: 0.16 # Increase from 1/8 due to multishot
+    BurstDelay: 0.2 # Increase from 1/8 due to multishot
+    # BurstDelay: 0.125 
     Mass: 5
     Drag: 0.03
     ChaseChance: .8
     ChaseDistance: 300
     SuppressChance: .2
-    FireDelay: [ 1, .75, .75, .75, .75 ] # Was 1, .75, .75, .75, .75
+    FireDelay: [ 1.25, 1, 1, 1, 1 ] # Was 1, .75, .75, .75, .75
     Shots: [ 2, 2, 4, 4, 6 ] # Was 2, 2, 3, 4, 5
     Curiosity: 0.25
     AmbushDistance: 100
@@ -820,10 +742,10 @@ Robots:
     Mass: 2.5
     Multishot: 2 # shotgun
     # FireDelay: [ 1.5, 1.25, 0.8, 0.6, 0.4 ]
-    FireDelay: [ 1.3, 1.15, 0.9, 0.85, 0.85 ] # originaly 1.5, 1.25, 1, 1, 1
-    Shots: [ 2, 4, 6, 6, 8 ] # originally 3, 4, 4, 5, 7
+    FireDelay: [ 1.5, 1.4, 1.25, 1.25, 1.25 ] # originaly 1.5, 1.25, 1, 1, 1
+    Shots: [ 2, 4, 4, 6, 8 ] # originally 3, 4, 4, 5, 7
     Speed: [ 20, 30, 40, 45, 50 ] # was 20, 20, 20, 30, 40. too slow for a bird
-    Aim: 60
+    Aim: 65
     Drag: 0.03
     SuppressChance: 0.9
     Score: 400 # Was 300, these are now more dangerous
@@ -1017,21 +939,6 @@ Robots:
     AimAngle: 25 # Looks odd if boss leads very much
     HitPoints: 6250 # Increased due to teleport changes and missile damage being higher against robots
     # HitPoints: 5000, 7500 (retail 1.4, retail 1.0)
-#  - id: 24 # BEPR
-#  - id: 25 # Smelter
-#Ice Spider
-#Bulk Destroyer
-#TRN Racer
-#Fox Attack Bot
-#Sidearm
-#Red Fatty Boss
-#Boss 1 Clone
-#Guide Bot
-#Defense Robot
-#Evil Twin
-#ITSC
-#  - id: 37 # IT droid
-#    Mass: 2
 
 Powerups:
   - id: 0
@@ -1123,66 +1030,6 @@ Powerups:
     LightRadius: 18
     LightMode: 4 # Pulse
 
-  - id: 28
-    Name: Gauss Cannon
-
-  - id: 29
-    Name: Helix Cannon
-
-  - id: 30
-    Name: Phoenix Cannon
-
-  - id: 31
-    Name: Omega Cannon
-
-  - id: 32
-    Name: Super Laser
-
-  - id: 33
-    Name: Full Map
-
-  - id: 34
-    Name: Shield Converter
-
-  - id: 35
-    Name: Ammo Rack
-
-  - id: 36
-    Name: Afterburner
-
-  - id: 37
-    Name: Headlight
-
-  - id: 38
-    Name: Flash Missile
-
-  - id: 39
-    Name: Flash Missile Pack
-
-  - id: 40
-    Name: Guided Missile
-
-  - id: 41
-    Name: Guided Missile Pack
-  
-  - id: 42
-    Name: Smart Mines
-  
-  - id: 43
-    Name: Mercury Missile
-  
-  - id: 44
-    Name: Mercury Missile Pack
-  
-  - id: 45
-    Name: Earth Shaker Missile
-  
-  - id: 46
-    Name: Blue Flag
-  
-  - id: 47
-    Name: Red Flag
-  
 EffectClips:
   # Add destroyed clips to countdown monitors
   - id: 42
@@ -1359,52 +1206,7 @@ Effects:
       RandomObjStart: 1
       # Radius: [ 5, 8 ] Radius is set in code as a ratio of the object size
 
-    - Name: omega beam # used when omega hits a target
-      Width: [ 1.25, 1.5 ]
-      Color: .666, .277, 1, 90
-      Color2: 60, 25, 90 # todo: random colors?
-      Texture: Lightning4
-      Frequency: 0.0333 # 1/30
-      Amplitude: 1
-
-    - Name: omega beam2 # accent beams when hitting a target
-      Width: 0.5
-      Color: .666, .25, 1, 45
-      Texture: Lightning4
-      Frequency: 0.0333
-      Amplitude: 0.55
-
-    - Name: omega tracer # random arcs used after omega hits a target
-      Radius: 15
-      Width: 0.5
-      Color:  .666, .277, 1, 90
-      Texture: Lightning4
-      Frequency: 0.0333
-      Amplitude: 1
-      FadeEnd: 1
-      RandomEnd: 1
-
-    - Name: omega miss # used when omega hits no targets
-      Width: 1.0
-      Color:  .666, .277, 1, 90
-      Texture: Lightning4
-      Frequency: 0.0166
-      Amplitude: 0.7
-      FadeEnd: 1
-      Duration: 0.125
-
   Sparks:
-    - Name: omega_hit
-      Duration: [ 0.25, 0.35 ]
-      Restitution: 0.6
-      Velocity: [ 60, 120 ]
-      Count: [ 13, 20 ]
-      Color: 1, 1, 1, 3
-      Texture: tracer # Bright Blue Energy1
-      Width: 0.15
-      FadeTime: 0.25
-      Drag: 0.1
-
     - Name: weapon_hit_obj
       Color: 1, 1, 0.9
       Count: [ 8, 12 ]
@@ -1727,12 +1529,12 @@ Effects:
       Color: 1, 0.5, .2, 100
       FadeSpeed: 0.2
 
-    - Name: gauss tracer
-      Length: 25
-      Width: 0.9
+    - Name: green tracer
+      Length: 15
+      Width: 0.4
       Texture: tracer
       BlobTexture: Tracerblob
-      Color: 1, .4, .4, 2
+      Color: 0, 1, 0.05, 10
       FadeSpeed: 0.2
 
 Ships:
@@ -1799,6 +1601,7 @@ Ships:
           - Delay: 1
             Gunpoints: [ 0, 1 ]
       - Weapon: SuperLaser
+        EnergyUsage: 0.25
         QuadGunpoints: [ 0, 1, 2, 3 ]
         Firing:
           - Delay: 0.25
@@ -1810,16 +1613,24 @@ Ships:
           - Delay: 0.15
             Gunpoints: 6 # center gunpoint
       - Weapon: Helix
+        EnergyUsage: 0.75
         Firing:
           - Delay: 0.15
             Gunpoints: 6 # center gunpoint
       - Weapon: Phoenix
+        EnergyUsage: 0.5 # Halve cost
         Firing:
           - Delay: 0.12
             Gunpoints: [0, 1] 
       - Weapon: Omega
+        Ammo: 4 # Charge capacity
+        #AmmoType: 9
+        #AmmoUsage: 10
+        EnergyUsage: 0.05 # Charge capacity per shot
         Firing:
-          - Gunpoints: 1 # Left side only
+          # - Gunpoints: 1 # Left side only
+          - Gunpoints: [2,3] # Left side only
+            Delay: 0.0625
       - Weapon: Concussion
         Ammo: 20
         RackAmmo: 32

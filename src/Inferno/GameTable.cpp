@@ -17,8 +17,10 @@ namespace Inferno {
         string s = ss.str();
     }
 
+    // Reads an array or single value into a fixed length array.
+    // If a single value is provided it is assigned to all elements of dest.
     template <class T>
-    bool ReadArray(ryml::NodeRef node, span<T> values) {
+    bool ReadArray(ryml::NodeRef node, std::span<T> values) {
         if (!node.readable()) return false;
 
         if (node.has_children()) {
@@ -37,6 +39,7 @@ namespace Inferno {
             for (auto& v : values)
                 v = value;
         }
+
         return true;
     }
 
@@ -94,7 +97,7 @@ namespace Inferno {
         Yaml::ReadValue(node["Name"], name);
 
         // Use an existing weapon slot, otherwise append a new one to end
-        auto& weapon = [&] () -> Weapon& {
+        auto& weapon = [&]() -> Weapon& {
             if (Seq::inRange(ham.Weapons, id)) return ham.Weapons[id];
 
             if (!name.empty()) {
@@ -124,6 +127,7 @@ namespace Inferno {
         READ_PROP(PlayerDamageScale);
         READ_PROP(Bounce);
         READ_PROP(BlobSize);
+        READ_PROP(IsHoming);
         Yaml::ReadValue(node["BlobBitmap"], (int&)weapon.BlobBitmap);
 
         READ_PROP(ImpactSize);
@@ -146,6 +150,7 @@ namespace Inferno {
 #define READ_PROP_EXT(name) Yaml::ReadValue(node[#name], weapon.Extended.##name)
         READ_PROP_EXT(FlashColor);
         READ_PROP_EXT(Name);
+        READ_PROP_EXT(HudName);
         READ_PROP_EXT(Behavior);
         READ_PROP_EXT(Glow);
         READ_PROP_EXT(ModelName);
@@ -539,7 +544,7 @@ namespace Inferno {
 #undef READ_PROP
     }
 
-    void LoadGameTable(const string& yaml, FullGameData& gameData) {
+    void LoadGameTable(const string& yaml, FullGameData& gameData, class EffectLibrary& effectLibrary) {
         try {
             ryml::Tree doc = ryml::parse_in_arena(ryml::to_csubstr(yaml));
             ryml::NodeRef root = doc.rootref();
@@ -548,8 +553,6 @@ namespace Inferno {
                 SPDLOG_WARN("Game table is empty");
                 return;
             }
-
-            EffectLibrary = {}; // Reset effect library
 
             if (auto weapons = root["Weapons"]; !weapons.is_seed()) {
                 for (const auto& weapon : weapons.children()) {
@@ -598,55 +601,55 @@ namespace Inferno {
                 }
             }
 
-            auto effects = root["Effects"];
-
-            if (auto beams = effects["Beams"]; !beams.is_seed()) {
-                for (const auto& beam : beams.children()) {
-                    try {
-                        ReadBeamInfo(beam, EffectLibrary.Beams);
+            if (auto effects = root["Effects"]; !effects.is_seed()) {
+                if (auto beams = effects["Beams"]; !beams.is_seed()) {
+                    for (const auto& beam : beams.children()) {
+                        try {
+                            ReadBeamInfo(beam, effectLibrary.Beams);
+                        }
+                        catch (const std::exception& e) {
+                            SPDLOG_WARN("Error reading beam info", e.what());
+                        }
                     }
-                    catch (const std::exception& e) {
-                        SPDLOG_WARN("Error reading beam info", e.what());
-                    }
+                    SPDLOG_INFO("Loaded {} beams", effectLibrary.Beams.size());
                 }
-                SPDLOG_INFO("Loaded {} beams", EffectLibrary.Beams.size());
-            }
 
 
-            if (auto sparks = effects["Sparks"]; !sparks.is_seed()) {
-                for (const auto& beam : sparks.children()) {
-                    try {
-                        ReadSparkInfo(beam, EffectLibrary.Sparks);
+                if (auto sparks = effects["Sparks"]; !sparks.is_seed()) {
+                    for (const auto& beam : sparks.children()) {
+                        try {
+                            ReadSparkInfo(beam, effectLibrary.Sparks);
+                        }
+                        catch (const std::exception& e) {
+                            SPDLOG_WARN("Error reading spark info", e.what());
+                        }
                     }
-                    catch (const std::exception& e) {
-                        SPDLOG_WARN("Error reading spark info", e.what());
-                    }
+                    SPDLOG_INFO("Loaded {} sparks", effectLibrary.Sparks.size());
                 }
-                SPDLOG_INFO("Loaded {} sparks", EffectLibrary.Sparks.size());
-            }
 
-            if (auto explosions = effects["Explosions"]; !explosions.is_seed()) {
-                for (const auto& beam : explosions.children()) {
-                    try {
-                        ReadExplosions(beam, EffectLibrary.Explosions);
+                if (auto explosions = effects["Explosions"]; !explosions.is_seed()) {
+                    for (const auto& beam : explosions.children()) {
+                        try {
+                            ReadExplosions(beam, effectLibrary.Explosions);
+                        }
+                        catch (const std::exception& e) {
+                            SPDLOG_WARN("Error reading explosion info", e.what());
+                        }
                     }
-                    catch (const std::exception& e) {
-                        SPDLOG_WARN("Error reading explosion info", e.what());
-                    }
+                    SPDLOG_INFO("Loaded {} explosions", effectLibrary.Explosions.size());
                 }
-                SPDLOG_INFO("Loaded {} explosions", EffectLibrary.Explosions.size());
-            }
 
-            if (auto tracers = effects["Tracers"]; !tracers.is_seed()) {
-                for (const auto& beam : tracers.children()) {
-                    try {
-                        ReadTracers(beam, EffectLibrary.Tracers);
+                if (auto tracers = effects["Tracers"]; !tracers.is_seed()) {
+                    for (const auto& beam : tracers.children()) {
+                        try {
+                            ReadTracers(beam, effectLibrary.Tracers);
+                        }
+                        catch (const std::exception& e) {
+                            SPDLOG_WARN("Error reading tracer info", e.what());
+                        }
                     }
-                    catch (const std::exception& e) {
-                        SPDLOG_WARN("Error reading tracer info", e.what());
-                    }
+                    SPDLOG_INFO("Loaded {} tracers", effectLibrary.Tracers.size());
                 }
-                SPDLOG_INFO("Loaded {} tracers", EffectLibrary.Tracers.size());
             }
 
 

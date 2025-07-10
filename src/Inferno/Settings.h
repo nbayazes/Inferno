@@ -67,7 +67,7 @@ namespace Inferno {
 
     constexpr int PALETTE_SIZE = 36;
 
-    Array<Color, PALETTE_SIZE> GetDefaultPalette();
+    constexpr Array<Color, PALETTE_SIZE> GetDefaultPalette();
 
     struct EditorSettings {
         bool ShowLevelTitle = true;

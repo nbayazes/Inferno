@@ -373,22 +373,18 @@ namespace Inferno {
         info.HorizontalAlign = AlignH::CenterRight; // Justify the left edge of the text to the center
         info.VerticalAlign = AlignV::CenterTop;
         info.Scanline = TEXT_SCANLINE;
-        auto weaponName = Resources::GetPrimaryNameShort(Game::Level.IsDescent1(), weaponIndex);
-        string label = string(weaponName), ammo;
+
+        auto& weaponInfo = Resources::GetWeapon(player.GetPrimaryWeaponID(weaponIndex));
+        string name = weaponInfo.Extended.HudName.empty() ? weaponInfo.Extended.Name : weaponInfo.Extended.HudName;
+        string label, ammo;
         auto& weapon = player.Ship.Weapons[(int)weaponIndex];
 
-        switch (weaponIndex) {
-            case PrimaryWeaponIndex::Laser: {
-                if (player.HasPowerup(PowerupFlag::QuadFire))
-                    label = fmt::format("laser\nlvl: {}\nquad", state.LaserLevel + 1);
-                else
-                    label = fmt::format("laser\nlvl: {}", state.LaserLevel + 1);
-                break;
-            }
-            case PrimaryWeaponIndex::SuperLaser:
-                label = "napalm";
-                break;
+        if (player.HasPowerup(PowerupFlag::QuadFire) && weapon.QuadGunpoints.any())
+            label = "quad\n" + name;
+        else
+            label = name;
 
+        switch (weaponIndex) {
             case PrimaryWeaponIndex::Vulcan:
             case PrimaryWeaponIndex::Gauss:
                 if (Seq::inRange(player.PrimaryAmmo, weapon.AmmoType))
@@ -396,7 +392,8 @@ namespace Inferno {
                 break;
 
             case PrimaryWeaponIndex::Omega:
-                ammo = fmt::format("{:.0f}%", player.OmegaCharge * 100);
+                
+                ammo = fmt::format("{:.0f}%", player.OmegaCharge / weapon.Ammo * 100);
                 break;
         }
 
@@ -415,12 +412,12 @@ namespace Inferno {
             DrawMonitorText(ammo, info, 0.6f * state.Opacity);
         }
 
-        // todo: omega charge
-
         {
             float resScale = Game::Level.IsDescent1() ? 2.0f : 1.0f; // todo: check resource path instead?
             WeaponID wid =
-                weaponIndex == PrimaryWeaponIndex::Laser && state.LaserLevel >= 4 ? WeaponID::Laser5 : PrimaryToWeaponID[(int)weaponIndex];
+                weaponIndex == PrimaryWeaponIndex::Laser && state.LaserLevel >= 4
+                ? WeaponID::Laser5
+                : PrimaryToWeaponID[(int)weaponIndex];
 
             auto texId = GetWeaponTexID(Resources::GetWeapon(wid));
 
@@ -443,7 +440,12 @@ namespace Inferno {
         info.HorizontalAlign = AlignH::CenterRight; // Justify the left edge of the text to the center
         info.VerticalAlign = AlignV::CenterTop;
         info.Scanline = TEXT_SCANLINE;
-        DrawMonitorText(Resources::GetSecondaryNameShort(Game::Level.IsDescent1(), (SecondaryWeaponIndex)state.WeaponIndex), info, 0.6f * state.Opacity);
+
+        auto weaponIndex = (SecondaryWeaponIndex)state.WeaponIndex;
+        auto& weaponInfo = Resources::GetWeapon(SecondaryToWeaponID[(int)weaponIndex % 10]);
+        string name = weaponInfo.Extended.HudName.empty() ? weaponInfo.Extended.Name : weaponInfo.Extended.HudName;
+
+        DrawMonitorText(name, info, 0.6f * state.Opacity);
 
         // Ammo counter
         info.Color = RED_TEXT;

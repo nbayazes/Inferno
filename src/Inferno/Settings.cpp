@@ -148,7 +148,7 @@ namespace Inferno {
         }
     }
 
-    Array<Color, PALETTE_SIZE> GetDefaultPalette() {
+    constexpr Array<Color, PALETTE_SIZE> GetDefaultPalette() {
         Array<Color, PALETTE_SIZE> palette{};
         int i = 0;
 

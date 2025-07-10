@@ -152,8 +152,10 @@ namespace Inferno {
             }
         }
 
+        auto& weaponInfo = Resources::GetWeapon(GetPrimaryWeaponID((PrimaryWeaponIndex)weapon));
+
         if (!HasWeapon((PrimaryWeaponIndex)weapon)) {
-            auto msg = fmt::format("you don't have the {}!", Resources::GetPrimaryName(index));
+            auto msg = fmt::format("you don't have the {}!", weaponInfo.Extended.Name);
             PrintHudMessage(msg);
             Sound::Play2D({ SoundID::SelectFail });
             return;
@@ -170,7 +172,7 @@ namespace Inferno {
         PrimaryDelay = RearmTime;
         Primary = (PrimaryWeaponIndex)weapon;
         PrimaryWasSuper[weapon % SUPER_WEAPON] = weapon >= SUPER_WEAPON;
-        PrintHudMessage(fmt::format("{} selected!", Resources::GetPrimaryName(Primary)));
+        PrintHudMessage(fmt::format("{} selected!", weaponInfo.Extended.Name));
     }
 
     void Player::SelectSecondary(SecondaryWeaponIndex index) {
@@ -198,8 +200,10 @@ namespace Inferno {
             }
         }
 
+        auto& weaponInfo = Resources::GetWeapon(GetSecondaryWeaponID((SecondaryWeaponIndex)weapon));
+
         if (!CanFireSecondary((SecondaryWeaponIndex)weapon)) {
-            auto msg = fmt::format("you have no {}s!", Resources::GetSecondaryName(Game::Level.IsDescent1(), index));
+            auto msg = fmt::format("you have no {}s!", weaponInfo.Extended.Name);
             PrintHudMessage(msg);
             Sound::Play2D({ SoundID::SelectFail });
             return;
@@ -214,7 +218,7 @@ namespace Inferno {
         SecondaryDelay = RearmTime;
         Secondary = (SecondaryWeaponIndex)weapon;
         SecondaryWasSuper[weapon % SUPER_WEAPON] = weapon >= SUPER_WEAPON;
-        PrintHudMessage(fmt::format("{} selected!", Resources::GetSecondaryName(Game::Level.IsDescent1(), Secondary)));
+        PrintHudMessage(fmt::format("{} selected!", weaponInfo.Extended.Name));
     }
 
 
@@ -1625,22 +1629,21 @@ namespace Inferno {
 
     bool Player::PickUpPrimary(PrimaryWeaponIndex index) {
         uint16 flag = 1 << (uint16)index;
-        auto name = Resources::GetPrimaryName(index);
+        auto& weaponInfo = Resources::GetWeapon(GetPrimaryWeaponID(index));
 
         if (index != PrimaryWeaponIndex::Laser && PrimaryWeapons & flag) {
-            PrintHudMessage(fmt::format("you already have the {}", name));
+            PrintHudMessage(fmt::format("you already have the {}", weaponInfo.Extended.Name));
             return false;
         }
 
         if (index != PrimaryWeaponIndex::Laser)
-            PrintHudMessage(fmt::format("{}!", name));
+            PrintHudMessage(fmt::format("{}!", weaponInfo.Extended.Name));
 
         GiveWeapon(index);
         AddScreenFlash(FLASH_PRIMARY);
 
         // Select the weapon we just picked up if it has a higher priority
         PrimaryPickupAutoselect(index);
-
         return true;
     }
 
@@ -1651,7 +1654,8 @@ namespace Inferno {
 
         auto& ammo = SecondaryAmmo[(int)index];
         auto startAmmo = ammo;
-        auto name = Resources::GetSecondaryName(Game::Level.IsDescent1(), index);
+        auto& weaponInfo = Resources::GetWeapon(GetSecondaryWeaponID(index));
+        auto& name = weaponInfo.Extended.Name;
 
         if (ammo >= max) {
             auto msg = fmt::format("{} {} {}s!", Resources::GetString(GameString::AlreadyHave), ammo, name);
