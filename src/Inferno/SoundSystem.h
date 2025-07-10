@@ -59,6 +59,7 @@ namespace Inferno::Sound {
     void StopAllSounds();
 
     void UnloadD1Sounds();
+    void UnloadNamedSounds();
 
     enum class Reverb {
         Off = 0,

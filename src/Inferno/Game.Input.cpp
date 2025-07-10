@@ -65,19 +65,19 @@ namespace Inferno {
             Settings::Editor.HideUI = !Settings::Editor.HideUI;
 
         if (Input::OnKeyPressed(Keys::F5)) {
+            Sound::UnloadNamedSounds(); // Force a reload of sounds
             Resources::LoadDataTables(Game::Level);
             Graphics::ReloadResources();
-            //Editor::Events::LevelChanged();
             Editor::Events::MaterialsChanged();
         }
 
         if (Input::OnKeyPressed(Keys::F6))
             Graphics::ReloadTextures();
 
-        if (Input::OnKeyPressed(Keys::F7)) {
-            Settings::Graphics.HighRes = !Settings::Graphics.HighRes;
-            Graphics::ReloadTextures();
-        }
+        //if (Input::OnKeyPressed(Keys::F7)) {
+        //    Settings::Graphics.HighRes = !Settings::Graphics.HighRes;
+        //    Graphics::ReloadTextures();
+        //}
 
         if (Input::OnKeyPressed(Keys::F9)) {
             Settings::Graphics.NewLightMode = !Settings::Graphics.NewLightMode;

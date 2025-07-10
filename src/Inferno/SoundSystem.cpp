@@ -345,6 +345,7 @@ namespace Inferno::Sound {
         AudioEngine* GetEngine() const { return _engine ? _engine.get() : nullptr; }
 
         std::atomic<bool> RequestUnloadD1 = false;
+        std::atomic<bool> RequestUnloadNamed = false;
 
         void StopAllSounds() {
             std::scoped_lock lock(_threadMutex);
@@ -720,7 +721,7 @@ namespace Inferno::Sound {
                 }
 
                 if (ShouldStop(instance)) {
-                    instance.Effect->Stop(false);
+                    instance.Effect->Stop();
                     instance.Effect.reset();
                     instance.Alive = false;
                 }
@@ -736,7 +737,7 @@ namespace Inferno::Sound {
 
 
             if (_requestStopMusic) OnStopMusic();
-            if (_requestStopSounds || RequestUnloadD1) OnStopAllSounds();
+            if (_requestStopSounds || RequestUnloadD1 || RequestUnloadNamed) OnStopAllSounds();
 
             if (_requestPauseSounds) {
                 for (auto& instance : _soundInstances) {
@@ -752,9 +753,17 @@ namespace Inferno::Sound {
                 }
             }
 
+            if (RequestUnloadD1 || RequestUnloadNamed) {
+                for (auto& instance : _soundInstances) {
+                    if (instance.Effect) {
+                        instance.Effect->Stop();
+                        instance.Effect.reset();
+                    }
+                }
+            }
+
             if (RequestUnloadD1) {
                 SPDLOG_INFO("Unloading D1 sounds");
-
                 _engine->TrimVoicePool();
 
                 for (auto& sound : _effectsD1) {
@@ -762,6 +771,18 @@ namespace Inferno::Sound {
                 }
 
                 RequestUnloadD1 = false;
+            }
+
+            if (RequestUnloadNamed) {
+                SPDLOG_INFO("Unloading named sounds");
+                _engine->TrimVoicePool();
+
+                for (auto& val : _soundsD3 | views::values) {
+                    if (val) val.reset();
+                }
+
+                _soundsD3.clear();
+                RequestUnloadNamed = false;
             }
 
             _requestPauseSounds = false;
@@ -1012,6 +1033,11 @@ namespace Inferno::Sound {
         //RequestStopSounds = true;
         //RequestUnloadD1 = true;
         if (SoundThread) SoundThread->RequestUnloadD1 = true;
+        SoundThread->WaitIdle(); // Block caller until worker thread clears state
+    }
+
+    void UnloadNamedSounds() {
+        if (SoundThread) SoundThread->RequestUnloadNamed = true;
         SoundThread->WaitIdle(); // Block caller until worker thread clears state
     }
 
