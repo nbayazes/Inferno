@@ -441,14 +441,15 @@ namespace Inferno::Sound {
             _musicVolume = VolumeToAmplitudeRatio(volume, MUSIC_SILENCE);
 
             if (_musicVolume == 0) {
-                // Dispose stream if silenced
                 if (_musicStream) {
-                    _musicStream->Effect->Stop();
-                    _musicStream = {}; // release
+                    _musicStream->Effect->Stop(); // Don't waste resources on silenced music
                 }
             }
             else {
                 if (_musicStream) {
+                    if (_musicStream->Effect->GetState() == STOPPED)
+                        _musicStream->Effect->Play();
+
                     _musicStream->Effect->SetVolume(_musicVolume);
                 }
                 else {
