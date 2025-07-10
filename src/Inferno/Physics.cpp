@@ -1129,7 +1129,7 @@ namespace Inferno {
                             //SPDLOG_INFO("Sliding along wall, speed: {} vel: {}", hitSpeed, obj.Physics.Velocity.Length());
                             obj.Physics.Velocity += hitNormal * hitSpeed; // slide along wall
                             obj.Position = hitPoint + hitNormal * obj.Radius;
-                        }                            
+                        }
 
                         // apply friction so robots pinned against the wall don't spin in place
                         //if (obj.Type == ObjectType::Robot) {
@@ -1220,9 +1220,15 @@ namespace Inferno {
                         if (auto info = IntersectSphereSphere({ obj.Position, r1 }, { other->Position, r2 })) {
                             if (Game::GetState() == GameState::EscapeSequence) {
                                 // Player destroys any robots that are in the way during escape!
-                                if (obj.IsPlayer() && other->IsRobot()) DestroyObject(*other);
-                                if (obj.IsRobot() && other->IsPlayer()) DestroyObject(obj);
-                                break; // don't actually collide
+                                if (obj.IsPlayer() && other->IsRobot()) {
+                                    DestroyObject(*other);
+                                    break; // don't actually collide
+                                }
+
+                                if (obj.IsRobot() && other->IsPlayer()) {
+                                    DestroyObject(obj);
+                                    break; // don't actually collide
+                                }
                             }
 
                             hit.Update(info, other);
@@ -1451,7 +1457,6 @@ namespace Inferno {
 
                     // flip weapon to face the new direction
                     if (obj.Type == ObjectType::Weapon) {
-
                         if (hit.Bounce == BounceType::Ricochet) {
                             // Only random bounces receive deviation
                             constexpr float BASE_DEVIATION = 10; // Random ricochet angle. Should come from weapon info.
@@ -1478,7 +1483,8 @@ namespace Inferno {
                             direction.Normalize();
                             obj.Physics.Velocity = direction * obj.Physics.Velocity.Length();
                             obj.Rotation = Matrix3x3(direction, obj.Rotation.Up());
-                        } else {
+                        }
+                        else {
                             obj.Rotation = Matrix3x3(obj.Physics.Velocity, obj.Rotation.Up());
                         }
                     }
