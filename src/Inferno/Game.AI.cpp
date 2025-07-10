@@ -1,21 +1,19 @@
 #include "pch.h"
-
-#include "Types.h"
 #include "Game.AI.h"
-
 #include <algorithm>
 #include "Game.AI.Pathing.h"
 #include "Game.Boss.h"
 #include "Game.h"
 #include "Game.Object.h"
 #include "Game.Reactor.h"
-#include "Resources.h"
-#include "Physics.h"
-#include "logging.h"
-#include "SoundSystem.h"
-#include "Editor/Editor.Selection.h"
+#include "Game.Weapon.h"
 #include "Graphics.Debug.h"
 #include "Graphics/Render.Debug.h"
+#include "logging.h"
+#include "Physics.h"
+#include "Resources.h"
+#include "SoundSystem.h"
+#include "Types.h"
 #include "VisualEffects.h"
 
 namespace Inferno {

@@ -8,6 +8,7 @@
 #include "Game.h"
 #include "Game.Segment.h"
 #include "Game.Wall.h"
+#include "Game.Weapon.h"
 #include "Graphics.h"
 #include "HUD.h"
 #include "Physics.h"

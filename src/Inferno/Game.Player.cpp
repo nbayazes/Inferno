@@ -5,6 +5,7 @@
 #include "Game.AI.h"
 #include "Game.Bindings.h"
 #include "Game.h"
+#include "Game.Weapon.h"
 #include "HUD.h"
 #include "Input.h"
 #include "Physics.h"

@@ -289,6 +289,7 @@
     <ClInclude Include="Game.Matcen.h" />
     <ClInclude Include="Hog.IO.h" />
     <ClInclude Include="Mods.h" />
+    <ClInclude Include="Game.Weapon.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />

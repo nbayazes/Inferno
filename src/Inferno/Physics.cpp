@@ -1,11 +1,11 @@
 #include "pch.h"
 #define NOMINMAX
 #include "Physics.h"
-
 #include "Game.AI.h"
 #include "Game.h"
 #include "Game.Object.h"
 #include "Game.Wall.h"
+#include "Game.Weapon.h"
 #include "Graphics/Render.Debug.h"
 #include "Input.h"
 #include "Intersect.h"
@@ -1435,7 +1435,7 @@ namespace Inferno {
 
             if (hitLevel) {
                 if (obj.Type == ObjectType::Weapon)
-                    WeaponHitWall(hit, obj, level, objId);
+                    Game::WeaponHitWall(hit, obj, level, objId);
 
                 if (auto wall = level.TryGetWall(hit.Tag))
                     HitWall(level, hit.Point, obj, *wall);

@@ -4,6 +4,7 @@
 #include "Game.h"
 #include "Game.Reactor.h"
 #include "Game.Wall.h"
+#include "Game.Weapon.h"
 #include "Graphics.h"
 #include "Resources.h"
 #include "Settings.h"

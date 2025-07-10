@@ -22,7 +22,6 @@ namespace Inferno {
     bool SideIsTransparent(const Level& level, Tag tag);
     void UpdateExplodingWalls(Level& level, float dt);
     void HitWall(Level& level, const Vector3& point, const Object& src, const Wall& wall);
-    void WeaponHitWall(const LevelHit& hit, Object& obj, Inferno::Level& level, ObjID objId);
 
     //// Tracks one-shot animations on a wall
     //class DestroyedClipSystem {

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Game.Weapon.h"
 #include "VisualEffects.h"
 #include "Game.AI.h"
 #include "Object.h"
@@ -13,7 +14,7 @@
 #include "Settings.h"
 
 namespace Inferno::Game {
-    void DrawWeaponExplosion(const Object& obj, const Weapon& weapon, float scale) {
+    void CreateWeaponExplosion(const Object& obj, const Weapon& weapon, float scale = 1) {
         ExplosionEffectInfo e;
         e.Radius = { weapon.ImpactSize * 0.9f * scale, weapon.ImpactSize * 1.1f * scale };
         e.Clip = weapon.SplashRadius > 0 ? weapon.RobotHitVClip : weapon.WallHitVClip;
@@ -35,17 +36,11 @@ namespace Inferno::Game {
         if (weapon.SplashRadius > 0) {
             // Create explosion
             float damage = GetDamage(weapon);
-            float scale = 1;
-
-            Sound::Play({ weapon.RobotHitSound }, obj.Position, obj.Segment);
 
             // Mine was hit before it armed, do no splash damage
             if (ObjectIsMine(obj) && obj.Control.Weapon.AliveTime < Game::MINE_ARM_TIME) {
                 damage = 0;
-                scale = 0.66f;
             }
-
-            DrawWeaponExplosion(obj, weapon, scale);
 
             GameExplosion ge{};
             ge.Damage = damage;
@@ -63,6 +58,167 @@ namespace Inferno::Game {
         // Alert enemies when a player weapon is destroyed
         //if (obj.Parent == Game::Player.Reference)
         //AlertEnemiesOfNoise(obj, weapon.Extended.SoundRadius, 1, AI_AWARENESS_INVESTIGATE);
+    }
+
+    // There are four possible outcomes when hitting a wall:
+    // 1. Hit a normal wall
+    // 2. Hit water. Reduces damage of explosion and changes sound effect
+    // 3. Hit lava. Creates explosion for all weapons and changes sound effect
+    // 4. Hit forcefield. Bounces non-matter weapons.
+    void WeaponHitWall(const LevelHit& hit, Object& obj, Inferno::Level& level, ObjID objId) {
+        if (!hit.Tag) return;
+        if (obj.Lifespan <= 0) return; // Already dead
+        bool isPlayer = obj.Control.Weapon.ParentType == ObjectType::Player;
+        CheckDestroyableOverlay(level, hit.Point, hit.Tag, hit.Tri, isPlayer);
+
+        auto& weapon = Resources::GetWeapon((WeaponID)obj.ID);
+        float damage = GetDamage(weapon); // Damage used when hitting lava
+        float splashRadius = weapon.SplashRadius;
+        float force = damage;
+        float impactSize = weapon.ImpactSize;
+
+        // don't use volatile hits on large explosions like megas
+        constexpr float VOLATILE_DAMAGE_RADIUS = 30;
+        bool isLargeExplosion = splashRadius >= VOLATILE_DAMAGE_RADIUS / 2;
+
+        SoundID soundId = weapon.WallHitSound;
+        VClipID vclip = weapon.SplashRadius > 0 ? weapon.RobotHitVClip : weapon.WallHitVClip;
+
+        auto& side = level.GetSide(hit.Tag);
+        auto& ti = Resources::GetLevelTextureInfo(side.TMap);
+        bool hitForcefield = ti.HasFlag(TextureFlag::ForceField);
+        bool hitLava = ti.HasFlag(TextureFlag::Volatile);
+        bool hitWater = ti.HasFlag(TextureFlag::Water);
+
+        // Special case for flares
+        if (HasFlag(obj.Physics.Flags, PhysicsFlag::Stick) && !hitLava && !hitWater && !hitForcefield) {
+            // sticky flare behavior
+            Vector3 vec;
+            obj.Physics.Velocity.Normalize(vec);
+            //obj.Position -= vec * obj.Radius; // move out of wall
+            obj.Physics.Velocity = Vector3::Zero;
+            StuckObjects.Add(hit.Tag, objId);
+            obj.Flags |= ObjectFlag::Attached;
+            return;
+        }
+
+        auto bounce = hit.Bounce != BounceType::None;
+        if (hitLava && weapon.SplashRadius > 0)
+            bounce = false; // Explode bouncing explosive weapons (mines) when touching lava
+
+        if (!bounce) {
+            // Move object to the desired explosion location
+            auto dir = obj.Physics.PrevVelocity;
+            dir.Normalize();
+
+            if (impactSize < 5)
+                obj.Position = hit.Point - dir * impactSize * 0.25f;
+            else
+                obj.Position = hit.Point - dir * 2.5;
+        }
+
+        if (hitForcefield) {
+            if (!weapon.IsMatter) {
+                // Bounce energy weapons
+                obj.Physics.Bounces++;
+                obj.Parent = {}; // Make hostile to owner!
+                Sound::Play({ SoundID::WeaponHitForcefield }, hit.Point, hit.Tag.Segment);
+            }
+        }
+        else if (hitLava) {
+            if (!isLargeExplosion) {
+                // add volatile size and damage bonuses to smaller explosions
+                vclip = VClipID::HitLava;
+                constexpr float VOLATILE_DAMAGE = 10;
+                constexpr float VOLATILE_FORCE = 5;
+
+                damage = damage / 4 + VOLATILE_DAMAGE;
+                splashRadius += VOLATILE_DAMAGE_RADIUS;
+                force = force / 2 + VOLATILE_FORCE;
+                impactSize += 1;
+            }
+
+            // Create a damaging and visual explosion
+            GameExplosion ge{};
+            ge.Segment = hit.Tag.Segment;
+            ge.Position = obj.Position;
+            ge.Damage = damage;
+            ge.Force = force;
+            ge.Radius = splashRadius;
+            ge.Room = level.GetRoomID(obj);
+            CreateExplosion(level, &obj, ge);
+
+            ExplosionEffectInfo e;
+            e.Radius = { weapon.ImpactSize * 0.9f, weapon.ImpactSize * 1.1f };
+            e.Clip = vclip;
+            e.FadeTime = weapon.Extended.ExplosionTime;
+            e.Color = Color{ 1, .7f, .7f, 2 };
+            e.LightColor = Color{ 1.0f, 0.6f, 0.05f, .5 };
+            e.LightRadius = splashRadius;
+            CreateExplosion(e, obj.Segment, obj.Position);
+
+            Sound::Play({ SoundID::HitLava }, hit.Point, hit.Tag.Segment);
+        }
+        else if (hitWater) {
+            if (isLargeExplosion) {
+                // reduce strength of megas and shakers in water, but don't cancel them
+                splashRadius *= 0.5f;
+                damage *= 0.25f;
+                force *= 0.5f;
+                impactSize *= 0.5f;
+            }
+            else {
+                vclip = VClipID::HitWater;
+                splashRadius = 0; // Cancel explosions when hitting water
+            }
+
+            if (splashRadius > 0) {
+                // Create damage for large explosions
+                GameExplosion ge{};
+                ge.Segment = hit.Tag.Segment;
+                ge.Position = obj.Position;
+                ge.Damage = damage;
+                ge.Force = force;
+                ge.Radius = splashRadius;
+                CreateExplosion(level, &obj, ge);
+            }
+
+            ParticleInfo e;
+            e.Radius = NumericRange(weapon.ImpactSize * 0.9f, weapon.ImpactSize * 1.1f).GetRandom();
+            e.Clip = vclip;
+            e.FadeTime = weapon.Extended.ExplosionTime;
+            e.Color = Color(1, 1, 1);
+            AddParticle(e, obj.Segment, obj.Position);
+
+            auto splashId = weapon.IsMatter ? SoundID::MissileHitWater : SoundID::HitWater;
+            Sound::Play({ splashId }, hit.Point, hit.Tag.Segment);
+        }
+        else {
+            // Hit normal wall
+            Game::AddWeaponDecal(hit, weapon);
+
+            // Explosive weapons create their effects on death in ExplodeWeapon() instead of here
+            if (!bounce /*&& splashRadius <= 0*/) {
+                if (vclip != VClipID::None)
+                    Game::CreateWeaponExplosion(obj, weapon);
+            }
+
+            // Don't play hit sound if door is locked. Door will play a different sound.
+            bool locked = false;
+            if (auto wall = level.TryGetWall(hit.Tag))
+                locked = wall->Type == WallType::Door && wall->HasFlag(WallFlag::DoorLocked);
+
+            if (!locked) {
+                SoundResource resource = { soundId };
+                resource.D3 = weapon.Extended.ExplosionSound; // Will take priority if D3 is loaded
+                Sound3D sound(resource);
+                sound.Volume = Game::WEAPON_HIT_WALL_VOLUME;
+                Sound::Play(sound, hit.Point, hit.Tag.Segment);
+            }
+        }
+
+        if (!bounce)
+            obj.Lifespan = 0; // remove weapon after hitting a wall
     }
 
     void ProxMineBehavior(Object& mine) {
@@ -207,7 +363,7 @@ namespace Inferno::Game {
 
             //fmt::print("applied {} damage\n", damage);
 
-            if (!target.IsPlayer() && !weapon.IsExplosive()) {
+            if (!target.IsPlayer() /*&& !weapon.IsExplosive()*/) {
                 // Missiles create their explosion effects when expiring instead of here
                 ExplosionEffectInfo expl;
                 expl.Sound = weapon.RobotHitSound;

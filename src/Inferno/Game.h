@@ -83,50 +83,15 @@ namespace Inferno::Game {
 
     bool EnableAi();
 
-    void WeaponHitObject(const LevelHit& hit, Object& src);
-    void AddWeaponDecal(const LevelHit& hit, const Weapon& weapon);
-
-    struct FireWeaponInfo {
-        WeaponID id;
-        uint8 gun;
-        Vector3* customDir = nullptr;
-        float volume = 1;
-        float damageMultiplier = 1;
-        bool showFlash = true;
-    };
-
-    void PlayWeaponSound(WeaponID id, float volume, SegID segment, const Vector3& position);
-
-    // Plays a weapon sound attached to an object. If gun = 255 the object center is used.
-    void PlayWeaponSound(WeaponID id, float volume, const Object& parent, uint8 gun = 255);
-
-    Sound3D InitWeaponSound(WeaponID id, float volume);
-
-    // Fires a weapon from a model gunpoint
-    ObjRef FireWeapon(Object& obj, const FireWeaponInfo& info);
-
-    // Spread is x/y units relative to the object's forward direction
-    Vector3 GetSpreadDirection(const Object& obj, const Vector2& spread);
-
-    void DrawWeaponExplosion(const Object& obj, const Weapon& weapon, float scale = 1);
-
-    // Detonates a weapon with a splash radius
-    void ExplodeWeapon(struct Level& level, const Object&);
-
     void MoveCameraToObject(Camera& camera, const Object& obj, float lerp);
 
     void UpdateCameraSegment(Camera& camera);
 
     void Update(float dt);
 
-    void CreateMissileSpawn(const Object& missile, uint blobs);
-
-    void UpdateWeapon(Object&, float dt);
-
     inline bool ShowDebugOverlay = false;
 
     inline bool SecretLevelDestroyed = false;
-
 
     /*inline bool ObjShouldThink(const Object& obj) {
         return obj.NextThinkTime <= Time && obj.NextThinkTime != -1;
@@ -155,7 +120,7 @@ namespace Inferno::Game {
     constexpr uint16 VULCAN_AMMO_PICKUP = 1250; // Amount of ammo to give when picking up vulcan ammo. Original value is 1250.
     constexpr float CLOAK_TIME = 30.0f;
     constexpr float INVULNERABLE_TIME = 30.0f;
-    constexpr float WEAPON_HIT_WALL_VOLUME = 0.95f; // Reduce volume of wall hits as they drown out everything else
+    constexpr float WEAPON_HIT_WALL_VOLUME = 1.0f;
     constexpr float WEAPON_HIT_OBJECT_VOLUME = 1.0f;
 
     inline bool Cheater = false;

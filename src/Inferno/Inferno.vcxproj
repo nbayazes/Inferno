@@ -383,6 +383,7 @@
     <ClInclude Include="Game.UI.LoadDialog.h" />
     <ClInclude Include="Game.UI.Options.h" />
     <ClInclude Include="Game.UI.ScoreScreen.h" />
+    <ClInclude Include="Game.Weapon.h" />
     <ClInclude Include="Graphics.Debug.h" />
     <ClInclude Include="Graphics\Render.Automap.h" />
     <ClInclude Include="Graphics\Render.Briefing.h" />

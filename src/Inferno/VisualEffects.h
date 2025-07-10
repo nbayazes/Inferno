@@ -115,7 +115,7 @@ namespace Inferno {
         float FadeTime = 0;
         VClipID Clip = VClipID::SmallExplosion;
         SoundID Sound = SoundID::None;
-        float SoundRadius = 250.0f;
+        float SoundRadius = 400.0f;
         NumericRange<float> SoundPitch = { 0, 0 };
         float Volume = 1.0f;
         NumericRange<float> Radius = { 2.5f, 2.5f }; // size of the explosion

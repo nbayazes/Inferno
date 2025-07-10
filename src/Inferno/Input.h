@@ -170,10 +170,10 @@ namespace Inferno::Input {
         }
         
         // Returns true if hat is pressed in a direction. Returns direction through parameter.
-        bool CheckHat(uint8& hat) const {
+        bool CheckHat(uint8& hatValue) const {
             for (uint8 i = 1; i <= 4; i++) {
                 if (HatDirection(Input::HatDirection(i))) {
-                    hat = i;
+                    hatValue = i;
                     return true;
                 }
             }
