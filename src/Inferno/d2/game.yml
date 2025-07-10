@@ -139,18 +139,25 @@ Weapons:
 Robots:
   - id: 24
     Name: BPER
+    DevName: Baby Plasma
   - id: 25
     Name: Smelter
+    DevName: Sloth
   - id: 26
     Name: Ice Spindle
+    DevName: Ice Spider
   - id: 27
     Name: Bulk Destroyer
+    DevName: Gauss Guy
   - id: 28
     Name: TRN Racer
+    DevName: Fire Claw Guy
   - id: 29
     Name: Fox Attack Bot
+    DevName: Spreadfire Guy
   - id: 30
     Name: Sidearm
+    DevName: Stripe
   - id: 31
     Name: Red Fatty Boss
   - id: 32
@@ -163,33 +170,42 @@ Robots:
     Name: Evil Twin
   - id: 36
     Name: ITSC
+    DevName: Large Sniper
   - id: 37
     Name: IT Droid
+    DevName: Sniper
     Mass: 2
   - id: 38
     Name: PEST
+    DevName: Frog
   - id: 39
     Name: PIG
+    DevName: Minotaur
   - id: 40
     Name: Diamond Claw
+    DevName: Fourclaw
   - id: 41
-    Name: Hornet
+    Name: Red Hornet
   - id: 42
     Name: Thief
+    DevName: Bandit
   - id: 43
     Name: Seeker
   - id: 44
     Name: E-Bandit
+    DevName: Sucker
   - id: 45
     Name: Fire Boss
   - id: 46
     Name: Water Boss
   - id: 47
-    Name: Boarshed
+    Name: Boarshead
+    DevName: Mohawk Bandit
   - id: 48
-    Name: Spider
+    Name: Green Spider
   - id: 49
-    Name: Kamikaze
+    Name: Omega
+    DevName: Kamikaze
   - id: 50
     Name: Sidearm Modula
   - id: 51
@@ -207,7 +223,8 @@ Robots:
   - id: 57
     Name: Smelter Clone
   - id: 58
-    Name: Kamikaze Clone
+    Name: Omega Clone
+    DevName: Kamikaze Clone
   - id: 59
     Name: BPER Clone
   - id: 60
