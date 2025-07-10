@@ -1481,7 +1481,7 @@ namespace Inferno {
                 break;
 
             case PowerupID::Concussion4:
-                used = PickUpSecondary(SecondaryWeaponIndex::Concussion, 4);
+                used = PickUpSecondary(SecondaryWeaponIndex::Concussion, 4, &obj);
                 break;
 
             case PowerupID::Homing1:
@@ -1489,7 +1489,7 @@ namespace Inferno {
                 break;
 
             case PowerupID::Homing4:
-                used = PickUpSecondary(SecondaryWeaponIndex::Homing, 4);
+                used = PickUpSecondary(SecondaryWeaponIndex::Homing, 4, &obj);
                 break;
 
             case PowerupID::ProximityMine:
@@ -1509,7 +1509,7 @@ namespace Inferno {
                 break;
 
             case PowerupID::FlashMissile4:
-                used = PickUpSecondary(SecondaryWeaponIndex::Flash, 4);
+                used = PickUpSecondary(SecondaryWeaponIndex::Flash, 4, &obj);
                 break;
 
             case PowerupID::GuidedMissile1:
@@ -1517,7 +1517,7 @@ namespace Inferno {
                 break;
 
             case PowerupID::GuidedMissile4:
-                used = PickUpSecondary(SecondaryWeaponIndex::Guided, 4);
+                used = PickUpSecondary(SecondaryWeaponIndex::Guided, 4, &obj);
                 break;
 
             case PowerupID::SmartMine:
@@ -1529,7 +1529,7 @@ namespace Inferno {
                 break;
 
             case PowerupID::MercuryMissile4:
-                used = PickUpSecondary(SecondaryWeaponIndex::Mercury, 4);
+                used = PickUpSecondary(SecondaryWeaponIndex::Mercury, 4, &obj);
                 break;
 
             case PowerupID::EarthshakerMissile:
@@ -1634,6 +1634,23 @@ namespace Inferno {
         PrimaryWeapons |= 1 << (uint16)weapon;
     }
 
+    constexpr PowerupID PrimaryWeaponToPowerup(PrimaryWeaponIndex index) {
+        constexpr PowerupID powerups[] = {
+            PowerupID::Laser, PowerupID::Vulcan, PowerupID::Spreadfire, PowerupID::Plasma, PowerupID::Fusion, PowerupID::SuperLaser, PowerupID::Helix, PowerupID::Phoenix, PowerupID::Omega
+        };
+
+        return powerups[(int)index];
+    }
+
+    constexpr PowerupID SecondaryWeaponToPowerup(SecondaryWeaponIndex index) {
+        constexpr PowerupID powerups[] = {
+            PowerupID::Concussion1, PowerupID::Homing1, PowerupID::ProximityMine, PowerupID::SmartMissile, PowerupID::Mega,
+            PowerupID::FlashMissile1, PowerupID::GuidedMissile1, PowerupID::SmartMine, PowerupID::EarthshakerMissile
+        };
+
+        return powerups[(int)index];
+    }
+
     bool Player::PickUpPrimary(PrimaryWeaponIndex index) {
         uint16 flag = 1 << (uint16)index;
         auto& weaponInfo = Resources::GetWeapon(GetPrimaryWeaponID(index));
@@ -1654,10 +1671,12 @@ namespace Inferno {
         return true;
     }
 
-    bool Player::PickUpSecondary(SecondaryWeaponIndex index, uint16 count) {
-        auto max = Ship.Weapons[10 + (int)index].Ammo;
+    bool Player::PickUpSecondary(SecondaryWeaponIndex index, uint16 count, const Object* source) {
+        auto& battery = Ship.Weapons[10 + (int)index];
+        auto max = battery.Ammo;
+
         if (HasPowerup(PowerupFlag::AmmoRack))
-            max *= 2;
+            max *= battery.RackAmmo;
 
         auto& ammo = SecondaryAmmo[(int)index];
         auto startAmmo = ammo;
@@ -1670,7 +1689,7 @@ namespace Inferno {
             return false;
         }
 
-        int pickedUp = count;
+        uint pickedUp = count;
         ammo += count;
 
         if (ammo > max) {
@@ -1691,25 +1710,17 @@ namespace Inferno {
         if (!CanFireSecondary(Secondary) || startAmmo == 0)
             SecondaryPickupAutoselect(index);
 
-        // todo: spawn individual missiles if count > 1 and full
+        // Split missile packs into individual missiles if full
+        if (pickedUp < count && source) {
+            auto powerup = SecondaryWeaponToPowerup(index);
+
+            if (powerup != PowerupID::SmartMine && powerup != PowerupID::ProximityMine) {
+                for (int i = 0; i < count - pickedUp; i++)
+                    Game::DropPowerup(powerup, source->Position, source->Segment, Vector3::Zero, 10);
+            }
+        }
+
         return true;
-    }
-
-    constexpr PowerupID PrimaryWeaponToPowerup(PrimaryWeaponIndex index) {
-        constexpr PowerupID powerups[] = {
-            PowerupID::Laser, PowerupID::Vulcan, PowerupID::Spreadfire, PowerupID::Plasma, PowerupID::Fusion, PowerupID::SuperLaser, PowerupID::Helix, PowerupID::Phoenix, PowerupID::Omega
-        };
-
-        return powerups[(int)index];
-    }
-
-    constexpr PowerupID SecondaryWeaponToPowerup(SecondaryWeaponIndex index) {
-        constexpr PowerupID powerups[] = {
-            PowerupID::Concussion1, PowerupID::Homing1, PowerupID::ProximityMine, PowerupID::SmartMissile, PowerupID::Mega,
-            PowerupID::FlashMissile1, PowerupID::GuidedMissile1, PowerupID::SmartMine, PowerupID::EarthshakerMissile
-        };
-
-        return powerups[(int)index];
     }
 
     void Player::DropAllItems() {

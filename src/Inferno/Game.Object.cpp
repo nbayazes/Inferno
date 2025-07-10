@@ -317,7 +317,7 @@ namespace Inferno {
         return foundCloak;
     }
 
-    ObjRef Game::DropPowerup(PowerupID pid, const Vector3& position, SegID segId, const Vector3& force) {
+    ObjRef Game::DropPowerup(PowerupID pid, const Vector3& position, SegID segId, const Vector3& force, float scale) {
         auto& pinfo = Resources::GetPowerup(pid);
         if (pinfo.VClip == VClipID::None) {
             //SPDLOG_WARN("Tried to drop an invalid powerup!");
@@ -333,7 +333,7 @@ namespace Inferno {
         powerup.Segment = segId;
 
         powerup.Movement = MovementType::Physics;
-        powerup.Physics.Velocity = RandomVector(32) + force;
+        powerup.Physics.Velocity = RandomVector(scale) + force;
         powerup.Physics.Mass = 1;
         powerup.Physics.Drag = 0.01f;
         powerup.Physics.Flags = PhysicsFlag::Bounce;

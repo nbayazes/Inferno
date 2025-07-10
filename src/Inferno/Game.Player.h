@@ -213,7 +213,7 @@ namespace Inferno {
         // Gives energy and returns true if able to pick up a powerup
         bool PickUpEnergy();
         bool PickUpPrimary(PrimaryWeaponIndex);
-        bool PickUpSecondary(SecondaryWeaponIndex, uint16 count = 1);
+        bool PickUpSecondary(SecondaryWeaponIndex, uint16 count = 1, const Object* source = nullptr);
 
         // Drops all items after dying
         void DropAllItems();

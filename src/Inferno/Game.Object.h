@@ -79,7 +79,7 @@ namespace Inferno {
         ObjRef AddObject(const Object& object);
         void FreeObject(ObjID id);
         void InitObjects(Inferno::Level& level);
-        ObjRef DropPowerup(PowerupID pid, const Vector3& position, SegID segId, const Vector3& force = Vector3::Zero);
+        ObjRef DropPowerup(PowerupID pid, const Vector3& position, SegID segId, const Vector3& force = Vector3::Zero, float scale = 32);
 
         void CloakObject(Object& obj, float duration, bool playSound = true);
         void UncloakObject(Object& obj, bool playSound = true);
