@@ -732,6 +732,9 @@ namespace Inferno {
     void DodgeProjectiles(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, Level& level) {
         if (ai.DodgeDelay > 0) return; // not ready to dodge again
 
+        if (robot.SourceMatcen != MatcenID::None && robot.IsPhasing())
+            return; // Don't allow newly created robots to dodge (prevents bunching and invisible evading)
+
         IterateNearbySegments(level, robot, 100, TraversalFlag::PassTransparent, [&](const Segment& seg, bool) {
             for (auto& objId : seg.Objects) {
                 if (auto weapon = level.TryGetObject(objId)) {
@@ -912,7 +915,10 @@ namespace Inferno {
             ChangeState(robot, ai, AIState::Alert);
         }
 
-        if (source && ai.State != AIState::Combat && !Settings::Cheats.DisableAI) {
+        // Don't allow recently created robots to dodge or change path (prevents bunching and invisible evading)
+        bool recentlyCreated = robot.SourceMatcen != MatcenID::None && robot.IsPhasing();
+
+        if (source && ai.State != AIState::Combat && !Settings::Cheats.DisableAI && !recentlyCreated) {
             // Try randomly dodging if taking damage
             RandomDodge(robot, ai, robotInfo);
 
