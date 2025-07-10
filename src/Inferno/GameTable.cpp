@@ -376,7 +376,9 @@ namespace Inferno {
 
             Yaml::ReadValue(weaponNode["Weapon"], weapon.WeaponName);
             Yaml::ReadValue(weaponNode["Ammo"], weapon.Ammo);
-            Yaml::ReadValue(weaponNode["RackAmmo"], weapon.RackAmmo);
+            if (!Yaml::ReadValue(weaponNode["RackAmmo"], weapon.RackAmmo))
+                weapon.RackAmmo = weapon.Ammo * 2;
+
             Yaml::ReadValue(weaponNode["EnergyUsage"], weapon.EnergyUsage);
 
             if (!Yaml::ReadValue(weaponNode["AmmoUsage"], weapon.AmmoUsage) && i >= 10) {

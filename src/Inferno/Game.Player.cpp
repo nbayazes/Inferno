@@ -1405,22 +1405,27 @@ namespace Inferno {
 
             case PowerupID::Vulcan:
             case PowerupID::Gauss: {
-                // Give ammo first so autoselect works properly
                 auto& ammo = obj.Control.Powerup.Count; // remaining ammo on the weapon
+                auto weaponIndex = obj.ID == (int)PowerupID::Vulcan ? PrimaryWeaponIndex::Vulcan : PrimaryWeaponIndex::Gauss;
 
+                // Give ammo first so autoselect works properly
                 if (ammo > 0) {
                     auto amount = PickUpAmmo(PrimaryWeaponIndex::Vulcan, (uint16)ammo);
                     ammo -= amount;
                     if (!used && amount > 0) {
                         AddScreenFlash(FLASH_PRIMARY);
-                        PrintHudMessage(fmt::format("{} vulcan rounds!", amount / 10));
+                        //PrintHudMessage(fmt::format("{} vulcan rounds!", amount / 10));
+                        PrintHudMessage("vulcan ammo!");
                         ammoPickedUp = true;
                         if (ammo == 0)
                             used = true; // remove object if all ammo was taken
                     }
                 }
 
-                used = PickUpPrimary(obj.ID == (int)PowerupID::Vulcan ? PrimaryWeaponIndex::Vulcan : PrimaryWeaponIndex::Gauss);
+                // Always remove the object if we didn't have the weapon
+                if (!HasWeapon(weaponIndex))
+                    used = PickUpPrimary(weaponIndex);
+
                 break;
             }
 
@@ -1599,11 +1604,11 @@ namespace Inferno {
                 break;
         }
 
-        if (used || ammoPickedUp) {
+        if (used)
             obj.Lifespan = -1;
-            if (playSound)
-                Sound::Play2D({ powerup.HitSound });
-        }
+
+        if ((used || ammoPickedUp) && playSound)
+            Sound::Play2D({ powerup.HitSound });
     }
 
     void Player::TouchObject(Object& obj) {
@@ -1627,9 +1632,6 @@ namespace Inferno {
 
     void Player::GiveWeapon(PrimaryWeaponIndex weapon) {
         PrimaryWeapons |= 1 << (uint16)weapon;
-
-        if (weapon == PrimaryWeaponIndex::Vulcan || weapon == PrimaryWeaponIndex::Gauss)
-            PrimaryAmmo[(int)PrimaryWeaponIndex::Vulcan] += Game::VULCAN_AMMO_PICKUP; // Start with an extra pack of ammo on first pickup
     }
 
     bool Player::PickUpPrimary(PrimaryWeaponIndex index) {

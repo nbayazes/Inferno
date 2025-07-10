@@ -1204,7 +1204,7 @@ namespace Inferno::Game {
             }
 
             if (obj.IsPowerup(PowerupID::Gauss) || obj.IsPowerup(PowerupID::Vulcan))
-                obj.Control.Powerup.Count = VULCAN_AMMO_PICKUP;
+                obj.Control.Powerup.Count = VULCAN_AMMO_PICKUP * 2;
 
             if (obj.IsPowerup(PowerupID::FlagBlue) || obj.IsPowerup(PowerupID::FlagRed))
                 obj.Lifespan = -1; // Remove CTF flags (no multiplayer)
