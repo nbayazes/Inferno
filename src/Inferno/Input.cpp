@@ -159,10 +159,13 @@ namespace Inferno::Input {
         return input * Saturate(scale) / magnitude;
     }
 
-    float LinearDampen(float value, float innerDeadzone, float outerDeadzone) {
-        if (value <= 0.0001f) return 0;
-        float scale = (value - innerDeadzone) / (outerDeadzone - innerDeadzone);
-        return Saturate(scale);
+    float LinearDampen(float value, float innerDeadzone, float outerDeadzone, float linearity) {
+        if (abs(value) <= innerDeadzone) return 0;
+        //else if (value < -1) value = -1;
+        //else if (value > 1) value = 1;
+        float sign = value < 0 ? -1 : 1;
+        float magnitude = (abs(value) - innerDeadzone) / (1 - innerDeadzone) * (1 - 0) + 0;
+        return pow(magnitude,linearity) * sign;
     }
 
     // Maps an axis to -1 to 1

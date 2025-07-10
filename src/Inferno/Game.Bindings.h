@@ -239,6 +239,10 @@ namespace Inferno {
                 for (size_t g = 0; g < group.size(); g++) {
                     auto& existing = group[g];
 
+                    if ((existing.type == BindType::Hat && binding.type != BindType::Hat) ||
+                        (binding.type == BindType::Hat && existing.type != BindType::Hat))
+                        continue; // skip mismatched types
+
                     if ((existing.type == BindType::Button && binding.type != BindType::Button) ||
                         (binding.type == BindType::Button && existing.type != BindType::Button))
                         continue; // skip mismatched types (only compare buttons to buttons, and non-buttons to other non-buttons)

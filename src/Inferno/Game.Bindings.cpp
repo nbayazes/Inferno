@@ -104,6 +104,34 @@ namespace Inferno {
                 }
                 break;
             case Input::InputType::Joystick:
+                switch (binding->type) {
+                    case BindType::None:
+                        return "";
+                    case BindType::Button:
+                        return fmt::format("B{}", binding->id);
+                    case BindType::Axis:
+                        return fmt::format("AXIS {}", binding->id);
+                    case BindType::AxisPlus:
+                        return fmt::format("AXIS {}+", binding->id);
+                    case BindType::AxisMinus:
+                        return fmt::format("AXIS {}-", binding->id);
+                    case BindType::AxisButtonPlus:
+                        return fmt::format("AXIS {}+", binding->id);
+                    case BindType::AxisButtonMinus:
+                        return fmt::format("AXIS {}-", binding->id);
+                    case BindType::Hat:
+                        switch ((Input::HatDirection)binding->id) {
+                            case Input::HatDirection::Left:
+                                return "HAT-L";
+                            case Input::HatDirection::Right:
+                                return "HAT-R";
+                            case Input::HatDirection::Up:
+                                return "HAT-U";
+                            case Input::HatDirection::Down:
+                                return "HAT-D";
+                        }
+                        break;
+                }
                 break;
             }
         }
@@ -208,10 +236,10 @@ namespace Inferno {
                     auto sensitivity = deviceBindings.sensitivity.GetSensitivity(action);
 
                     if (binding.type == BindType::AxisPlus) {
-                        value += Input::LinearDampen(device->axes[binding.id], deadzone, 1) * invert * sensitivity;
+                        value += Input::LinearDampen(device->axes[binding.id], deadzone, 1, sensitivity) * invert;
                     }
                     else if (binding.type == BindType::AxisMinus) {
-                        value += Input::LinearDampen(device->axes[binding.id], deadzone, 1) * invert * sensitivity;
+                        value += Input::LinearDampen(device->axes[binding.id], deadzone, 1, sensitivity) * invert;
                     }
                     else if (binding.type == BindType::Axis) {
                         if (device->type != SDL_GAMEPAD_TYPE_UNKNOWN) {
@@ -231,7 +259,7 @@ namespace Inferno {
                                 value += stick.y * invert;
                         }
                         else {
-                            value += Input::LinearDampen(device->axes[binding.id], deadzone, 1) * invert * sensitivity;
+                            value += Input::LinearDampen(device->axes[binding.id], deadzone, 1, sensitivity) * invert;
                         }
                     }
                 }
