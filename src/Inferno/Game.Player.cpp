@@ -32,7 +32,7 @@ namespace Inferno {
     float GetWeaponAlertRadius(const Weapon& weapon) {
         // Robots use half-linear falloff instead of inverse square because it doesn't require traversing nearly as far.
         //float mult = 0.5f + std::min(2, (int)Game::Difficulty) / 4.0f; // hotshot, ace, insane = 1, trainee = 0.5, rookie = 0.75
-        return weapon.Extended.SoundRadius /** mult */ * 0.6f; // Reduce radius because weapons have a default sound radius of 300
+        return weapon.Extended.SoundRadius /** mult */ * 0.5f; // Reduce radius
     }
 
     float Player::UpdateAfterburner(float dt, bool active) {
@@ -1715,7 +1715,7 @@ namespace Inferno {
             auto powerup = SecondaryWeaponToPowerup(index);
 
             if (powerup != PowerupID::SmartMine && powerup != PowerupID::ProximityMine) {
-                for (int i = 0; i < count - pickedUp; i++)
+                for (uint i = 0; i < count - pickedUp; i++)
                     Game::DropPowerup(powerup, source->Position, source->Segment, Vector3::Zero, 10);
             }
         }

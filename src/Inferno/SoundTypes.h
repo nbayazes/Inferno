@@ -3,7 +3,7 @@
 
 namespace Inferno {
     constexpr ObjRef GLOBAL_SOUND_SOURCE = { ObjID(9999), ObjSig(9999) }; // Assign the source to this value to have it culled against all others
-    constexpr float DEFAULT_SOUND_RADIUS = 250;
+    constexpr float DEFAULT_SOUND_RADIUS = 400;
     enum class SoundUID : unsigned int { None = 0 }; // ID used to cancel a playing sound
 
     // Handle to a sound resource

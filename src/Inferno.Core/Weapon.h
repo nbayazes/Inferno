@@ -115,7 +115,7 @@ namespace Inferno {
         float ExplosionSize = 1.5f; // Initial size of explosion texture, scales up and out
         float ExplosionTime = 0.4f; // How long the explosion takes to fade out
         string ExplosionSound; // Sound to play when exploding. Overrides base sound.
-        float ExplosionSoundRadius = 250; // Sound radius when exploding
+        float ExplosionSoundRadius = 500; // Sound radius when exploding
         string FireSound; // Sound to play when firing. Overrides base sound.
         float FireVolume = 1.0f; // How loud the fire sound is
 
@@ -148,7 +148,7 @@ namespace Inferno {
         float Spread = 0; // Amount of spread in degrees
         Color FlashColor = { 1, 1, 1 }; // Color for muzzle flash sprites and lighting
         float Noise = 1; // How much noise (awareness) weapon creates when firing
-        float SoundRadius = 300; // Sound radius when firing
+        float SoundRadius = 400; // Sound radius when firing
         float StunMult = 1; // how effective this weapon is at stunning robots. 0.5 would halve stun duration. Also affects knockback.
         Array<float, 5> InitialSpeed; // Speed to spawn with
         bool PointCollideWalls = true; // Use raycasting against level geometry. Otherwise use spheres.

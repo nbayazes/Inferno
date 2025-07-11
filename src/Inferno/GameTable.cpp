@@ -164,6 +164,9 @@ namespace Inferno {
 
         READ_PROP_EXT(ExplosionSize);
         READ_PROP_EXT(ExplosionSound);
+        if (!READ_PROP_EXT(ExplosionSoundRadius))
+            weapon.Extended.ExplosionSoundRadius = DEFAULT_SOUND_RADIUS;
+
         READ_PROP_EXT(FireSound);
         READ_PROP_EXT(FireVolume);
         READ_PROP_EXT(ExplosionTexture);

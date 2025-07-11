@@ -53,6 +53,7 @@ namespace Inferno::Game {
                 resource.D3 = weapon.Extended.ExplosionSound;
                 Sound3D sound(resource);
                 sound.Volume = Game::WEAPON_HIT_WALL_VOLUME;
+                sound.Radius = weapon.Extended.ExplosionSoundRadius;
                 Sound::Play(sound, obj.Position, obj.Segment);
             }
 
@@ -227,6 +228,7 @@ namespace Inferno::Game {
                 resource.D3 = weapon.Extended.ExplosionSound; // Will take priority if D3 is loaded
                 Sound3D sound(resource);
                 sound.Volume = Game::WEAPON_HIT_WALL_VOLUME;
+                sound.Radius = weapon.Extended.ExplosionSoundRadius;
                 Sound::Play(sound, hit.Point, hit.Tag.Segment);
             }
         }
@@ -377,8 +379,7 @@ namespace Inferno::Game {
 
         //fmt::print("applied {} damage\n", damage);
 
-        if (!target.IsPlayer() /*&& !weapon.IsExplosive()*/) {
-            // Missiles create their explosion effects when expiring instead of here
+        if (!target.IsPlayer()) {
             ExplosionEffectInfo expl;
             expl.Sound = weapon.RobotHitSound;
             expl.Volume = WEAPON_HIT_OBJECT_VOLUME;
@@ -425,14 +426,14 @@ namespace Inferno::Game {
         //    Sound::Play3D(sound, target);
         //}
 
-        //if (weapon.RobotHitSound != SoundID::None || !weapon.Extended.ExplosionSound.empty()) {
-        //    auto soundRes = Resources::GetSoundResource(weapon.RobotHitSound);
-        //    soundRes.D3 = weapon.Extended.ExplosionSound;
-
-        //    Sound3D sound(hit.Point, hit.HitObj->Segment);
-        //    sound.Resource = soundRes;
-        //    Sound::Play(sound);
-        //}
+        if (weapon.RobotHitSound != SoundID::None || !weapon.Extended.ExplosionSound.empty()) {
+            SoundResource resource = { weapon.RobotHitSound };
+            resource.D3 = weapon.Extended.ExplosionSound; // Will take priority if D3 is loaded
+            Sound3D sound(resource);
+            sound.Volume = Game::WEAPON_HIT_OBJECT_VOLUME;
+            sound.Radius = weapon.Extended.ExplosionSoundRadius;
+            Sound::Play(sound, hit.Point, hit.Tag.Segment);
+        }
 
         src.Control.Weapon.AddRecentHit(target.Signature);
 

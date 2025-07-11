@@ -208,18 +208,21 @@ Robots:
     DevName: Kamikaze
   - id: 50
     Name: Sidearm Modula
+    DevName: Baby Stripe
   - id: 51
     Name: Lou Guard
+    DevName: Toady
   - id: 52
     Name: Alien 1 Boss
   - id: 53
-    Name: Popcorn Miniboss
+    Name: Fatty Jr
+    DevName: Popcorn Miniboss
   - id: 54
     Name: Cloaked Diamond Claw
   - id: 55
     Name: Cloaked Smelter
   - id: 56
-    Name: Guppy
+    Name: Omega Guppy
   - id: 57
     Name: Smelter Clone
   - id: 58
@@ -228,7 +231,7 @@ Robots:
   - id: 59
     Name: BPER Clone
   - id: 60
-    Name: Spider Clone
+    Name: Green Spider Clone
   - id: 61
     Name: Spawn Clone
   - id: 62
@@ -239,6 +242,30 @@ Robots:
     Name: Final Boss
   - id: 65
     Name: Mini Reactor
+  - id: 66
+    Name: Compact Lifter
+  - id: 67
+    Name: Fervid 99
+  - id: 68
+    Name: Fiddler
+  - id: 69
+    Name: Class 2 Heavy Driller
+  - id: 70
+    Name: Smelter II
+  - id: 71
+    Name: MAX
+  - id: 72
+    Name: Sniper NG
+  - id: 73
+    Name: Logikill
+  - id: 74
+    Name: Canary
+  - id: 75
+    Name: Vertigo Boss
+  - id: 76
+    Name: Red Guard Boss
+  - id: 77
+    Name: S.P.I.K.E.
 
 Powerups:
   - id: 28
