@@ -126,7 +126,7 @@ namespace Inferno {
 
     struct GameBinding {
         GameAction action = GameAction::None;
-        uint8 id = 0; // Axis, Hat, Button, key id
+        uint8 id = 0; // Axis, HatDirection, Button, key id
         BindType type = BindType::None;
         bool invert = false;
 
@@ -138,7 +138,6 @@ namespace Inferno {
 
         static GameBinding EMPTY;
     };
-
 
     constexpr uint BIND_SLOTS = 2;
 

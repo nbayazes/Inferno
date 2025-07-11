@@ -42,8 +42,7 @@ namespace Inferno {
                     }
                 }
                 break;
-            case Input::InputType::Gamepad:
-            {
+            case Input::InputType::Gamepad: {
                 if (binding->type == BindType::Button && binding->id < Input::PS_BUTTON_LABELS.size()) {
                     auto gamepadType = SDL_GAMEPAD_TYPE_UNKNOWN;
                     if (auto device = Input::GetDevice(guid))
@@ -159,8 +158,9 @@ namespace Inferno {
                             break;
 
                         case BindType::Hat:
-                            if (joystick->HatDirection((Input::HatDirection)binding.id))
+                            if(joystick->CheckHatPressed((Input::HatDirection)binding.id))
                                 return true;
+
                             break;
                     }
                 }
@@ -200,8 +200,9 @@ namespace Inferno {
                             break;
 
                         case BindType::Hat:
-                            if (joystick->HatDirection((Input::HatDirection)binding.id))
+                            if (joystick->CheckHatHeld((Input::HatDirection)binding.id))
                                 return true;
+
                             break;
                     }
                 }

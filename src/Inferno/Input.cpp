@@ -159,13 +159,11 @@ namespace Inferno::Input {
         return input * Saturate(scale) / magnitude;
     }
 
-    float LinearDampen(float value, float innerDeadzone, float outerDeadzone, float linearity) {
+    float LinearDampen(float value, float innerDeadzone, float /*outerDeadzone*/, float linearity) {
         if (abs(value) <= innerDeadzone) return 0;
-        //else if (value < -1) value = -1;
-        //else if (value > 1) value = 1;
-        float sign = value < 0 ? -1 : 1;
-        float magnitude = (abs(value) - innerDeadzone) / (1 - innerDeadzone) * (1 - 0) + 0;
-        return pow(magnitude,linearity) * sign;
+        float sign = value < 0 ? -1.0f : 1.0f;
+        float magnitude = (abs(value) - innerDeadzone) / (1 - innerDeadzone);
+        return pow(magnitude, linearity) * sign;
     }
 
     // Maps an axis to -1 to 1
@@ -396,6 +394,7 @@ namespace Inferno::Input {
 
                 case SDL_EVENT_JOYSTICK_HAT_MOTION: {
                     if (auto joystick = Devices.Get(event.jhat.which)) {
+                        joystick->hatPrev = joystick->hat;
                         joystick->hat = event.jhat.value;
                     }
 

@@ -39,6 +39,24 @@ namespace Inferno::Input {
 
     enum class HatDirection { Centered, Left, Right, Up, Down };
 
+    // Returns true if a direction is held on a hat value
+    inline bool CheckHatDirection(uint8 hat, HatDirection dir) {
+        switch (dir) {
+            case HatDirection::Centered:
+                return hat == SDL_HAT_CENTERED;
+            case HatDirection::Up:
+                return HasFlag(hat, (uint8)SDL_HAT_UP);
+            case HatDirection::Right:
+                return HasFlag(hat, (uint8)SDL_HAT_RIGHT);
+            case HatDirection::Down:
+                return HasFlag(hat, (uint8)SDL_HAT_DOWN);
+            case HatDirection::Left:
+                return HasFlag(hat, (uint8)SDL_HAT_LEFT);
+            default:
+                return false;
+        }
+    }
+
     struct InputDevice {
         string guid; // guid used to save and restore bindings
         string name; // display name
@@ -67,7 +85,7 @@ namespace Inferno::Input {
         std::array<float, 8> axes, axesPrevious, axisRepeatTimer; // axis values, normalized to -1 to 1
         std::bitset<8> axisHeld, axisRepeat;
 
-        uint8 hat;
+        uint8 hat, hatPrev;
         std::bitset<32> buttonPressed, buttonHeld, buttonReleased, buttonPrev, buttonRepeat;
         std::array<float, 32> buttonRepeatTimer;
         std::array<float, 3> gyro{}; // gyroscope
@@ -168,17 +186,29 @@ namespace Inferno::Input {
 
             return false;
         }
-        
-        // Returns true if hat is pressed in a direction. Returns direction through parameter.
+
+        // Returns true if hat is held in a direction. Returns direction through parameter.
         bool CheckHat(uint8& hatValue) const {
             for (uint8 i = 1; i <= 4; i++) {
-                if (HatDirection(Input::HatDirection(i))) {
+                if (CheckHatHeld(Input::HatDirection(i))) {
                     hatValue = i;
                     return true;
                 }
             }
 
             return false;
+        }
+
+        // Returns true if hat is pressed in a direction
+        bool CheckHatPressed(HatDirection direction) const {
+            if (CheckHatDirection(hat, direction) && !CheckHatDirection(hatPrev, direction))
+                return true;
+
+            return false;
+        }
+
+        bool CheckHatHeld(HatDirection direction) const {
+            return CheckHatDirection(hat, direction);
         }
 
         bool CheckButtonDown(uint8& button) const {
@@ -190,23 +220,6 @@ namespace Inferno::Input {
             }
 
             return false;
-        }
-
-        bool HatDirection(HatDirection dir) const {
-            switch (dir) {
-                case HatDirection::Centered:
-                    return hat == SDL_HAT_CENTERED;
-                case HatDirection::Up:
-                    return HasFlag(hat, (uint8)SDL_HAT_UP);
-                case HatDirection::Right:
-                    return HasFlag(hat, (uint8)SDL_HAT_RIGHT);
-                case HatDirection::Down:
-                    return HasFlag(hat, (uint8)SDL_HAT_DOWN);
-                case HatDirection::Left:
-                    return HasFlag(hat, (uint8)SDL_HAT_LEFT);
-                default:
-                    return false;
-            }
         }
 
         void Update(float dt) {
