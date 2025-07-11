@@ -229,6 +229,7 @@ namespace Inferno::Input {
             buttonPrev = buttonPressed;
             buttonPressed.reset();
             axesPrevious = axes;
+            hatPrev = hat;
 
             for (uint8 i = 0; i < buttonHeld.size(); i++) {
                 if (buttonPrev[i]) {

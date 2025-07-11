@@ -156,7 +156,7 @@ namespace Inferno::UI {
                                 binding.type = BindType::Button;
                                 finishBinding();
                             }
-                            
+
                             if (joystick->CheckAxisPressed(bindId, dir)) {
                                 // this doesn't seem necessary anymore, tested on PS5 and xbox controllers
                                 //bool halfAxis = bindId == SDL_GAMEPAD_AXIS_LEFT_TRIGGER || bindId == SDL_GAMEPAD_AXIS_RIGHT_TRIGGER;
@@ -577,7 +577,7 @@ namespace Inferno::UI {
 
     class BindingDialog : public DialogBase {
         List<BindingControl*> _bindingControls;
-        List<Input::InputDevice> _gamepads;
+        List<Input::InputDevice> _devices;
         ListBox2* _bindingList = nullptr;
         ComboSelect* _deviceList = nullptr;
         gsl::strict_not_null<int*> _index; // the selected control. 0 is keyboard, 1 is mouse, 1 > is controllers and joysticks
@@ -629,15 +629,20 @@ namespace Inferno::UI {
                     UpdateBindingList(MouseInputs, Game::Bindings.GetMouse());
                 }
                 else if (index > 1) {
-                    auto& device = _gamepads.at(index - 2);
-
-                    if (auto binds = Game::Bindings.GetDevice(device.guid)) {
-                        UpdateBindingList(GamepadInputs, *binds);
+                    if (auto device = Seq::tryItem(_devices, index - 2)) {
+                        if (auto binds = Game::Bindings.GetDevice(device->guid)) {
+                            UpdateBindingList(GamepadInputs, *binds);
+                        }
+                        else {
+                            // No binding entry for this device, add one
+                            auto& newDevice = Game::Bindings.AddDevice(device->guid, device->IsGamepad() ? Input::InputType::Gamepad : Input::InputType::Joystick);
+                            UpdateBindingList(GamepadInputs, newDevice);
+                        }
                     }
                     else {
-                        // No binding entry for this device, add one
-                        auto& newDevice = Game::Bindings.AddDevice(device.guid, device.IsGamepad() ? Input::InputType::Gamepad : Input::InputType::Joystick);
-                        UpdateBindingList(GamepadInputs, newDevice);
+                        // Couldn't find the input device, reset to keyboard
+                        *_index = 0;
+                        UpdateBindingList(KeyboardInputs, Game::Bindings.GetKeyboard());
                     }
                 }
             };
@@ -672,8 +677,7 @@ namespace Inferno::UI {
 
             _bindingList = AddChild<ListBox2>(20, Size.x - DIALOG_PADDING * 3);
             _bindingList->Position = Vector2(DIALOG_PADDING, DIALOG_HEADER_PADDING + CONTROL_HEIGHT * 2 + 8);
-
-            UpdateBindingList(KeyboardInputs, Game::Bindings.GetKeyboard());
+            _deviceList->OnChange(deviceIndex);
         }
 
         bool OnMenuAction(Input::MenuActionState action) override {
@@ -701,7 +705,7 @@ namespace Inferno::UI {
                     UpdateBindingList(MouseInputs, mouse);
                 }
                 else if (*_index > 1) {
-                    auto& device = _gamepads.at(*_index - 2);
+                    auto& device = _devices.at(*_index - 2);
 
                     if (auto binds = Game::Bindings.GetDevice(device.guid)) {
                         ResetGamepadBindings(*binds);
@@ -722,9 +726,9 @@ namespace Inferno::UI {
         List<string> GetDeviceNames() {
             List<string> deviceNames = { "Keyboard", "Mouse" };
 
-            _gamepads = Input::GetDevices(); // Copy the current gamepads
+            _devices = Input::GetDevices(); // Copy the current gamepads
 
-            for (auto& gamepad : _gamepads) {
+            for (auto& gamepad : _devices) {
                 deviceNames.push_back(gamepad.name);
             }
 

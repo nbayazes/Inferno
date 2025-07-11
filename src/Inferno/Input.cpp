@@ -393,10 +393,8 @@ namespace Inferno::Input {
                 }
 
                 case SDL_EVENT_JOYSTICK_HAT_MOTION: {
-                    if (auto joystick = Devices.Get(event.jhat.which)) {
-                        joystick->hatPrev = joystick->hat;
+                    if (auto joystick = Devices.Get(event.jhat.which))
                         joystick->hat = event.jhat.value;
-                    }
 
                     break;
                 }
@@ -652,7 +650,7 @@ namespace Inferno::Input {
             MenuActions.Set(MenuAction::Right);
 
         for (auto& device : Devices.GetAll()) {
-            if (device.IsGamepad()) {
+            if (Settings::Inferno.EnableGamepad && device.IsGamepad()) {
                 if (device.AxisPressed(SDL_GAMEPAD_AXIS_LEFTX, false, true) ||
                     device.ButtonWasPressed(SDL_GAMEPAD_BUTTON_DPAD_LEFT, true))
                     MenuActions.Set(MenuAction::Left);
@@ -674,6 +672,20 @@ namespace Inferno::Input {
 
                 if (device.ButtonWasPressed(SDL_GAMEPAD_BUTTON_SOUTH))
                     MenuActions.Set(MenuAction::Confirm);
+            }
+
+            if (Settings::Inferno.EnableJoystick && device.type == SDL_GAMEPAD_TYPE_UNKNOWN) {
+                if (device.CheckHatPressed(HatDirection::Left))
+                    MenuActions.Set(MenuAction::Left);
+
+                if (device.CheckHatPressed(HatDirection::Right))
+                    MenuActions.Set(MenuAction::Right);
+
+                if (device.CheckHatPressed(HatDirection::Up))
+                    MenuActions.Set(MenuAction::Up);
+
+                if (device.CheckHatPressed(HatDirection::Down))
+                    MenuActions.Set(MenuAction::Down);
             }
         }
     }
