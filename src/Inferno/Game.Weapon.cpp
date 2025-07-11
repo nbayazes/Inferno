@@ -222,7 +222,7 @@ namespace Inferno::Game {
             if (auto wall = level.TryGetWall(hit.Tag))
                 locked = wall->Type == WallType::Door && wall->HasFlag(WallFlag::DoorLocked);
 
-            if (!locked) {
+            if (!locked && !bounce) {
                 SoundResource resource = { soundId };
                 resource.D3 = weapon.Extended.ExplosionSound; // Will take priority if D3 is loaded
                 Sound3D sound(resource);
@@ -342,98 +342,97 @@ namespace Inferno::Game {
             if (weapon.SplashRadius == 0)
                 return; // non-explosive weapons keep going
         }
-        else {
-            if (target.IsPlayer()) {
-                // Players don't take direct damage from explosive weapons for balance reasons
-                // The secondary explosion will still inflict damage.
-                // However we still apply damage so the correct sound effect plays.
-                if (weapon.IsExplosive() || !weapon.Extended.DirectDamage)
-                    damage = 0;
 
-                Game::Player.ApplyDamage(damage * weapon.PlayerDamageScale, true);
+        if (target.IsPlayer()) {
+            // Players don't take direct damage from explosive weapons for balance reasons
+            // The secondary explosion will still inflict damage.
+            // However we still apply damage so the correct sound effect plays.
+            if (weapon.IsExplosive() || !weapon.Extended.DirectDamage)
+                damage = 0;
 
-                if (auto parent = Game::GetObject(src.Parent)) {
-                    if (parent->IsRobot()) {
-                        auto& ai = GetAI(*parent);
-                        ai.Awareness = 1; // Make fully aware if a robot hits the player. This is so hitting a cloaked player keeps them awake.
-                        ai.Target = { target.Segment, target.Position };
-                    }
+            Game::Player.ApplyDamage(damage * weapon.PlayerDamageScale, true);
+
+            if (auto parent = Game::GetObject(src.Parent)) {
+                if (parent->IsRobot()) {
+                    auto& ai = GetAI(*parent);
+                    ai.Awareness = 1; // Make fully aware if a robot hits the player. This is so hitting a cloaked player keeps them awake.
+                    ai.Target = { target.Segment, target.Position };
                 }
             }
-            else if (target.IsRobot()) {
-                Vector3 srcDir;
-                src.Physics.Velocity.Normalize(srcDir);
-                // Explosive weapons stun more due to their damage being split
-                NavPoint srcPos = { target.Segment, target.Position - srcDir * 10 };
-
-                if (weapon.Extended.DirectDamage) {
-                    auto parent = Game::Level.TryGetObject(src.Parent);
-                    DamageRobot(srcPos, target, damage, weapon.Extended.StunMult, parent);
-                }
-            }
-            else if (weapon.Extended.DirectDamage) {
-                target.ApplyDamage(damage);
-            }
-
-            //fmt::print("applied {} damage\n", damage);
-
-            if (!target.IsPlayer() /*&& !weapon.IsExplosive()*/) {
-                // Missiles create their explosion effects when expiring instead of here
-                ExplosionEffectInfo expl;
-                expl.Sound = weapon.RobotHitSound;
-                expl.Volume = WEAPON_HIT_OBJECT_VOLUME;
-                //expl.Parent = src.Parent;
-                expl.Clip = VClipID::SmallExplosion;
-                expl.Radius = { weapon.ImpactSize * 0.85f, weapon.ImpactSize * 1.15f };
-                //expl.Color = Color{ 1.15f, 1.15f, 1.15f };
-                expl.FadeTime = 0.1f;
-                CreateExplosion(expl, target.Segment, hit.Point);
-            }
-
-            //AddPlanarExplosion(weapon, hit);
-
-            // More damage creates more sparks (missiles)
-            constexpr float HEAVY_HIT = 25;
-            float damageMult = damage < HEAVY_HIT ? 1.0f : 2.0f;
-
-            if (auto sparks = EffectLibrary.GetSparks("weapon_hit_obj")) {
-                // Mass weapons set explosion color, energy weapons set light color
-                if (weapon.Extended.ExplosionColor != LIGHT_UNSET)
-                    sparks->Color += weapon.Extended.ExplosionColor * 60;
-                else
-                    sparks->Color += weapon.Extended.LightColor * 60;
-
-                sparks->Color.w = 1;
-                sparks->Count.Min = int(sparks->Count.Min * damageMult);
-                sparks->Count.Max = int(sparks->Count.Max * damageMult);
-                constexpr float duration = 1;
-                AddSparkEmitter(*sparks, target.Segment, hit.Point);
-
-                if (!weapon.IsExplosive()) {
-                    LightEffectInfo light{};
-                    light.LightColor = weapon.Extended.ExplosionColor;
-                    light.Radius = weapon.Extended.LightRadius;
-                    light.FadeTime = sparks->FadeTime / 2;
-                    AddLight(light, hit.Point, duration, target.Segment);
-                }
-            }
-
-            // Tearing metal on heavy hit
-            //if (damage > HEAVY_HIT && target.IsRobot()) {
-            //    Sound3D sound(SoundID::TearD1_02);
-            //    sound.Volume = 0.75f;
-            //    Sound::Play3D(sound, target);
-            //}
-
-            //if (weapon.RobotHitSound != SoundID::None || !weapon.Extended.ExplosionSound.empty()) {
-            //    auto soundRes = Resources::GetSoundResource(weapon.RobotHitSound);
-            //    soundRes.D3 = weapon.Extended.ExplosionSound;
-
-            //    Sound3D sound(hit.Point, hit.HitObj->Segment);
-            //    sound.Resource = soundRes;
-            //    Sound::Play(sound);
-            //}
         }
+        else if (target.IsRobot()) {
+            Vector3 srcDir;
+            src.Physics.Velocity.Normalize(srcDir);
+            // Explosive weapons stun more due to their damage being split
+            NavPoint srcPos = { target.Segment, target.Position - srcDir * 10 };
+
+            if (weapon.Extended.DirectDamage) {
+                auto parent = Game::Level.TryGetObject(src.Parent);
+                DamageRobot(srcPos, target, damage, weapon.Extended.StunMult, parent);
+            }
+        }
+        else if (weapon.Extended.DirectDamage) {
+            target.ApplyDamage(damage);
+        }
+
+        //fmt::print("applied {} damage\n", damage);
+
+        if (!target.IsPlayer() /*&& !weapon.IsExplosive()*/) {
+            // Missiles create their explosion effects when expiring instead of here
+            ExplosionEffectInfo expl;
+            expl.Sound = weapon.RobotHitSound;
+            expl.Volume = WEAPON_HIT_OBJECT_VOLUME;
+            //expl.Parent = src.Parent;
+            expl.Clip = VClipID::SmallExplosion;
+            expl.Radius = { weapon.ImpactSize * 0.85f, weapon.ImpactSize * 1.15f };
+            //expl.Color = Color{ 1.15f, 1.15f, 1.15f };
+            expl.FadeTime = 0.1f;
+            CreateExplosion(expl, target.Segment, hit.Point);
+        }
+
+        //AddPlanarExplosion(weapon, hit);
+
+        // More damage creates more sparks (missiles)
+        constexpr float HEAVY_HIT = 25;
+        float damageMult = damage < HEAVY_HIT ? 1.0f : 2.0f;
+
+        if (auto sparks = EffectLibrary.GetSparks("weapon_hit_obj")) {
+            // Mass weapons set explosion color, energy weapons set light color
+            if (weapon.Extended.ExplosionColor != LIGHT_UNSET)
+                sparks->Color += weapon.Extended.ExplosionColor * 60;
+            else
+                sparks->Color += weapon.Extended.LightColor * 60;
+
+            sparks->Color.w = 1;
+            sparks->Count.Min = int(sparks->Count.Min * damageMult);
+            sparks->Count.Max = int(sparks->Count.Max * damageMult);
+            constexpr float duration = 1;
+            AddSparkEmitter(*sparks, target.Segment, hit.Point);
+
+            if (!weapon.IsExplosive()) {
+                LightEffectInfo light{};
+                light.LightColor = weapon.Extended.ExplosionColor;
+                light.Radius = weapon.Extended.LightRadius;
+                light.FadeTime = sparks->FadeTime / 2;
+                AddLight(light, hit.Point, duration, target.Segment);
+            }
+        }
+
+        // Tearing metal on heavy hit
+        //if (damage > HEAVY_HIT && target.IsRobot()) {
+        //    Sound3D sound(SoundID::TearD1_02);
+        //    sound.Volume = 0.75f;
+        //    Sound::Play3D(sound, target);
+        //}
+
+        //if (weapon.RobotHitSound != SoundID::None || !weapon.Extended.ExplosionSound.empty()) {
+        //    auto soundRes = Resources::GetSoundResource(weapon.RobotHitSound);
+        //    soundRes.D3 = weapon.Extended.ExplosionSound;
+
+        //    Sound3D sound(hit.Point, hit.HitObj->Segment);
+        //    sound.Resource = soundRes;
+        //    Sound::Play(sound);
+        //}
 
         src.Control.Weapon.AddRecentHit(target.Signature);
 
