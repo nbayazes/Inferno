@@ -115,6 +115,7 @@ namespace Inferno::Game {
             if (!seg) continue;
 
             auto position = BossFitsInSegment(level, segid, *boss);
+
             if (!sizeCheck || position)
                 targets.push_back({ segid, position.value_or(seg->Center) });
 
@@ -131,7 +132,26 @@ namespace Inferno::Game {
             }
         }
 
-        return targets;
+        // Do an exhaustive check against all segments for targets.
+        // Otherwise segments with all open sides will be a false-positive, regardless of their size
+        List<TeleportTarget> targets2;
+
+        for (auto& target : targets) {
+            LevelHit hit;
+            bool intersect = false;
+
+            for (int i = 0; i < level.Segments.size(); i++) {
+                if (IntersectLevelSegment(level, target.Position, boss->Radius, (SegID)i, hit)) {
+                    intersect = true;
+                    break;
+                }
+            }
+
+            if (!intersect)
+                targets2.push_back(target);
+        }
+
+        return targets2;
     }
 
     float GetGateInterval() {
