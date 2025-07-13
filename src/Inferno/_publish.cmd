@@ -1,22 +1,22 @@
-xcopy shaders\*.hlsl publish\shaders\ /y
-xcopy shaders\*.hlsli publish\shaders\ /y
-
-xcopy *.txt publish\ /y
-xcopy assets\sounds\*.wav publish\assets\sounds /y
-xcopy assets\textures\ publish\assets\textures\ /y /s
-
-xcopy d1\*.ied publish\d1\ /y
-xcopy d1\missions\vignette\ publish\d1\missions\vignette\ /y
-xcopy d1\*.yml publish\d1\ /y
-xcopy d1\*.pof publish\d1\ /y
-rem copy d1\demo publish\d1\demo /y
-
-xcopy d2\*.ied publish\d2\ /y
-xcopy d2\*.yml publish\d2\ /y
-xcopy d2\*.pof publish\d2\ /y
-
-xcopy ..\..\bin\Inferno\x64\Release\Inferno.exe publish\ /y
-xcopy ..\..\bin\Inferno\x64\Release\*.dll publish\ /y
+rem xcopy shaders\*.hlsl publish\shaders\ /y
+rem xcopy shaders\*.hlsli publish\shaders\ /y
+rem 
+rem xcopy *.txt publish\ /y
+rem xcopy assets\sounds\*.wav publish\assets\sounds\ /y
+rem xcopy assets\textures\ publish\assets\textures\ /y /s
+rem 
+rem xcopy d1\*.ied publish\d1\ /y
+rem xcopy d1\missions\vignette\ publish\d1\missions\vignette\ /y
+rem xcopy d1\*.yml publish\d1\ /y
+rem xcopy d1\*.pof publish\d1\ /y
+rem rem copy d1\demo publish\d1\demo /y
+rem 
+rem xcopy d2\*.ied publish\d2\ /y
+rem xcopy d2\*.yml publish\d2\ /y
+rem xcopy d2\*.pof publish\d2\ /y
+rem 
+rem xcopy ..\..\bin\Inferno\x64\Release\Inferno.exe publish\ /y
+rem xcopy ..\..\bin\Inferno\x64\Release\*.dll publish\ /y
 
 rem cmd /C "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat"
 rem 
@@ -124,13 +124,17 @@ rem set /p "NAME=release name: "
 .\publish\7z.exe a publish\publish.zip d2\sounds\*.wav
 .\publish\7z.exe a publish\publish.zip d2\textures\*.dds
 
+.\publish\7z.exe a publish\publish.zip assets\sounds\*.wav
+.\publish\7z.exe a publish\publish.zip assets\textures\*.dds
+.\publish\7z.exe a publish\publish.zip assets\models\*.pof
+
+.\publish\7z.exe a publish\publish.zip mods\mods.md
+
 .\publish\7z.exe a publish\publish.zip d1\d1xr-hires.dxa
 .\publish\7z.exe a publish\publish.zip d1\missions\vignette\*.ied
-.\publish\7z.exe a publish\publish.zip assets\sounds\*.wav
 .\publish\7z.exe a publish\publish.zip shaders\*.hlsli
 .\publish\7z.exe a publish\publish.zip shaders\*.hlsl
 .\publish\7z.exe a publish\publish.zip shaders\*.bin
-.\publish\7z.exe a publish\publish.zip assets\textures\
 
 .\publish\7z.exe a publish\publish.zip ..\..\bin\Inferno\x64\Release\Inferno.exe
 .\publish\7z.exe a publish\publish.zip ..\..\bin\Inferno\x64\Release\fmt.dll
