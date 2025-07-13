@@ -38,35 +38,35 @@ namespace ImGui {
         return ImGui::InputTextEx(id.data(), nullptr, str.data(), maxSize, { -1, 0 }, 0);
     }
 
-    template<class...TArgs>
-    void ColumnLabel(const char* label, TArgs&& ...args) {
-        ImGui::AlignTextToFramePadding();   // Text and Tree nodes are less high than framed widgets, here we add vertical spacing to make the tree lines equal high.
+    template <class... TArgs>
+    void ColumnLabel(const char* label, TArgs&&... args) {
+        ImGui::AlignTextToFramePadding(); // Text and Tree nodes are less high than framed widgets, here we add vertical spacing to make the tree lines equal high.
         ImGui::Text(label, std::forward<TArgs>(args)...);
         ImGui::NextColumn();
     }
 
-    template<class...TArgs>
-    void ColumnLabelEx(const char* label, const char* desc, TArgs&& ...args) {
-        ImGui::AlignTextToFramePadding();   // Text and Tree nodes are less high than framed widgets, here we add vertical spacing to make the tree lines equal high.
+    template <class... TArgs>
+    void ColumnLabelEx(const char* label, const char* desc, TArgs&&... args) {
+        ImGui::AlignTextToFramePadding(); // Text and Tree nodes are less high than framed widgets, here we add vertical spacing to make the tree lines equal high.
         ImGui::Text(label, std::forward<TArgs>(args)...);
         ImGui::HelpMarker(desc);
         ImGui::NextColumn();
     }
 
-    template<class...TArgs>
-    void TableRowLabel(const char* label, TArgs&& ...args) {
+    template <class... TArgs>
+    void TableRowLabel(const char* label, TArgs&&... args) {
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
-        ImGui::AlignTextToFramePadding();   // Text and Tree nodes are less high than framed widgets, here we add vertical spacing to make the tree lines equal high.
+        ImGui::AlignTextToFramePadding(); // Text and Tree nodes are less high than framed widgets, here we add vertical spacing to make the tree lines equal high.
         ImGui::Text(label, std::forward<TArgs>(args)...);
         ImGui::TableNextColumn();
     }
 
-    template<class...TArgs>
-    void TableRowLabelEx(const char* label, const char* desc, TArgs&& ...args) {
+    template <class... TArgs>
+    void TableRowLabelEx(const char* label, const char* desc, TArgs&&... args) {
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
-        ImGui::AlignTextToFramePadding();   // Text and Tree nodes are less high than framed widgets, here we add vertical spacing to make the tree lines equal high.
+        ImGui::AlignTextToFramePadding(); // Text and Tree nodes are less high than framed widgets, here we add vertical spacing to make the tree lines equal high.
         ImGui::Text(label, std::forward<TArgs>(args)...);
         ImGui::HelpMarker(desc);
         ImGui::TableNextColumn();
@@ -74,23 +74,21 @@ namespace ImGui {
 }
 
 namespace Inferno::Editor {
-    constexpr ImGuiWindowFlags ToolbarFlags = 
-        ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | 
-        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings | 
+    constexpr ImGuiWindowFlags ToolbarFlags =
+        ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar |
+        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings |
         ImGuiWindowFlags_NoNavFocus;
     constexpr ImGuiWindowFlags MainWindowFlags =
         ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
         ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoBackground;
 
-    template<class TFlag>
+    template <class TFlag>
     bool FlagCheckbox(const char* label, TFlag flagToCheck, TFlag& value) {
         bool isChecked = (int)value & (int)flagToCheck;
         bool changed = false;
         if (ImGui::Checkbox(label, &isChecked)) {
             changed = true;
-            value = isChecked ?
-                TFlag((int)value | (int)flagToCheck) :
-                TFlag((int)value ^ (int)flagToCheck);
+            value = isChecked ? TFlag((int)value | (int)flagToCheck) : TFlag((int)value ^ (int)flagToCheck);
         }
 
         return changed;
@@ -114,6 +112,7 @@ namespace Inferno::Editor {
     // Disables all controls in the current scope
     class DisableControls {
         bool _condition;
+
     public:
         DisableControls(bool condition) : _condition(condition) {
             if (!condition) return;
@@ -138,6 +137,7 @@ namespace Inferno::Editor {
         ImGuiWindowFlags _flags;
         bool _isOpen = false;
         bool* _pIsOpen = nullptr;
+
     public:
         WindowBase(string name, bool* open = nullptr, ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse)
             : _name(std::move(name)), _flags(flags), _pIsOpen(open) {
@@ -163,6 +163,7 @@ namespace Inferno::Editor {
         }
 
         bool IsOpen() const { return *_pIsOpen; }
+
         void IsOpen(bool open) {
             *_pIsOpen = open;
             OnOpen(open);
@@ -186,9 +187,12 @@ namespace Inferno::Editor {
         ImGuiWindowFlags _flags;
         bool _focused = false;
         bool _isOpen = false;
+        bool _initialized = false;
+
     public:
         ModalWindowBase(string name, ImGuiWindowFlags flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse)
             : _flags(flags), Name(std::move(name)) {}
+
         virtual ~ModalWindowBase() = default;
 
         bool EnableCloseHotkeys = true; // Enables enter and escape to close the window
@@ -197,7 +201,11 @@ namespace Inferno::Editor {
             if (_isOpen)
                 ImGui::OpenPopup(Name.c_str());
 
-            ImGui::SetNextWindowSize({ Width, Height });
+            if (_flags & ImGuiWindowFlags_AlwaysAutoResize || !_initialized) {
+                ImGui::SetNextWindowSize({ Width, Height });
+                _initialized = true;
+            }
+
             if (ImGui::BeginPopupModal(Name.c_str(), &_isOpen, _flags)) {
                 OnUpdate();
 
@@ -233,7 +241,6 @@ namespace Inferno::Editor {
 
         // Passes true if the user accepted the dialog
         std::function<void(bool)> Callback;
-
 
     protected:
         virtual void OnUpdate() = 0;
@@ -283,7 +290,6 @@ namespace Inferno::Editor {
         void EndInitialFocus() {
             if (ImGui::IsItemActive()) _focused = true;
         }
-
     };
 
     /*class ImGuiWindow {
@@ -299,5 +305,4 @@ namespace Inferno::Editor {
             ImGui::End();
         }
     };*/
-
 }

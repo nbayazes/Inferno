@@ -561,8 +561,8 @@ namespace Inferno::Editor {
         Editor::Events::LevelLoaded();
         SetStatusMessage("Loaded level with {} segments and {} vertices", level.Segments.size(), level.Vertices.size());
 
-        if (!Resources::HasGameData())
-            Events::ShowDialog(DialogType::Settings);
+        //if (!Resources::HasGameData())
+        //    Events::ShowDialog(DialogType::Settings);
 
         ResetAutosaveTimer();
     }

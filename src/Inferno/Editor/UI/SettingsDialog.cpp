@@ -4,7 +4,6 @@
 #include "FileSystem.h"
 #include "Game.h"
 #include "Graphics.h"
-#include "Graphics/MaterialLibrary.h"
 #include "Resources.h"
 
 namespace Inferno::Editor {
@@ -476,11 +475,11 @@ namespace Inferno::Editor {
         _graphics = Settings::Graphics;
         _enableForegroundFpsLimit = Settings::Graphics.EnableForegroundFpsLimit;
 
-        if (!Resources::HasGameData()) {
-            ShowOkMessage("Game data was not found, please configure the executable paths.\n\n"
-                          "If game data is not in the same folder as the executable, use the Data Paths tab to add the folders containing descent.hog and descent2.hog",
-                          "Missing game data");
-        }
+        //if (!Resources::HasGameData()) {
+        //    ShowOkMessage("Game data was not found, please configure the executable paths.\n\n"
+        //                  "If game data is not in the same folder as the executable, use the Data Paths tab to add the folders containing descent.hog and descent2.hog",
+        //                  "Missing game data");
+        //}
         return true;
     }
 

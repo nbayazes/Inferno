@@ -27,8 +27,9 @@ namespace Inferno::Editor {
         List<BindingEntry> _bindingEntries;
 
     public:
-        SettingsDialog() : ModalWindowBase("Settings") {
+        SettingsDialog() : ModalWindowBase("Settings", ImGuiWindowFlags_NoCollapse) {
             Width = 800 * Shell::DpiScale;
+            Height = 800 * Shell::DpiScale;
             EnableCloseHotkeys = false;
         }
 
