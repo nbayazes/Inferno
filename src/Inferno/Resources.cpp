@@ -1435,8 +1435,8 @@ namespace Inferno::Resources {
 
             auto missionPath = Game::Mission ? Game::Mission->Path : "";
 
-            //if (Game::Mission)
-            //    MountAddonData(Game::Mission->Path);
+            if (Game::Mission)
+                MountAddonData(Game::Mission->Path);
 
             //Resources::LoadSounds();
 

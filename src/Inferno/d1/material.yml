@@ -49,18 +49,15 @@ Materials:
     NormalStrength: 0.603
     Metalness: 1
     Roughness: 0.305
-    LightReceived: 1.5
   - Name: rbot036
     NormalStrength: 0.603
     Metalness: 1
     Roughness: 0.305
-    LightReceived: 1.5
   - Name: rbot037
     NormalStrength: 0.603
     Metalness: 1
     Roughness: 0.305
     EmissiveStrength: 10
-    LightReceived: 1.5
   - Name: rbot054
     NormalStrength: 0.4
     SpecularStrength: 3
