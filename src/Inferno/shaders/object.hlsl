@@ -150,10 +150,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
             uint2 pixelPos = uint2(input.pos.xy);
             ambient *= Frame.GlobalDimming;
             specularMask *= material.SpecularStrength;
-
-            // saturate metallic diffuse, it looks better. Causes yellow to look orange.
-            diffuse.rgb = pow(diffuse.rgb, 1 + material.Metalness * .3);
-
             lighting += emissive * diffuse.rgb;
 
             ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);

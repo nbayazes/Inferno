@@ -324,7 +324,7 @@ Lights:
       Color: 1, 0.443, 0.027, 0.3
 
     - Name: Headlight # Player ship headlight
-      Color: 0.6, 0.6, 1, 1
+      Color: 0.6, 0.6, 1, 0.65
       # Color: 1, 0.7, 0.4, .5
       Radius: 180
       Angle: 22.5
@@ -332,7 +332,7 @@ Lights:
       ConeSpill: 0.015 # Very slightly illuminate the surrounding area
 
     - Name: Boosted Headlight # Player ship headlight with powerup
-      Color: 0.6, 0.6, 1, 1
+      Color: 0.6, 0.6, 1, 0.65
       Radius: 300
       Angle: 35
       InnerAngle: 5
