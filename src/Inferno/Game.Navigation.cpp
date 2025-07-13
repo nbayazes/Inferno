@@ -18,6 +18,12 @@ namespace Inferno {
         if (HasFlag(flags, TraversalFlag::PassOpenDoors) && wall.Type == WallType::Door && HasFlag(wall.Flags, WallFlag::DoorOpened))
             return false; // Don't stop at open doors
 
+        // Ignore locked doors if they are open and not set to close automatically
+        // This is so open trap doors can be navigated (for example the start of D1 level 9)
+        if(HasFlag(flags, TraversalFlag::StopLockedDoor) && wall.Type == WallType::Door &&
+           HasFlag(wall.Flags, WallFlag::DoorOpened) && !HasFlag(wall.Flags, WallFlag::DoorAuto))
+            return false;
+
         if (HasFlag(flags, TraversalFlag::StopDoor) && (wall.Type == WallType::Door || wall.Type == WallType::Destroyable))
             return true;
 
