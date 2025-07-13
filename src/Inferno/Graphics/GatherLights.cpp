@@ -202,7 +202,7 @@ namespace Inferno::Graphics {
         }
 
         // Try base texture
-        auto& ti = Resources::GetTextureInfo(side.TMap2);
+        auto& ti = Resources::GetTextureInfo(side.TMap);
         return Resources::GetLightInfo(ti.Name);
     }
 

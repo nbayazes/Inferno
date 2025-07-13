@@ -1327,7 +1327,7 @@ Materials:
     NormalStrength: 0.025
     Metalness: 0.95
     Roughness: 0.35
-    EmissiveStrength: 5
+    EmissiveStrength: 8
     LightReceived: 0.5
   - Name: metl135
     NormalStrength: 0.025
@@ -3489,7 +3489,7 @@ Materials:
     SpecularStrength: 1.5
     Metalness: 1
     Roughness: 0.525
-    LightReceived: 0.2
+    LightReceived: 0.3
     SpecularColor: '1, 1, 1, 0.382'
   - Name: 'door05#0'
     NormalStrength: 0.5
