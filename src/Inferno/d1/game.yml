@@ -322,7 +322,7 @@ Weapons:
     Name: concussion missile
     HudName: "concsn\nmissile"
     StunMult: 2 # It's called a concussion missile, it should stun things
-    Speed: 120 # Original speed of 90 feels weak. Mercuries are 400. Lasers are 120
+    Speed: 130 # Original speed of 90 feels weak. Mercuries are 400. Lasers are 120
     Decal: scorchC
     DecalRadius: 4
     LightRadius: 14

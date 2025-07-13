@@ -3489,7 +3489,7 @@ Materials:
     SpecularStrength: 1.5
     Metalness: 1
     Roughness: 0.525
-    LightReceived: 0.3
+    LightReceived: 0.2
     SpecularColor: '1, 1, 1, 0.382'
   - Name: 'door05#0'
     NormalStrength: 0.5

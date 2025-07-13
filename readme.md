@@ -47,11 +47,14 @@ Enhanced missions require retail game data.
 - [Vignettes](https://sectorgame.com/dxma/mission/?m=560) Addon data is bundled with release. Credit to Fiendzy
 - [Cererian Expedition](https://sectorgame.com/dxma/mission/?m=1561) [Addon](https://pumosoftware.com/files/descent/inferno_addons/cererian.zip) Credit to PuMo
 - [Orion Nebula Project](https://sectorgame.com/dxma/mission/?m=220) [Addon](https://pumosoftware.com/files/descent/inferno_addons/orion.zip) Credit to PuMo
+- [The Outer Reaches](https://sectorgame.com/dxma/mission/?m=494) [Addon](https://pumosoftware.com/files/descent/inferno_addons/outerrch.zip) Credit to PuMo
+- [Trine: Episode 1](https://sectorgame.com/dxma/mission/?m=2118) [Addon](https://pumosoftware.com/files/descent/inferno_addons/trine1.zip) Credit to PuMo
+- [Trine: Episode 2](https://sectorgame.com/dxma/mission/?m=2212) [Addon](https://pumosoftware.com/files/descent/inferno_addons/trine2.zip) Credit to PuMo
 
 ## System Requirements
 - Windows 10 64-bit
 - DirectX 12 capable GPU (Feature level 12 required)
-- A retail copy of Descent 1 is needed to play the full campaign and use the level editor
+- A retail copy of Descent 1 is needed to play the full campaign, custom levels, and use the level editor
 
 ## Major gameplay changes
 - PTMC stopped skimping on basic equipment! The headlight and afterburner are now baseline on all PyroGX models.
@@ -66,6 +69,7 @@ Enhanced missions require retail game data.
 
 ## Balance changes
 - Player vulcan damage significantly increased, spreadfire damage increased, concussion missile speed increased
+- Spreadfire is faster and deals slightly more damage
 - Plasma now fires in a burst pattern similar to Descent 3's Black Pyro
 - Fusion now slows time while charging (can be disabled in options)
 - Robot fusion and vulcan damage now scales with difficulty

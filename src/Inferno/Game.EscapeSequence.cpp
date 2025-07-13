@@ -185,7 +185,7 @@ namespace Inferno {
         }
 
         ASSERT(Seq::inRange(points, info.SurfacePathIndex));
-        info.LookbackPathIndex = info.SurfacePathIndex / 3;
+        info.LookbackPathIndex = int(info.SurfacePathIndex * 0.5f);
         return true;
     }
 
@@ -487,8 +487,8 @@ namespace Inferno {
             case EscapeScene::Start:
                 // Use first person camera
                 Game::SetActiveCamera(Game::MainCamera);
-            //Game::MoveCameraToObject(CinematicCamera, player, Game::LerpAmount);
-            //CinematicCamera.SetFov(Settings::Graphics.FieldOfView);
+                //Game::MoveCameraToObject(CinematicCamera, player, Game::LerpAmount);
+                //CinematicCamera.SetFov(Settings::Graphics.FieldOfView);
                 player.Render.Type = RenderType::None;
                 CinematicCamera.Segment = player.Segment;
                 break;

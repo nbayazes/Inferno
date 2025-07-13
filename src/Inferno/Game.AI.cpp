@@ -2022,7 +2022,7 @@ namespace Inferno {
             auto targetDistanceSq = Vector3::DistanceSquared(ai.Target->Position, robot.Position);
 
             // Turn towards point of interest if we have one and it's nearby
-            if (targetDistanceSq < 80 * 80)
+            if (targetDistanceSq < 250 * 250)
                 TurnTowardsPoint(robot, ai.Target->Position, DifficultyInfo(robotInfo).TurnTime);
 
             //bool validState = ai.CombatState == AICombatState::Normal || ai.CombatState == AICombatState::Chase;

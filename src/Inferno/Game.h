@@ -103,7 +103,6 @@ namespace Inferno::Game {
     }
 
     using GunIndex = uint8;
-    // 4th parameter is volume
     using WeaponBehavior = std::function<void(Inferno::Player&, GunIndex, WeaponID)>;
     WeaponBehavior& GetWeaponBehavior(const string& name);
 
@@ -115,12 +114,12 @@ namespace Inferno::Game {
     constexpr float PLAYER_HIT_WALL_NOISE = 1.5f;
     constexpr float PLAYER_HIT_WALL_RADIUS = 120;
     constexpr float PLAYER_FUSION_SOUND_RADIUS = 120;
-    constexpr float PLAYER_AFTERBURNER_SOUND_RADIUS = 160;
+    constexpr float PLAYER_AFTERBURNER_SOUND_RADIUS = 250; // alert radius for afterburner
     constexpr float FUSION_SHAKE_STRENGTH = 3.5f; // Amount charging fusion shakes the player
     constexpr uint16 VULCAN_AMMO_PICKUP = 1250; // Amount of ammo to give when picking up vulcan ammo. Original value is 1250.
     constexpr float CLOAK_TIME = 30.0f;
     constexpr float INVULNERABLE_TIME = 30.0f;
-    constexpr float WEAPON_HIT_WALL_VOLUME = 1.0f;
+    constexpr float WEAPON_HIT_WALL_VOLUME = 0.9f;
     constexpr float WEAPON_HIT_OBJECT_VOLUME = 1.0f;
 
     inline bool Cheater = false;

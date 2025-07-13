@@ -432,8 +432,8 @@ namespace Inferno::FileSystem {
             MountDirectory("d2", true);
         }
 
-        //if ( Settings::Inferno.Descent3Enhanced) {}
-        MountDirectory(Settings::Inferno.Descent3Path);
+        if (Settings::Inferno.Descent3Enhanced)
+            MountDirectory(Settings::Inferno.Descent3Path);
 
         for (auto& mod : ReadModOrder(MOD_INDEX_FILE)) {
             auto zipPath = MOD_FOLDER / mod;
