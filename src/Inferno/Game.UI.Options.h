@@ -549,7 +549,8 @@ namespace Inferno::UI {
             //panel->AddChild<Checkbox>("only cycle autoselect weapons", Settings::Inferno.OnlyCycleAutoselectWeapons);
             //panel->AddChild<Checkbox>("sticky rearview", Settings::Inferno.StickyRearview);
             panel->AddChild<Checkbox>("charging fusion slows time", Settings::Inferno.SlowmoFusion);
-            panel->AddChild<Checkbox>("hud dirt and glare", Settings::Inferno.HudGlare);
+            panel->AddChild<Checkbox>("hud dirt", Settings::Inferno.HudDirt);
+            panel->AddChild<Checkbox>("hud glare", Settings::Inferno.HudGlare);
             //panel->AddChild<Checkbox>("prefer high res fonts", Settings::Inferno.PreferHighResFonts);
             panel->AddChild<Checkbox>("only autoselect when empty", Settings::Inferno.OnlyAutoselectWhenEmpty);
             panel->AddChild<Checkbox>("no weapon autoselect while firing", Settings::Inferno.NoAutoselectWhileFiring);

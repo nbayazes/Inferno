@@ -178,13 +178,15 @@ namespace Inferno::PostFx {
         // Disable tint unless in-game. We don't want fusion to cause the menu to be unreadable.
         tint.w = gameState == GameState::Game || gameState == GameState::EscapeSequence ? 1.0f : 0.0f;
 
+        bool enableDirt = Settings::Inferno.HudDirt && (gameState == GameState::Game || gameState == GameState::PauseMenu) && !Game::Player.IsDead;
+
         ToneMapConstants constants = {
             .RcpBufferDim = { 1.0f / (float)colorDest.GetWidth(), 1.0f / (float)colorDest.GetHeight() },
             .BloomStrength = BloomStrength /** Settings::Graphics.RenderScale*/, // Lower resolution blurs more, so reduce the intensity
             .Exposure = Exposure,
             .NewLightMode = (HlslBool)Settings::Graphics.NewLightMode,
             .ToneMapper = Settings::Graphics.ToneMapper,
-            .EnableDirt = (HlslBool)(dirt && Settings::Inferno.HudGlare && (gameState == GameState::Game || gameState == GameState::PauseMenu)),
+            .EnableDirt = (HlslBool)(dirt && enableDirt),
             .EnableBloom = (HlslBool)Settings::Graphics.EnableBloom,
             .Tint = tint,
             .Brightness = Settings::Graphics.Brightness

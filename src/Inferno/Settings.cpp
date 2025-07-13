@@ -750,6 +750,7 @@ namespace Inferno {
         node["StickyRearview"] << settings.StickyRearview;
         node["SlowmoFusion"] << settings.SlowmoFusion;
         node["HudGlare"] << settings.HudGlare;
+        node["HudDirt"] << settings.HudDirt;
         node["PreferHighResFonts"] << settings.PreferHighResFonts;
         node["UseSoundOcclusion"] << settings.UseSoundOcclusion;
         node["UseTextureCaching"] << settings.UseTextureCaching;
@@ -791,6 +792,7 @@ namespace Inferno {
         ReadValue2(node, "StickyRearview", settings.StickyRearview);
         ReadValue2(node, "SlowmoFusion", settings.SlowmoFusion);
         ReadValue2(node, "HudGlare", settings.HudGlare);
+        ReadValue2(node, "HudDirt", settings.HudDirt);
         ReadValue2(node, "PreferHighResFonts", settings.PreferHighResFonts);
         ReadValue2(node, "UseSoundOcclusion", settings.UseSoundOcclusion);
         ReadValue2(node, "UseTextureCaching", settings.UseTextureCaching);
