@@ -280,13 +280,9 @@ namespace Inferno::PostFx {
     }
 
     void ToneMapping::LoadResources(DirectX::ResourceUploadBatch& batch) {
-        if (auto data = Resources::ReadBinaryFile("tony_mc_mapface.dds", LoadFlag::Filesystem | LoadFlag::Common)) {
-            TonyMcMapFace.LoadDDS(batch, *data);
-            TonyMcMapFace.AddShaderResourceView();
-        }
-        else {
-            ShowErrorMessage("Unable to find required file: tony_mc_mapface.dds");
-        }
+        auto data = File::ReadAllBytes("assets/textures/tony_mc_mapface.dds");
+        TonyMcMapFace.LoadDDS(batch, data);
+        TonyMcMapFace.AddShaderResourceView();
 
         if (auto path = FileSystem::TryFindFile("cockpit-dirt.dds")) {
             Dirt.LoadDDS(batch, *path);

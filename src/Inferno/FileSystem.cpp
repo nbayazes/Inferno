@@ -95,7 +95,7 @@ namespace Inferno {
     List<ubyte> File::ReadAllBytes(const std::filesystem::path& path) {
         std::ifstream file(path, std::ios::binary);
         if (!file) {
-            auto msg = fmt::format("File not found: {}", path.string());
+            auto msg = fmt::format("Required file not found:\n{}", path.string());
             throw Exception(msg);
         }
 

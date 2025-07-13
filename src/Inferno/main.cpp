@@ -303,4 +303,8 @@ int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
         ShowErrorMessage(e);
         return -1;
     }
+    catch (...) {
+        ShowErrorMessage("Unknown error");
+        return -1;
+    }
 }

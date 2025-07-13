@@ -188,12 +188,7 @@ namespace Inferno::Render {
         StaticTextures->Transparent.Load(batch, transparentData, 2, 2, "transparent", false, DXGI_FORMAT_R8G8B8A8_UNORM);
         StaticTextures->Transparent.AddShaderResourceView();
 
-        try {
-            ToneMapping->LoadResources(batch);
-        }
-        catch (const std::exception& e) {
-            SPDLOG_ERROR(e.what());
-        }
+        ToneMapping->LoadResources(batch);
         EndTextureUpload(batch, Render::Adapter->BatchUploadQueue->Get());
     }
 
@@ -289,7 +284,7 @@ namespace Inferno::Render {
         if (Adapter)
             Adapter->WaitForGpu();
 
-        Materials->Shutdown(); // wait for thread to terminate
+        if (Materials) Materials->Shutdown(); // wait for thread to terminate
         Materials.reset();
         //NewTextureCache.reset();
         Render::Heaps.reset();
