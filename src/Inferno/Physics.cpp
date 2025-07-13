@@ -264,7 +264,7 @@ namespace Inferno {
         setEntry(ObjectType::Player, ObjectType::Powerup, CollisionType::SphereSphere);
         setEntry(ObjectType::Player, ObjectType::Clutter, CollisionType::SpherePoly);
         setEntry(ObjectType::Player, ObjectType::Building, CollisionType::SpherePoly);
-        setEntry(ObjectType::Player, ObjectType::Reactor, CollisionType::SpherePoly);
+        setEntry(ObjectType::Player, ObjectType::Reactor, CollisionType::SphereSphere); // Was sphere-poly, but sliding code got broken. player sticks to reactor.
         setEntry(ObjectType::Player, ObjectType::Hostage, CollisionType::SphereSphere);
         setEntry(ObjectType::Player, ObjectType::Marker, CollisionType::SphereSphere);
         //setEntry(ObjectType::Player, ObjectType::Weapon, CollisionType::SphereSphere); // Weapons can hit players but players can't hit weapons? Simplify logic...
@@ -274,7 +274,7 @@ namespace Inferno {
         setEntry(ObjectType::Robot, ObjectType::Robot, CollisionType::SphereSphere);
         setEntry(ObjectType::Robot, ObjectType::Wall, CollisionType::SphereRoom);
         setEntry(ObjectType::Robot, ObjectType::Building, CollisionType::SpherePoly);
-        setEntry(ObjectType::Robot, ObjectType::Reactor, CollisionType::SpherePoly);
+        setEntry(ObjectType::Robot, ObjectType::Reactor, CollisionType::SphereSphere);
 
         setEntry(ObjectType::Weapon, ObjectType::Weapon, CollisionType::SphereSphere);
         setEntry(ObjectType::Weapon, ObjectType::Robot, CollisionType::SpherePoly); // Harder to hit
@@ -793,7 +793,7 @@ namespace Inferno {
                             //
                             // The fix would be to account for the rotational speed and velocity of the source object
                             // in relation to the target.
-                            //if (velocity > 1.0f && ray.direction.Dot(edgeNormal) > 0)
+                            //if (sphereSource.Physics.Velocity.LengthSquared() > 1.0f && ray.direction.Dot(edgeNormal) > 0)
                             //    continue; // velocity going away from edge so object doesn't get stuck inside
 
                             // Object hit a triangle edge
@@ -1213,6 +1213,9 @@ namespace Inferno {
                             r2 *= 0.66f;
                         }
 
+                        if(other->IsReactor())
+                            r2 *= 0.66f;
+
                         // Make powerups a consistent size regardless of their render size
                         if (obj.IsPowerup()) r1 = Game::POWERUP_RADIUS;
                         if (other->IsPowerup()) r2 = Game::POWERUP_RADIUS;
@@ -1234,12 +1237,12 @@ namespace Inferno {
                             hit.Update(info, other);
 
                             // Move players and robots when they collide with something
-                            if ((obj.IsRobot() || obj.IsPlayer()) &&
-                                (other->IsRobot() || other->IsPlayer())) {
+                            if (((obj.IsRobot() || obj.IsPlayer()) &&
+                                (other->IsRobot() || other->IsPlayer())) || 
+                                other->IsReactor()) {
                                 auto nDotVel = info.Normal.Dot(obj.Physics.Velocity);
                                 hit.Speed = abs(nDotVel);
                                 obj.Physics.Velocity -= info.Normal * nDotVel; // slide along normal
-
                                 obj.Position = info.Point + info.Normal * r1;
                             }
 
@@ -1432,7 +1435,9 @@ namespace Inferno {
             auto hitObject = IntersectObjects(level, obj, objId, pvs, objectHit, dt);
             auto hitLevel = IntersectLevelMesh(level, obj, pvs, hit);
 
-            if (hitObject && hitLevel) {
+            // Powerup check added because if a powerup is in front of a door and the player
+            // is full, the door won't open.
+            if (hitObject && hitLevel && objectHit.HitObj && objectHit.HitObj->Type != ObjectType::Powerup) {
                 if (objectHit.HitObj && objectHit.HitObj->Segment != obj.Segment)
                     hitObject = false; // level hit takes priority if hit object is in a different segment
                 else
