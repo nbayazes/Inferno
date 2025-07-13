@@ -620,7 +620,7 @@ namespace Inferno::Resources {
             HamFile ham;
 
             auto pigData = File::ReadAllBytes(pigPath);
-            auto hog = HogFile::Read(FileSystem::FindFile(hogPath));
+            auto hog = HogFile::Read(hogPath);
             HogReader reader(hog.Path);
             ReadD1Pig(pigData, pig, sounds);
             sounds.Path = pig.Path = pigPath;
@@ -762,7 +762,7 @@ namespace Inferno::Resources {
 
             auto hamPath = FileSystem::TryFindFile("descent2.ham");
             if (!hamPath) {
-                SPDLOG_WARN("descent2.ham not found");
+                SPDLOG_INFO("descent2.ham not found");
                 return false;
             }
 
@@ -851,8 +851,14 @@ namespace Inferno::Resources {
 
         // Reset data so removing a property from the game table clears properly
         if (level.IsDescent1()) {
-            GameData.Weapons = Descent1.Weapons;
-            GameData.Robots = Descent1.Robots;
+            if (level.IsShareware) {
+                GameData.Weapons = Descent1Demo.Weapons;
+                GameData.Robots = Descent1Demo.Robots;
+            }
+            else {
+                GameData.Weapons = Descent1.Weapons;
+                GameData.Robots = Descent1.Robots;
+            }
         }
         else {
             GameData.Weapons = Descent2.Weapons;
@@ -899,7 +905,7 @@ namespace Inferno::Resources {
             }
         }
 
-        // Only load a single light table for the mission, regardless of how many are present
+        // Only load a single light table from the mission, regardless of how many are present
         if (auto text = ReadTextFile(GAME_TABLE_FILE, /*LoadFlag::Filesystem |*/ LoadFlag::Mission)) {
             SPDLOG_INFO("Merging game data from mission");
             LoadGameTable(*text, dest, EffectLibrary);
@@ -1001,6 +1007,9 @@ namespace Inferno::Resources {
     Option<ResourceHandle> Find(string_view fileName, LoadFlag flags) {
         if (fileName.empty()) return {};
         auto file = string(fileName);
+
+        if (HasFlag(flags, LoadFlag::LevelType))
+            flags |= GetLevelLoadFlag(Game::Level);
 
         // current HOG file
         if (Game::Mission && HasFlag(flags, LoadFlag::Mission)) {
@@ -1128,6 +1137,14 @@ namespace Inferno::Resources {
             if (filesystem::exists(unpacked)) {
                 SPDLOG_INFO("Reading from unpacked mission folder {}", unpacked.string());
                 return File::ReadAllBytes(unpacked);
+            }
+
+            if (Game::Level.IsShareware) {
+                auto path = filesystem::path("d1/descent") / subPath;
+                if (filesystem::exists(path)) {
+                    SPDLOG_INFO("Reading from {}", path.string());
+                    return File::ReadAllBytes(path);
+                }
             }
 
             // Check the addon archive

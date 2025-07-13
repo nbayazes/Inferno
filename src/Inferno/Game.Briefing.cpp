@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Game.Briefing.h"
+#include "FileSystem.h"
 #include "Game.Bindings.h"
 #include "Game.h"
 #include "Graphics.h"
@@ -121,7 +122,8 @@ namespace Inferno {
                 // search user mission HOG before checking high res in case it provides custom backgrounds
                 files.insert(screen.Background);
             }
-            else if (Resources::Find(background.string(), LoadFlag::Mission | LoadFlag::Dxa | LoadFlag::BaseHog | loadFlags)) {
+            else if (Resources::Find(background.string(), LoadFlag::Mission | LoadFlag::Dxa | LoadFlag::BaseHog | LoadFlag::LevelType | loadFlags) ||
+                     FileSystem::AssetExists(background.string())) {
                 files.insert(background.string()); // Check for high res image
                 screen.Background = background.string();
             }

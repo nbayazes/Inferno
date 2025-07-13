@@ -561,7 +561,6 @@ namespace Inferno::Render {
 
         //ctx.GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         auto ambient = Game::Terrain.Light;
-        ambient.w *= 1.4f; // The textures on the exit are quite dark
         DrawStaticModel(ctx, Game::Terrain.ExitModel, RenderPass::Opaque, ambient, Adapter->GetFrameConstants(), Game::Terrain.ExitTransform);
     }
 

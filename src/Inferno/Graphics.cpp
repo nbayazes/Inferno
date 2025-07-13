@@ -25,20 +25,20 @@ namespace Inferno::Graphics {
     }
 
     void LoadEnvironmentMap(string_view name) {
-        if (auto path = FileSystem::TryFindFile(name)) {
+        if (auto data = FileSystem::ReadAsset(string(name))) {
             DirectX::ResourceUploadBatch batch(Render::Device);
             batch.Begin();
-            Render::Materials->EnvironmentCube.LoadDDS(batch, *path, true);
+            Render::Materials->EnvironmentCube.LoadDDS(batch, *data, true);
             Render::Materials->EnvironmentCube.CreateCubeSRV();
             batch.End(Render::Adapter->BatchUploadQueue->Get());
         }
     }
 
     void LoadMatcap(string_view name) {
-        if (auto path = FileSystem::TryFindFile(name)) {
+        if (auto data = FileSystem::ReadAsset(string(name))) {
             DirectX::ResourceUploadBatch batch(Render::Device);
             batch.Begin();
-            Render::Materials->Matcap.LoadDDS(batch, *path, true);
+            Render::Materials->Matcap.LoadDDS(batch, *data, true);
             Render::Materials->Matcap.AddShaderResourceView();
             batch.End(Render::Adapter->BatchUploadQueue->Get());
         }

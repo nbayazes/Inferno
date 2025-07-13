@@ -33,6 +33,8 @@ namespace Inferno::Game {
         Option<LoadLevelInfo> PendingLoad;
     }
 
+    void LoadLevelMetadata(Inferno::Level& level);
+
     void LoadLevel(const filesystem::path& path, string_view hogEntry, bool autosave) {
         PendingLoad = LoadLevelInfo{
             .Path = path,
@@ -148,6 +150,7 @@ namespace Inferno::Game {
             FixMatcenLinks(level);
 
             Level = std::move(level); // Move to global so resource loading works properly
+            LoadLevelMetadata(Level); // Relies on IsShareware
             FreeProceduralTextures();
             Resources::LoadLevel(Level);
 
@@ -376,19 +379,6 @@ namespace Inferno::Game {
             const auto& missionPath = Game::Mission->Path;
 
             auto mission = String::ToLower(missionPath.filename().string());
-            //auto loadFlags = LoadFlag::Filesystem;
-
-            // Read IED from data directories for official missions
-            //if (mission == "descent.hog")
-            //    loadFlags |= LoadFlag::Descent1;
-            //else if (mission == "descent2.hog")
-            //    loadFlags |= LoadFlag::Descent2;
-            //else if (mission == "d2x.hog")
-            //    path = D2_FOLDER / "vertigo" / metadataFile; // Vertigo
-
-
-            //if (auto data = Resources::ReadTextFile(metadataFile, loadFlags))
-            //    return *data;
 
             // try reading from mission (includes zip, unpacked folder and hog)
             if (auto data = Resources::ReadTextFile(metadataFile, LoadFlag::Filesystem | LoadFlag::Mission))
@@ -433,8 +423,6 @@ namespace Inferno::Game {
         auto level = shareware ? Level::DeserializeD1Demo(*data) : Level::Deserialize(*data);
         level.FileName = name;
         level.Path = Mission->Path;
-
-        LoadLevelMetadata(level);
         return level;
     }
 

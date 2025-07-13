@@ -78,7 +78,7 @@ namespace Inferno {
         }
 
         for (int g = 0; g < robot.Guns + 1; g++) {
-            for (int state = 0; state < N_ANIM_STATES; state++) {
+            for (uint state = 0; state < N_ANIM_STATES; state++) {
                 robot.Joints[g][state].Count = 0;
                 robot.Joints[g][state].Offset = (short)ham.RobotJoints.size();
 

@@ -372,7 +372,7 @@ namespace Inferno::FileSystem {
                 SPDLOG_WARN("Tried to read unknown hog type: {}", path.string());
             }
         }
-        else if (String::InvariantEquals(ext, ".zip")) {
+        else if (String::InvariantEquals(ext, ".zip") || String::InvariantEquals(ext, ".dxa")) {
             MountZip(path);
             return true;
         }
@@ -416,6 +416,9 @@ namespace Inferno::FileSystem {
     void MountMainMenu() {
         MountArchives("d1/", ".dxa");
         MountDirectory("assets", true);
+
+        //for (auto& [key, value] : Assets)
+        //    SPDLOG_INFO("{} - {}", key, value.path.string());
     }
 
     void MountLevel(const Level& level, const filesystem::path& missionPath) {
@@ -461,27 +464,28 @@ namespace Inferno::FileSystem {
             }
         }
 
-        //for (auto& [key, value] : Assets) {
+        //for (auto& [key, value] : Assets)
         //    SPDLOG_INFO("{} - {}", key, value.path.string());
-        //}
     }
 
-    Option<List<ubyte>> ReadAsset(const string& file) {
-        if (auto resource = Assets.find(file); resource != Assets.end()) {
+    Option<List<ubyte>> ReadAsset(string name) {
+        name = String::ToLower(name);
+
+        if (auto resource = Assets.find(name); resource != Assets.end()) {
             auto& asset = resource->second;
             switch (asset.source) {
                 case Filesystem:
                     return File::ReadAllBytes(asset.path);
                 case Hog: {
                     HogReader hog(asset.path);
-                    return hog.TryReadEntry(file);
+                    return hog.TryReadEntry(name);
                 }
                 case Zip: {
                     if (auto zip = File::OpenZip(asset.path)) {
                         return zip->TryReadEntry(asset.name);
                     }
                     else {
-                        SPDLOG_ERROR("Unable to read {} from {}", file, asset.path.string());
+                        SPDLOG_ERROR("Unable to read {} from {}", name, asset.path.string());
                     }
                     break;
                 }
@@ -491,6 +495,13 @@ namespace Inferno::FileSystem {
             }
         }
 
+        //SPDLOG_WARN("Asset not found {}", name);
         return {};
+    }
+
+    bool AssetExists(string name) {
+        name = String::ToLower(name);
+        auto resource = Assets.find(name);
+        return resource != Assets.end();
     }
 }

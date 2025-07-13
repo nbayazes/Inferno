@@ -51,7 +51,8 @@ namespace Inferno::FileSystem {
     // Mounts custom assets for a level from the filesystem
     void MountLevel(const Level& level, const filesystem::path& missionPath = {});
 
-    Option<List<ubyte>> ReadAsset(const string& file);
+    Option<List<ubyte>> ReadAsset(string name);
+    bool AssetExists(string name);
     filesystem::path FindFile(const std::filesystem::path&);
     span<filesystem::path> GetDirectories();
 

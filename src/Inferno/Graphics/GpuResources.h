@@ -799,6 +799,15 @@ namespace Inferno {
             _desc = _resource->GetDesc();
             return true;
         }
+
+        bool LoadDDS(DirectX::ResourceUploadBatch& batch, span<uint8> data, bool srgb = false) {
+            auto loadFlags = srgb ? DirectX::DDS_LOADER_FORCE_SRGB : DirectX::DDS_LOADER_DEFAULT;
+            ThrowIfFailed(DirectX::CreateDDSTextureFromMemoryEx(Render::Device, batch, data.data(), data.size(), 0, D3D12_RESOURCE_FLAG_NONE, loadFlags, _resource.ReleaseAndGetAddressOf()));
+            _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE; // CreateDDS transitions state
+            batch.Transition(_resource.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            _desc = _resource->GetDesc();
+            return true;
+        }
     };
 
     // Color buffer for render targets or compute shaders

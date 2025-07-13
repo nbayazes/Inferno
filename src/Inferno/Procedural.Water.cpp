@@ -172,14 +172,20 @@ namespace Inferno {
     }
 
     bool LoadDDS(string_view filename, PigBitmap& dest, bool wrapU, bool wrapV, uint8 size = 64) {
-        auto filepath = Inferno::FileSystem::TryFindFile(filename);
-        if (!filepath) return false;
-
         using namespace DirectX;
         ScratchImage dds, decompressed, resized;
         TexMetadata metadata;
 
-        if (FAILED(LoadFromDDSFile(filepath->wstring().c_str(), DDS_FLAGS_NONE, &metadata, dds)))
+        //auto filepath = Inferno::FileSystem::TryFindFile(filename);
+        //if (!filepath) return false;
+
+        //if (FAILED(LoadFromDDSFile(filepath->wstring().c_str(), DDS_FLAGS_NONE, &metadata, dds)))
+        //    return false;
+
+        auto data = Inferno::FileSystem::ReadAsset(string(filename));
+        if (!data) return false;
+
+        if (FAILED(LoadFromDDSMemory(data->data(), data->size(), DDS_FLAGS_NONE, &metadata, dds)))
             return false;
 
         if (FAILED(Decompress(*dds.GetImage(0, 0, 0), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, decompressed)))
@@ -218,7 +224,6 @@ namespace Inferno {
             constexpr int size = 128;
 
             // Search for a DDS file
-            // todo: this should be built into GetTextureInfo()
             if (LoadDDS(ti.Name + ".dds", _baseTexture, wrapu, wrapv, size))
                 return;
 

@@ -284,8 +284,8 @@ namespace Inferno::PostFx {
         TonyMcMapFace.LoadDDS(batch, data);
         TonyMcMapFace.AddShaderResourceView();
 
-        if (auto path = FileSystem::TryFindFile("cockpit-dirt.dds")) {
-            Dirt.LoadDDS(batch, *path);
+        if (auto cockpit = FileSystem::ReadAsset("cockpit-dirt.dds")) {
+            Dirt.LoadDDS(batch, *cockpit);
             Dirt.AddShaderResourceView();
         }
     }

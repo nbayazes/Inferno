@@ -307,7 +307,7 @@ namespace Inferno::Render {
                                       const MaterialUpload& upload,
                                       const TextureMapCache& cache,
                                       List<ubyte>& buffer,
-                                      LoadFlag loadFlag) {
+                                      LoadFlag /*loadFlag*/) {
         if (upload.ID <= TexID::Invalid) return {};
         Material2D material;
         material.ID = upload.ID;
@@ -428,7 +428,7 @@ namespace Inferno::Render {
             material.Handles[i] = Render::Uploads->GetGpuHandle(material.UploadIndex + i);
 
         material.Name = name;
-        if (auto path = FileSystem::TryFindFile(name + ".dds"))
+        if (auto path = FileSystem::ReadAsset(name + ".dds"))
             material.Textures[Material2D::Diffuse].LoadDDS(batch, *path, true);
 
         // Set default secondary textures
@@ -661,16 +661,18 @@ namespace Inferno::Render {
         LoadMaterials(tids, force);
     }
 
-    void MaterialLibrary::LoadTextures(span<const string> names, LoadFlag loadFlags, bool force) {
+    void MaterialLibrary::LoadTextures(span<const string> names, LoadFlag /*loadFlags*/, bool force) {
         bool hasUnloaded = false;
         for (auto& name : names) {
-            if (!name.empty() && !_namedMaterials.contains(name)) {
+            if (!name.empty() && !_namedMaterials.contains(String::ToLower(name))) {
                 hasUnloaded = true;
                 break;
             }
         }
 
-        if (!hasUnloaded && !force) return;
+        if (!hasUnloaded && !force)
+            return;
+
         Render::Adapter->WaitForGpu();
 
         List<Material2D> uploads;
@@ -680,7 +682,7 @@ namespace Inferno::Render {
             if (_namedMaterials.contains(name) && !force) continue; // skip loaded
             Material2D material;
 
-            if (FileSystem::TryFindFile(name + ".dds")) {
+            if (FileSystem::AssetExists(name + ".dds")) {
                 material = UploadBitmap(batch, name, Render::StaticTextures->Black);
             }
             else if (auto bitmap = Resources::ReadOutrageBitmap(name)) {
@@ -688,7 +690,7 @@ namespace Inferno::Render {
                 material = UploadOutrageMaterial(batch, *bitmap, Render::StaticTextures->Black);
             }
             else {
-                if (auto data = Resources::ReadBinaryFile(name, loadFlags)) {
+                if (auto data = FileSystem::ReadAsset(name)) {
                     if (name.ends_with(".bbm")) {
                         auto bbm = ReadBbm(*data);
                         material = UploadBitmap(batch, name, bbm, Render::StaticTextures->Black);
