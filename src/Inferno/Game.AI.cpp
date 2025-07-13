@@ -38,7 +38,7 @@ namespace Inferno {
 
         // Slow is applied to robots hit by the player to compensate for the removal of stun
         constexpr float MAX_SLOW_TIME = 2.0f; // Max duration of slow
-        constexpr float MAX_SLOW_EFFECT = 0.7f; // Max percentage of slow to apply to a robot
+        constexpr float MAX_SLOW_EFFECT = 0.55f; // Max percentage of slow to apply to a robot
         constexpr float MAX_SLOW_THRESHOLD = 0.4f; // Percentage of life dealt to reach max slow
 
         constexpr float STUN_THRESHOLD = 27.5; // Minimum damage to stun a robot. Concussion is 30 damage.
