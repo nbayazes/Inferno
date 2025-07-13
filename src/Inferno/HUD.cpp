@@ -224,13 +224,13 @@ namespace Inferno {
     //    DrawAdditiveBitmap(offset, align, material, sizeScale, scanline);
     //}
 
-    void DrawWeaponBitmap(const Vector2& offset, AlignH align, TexID id, float sizeScale, float alpha) {
+    void DrawWeaponBitmap(const Vector2& offset, AlignH align, TexID id, const Vector2& scale, float alpha) {
         Graphics::LoadTexture(id);
         auto& ti = Resources::GetTextureInfo(id);
 
         Render::CanvasBitmapInfo info;
         info.Position = offset;
-        info.Size = Vector2(ti.Width, ti.Height) * sizeScale;
+        info.Size = Vector2(ti.Width, ti.Height) * scale;
         info.Texture = Render::Materials->Get(id).Handles[Material2D::Diffuse];
         info.HorizontalAlign = align;
         info.VerticalAlign = AlignV::Bottom;
@@ -392,7 +392,7 @@ namespace Inferno {
                 break;
 
             case PrimaryWeaponIndex::Omega:
-                
+
                 ammo = fmt::format("{:.0f}%", player.OmegaCharge / weapon.Ammo * 100);
                 break;
         }
@@ -413,7 +413,7 @@ namespace Inferno {
         }
 
         {
-            float resScale = Game::Level.IsDescent1() ? 2.0f : 1.0f; // todo: check resource path instead?
+            auto scale = Game::Level.IsDescent1() ? Vector2{ 2.0f, 2.2f } : Vector2(1.0f, 1.0f);
             WeaponID wid =
                 weaponIndex == PrimaryWeaponIndex::Laser && state.LaserLevel >= 4
                 ? WeaponID::Laser5
@@ -421,7 +421,7 @@ namespace Inferno {
 
             auto texId = GetWeaponTexID(Resources::GetWeapon(wid));
 
-            DrawWeaponBitmap({ x + WEAPON_BMP_X_OFFSET, WEAPON_BMP_Y_OFFSET }, AlignH::CenterRight, texId, resScale, state.Opacity);
+            DrawWeaponBitmap({ x + WEAPON_BMP_X_OFFSET, WEAPON_BMP_Y_OFFSET }, AlignH::CenterRight, texId, scale, state.Opacity);
         }
 
         DrawEnergyBar(x, false, player.Energy);
@@ -460,13 +460,14 @@ namespace Inferno {
         UseWide1Char(ammo);
         DrawMonitorText(ammo, info, 0.6f * state.Opacity);
 
-        float resScale = Game::Level.IsDescent1() ? 2.0f : 1.0f;
         {
+            auto scale = Game::Level.IsDescent1() ? Vector2{ 2.0f, 2.2f } : Vector2(1.0f, 1.0f);
             auto texId = GetWeaponTexID(Resources::GetWeapon(SecondaryToWeaponID[state.WeaponIndex]));
-            DrawWeaponBitmap({ x + 75, WEAPON_BMP_Y_OFFSET }, AlignH::CenterRight, texId, resScale, state.Opacity);
+            DrawWeaponBitmap({ x + 75, WEAPON_BMP_Y_OFFSET }, AlignH::CenterRight, texId, scale, state.Opacity);
         }
 
         DrawEnergyBar(x, true, player.Energy);
+        float scale = Game::Level.IsDescent1() ? 2.0f : 1.0f;
 
         {
             auto bomb = player.GetActiveBomb();
@@ -492,7 +493,7 @@ namespace Inferno {
             if (blue.Pointer())
                 DrawAdditiveBitmap({ x + 147, -90 }, AlignH::CenterRight, blue, 1, keyScanline, Color(0.0f, 0.0f, 2), false);
             else
-                DrawAdditiveBitmap({ x + 147, -90 }, AlignH::CenterRight, Gauges::BlueKey, resScale, keyScanline, mirrorX);
+                DrawAdditiveBitmap({ x + 147, -90 }, AlignH::CenterRight, Gauges::BlueKey, scale, keyScanline, mirrorX);
         }
 
         if (player.HasPowerup(PowerupFlag::GoldKey)) {
@@ -500,7 +501,7 @@ namespace Inferno {
             if (yellow.Pointer())
                 DrawAdditiveBitmap({ x + 147 + 2, -90 + 21 }, AlignH::CenterRight, yellow, 1, keyScanline, Color(1.1f, 1.1f, 1.1f), false);
             else
-                DrawAdditiveBitmap({ x + 147 + 2, -90 + 21 }, AlignH::CenterRight, Gauges::GoldKey, resScale, keyScanline, mirrorX);
+                DrawAdditiveBitmap({ x + 147 + 2, -90 + 21 }, AlignH::CenterRight, Gauges::GoldKey, scale, keyScanline, mirrorX);
         }
 
         if (player.HasPowerup(PowerupFlag::RedKey)) {
@@ -508,7 +509,7 @@ namespace Inferno {
             if (red.Pointer())
                 DrawAdditiveBitmap({ x + 147 + 4, -90 + 42 }, AlignH::CenterRight, red, 1, keyScanline, Color(1.75f, 0, 0), false);
             else
-                DrawAdditiveBitmap({ x + 147 + 4, -90 + 42 }, AlignH::CenterRight, Gauges::RedKey, resScale, keyScanline, mirrorX);
+                DrawAdditiveBitmap({ x + 147 + 4, -90 + 42 }, AlignH::CenterRight, Gauges::RedKey, scale, keyScanline, mirrorX);
         }
     }
 
