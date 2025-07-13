@@ -788,7 +788,7 @@ namespace Inferno::Game {
         auto spread = weapon.Extended.Spread * DegToRad;
 
         bool flash = true;
-        for (size_t i = 0; i < weapon.FireCount; i++) {
+        for (uint i = 0; i < weapon.FireCount; i++) {
             auto point = RandomPointInCircle(spread);
             FireWeaponInfo info = { .id = wid, .gun = gun, .volume = weapon.Extended.FireVolume, .showFlash = flash };
             FireSpreadWeapon(Game::GetPlayerObject(), info, { point.x, point.y });
@@ -817,7 +817,7 @@ namespace Inferno::Game {
         ObjRef target;
         float bestDotFov = -1;
         auto forward = src.Rotation.Forward();
-        // todo: this could be changed to only scan segments in front of the missile, but the check might be more expensive than just iterating
+        // this could be changed to only scan segments in front of the missile, but the check might be more expensive than just iterating
 
         IterateNearbySegments(Game::Level, src, maxDist, TraversalFlag::PassTransparent, [&](const Segment& seg, bool&) {
             for (auto& objId : seg.Objects) {

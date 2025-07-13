@@ -38,7 +38,7 @@ namespace Inferno {
 
         // Slow is applied to robots hit by the player to compensate for the removal of stun
         constexpr float MAX_SLOW_TIME = 2.0f; // Max duration of slow
-        constexpr float MAX_SLOW_EFFECT = 0.5f; // Max percentage of slow to apply to a robot
+        constexpr float MAX_SLOW_EFFECT = 0.7f; // Max percentage of slow to apply to a robot
         constexpr float MAX_SLOW_THRESHOLD = 0.4f; // Percentage of life dealt to reach max slow
 
         constexpr float STUN_THRESHOLD = 27.5; // Minimum damage to stun a robot. Concussion is 30 damage.
@@ -67,6 +67,7 @@ namespace Inferno {
         for (auto& ai : RuntimeState)
             ai = {};
 
+        GlobalFleeTimer.Reset();
         Game::InitBoss();
     }
 
@@ -864,7 +865,7 @@ namespace Inferno {
         if (!robot.IsRobot()) return false;
 
         auto& ai = GetAI(robot);
-        return ai.AnimationTimer <= ai.AnimationDuration && ai.AnimationTimer >= 0;
+        return ai.AnimationTimer <= ai.AnimationDuration && ai.AnimationTimer >= 0 || ai.State != AIState::Idle;
     }
 
     void AnimateRobot(Object& robot, AIRuntime& ai, float dt) {
@@ -1608,61 +1609,87 @@ namespace Inferno {
         // Search active rooms for help from an idle or alert robot
         Chat(robot, "I need help!");
 
-        Object* nearestHelp = nullptr;
-        float nearestDist = FLT_MAX;
+        Object* nearestSummon = nullptr;
+        float nearestSummonDist = FLT_MAX;
+
+        Object* nearestFleeHelp = nullptr;
+        float nearestFleeDistance = FLT_MAX;
 
         auto action = [&](const Segment& seg, bool& stop) {
             for (auto& objid : seg.Objects) {
                 if (auto help = Game::Level.TryGetObject(objid)) {
                     if (!help->IsRobot()) continue;
+                    if (help->Signature == robot.Signature) continue; // skip self
 
                     auto& helpAI = GetAI(*help);
                     auto& robotInfo = Resources::GetRobotInfo(*help);
 
-                    // don't flee to robots that also flee. basically prevent scouts from running to other scouts.
-                    // preferably this would be checked with a behavior flag instead of the threshold
-                    if (robotInfo.FleeThreshold > 0)
+                    // Only flee or summon idle robots
+                    if (helpAI.State != AIState::Alert && helpAI.State != AIState::Idle)
                         continue;
 
-                    if (helpAI.State == AIState::Alert || helpAI.State == AIState::Idle) {
-                        // Found a robot that can help us
+                    auto dist = Vector3::Distance(help->Position, robot.Position);
 
-                        auto dist = Vector3::Distance(help->Position, robot.Position);
-                        if (dist < nearestDist && dist > AI_HELP_MIN_SEARCH_RADIUS) {
-                            nearestHelp = help;
-                            nearestDist = dist;
+                    // don't flee to robots that also flee. basically prevent scouts from running to other scouts.
+                    // preferably this would be checked with a behavior flag instead of the threshold
+                    if (dist < nearestFleeDistance && robotInfo.FleeThreshold <= 0) {
+                        nearestFleeHelp = help;
+                        nearestFleeDistance = dist;
+                    }
+
+                    // Only summon robots not set to still
+                    if (help->Control.AI.Behavior != AIBehavior::Still) {
+                        if (dist < nearestSummonDist && dist < AI_HELP_MIN_SEARCH_RADIUS) {
+                            nearestSummon = help;
+                            nearestSummonDist = dist;
                         }
                     }
                 }
             }
 
-            stop = nearestHelp != nullptr;
+            stop = nearestSummon != nullptr;
         };
 
         auto flags = TraversalFlag::StopLockedDoor | TraversalFlag::StopSecretDoor;
         IterateNearbySegments(Game::Level, robot, AI_HELP_SEARCH_RADIUS, flags, action);
 
-        if (nearestHelp) {
-            NavPoint goal = { nearestHelp->Segment, nearestHelp->Position };
+        // Help is nearby, wake them up instead of traveling to them
+        if (nearestSummon) {
+            auto& info = Resources::GetRobotInfo(*nearestSummon);
+
+            Chat(robot, "Hey {} {} come over here", info.Name, nearestSummon->Signature);
+
+            auto& helperAi = GetAI(*nearestSummon);
+            // prefer going to the target, otherwise to the robot's position
+            auto goal = ai.Target ? *ai.Target : NavPoint{ robot.Segment, nearestSummon->Position };
+
+            if (SetPathGoal(Game::Level, *nearestSummon, helperAi, goal, PathMode::StopAtEnd, AI_HELP_SEARCH_RADIUS)) {
+                Chat(*nearestSummon, "I'm going to help!");
+                PlayDistressSound(robot);
+                return false; // didn't actually flee
+            }
+        }
+
+        // Flee to an ally
+        if (nearestFleeHelp) {
+            NavPoint goal = { nearestFleeHelp->Segment, nearestFleeHelp->Position };
             if (SetPathGoal(Game::Level, robot, ai, goal, PathMode::StopAtEnd, AI_HELP_SEARCH_RADIUS)) {
-                ai.Ally = Game::GetObjectRef(*nearestHelp);
-                Chat(robot, "Maybe drone {} can help me", nearestHelp->Signature);
+                ai.Ally = Game::GetObjectRef(*nearestFleeHelp);
+                Chat(robot, "Maybe drone {} can help me", nearestFleeHelp->Signature);
                 ChangeState(robot, ai, AIState::FindHelp);
                 ai.path.interruptable = false;
                 ai.path.faceGoal = false;
             }
             return true;
         }
-        else {
-            Chat(robot, "... but I'm all alone :(");
-            ai.Fear = 100;
-            // Fight back harder or run away randomly
 
-            ai.path.nodes = GenerateRandomPath(Game::Level, robot.Segment, 8);
-            ai.path.index = 0;
-            ai.PathDelay = AI_PATH_DELAY;
-            return false;
-        }
+        Chat(robot, "... but I'm all alone :(");
+        ai.Fear = 100;
+        // run away randomly
+        ai.path.nodes = GenerateRandomPath(Game::Level, robot.Segment, 8);
+        ai.path.index = 0;
+        ai.PathDelay = AI_PATH_DELAY;
+        return false;
     }
 
     void FindHelpRoutine(Object& robot, AIRuntime& ai, const RobotInfo& robotInfo) {
@@ -1878,8 +1905,10 @@ namespace Inferno {
         if (shouldFlee && ai.FleeTimer < 0 && FleeingDrones == 0) {
             if (shouldFlee /*Random() > 0.5*/) {
                 if (DronesInCombat <= AI_ALLY_FLEE_MIN) {
-                    FindHelp(ai, robot);
-                    GlobalFleeTimer = AI_GLOBAL_FLEE_DELAY; // Only allow one robot to flee every so often
+                    if (FindHelp(ai, robot))
+                        GlobalFleeTimer = AI_GLOBAL_FLEE_DELAY; // Only allow one robot to flee every so often
+                    else
+                        GlobalFleeTimer = AI_GLOBAL_FLEE_DELAY / 3;
                 }
                 else {
                     // Wounded or scared enough to flee, but would rather fight if there's allies nearby
@@ -1887,7 +1916,8 @@ namespace Inferno {
                 }
             }
 
-            ai.FleeTimer = 2 + Random() * 5;
+            ai.FleeTimer = 1;
+            //ai.FleeTimer = 2 + Random() * 5;
         }
     }
 
@@ -1988,9 +2018,13 @@ namespace Inferno {
             return; // Found a target, start firing!
         }
 
-        // Turn towards point of interest if we have one
         if (ai.Target) {
-            TurnTowardsPoint(robot, ai.Target->Position, DifficultyInfo(robotInfo).TurnTime);
+            auto targetDistanceSq = Vector3::DistanceSquared(ai.Target->Position, robot.Position);
+
+            // Turn towards point of interest if we have one and it's nearby
+            if (targetDistanceSq < 80 * 80)
+                TurnTowardsPoint(robot, ai.Target->Position, DifficultyInfo(robotInfo).TurnTime);
+
             //bool validState = ai.CombatState == AICombatState::Normal || ai.CombatState == AICombatState::Chase;
 
             if (Settings::Cheats.ShowPathing)
@@ -2008,7 +2042,6 @@ namespace Inferno {
                 CanChase(robot, ai)) {
                 ai.ChaseTimer = AI_CURIOSITY_INTERVAL; // Only check periodically
 
-                auto targetDistanceSq = Vector3::DistanceSquared(ai.Target->Position, robot.Position);
                 auto ambushDistanceSq = robotInfo.AmbushDistance * robotInfo.AmbushDistance;
 
                 if (targetDistanceSq > ambushDistanceSq) {
@@ -2019,7 +2052,7 @@ namespace Inferno {
                     if (!HasLineOfSight(robot, ai.Target->Position)) {
                         // todo: sometimes the target isn't reachable due to locked doors or walls, use other behaviors
 
-                        if (ChaseTarget(robot, ai, *ai.Target, PathMode::StopVisible, robotInfo.ChaseDistance)) {
+                        if (ChaseTarget(robot, ai, *ai.Target, PathMode::StopAtEnd, robotInfo.ChaseDistance)) {
                             ai.path.faceGoal = true;
                             ai.path.interruptable = true;
                             Chat(robot, "I hear something, better check it out");
@@ -2049,14 +2082,80 @@ namespace Inferno {
             sound.Pitch = -Random() * 0.35f;
             Sound::PlayFrom(sound, robot);
 
-            AlertRobotsOfTarget(robot, robotInfo.AlertRadius, *ai.Target, 10, true);
-            ai.AlertTimer = 5;
-            Chat(robot, "Intruder alert!");
+            // Find the nearest idle robot and call them.
+            // Sometimes the robot might be in location that can't be pathed from but still get called.
+            // called[] tracks this.
+
+            constexpr int MAX_SEARCH = 10;
+            Array<ObjSig, MAX_SEARCH> called{};
+            int callIndex = 0; // slot in called
+            int callCount = 2; // number of robots to call at once
+
+            for (int i = 0; i < MAX_SEARCH; i++) {
+                Object* nearestHelp = nullptr;
+                float minDistance = FLT_MAX;
+
+                auto action = [&](const Segment& seg, bool& stop) {
+                    for (auto& objid : seg.Objects) {
+                        if (auto help = Game::Level.TryGetObject(objid)) {
+                            if (!help->IsRobot()) continue;
+                            if (Seq::contains(called, help->Signature)) continue;
+
+                            auto& helpAI = GetAI(*help);
+
+                            // Only call idle robots
+                            if (helpAI.State != AIState::Alert && helpAI.State != AIState::Idle)
+                                continue;
+
+                            auto dist = Vector3::Distance(help->Position, robot.Position);
+
+                            // Only summon robots not set to still
+                            if (help->Control.AI.Behavior != AIBehavior::Still) {
+                                if (dist < minDistance && dist < AI_HELP_MIN_SEARCH_RADIUS * 1.5f) {
+                                    nearestHelp = help;
+                                    minDistance = dist;
+                                }
+                            }
+                        }
+                    }
+
+                    stop = nearestHelp != nullptr;
+                };
+
+                auto flags = TraversalFlag::StopLockedDoor | TraversalFlag::StopSecretDoor;
+                IterateNearbySegments(Game::Level, robot, AI_HELP_SEARCH_RADIUS, flags, action);
+
+                // Help is nearby
+                if (nearestHelp) {
+                    auto& info = Resources::GetRobotInfo(*nearestHelp);
+
+                    auto& helperAi = GetAI(*nearestHelp);
+                    // prefer going to the target, otherwise to the robot's position
+                    auto goal = ai.Target ? *ai.Target : NavPoint{ robot.Segment, nearestHelp->Position };
+                    called[callIndex++] = nearestHelp->Signature;
+
+                    if (SetPathGoal(Game::Level, *nearestHelp, helperAi, goal, PathMode::StopAtEnd, AI_HELP_SEARCH_RADIUS)) {
+                        Chat(robot, "{} {} deal with the intruder.", info.Name, nearestHelp->Signature);
+                        //Chat(*nearestHelp, "Intercepting the intruder now.");
+                        if (--callCount <= 0) break;
+                    }
+                }
+            }
+
+            //else {
+            //    Chat(robot, "Intruder alert!");
+            //}
+
+            //AlertRobotsOfTarget(robot, robotInfo.AlertRadius, *ai.Target, 10, true);
+            ai.AlertTimer = 4.5f + Random();
         }
 
         // Supervisors are either in path mode or idle. They cannot peform any other action.
         if (ai.State == AIState::Path) {
+            ScanForTarget(robot, ai); // stay awake if the player is nearby and keep the target location updated
             PathTowardsGoal(robot, ai);
+            ai.Awareness += ai.GetDeltaTime() * AI_AWARENESS_DECAY / 2; // Halve the awareness loss
+
             //MakeCombatNoise(robot, ai);
         }
         else {

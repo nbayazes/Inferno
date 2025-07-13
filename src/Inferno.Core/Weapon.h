@@ -178,7 +178,7 @@ namespace Inferno {
         // Number of times to 'fire' this weapon per pull of the trigger. 
         // For missiles it will alternate gunpoints.
         // For most lasers it will stack the projectiles.
-        int FireCount = 1;
+        uint FireCount = 1;
 
         VClipID RobotHitVClip = VClipID::None;
         SoundID RobotHitSound = SoundID::None;

@@ -398,7 +398,9 @@ namespace Inferno {
             ai.DodgeTime = 0.5f;
         }
 
-        if (ai.path.mode == PathMode::StopVisible && robot.Segment != ai.path.nodes.front().Segment && HasLineOfSight(robot, goal.Position)) {
+        if (ai.path.mode == PathMode::StopVisible && 
+            robot.Segment != ai.path.nodes.front().Segment && 
+            HasLineOfSight(robot, goal.Position)) {
             PlayAlertSound(robot, ai);
             SPDLOG_INFO("Robot {} can see the goal!", robot.Signature);
             ai.path.nodes.clear();
