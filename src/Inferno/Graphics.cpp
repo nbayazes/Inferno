@@ -24,24 +24,26 @@ namespace Inferno::Graphics {
         Render::Materials->LoadMaterials(ids);
     }
 
-    void LoadEnvironmentMap(string_view name) {
-        if (auto data = FileSystem::ReadAsset(string(name))) {
-            DirectX::ResourceUploadBatch batch(Render::Device);
-            batch.Begin();
-            Render::Materials->EnvironmentCube.LoadDDS(batch, *data, true);
-            Render::Materials->EnvironmentCube.CreateCubeSRV();
-            batch.End(Render::Adapter->BatchUploadQueue->Get());
-        }
+    void LoadEnvironmentMap(string_view path) {
+        if (!filesystem::exists(path)) return;
+
+        //if (auto data = FileSystem::ReadAsset(string(name))) {
+        auto data = File::ReadAllBytes(path);
+        DirectX::ResourceUploadBatch batch(Render::Device);
+        batch.Begin();
+        Render::Materials->EnvironmentCube.LoadDDS(batch, data, true);
+        Render::Materials->EnvironmentCube.CreateCubeSRV();
+        batch.End(Render::Adapter->BatchUploadQueue->Get());
     }
 
-    void LoadMatcap(string_view name) {
-        if (auto data = FileSystem::ReadAsset(string(name))) {
-            DirectX::ResourceUploadBatch batch(Render::Device);
-            batch.Begin();
-            Render::Materials->Matcap.LoadDDS(batch, *data, true);
-            Render::Materials->Matcap.AddShaderResourceView();
-            batch.End(Render::Adapter->BatchUploadQueue->Get());
-        }
+    void LoadMatcap(string_view path) {
+        if (!filesystem::exists(path)) return;
+        auto data = File::ReadAllBytes(path);
+        DirectX::ResourceUploadBatch batch(Render::Device);
+        batch.Begin();
+        Render::Materials->Matcap.LoadDDS(batch, data, true);
+        Render::Materials->Matcap.AddShaderResourceView();
+        batch.End(Render::Adapter->BatchUploadQueue->Get());
     }
 
     void PrintMemoryUsage() {
@@ -221,7 +223,7 @@ namespace Inferno::Graphics {
     bool TakeScreenshot = false;
 
     void TakeScoreScreenshot(float delay) {
-        if(delay == 0) {
+        if (delay == 0) {
             Render::TakeScoreScreenshot = true;
         }
         else {

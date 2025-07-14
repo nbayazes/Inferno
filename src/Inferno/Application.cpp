@@ -103,8 +103,8 @@ void Application::Initialize(int width, int height) {
     LoadFonts();
 
     // Load global textures
-    Graphics::LoadEnvironmentMap("env.dds");
-    Graphics::LoadMatcap("matcap.dds");
+    Graphics::LoadEnvironmentMap("assets/textures/env.dds");
+    Graphics::LoadMatcap("assets/textures/matcap.dds");
 
     Events::SettingsChanged += [this] {
         UpdateFpsLimit();
