@@ -79,6 +79,7 @@ namespace Inferno {
 
         Array<Color, PALETTE_SIZE> Palette; // User color palette
         LightSettings Lighting;
+        Color Background = { 0.0063f, 0.0063f, 0.0063f }; // Gamma corrected viewport background color
         float MouselookSensitivity = 0.005f; // Editor mouselook
         float MoveSpeed = 140.0f; // Editor move speed
         bool EditBothWallSides = true;

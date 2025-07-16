@@ -628,11 +628,8 @@ namespace Inferno {
 
     void DeviceResources::CreateBuffers(UINT width, UINT height) {
         // Order of buffer creation matters
-        Color clearColor(0.1f, 0.1f, 0.1f);
+        Color clearColor(0, 0, 0, 1);
         Color emptyColor(0, 0, 0, 0);
-        clearColor.x = std::pow(clearColor.x, 2.2f);
-        clearColor.y = std::pow(clearColor.y, 2.2f);
-        clearColor.z = std::pow(clearColor.z, 2.2f);
 
         auto scale = Inferno::Settings::Graphics.RenderScale;
         uint scaledWidth = uint(width * scale);

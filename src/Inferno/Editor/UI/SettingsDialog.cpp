@@ -287,6 +287,7 @@ namespace Inferno::Editor {
         ImGui::SameLine();
         ImGui::SetNextItemWidth(150 * Shell::DpiScale);
         ImGui::Combo("##texpreview", (int*)&_editor.TexturePreviewSize, "Small\0Medium\0Large");
+        ImGui::ColorEdit3("Viewport Background", &_editor.Background.x, ImGuiColorEditFlags_NoInputs);
         ImGui::EndTabItem();
     }
 
@@ -475,6 +476,12 @@ namespace Inferno::Editor {
         _graphics = Settings::Graphics;
         _enableForegroundFpsLimit = Settings::Graphics.EnableForegroundFpsLimit;
 
+        // Gamma correction
+        auto& background = _editor.Background;
+        background.x = std::pow(background.x, 1 / 2.2f);
+        background.y = std::pow(background.y, 1 / 2.2f);
+        background.z = std::pow(background.z, 1 / 2.2f);
+
         //if (!Resources::HasGameData()) {
         //    ShowOkMessage("Game data was not found, please configure the executable paths.\n\n"
         //                  "If game data is not in the same folder as the executable, use the Data Paths tab to add the folders containing descent.hog and descent2.hog",
@@ -504,6 +511,12 @@ namespace Inferno::Editor {
         if (_graphics.UseVsync != Settings::Graphics.UseVsync) {
             vsyncChanged = true;
         }
+
+        // Gamma correction
+        auto& background = _editor.Background;
+        background.x = std::pow(background.x, 2.2f);
+        background.y = std::pow(background.y, 2.2f);
+        background.z = std::pow(background.z, 2.2f);
 
         Settings::Inferno = _inferno;
         Settings::Editor = _editor;

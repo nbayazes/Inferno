@@ -583,8 +583,6 @@ namespace Inferno::Render {
         // Clear depth and color buffers
         ctx.SetViewportAndScissor(target.GetSize());
         target.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-        ctx.ClearColor(target);
         ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
         if (depthBuffer) {
@@ -634,6 +632,15 @@ namespace Inferno::Render {
         UICanvas->SetSize(width, height);
 
         SetRenderTarget(ctx, Adapter->GetRenderTarget(), &Adapter->GetDepthBuffer());
+
+        auto gameState = Game::GetState();
+
+        // Clear background color
+        if (gameState == GameState::Editor)
+            ctx.ClearColor(Adapter->GetRenderTarget(), nullptr, &Settings::Editor.Background);
+        else
+            ctx.ClearColor(Adapter->GetRenderTarget());
+
         ctx.ClearStencil(Adapter->GetDepthBuffer(), 0);
 
         if (MaterialsChanged) {
@@ -646,7 +653,6 @@ namespace Inferno::Render {
             DrawBriefing(ctx, Adapter->BriefingColorBuffer, Game::Briefing);
         }
 
-        auto gameState = Game::GetState();
 
         if (gameState == GameState::Automap) {
             DrawAutomap(ctx);
@@ -721,6 +727,7 @@ namespace Inferno::Render {
          * Switch to full screen, HDR, non-MSAA, composition render target
          */
         SetRenderTarget(ctx, Adapter->CompositionBuffer);
+        ctx.ClearColor(Adapter->CompositionBuffer);
 
         Canvas->SetSize(Adapter->GetWidth(), Adapter->GetHeight());
         DebugCanvas->SetSize(Adapter->GetWidth(), Adapter->GetHeight());
@@ -792,6 +799,7 @@ namespace Inferno::Render {
 
         // Draw to the back buffer
         SetRenderTarget(ctx, Adapter->GetBackBuffer());
+        ctx.ClearColor(Adapter->GetBackBuffer());
 
         PostProcess(ctx, Adapter->CompositionBuffer);
         LegitProfiler::AddCpuTask(std::move(postProcess));
