@@ -426,13 +426,15 @@ namespace Inferno::FileSystem {
 
         if (level.IsDescent1()) {
             MountArchives("d1/", ".dxa");
-            MountDirectory("assets", true);
-            MountDirectory("d1", true);
+            MountArchive("d1/descent.hog");
+            MountDirectory("assets/", true);
+            MountDirectory("d1/", true);
         }
         else {
             MountArchives("d2/", ".dxa");
-            MountDirectory("assets", true);
-            MountDirectory("d2", true);
+            MountArchive("d2/descent2.hog");
+            MountDirectory("assets/", true);
+            MountDirectory("d2/", true);
         }
 
         if (Settings::Inferno.Descent3Enhanced)
@@ -503,5 +505,11 @@ namespace Inferno::FileSystem {
         name = String::ToLower(name);
         auto resource = Assets.find(name);
         return resource != Assets.end();
+    }
+
+    Option<ResourceHandle> FindAsset(string name) {
+        name = String::ToLower(name);
+        auto resource = Assets.find(name);
+        return resource != Assets.end() ? Option(resource->second) : std::nullopt;
     }
 }

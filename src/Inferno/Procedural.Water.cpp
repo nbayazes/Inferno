@@ -229,6 +229,8 @@ namespace Inferno {
 
             // Fallback to built in data
             auto& texture = Resources::GetBitmap(baseTexture);
+            ASSERT(texture.Info.Width > 0);
+            ASSERT(texture.Info.Height > 0);
 
             size_t rowPitch, slicePitch;
             if (SUCCEEDED(DirectX::ComputePitch(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, texture.Info.Width, texture.Info.Height, rowPitch, slicePitch))) {

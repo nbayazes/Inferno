@@ -373,3 +373,5 @@ dxc.exe
 *.rl2
 /src/Inferno/mods/*
 !/src/Inferno/mods/*.md
+*.HAM
+*.S22

@@ -405,7 +405,7 @@ namespace Inferno {
 
                 Game::LoadLevelFromMission(*info, save.levelNumber, false);
                 Game::MissionTimestamp = save.missionTimestamp;
-                SPDLOG_INFO("Loading save with mission timestamp of {}", save.missionTimestamp);
+                SPDLOG_INFO("Loading save {} with mission timestamp of {}", save.saveFilePath.string(), save.missionTimestamp);
                 return true;
             }
             else {

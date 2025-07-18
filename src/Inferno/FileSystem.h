@@ -3,6 +3,7 @@
 #include "Types.h"
 
 namespace Inferno {
+    struct ResourceHandle;
     struct Level;
 
     struct IZipFile {
@@ -53,6 +54,7 @@ namespace Inferno::FileSystem {
 
     Option<List<ubyte>> ReadAsset(string name);
     bool AssetExists(string name);
+    Option<ResourceHandle> FindAsset(string name);
     filesystem::path FindFile(const std::filesystem::path&);
     span<filesystem::path> GetDirectories();
 

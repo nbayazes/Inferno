@@ -734,8 +734,9 @@ namespace Inferno::Resources {
         // Find the 256 for the palette first. In most cases it is located inside of the hog.
         // But for custom palettes it is on the filesystem
         auto paletteData = hog.TryReadEntry(palette);
-        auto pigName = ReplaceExtension(palette, ".pig");
-        auto pigPath = FileSystem::FindFile(pigName);
+        //auto pigName = ReplaceExtension(palette, ".pig");
+        auto pigPath = D2_FOLDER / palette;
+        pigPath.replace_extension(".pig");
 
         if (!paletteData) {
             // Wasn't in hog, find on filesystem
@@ -760,32 +761,52 @@ namespace Inferno::Resources {
                 return true;
             }
 
-            auto hamPath = FileSystem::TryFindFile("descent2.ham");
-            if (!hamPath) {
-                SPDLOG_INFO("descent2.ham not found");
+            const auto hogPath = D2_FOLDER / "descent2.hog";
+            const auto hamPath = D2_FOLDER / "descent2.ham";
+            const auto s22Path = D2_FOLDER / "descent2.s22";
+            const auto pigPath = D2_FOLDER / "groupa.pig";
+
+            if (!filesystem::exists(hogPath)) {
+                SPDLOG_WARN("{} not found", hogPath.string());
                 return false;
             }
 
-            auto hamData = File::ReadAllBytes(*hamPath);
-            StreamReader reader(hamData);
+            if (!filesystem::exists(hamPath)) {
+                SPDLOG_WARN("{} not found", hamPath.string());
+                return false;
+            }
 
+            if (!filesystem::exists(pigPath)) {
+                SPDLOG_WARN("{} not found", pigPath.string());
+                return false;
+            }
+
+            if (!filesystem::exists(s22Path)) {
+                SPDLOG_WARN("{} not found", s22Path.string());
+                return false;
+            }
+
+            auto hamData = File::ReadAllBytes(hamPath);
+            StreamReader reader(hamData);
             auto ham = ReadHam(reader);
-            auto hog = HogFile::Read(FileSystem::FindFile("descent2.hog"));
+
+            auto hog = HogFile::Read(hogPath);
             HogReader hogReader(hog.Path);
 
+            auto paletteData = hogReader.ReadEntry("GROUPA.256");
+            auto palette = ReadPalette(paletteData);
+
+            auto pig = ReadPigFile(pigPath);
+            Descent2.bitmaps = ReadAllBitmaps(pig, palette);
+ 
             // Everything loaded okay, set data
             Descent2 = FullGameData(ham, FullGameData::Descent2);
             Descent2.hog = std::move(hog);
+            Descent2.sounds = ReadSoundFile(s22Path);
+            Descent2.pig = std::move(pig);
+            Descent2.palette = std::move(palette);
 
-            if (auto s22 = FileSystem::TryFindFile("descent2.s22")) {
-                Descent2.sounds = ReadSoundFile(*s22);
-            }
-
-            LoadPalette(Descent2, "groupa.256", hogReader); // default to groupa
-            Descent2.bitmaps = ReadAllBitmaps(Descent2.pig, Descent2.palette);
-
-            // todo: write other caches?
-            if (Inferno::Settings::Inferno.UseTextureCaching) {
+            if (Settings::Inferno.UseTextureCaching) {
                 WriteTextureCache(ham, Descent2.pig, Descent2.palette, D2_CACHE);
                 D2TextureCache = TextureMapCache(D2_CACHE, 2700);
             }
@@ -795,7 +816,7 @@ namespace Inferno::Resources {
             return true;
         }
         catch (...) {
-            SPDLOG_WARN("Error reading descent2.ham");
+            SPDLOG_WARN("Error reading Descent 2 data");
             return false;
         }
     }
@@ -1435,6 +1456,8 @@ namespace Inferno::Resources {
 
             auto missionPath = Game::Mission ? Game::Mission->Path : "";
 
+            FileSystem::MountLevel(level, missionPath);
+
             if (Game::Mission)
                 MountAddonData(Game::Mission->Path);
 
@@ -1452,21 +1475,21 @@ namespace Inferno::Resources {
 
                 AvailablePalettes = FindAvailablePalettes(level.IsDescent1());
                 GameData = FullGameData(Descent2);
-                // todo: switch palette based on level
 
                 // todo: it is not ideal to reload palettes and their textures each time. Cache them.
                 // Find the 256 for the palette first. In most cases it is located inside of the d2 hog.
                 // But for custom palettes it is on the filesystem
                 HogReader d2Hog(Descent2.hog.Path);
                 auto paletteData = d2Hog.TryReadEntry(level.Palette);
-                auto pigName = ReplaceExtension(level.Palette, ".pig");
-                auto pigPath = FileSystem::FindFile(pigName);
+                //auto pigName = ReplaceExtension(level.Palette, ".pig");
+                auto pigPath = D2_FOLDER / level.Palette;
+                pigPath.replace_extension(".pig");
 
                 if (!paletteData) {
                     // Wasn't in hog, find on filesystem
-                    if (auto path256 = FileSystem::TryFindFile(level.Palette)) {
-                        paletteData = File::ReadAllBytes(*path256);
-                        pigPath = path256->replace_extension(".pig");
+                    if (auto path256 = FileSystem::FindAsset(level.Palette)) {
+                        paletteData = File::ReadAllBytes(path256->path);
+                        pigPath = path256->path.replace_extension(".pig");
                     }
                     else {
                         // Give up and load groupa, but fail if it's not found
@@ -1475,8 +1498,8 @@ namespace Inferno::Resources {
                 }
 
                 GameData.pig = ReadPigFile(pigPath); // todo: pick the correct pre-loaded pig
-                auto palette = ReadPalette(*paletteData);
-                auto bitmaps = ReadAllBitmaps(GameData.pig, palette); // todo: pick texture cache
+                GameData.palette = ReadPalette(*paletteData);
+                GameData.bitmaps = ReadAllBitmaps(GameData.pig, GameData.palette);
 
                 // Load VHAMs
                 if (level.IsVertigo()) {
@@ -1544,8 +1567,6 @@ namespace Inferno::Resources {
             else {
                 throw Exception("Unsupported level version");
             }
-
-            FileSystem::MountLevel(level, missionPath);
 
             // Read replacement models
             //for (auto& model : Current.Models) {
