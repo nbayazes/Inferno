@@ -531,7 +531,7 @@ namespace Inferno {
         if (!weapon.Extended.Chargable) {
             AddEnergy(-GetWeaponEnergyCost(battery.EnergyUsage));
             if (Seq::inRange(PrimaryAmmo, battery.AmmoType))
-                PrimaryAmmo[battery.AmmoType] -= battery.AmmoUsage; // all ammo is treated as vulcan ammo for now
+                PrimaryAmmo[battery.AmmoType] -= battery.AmmoUsage;
         }
 
         auto& sequence = battery.Firing;
@@ -896,11 +896,6 @@ namespace Inferno {
 
         RelinkObject(Game::Level, player, SpawnSegment == SegID::None ? player.Segment : SpawnSegment);
 
-        // Max vulcan ammo changes between D1 and D2
-        //PyroGX.Weapons[(int)PrimaryWeaponIndex::Vulcan].MaxAmmo = Game::Level.IsDescent1() ? 10000 : 20000;
-        // Always use a max ammo of 10000 for balance reasons
-        Ship.Weapons[(int)PrimaryWeaponIndex::Vulcan].Ammo = 10000;
-
         if (died) {
             ResetInventory();
         }
@@ -1021,7 +1016,8 @@ namespace Inferno {
                     SecondaryAmmo[i] = 200;
             }
 
-            PrimaryAmmo[1] = 10000;
+            for (uint8 i = 0; i < PrimaryAmmo.size() && i < Ship.Weapons.size(); i++)
+                PrimaryAmmo[i] = Ship.Weapons[i].Ammo;
         }
 
         ResetHUD();
