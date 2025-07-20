@@ -792,6 +792,11 @@ namespace Inferno::Game {
         auto& camera = Game::GetActiveCamera();
         camera.UpdatePerspectiveMatrices();
         camera.Update(dt);
+
+        if (auto seg = Level.TryGetSegment(camera.Segment)) {
+            Sound::SetReverb((Sound::Reverb)seg->Reverb);
+        }
+
         Graphics::SetDebugCamera(camera); // this will lag behind by a frame
         Render::Present(camera);
 

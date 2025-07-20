@@ -250,6 +250,13 @@ namespace
 
 static_assert(static_cast<unsigned int>(std::size(gReverbPresets)) == Reverb_MAX, "AUDIO_ENGINE_REVERB enum mismatch");
 
+namespace Inferno {
+    XAUDIO2FX_REVERB_PARAMETERS GetReverbPreset(uint8 id) {
+        XAUDIO2FX_REVERB_PARAMETERS native{};
+        ReverbConvertI3DL2ToNative(&gReverbPresets[id], &native);
+        return native;
+    }
+}
 
 //======================================================================================
 // AudioEngine

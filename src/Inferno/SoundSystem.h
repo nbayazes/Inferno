@@ -61,7 +61,7 @@ namespace Inferno::Sound {
     void UnloadD1Sounds();
     void UnloadNamedSounds();
 
-    enum class Reverb {
+    enum class Reverb : uint8 {
         Off = 0,
         Default = 1,
         Generic = 2,
@@ -86,6 +86,33 @@ namespace Inferno::Sound {
         MediumHall = 28,
         LargeHall = 29,
         Plate = 30
+    };
+
+    inline std::map<Sound::Reverb, const char*> REVERB_LABELS = {
+        { Reverb::Off, "Off" },
+        { Reverb::Default, "Default" },
+        { Reverb::Generic, "Generic" },
+        { Reverb::PaddedCell, "Padded cell" },
+        { Reverb::Room, "Room" },
+        { Reverb::Bathroom, "Bathroom" },
+        { Reverb::StoneRoom, "Stone room" },
+        { Reverb::Cave, "Cave" },
+        { Reverb::Arena, "Arena" },
+        { Reverb::Hangar, "Hangar" },
+        { Reverb::Hall, "Hall" },
+        { Reverb::StoneCorridor, "Stone corridor" },
+        { Reverb::Alley, "Alley" },
+        { Reverb::City, "City" },
+        { Reverb::Mountains, "Mountains" },
+        { Reverb::Quarry, "Quarry" },
+        { Reverb::SewerPipe, "Sewer pipe" },
+        { Reverb::Underwater, "Underwater" },
+        { Reverb::SmallRoom, "Small room" },
+        { Reverb::MediumRoom, "Medium room" },
+        { Reverb::LargeRoom, "Large room" },
+        { Reverb::MediumHall, "Medium hall" },
+        { Reverb::LargeHall, "Large hall" },
+        { Reverb::Plate, "Plate" },
     };
 
     AudioEngine* GetEngine();

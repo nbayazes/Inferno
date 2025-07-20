@@ -27,6 +27,8 @@
 
 namespace Inferno
 {
+    XAUDIO2FX_REVERB_PARAMETERS GetReverbPreset(uint8 id);
+
     // Helper for getting a format tag from a WAVEFORMATEX
     inline uint32_t GetFormatTag(const WAVEFORMATEX* wfx) noexcept
     {

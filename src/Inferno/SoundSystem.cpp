@@ -57,6 +57,7 @@ namespace Inferno::Sound {
         constexpr X3DAUDIO_DISTANCE_CURVE Emitter_CubicCurve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_CubicPoints[0], std::size(Emitter_CubicPoints) };
 
         SoundFile _soundsD1, _soundsD2;
+        Reverb LastReverb = {};
     }
 
     // Transforms a volume from 0.0 - 1.0 to an amplitude suitable for XAudio.
@@ -221,6 +222,17 @@ namespace Inferno::Sound {
         }
     };
 
+    // resample to float32
+    //for (size_t i = trimStartBytes; i < raw.size() - trimEndBytes; i++) {
+    //    float value = (float)raw[i] / 255.0f - 0.5f;
+
+    //    // duplicate
+    //    auto offset = i * 2 * sizeof(float);
+
+    //    memcpy(startAudio + offset, &value, sizeof(float));
+    //    memcpy(startAudio + offset + sizeof(float), &value, sizeof(float));
+    //}
+
     // Creates a mono PCM sound effect
     SoundEffect CreateSoundEffect(AudioEngine& engine, span<ubyte> raw, uint32 sampleRate = SAMPLE_RATE_22KHZ, float trimStart = 0, float trimEnd = 0) {
         // create a buffer and store wfx at the beginning.
@@ -233,7 +245,7 @@ namespace Inferno::Sound {
 
         if (trimEnd) {
             for (uint i = 0; i < wavDataSize; i++)
-                wavData[i] = 128; // constant value is silence
+                wavData[i] = 128; // 128 is silence for unsigned PCM
         }
 
         auto startAudio = wavData.get() + sizeof(WAVEFORMATEX);
@@ -977,8 +989,9 @@ namespace Inferno::Sound {
 
     Ptr<SoundWorker> SoundThread;
 
-
     void SetReverb(Reverb reverb) {
+        if (LastReverb == reverb) return;
+        LastReverb = reverb;
         if (GetEngine()) GetEngine()->SetReverb((AUDIO_ENGINE_REVERB)reverb);
         //Engine->SetReverb((AUDIO_ENGINE_REVERB)reverb);
     }

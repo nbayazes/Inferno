@@ -154,6 +154,7 @@ namespace Inferno {
         ubyte StationIndex{};
         ubyte Value{}; // related to fuel center numbers, unused
         SoundFlag AmbientSound{};
+        uint8 Reverb = 0;
 
         List<ObjID> Objects;
         List<EffectID> Effects;
