@@ -1254,7 +1254,7 @@ namespace Inferno {
     float Player::GetPrimaryFireDelay() {
         auto& weapon = Ship.Weapons[(int)Primary];
 
-        if (FiringIndex >= weapon.Firing.size())
+        if (FiringIndex >= weapon.FiringCount)
             FiringIndex = 0;
 
         // Reset the firing sequence if the weapon hasn't fired recently
@@ -1268,7 +1268,7 @@ namespace Inferno {
     float Player::GetSecondaryFireDelay() {
         auto& weapon = Ship.Weapons[10 + (int)Secondary];
 
-        if (SecondaryFiringIndex >= weapon.Firing.size())
+        if (SecondaryFiringIndex >= weapon.FiringCount)
             SecondaryFiringIndex = 0;
 
         // Reset the firing sequence if the weapon hasn't fired recently
