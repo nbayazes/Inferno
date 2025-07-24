@@ -1114,8 +1114,8 @@ namespace Inferno {
                 obj.Light.Mode = info.LightMode;
                 obj.Render.Emissive = info.Glow;
 
-                if ((PowerupID)id == PowerupID::Vulcan || (PowerupID)id == PowerupID::Gauss)
-                    obj.Control.Powerup.Count = Game::VULCAN_AMMO_PICKUP;
+                auto& powerup = Resources::GetPowerup((PowerupID)obj.ID);
+                obj.Control.Powerup.Count = powerup.Ammo;
 
                 break;
             }
