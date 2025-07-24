@@ -151,6 +151,10 @@ namespace Inferno {
         READ_PROP_EXT(FlashColor);
         READ_PROP_EXT(Name);
         READ_PROP_EXT(HudName);
+
+        if (!READ_PROP_EXT(FullName))
+            weapon.Extended.FullName = weapon.Extended.Name;
+
         READ_PROP_EXT(Behavior);
         READ_PROP_EXT(Glow);
         READ_PROP_EXT(ModelName);
@@ -217,6 +221,15 @@ namespace Inferno {
         Yaml::ReadValue(node["LightMode"], (int&)powerup.LightMode);
         Yaml::ReadValue(node["Glow"], powerup.Glow);
         Yaml::ReadValue(node["Name"], powerup.Name);
+        Yaml::ReadValue(node["Ammo"], powerup.Ammo);
+        Yaml::ReadValue(node["Primary"], (uint8&)powerup.Primary);
+        Yaml::ReadValue(node["Secondary"], (uint8&)powerup.Secondary);
+
+        if (powerup.Primary > PrimaryWeaponIndex::Omega) 
+            powerup.Primary = PrimaryWeaponIndex::None;
+
+        if (powerup.Secondary > SecondaryWeaponIndex::Earthshaker) 
+            powerup.Secondary = SecondaryWeaponIndex::None;
     }
 
     Option<string> ReadEffectName(ryml::NodeRef node) {
@@ -383,6 +396,7 @@ namespace Inferno {
                 weapon.RackAmmo = weapon.Ammo * 2;
 
             Yaml::ReadValue(weaponNode["EnergyUsage"], weapon.EnergyUsage);
+            Yaml::ReadValue(weaponNode["AmmoName"], weapon.AmmoName);
 
             if (!Yaml::ReadValue(weaponNode["AmmoUsage"], weapon.AmmoUsage) && i >= 10) {
                 weapon.AmmoUsage = 1; // Default missiles to using 1 ammo
@@ -413,6 +427,7 @@ namespace Inferno {
             }
 
             i++;
+            if (i >= 20) break;
         }
     }
 

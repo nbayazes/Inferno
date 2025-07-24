@@ -1,6 +1,7 @@
 Weapons:
   - id: 0
     Name: laser level 1
+    FullName: Laser Cannon Level 1
     HudName: "laser\nlvl: 1"
     Mass: 0.15
     FireDelay: 0.25
@@ -14,6 +15,7 @@ Weapons:
     LightColor: 1, 0.025, 0.025, 1.5
     FlashColor: 1, 0.025, 0.025, 1.5
     EnergyUsage: 0.25 # Lower energy cost to make early game less tedious. Quads double the cost.
+    Upgrade: laser level 2
 
   #- id: 0
   #  Name: laser 1
@@ -34,6 +36,7 @@ Weapons:
 
   - id: 1
     Name: laser level 2
+    FullName: Laser Cannon Level 2
     HudName: "laser\nlvl: 2"
     Mass: 0.05
     FireDelay: 0.25
@@ -49,9 +52,11 @@ Weapons:
     LightColor: 1, 0.1, 0.33, 1.5
     FlashColor: 1, 0.15, 0.6, 2
     EnergyUsage: 0.25
+    Upgrade: laser level 3
 
   - id: 2
     Name: laser level 3
+    FullName: Laser Cannon Level 3
     HudName: "laser\nlvl: 3"
     Mass: 0.05
     FireDelay: 0.25
@@ -67,9 +72,11 @@ Weapons:
     LightColor: 0.15, 0.15, 0.6, 3.5
     FlashColor: 1, 1, 1, 2
     EnergyUsage: 0.25
+    Upgrade: laser level 4
 
   - id: 3
     Name: laser level 4
+    FullName: Laser Cannon Level 4
     HudName: "laser\nlvl: 4"
     Mass: 0.05
     FireDelay: 0.25
@@ -121,38 +128,6 @@ Weapons:
     LightColor: 0.15, 0.15, 0.6
     FlashColor: 0.7, 0.7, 1, 2
 
-  - id: 30
-    Name: laser 5
-    Mass: 0.05
-    FireDelay: 0.25
-    Glow: 1, .45, .09, 5.5
-    ModelName: YellowLaser.OOF
-    ModelScale: 0.7
-    Size: 0.6
-    ExplosionSound: LazorHitshrt
-    ExplosionTexture: YellowLaserHit
-    ExplosionSize: 1.75
-    ExplosionTime: 0.4
-    LightRadius: 16
-    LightColor: 0.7, 0.4, 0.1, 2
-    FlashColor: 1, .75, .45, 2
-
-  - id: 31
-    Name: laser 6
-    Mass: 0.05
-    FireDelay: 0.25
-    Glow: .5, .5, 1, 5
-    ModelName: WhiteLaser.OOF
-    ModelScale: 0.7
-    Size: 0.6
-    ExplosionSound: LazorHitshrt
-    ExplosionTexture: WhiteLaserHit
-    ExplosionSize: 1.75
-    ExplosionTime: 0.4
-    LightRadius: 16
-    LightColor: 0.54, 0.54, 1, 1.4
-    FlashColor: .5, .5, 1, 2
-
   - id: 9
     Name: flare
     FireDelay: 0.5
@@ -171,6 +146,8 @@ Weapons:
 
   - id: 11
     Name: vulcan
+    FullName: Vulcan Cannon
+    HudName: vulcan
     Behavior: vulcan
     # FireSound: barrett-taper
     # FireSound: MG4
@@ -182,7 +159,7 @@ Weapons:
     ExplosionTexture: vaussimpact
     ExplosionSize: 0.6
     ExplosionTime: 0.4
-    Damage: 7.5 # Was 4
+    Damage: 7.5 # Was 4. 150 DPS at 7.5
     Speed: 600 # Was 500
     PlayerDamageScale: 0.57 # Adjust so damage equals 4 due to drillers
     Spread: 1.0 # spread in units. Was 1.8. Reduced due to smaller robots being difficult to hit with polygon hit testing.
@@ -225,7 +202,7 @@ Weapons:
     Tracer: vulcan tracer
     
   - id: 12 
-    Name: spreadfire
+    Name: spreadfire cannon
     HudName: spread
     # Behavior: shotgun
     # FireCount: 5
@@ -248,6 +225,8 @@ Weapons:
 
   - id: 13
     Name: plasma
+    FullName: Plasma Cannon
+    HudName: plasma
     Decal: scorchB
     Size: 1.5
     ExplosionSound: PlasmaHit1
@@ -261,6 +240,8 @@ Weapons:
 
   - id: 14
     Name: fusion
+    FullName: Fusion Cannon
+    HudName: fusion
     Chargable: 1
     Decal: scorchC
     DecalRadius: 3.25
@@ -962,6 +943,7 @@ Powerups:
 
   - id: 3
     Name: Laser
+    Primary: 0
 
   - id: 4
     Name: Blue Key
@@ -977,42 +959,64 @@ Powerups:
 
   - id: 10
     Name: Concussion Missile
+    Ammo: 1
+    Secondary: 0
 
   - id: 11
     Name: Concussion Missile Pack
+    Ammo: 4
+    Secondary: 0
 
   - id: 12
-    Name: Quad Laser
+    Name: Quad Lasers
 
   - id: 13
     Name: Vulcan Cannon
-
-  - id: 14
-    Name: Spreadfire
-
-  - id: 15
-    Name: Plasma Cannon
-
-  - id: 16
-    Name: Fusion Cannon
-
-  - id: 17
-    Name: Proximity Bombs
-
-  - id: 18
-    Name: Homing Missile
-
-  - id: 19
-    Name: Homing Missile Pack
-
-  - id: 20
-    Name: Smart Missile
-
-  - id: 21
-    Name: Mega Missile
+    Primary: 1
+    Ammo: 250
 
   - id: 22
     Name: Vulcan Ammo
+    IsAmmo: true
+    Ammo: 125
+    Primary: 1
+
+  - id: 14
+    Name: Spreadfire
+    Primary: 2
+
+  - id: 15
+    Name: Plasma Cannon
+    Primary: 3
+
+  - id: 16
+    Name: Fusion Cannon
+    Primary: 4
+
+  - id: 17
+    Name: Proximity Bombs
+    Ammo: 4
+    Secondary: 2
+
+  - id: 18
+    Name: Homing Missile
+    Ammo: 1
+    Secondary: 1
+
+  - id: 19
+    Name: Homing Missile Pack
+    Ammo: 4
+    Secondary: 1
+
+  - id: 20
+    Name: Smart Missile
+    Ammo: 1
+    Secondary: 3
+
+  - id: 21
+    Name: Mega Missile
+    Ammo: 1
+    Secondary: 4
 
   - id: 23
     Name: Cloaking Device
@@ -1564,8 +1568,9 @@ Ships:
           - Delay: 0.25
             Gunpoints: [ 0, 1 ]
       - Weapon: Vulcan
-        AmmoUsage: 10 # Was around 14
-        Ammo: 10000
+        AmmoUsage: 1 # Was around 14
+        Ammo: 1000 # Was 10000
+        AmmoName: Vulcan Rounds
         Firing:
           - Delay: 0.05
             Gunpoints: 6 # center gunpoint
@@ -1605,8 +1610,9 @@ Ships:
           - Delay: 0.25
             Gunpoints: [ 0, 1 ]
       - Weapon: Gauss
-        Ammo: 10000
+        Ammo: 1000
         AmmoType: 1 # Share with vulcan
+        AmmoUsage: 2 # Was around 28
         Firing:
           - Delay: 0.15
             Gunpoints: 6 # center gunpoint

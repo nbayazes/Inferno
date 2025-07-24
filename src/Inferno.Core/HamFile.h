@@ -53,12 +53,16 @@ namespace Inferno {
         VClipID VClip = VClipID::None;
         SoundID HitSound; // sound when picked up
         float Size;
-        float Light; // Original light (radius?)
+        float Light; // unused: HAM light value (radius?)
         Color LightColor;
         float LightRadius;
         Color Glow; // Self illumination
         DynamicLightMode LightMode;
         string Name; // Editor name
+        uint16 Ammo = 0; // How much ammo to give
+        bool IsAmmo = false; // Only gives primary weapon ammo, not the weapon
+        PrimaryWeaponIndex Primary = PrimaryWeaponIndex::None; // Primary weapon to pick up or give ammo for
+        SecondaryWeaponIndex Secondary = SecondaryWeaponIndex::None; // Secondary weapon to pick up or give ammo for
     };
 
     // Stores Texture, Sound, and Animation metadata

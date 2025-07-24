@@ -26,6 +26,7 @@ namespace Inferno {
         Helix = 7,
         Phoenix = 8,
         Omega = 9,
+        None = 255
     };
 
     enum class SecondaryWeaponIndex : uint8 {
@@ -38,7 +39,8 @@ namespace Inferno {
         Guided = 6,
         SmartMine = 7,
         Mercury = 8,
-        Earthshaker = 9
+        Earthshaker = 9,
+        None = 255
     };
 
     enum class LaserLevel : uint8 {
@@ -103,7 +105,8 @@ namespace Inferno {
     // 'Extended' weapon info not present in the original data
     struct WeaponExtended {
         WeaponID ID; // Associate with this existing weapon ID in the HAM
-        string Name; // Name in fullscreen HUD
+        string Name; // Name to reference entry by
+        string FullName; // Name for the message log
         string HudName; // Name in cockpit window
         string Behavior; // Function to call when firing this weapon. Fusion, Omega, Spreadfire, Helix, Mass Driver (zoom)
         string Decal = "scorchA"; // Texture to apply to walls when hit

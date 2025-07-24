@@ -11,7 +11,8 @@ namespace Inferno {
     struct WeaponBattery {
         float EnergyUsage = 0; // Energy per shot
         uint16 AmmoUsage = 0; // Ammo per shot
-        int16 AmmoType = -1; // For primary weapons, ammo type to use
+        int16 AmmoType = -1; // For primary weapons, ammo type to use. For sharing ammo between two weapons.
+        string AmmoName; // Name to show when picking up ammo for this slot
         //int GunpointWeapons[8]{}; // Weapon IDs to use for each gunpoint
         string WeaponName; // Used to resolve weapon id, refer to weapon entry names.
         WeaponID Weapon = WeaponID::None;

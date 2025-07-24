@@ -377,7 +377,7 @@ namespace Inferno {
         auto& weaponInfo = Resources::GetWeapon(player.GetPrimaryWeaponID(weaponIndex));
         string name = weaponInfo.Extended.HudName.empty() ? weaponInfo.Extended.Name : weaponInfo.Extended.HudName;
         string label, ammo;
-        auto& weapon = player.Ship.Weapons[(int)weaponIndex];
+        auto& weapon = player.GetWeaponBattery(weaponIndex);
 
         if (player.HasPowerup(PowerupFlag::QuadFire) && weapon.QuadGunpoints.any())
             label = "quad\n" + name;
@@ -385,16 +385,16 @@ namespace Inferno {
             label = name;
 
         switch (weaponIndex) {
-            case PrimaryWeaponIndex::Vulcan:
-            case PrimaryWeaponIndex::Gauss:
-                if (Seq::inRange(player.PrimaryAmmo, weapon.AmmoType))
-                    ammo = fmt::format("{:04}", player.PrimaryAmmo[weapon.AmmoType] / 10);
-                break;
-
             case PrimaryWeaponIndex::Omega:
-
                 ammo = fmt::format("{:.0f}%", player.OmegaCharge / weapon.Ammo * 100);
                 break;
+            default:
+                if (weapon.Ammo >= 1000) {
+                    ammo = fmt::format("{:04}", player.PrimaryAmmo[weapon.AmmoType]);
+                }
+                else if (weapon.Ammo > 0) {
+                    ammo = fmt::format("{:03}", player.PrimaryAmmo[weapon.AmmoType]);
+                }
         }
 
         DrawMonitorText(label, info, 0.6f * state.Opacity);

@@ -156,7 +156,7 @@ namespace Inferno {
         auto& weaponInfo = Resources::GetWeapon(GetPrimaryWeaponID((PrimaryWeaponIndex)weapon));
 
         if (!HasWeapon((PrimaryWeaponIndex)weapon)) {
-            auto msg = fmt::format("you don't have the {}!", weaponInfo.Extended.Name);
+            auto msg = fmt::format("you don't have the {}!", weaponInfo.Extended.FullName);
             PrintHudMessage(msg);
             Sound::Play2D({ SoundID::SelectFail });
             return;
@@ -173,7 +173,7 @@ namespace Inferno {
         PrimaryDelay = RearmTime;
         Primary = (PrimaryWeaponIndex)weapon;
         PrimaryWasSuper[weapon % SUPER_WEAPON] = weapon >= SUPER_WEAPON;
-        PrintHudMessage(fmt::format("{} selected!", weaponInfo.Extended.Name));
+        PrintHudMessage(fmt::format("{} selected!", weaponInfo.Extended.FullName));
     }
 
     void Player::SelectSecondary(SecondaryWeaponIndex index) {
@@ -204,7 +204,7 @@ namespace Inferno {
         auto& weaponInfo = Resources::GetWeapon(GetSecondaryWeaponID((SecondaryWeaponIndex)weapon));
 
         if (!CanFireSecondary((SecondaryWeaponIndex)weapon)) {
-            auto msg = fmt::format("you have no {}s!", weaponInfo.Extended.Name);
+            auto msg = fmt::format("you have no {}s!", weaponInfo.Extended.FullName);
             PrintHudMessage(msg);
             Sound::Play2D({ SoundID::SelectFail });
             return;
@@ -219,7 +219,7 @@ namespace Inferno {
         SecondaryDelay = RearmTime;
         Secondary = (SecondaryWeaponIndex)weapon;
         SecondaryWasSuper[weapon % SUPER_WEAPON] = weapon >= SUPER_WEAPON;
-        PrintHudMessage(fmt::format("{} selected!", weaponInfo.Extended.Name));
+        PrintHudMessage(fmt::format("{} selected!", weaponInfo.Extended.FullName));
     }
 
 
@@ -518,10 +518,9 @@ namespace Inferno {
             return;
         }
 
-
         auto id = GetPrimaryWeaponID(Primary);
         auto& weapon = Resources::GetWeapon(id);
-        auto& battery = Ship.Weapons[(int)Primary];
+        auto& battery = GetWeaponBattery(Primary);
 
         // must do a different check for omega so running out of charge doesn't cause an autoswap
         if (Primary == PrimaryWeaponIndex::Omega && OmegaCharge < battery.EnergyUsage)
@@ -612,7 +611,7 @@ namespace Inferno {
         auto& weapon = Resources::GameData.Weapons[(int)id];
         SecondaryDelay = GetSecondaryFireDelay();
 
-        auto& battery = Ship.Weapons[10 + (int)Secondary];
+        auto& battery = GetWeaponBattery(Secondary);
         auto& sequence = battery.Firing;
         if (SecondaryFiringIndex >= battery.FiringCount) SecondaryFiringIndex = 0;
         auto& player = Game::GetPlayerObject();
@@ -798,6 +797,8 @@ namespace Inferno {
 
         // Keep player shields in sync with the object that represents it
         if (auto player = Game::Level.TryGetObject(Reference)) {
+            damage *= Ship.DamageTaken;
+
             constexpr float SCALE = 40;
             auto flash = std::max(damage / SCALE, 0.0f);
 
@@ -1194,10 +1195,14 @@ namespace Inferno {
 
     int Player::PickUpAmmo(PrimaryWeaponIndex index, uint16 amount) {
         if (amount == 0) return amount;
+        if ((uint8)index >= 10) {
+            SPDLOG_WARN("Tried to pick up ammo for primary weapon {}", (uint8)index);
+            return 0;
+        }
 
-        auto max = Ship.Weapons[(int)index].Ammo;
-        if (HasPowerup(PowerupFlag::AmmoRack))
-            max *= 2;
+        auto& battery = GetWeaponBattery(index);
+
+        auto max = HasPowerup(PowerupFlag::AmmoRack) ? battery.RackAmmo : battery.Ammo;
 
         auto& ammo = PrimaryAmmo[(int)index];
         bool wasEmpty = ammo == 0;
@@ -1227,11 +1232,8 @@ namespace Inferno {
         bool canFire = true;
         auto& battery = Ship.Weapons[(int)index];
 
-        if ((index == PrimaryWeaponIndex::Vulcan ||
-             index == PrimaryWeaponIndex::Gauss) &&
-            Seq::inRange(PrimaryAmmo, battery.AmmoType)) {
+        if (battery.AmmoUsage > 0 && Seq::inRange(PrimaryAmmo, battery.AmmoType))
             canFire &= battery.AmmoUsage <= PrimaryAmmo[battery.AmmoType];
-        }
 
         if (index == PrimaryWeaponIndex::Omega)
             canFire &= Energy > 1 || OmegaCharge > battery.EnergyUsage; // it's annoying to switch to omega with no energy
@@ -1244,7 +1246,7 @@ namespace Inferno {
         if (Game::Level.IsShareware && index == SecondaryWeaponIndex::Mega)
             return false;
 
-        auto& battery = Ship.Weapons[(int)Secondary + 10];
+        auto& battery = GetWeaponBattery(index);
 
         return
             battery.AmmoUsage <= SecondaryAmmo[(int)index] &&
@@ -1285,11 +1287,11 @@ namespace Inferno {
         if (obj.Lifespan <= 0) return; // Already picked up
         if (IsDead) return; // Player is dead!
 
-        assert(obj.Type == ObjectType::Powerup);
+        ASSERT(obj.Type == ObjectType::Powerup);
 
         auto pickUpAccesory = [this](PowerupFlag powerup, string_view name) {
             if (HasPowerup(powerup)) {
-                auto msg = fmt::format("{} the {}!", Resources::GetString(GameString::AlreadyHave), name);
+                auto msg = fmt::format("You already have the {}!", name);
                 PrintHudMessage(msg);
                 return PickUpEnergy();
             }
@@ -1299,13 +1301,6 @@ namespace Inferno {
                 PrintHudMessage(fmt::format("{}!", name));
                 return true;
             }
-        };
-
-        auto tryPickUpPrimary = [this](PrimaryWeaponIndex weapon) {
-            auto pickedUp = PickUpPrimary(weapon);
-            if (!pickedUp)
-                pickedUp = PickUpEnergy();
-            return pickedUp;
         };
 
         auto id = PowerupID(obj.ID);
@@ -1399,44 +1394,6 @@ namespace Inferno {
                 break;
             }
 
-            case PowerupID::Vulcan:
-            case PowerupID::Gauss: {
-                auto& ammo = obj.Control.Powerup.Count; // remaining ammo on the weapon
-                auto weaponIndex = obj.ID == (int)PowerupID::Vulcan ? PrimaryWeaponIndex::Vulcan : PrimaryWeaponIndex::Gauss;
-
-                // Give ammo first so autoselect works properly
-                if (ammo > 0) {
-                    auto amount = PickUpAmmo(PrimaryWeaponIndex::Vulcan, (uint16)ammo);
-                    ammo -= amount;
-                    if (!used && amount > 0) {
-                        AddScreenFlash(FLASH_PRIMARY);
-                        //PrintHudMessage(fmt::format("{} vulcan rounds!", amount / 10));
-                        PrintHudMessage("vulcan ammo!");
-                        ammoPickedUp = true;
-                        if (ammo == 0)
-                            used = true; // remove object if all ammo was taken
-                    }
-                }
-
-                // Always remove the object if we didn't have the weapon
-                if (!HasWeapon(weaponIndex))
-                    used = PickUpPrimary(weaponIndex);
-
-                break;
-            }
-
-            case PowerupID::Spreadfire:
-                used = tryPickUpPrimary(PrimaryWeaponIndex::Spreadfire);
-                break;
-
-            case PowerupID::Plasma:
-                used = tryPickUpPrimary(PrimaryWeaponIndex::Plasma);
-                break;
-
-            case PowerupID::Fusion:
-                used = tryPickUpPrimary(PrimaryWeaponIndex::Fusion);
-                break;
-
             case PowerupID::SuperLaser: {
                 if (LaserLevel >= MAX_SUPER_LASER_LEVEL) {
                     LaserLevel = MAX_SUPER_LASER_LEVEL;
@@ -1464,97 +1421,14 @@ namespace Inferno {
                 break;
             }
 
-            case PowerupID::Phoenix:
-                used = tryPickUpPrimary(PrimaryWeaponIndex::Phoenix);
-                break;
-
-            case PowerupID::Omega:
-                used = tryPickUpPrimary(PrimaryWeaponIndex::Omega);
-                break;
-
-            case PowerupID::Concussion1:
-                used = PickUpSecondary(SecondaryWeaponIndex::Concussion);
-                break;
-
-            case PowerupID::Concussion4:
-                used = PickUpSecondary(SecondaryWeaponIndex::Concussion, 4, &obj);
-                break;
-
-            case PowerupID::Homing1:
-                used = PickUpSecondary(SecondaryWeaponIndex::Homing);
-                break;
-
-            case PowerupID::Homing4:
-                used = PickUpSecondary(SecondaryWeaponIndex::Homing, 4, &obj);
-                break;
-
-            case PowerupID::ProximityMine:
-                used = PickUpSecondary(SecondaryWeaponIndex::ProximityMine, 4);
-                break;
-
-            case PowerupID::SmartMissile:
-                used = PickUpSecondary(SecondaryWeaponIndex::Smart);
-                break;
-
-            case PowerupID::Mega:
-                used = PickUpSecondary(SecondaryWeaponIndex::Mega);
-                break;
-
-            case PowerupID::FlashMissile1:
-                used = PickUpSecondary(SecondaryWeaponIndex::Flash);
-                break;
-
-            case PowerupID::FlashMissile4:
-                used = PickUpSecondary(SecondaryWeaponIndex::Flash, 4, &obj);
-                break;
-
-            case PowerupID::GuidedMissile1:
-                used = PickUpSecondary(SecondaryWeaponIndex::Guided);
-                break;
-
-            case PowerupID::GuidedMissile4:
-                used = PickUpSecondary(SecondaryWeaponIndex::Guided, 4, &obj);
-                break;
-
-            case PowerupID::SmartMine:
-                used = PickUpSecondary(SecondaryWeaponIndex::SmartMine, 4);
-                break;
-
-            case PowerupID::MercuryMissile1:
-                used = PickUpSecondary(SecondaryWeaponIndex::Mercury);
-                break;
-
-            case PowerupID::MercuryMissile4:
-                used = PickUpSecondary(SecondaryWeaponIndex::Mercury, 4, &obj);
-                break;
-
-            case PowerupID::EarthshakerMissile:
-                used = PickUpSecondary(SecondaryWeaponIndex::Earthshaker);
-                break;
-
-            case PowerupID::VulcanAmmo: {
-                auto amount = PickUpAmmo(PrimaryWeaponIndex::Vulcan, Game::VULCAN_AMMO_PICKUP);
-
-                if (amount > 0) {
-                    AddScreenFlash(FLASH_PRIMARY * 0.66f);
-                    auto msg = fmt::format("{} vulcan rounds!", amount / 10);
-                    PrintHudMessage(msg);
-                    used = true;
-                }
-                else {
-                    PrintHudMessage(fmt::format("you already have {} vulcan rounds!", PrimaryAmmo[1] / 10));
-                }
-                break;
-            }
-
             case PowerupID::Cloak: {
                 if (Game::GetPlayerObject().IsCloaked()) {
-                    auto msg = fmt::format("{} {}!", Resources::GetString(GameString::AlreadyAre), Resources::GetString(GameString::Cloaked));
+                    auto msg = fmt::format("You already are cloaked!");
                     PrintHudMessage(msg);
                 }
                 else {
                     GivePowerup(PowerupFlag::Cloak);
-                    PrintHudMessage(fmt::format("{}!", Resources::GetString(GameString::CloakingDevice)));
+                    PrintHudMessage(fmt::format("{}!", powerup.Name));
                     Game::CloakObject(Game::GetPlayerObject(), Game::CLOAK_TIME);
                     used = true;
                     playSound = false;
@@ -1564,40 +1438,72 @@ namespace Inferno {
 
             case PowerupID::Invulnerability:
                 if (Game::GetPlayerObject().IsInvulnerable()) {
-                    auto msg = fmt::format("{} {}!", Resources::GetString(GameString::AlreadyAre), Resources::GetString(GameString::Invulnerable));
+                    auto msg = fmt::format("You already are invulnerable!");
                     PrintHudMessage(msg);
                 }
                 else {
                     Game::MakeInvulnerable(Game::GetPlayerObject(), Game::INVULNERABLE_TIME);
-                    PrintHudMessage(fmt::format("{}!", Resources::GetString(GameString::Invulnerability)));
+                    PrintHudMessage(fmt::format("{}!", powerup.Name));
                     used = true;
                     playSound = false;
                 }
                 break;
 
             case PowerupID::QuadFire:
-                used = pickUpAccesory(PowerupFlag::QuadFire, Resources::GetString(GameString::QuadLasers));
+                used = pickUpAccesory(PowerupFlag::QuadFire, powerup.Name);
                 break;
 
             case PowerupID::FullMap:
-                used = pickUpAccesory(PowerupFlag::FullMap, "full map");
+                used = pickUpAccesory(PowerupFlag::FullMap, powerup.Name);
                 break;
 
             case PowerupID::Converter:
-                used = pickUpAccesory(PowerupFlag::Converter, "energy to shield converter");
+                used = pickUpAccesory(PowerupFlag::Converter, powerup.Name);
                 break;
 
             case PowerupID::AmmoRack:
-                used = pickUpAccesory(PowerupFlag::AmmoRack, "ammo rack");
+                used = pickUpAccesory(PowerupFlag::AmmoRack, powerup.Name);
                 break;
 
             case PowerupID::Afterburner:
-                used = pickUpAccesory(PowerupFlag::Afterburner, "afterburner cooler");
+                used = pickUpAccesory(PowerupFlag::Afterburner, powerup.Name);
                 break;
 
             case PowerupID::Headlight:
-                used = pickUpAccesory(PowerupFlag::Headlight, "headlight");
+                used = pickUpAccesory(PowerupFlag::Headlight, powerup.Name);
                 break;
+            default: {
+                if (powerup.Primary != PrimaryWeaponIndex::None) {
+                    used = PickUpPrimary(powerup.Primary);
+
+                    // Ammo based weapon
+                    if (powerup.Ammo > 0) {
+                        auto& battery = GetWeaponBattery(powerup.Primary);
+
+                        auto ammoType = battery.AmmoType; // powerup.PrimaryAmmo != PrimaryWeaponIndex::None ? powerup.PrimaryAmmo : powerup.Primary;
+                        if (ammoType >= 10) ammoType = 1; // default to vulcan
+
+                        int amount = 0;
+                        amount = PickUpAmmo((PrimaryWeaponIndex)ammoType, powerup.Ammo);
+
+                        if (amount > 0) {
+                            AddScreenFlash(FLASH_PRIMARY * 0.66f);
+                            PrintHudMessage(fmt::format("{} {}!", amount, battery.AmmoName));
+                            used = true;
+                        }
+                        else {
+                            PrintHudMessage(fmt::format("you already have {} {}!", PrimaryAmmo[(uint8)ammoType], battery.AmmoName));
+                        }
+                    }
+                    else if (!used) {
+                        // Convert to energy
+                        used = PickUpEnergy();
+                    }
+                }
+                else if (powerup.Secondary != SecondaryWeaponIndex::None) {
+                    used = PickUpSecondary(powerup.Secondary, powerup.Ammo, &obj);
+                }
+            }
         }
 
         if (used)
@@ -1652,12 +1558,12 @@ namespace Inferno {
         auto& weaponInfo = Resources::GetWeapon(GetPrimaryWeaponID(index));
 
         if (index != PrimaryWeaponIndex::Laser && PrimaryWeapons & flag) {
-            PrintHudMessage(fmt::format("you already have the {}", weaponInfo.Extended.Name));
+            PrintHudMessage(fmt::format("you already have the {}", weaponInfo.Extended.FullName));
             return false;
         }
 
         if (index != PrimaryWeaponIndex::Laser)
-            PrintHudMessage(fmt::format("{}!", weaponInfo.Extended.Name));
+            PrintHudMessage(fmt::format("{}!", weaponInfo.Extended.FullName));
 
         GiveWeapon(index);
         AddScreenFlash(FLASH_PRIMARY);
@@ -1668,7 +1574,7 @@ namespace Inferno {
     }
 
     bool Player::PickUpSecondary(SecondaryWeaponIndex index, uint16 count, const Object* source) {
-        auto& battery = Ship.Weapons[10 + (int)index];
+        auto& battery = GetWeaponBattery(index);
         auto max = battery.Ammo;
 
         if (HasPowerup(PowerupFlag::AmmoRack))
@@ -1677,10 +1583,10 @@ namespace Inferno {
         auto& ammo = SecondaryAmmo[(int)index];
         auto startAmmo = ammo;
         auto& weaponInfo = Resources::GetWeapon(GetSecondaryWeaponID(index));
-        auto& name = weaponInfo.Extended.Name;
+        auto& name = weaponInfo.Extended.FullName;
 
         if (ammo >= max) {
-            auto msg = fmt::format("{} {} {}s!", Resources::GetString(GameString::AlreadyHave), ammo, name);
+            auto msg = fmt::format("you already have {} {}s!", ammo, name);
             PrintHudMessage(msg);
             return false;
         }

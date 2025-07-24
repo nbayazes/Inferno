@@ -1,6 +1,7 @@
 Weapons:
   - id: 30
     Name: super laser level 5
+    FullName: Super Laser Cannon Level 5
     HudName: "laser\nlvl: 5"
     Mass: 0.05
     FireDelay: 0.25
@@ -18,6 +19,7 @@ Weapons:
 
   - id: 31
     Name: super laser level 6
+    FullName: Super Laser Cannon Level 6
     HudName: "laser\nlvl: 6"
     Mass: 0.05
     FireDelay: 0.25
@@ -35,6 +37,7 @@ Weapons:
 
   - id: 32
     Name: gauss
+    FullName: Gauss Cannon
     # Behavior: shotgun
     # FireCount: 7
     # Spread: 1.2 # 3.6
@@ -46,9 +49,11 @@ Weapons:
     ExplosionTime: 0.6
     Damage: 25 # Original value of 25 is 167 DPS with no direct damage, 30 is 200 DPS
     DirectDamage: 0 # Only deal splash damage for balance reasons
-    SplashRadius: 20 # Increased from 10 to make more distinct from vulcan, similar to a flak cannon. Missiles are 30
+    ImpactSize: 3.5
+    SplashRadius: 25 # Increased from 10 to make more distinct from vulcan, similar to a flak cannon. Missiles are 30
     AmmoUsage: 40
-    LightRadius: 6
+    LightRadius: 10
+    #LightColor: 1, .66, 0.25, 1.5 # in-flight light color looks like flickering, not great
     ExplosionSound: # ExpHardBullet
     Model: -1
     FlashColor: 1, 0.6, .3, 1
@@ -57,6 +62,7 @@ Weapons:
 
   - id: 33
     Name: helix
+    FullName: Helix Cannon
     Behavior: helix
     Glow: .933, 1, .933, 1.5
     ExplosionTexture: Bright Blue Energy1
@@ -69,6 +75,7 @@ Weapons:
 
   - id: 34
     Name: phoenix
+    FullName: Phoenix Cannon
     Bounces: 2
     Glow: 1, 1, 1, 5
     ExplosionSound: emdBounce
@@ -82,6 +89,7 @@ Weapons:
 
   - id: 35
     Name: omega cannon
+    FullName: Omega Cannon
     HudName: omega
     Behavior: omega
     Damage: 16 # Was 32, halved due to doubling fire rate
@@ -100,36 +108,46 @@ Weapons:
 
   - id: 36
     Name: flash missile
+    FullName: Flash Missile
     HudName: "flash\nmissile"
     Decal: scorchC
     DecalRadius: 3
     StunMult: 6 # Base damage of 9
+    Ammo: 5
 
   - id: 37
     Name: guided missile
+    FullName: Guided Missile
     HudName: "guided\nmissile"
     Decal: scorchC
     DecalRadius: 4
+    Ammo: 6
 
   - id: 38
     Name: smart mine
+    FullName: Smart Mine
     InheritParentVelocity: 1
     Decal: scorchC
     DecalRadius: 3
+    Ammo: 7
 
   - id: 39
     Name: mercury missile
+    FullName: Mercury Missile
     HudName: "mercury\nmissile"
     Decal: scorchC
     DecalRadius: 5            
+    Ammo: 8
 
   - id: 40
     Name: earthshaker
+    FullName: Earthshaker Missile
     HudName: "earth\nshaker"
     Decal: scorchC
     DecalRadius: 8
     ExplosionColor: .05, .05, 1, 100
     LightRadius: 120
+    Ammo: 9
 
   - id: 51
     Name: level mine
@@ -270,57 +288,78 @@ Robots:
 Powerups:
   - id: 28
     Name: Gauss Cannon
+    Primary: 6
 
   - id: 29
     Name: Helix Cannon
+    Primary: 7
 
   - id: 30
     Name: Phoenix Cannon
+    Primary: 8
 
   - id: 31
     Name: Omega Cannon
+    Primary: 9
 
   - id: 32
     Name: Super Laser
+    Primary: 0 # Not 5
 
   - id: 33
     Name: Full Map
 
   - id: 34
-    Name: Shield Converter
+    Name: Energy Converter # Energy to Shield Converter
 
   - id: 35
     Name: Ammo Rack
 
   - id: 36
-    Name: Afterburner
+    Name: Afterburner Cooler
 
   - id: 37
-    Name: Headlight
+    Name: Headlight Boost
 
   - id: 38
     Name: Flash Missile
+    Ammo: 1
+    Secondary: 5
 
   - id: 39
     Name: Flash Missile Pack
+    Ammo: 4
+    Secondary: 5
 
   - id: 40
     Name: Guided Missile
+    Ammo: 1
+    Secondary: 6
 
   - id: 41
     Name: Guided Missile Pack
+    Ammo: 4
+    Secondary: 6
   
   - id: 42
     Name: Smart Mines
+    Ammo: 4
+    Secondary: 7
   
   - id: 43
     Name: Mercury Missile
+    Ammo: 1
+    Secondary: 8
   
   - id: 44
     Name: Mercury Missile Pack
+    Ammo: 4
+    Secondary: 8
   
   - id: 45
     Name: Earth Shaker Missile
+    Ammo: 1
+    Secondary: 9
   
   - id: 46
     Name: Blue Flag

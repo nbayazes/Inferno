@@ -271,6 +271,14 @@ namespace Inferno {
 
         void ToggleHeadlight();
 
+        const WeaponBattery& GetWeaponBattery(PrimaryWeaponIndex index) const {
+            return Ship.Weapons[(int)index % 10];
+        }
+
+        const WeaponBattery& GetWeaponBattery(SecondaryWeaponIndex index) const {
+            return Ship.Weapons[10 + (int)index % 10];
+        }
+
         WeaponID GetPrimaryWeaponID(PrimaryWeaponIndex index) const {
             if (index == PrimaryWeaponIndex::Laser) {
                 if (LaserLevel < 4) return WeaponID{ (int)WeaponID::Laser1 + LaserLevel };
