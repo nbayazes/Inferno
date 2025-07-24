@@ -146,6 +146,13 @@ float4 psmain(PS_INPUT input) : SV_Target {
                 diffuse *= input.col; // apply per-poly color when not using fullbright textures
             }
 
+            // boost contrast of metal
+            if (material.Metalness > 0) {
+                //diffuse = max(mul(diffuse, SaturationMatrix(1 + material.Metalness * 0.5)), 0);
+                //diffuse.rgb = mul(diffuse, ContrastMatrix(0.1)).rgb;
+                diffuse.rgb = pow(diffuse.rgb, 1 + material.Metalness * .2);
+            }
+
             float3 colorSum = float3(0, 0, 0);
             uint2 pixelPos = uint2(input.pos.xy);
             ambient *= Frame.GlobalDimming;

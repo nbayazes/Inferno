@@ -647,7 +647,7 @@ float3 ApplyRectLight(
     float3 planePointCenter = IntersectPlane(worldPos, r, lightNormal, lightPos) - lightPos;
     float2 planePointProj = float2(dot(planePointCenter, lightRight), dot(planePointCenter, lightUp));
     float2 c = float2(clamp(planePointProj.x, -vWidth, vWidth),
-        clamp(planePointProj.y, -vHeight, vHeight));
+                      clamp(planePointProj.y, -vHeight, vHeight));
     float3 L = lightPos + lightRight * c.x + lightUp * c.y;
     L -= worldPos;
 
@@ -769,9 +769,9 @@ float3 ApplyRectLight2(
     float3 diffPlaneIntersect = IntersectPlane(worldPos, lightNormal, lightNormal, lightPos);
     float3 diffDir = diffPlaneIntersect - lightPos;
     float2 diffPlanePoint = float2(dot(diffDir, lightRight),
-        dot(diffDir, lightUp));
+                                   dot(diffDir, lightUp));
     float2 nearestDiffPoint = float2(clamp(diffPlanePoint.x, -vWidth, vWidth),
-        clamp(diffPlanePoint.y, -vHeight, vHeight));
+                                     clamp(diffPlanePoint.y, -vHeight, vHeight));
     float3 closestDiffusePoint = lightPos + lightRight * nearestDiffPoint.x + lightUp * nearestDiffPoint.y;
     closestDiffusePoint += lightNormal * 1.5; // Surface offset of 1.5 needed for uneven surfaces
 
@@ -788,10 +788,10 @@ float3 ApplyRectLight2(
         // and find that result represented in the 2D space on the light's plane in view space.
         float3 reflectedDir = reflectedIntersect - lightPos;
         float2 reflectedPlanePoint = float2(dot(reflectedDir, lightRight),
-            dot(reflectedDir, lightUp));
+                                            dot(reflectedDir, lightUp));
 
         float2 nearestReflectedPoint = float2(clamp(reflectedPlanePoint.x, -vWidth, vWidth),
-            clamp(reflectedPlanePoint.y, -vHeight, vHeight));
+                                              clamp(reflectedPlanePoint.y, -vHeight, vHeight));
 
         //float specFactor = 1.0 - saturate(length(nearestReflectedPoint - reflectedPlanePoint) * smoothstep(0, 1, roughness));
         float3 l = lightPos + lightRight * nearestReflectedPoint.x + lightUp * nearestReflectedPoint.y - worldPos;
@@ -940,7 +940,7 @@ float3 RectSpecular(
 
     float2 intersectPlanePoint = float2(dot(intersectionVector, lightRight), dot(intersectionVector, lightUp)); // reflectedPlanePoint
     float2 nearest2DPoint = float2(clamp(intersectPlanePoint.x, -vWidth, vWidth),
-        clamp(intersectPlanePoint.y, -vHeight, vHeight)); // nearestReflectedPoint
+                                   clamp(intersectPlanePoint.y, -vHeight, vHeight)); // nearestReflectedPoint
 
     float3 L = lightPos + lightRight * nearest2DPoint.x + lightUp * nearest2DPoint.y;
     L -= worldPos;
@@ -1049,9 +1049,9 @@ float3 ApplyRectLight3(
     float3 diffPlaneIntersect = IntersectPlane(worldPos, light.normal, light.normal, light.pos);
     float3 diffDir = diffPlaneIntersect - light.pos;
     float2 diffPlanePoint = float2(dot(diffDir, lightRight),
-        dot(diffDir, lightUp));
+                                   dot(diffDir, lightUp));
     float2 nearestDiffPoint = float2(clamp(diffPlanePoint.x, -vWidth, vWidth),
-        clamp(diffPlanePoint.y, -vHeight, vHeight));
+                                     clamp(diffPlanePoint.y, -vHeight, vHeight));
     float3 closestDiffusePoint = light.pos + lightRight * nearestDiffPoint.x + lightUp * nearestDiffPoint.y;
     //closestDiffusePoint -= light.normal * 0.05;
     closestDiffusePoint += light.normal * 1.5; // Offset light slightly to prevent z-fighting
@@ -1067,10 +1067,10 @@ float3 ApplyRectLight3(
         // and find that result represented in the 2D space on the light's plane in view space.
         float3 reflectedDir = reflectedIntersect - light.pos;
         float2 reflectedPlanePoint = float2(dot(reflectedDir, lightRight),
-            dot(reflectedDir, lightUp));
+                                            dot(reflectedDir, lightUp));
 
         float2 nearestReflectedPoint = float2(clamp(reflectedPlanePoint.x, -vWidth, vWidth),
-            clamp(reflectedPlanePoint.y, -vHeight, vHeight));
+                                              clamp(reflectedPlanePoint.y, -vHeight, vHeight));
 
         float3 l = light.pos + lightRight * nearestReflectedPoint.x + lightUp * nearestReflectedPoint.y - worldPos; // world coordinate of reflected point
         float3 h = normalize(viewDir - normalize(l)); // half angle
@@ -1090,7 +1090,7 @@ float3 ApplyRectLight3(
         float radius = lerp(light.radius * 8, light.radius, pow(viewAlignment, 1));
 
         // Fade distant highlights
-        float specD = saturate(1 - distance(nearestReflectedPoint, reflectedPlanePoint)/ radius);
+        float specD = saturate(1 - distance(nearestReflectedPoint, reflectedPlanePoint) / radius);
         //specularFactor *= smoothstep(0, 1, specD * specD * specD);
         specularFactor *= pow(specD, 3); // smooth the falloff curve
         //specularFactor *= saturate(1 - distance(nearestReflectedPoint, reflectedPlanePoint) / radius);
@@ -1127,12 +1127,41 @@ float3 GetMetalDiffuse(float3 diffuse) {
     return lerp(intensity, diffuse, 2.0); // boost the saturation of the diffuse texture
 }
 
+float4x4 SaturationMatrix(float saturation) {
+    float3 luminance = float3(0.3086, 0.6094, 0.0820);
+
+    float oneMinusSat = 1.0 - saturation;
+
+    float3 red = (luminance.x * oneMinusSat).xxx;
+    red += float3(saturation, 0, 0);
+
+    float3 green = (luminance.y * oneMinusSat).xxx;
+    green += float3(0, saturation, 0);
+
+    float3 blue = (luminance.z * oneMinusSat).xxx;
+    blue += float3(0, 0, saturation);
+
+    return float4x4(red, 0,
+                    green, 0,
+                    blue, 0,
+                    0, 0, 0, 1);
+}
+
+float4x4 ContrastMatrix(float contrast) {
+    float t = (1.0 - contrast) / 2.0;
+
+    return float4x4(contrast, 0, 0, 0,
+                    0, contrast, 0, 0,
+                    0, 0, contrast, 0,
+                    t, t, t, 1);
+}
+
 void GetLightColors(LightData light, MaterialInfo material, float3 diffuse, out float3 specularColor, out float3 lightColor) {
     const float3 lightRgb = light.color.rgb * light.color.a;
     lightColor = lerp(lightRgb, lightRgb * diffuse * METAL_DIFFUSE_FACTOR * material.SpecularColor.rgb, material.Metalness); // Allow some diffuse contribution even at max metal for visibility reasons
     //float3 metalDiffuse = GetMetalDiffuse(diffuse);
     //specularColor = lerp(lightColor, (pow(diffuse + 1, METAL_SPECULAR_EXP) - 1) * lightRgb, material.Metalness);
-    specularColor = lerp(lightColor, (pow(diffuse + 1 , METAL_SPECULAR_EXP) - 1) * lightRgb * METAL_SPECULAR_MULT, material.Metalness) * material.SpecularColor.rgb;
+    specularColor = lerp(lightColor, (pow(diffuse + 1, METAL_SPECULAR_EXP) - 1) * lightRgb * METAL_SPECULAR_MULT, material.Metalness) * material.SpecularColor.rgb;
     specularColor *= GLOBAL_SPECULAR_MULT;
     //specularColor *= GLOBAL_SPECULAR_MULT * (1 + material.Metalness * METAL_SPECULAR_MULT);
     //specularColor *= GLOBAL_SPECULAR_MULT * (1 + material.Metalness * METAL_SPECULAR_MULT) * material.SpecularColor.rgb;
