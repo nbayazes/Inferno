@@ -11,34 +11,6 @@ namespace Inferno::Editor {
         bool _3d = false;
         Sound::Reverb _reverb{};
         List<char> _search;
-
-        std::map<Sound::Reverb, const char*> _reverbLabels = {
-            { Sound::Reverb::Off, "Off" },
-            { Sound::Reverb::Default, "Default" },
-            { Sound::Reverb::Generic, "Generic" },
-            { Sound::Reverb::PaddedCell, "PaddedCell" },
-            { Sound::Reverb::Room, "Room" },
-            { Sound::Reverb::Bathroom, "Bathroom" },
-            { Sound::Reverb::StoneRoom, "StoneRoom" },
-            { Sound::Reverb::Cave, "Cave" },
-            { Sound::Reverb::Arena, "Arena" },
-            { Sound::Reverb::Hangar, "Hangar" },
-            { Sound::Reverb::Hall, "Hall" },
-            { Sound::Reverb::StoneCorridor, "StoneCorridor" },
-            { Sound::Reverb::Alley, "Alley" },
-            { Sound::Reverb::City, "City" },
-            { Sound::Reverb::Mountains, "Mountains" },
-            { Sound::Reverb::Quarry, "Quarry" },
-            { Sound::Reverb::SewerPipe, "SewerPipe" },
-            { Sound::Reverb::Underwater, "Underwater" },
-            { Sound::Reverb::SmallRoom, "SmallRoom" },
-            { Sound::Reverb::MediumRoom, "MediumRoom" },
-            { Sound::Reverb::LargeRoom, "LargeRoom" },
-            { Sound::Reverb::MediumHall, "MediumHall" },
-            { Sound::Reverb::LargeHall, "LargeHall" },
-            { Sound::Reverb::Plate, "Plate" },
-        };
-
         List<SoundID> _d1Lookup, _d2Lookup;
         int _selectedGame = 0;
 
@@ -74,9 +46,9 @@ namespace Inferno::Editor {
                 if (ImGui::Button("Stop sounds")) Sound::Stop3DSounds();
             }
 
-            if (ImGui::BeginCombo("Reverb", _reverbLabels.at(_reverb), ImGuiComboFlags_HeightLarge)) {
-                for (const auto& item : _reverbLabels | views::keys) {
-                    if (ImGui::Selectable(_reverbLabels.at(item), item == _reverb)) {
+            if (ImGui::BeginCombo("Reverb", Sound::REVERB_LABELS.at(_reverb), ImGuiComboFlags_HeightLarge)) {
+                for (const auto& item : Sound::REVERB_LABELS | views::keys) {
+                    if (ImGui::Selectable(Sound::REVERB_LABELS.at(item), item == _reverb)) {
                         _reverb = item;
                         Sound::SetReverb(_reverb);
                     }
