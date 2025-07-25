@@ -105,6 +105,19 @@ namespace Inferno::Game {
         bool hitLava = ti.HasFlag(TextureFlag::Volatile);
         bool hitWater = ti.HasFlag(TextureFlag::Water);
 
+        // Play different hit sound if door is locked
+        bool locked = false;
+
+        if (auto wall = level.TryGetWall(hit.Tag); wall && wall->Type == WallType::Door) {
+            if (auto parent = Game::GetObject(obj.Parent)) {
+                if ((parent->IsPlayer() && !Game::Player.CanOpenDoor(*wall)) ||
+                    (parent->IsRobot() && (wall->HasFlag(WallFlag::DoorLocked) || wall->IsKeyDoor()))) {
+                    Sound::Play({ SoundID::HitLockedDoor }, hit.Point, hit.Tag.Segment);
+                    locked = true;
+                }
+            }
+        }
+
         // Special case for flares
         if (HasFlag(obj.Physics.Flags, PhysicsFlag::Stick) && !hitLava && !hitWater && !hitForcefield) {
             // sticky flare behavior
@@ -218,12 +231,7 @@ namespace Inferno::Game {
                     Game::CreateWeaponExplosion(obj, weapon);
             }
 
-            // Don't play hit sound if door is locked. Door will play a different sound.
-            bool locked = false;
-            if (auto wall = level.TryGetWall(hit.Tag))
-                locked = wall->Type == WallType::Door && wall->HasFlag(WallFlag::DoorLocked);
-
-            if (!locked && !bounce) {
+            if (!bounce && (!locked || splashRadius > 0)) {
                 SoundResource resource = { soundId };
                 resource.D3 = weapon.Extended.ExplosionSound; // Will take priority if D3 is loaded
                 Sound3D sound(resource);
@@ -846,8 +854,7 @@ namespace Inferno::Game {
         constexpr auto MAX_CHAIN_DIST = 30;
 
         const auto& weapon = Resources::GetWeapon(wid);
-
-        auto& battery = player.Ship.Weapons[(int)PrimaryWeaponIndex::Omega];
+        auto& battery = player.GetWeaponBattery(PrimaryWeaponIndex::Omega);
 
         player.OmegaCharge -= battery.EnergyUsage;
         player.OmegaCharge = std::max(0.0f, player.OmegaCharge);
@@ -917,7 +924,7 @@ namespace Inferno::Game {
                 if (beam) AttachBeam(*beam, 0, prevRef, targetRef, objGunpoint);
                 if (beam2) {
                     AttachBeam(*beam2, 0, prevRef, targetRef, objGunpoint);
-                    AttachBeam(*beam2, 0, prevRef, targetRef, objGunpoint);
+                    //AttachBeam(*beam2, 0, prevRef, targetRef, objGunpoint);
                 }
 
                 prevRef = targetRef;
@@ -925,7 +932,7 @@ namespace Inferno::Game {
 
                 if (tracer) {
                     AttachBeam(*tracer, 0, targetRef);
-                    AttachBeam(*tracer, 0, targetRef);
+                    //AttachBeam(*tracer, 0, targetRef);
                 }
 
                 // Sparks and explosion
