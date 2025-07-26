@@ -30,6 +30,6 @@ namespace Inferno {
         bool EnableImgui = true;
 
     private:
-        float GetFpsLimit() const;
+        int GetFpsLimit() const;
     };
 }

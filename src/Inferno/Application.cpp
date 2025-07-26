@@ -169,7 +169,8 @@ void Application::Initialize(int width, int height) {
     Game::SetState(GameState::MainMenu);
 }
 
-float Application::GetFpsLimit() const {
+// Gets the FPS limit in milliseconds
+int Application::GetFpsLimit() const {
     if (_isForeground && Settings::Graphics.EnableForegroundFpsLimit) {
         if (Settings::Graphics.ForegroundFpsLimit > 0) {
             return int(1000.0f / (float)Settings::Graphics.ForegroundFpsLimit);
@@ -177,7 +178,7 @@ float Application::GetFpsLimit() const {
     }
     else if (!_isForeground && Settings::Graphics.BackgroundFpsLimit) {
         if (Settings::Graphics.BackgroundFpsLimit > 0) {
-            return int(1000.0f / (float)Settings::Graphics.BackgroundFpsLimit);;
+            return int(1000.0f / (float)Settings::Graphics.BackgroundFpsLimit);
         }
     }
 

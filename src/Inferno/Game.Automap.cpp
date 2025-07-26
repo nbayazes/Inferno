@@ -359,7 +359,7 @@ namespace Inferno {
         if (remaining > 50)
             RobotScore += matcenScore;
         else if (remaining > 10)
-            RobotScore += (remaining - 10) / 40.0f * matcenScore;
+            RobotScore += int((remaining - 10) / 40.0f * matcenScore);
         // no contribution under 10 robots
 
         auto boss = Seq::findIndex(level.Objects, IsBossRobot);
