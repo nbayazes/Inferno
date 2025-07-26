@@ -407,8 +407,7 @@ namespace Inferno {
                 if (binding.id == (int)Input::MouseAxis::MouseY)
                     value = Input::MouseDelta.y;
 
-                float sensitivity = mouse.sensitivity.rotation.y * Game::TICK_RATE / dt * mouseSensitivityMultiplier;
-                yaw = value * binding.GetInvertSign() * sensitivity;
+                yaw = value * binding.GetInvertSign() * mouse.sensitivity.rotation.y * mouseSensitivityMultiplier;
             }
 
             for (auto& binding : mouse.GetBinding(GameAction::PitchAxis)) {
@@ -420,19 +419,17 @@ namespace Inferno {
                 if (binding.id == (int)Input::MouseAxis::MouseY)
                     value = Input::MouseDelta.y;
 
-                float sensitivity = mouse.sensitivity.rotation.x * Game::TICK_RATE / dt * mouseSensitivityMultiplier;
-                pitch = value * binding.GetInvertSign() * sensitivity;
+                pitch = value * binding.GetInvertSign() * mouse.sensitivity.rotation.x * mouseSensitivityMultiplier;
             }
         }
 
-
         if (Settings::Inferno.UseMouselook) {
-            constexpr float mouselookMultiplier = 0.1;
+            constexpr float mouselookMultiplier = 0.25;
             RotateObjectMouselook(player, yaw * mouselookMultiplier, pitch * mouselookMultiplier);
         }
         else {
-            physics.AngularThrust.x += pitch;
-            physics.AngularThrust.y += yaw;
+            physics.AngularThrust.x += pitch * Game::TICK_RATE / dt;
+            physics.AngularThrust.y += yaw * Game::TICK_RATE / dt;
         }
 
         if (Game::Bindings.Held(GameAction::PitchUp))
