@@ -6,6 +6,7 @@
 #include "FileSystem.h"
 #include "Game.h"
 #include "GameTable.h"
+#include "Graphics.h"
 #include "Graphics/MaterialLibrary.h"
 #include "Hog.IO.h"
 #include "logging.h"
@@ -798,7 +799,7 @@ namespace Inferno::Resources {
 
             auto pig = ReadPigFile(pigPath);
             Descent2.bitmaps = ReadAllBitmaps(pig, palette);
- 
+
             // Everything loaded okay, set data
             Descent2 = FullGameData(ham, FullGameData::Descent2);
             Descent2.hog = std::move(hog);
@@ -932,6 +933,21 @@ namespace Inferno::Resources {
             LoadGameTable(*text, dest, EffectLibrary);
         }
 
+        Set<string> textures;
+
+        for (auto& val : EffectLibrary.Beams | views::values) {
+            textures.insert(val.Texture);
+        }
+
+        for (auto& val : EffectLibrary.Sparks | views::values) {
+            textures.insert(val.Texture);
+        }
+
+        for (auto& val : EffectLibrary.Tracers | views::values) {
+            textures.insert(val.Texture);
+        }
+
+        Graphics::LoadTextures(Seq::ofSet(textures));
         return false;
     }
 

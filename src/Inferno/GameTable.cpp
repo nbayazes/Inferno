@@ -109,40 +109,51 @@ namespace Inferno {
         }();
 
 #define READ_PROP(name) Yaml::ReadValue(node[#name], weapon.##name)
-        Yaml::ReadValue(node["RenderType"], (int&)weapon.RenderType);
-        READ_PROP(Thrust);
-
-        READ_PROP(Drag);
+        READ_PROP(RenderType);
         READ_PROP(Piercing);
-        READ_PROP(Mass);
-        READ_PROP(AmmoUsage);
-        READ_PROP(EnergyUsage);
-        READ_PROP(ModelSizeRatio);
+        READ_PROP(Model);
+        READ_PROP(ModelInner);
+        READ_PROP(FlashVClip);
+        READ_PROP(FlashSound);
+        READ_PROP(FireCount);
+        READ_PROP(RobotHitVClip);
+        READ_PROP(RobotHitSound);
+
         READ_PROP(WallHitSound);
         READ_PROP(WallHitVClip);
-        READ_PROP(FireDelay);
-        READ_PROP(Lifetime);
-        READ_PROP(FireCount);
-        READ_PROP(SpeedVariance);
         READ_PROP(PlayerDamageScale);
         READ_PROP(Bounce);
         READ_PROP(BlobSize);
-        READ_PROP(IsHoming);
-        Yaml::ReadValue(node["BlobBitmap"], (int&)weapon.BlobBitmap);
-
+        READ_PROP(BlobBitmap);
+        READ_PROP(FlashSize);
         READ_PROP(ImpactSize);
-        READ_PROP(SplashRadius);
+
+        READ_PROP(IsDestroyable);
+        READ_PROP(IsMatter);
+
+        READ_PROP(IsHoming);
+        READ_PROP(SpeedVariance);
+        READ_PROP(FlashStrength);
         READ_PROP(TrailSize);
+
         READ_PROP(Spawn);
         READ_PROP(SpawnCount);
 
-        READ_PROP(FlashSize);
-        Yaml::ReadValue(node["FlashVClip"], (int&)weapon.FlashVClip);
-        Yaml::ReadValue(node["FlashSound"], (int&)weapon.FlashSound);
+        READ_PROP(AmmoUsage);
+        READ_PROP(EnergyUsage);
+        READ_PROP(FireDelay);
 
-        READ_PROP(FlashStrength);
+        READ_PROP(Mass);
+        READ_PROP(Drag);
+        READ_PROP(Thrust);
+        READ_PROP(ModelSizeRatio);
+
+        READ_PROP(Lifetime);
+        READ_PROP(SplashRadius);
+        READ_PROP(Icon);
+        READ_PROP(HiresIcon);
+
 #undef READ_PROP
-        Yaml::ReadValue(node["Model"], (int&)weapon.Model);
 
         ReadArray<float>(node["Damage"], weapon.Damage);
         ReadArray<float>(node["Speed"], weapon.Speed);
@@ -222,6 +233,7 @@ namespace Inferno {
         Yaml::ReadValue(node["Glow"], powerup.Glow);
         Yaml::ReadValue(node["Name"], powerup.Name);
         Yaml::ReadValue(node["Ammo"], powerup.Ammo);
+        Yaml::ReadValue(node["IsAmmo"], powerup.IsAmmo);
         Yaml::ReadValue(node["Primary"], (uint8&)powerup.Primary);
         Yaml::ReadValue(node["Secondary"], (uint8&)powerup.Secondary);
 
