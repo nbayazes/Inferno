@@ -68,6 +68,7 @@ namespace Inferno {
             AfterburnerCharge += chargeUp;
             if (AfterburnerCharge > 1) AfterburnerCharge = 1;
 
+            //if (HasPowerup(PowerupFlag::Afterburner)) chargeUp *= 0.5f; // halve energy cost with AB cooler
             AddEnergy(-chargeUp * 100 / 10); // full charge uses 10% energy
         }
 
@@ -351,7 +352,7 @@ namespace Inferno {
             if (OmegaCharge < battery.Ammo && LastPrimaryFireTime + OMEGA_RECHARGE_DELAY < Game::Time) {
                 float chargeUp = std::min(battery.Ammo * dt / OMEGA_RECHARGE_TIME, battery.Ammo - OmegaCharge);
                 OmegaCharge += chargeUp;
-                AddEnergy(-chargeUp * battery.EnergyUsage);
+                AddEnergy(-chargeUp);
             }
         }
     }
@@ -527,7 +528,7 @@ namespace Inferno {
             return;
 
         // Charged weapons drain energy on button down instead of here
-        if (!weapon.Extended.Chargable) {
+        if (!weapon.Extended.Chargable && Primary != PrimaryWeaponIndex::Omega) {
             AddEnergy(-GetWeaponEnergyCost(battery.EnergyUsage));
             if (Seq::inRange(PrimaryAmmo, battery.AmmoType))
                 PrimaryAmmo[battery.AmmoType] -= battery.AmmoUsage;
@@ -902,45 +903,6 @@ namespace Inferno {
         }
 
         {
-            // Play spawn effect
-            // Old sprite
-            //ParticleInfo p{};
-            //p.Clip = VClipID::PlayerSpawn;
-            //p.Radius = player.Radius;
-            //p.RandomRotation = false;
-            //Vector3 position = player.Position + player.Rotation.Forward() * 3;
-            //AddParticle(p, player.Segment, position);
-
-            //if (auto beam = EffectLibrary.GetBeamInfo("player spawn")) {
-            //    for (int i = 0; i < 5; i++) {
-            //        //Vector3 position = player.Position + player.Rotation.Forward() * 3;
-            //        //Vector3 position = player.Position + player.Rotation.Down() * 6 + player.Rotation.Forward() * 3;
-            //        Vector3 position = player.Position + player.Rotation.Forward() * 5;
-            //        AddBeam(*beam, player.Segment, position);
-            //    }
-
-            //    //for (int i = 0; i < 8; i++) {
-            //    //    //Vector3 position = player.Position + player.Rotation.Forward() * 3;
-            //    //    Vector3 position = player.Position + player.Rotation.Up() * 6 + player.Rotation.Forward() * 3;
-            //    //    AddBeam(*beam, player.Segment, position);
-            //    //}
-            //}
-
-            //if (auto beam = EffectLibrary.GetBeamInfo("player spawn 2")) {
-            //    for (int i = 0; i < 6; i++) {
-            //        //Vector3 position = player.Position + player.Rotation.Forward() * 3;
-            //        //Vector3 position = player.Position + player.Rotation.Down() * 6 + player.Rotation.Forward() * 3;
-            //        Vector3 position = player.Position + player.Rotation.Forward() * 5;
-            //        AddBeam(*beam, player.Segment, position);
-            //    }
-
-            //    //for (int i = 0; i < 8; i++) {
-            //    //    //Vector3 position = player.Position + player.Rotation.Forward() * 3;
-            //    //    Vector3 position = player.Position + player.Rotation.Up() * 6 + player.Rotation.Forward() * 3;
-            //    //    AddBeam(*beam, player.Segment, position);
-            //    //}
-            //}
-
             auto start = player.Position + player.Rotation.Forward() * 4;
             constexpr float size = 5.0f;
 
@@ -1020,6 +982,9 @@ namespace Inferno {
             for (uint8 i = 0; i < PrimaryAmmo.size() && i < Ship.Weapons.size(); i++)
                 PrimaryAmmo[i] = Ship.Weapons[i].Ammo;
         }
+
+        auto& omega = GetWeaponBattery(PrimaryWeaponIndex::Omega);
+        OmegaCharge = omega.Ammo;
 
         ResetHUD();
         SPDLOG_INFO("Respawning player");
@@ -1474,7 +1439,8 @@ namespace Inferno {
                 break;
             default: {
                 if (powerup.Primary != PrimaryWeaponIndex::None) {
-                    used = PickUpPrimary(powerup.Primary);
+                    if (!powerup.IsAmmo)
+                        used = PickUpPrimary(powerup.Primary);
 
                     // Ammo based weapon
                     if (powerup.Ammo > 0) {
@@ -1578,7 +1544,7 @@ namespace Inferno {
         auto max = battery.Ammo;
 
         if (HasPowerup(PowerupFlag::AmmoRack))
-            max *= battery.RackAmmo;
+            max = battery.RackAmmo;
 
         auto& ammo = SecondaryAmmo[(int)index];
         auto startAmmo = ammo;
