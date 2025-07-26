@@ -320,12 +320,17 @@ namespace Inferno {
         }
 
         RobotScore = 0;
+        int remaining = 0;
+
         for (auto& obj : level.Objects) {
             if (!obj.IsRobot()) continue;
 
             auto& info = Resources::GetRobotInfo(obj);
             RobotScore += info.Score;
+            remaining++;
         }
+
+        int matcenScore = 0;
 
         for (auto& matcen : level.Matcens) {
             auto matcenSum = 0;
@@ -336,21 +341,26 @@ namespace Inferno {
                 matcenSum += info.Score;
             }
 
-            // Multiply matcen score by max spawns
-            int8 activations = 3;
-            if (Game::Difficulty == DifficultyLevel::Ace) activations = 4;
-            if (Game::Difficulty >= DifficultyLevel::Insane) activations = 5;
+            // Multiply matcen score by remaining activations
             auto spawnCount = (int8)Game::Difficulty + 3;
-            matcenSum *= activations * spawnCount;
+            matcenSum *= matcen.Activations * spawnCount;
 
             // Average the matcenValue
             if (robots.size() > 0) {
                 matcenSum = int((float)matcenSum / robots.size());
             }
 
-            RobotScore += matcenSum;
+            matcenScore += matcenSum;
         }
 
+        // Scale the matcen score when the robot count is low.
+        // This is so that an empty level with no robots but matcens remaining
+        // doesn't report a high threat.
+        if (remaining > 50)
+            RobotScore += matcenScore;
+        else if (remaining > 10)
+            RobotScore += (remaining - 10) / 40.0f * matcenScore;
+        // no contribution under 10 robots
 
         auto boss = Seq::findIndex(level.Objects, IsBossRobot);
 
