@@ -1,6 +1,5 @@
-#include <utility>
-
 #include "pch.h"
+#include <utility>
 #include "../Editor.h"
 #include "Editor/Editor.Lighting.h"
 #include "Editor/Editor.Segment.h"
@@ -8,6 +7,7 @@
 #include "Game.Segment.h"
 #include "Graphics.h"
 #include "PropertyEditor.h"
+#include "SoundSystem.h"
 
 namespace Inferno::Editor {
     // Sets snapshot to true when the previous item finishes editing
@@ -826,7 +826,7 @@ namespace Inferno::Editor {
 
         if (ImGui::TableBeginTreeNode("UVs")) {
             auto addUVSlider = [&changed, &side, &snapshot](const char* label, int point) {
-                bool highlight = point == (int)Editor::Selection.Point;
+                bool highlight = point == int{ Editor::Selection.Point };
 
                 if (Settings::Editor.SelectionMode == SelectionMode::Edge)
                     highlight |= point == ((int)Editor::Selection.Point + 1) % 4;
@@ -857,18 +857,72 @@ namespace Inferno::Editor {
         return snapshot;
     }
 
+    bool EnvironmentSettings(Segment& seg) {
+        bool changed = false;
+        bool snapshot = false;
+
+        if (ImGui::TableBeginTreeNode("Environment")) {
+            ImGui::TableRowLabel("Reverb");
+
+            auto reverb = (Sound::Reverb)seg.Reverb;
+
+            if (ImGui::BeginCombo("##Reverb", Sound::REVERB_LABELS.at(reverb), ImGuiComboFlags_HeightLarge)) {
+                for (const auto& item : Sound::REVERB_LABELS | views::keys) {
+                    if (ImGui::Selectable(Sound::REVERB_LABELS.at(item), item == reverb)) {
+                        reverb = item;
+
+                        for (auto& marked : GetSelectedSegments())
+                            if (auto markedSeg = Game::Level.TryGetSegment(marked))
+                                markedSeg->Reverb = (uint8)reverb;
+
+                        changed = snapshot = true;
+                    }
+                }
+
+                ImGui::EndCombo();
+            }
+
+            ImGui::TableNextColumn();
+
+            bool hasFog = seg.Fog.has_value();
+            auto fog = seg.Fog.value_or(Color(0.5f, 0.5f, 0.5f, 0.5f));
+
+            if (ImGui::Checkbox("Fog", &hasFog)) {
+                for (auto& marked : GetSelectedSegments())
+                    if (auto markedSeg = Game::Level.TryGetSegment(marked))
+                        markedSeg->Fog = hasFog ? Option(fog) : std::nullopt;
+                
+                snapshot = true;
+            }
+
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-1);
+            DisableControls disable(!seg.Fog);
+            if (ImGui::ColorEdit3("##fog", &fog.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float)) {
+                seg.Fog = fog;
+                changed = true;
+                snapshot = true;
+            }
+
+            ImGui::TreePop();
+        }
+
+        if (changed) Events::LevelChanged();
+        return snapshot;
+    }
+
     bool WallTypeDropdown(Level& level, const char* label, WallType& value) {
         static const char* wallTypeLabels[] = {
             "None", "Destroyable", "Door", "Illusion", "Fly-Through", "Closed", "Wall Trigger", "Cloaked"
         };
 
         auto& seg = level.GetSegment(Editor::Selection.Tag());
-        auto wallTypes = level.IsDescent1() ? 6 : 8;
+        uint8 wallTypes = level.IsDescent1() ? 6 : 8;
 
         bool changed = false;
         ImGui::SetNextItemWidth(-1);
         if (ImGui::BeginCombo(label, wallTypeLabels[(int)value])) {
-            for (int i = 0; i < wallTypes; i++) {
+            for (uint8 i = 0; i < wallTypes; i++) {
                 // Hide non-wall triggers for sides without connections. INVERSE FOR CONNECTIONS
                 if (!seg.SideHasConnection(Editor::Selection.Side) &&
                     ((WallType)i != WallType::None && (WallType)i != WallType::WallTrigger))
@@ -1540,6 +1594,7 @@ namespace Inferno::Editor {
         TextureProperties("Overlay texture", side.TMap2, true);
         snapshot |= SideLighting(level, seg, side);
         snapshot |= SideUVs(side);
+        //snapshot |= EnvironmentSettings(seg);
 
         ImGui::TableRowLabel("Segment size");
         ImGui::Text("%.2f x %.2f x %.2f",

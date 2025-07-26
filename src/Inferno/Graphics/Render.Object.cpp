@@ -394,6 +394,8 @@ namespace Inferno::Render {
 
 
     void StaticModelDepthPrepass(GraphicsContext& ctx, ModelID modelId, const Matrix& transform) {
+        if (modelId == ModelID::None) return;
+
         auto cmdList = ctx.GetCommandList();
         auto& effect = Effects->DepthObject;
 
