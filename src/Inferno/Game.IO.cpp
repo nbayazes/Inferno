@@ -335,6 +335,7 @@ namespace Inferno::Game {
                 string str((char*)bytes.data(), bytes.size());
                 std::stringstream stream(str);
                 info.Read(stream);
+                info.Path = mission.GetMissionPath();
                 return info;
             }
 
