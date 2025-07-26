@@ -157,7 +157,7 @@ namespace Inferno::UI {
                 // input device
 
                 if (auto device = Seq::tryItem(_devices, *_index - 2)) {
-                    if (auto bindings = Game::Bindings.GetDevice(device->guid)) {
+                    if (auto bindings = Game::Bindings.GetForDevice(*device)) {
                         auto& rotation = bindings->sensitivity.rotation;
                         addSlider("Pitch", 1.0f, 5.0f, rotation.x);
                         addSlider("Yaw", 1.0f, 5.0f, rotation.y);
@@ -180,6 +180,9 @@ namespace Inferno::UI {
                         addSlider("fwd/Rev", 0.0f, 1.0f, thrustdz.z);
                         addSlider("Slide L/R", 0.0f, 1.0f, thrustdz.x);
                         addSlider("Slide U/D", 0.0f, 1.0f, thrustdz.y);
+                    }
+                    else {
+                        SPDLOG_WARN("No bindings found for device {} - {}", device->name, device->path);
                     }
                 }
             }

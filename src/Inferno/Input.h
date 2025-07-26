@@ -59,6 +59,7 @@ namespace Inferno::Input {
 
     struct InputDevice {
         string guid; // guid used to save and restore bindings
+        string path; // HID path. Used to disambiguate joysticks with duplicate GUIDs.
         string name; // display name
         //bool connected = false;
         uint32 id = 0; // joystick ID from SDL
@@ -301,8 +302,8 @@ namespace Inferno::Input {
     // Filters to devices enabled in the global settings by default.
     InputDevice* GetDevice(string_view guid, bool enabled = true);
 
-    // Called when a new input device is added
-    inline std::function<void(InputDevice&)> AddDeviceCallback;
+    // Called when a new joystick or gamepad is connected
+    inline std::function<void(InputDevice&)> AddJoystickCallback;
 
     Vector2 CircularDampen(const Vector2& input, float innerDeadzone, float outerDeadzone);
     float LinearDampen(float value, float innerDeadzone, float outerDeadzone, float linearity);

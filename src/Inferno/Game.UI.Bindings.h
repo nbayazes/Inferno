@@ -592,12 +592,12 @@ namespace Inferno::UI {
             _bindingControls.clear();
             _column = 0;
 
-            if (device.type == Input::InputType::Gamepad) {
-                _footer->SetText("start cancels, back clears binding, hold back to clear all");
-            }
-            else {
-                _footer->SetText("esc cancels, ctrl+r resets all, ctrl+d clears binding");
-            }
+            //if (device.type == Input::InputType::Gamepad) {
+            //    _footer->SetText("start cancels, back clears binding, hold back to clear all");
+            //}
+            //else {
+            //    _footer->SetText("esc cancels, ctrl+r resets all, ctrl+d clears binding");
+            //}
 
             for (auto& action : actions) {
                 auto child = _bindingList->AddChild<BindingControl>(action, device, _column);
@@ -630,13 +630,10 @@ namespace Inferno::UI {
                 }
                 else if (index > 1) {
                     if (auto device = Seq::tryItem(_devices, index - 2)) {
-                        if (auto binds = Game::Bindings.GetDevice(device->guid)) {
+                        if (auto binds = Game::Bindings.GetForDevice(*device)) {
                             UpdateBindingList(GamepadInputs, *binds);
-                        }
-                        else {
-                            // No binding entry for this device, add one
-                            auto& newDevice = Game::Bindings.AddDevice(device->guid, device->IsGamepad() ? Input::InputType::Gamepad : Input::InputType::Joystick);
-                            UpdateBindingList(GamepadInputs, newDevice);
+                        } else {
+                            SPDLOG_WARN("No bindings found for device {}", device->name, device->path);
                         }
                     }
                     else {
@@ -669,7 +666,6 @@ namespace Inferno::UI {
                 invertHeader->Position = Vector2(530, y);
                 invertHeader->Color = BLUE_TEXT;
 
-                //auto footer = AddChild<Label>("esc cancels, ctrl+r resets all, ctrl+d clears binding", FontSize::Small);
                 _footer = AddChild<Label>("esc cancels, ctrl+r resets all, ctrl+d clears binding", FontSize::Small);
                 _footer->Color = IDLE_BUTTON;
                 _footer->Position = Vector2(DIALOG_PADDING + 5, 429);
@@ -707,7 +703,7 @@ namespace Inferno::UI {
                 else if (*_index > 1) {
                     auto& device = _devices.at(*_index - 2);
 
-                    if (auto binds = Game::Bindings.GetDevice(device.guid)) {
+                    if (auto binds = Game::Bindings.GetForDevice(device)) {
                         ResetGamepadBindings(*binds);
                         UpdateBindingList(GamepadInputs, *binds);
                     }

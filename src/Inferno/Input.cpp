@@ -185,9 +185,17 @@ namespace Inferno::Input {
         std::list<InputDevice> _devices;
 
     public:
-        InputDevice* Get(string_view guid) {
+        InputDevice* GetFromGuid(string_view guid) {
             for (auto& device : _devices) {
                 if (device.guid == guid) return &device;
+            }
+
+            return nullptr;
+        }
+
+        InputDevice* GetFromPath(string_view path) {
+            for (auto& device : _devices) {
+                if (device.path == path) return &device;
             }
 
             return nullptr;
@@ -251,24 +259,26 @@ namespace Inferno::Input {
 
             auto guid = GuidToString(SDL_GetGamepadGUIDForID(id));
             auto name = SDL_GetGamepadNameForID(id);
+            auto path = SDL_GetGamepadPath(gamepad);
 
             if (GuidIsZero(guid) || !name) {
-                SPDLOG_WARN("Ignoring gamepad {} with no name (guid: {})", id, guid);
+                SPDLOG_WARN("Ignoring gamepad {} with no name (guid: {}, path: {})", id, guid, path);
                 return;
             }
 
-            auto device = Get(guid); // check if gamepad was already connected
+            auto device = GetFromGuid(guid); // check if gamepad was already connected
 
             if (!device) {
-                SPDLOG_INFO("Add gamepad {}: {} - {}", id, name, guid);
+                SPDLOG_INFO("Add gamepad {}: {} - {} - {}", id, name, guid, path);
                 device = &_devices.emplace_back(); // create a new device
             }
             else {
-                SPDLOG_INFO("Using existing gamepad {}: {} - {}", id, name, guid);
+                SPDLOG_INFO("Using existing gamepad {}: {} - {}", id, device->name, device->guid, device->path);
             }
 
             device->name = name;
             device->guid = guid;
+            device->path = path;
             device->id = id;
             device->type = SDL_GetGamepadType(gamepad);
 
@@ -302,23 +312,24 @@ namespace Inferno::Input {
                 return;
             }
 
-            auto device = Get(guid); // check if gamepad was already connected
             auto numButtons = SDL_GetNumJoystickButtons(joystick);
             auto numAxes = SDL_GetNumJoystickAxes(joystick);
             auto numHats = SDL_GetNumJoystickHats(joystick);
+            auto path = SDL_GetJoystickPath(joystick);
+
+            auto device = GetFromGuid(guid); // check if gamepad was already connected
 
             if (!device) {
-                SPDLOG_INFO("Add joystick {}: {} - {}\nButtons: {} Axes: {} Hats: {}", id, name, guid, numButtons, numAxes, numHats);
+                SPDLOG_INFO("Add joystick {}: {} - {} - {}\nButtons: {} Axes: {} Hats: {}", id, name, guid, path, numButtons, numAxes, numHats);
                 device = &_devices.emplace_back(); // create a new device
             }
             else {
                 SPDLOG_INFO("Using existing joystick {}: {} - {}", id, name, guid);
             }
 
-            // todo: hats
-
-            device->name = name;
             device->guid = guid;
+            device->path = path;
+            device->name = name;
             device->id = id;
             device->numAxes = numAxes;
             device->numHats = numHats;
@@ -338,7 +349,7 @@ namespace Inferno::Input {
     }
 
     InputDevice* GetDevice(string_view guid, bool enabled) {
-        auto device = Devices.Get(guid);
+        auto device = Devices.GetFromGuid(guid);
 
         // Filter disabled devices
         if (enabled && device) {
@@ -372,9 +383,8 @@ namespace Inferno::Input {
                     if (SDL_IsGamepad(event.jbutton.which))
                         break; // Gamepads also fire a joystick event, ignore it
 
-                    if (auto joystick = Devices.Get(event.jbutton.which)) {
+                    if (auto joystick = Devices.Get(event.jbutton.which))
                         joystick->Press(event.jbutton.button);
-                    }
 
                     //SPDLOG_INFO("Joystick button down {}", event.jbutton.button);
                     break;
@@ -384,9 +394,8 @@ namespace Inferno::Input {
                     if (SDL_IsGamepad(event.jbutton.which))
                         break; // Gamepads also fire a joystick event, ignore it
 
-                    if (auto joystick = Devices.Get(event.jbutton.which)) {
+                    if (auto joystick = Devices.Get(event.jbutton.which))
                         joystick->Release(event.jbutton.button);
-                    }
 
                     //SPDLOG_INFO("Joystick button up {}", event.jbutton.button);
                     break;
@@ -400,20 +409,18 @@ namespace Inferno::Input {
                 }
 
                 case SDL_EVENT_GAMEPAD_BUTTON_DOWN: {
-                    auto buttonName = SDL_GetGamepadStringForButton((SDL_GamepadButton)event.gbutton.button);
-                    SPDLOG_INFO("Button down {}:{}", event.gbutton.button, buttonName);
+                    //auto buttonName = SDL_GetGamepadStringForButton((SDL_GamepadButton)event.gbutton.button);
+                    //SPDLOG_INFO("Button down {}:{}", event.gbutton.button, buttonName);
 
-                    if (auto joystick = Devices.Get(event.gbutton.which)) {
+                    if (auto joystick = Devices.Get(event.gbutton.which))
                         joystick->Press(event.gbutton.button);
-                    }
 
                     break;
                 }
 
                 case SDL_EVENT_GAMEPAD_BUTTON_UP: {
-                    if (auto joystick = Devices.Get(event.gbutton.which)) {
+                    if (auto joystick = Devices.Get(event.gbutton.which))
                         joystick->Release(event.gbutton.button);
-                    }
 
                     break;
                 }
@@ -507,8 +514,8 @@ namespace Inferno::Input {
                 case SDL_EventType::SDL_EVENT_JOYSTICK_ADDED: {
                     //SPDLOG_INFO("Joystick or Gamepad added {}", event.gdevice.which);
                     Devices.Add(event.gdevice.which);
-                    if (auto device = Devices.Get(event.gdevice.which); device && AddDeviceCallback)
-                        AddDeviceCallback(*device);
+                    if (auto device = Devices.Get(event.gdevice.which); device && AddJoystickCallback)
+                        AddJoystickCallback(*device);
 
                     break;
                 }

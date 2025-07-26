@@ -70,14 +70,70 @@ void Application::Initialize(int width, int height) {
 
     SDL_SetAppMetadata(Inferno::APP_TITLE, Inferno::VERSION_STRING, nullptr);
 
-    Input::AddDeviceCallback = [](const Input::InputDevice& device) {
-        // Reset the bindings of a new gamepad, so the user doesn't have to open the config menu
-        if (!Game::Bindings.GetDevice(device.guid) && device.IsGamepad()) {
-            auto& bindings = Game::Bindings.AddDevice(device.guid, Input::InputType::Gamepad);
+    Input::AddJoystickCallback = [](const Input::InputDevice& device) {
+        /**
+         * Resolving bindings is a bit complicated due to certain joysticks and controllers having
+         * duplicate guids (such as the Thrustmaster or PS controllers).
+         * Rely on hardware path to determine bindings.
+         */
+
+        // Check for exact bindings first (GUID and path)
+        if (Game::Bindings.GetExact(device)) {
+            SPDLOG_INFO("Exact bindings found for device: {}", device.name);
+            return;
+        }
+
+        // Count connected devices with this GUID
+        uint8 duplicates = 0;
+        for (auto& d : Input::GetDevices()) {
+            if (d.guid == device.guid) duplicates++;
+        }
+
+        if (duplicates >= 2) {
+            SPDLOG_INFO("Detected {} input devices with the same GUID", duplicates);
+
+            auto devices = Input::GetDevices();
+
+            // try to find bindings not used by existing devices
+            for (auto& bindings : Game::Bindings.GetDevices()) {
+                bool inUse = false;
+                for (auto& existing : devices) {
+                    if (bindings.path == existing.path) {
+                        inUse = true;
+                        break;
+                    }
+                }
+
+                if (inUse) continue; // bindings already in use by a device sharing the guid
+
+                if (bindings.guid == device.guid) {
+                    // update bindings with this guid to use the path
+                    bindings.path = device.path;
+                    SPDLOG_INFO("Updating bindings to use device path {}", device.path);
+                    return;
+                }
+            }
+        }
+        else {
+            if (auto bindings = Game::Bindings.GetForDevice(device)) {
+                bindings->path = device.path;
+                SPDLOG_INFO("Bindings found for device using GUID {}", device.guid);
+                return; // Already has bindings
+            }
+        }
+
+        SPDLOG_INFO("Adding bindings for new device {}", device.name);
+
+        // No existing bindings with guid or path, add new ones
+        if (device.IsGamepad()) {
+            auto& bindings = Game::Bindings.AddForDevice(device, Input::InputType::Gamepad);
 
             // xbox controllers tend to have terrible stick drift and need a higher deadzone
-            float innerDeadzone = device.IsXBoxController() ? 0.12f : 0.5f;
+            float innerDeadzone = device.IsXBoxController() ? 0.12f : 0.08f;
             ResetGamepadBindings(bindings, innerDeadzone);
+        }
+        else {
+            Game::Bindings.AddForDevice(device, Input::InputType::Joystick);
         }
     };
 

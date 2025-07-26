@@ -143,6 +143,7 @@ namespace Inferno {
 
     // Stores the bindings for an input device
     struct InputDeviceBinding {
+        string path; // OS specific path for the device. Some devices have duplicate guids.
         string guid; // identifies the input device for controllers and joysticks
         Input::InputType type = Input::InputType::Unknown;
 
@@ -302,10 +303,25 @@ namespace Inferno {
         InputDeviceBinding& GetKeyboard() { return _keyboard; }
         InputDeviceBinding& GetMouse() { return _mouse; }
 
-        InputDeviceBinding* GetDevice(string_view guid) {
-            for (auto& device : _devices) {
-                if (device.guid == guid)
-                    return &device;
+        // Returns bindings that match both the path and guid of the device
+        InputDeviceBinding* GetExact(const Input::InputDevice& device) {
+            for (auto& binding : _devices) {
+                if (binding.path == device.path && binding.guid == device.guid)
+                    return &binding;
+            }
+
+            return nullptr;
+        }
+
+        InputDeviceBinding* GetForDevice(const Input::InputDevice& device) {
+            // Search for exact match
+            if (auto exact = GetExact(device))
+                return exact;
+
+            // then search for the device guid
+            for (auto& binding : _devices) {
+                if (binding.guid == device.guid)
+                    return &binding;
             }
 
             return nullptr;
@@ -313,12 +329,10 @@ namespace Inferno {
 
         span<InputDeviceBinding> GetDevices() { return _devices; }
 
-        InputDeviceBinding& AddDevice(string_view guid, Input::InputType type) {
-            if (auto device = GetDevice(guid))
-                return *device;
-
+        InputDeviceBinding& AddDevice(const string& guid, const string& path, Input::InputType type) {
             InputDeviceBinding deviceBinding{};
-            deviceBinding.guid = string(guid);
+            deviceBinding.guid = guid;
+            deviceBinding.path = path;
             deviceBinding.type = type;
 
             if (type == Input::InputType::Gamepad)
@@ -326,6 +340,10 @@ namespace Inferno {
 
             _devices.push_back(deviceBinding);
             return _devices.back();
+        }
+
+        InputDeviceBinding& AddForDevice(const Input::InputDevice& device, Input::InputType type) {
+            return AddDevice(device.guid, device.path, type);
         }
 
         bool Pressed(GameAction action);

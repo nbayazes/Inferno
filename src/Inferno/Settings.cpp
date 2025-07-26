@@ -379,6 +379,7 @@ namespace Inferno {
                 auto deviceNode = devicesNode.append_child();
                 deviceNode |= ryml::MAP;
                 deviceNode["guid"] << device.guid;
+                deviceNode["path"] << device.path;
                 deviceNode["type"] << string(magic_enum::enum_name(device.type));
 
                 WriteSensitivity(deviceNode, device.sensitivity);
@@ -522,6 +523,9 @@ namespace Inferno {
                 if (!ReadValue2(deviceNode, "type", type))
                     continue; // Missing type!
 
+                string path;
+                ReadValue2(deviceNode, "path", path); // path is not required, but preferred
+
                 auto inputType = Input::InputType::Unknown;
                 if (auto key = magic_enum::enum_cast<Input::InputType>(type))
                     inputType = *key;
@@ -529,7 +533,7 @@ namespace Inferno {
                 if (inputType == Input::InputType::Unknown)
                     continue; // Missing type!
 
-                auto& device = Game::Bindings.AddDevice(guid, inputType);
+                auto& device = Game::Bindings.AddDevice(guid, path, inputType);
                 ReadSensitivity(deviceNode, device.sensitivity);
 
                 auto actions = GetSequenceNode(deviceNode, "actions");
