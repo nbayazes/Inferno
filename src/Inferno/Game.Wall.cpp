@@ -593,7 +593,6 @@ namespace Inferno {
     void HitWall(Level& level, const Vector3& point, const Object& src, const Wall& wall) {
         auto parent = level.TryGetObject(src.Parent);
         bool isPlayerSource = src.IsPlayer() || (parent && parent->IsPlayer());
-        bool isRobotSource = src.IsRobot() || (parent && parent->IsRobot());
         // Should robots only be able to open doors by touching them?
         //const Object* pRobot = src.IsRobot() ? &src : nullptr; // Only allow touching
         const Object* pRobot = src.IsRobot() ? &src : (parent && parent->IsRobot() ? parent : nullptr);
@@ -613,11 +612,6 @@ namespace Inferno {
                 OpenDoor(level, wall.Tag, src.Faction);
             }
             else if (src.Type == ObjectType::Weapon || src.Type == ObjectType::Player) {
-                // Can't open door
-                if ((isPlayerSource || isRobotSource) && src.Type == ObjectType::Weapon) {
-                    Sound::Play({ SoundID::HitLockedDoor }, point, wall.Tag.Segment);
-                }
-
                 if (isPlayerSource) {
                     string msg;
                     const auto accessDenied = Resources::GetString(GameString::AccessDenied);

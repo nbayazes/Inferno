@@ -183,14 +183,14 @@ namespace Inferno {
         // For most lasers it will stack the projectiles.
         uint FireCount = 1;
 
-        VClipID RobotHitVClip = VClipID::None;
-        SoundID RobotHitSound = SoundID::None;
+        VClipID RobotHitVClip = VClipID::SmallExplosion;
+        SoundID RobotHitSound = SoundID::Explosion;
 
         int AmmoUsage = 0;
         VClipID WeaponVClip = VClipID::None;
 
         VClipID WallHitVClip = VClipID::None;
-        SoundID WallHitSound = SoundID::None;
+        SoundID WallHitSound = SoundID::Explosion;
 
         bool IsDestroyable = false; // If true this weapon can be destroyed by another weapon
         bool IsMatter = false; // Is a matter weapon if true, energy if false

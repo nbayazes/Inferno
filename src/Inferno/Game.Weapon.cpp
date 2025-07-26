@@ -392,7 +392,7 @@ namespace Inferno::Game {
             expl.Sound = weapon.RobotHitSound;
             expl.Volume = WEAPON_HIT_OBJECT_VOLUME;
             //expl.Parent = src.Parent;
-            expl.Clip = VClipID::SmallExplosion;
+            expl.Clip = weapon.RobotHitVClip;
             expl.Radius = { weapon.ImpactSize * 0.85f, weapon.ImpactSize * 1.15f };
             //expl.Color = Color{ 1.15f, 1.15f, 1.15f };
             expl.FadeTime = 0.1f;
