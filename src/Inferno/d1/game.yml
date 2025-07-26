@@ -1553,6 +1553,8 @@ Effects:
 Ships:
   - Name: Pyro-GX
     Model: 43
+    ModelName: ship.pof
+    DestroyedModelName: shipd.pof
     ExplosionVClip: 58
     Mass: 4
     Drag: 0.033

@@ -387,6 +387,9 @@ namespace Inferno {
         READ_PROP(Wiggle);
         READ_PROP(TurnRollRate);
         READ_PROP(TurnRollScale);
+        READ_PROP(Model);
+        READ_PROP(ModelName);
+        READ_PROP(DestroyedModelName);
 #undef READ_PROP
 
         if (!node["Gunpoints"].invalid() && node["Gunpoints"].readable() && node["Gunpoints"].has_children()) {

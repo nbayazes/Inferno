@@ -36,6 +36,8 @@ namespace Inferno {
     struct ShipInfo {
 #pragma region HAM properties
         ModelID Model;
+        string ModelName;
+        string DestroyedModelName;
         VClipID ExplosionVClip{};
         float Mass, Drag;
         float MaxThrust, ReverseThrust, Brakes;

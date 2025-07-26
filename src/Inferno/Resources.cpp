@@ -505,7 +505,7 @@ namespace Inferno::Resources {
         }
 
         if (data.PlayerShip.Model != ModelID::None) {
-            auto file = "ship.pof";
+            auto file = data.PlayerShip.ModelName.empty() ? "ship.pof" : data.PlayerShip.ModelName;
             if (auto modelData = ReadBinaryFile(file, flags)) {
                 auto model = ReadPof(*modelData, &data.palette);
                 model.FileName = file;
@@ -516,7 +516,7 @@ namespace Inferno::Resources {
         }
 
         if (data.PlayerShip.Model != ModelID::None) {
-            auto file = "shipd.pof";
+            auto file = data.PlayerShip.DestroyedModelName.empty() ? "shipd.pof" : data.PlayerShip.DestroyedModelName;
             if (auto modelData = ReadBinaryFile(file, flags)) {
                 auto model = ReadPof(*modelData, &data.palette);
                 model.FileName = file;
