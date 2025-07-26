@@ -1316,6 +1316,7 @@ namespace Inferno::Resources {
             auto tableFilePath = MOD_FOLDER / mod / MATERIAL_TABLE_FILE;
 
             if (filesystem::exists(path) && filesystem::exists(tableFilePath)) {
+                // Read from unpacked folder first
                 auto manifest = ReadModManifest(path / MOD_MANIFEST_FILE);
                 if (!manifest || !manifest->SupportsLevel(level)) continue;
 
@@ -1326,6 +1327,7 @@ namespace Inferno::Resources {
             }
             else if (filesystem::exists(zipPath)) {
                 if (auto zip = File::OpenZip(zipPath)) {
+                    // Read from zip
                     auto manifest = ReadModManifest(*zip);
                     if (!manifest || !manifest->SupportsLevel(level)) continue;
 
@@ -1334,43 +1336,6 @@ namespace Inferno::Resources {
                         SPDLOG_INFO("Merging materials from {}", zipPath.string());
                         IndexedMaterials.Merge(table);
                     }
-                }
-            }
-        }
-
-
-        // Merge packed mods
-        for (auto& entry : filesystem::directory_iterator(MOD_FOLDER)) {
-            auto ext = entry.path().extension().string();
-
-            if (String::InvariantEquals(ext, ".zip")) {
-                if (auto zip = File::OpenZip(entry.path())) {
-                    auto manifest = ReadModManifest(*zip);
-                    if (!manifest || !manifest->SupportsLevel(level)) continue;
-
-                    if (auto bytes = zip->TryReadEntry(MATERIAL_TABLE_FILE)) {
-                        auto text = BytesToString(*bytes);
-                        auto table = MaterialTable::Load(text, TableSource::Mod);
-                        SPDLOG_INFO("Merging materials from {}", entry.path().string());
-                        IndexedMaterials.Merge(table);
-                    }
-                }
-            }
-        }
-
-        // Merge unpacked mods
-        for (auto& entry : filesystem::directory_iterator(MOD_FOLDER)) {
-            if (!entry.is_directory()) continue;
-
-            auto entryName = String::ToLower(entry.path().filename().string());
-
-            // Check subfolder contents
-            for (auto& subentry : filesystem::directory_iterator(entry.path())) {
-                if (String::ToLower(subentry.path().filename().string()) == MATERIAL_TABLE_FILE) {
-                    SPDLOG_INFO("Merging materials from {}", subentry.path().string());
-                    auto text = File::ReadAllText(subentry.path());
-                    auto table = MaterialTable::Load(text, TableSource::Mod);
-                    IndexedMaterials.Merge(table);
                 }
             }
         }
@@ -1395,13 +1360,14 @@ namespace Inferno::Resources {
         // Load the base material tables from the d1 and d2 folders
         if (auto text = Resources::ReadTextFile(MATERIAL_TABLE_FILE, LoadFlag::Filesystem | LoadFlag::Descent1)) {
             SPDLOG_INFO("Reading D1 material table");
-
             Descent1Materials = MaterialTable::Load(*text, TableSource::Descent1);
         }
 
-        if (auto text = Resources::ReadTextFile(MATERIAL_TABLE_FILE, LoadFlag::Filesystem | LoadFlag::Descent2)) {
-            SPDLOG_INFO("Reading D2 material table");
-            Descent2Materials = MaterialTable::Load(*text, TableSource::Descent2);
+        if (level.IsDescent2()) {
+            if (auto text = Resources::ReadTextFile(MATERIAL_TABLE_FILE, LoadFlag::Filesystem | LoadFlag::Descent2)) {
+                SPDLOG_INFO("Reading D2 material table");
+                Descent2Materials = MaterialTable::Load(*text, TableSource::Descent2);
+            }
         }
 
         auto levelFile = String::NameWithoutExtension(level.FileName) + MATERIAL_TABLE_EXTENSION;
