@@ -475,10 +475,10 @@ namespace Inferno::Resources {
         }
     }
 
-    // Load the custom exit models. Note this requires the D1 ham for proper texturing.
+    // Load custom models. Note this requires the D1 ham for proper texturing.
     void LoadCustomModels(FullGameData& data) {
         // Don't search the HOG files because it would find the original models
-        auto flags = LoadFlag::Filesystem | LoadFlag::Common | LoadFlag::Descent1 | LoadFlag::Dxa;
+        auto flags = LoadFlag::Filesystem | LoadFlag::Asset | LoadFlag::Descent1 | LoadFlag::Dxa;
 
         // todo: handle Descent 2. It does not define the exit models
         if (data.ExitModel != ModelID::None) {
@@ -1066,6 +1066,11 @@ namespace Inferno::Resources {
                 return ResourceHandle::FromHog(file, fileName);
         }
 
+        if (HasFlag(flags, LoadFlag::Asset)) {
+            if (auto asset = FileSystem::FindAsset(string(fileName)))
+                return asset;
+        }
+
         if (HasFlag(flags, LoadFlag::Dxa)) {
             // Check for addon (dxa) data
             if (HasFlag(flags, LoadFlag::Descent1))
@@ -1087,9 +1092,6 @@ namespace Inferno::Resources {
 
             if (HasFlag(flags, LoadFlag::Descent2) && filesystem::exists(D2_FOLDER / file))
                 return ResourceHandle::FromFilesystem(D2_FOLDER / fileName);
-
-            if (HasFlag(flags, LoadFlag::Common) && filesystem::exists(ASSET_FOLDER / file))
-                return ResourceHandle::FromFilesystem(ASSET_FOLDER / fileName);
         }
 
         // Base HOG file
@@ -1127,6 +1129,10 @@ namespace Inferno::Resources {
 
         if (HasFlag(flags, LoadFlag::LevelType))
             flags |= GetLevelLoadFlag(Game::Level);
+
+        if (HasFlag(flags, LoadFlag::Filesystem)) {
+            ASSERT(HasFlag(flags, LoadFlag::Descent1) || HasFlag(flags, LoadFlag::Descent2));
+        }
 
         if (ext == ".wav") flags |= LoadFlag::Sound;
         if (ext == ".pof" || ext == ".oof") flags |= LoadFlag::Model;
@@ -1208,6 +1214,11 @@ namespace Inferno::Resources {
             }
         }
 
+        if (HasFlag(flags, LoadFlag::Asset)) {
+            if (auto asset = FileSystem::ReadAsset(string(fileName)))
+                return asset;
+        }
+
         // Check for DXA (zip) data
         if (HasFlag(flags, LoadFlag::Dxa)) {
             if (HasFlag(flags, LoadFlag::Descent1))
@@ -1232,11 +1243,6 @@ namespace Inferno::Resources {
             if (HasFlag(flags, LoadFlag::Descent2) && filesystem::exists(D2_FOLDER / subPath)) {
                 SPDLOG_INFO("Reading {}", (D2_FOLDER / subPath).string());
                 return File::ReadAllBytes(D2_FOLDER / subPath);
-            }
-
-            if (HasFlag(flags, LoadFlag::Common) && filesystem::exists(ASSET_FOLDER / subPath)) {
-                SPDLOG_INFO("Reading {}", (ASSET_FOLDER / subPath).string());
-                return File::ReadAllBytes(ASSET_FOLDER / subPath);
             }
         }
 

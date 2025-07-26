@@ -150,9 +150,9 @@ namespace Inferno::Game {
             FixMatcenLinks(level);
 
             Level = std::move(level); // Move to global so resource loading works properly
-            LoadLevelMetadata(Level); // Relies on IsShareware
             FreeProceduralTextures();
             Resources::LoadLevel(Level);
+            LoadLevelMetadata(Level); // Relies on IsShareware
 
             // Rarely a custom level might have seg 0 detached from the rest of the level, try using the player start seg if present.
             SegID start{ 0 };
@@ -382,7 +382,7 @@ namespace Inferno::Game {
             auto mission = String::ToLower(missionPath.filename().string());
 
             // try reading from mission (includes zip, unpacked folder and hog)
-            if (auto data = Resources::ReadTextFile(metadataFile, LoadFlag::Filesystem | LoadFlag::Mission))
+            if (auto data = Resources::ReadTextFile(metadataFile, LoadFlag::Mission))
                 return *data;
         }
         else {
