@@ -10,29 +10,15 @@ Weapons:
     ExplosionTexture: RedLaserHit
     ExplosionSize: 1.75
     ExplosionTime: 0.4
+    RobotHitVClip: 2
     Glow: 1, 0, 0, 25
     LightRadius: 16
     LightColor: 1, 0.025, 0.025, 1.5
     FlashColor: 1, 0.025, 0.025, 1.5
     EnergyUsage: 0.25 # Lower energy cost to make early game less tedious. Quads double the cost.
     Upgrade: laser level 2
-
-  #- id: 0
-  #  Name: laser 1
-  #  Mass: 0.15
-  #  FireDelay: 0.25
-  #  Glow: 1, 0, 0, 6
-  #  ModelName: RedLaser.OOF
-  #  ModelScale: 0.7
-  #  Size: 0.5
-  #  ExplosionSound: LazorHitshrt
-  #  ExplosionTexture: RedLaserHit
-  #  ExplosionSize: 1.75
-  #  ExplosionTime: 0.4
-  #  LightRadius: 16
-  #  LightColor: 1, 0.025, 0.025
-  #  ExplosionColor: 0.8, 0.05, 0.05
-  #  FlashColor: 1, 0.25, 0.25, 20
+    Damage: 10
+    Speed: 120
 
   - id: 1
     Name: laser level 2
@@ -52,6 +38,8 @@ Weapons:
     LightColor: 1, 0.1, 0.33, 1.5
     FlashColor: 1, 0.15, 0.6, 2
     EnergyUsage: 0.25
+    Speed: 130 # Was 125
+    Damage: 11
     Upgrade: laser level 3
 
   - id: 2
@@ -72,6 +60,8 @@ Weapons:
     LightColor: 0.15, 0.15, 0.6, 3.5
     FlashColor: 1, 1, 1, 2
     EnergyUsage: 0.25
+    Speed: 140 # Was 130
+    Damage: 12
     Upgrade: laser level 4
 
   - id: 3
@@ -91,6 +81,8 @@ Weapons:
     LightRadius: 16
     LightColor: 0.075, 0.6, 0.075, 2.5
     FlashColor: 1, 1, 1, 1
+    Speed: 150 # Was 135
+    Damage: 13
     EnergyUsage: 0.25
 
   - id: 5
@@ -229,6 +221,7 @@ Weapons:
     HudName: plasma
     Decal: scorchB
     Size: 1.5
+    Speed: 200 # Was 150
     ExplosionSound: PlasmaHit1
     ExplosionTexture: PlasmaRing
     ExplosionSize: 2.3
@@ -1586,6 +1579,11 @@ Ships:
           # - Delay: 0.15 # original
           #   Gunpoints: [ 0, 1 ]
           # 0.1 * 5 + 0.4 = 0.9 total delay 0.9 / 6 = 0.15 which is the original delay
+          # 0.1 * 7 + 0.4 = 1.1 total delay 1.1 / 8 = 0.1375
+          - Delay: 0.1
+            Gunpoints: [ 0, 1 ]
+          - Delay: 0.1
+            Gunpoints: [ 0, 1 ]
           - Delay: 0.1
             Gunpoints: [ 0, 1 ]
           - Delay: 0.1
@@ -1612,7 +1610,7 @@ Ships:
       - Weapon: Gauss
         Ammo: 1000
         AmmoType: 1 # Share with vulcan
-        AmmoUsage: 2 # Was around 28
+        AmmoUsage: 4 # Was around 28
         Firing:
           - Delay: 0.15
             Gunpoints: 6 # center gunpoint
@@ -1627,7 +1625,7 @@ Ships:
           - Delay: 0.12
             Gunpoints: [0, 1] 
       - Weapon: Omega
-        Ammo: 4 # Charge capacity
+        Ammo: 4 # Charge capacity and energy cost
         #AmmoType: 9
         #AmmoUsage: 10
         EnergyUsage: 0.05 # Charge capacity per shot

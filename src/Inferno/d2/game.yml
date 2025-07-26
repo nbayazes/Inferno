@@ -1,11 +1,29 @@
 Weapons:
+  # - id: 0
+  #   Name: laser level 1
+  #   Damage: 9
+
+  # - id: 1
+  #   Name: laser level 2
+  #   Damage: 9.75
+
+  # - id: 2
+  #   Name: laser level 3
+  #   Damage: 10.5
+
+  # - id: 3
+  #   Name: laser level 4
+  #   Damage: 11.25
+  - id: 14
+    Name: fusion
+    Model: 131 # Fusion model is different in D2
   - id: 30
     Name: super laser level 5
     FullName: Super Laser Cannon Level 5
     HudName: "laser\nlvl: 5"
     Mass: 0.05
     FireDelay: 0.25
-    Glow: 1, .45, .09, 5.5
+    Glow: 1, .55, .09, 12.5
     ModelName: YellowLaser.OOF
     ModelScale: 0.7
     Size: 0.5
@@ -13,9 +31,11 @@ Weapons:
     ExplosionTexture: YellowLaserHit
     ExplosionSize: 1.75
     ExplosionTime: 0.4
-    LightRadius: 16
+    LightRadius: 18
     LightColor: 0.7, 0.4, 0.1, 2
     FlashColor: 1, .75, .45, 15
+    Speed: 160 # Was 135
+    Damage: 13 # Was 12
 
   - id: 31
     Name: super laser level 6
@@ -23,7 +43,7 @@ Weapons:
     HudName: "laser\nlvl: 6"
     Mass: 0.05
     FireDelay: 0.25
-    Glow: .5, .5, 1, 5
+    Glow: .5, .5, 1, 7.5
     ModelName: WhiteLaser.OOF
     ModelScale: 0.7
     Size: 0.5
@@ -31,9 +51,11 @@ Weapons:
     ExplosionTexture: WhiteLaserHit
     ExplosionSize: 1.75
     ExplosionTime: 0.4
-    LightRadius: 16
+    LightRadius: 20
     LightColor: 0.54, 0.54, 1, 1.4
     FlashColor: .5, .5, 1, 15
+    Speed: 170 # Was 135
+    Damage: 13 # Was 12.5. 12 on insane
 
   - id: 32
     Name: gauss
@@ -53,6 +75,7 @@ Weapons:
     SplashRadius: 25 # Increased from 10 to make more distinct from vulcan, similar to a flak cannon. Missiles are 30
     AmmoUsage: 40
     LightRadius: 10
+    WallHitSound: 11
     #LightColor: 1, .66, 0.25, 1.5 # in-flight light color looks like flickering, not great
     ExplosionSound: # ExpHardBullet
     Model: -1
@@ -182,6 +205,9 @@ Robots:
     Name: Boss 1 Clone
   - id: 33
     Name: Guide Bot
+    DevName: Buddy
+    Mass: 2
+    Drag: 0.02
   - id: 34
     Name: Mine Guard
   - id: 35
@@ -375,7 +401,7 @@ Effects:
       Width: [ 1.25, 1.5 ]
       Color: .666, .277, 1, 90
       Color2: 60, 25, 90 # todo: random colors?
-      Texture: Lightning4
+      Texture: lightning
       Frequency: 0.0333 # 1/30
       Amplitude: 1
       Duration: 0.0625
@@ -383,7 +409,7 @@ Effects:
     - Name: omega beam2 # accent beams when hitting a target
       Width: 0.5
       Color: .666, .25, 1, 45
-      Texture: Lightning4
+      Texture: lightning
       Frequency: 0.0333
       Amplitude: 0.55
       Duration: 0.0625
@@ -392,7 +418,7 @@ Effects:
       Radius: 15
       Width: 0.5
       Color:  .666, .277, 1, 90
-      Texture: Lightning4
+      Texture: lightning
       Frequency: 0.0333
       Amplitude: 1
       FadeEnd: 1
@@ -401,8 +427,8 @@ Effects:
 
     - Name: omega miss # used when omega hits no targets
       Width: 1.0
-      Color:  .666, .277, 1, 90
-      Texture: Lightning4
+      Color:  .666, .277, 1, 250
+      Texture: lightning
       Frequency: 0.0166
       Amplitude: 0.7
       FadeEnd: 1
