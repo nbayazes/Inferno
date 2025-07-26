@@ -893,6 +893,8 @@ namespace Inferno {
         player.Physics.AngularAcceleration = Vector3::Zero;
         player.Physics.BankState = PhysicsData().BankState;
         player.Physics.TurnRoll = 0;
+        player.Physics.Velocity = Vector3::Zero;
+        player.Physics.PrevVelocity = Vector3::Zero;
         player.Type = ObjectType::Player;
         player.Render.Type = RenderType::None; // Hide the player model
 
