@@ -4,7 +4,6 @@
 
 namespace Inferno {
     class Application final : public IDeviceNotify {
-        uint64 _fpsLimitMs = 0;
         uint64 _nextUpdate = 0;
         bool _isForeground = false;
 
@@ -31,6 +30,6 @@ namespace Inferno {
         bool EnableImgui = true;
 
     private:
-        void UpdateFpsLimit();
+        float GetFpsLimit() const;
     };
 }

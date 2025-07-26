@@ -162,10 +162,6 @@ void Application::Initialize(int width, int height) {
     Graphics::LoadEnvironmentMap("assets/textures/env.dds");
     Graphics::LoadMatcap("assets/textures/matcap.dds");
 
-    Events::SettingsChanged += [this] {
-        UpdateFpsLimit();
-    };
-
     // Set color picker to use wheel and HDR by default
     ImGui::SetColorEditOptions(ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_PickerHueWheel);
 
@@ -173,24 +169,24 @@ void Application::Initialize(int width, int height) {
     Game::SetState(GameState::MainMenu);
 }
 
-void Application::UpdateFpsLimit() {
-    auto limit = _isForeground ? Settings::Graphics.ForegroundFpsLimit : Settings::Graphics.BackgroundFpsLimit;
-    if ((_isForeground && Settings::Graphics.EnableForegroundFpsLimit) || !_isForeground)
-        _fpsLimitMs = limit > 0 ? int(1000.0f / (float)limit) : 60;
-    else
-        _fpsLimitMs = 0;
+float Application::GetFpsLimit() const {
+    if (_isForeground && Settings::Graphics.EnableForegroundFpsLimit) {
+        if (Settings::Graphics.ForegroundFpsLimit > 0) {
+            return int(1000.0f / (float)Settings::Graphics.ForegroundFpsLimit);
+        }
+    }
+    else if (!_isForeground && Settings::Graphics.BackgroundFpsLimit) {
+        if (Settings::Graphics.BackgroundFpsLimit > 0) {
+            return int(1000.0f / (float)Settings::Graphics.BackgroundFpsLimit);;
+        }
+    }
+
+    return 0;
 }
 
 void Application::Tick() {
-    // Update the FPS limit if foreground limit is enabled but not set
-    if (_isForeground) {
-        if ((Settings::Graphics.EnableForegroundFpsLimit && _fpsLimitMs == 0) ||
-            (!Settings::Graphics.EnableForegroundFpsLimit && _fpsLimitMs > 0))
-            UpdateFpsLimit();
-    }
-
-    if (_fpsLimitMs > 0) {
-        if (Inferno::Clock.MaybeSleep(_fpsLimitMs))
+    if (auto fpsLimit = GetFpsLimit(); fpsLimit > 0) {
+        if (Inferno::Clock.MaybeSleep(fpsLimit))
             return; // spinwait
     }
 
@@ -231,7 +227,7 @@ void Application::OnActivated() {
 
     Input::ResetState();
     _isForeground = true;
-    UpdateFpsLimit();
+    GetFpsLimit();
 }
 
 void Application::OnDeactivated() {
@@ -239,7 +235,7 @@ void Application::OnDeactivated() {
     Input::SetMouseMode(Input::MouseMode::Normal);
     Input::ResetState();
     _isForeground = false;
-    UpdateFpsLimit();
+    GetFpsLimit();
 }
 
 void Application::OnSuspending() {
