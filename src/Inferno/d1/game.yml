@@ -4,7 +4,7 @@ Weapons:
     FullName: Laser Cannon Level 1
     HudName: "laser\nlvl: 1"
     RobotHitVClip: 2
-    Mass: 0.05
+    Mass: 0.2
     FireDelay: 0.25
     Size: 0.6
     ExplosionSound: LazorHitshrt
@@ -25,7 +25,7 @@ Weapons:
     FullName: Laser Cannon Level 2
     HudName: "laser\nlvl: 2"
     RobotHitVClip: 2
-    Mass: 0.05
+    Mass: 0.2
     FireDelay: 0.25
     Glow: 1, 0.0, 0.333, 20
     ModelName: PurpleLaser.OOF
@@ -48,7 +48,7 @@ Weapons:
     FullName: Laser Cannon Level 3
     HudName: "laser\nlvl: 3"
     RobotHitVClip: 2
-    Mass: 0.05
+    Mass: 0.2
     FireDelay: 0.25
     Glow: .125, .125, 1, 30
     ModelName: bluelaser.OOF
@@ -71,7 +71,7 @@ Weapons:
     FullName: Laser Cannon Level 4
     HudName: "laser\nlvl: 4"
     RobotHitVClip: 2
-    Mass: 0.05
+    Mass: 0.2
     FireDelay: 0.25
     Glow: 0, 1, 0, 14
     ModelName: GreenLaser.OOF

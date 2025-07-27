@@ -68,7 +68,7 @@ Enhanced missions require retail game data.
 	- Both of these behaviors affect enemy mines, be careful not to waste homing missiles around gophers!
 
 ## Balance changes
-- Player vulcan damage significantly increased, spreadfire damage increased, concussion missile speed increased
+- Player vulcan damage significantly increased, concussion missile speed increased
 - Spreadfire is faster and deals slightly more damage
 - Plasma now fires in a burst pattern similar to Descent 3's Black Pyro
 - Fusion now slows time while charging (can be disabled in options)
@@ -93,4 +93,9 @@ Requires Visual Studio 2022 with VCPKG integration
 Open `Inferno.sln` file and build. If set up correctly dependencies will be fetched automatically using the VCPKG manifest.
 
 ## Linux
-Should run in Wine after installing `vkd3d-proton`, `d3dcompiler_47` (with winetricks) and copying `segoeui.ttf` to `c:\windows\fonts`
+Should run in Wine after installing `vkd3d-proton`, `d3dcompiler_47` with winetricks and copying `segoeui.ttf` to `c:\windows\fonts`. 
+Current directory must be the same as the exe when launching.
+
+`winetricks vkd3d; winetricks dxvk; winetricks d3dcompiler_47`
+
+`$ export WINEPREFIX=/path/to/64bit/wineprefix && cd /path/to/inferno.exe && wine Inferno.exe`
