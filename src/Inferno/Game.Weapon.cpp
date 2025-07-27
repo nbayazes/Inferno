@@ -387,11 +387,9 @@ namespace Inferno::Game {
 
         //fmt::print("applied {} damage\n", damage);
 
-        if (!target.IsPlayer()) {
+        // Always show explosions, even against the player
+        if (!target.IsPlayer() || weapon.SplashRadius > 0) {
             ExplosionEffectInfo expl;
-            expl.Sound = weapon.RobotHitSound;
-            expl.Volume = WEAPON_HIT_OBJECT_VOLUME;
-            //expl.Parent = src.Parent;
             expl.Clip = weapon.RobotHitVClip;
             expl.Radius = { weapon.ImpactSize * 0.85f, weapon.ImpactSize * 1.15f };
             //expl.Color = Color{ 1.15f, 1.15f, 1.15f };
@@ -434,7 +432,10 @@ namespace Inferno::Game {
         //    Sound::Play3D(sound, target);
         //}
 
-        if (weapon.RobotHitSound != SoundID::None || !weapon.Extended.ExplosionSound.empty()) {
+        // Always play explosion sounds for weapons with splash damage, even against the player.
+        // Otherwise the player has a different hit sound effect
+        if ((weapon.RobotHitSound != SoundID::None || weapon.Extended.ExplosionSound.empty()) &&
+            (!target.IsPlayer() || weapon.SplashRadius > 0)) {
             SoundResource resource = { weapon.RobotHitSound };
             resource.D3 = weapon.Extended.ExplosionSound; // Will take priority if D3 is loaded
             Sound3D sound(resource);
