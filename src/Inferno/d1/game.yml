@@ -222,7 +222,7 @@ Weapons:
     Lifetime: 10
     # DeathSparks: spreadfire death sparks
     Size: .75 # Was 0.5. Increase size to increase area and feel more powerful
-    Spread: 3.3 # Was 3.6. Reduce spread to improve effectiveness at medium range
+    Spread: 3.6 # Was 3.6. Reduce spread to improve effectiveness at medium range
     FlashColor: 1, 1, 1, 1
 
   - id: 13
