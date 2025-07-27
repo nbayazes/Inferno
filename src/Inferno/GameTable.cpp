@@ -206,7 +206,9 @@ namespace Inferno {
         READ_PROP_EXT(Tracer);
         READ_PROP_EXT(DeathSparks);
 
-        READ_PROP_EXT(HomingFov);
+        if (READ_PROP_EXT(HomingFov))
+            weapon.Extended.HomingFov = ConvertFov(weapon.Extended.HomingFov);
+
         READ_PROP_EXT(HomingTurnRate);
         READ_PROP_EXT(HomingDistance);
         READ_PROP_EXT(DirectDamage);
@@ -216,8 +218,6 @@ namespace Inferno {
         READ_PROP_EXT(RicochetAngle);
         READ_PROP_EXT(RicochetMetalMultiplier);
 
-        if (weapon.Extended.HomingFov > 0)
-            weapon.Extended.HomingFov = ConvertFov(weapon.Extended.HomingFov);
 
 #undef READ_PROP_EXT
     }
@@ -237,10 +237,10 @@ namespace Inferno {
         Yaml::ReadValue(node["Primary"], (uint8&)powerup.Primary);
         Yaml::ReadValue(node["Secondary"], (uint8&)powerup.Secondary);
 
-        if (powerup.Primary > PrimaryWeaponIndex::Omega) 
+        if (powerup.Primary > PrimaryWeaponIndex::Omega)
             powerup.Primary = PrimaryWeaponIndex::None;
 
-        if (powerup.Secondary > SecondaryWeaponIndex::Earthshaker) 
+        if (powerup.Secondary > SecondaryWeaponIndex::Earthshaker)
             powerup.Secondary = SecondaryWeaponIndex::None;
     }
 
