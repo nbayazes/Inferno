@@ -601,6 +601,11 @@ namespace Inferno {
         Game::Terrain.ExitModel = Resources::GameData.ExitModel;
         State = {};
 
+        // Make the player visible in case the player cancels the sequence during the first half
+        // Only matters when switching to the editor
+        auto& player = Game::GetPlayerObject();
+        player.Render.Type = RenderType::Model;
+
         if (Game::IsFinalLevel() && Game::Mission) {
             // The last level shows the briefing before the score screen
             if (auto mission = Game::GetMissionInfo(*Game::Mission)) {
