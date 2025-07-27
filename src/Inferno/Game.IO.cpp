@@ -33,8 +33,6 @@ namespace Inferno::Game {
         Option<LoadLevelInfo> PendingLoad;
     }
 
-    void LoadLevelMetadata(Inferno::Level& level);
-
     void LoadLevel(const filesystem::path& path, string_view hogEntry, bool autosave) {
         PendingLoad = LoadLevelInfo{
             .Path = path,
@@ -152,7 +150,6 @@ namespace Inferno::Game {
             Level = std::move(level); // Move to global so resource loading works properly
             FreeProceduralTextures();
             Resources::LoadLevel(Level);
-            LoadLevelMetadata(Level); // Relies on IsShareware
 
             // Rarely a custom level might have seg 0 detached from the rest of the level, try using the player start seg if present.
             SegID start{ 0 };
@@ -371,40 +368,6 @@ namespace Inferno::Game {
         }
 
         return -1;
-    }
-
-    string LoadLevelMetadataInternal(const Inferno::Level& level) {
-        auto metadataFile = String::NameWithoutExtension(level.FileName) + METADATA_EXTENSION;
-
-        if (Game::Mission) {
-            const auto& missionPath = Game::Mission->Path;
-
-            auto mission = String::ToLower(missionPath.filename().string());
-
-            // try reading from mission (includes zip, unpacked folder and hog)
-            if (auto data = Resources::ReadTextFile(metadataFile, LoadFlag::Mission))
-                return *data;
-        }
-        else {
-            // for loose levels, check adjacent to the file
-            auto path = level.Path.parent_path() / metadataFile;
-
-            if (filesystem::exists(path)) {
-                SPDLOG_INFO("Reading level metadata from `{}`", path.string());
-                return File::ReadAllText(path);
-            }
-        }
-
-        return {};
-    }
-
-    // reads IED files for the level
-    void LoadLevelMetadata(Inferno::Level& level) {
-        auto metadata = LoadLevelMetadataInternal(level);
-
-        if (!metadata.empty()) {
-            LoadLevelMetadata(level, metadata, Editor::EditorLightSettings);
-        }
     }
 
     Inferno::Level LoadLevelFromMission(const string& name) {

@@ -692,13 +692,6 @@ namespace Inferno {
                 for (const auto& child : ships.children()) {
                     ReadShip(child, gameData.PlayerShip);
                 }
-
-                // Copy guns from model data if present. The default model does not have gunpoint defs and relies on a table entry.
-                if (auto model = Seq::tryItem(gameData.Models, (int)gameData.PlayerShip.Model)) {
-                    for (size_t i = 0; i < model->Guns.size(); i++) {
-                        gameData.PlayerShip.Gunpoints[i] = model->Guns[i].Point;
-                    }
-                }
             }
         }
         catch (const std::exception& e) {

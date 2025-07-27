@@ -3,12 +3,14 @@
 #include <fstream>
 #include <mutex>
 #include "BitmapTable.h"
+#include "Editor/Editor.h"
 #include "FileSystem.h"
 #include "Game.h"
 #include "GameTable.h"
 #include "Graphics.h"
 #include "Graphics/MaterialLibrary.h"
 #include "Hog.IO.h"
+#include "LevelMetadata.h"
 #include "logging.h"
 #include "Pig.h"
 #include "Settings.h"
@@ -512,6 +514,11 @@ namespace Inferno::Resources {
                 auto firstTexture = data.Models[(int)data.PlayerShip.Model].FirstTexture;
                 data.Models[(int)data.PlayerShip.Model] = model;
                 data.Models[(int)data.PlayerShip.Model].FirstTexture = firstTexture;
+
+                // Copy gunpoints if present
+                for (size_t i = 0; i < model.Guns.size() && i < data.PlayerShip.Gunpoints.size(); i++) {
+                    data.PlayerShip.Gunpoints[i] = model.Guns[i].Point;
+                }
             }
         }
 
@@ -1437,6 +1444,31 @@ namespace Inferno::Resources {
     //    }
     //}
 
+    string ReadLevelMetadataFile(const Inferno::Level& level) {
+        auto metadataFile = String::NameWithoutExtension(level.FileName) + METADATA_EXTENSION;
+
+        if (Game::Mission) {
+            const auto& missionPath = Game::Mission->Path;
+
+            auto mission = String::ToLower(missionPath.filename().string());
+
+            // try reading from mission (includes zip, unpacked folder and hog)
+            if (auto data = Resources::ReadTextFile(metadataFile, LoadFlag::Mission))
+                return *data;
+        }
+        else {
+            // for loose levels, check adjacent to the file
+            auto path = level.Path.parent_path() / metadataFile;
+
+            if (filesystem::exists(path)) {
+                SPDLOG_INFO("Reading level metadata from `{}`", path.string());
+                return File::ReadAllText(path);
+            }
+        }
+
+        return {};
+    }
+
     void LoadLevel(Level& level) {
         try {
             ResetResources();
@@ -1583,8 +1615,11 @@ namespace Inferno::Resources {
                     level.TotalHostages++;
             }
 
-            LoadCustomModels(GameData); // Load models before tables, so the custom model gunpoints are used
+            if (auto metadata = ReadLevelMetadataFile(level); !metadata.empty())
+                LoadLevelMetadata(level, metadata, Editor::EditorLightSettings);
+
             LoadDataTables(level);
+            LoadCustomModels(GameData); // Load models before tables, so the custom model gunpoints are used
 
             LoadStringTable(GameData.hog);
             UpdateAverageTextureColor();
