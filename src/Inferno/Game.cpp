@@ -963,11 +963,12 @@ namespace Inferno::Game {
                     if (auto data = hog.TryReadEntry(levelEntry)) {
                         auto briefingName = mission.GetValue("briefing");
 
+                        auto level = isShareware ? Level::DeserializeD1Demo(*data) : Level::Deserialize(*data);
+                        Resources::LoadLevel(level); // load resources so briefings with custom backgrounds work
+                        Graphics::LoadLevel(level);
+                        Game::LoadLevel(hogPath, levelEntry, autosave); // Request a level load
+
                         if (showBriefing && !briefingName.empty()) {
-                            auto level = isShareware ? Level::DeserializeD1Demo(*data) : Level::Deserialize(*data);
-                            Resources::LoadLevel(level); // load resources so briefings with custom backgrounds work
-                            Graphics::LoadLevel(level);
-                            Game::LoadLevel(hogPath, levelEntry, autosave); // Request a level load
                             ShowBriefing(mission, levelNumber, level, briefingName, false);
                         }
                         else {
