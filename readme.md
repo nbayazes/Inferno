@@ -79,6 +79,8 @@ Enhanced missions require retail game data.
 Inferno contains a fully featured level editor, but requires retail game data to save changes.
 It is accessible from the main menu.
 
+![preview](docs/preview.jpg)
+
 - Interactive extrusion, translation, rotation, and scaling
 - Entirely new radiosity light model with support for per-side settings
 - Real-time renderer that animates powerups, scrolling textures and flickering lights
