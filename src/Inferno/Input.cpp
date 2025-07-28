@@ -266,15 +266,8 @@ namespace Inferno::Input {
                 return;
             }
 
-            auto device = GetFromGuid(guid); // check if gamepad was already connected
-
-            if (!device) {
-                SPDLOG_INFO("Add gamepad {}: {} - {} - {}", id, name, guid, path);
-                device = &_devices.emplace_back(); // create a new device
-            }
-            else {
-                SPDLOG_INFO("Using existing gamepad {}: {} - {}", id, device->name, device->guid, device->path);
-            }
+            SPDLOG_INFO("Adding gamepad {}: {} - {} - {}", id, name, guid, path);
+            auto device = &_devices.emplace_back(); // create a new device
 
             device->name = name;
             device->guid = guid;
@@ -317,15 +310,8 @@ namespace Inferno::Input {
             auto numHats = SDL_GetNumJoystickHats(joystick);
             auto path = SDL_GetJoystickPath(joystick);
 
-            auto device = GetFromGuid(guid); // check if gamepad was already connected
-
-            if (!device) {
-                SPDLOG_INFO("Add joystick {}: {} - {} - {}\nButtons: {} Axes: {} Hats: {}", id, name, guid, path, numButtons, numAxes, numHats);
-                device = &_devices.emplace_back(); // create a new device
-            }
-            else {
-                SPDLOG_INFO("Using existing joystick {}: {} - {}", id, name, guid);
-            }
+            SPDLOG_INFO("Adding joystick {}: {} - {} - {}\nButtons: {} Axes: {} Hats: {}", id, name, guid, path, numButtons, numAxes, numHats);
+            auto device = &_devices.emplace_back(); // create a new device
 
             device->guid = guid;
             device->path = path;
@@ -350,6 +336,18 @@ namespace Inferno::Input {
 
     InputDevice* GetDevice(string_view guid, bool enabled) {
         auto device = Devices.GetFromGuid(guid);
+
+        // Filter disabled devices
+        if (enabled && device) {
+            if (device->type == SDL_GAMEPAD_TYPE_UNKNOWN && !Settings::Inferno.EnableJoystick) return nullptr;
+            if (device->type != SDL_GAMEPAD_TYPE_UNKNOWN && !Settings::Inferno.EnableGamepad) return nullptr;
+        }
+
+        return device;
+    }
+
+    InputDevice* GetExactDevice(string_view path, bool enabled) {
+        auto device = Devices.GetFromPath(path);
 
         // Filter disabled devices
         if (enabled && device) {

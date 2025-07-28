@@ -302,6 +302,10 @@ namespace Inferno::Input {
     // Filters to devices enabled in the global settings by default.
     InputDevice* GetDevice(string_view guid, bool enabled = true);
 
+    // Returns the state of a joystick with the given device path
+    // Filters to devices enabled in the global settings by default.
+    InputDevice* GetExactDevice(string_view path, bool enabled = true);
+
     // Called when a new joystick or gamepad is connected
     inline std::function<void(InputDevice&)> AddJoystickCallback;
 

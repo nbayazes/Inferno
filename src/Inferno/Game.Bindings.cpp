@@ -45,7 +45,7 @@ namespace Inferno {
             case Input::InputType::Gamepad: {
                 if (binding->type == BindType::Button && binding->id < Input::PS_BUTTON_LABELS.size()) {
                     auto gamepadType = SDL_GAMEPAD_TYPE_UNKNOWN;
-                    if (auto device = Input::GetDevice(guid))
+                    if (auto device = Input::GetExactDevice(path))
                         gamepadType = device->type;
 
                     switch (gamepadType) {
@@ -140,7 +140,7 @@ namespace Inferno {
 
     bool GameBindings::Pressed(GameAction action) {
         for (auto& device : _devices) {
-            if (auto joystick = Input::GetDevice(device.guid)) {
+            if (auto joystick = Input::GetExactDevice(device.path)) {
                 for (auto& binding : device.bindings[(int)action]) {
                     switch (binding.type) {
                         case BindType::Button:
@@ -182,7 +182,7 @@ namespace Inferno {
 
     bool GameBindings::Held(GameAction action) {
         for (auto& device : _devices) {
-            if (auto joystick = Input::GetDevice(device.guid)) {
+            if (auto joystick = Input::GetExactDevice(device.path)) {
                 for (auto& binding : device.bindings[(int)action]) {
                     switch (binding.type) {
                         case BindType::Button:
@@ -226,7 +226,7 @@ namespace Inferno {
         float value = 0;
 
         for (auto& deviceBindings : _devices) {
-            if (auto device = Input::GetDevice(deviceBindings.guid)) {
+            if (auto device = Input::GetExactDevice(deviceBindings.path)) {
                 for (auto& binding : deviceBindings.bindings[(int)action]) {
                     if (!Seq::inRange(device->axes, binding.id)) continue;
                     if (binding.type == BindType::None) continue;

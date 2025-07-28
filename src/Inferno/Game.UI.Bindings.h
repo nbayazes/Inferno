@@ -22,7 +22,7 @@ namespace Inferno::UI {
         bool _showInvert = false;
         uint _slot = 0; // Slot when binding started
         gsl::strict_not_null<int*> _column;
-        gsl::strict_not_null<InputDeviceBinding*> _device;
+        gsl::strict_not_null<InputDeviceBinding*> _bindings;
 
     public:
         float LabelWidth = 200;
@@ -35,7 +35,7 @@ namespace Inferno::UI {
         std::function<void()> OnChange; // Called when a binding changes
 
         BindingControl(GameAction action, InputDeviceBinding& device, int& column)
-            : _action(action), _column(&column), _device(&device) {
+            : _action(action), _column(&column), _bindings(&device) {
             Padding = Vector2(0, Spacing);
             _label = GetActionLabel(action);
             auto labelSize = MeasureString(_label, FontSize::Small);
@@ -55,8 +55,8 @@ namespace Inferno::UI {
         }
 
         void RefreshBinding() {
-            _shortcut = _device->GetBindingLabel(_action, 0);
-            _shortcut2 = _device->GetBindingLabel(_action, 1);
+            _shortcut = _bindings->GetBindingLabel(_action, 0);
+            _shortcut2 = _bindings->GetBindingLabel(_action, 1);
         }
 
         ControlBase* HitTestCursor() override {
@@ -71,7 +71,7 @@ namespace Inferno::UI {
 
             bool cancel = Input::OnKeyPressed(Keys::Escape);
 
-            if (auto device = Input::GetDevice(_device->guid); device && device->IsGamepad())
+            if (auto device = Input::GetExactDevice(_bindings->path); device && device->IsGamepad())
                 cancel |= device->ButtonWasPressed(SDL_GAMEPAD_BUTTON_START);
 
             if (cancel) {
@@ -85,7 +85,7 @@ namespace Inferno::UI {
 
             auto finishBinding = [this, &binding] {
                 binding.action = _action;
-                _device->UnbindOthers(binding, _slot); // Clear existing
+                _bindings->UnbindOthers(binding, _slot); // Clear existing
                 _waitingForInput = false;
                 if (OnChange) OnChange();
                 CaptureCursor(false);
@@ -97,7 +97,7 @@ namespace Inferno::UI {
             uint8 bindId{};
             bool dir{};
 
-            switch (_device->type) {
+            switch (_bindings->type) {
                 case Input::InputType::Keyboard:
                     for (Keys key = Keys::Back; key <= Keys::OemClear; key = Keys((unsigned char)key + 1)) {
                         if (Input::OnKeyPressed(key)) {
@@ -137,7 +137,7 @@ namespace Inferno::UI {
 
                     break;
                 case Input::InputType::Gamepad:
-                    if (auto joystick = Input::GetDevice(_device->guid)) {
+                    if (auto joystick = Input::GetExactDevice(_bindings->path)) {
                         if (_bindType == BindType::Axis) {
                             if (joystick->CheckAxisPressed(bindId, dir)) {
                                 bool halfAxis = bindId == SDL_GAMEPAD_AXIS_LEFT_TRIGGER || bindId == SDL_GAMEPAD_AXIS_RIGHT_TRIGGER;
@@ -175,7 +175,7 @@ namespace Inferno::UI {
                     }
                     break;
                 case Input::InputType::Joystick:
-                    if (auto joystick = Input::GetDevice(_device->guid)) {
+                    if (auto joystick = Input::GetExactDevice(_bindings->path)) {
                         if (_bindType == BindType::Axis) {
                             if (joystick->CheckAxisPressed(bindId, dir)) {
                                 binding.id = bindId;
@@ -223,7 +223,7 @@ namespace Inferno::UI {
             }
 
             if (_waitingForInput) {
-                if (auto binding = _device->GetBinding(_action, _slot))
+                if (auto binding = _bindings->GetBinding(_action, _slot))
                     HandleBindInput(*binding);
             }
             else if (Input::MouseButtonPressed(Input::MouseButtons::LeftClick)) {
@@ -240,7 +240,7 @@ namespace Inferno::UI {
             }
             else if (Input::ControlDown && Input::OnKeyPressed(Input::Keys::D) && Focused) {
                 // Delete binding
-                if (auto binding = _device->GetBinding(_action, *_column)) {
+                if (auto binding = _bindings->GetBinding(_action, *_column)) {
                     *binding = {}; // clear
                     Sound::Play2D(SoundResource{ ActionSound });
                     if (OnChange) OnChange();
@@ -258,7 +258,7 @@ namespace Inferno::UI {
         }
 
         void ToggleInvert() const {
-            if (auto binding = _device->GetBinding(_action, 0)) {
+            if (auto binding = _bindings->GetBinding(_action, 0)) {
                 binding->invert = !binding->invert;
                 Sound::Play2D(SoundResource{ ActionSound });
             }
@@ -421,7 +421,7 @@ namespace Inferno::UI {
             }
 
             if (_showInvert) {
-                if (auto binding = _device->GetBinding(_action, 0)) {
+                if (auto binding = _bindings->GetBinding(_action, 0)) {
                     // Invert checkbox
                     auto color = _hovered3 ? ACCENT_COLOR : Focused && column == 2 ? FOCUSED_BUTTON : IDLE_BUTTON;
 
@@ -630,10 +630,10 @@ namespace Inferno::UI {
                 }
                 else if (index > 1) {
                     if (auto device = Seq::tryItem(_devices, index - 2)) {
-                        if (auto binds = Game::Bindings.GetForDevice(*device)) {
+                        if (auto binds = Game::Bindings.GetExact(*device)) {
                             UpdateBindingList(GamepadInputs, *binds);
                         } else {
-                            SPDLOG_WARN("No bindings found for device {}", device->name, device->path);
+                            SPDLOG_WARN("No bindings found for device {}:{}", device->name, device->path);
                         }
                     }
                     else {
@@ -703,7 +703,7 @@ namespace Inferno::UI {
                 else if (*_index > 1) {
                     auto& device = _devices.at(*_index - 2);
 
-                    if (auto binds = Game::Bindings.GetForDevice(device)) {
+                    if (auto binds = Game::Bindings.GetExact(device)) {
                         ResetGamepadBindings(*binds);
                         UpdateBindingList(GamepadInputs, *binds);
                     }

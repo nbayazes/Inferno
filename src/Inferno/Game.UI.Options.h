@@ -157,7 +157,7 @@ namespace Inferno::UI {
                 // input device
 
                 if (auto device = Seq::tryItem(_devices, *_index - 2)) {
-                    if (auto bindings = Game::Bindings.GetForDevice(*device)) {
+                    if (auto bindings = Game::Bindings.GetExact(*device)) {
                         auto& rotation = bindings->sensitivity.rotation;
                         addSlider("Pitch", 1.0f, 5.0f, rotation.x);
                         addSlider("Yaw", 1.0f, 5.0f, rotation.y);
@@ -208,7 +208,8 @@ namespace Inferno::UI {
         // the selected control. 0 is keyboard, 1 is mouse, 1 > is controllers and joysticks.
         // located here so the selection stays in sync between bindings and sensitivity.
         // Static so that selection is remembered between opening the menu
-        static inline int _deviceIndex = 0;  
+        static inline int _deviceIndex = 0;
+
     public:
         InputMenu() : DialogBase("Input Options") {
             Size = Vector2(620, 460);
