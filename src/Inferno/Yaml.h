@@ -63,8 +63,19 @@ namespace Yaml {
     bool ReadValue(ryml::ConstNodeRef node, T& id) {
         try {
             if (!node.readable() || !node.has_val() || node.val() == "") return false;
-            //node >> (std::underlying_type_t<T>&)id;
-            node >> (int&)id; // for byte enums, yaml tries parsing it as a character instead which is wrong
+
+
+            if constexpr (std::is_same_v<std::underlying_type_t<T>, char> || 
+                          std::is_same_v<std::underlying_type_t<T>, uint8_t> || 
+                          std::is_same_v<std::underlying_type_t<T>, int8_t>) {
+                int value;
+                node >> value; // for byte enums, yaml tries parsing it as a character instead which is wrong
+                id = (T)value;
+            }
+            else {
+                node >> (std::underlying_type_t<T>&)id;
+            }
+
             return true;
         }
         catch (...) {
