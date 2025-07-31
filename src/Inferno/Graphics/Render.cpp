@@ -371,6 +371,7 @@ namespace Inferno::Render {
         constexpr int DESCENT3_MODEL_COUNT = 200;
         LevelResources = {};
         LevelResources.LevelMeshes = make_unique<PackedBuffer>(1024 * 1024 * 20);
+        LevelResources.FogMeshes = make_unique<PackedBuffer>(1024 * 1024 * 5);
         LevelResources.ObjectMeshes = MakePtr<MeshBuffer>(Resources::GameData.Models.size(), DESCENT3_MODEL_COUNT);
 
         List<ModelID> modelIds;

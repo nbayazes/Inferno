@@ -475,6 +475,7 @@ namespace Inferno::Render {
         if (!LevelResources.LevelMeshes) return;
 
         _levelMeshBuilder.Update(level, *LevelResources.LevelMeshes.get());
+        _levelMeshBuilder.UpdateFog(level, *LevelResources.FogMeshes.get());
 
         for (auto& room : level.Rooms) {
             room.WallMeshes.clear();
@@ -744,6 +745,55 @@ namespace Inferno::Render {
                 PIXScopedEvent(cmdList, PIX_COLOR_INDEX(2), "Transparent queue");
                 for (auto& cmd : _renderQueue.Transparent())
                     ExecuteRenderCommand(ctx, cmd, RenderPass::Transparent);
+            }
+
+            for (auto& fog : _levelMeshBuilder.GetFogMeshes()) {
+                {
+                    auto& depthTexture = Adapter->GetLinearDepthBuffer();
+                    Color clearColor(1, 1, 1); // clear to 1, otherwise the fog volumes have an outline at a distance
+                    ctx.ClearColor(depthTexture, nullptr, &clearColor);
+                    depthTexture.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+                    ctx.SetRenderTarget(depthTexture.GetRTV(), Adapter->GetDepthBuffer().GetDSV());
+
+                    auto& effect = Effects->FogPrepass;
+                    ctx.ApplyEffect(effect);
+                    ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+
+                    cmdList->IASetVertexBuffers(0, 1, &fog.VertexBuffer);
+                    cmdList->IASetIndexBuffer(&fog.IndexBuffer);
+                    cmdList->DrawIndexedInstanced(fog.IndexCount, 1, 0, 0, 0);
+
+                    if (Settings::Graphics.MsaaSamples > 1) {
+                        // must resolve MS target to allow shader sampling
+                        Adapter->LinearizedDepthBuffer.ResolveFromMultisample(cmdList, Adapter->MsaaLinearizedDepthBuffer);
+                    }
+                }
+
+                {
+                    auto& depthTexture = Adapter->LinearizedDepthBuffer;
+                    depthTexture.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+                    ctx.SetRenderTarget(renderTarget.GetRTV(), Adapter->GetDepthBuffer().GetDSV());
+
+                    auto& effect = Effects->Fog;
+                    ctx.ApplyEffect(effect);
+                    ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+                    effect.Shader->SetConstants(cmdList, { fog.color });
+
+                    effect.Shader->SetDepthTexture(ctx.GetCommandList(), depthTexture.GetSRV());
+                    cmdList->IASetVertexBuffers(0, 1, &fog.VertexBuffer);
+                    cmdList->IASetIndexBuffer(&fog.IndexBuffer);
+                    cmdList->DrawIndexedInstanced(fog.IndexCount, 1, 0, 0, 0);
+
+                    for (auto& segid : fog.Segments) {
+                        if (auto seg = level.TryGetSegment(segid)) {
+                            for (auto& objid : seg->Objects) {
+                                if (auto obj = level.TryGetObject(objid)) {
+                                    DrawFoggedObject(ctx, *obj, RenderPass::Opaque);
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             //ctx.SetViewportAndScissor(UINT(target.GetWidth() * Settings::Graphics.RenderScale), UINT(target.GetHeight() * Settings::Graphics.RenderScale));

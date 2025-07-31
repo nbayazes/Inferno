@@ -59,7 +59,7 @@ namespace Inferno {
     public:
         GraphicsContext(ID3D12Device* device, CommandQueue* queue, string_view name) : CommandContext(device, queue, name) {}
 
-        Inferno::Camera Camera;
+        Inferno::Camera Camera{};
 
         // Sets multiple render targets with a depth buffer. Used with shaders that write to multiple buffers.
         void SetRenderTargets(span<D3D12_CPU_DESCRIPTOR_HANDLE> rtvs, D3D12_CPU_DESCRIPTOR_HANDLE dsv) const {

@@ -172,6 +172,7 @@ namespace Inferno::Render {
     struct LevelGpuResources {
         Ptr<TerrainMesh> TerrainMesh;
         Ptr<PackedBuffer> LevelMeshes;
+        Ptr<PackedBuffer> FogMeshes;
         Ptr<MeshBuffer> ObjectMeshes;
         Ptr<AutomapMeshes> AutomapMeshes;
     };

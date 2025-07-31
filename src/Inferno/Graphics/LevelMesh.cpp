@@ -21,77 +21,221 @@ namespace Inferno {
         return false;
     }
 
-    HeatVolume CreateHeatVolumes(Level& level) {
-        // Discover all verts with lava on them
-        Set<uint16> heatIndices;
-        for (auto& seg : level.Segments) {
-            for (auto& sideId : SIDE_IDS) {
-                auto& side = seg.GetSide(sideId);
-                if (!TMapIsLava(side.TMap)) continue;
-                auto indicesForSide = seg.GetVertexIndices(sideId);
-                for (int16 i : indicesForSide)
-                    heatIndices.insert(i);
+
+    void CreateFogVolumes(const Level& level, List<FogVolume>& volumes, List<FlatVertex>& vertices) {
+        List<uint8> visited;
+        visited.resize(level.Segments.size());
+        Color white(1, 1, 1);
+
+        volumes.clear();
+        vertices.clear();
+
+        struct Vertex {
+            Vector3 position;
+            Color color;
+            uint usages;
+            PointID id;
+        };
+
+        List<Vertex> points;
+        uint indexOffset = 0;
+
+        auto addOrUpdatePoint = [&points, &indexOffset](FogVolume& volume, const Vector3& position, PointID id, Color color, bool open) {
+            auto index = Seq::findIndex(points, [id](const Vertex& v) { return v.id == id; });
+            if (open) color = Color(0, 0, 0, 0);
+
+            if (index) {
+                auto& point = points[*index];
+                point.color += color;
+                if (!open) point.usages++;
+                volume.indices.push_back((uint)*index + indexOffset);
+                return *index;
             }
-        }
+            else {
+                // add a new vertex
+                index = points.size();
 
-        // Discover all segments that touch
-        Set<SegID> heatSegs;
-        for (int sid = -1; auto& seg : level.Segments) {
-            sid++;
-            for (auto i : seg.Indices)
-                if (Seq::contains(heatIndices, i))
-                    heatSegs.insert(SegID(sid));
-        }
+                auto& point = points.emplace_back();
+                point.id = id;
+                point.color = color;
+                if (!open) point.usages++;
+                point.position = position;
+                volume.indices.push_back((uint)*index + indexOffset);
+                return points.size() - 1;
+            }
+        };
 
-        // Create volumes from segments containing lava verts
-        List<uint16> indices;
-        List<FlatVertex> vertices;
+        // iterate each segment in the level, looking for those that have a fog color set
+        // then find touching segments and join them together
 
-        for (auto& segId : heatSegs) {
-            auto& seg = level.GetSegment(segId);
+        for (size_t startseg = 0; startseg < level.Segments.size(); startseg++) {
+            if (visited[startseg]) continue; // already visited
+            //visited[startseg] = true;
 
-            for (auto& sideId : SIDE_IDS) {
-                // cull faces that connect to another segment containing lava. UNLESS has a wall
-                // to do this properly, external facing should be culled on lava falls, otherwise Z fighting will occur
-                // ALSO: only closed walls / doors should count (not triggers)
-                if (Seq::contains(heatSegs, segId) &&
-                    !level.TryGetWall({ (SegID)segId, sideId }))
-                    continue;
+            //auto& seg = level.Segments[segid];
+            if (!level.Segments[startseg].Fog) {
+                continue; // no fog in this segment
+            }
 
-                Array<FlatVertex, 4> sideVerts;
+            const auto& startColor = *level.Segments[startseg].Fog;
 
-                bool isLit = false;
+            SPDLOG_INFO("Creating new fog volume starting at {}", startseg);
+            FogVolume volume;
+            volume.color = *level.Segments[startseg].Fog;
 
-                for (int i = 0; auto& v : seg.GetVertexIndices(sideId)) {
-                    sideVerts[i].Position = level.Vertices[v];
-                    if (Seq::contains(heatIndices, v)) {
-                        sideVerts[i].Color = Color{ 1, 1, 1, 1 };
-                        isLit = true;
+            Queue<SegID> queue;
+
+            queue.push((SegID)startseg);
+
+            while (!queue.empty()) {
+                auto id = queue.front();
+                queue.pop();
+
+                if (id <= SegID::None) continue;
+                if (visited[(int)id]) continue;
+                visited[(int)id] = true;
+
+                const auto& seg = level.GetSegment(id);
+                SPDLOG_INFO("Fogging segment {}", id);
+                volume.segments.push_back(id);
+
+                for (auto& sideid : SIDE_IDS) {
+                    auto connid = seg.GetConnection(sideid);
+                    auto conn = level.TryGetSegment(connid);
+
+                    if (!conn || (conn && conn->Fog != startColor)) {
+                        //auto indexOffset = (uint32)vertices.size();
+
+                        auto& side = seg.GetSide(sideid);
+
+                        auto& indices = side.GetRenderIndices();
+                        auto vi = seg.GetVertexIndices(sideid);
+
+                        bool open = connid > SegID::None && !seg.SideIsSolid(sideid, level);
+
+                        //if (connid > SegID::None && !seg.SideIsSolid(sideid, level)) {
+                        //    // insert open sides separately from solid sides with light calculations
+
+                        //    addOrUpdatePoint(volume, level.Vertices[vi[indices[0]]], vi[indices[0]], white);
+                        //    addOrUpdatePoint(volume, level.Vertices[vi[indices[1]]], vi[indices[1]], white);
+                        //    addOrUpdatePoint(volume, level.Vertices[vi[indices[2]]], vi[indices[2]], white);
+
+                        //    addOrUpdatePoint(volume, level.Vertices[vi[indices[3]]], vi[indices[3]], white);
+                        //    addOrUpdatePoint(volume, level.Vertices[vi[indices[4]]], vi[indices[4]], white);
+                        //    addOrUpdatePoint(volume, level.Vertices[vi[indices[5]]], vi[indices[5]], white);
+                        //}
+                        //else {
+
+                        addOrUpdatePoint(volume, level.Vertices[vi[indices[0]]], vi[indices[0]], side.Light[indices[0]], open);
+                        addOrUpdatePoint(volume, level.Vertices[vi[indices[1]]], vi[indices[1]], side.Light[indices[1]], open);
+                        addOrUpdatePoint(volume, level.Vertices[vi[indices[2]]], vi[indices[2]], side.Light[indices[2]], open);
+
+                        addOrUpdatePoint(volume, level.Vertices[vi[indices[3]]], vi[indices[3]], side.Light[indices[3]], open);
+                        addOrUpdatePoint(volume, level.Vertices[vi[indices[4]]], vi[indices[4]], side.Light[indices[4]], open);
+                        addOrUpdatePoint(volume, level.Vertices[vi[indices[5]]], vi[indices[5]], side.Light[indices[5]], open);
+                        //}
+
+                        //volume.indices.push_back(indexOffset + indices[0]);
+                        //volume.indices.push_back(indexOffset + indices[1]);
+                        //volume.indices.push_back(indexOffset + indices[2]);
+
+                        //volume.indices.push_back(indexOffset + indices[3]);
+                        //volume.indices.push_back(indexOffset + indices[4]);
+                        //volume.indices.push_back(indexOffset + indices[5]);
+
+
+                        SPDLOG_INFO("Adding side {}", sideid);
                     }
-                    else {
-                        sideVerts[i].Color = Color{ 1, 1, 1, 0 };
+                    else if (conn) {
+                        queue.push(connid);
                     }
-                    i++;
                 }
-
-                if (!isLit) continue;
-
-                auto indexOffset = (uint16)vertices.size();
-                indices.push_back(indexOffset + 0);
-                indices.push_back(indexOffset + 1);
-                indices.push_back(indexOffset + 2);
-
-                // Triangle 2
-                indices.push_back(indexOffset + 0);
-                indices.push_back(indexOffset + 2);
-                indices.push_back(indexOffset + 3);
-                for (auto& v : sideVerts)
-                    vertices.push_back(v);
             }
-        }
 
-        return { indices, vertices };
+            for (auto& p : points) {
+                vertices.push_back({ p.position, p.color *= 1 / (float)p.usages });
+            }
+
+            indexOffset = (uint)vertices.size();
+
+            points.clear();
+
+            if (!volume.indices.empty())
+                volumes.push_back(std::move(volume));
+        }
     }
+
+    //FogVolume CreateHeatVolumes(Level& level) {
+    //    // Discover all verts with lava on them
+    //    Set<uint16> heatIndices;
+    //    for (auto& seg : level.Segments) {
+    //        for (auto& sideId : SIDE_IDS) {
+    //            auto& side = seg.GetSide(sideId);
+    //            if (!TMapIsLava(side.TMap)) continue;
+    //            auto indicesForSide = seg.GetVertexIndices(sideId);
+    //            for (int16 i : indicesForSide)
+    //                heatIndices.insert(i);
+    //        }
+    //    }
+
+    //    // Discover all segments that touch
+    //    Set<SegID> heatSegs;
+    //    for (int sid = -1; auto& seg : level.Segments) {
+    //        sid++;
+    //        for (auto i : seg.Indices)
+    //            if (Seq::contains(heatIndices, i))
+    //                heatSegs.insert(SegID(sid));
+    //    }
+
+    //    // Create volumes from segments containing lava verts
+    //    List<uint16> indices;
+    //    List<FlatVertex> vertices;
+
+    //    for (auto& segId : heatSegs) {
+    //        auto& seg = level.GetSegment(segId);
+
+    //        for (auto& sideId : SIDE_IDS) {
+    //            // cull faces that connect to another segment containing lava. UNLESS has a wall
+    //            // to do this properly, external facing should be culled on lava falls, otherwise Z fighting will occur
+    //            // ALSO: only closed walls / doors should count (not triggers)
+    //            if (Seq::contains(heatSegs, segId) &&
+    //                !level.TryGetWall({ (SegID)segId, sideId }))
+    //                continue;
+
+    //            Array<FlatVertex, 4> sideVerts;
+
+    //            bool isLit = false;
+
+    //            for (int i = 0; auto& v : seg.GetVertexIndices(sideId)) {
+    //                sideVerts[i].Position = level.Vertices[v];
+    //                if (Seq::contains(heatIndices, v)) {
+    //                    sideVerts[i].Color = Color{ 1, 1, 1, 1 };
+    //                    isLit = true;
+    //                }
+    //                else {
+    //                    sideVerts[i].Color = Color{ 1, 1, 1, 0 };
+    //                }
+    //                i++;
+    //            }
+
+    //            if (!isLit) continue;
+
+    //            auto indexOffset = (uint16)vertices.size();
+    //            indices.push_back(indexOffset + 0);
+    //            indices.push_back(indexOffset + 1);
+    //            indices.push_back(indexOffset + 2);
+
+    //            // Triangle 2
+    //            indices.push_back(indexOffset + 0);
+    //            indices.push_back(indexOffset + 2);
+    //            indices.push_back(indexOffset + 3);
+    //            for (auto& v : sideVerts)
+    //                vertices.push_back(v);
+    //        }
+    //    }
+
+    //    return { indices, vertices };
+    //}
 
     Vector2 ApplyOverlayRotation(const SegmentSide& side, Vector2 uv) {
         float overlayAngle = GetOverlayRotationAngle(side.OverlayRotation);
@@ -241,6 +385,19 @@ namespace Inferno {
 
         chunk.Bounds.Center = (min + max) / 2;
         chunk.Bounds.Extents = (max - min) / 2;
+    }
+
+    void UpdateBounds(FogVolume& chunk, span<FlatVertex> vertices) {
+        Vector3 min(FLT_MAX, FLT_MAX, FLT_MAX), max(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+        for (auto& index : chunk.indices) {
+            auto& v = vertices[index];
+            min = Vector3::Min(v.Position, min);
+            max = Vector3::Max(v.Position, max);
+        }
+
+        chunk.bounds.Center = (min + max) / 2;
+        chunk.bounds.Extents = (max - min) / 2;
     }
 
     // unfinished UV fix for non-tiling textures. Emissive mipmaps still cause problems
@@ -512,6 +669,20 @@ namespace Inferno {
         }
     }
 
+    void LevelMeshBuilder::UpdateFog(const Level& level, PackedBuffer& buffer) {
+        buffer.ResetIndex();
+        _fogMeshes.clear();
+        CreateFogVolumes(level, _geometry.FogVolumes, _geometry.FogVertices);
+
+        auto vbv = buffer.PackVertices(span{ _geometry.FogVertices });
+
+        for (auto& fog : _geometry.FogVolumes) {
+            //UpdateBounds(fog, _geometry.FogVertices);
+            auto ibv = buffer.PackIndices(span{ fog.indices });
+            _fogMeshes.emplace_back(FogMesh{ vbv, ibv, (uint)fog.indices.size(), fog.segments, fog.color });
+        }
+    }
+
     void LevelMeshBuilder::UpdateBuffers(PackedBuffer& buffer) {
         buffer.ResetIndex();
         _meshes.clear();
@@ -537,5 +708,12 @@ namespace Inferno {
             auto ibv = buffer.PackIndices(span{ c.Indices });
             _wallMeshes.emplace_back(LevelMesh{ vbv, ibv, (uint)c.Indices.size(), &c });
         }
+    }
+
+    void FogMesh::Draw(ID3D12GraphicsCommandList* cmdList) const {
+        cmdList->IASetVertexBuffers(0, 1, &VertexBuffer);
+        cmdList->IASetIndexBuffer(&IndexBuffer);
+        cmdList->DrawIndexedInstanced(IndexCount, 1, 0, 0, 0);
+        Render::Stats::DrawCalls++;
     }
 }

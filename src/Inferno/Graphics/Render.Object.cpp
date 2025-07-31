@@ -679,6 +679,86 @@ namespace Inferno::Render {
         }
     }
 
+    void DrawFoggedModel(GraphicsContext& ctx,
+                         const Object& object,
+                         ModelID modelId,
+                         RenderPass pass,
+                         const UploadBuffer<FrameConstants>& frameConstants) {
+        if (object.IsCloaked() && Game::GetState() != GameState::Editor) {
+            //DrawCloakedModel(ctx, object, modelId, pass);
+            return;
+        }
+
+        // todo: handle fog on terrain
+        //auto& effect = Game::OnTerrain && object.IsPlayer() ? Effects->TerrainObject : Effects->Object;
+        auto& effect = Effects->FogObject;
+        auto cmdList = ctx.GetCommandList();
+
+        auto& model = Resources::GetModel(modelId);
+        if (model.DataSize == 0) {
+            if (Game::GetState() == GameState::Editor && !Settings::Editor.HideUI)
+                DrawObjectOutline(object, ctx.Camera);
+
+            return;
+        }
+
+        auto& depthTexture = Adapter->LinearizedDepthBuffer;
+        depthTexture.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+        if (ctx.ApplyEffect(effect)) {
+            ctx.SetConstantBuffer(0, frameConstants.GetGPUVirtualAddress());
+            effect.Shader->SetDepthTexture(cmdList, depthTexture.GetSRV());
+        }
+
+        FogObjectShader::Constants constants = {};
+
+        // todo: pull from environment
+        if (auto seg = Game::Level.TryGetSegment(object.Segment)) {
+            constants.color = seg->Fog.value_or(Color(0, 0, 0, 0));
+        }
+
+        Matrix transform = Matrix::CreateScale(object.Scale) * object.GetTransform(Game::LerpAmount);
+
+        auto& meshHandle = GetMeshHandle(modelId);
+        constants.ambient = object.Ambient.GetValue();
+
+        for (int submodel = 0; submodel < model.Submodels.size(); submodel++) {
+            auto world = GetSubmodelTransform(object, model, submodel) * transform;
+            constants.World = world;
+
+            // get the mesh associated with the submodel
+            auto& subMesh = meshHandle.Meshes[submodel];
+
+            for (int i = 0; i < subMesh.size(); i++) {
+                auto mesh = subMesh[i];
+                if (!mesh) continue;
+
+                bool isTransparent = mesh->IsTransparent;
+                if (isTransparent && pass != RenderPass::Transparent) continue;
+                if (!isTransparent && pass != RenderPass::Opaque) continue;
+
+                if (isTransparent) {
+                    continue;
+                }
+
+                effect.Shader->SetConstants(cmdList, constants);
+
+                cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
+                cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
+                cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
+                Stats::DrawCalls++;
+            }
+        }
+    }
+
+    void DrawFoggedObject(GraphicsContext& ctx, const Object& object, RenderPass pass) {
+        auto& frameConstants = Adapter->GetFrameConstants();
+
+        if (object.Render.Type == RenderType::Model) {
+            DrawFoggedModel(ctx, object, object.Render.Model.ID, pass, frameConstants);
+        }
+    }
+
     void DrawObject(GraphicsContext& ctx, const Object& object, RenderPass pass) {
         auto& frameConstants = Adapter->GetFrameConstants();
 

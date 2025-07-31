@@ -109,7 +109,7 @@ namespace Inferno {
 
         auto binaryPath = GetBinaryPath(file, ".bin");
         if (std::filesystem::exists(binaryPath)) {
-            SPDLOG_INFO("Loading compute shader {}", binaryPath.string());
+            //SPDLOG_INFO("Loading compute shader {}", binaryPath.string());
             LoadFile(binaryPath, shader);
         }
         else {
@@ -118,7 +118,7 @@ namespace Inferno {
             //    throw Exception(message);
             //}
 
-            SPDLOG_INFO("Compiling compute shader {}:{}", file.string(), entryPoint);
+            //SPDLOG_INFO("Compiling compute shader {}:{}", file.string(), entryPoint);
             List<LPCWSTR> args;
             auto wideEntry = Widen(entryPoint); // args takes a pointer to string, must keep it allocated
             AddCommonArgs(args, wideEntry.c_str(), L"cs_6_0");
@@ -147,14 +147,14 @@ namespace Inferno {
 
         auto binaryPath = GetBinaryPath(file, ".vs.bin");
         if (filesystem::exists(binaryPath)) {
-            SPDLOG_INFO("Loading vertex shader {}", binaryPath.string());
+            //SPDLOG_INFO("Loading vertex shader {}", binaryPath.string());
             LoadFile(binaryPath, shader);
         }
         else {
             if (!filesystem::exists(file))
                 throw Exception(fmt::format("Shader file not found:\n{}", file.string()));
 
-            SPDLOG_INFO("Compiling vertex shader {}:{}", file.string(), entryPoint);
+            //SPDLOG_INFO("Compiling vertex shader {}:{}", file.string(), entryPoint);
 
             List<LPCWSTR> args;
             auto wideEntry = Widen(entryPoint); // args takes a pointer to string, must keep it allocated
@@ -173,11 +173,11 @@ namespace Inferno {
         ComPtr<ID3DBlob> shader;
         auto binaryPath = GetBinaryPath(file, ".ps.bin");
         if (filesystem::exists(binaryPath)) {
-            SPDLOG_INFO("Loading pixel shader {}", binaryPath.string());
+            //SPDLOG_INFO("Loading pixel shader {}", binaryPath.string());
             LoadFile(binaryPath, shader);
         }
         else {
-            SPDLOG_INFO("Compiling pixel shader {}:{}", file.string(), entryPoint);
+            //SPDLOG_INFO("Compiling pixel shader {}:{}", file.string(), entryPoint);
 
             List<LPCWSTR> args;
             auto wideEntry = Widen(entryPoint); // args takes a pointer to string, must keep it allocated

@@ -194,12 +194,17 @@ namespace Inferno {
             return false;
         }
 
+        auto ref = Game::GetObjectRef(obj);
+        if (auto prevSeg = level.TryGetSegment(obj.Segment)) {
+            prevSeg->RemoveObject(ref.Id);
+        }
+
         obj.Segment = id;
 
-        // Leave the last known seg id if nothing contains the object
         if (auto seg = level.TryGetSegment(obj.Segment)) {
             auto transitionTime = Game::GetState() == GameState::Game ? 0.5f : 0;
             obj.Ambient.SetTarget(seg->VolumeLight, Game::Time, transitionTime);
+            seg->AddObject(ref.Id);
         }
 
         return true;

@@ -858,40 +858,44 @@ namespace Inferno::Editor {
     }
 
     bool EnvironmentSettings(Segment& seg) {
-        bool changed = false;
+        bool levelChanged = false;
         bool snapshot = false;
 
         if (ImGui::TableBeginTreeNode("Environment")) {
-            ImGui::TableRowLabel("Reverb");
+            //ImGui::TableRowLabel("Reverb");
 
-            auto reverb = (Sound::Reverb)seg.Reverb;
+            //auto reverb = (Sound::Reverb)seg.Reverb;
 
-            if (ImGui::BeginCombo("##Reverb", Sound::REVERB_LABELS.at(reverb), ImGuiComboFlags_HeightLarge)) {
-                for (const auto& item : Sound::REVERB_LABELS | views::keys) {
-                    if (ImGui::Selectable(Sound::REVERB_LABELS.at(item), item == reverb)) {
-                        reverb = item;
+            //if (ImGui::BeginCombo("##Reverb", Sound::REVERB_LABELS.at(reverb), ImGuiComboFlags_HeightLarge)) {
+            //    for (const auto& item : Sound::REVERB_LABELS | views::keys) {
+            //        if (ImGui::Selectable(Sound::REVERB_LABELS.at(item), item == reverb)) {
+            //            reverb = item;
 
-                        for (auto& marked : GetSelectedSegments())
-                            if (auto markedSeg = Game::Level.TryGetSegment(marked))
-                                markedSeg->Reverb = (uint8)reverb;
+            //            for (auto& marked : GetSelectedSegments())
+            //                if (auto markedSeg = Game::Level.TryGetSegment(marked))
+            //                    markedSeg->Reverb = (uint8)reverb;
 
-                        changed = snapshot = true;
-                    }
-                }
+            //            changed = snapshot = true;
+            //        }
+            //    }
 
-                ImGui::EndCombo();
-            }
+            //    ImGui::EndCombo();
+            //}
 
             ImGui::TableNextColumn();
 
             bool hasFog = seg.Fog.has_value();
-            auto fog = seg.Fog.value_or(Color(0.5f, 0.5f, 0.5f, 0.5f));
+            auto fog = seg.Fog.value_or(Color(0.5, 0.5, 0.5, 15));
 
             if (ImGui::Checkbox("Fog", &hasFog)) {
                 for (auto& marked : GetSelectedSegments())
                     if (auto markedSeg = Game::Level.TryGetSegment(marked))
                         markedSeg->Fog = hasFog ? Option(fog) : std::nullopt;
-                
+
+                levelChanged = true;
+            }
+
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
                 snapshot = true;
             }
 
@@ -899,15 +903,35 @@ namespace Inferno::Editor {
             ImGui::SetNextItemWidth(-1);
             DisableControls disable(!seg.Fog);
             if (ImGui::ColorEdit3("##fog", &fog.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float)) {
-                seg.Fog = fog;
-                changed = true;
+                for (auto& marked : GetSelectedSegments())
+                    if (auto markedSeg = Game::Level.TryGetSegment(marked))
+                        markedSeg->Fog = hasFog ? Option(fog) : std::nullopt;
+
+                levelChanged = true;
+            }
+
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
+                snapshot = true;
+            }
+
+            ImGui::TableRowLabel("Density");
+
+            if (ImGui::DragFloat("##fogdensity", &fog.w, 0.5f, 1, 100, "%.1f")) {
+                for (auto& marked : GetSelectedSegments())
+                    if (auto markedSeg = Game::Level.TryGetSegment(marked))
+                        markedSeg->Fog = hasFog ? Option(fog) : std::nullopt;
+
+                levelChanged = true;
+            }
+
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
                 snapshot = true;
             }
 
             ImGui::TreePop();
         }
 
-        if (changed) Events::LevelChanged();
+        if (levelChanged) Events::LevelChanged();
         return snapshot;
     }
 
@@ -1594,7 +1618,7 @@ namespace Inferno::Editor {
         TextureProperties("Overlay texture", side.TMap2, true);
         snapshot |= SideLighting(level, seg, side);
         snapshot |= SideUVs(side);
-        //snapshot |= EnvironmentSettings(seg);
+        snapshot |= EnvironmentSettings(seg);
 
         ImGui::TableRowLabel("Segment size");
         ImGui::Text("%.2f x %.2f x %.2f",

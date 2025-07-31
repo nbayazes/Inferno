@@ -34,10 +34,6 @@ PS_INPUT vsmain(VS_INPUT input) {
     return output;
 }
 
-float LinearizeDepth(float near, float far, float depth) {
-    return near / (far + depth * (near - far));
-}
-
 float SaturateSoft(float depth, float contrast) {
     float Output = 0.5 * pow(saturate(2 * ((depth > 0.5) ? 1 - depth : depth)), contrast);
     return (depth > 0.5) ? 1 - Output : Output;

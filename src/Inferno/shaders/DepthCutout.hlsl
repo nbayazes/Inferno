@@ -58,10 +58,6 @@ PS_INPUT vsmain(LevelVertex input) {
     return output;
 }
 
-float LinearizeDepth(float near, float far, float depth) {
-    return near / (far + depth * (near - far));
-}
-
 Texture2D GetTexture(int index, int slot) {
     return TextureTable[index * 5 + slot];
 }

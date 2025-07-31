@@ -350,5 +350,8 @@
     <None Include="d2\material.yml" />
     <None Include="_publish.cmd" />
     <None Include="mods\mods.md" />
+    <None Include="shaders\Fog.hlsl" />
+    <None Include="shaders\FogPrepass.hlsl" />
+    <None Include="shaders\FogObject.hlsl" />
   </ItemGroup>
 </Project>

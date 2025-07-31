@@ -3,7 +3,7 @@
 #include "Render.h"
 
 namespace Inferno::Graphics {
-    void FillLightGridCS::SetLightConstants(uint2 size) {
+    void FillLightGridCS::SetLightConstants(const uint2& size) {
         LightingConstants psConstants{};
         //psConstants.sunDirection = m_SunDirection;
         //psConstants.sunLight = Vector3(1.0f, 1.0f, 1.0f) * m_SunLightIntensity;
