@@ -322,25 +322,34 @@ namespace Inferno::Sound {
 
     public:
         SoundWorker(milliseconds pollRate, const wstring* deviceId = nullptr) : _pollRate(pollRate) {
-            _effectsD1.resize(255);
-            _effectsD2.resize(255);
-            _listener.pCone = (X3DAUDIO_CONE*)&LISTENER_CONE;
+            try {
+                _effectsD1.resize(255);
+                _effectsD2.resize(255);
+                _listener.pCone = (X3DAUDIO_CONE*)&LISTENER_CONE;
 
-            auto flags = AudioEngine_EnvironmentalReverb | AudioEngine_ReverbUseFilters /*| AudioEngine_UseMasteringLimiter*/;
+                auto flags = AudioEngine_EnvironmentalReverb | AudioEngine_ReverbUseFilters /*| AudioEngine_UseMasteringLimiter*/;
 #ifdef _DEBUG
-            flags |= AudioEngine_Debug;
+                flags |= AudioEngine_Debug;
 #endif
-            if (deviceId && !deviceId->empty()) {
-                SPDLOG_INFO("Creating audio engine for device {}", Narrow(*deviceId));
-                _engine = make_unique<AudioEngine>(flags, nullptr, deviceId ? deviceId->c_str() : nullptr);
-            }
-            else {
-                SPDLOG_INFO("Creating audio engine using default device");
-                _engine = make_unique<AudioEngine>(flags);
-            }
+                if (deviceId && !deviceId->empty()) {
+                    SPDLOG_INFO("Creating audio engine for device {}", Narrow(*deviceId));
+                    _engine = make_unique<AudioEngine>(flags, nullptr, deviceId ? deviceId->c_str() : nullptr);
+                }
+                else {
+                    SPDLOG_INFO("Creating audio engine using default device");
+                    _engine = make_unique<AudioEngine>(flags);
+                }
 
-            _worker = std::jthread(&SoundWorker::Task, this);
-            _stopToken = _worker.get_stop_token();
+                _worker = std::jthread(&SoundWorker::Task, this);
+                _stopToken = _worker.get_stop_token();
+            }
+            catch (const std::exception& e) {
+                auto message = fmt::format("Error starting audio engine: {}", e.what());
+                ShowErrorMessage(message);
+            }
+            catch (...) {
+                ShowErrorMessage("Unknown error trying to start audio engine");
+            }
         }
 
         ~SoundWorker() {
