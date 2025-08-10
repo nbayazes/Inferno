@@ -184,6 +184,23 @@ namespace Inferno::Game {
             return {}; // null handle
     }
 
+    inline Environment* GetEnvironment(EnvironmentID id) {
+        return Seq::tryItem(Game::Level.Environments, (int)id);
+    }
+
+    inline Environment* GetEnvironment(const Object& obj) {
+        if (auto seg = Level.TryGetSegment(obj.Segment)) {
+            return Seq::tryItem(Level.Environments, (int)seg->Environment);
+        }
+
+        return nullptr;
+    }
+
+    inline EnvironmentID GetEnvironmentID(const Environment& env) {
+        auto id = EnvironmentID(&env - Level.Environments.data());
+        return Seq::inRange(Level.Environments, (int)id) ? id : EnvironmentID::None;
+    }
+
     inline Room* GetCurrentRoom() {
         if (Level.Objects.empty()) return nullptr;
         // should technically get the room the camera is in

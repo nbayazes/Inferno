@@ -231,10 +231,15 @@ namespace Inferno::Editor {
         }
 
         void Close(bool accepted = false) {
-            _isOpen = false;
+            if (accepted) {
+                if (!OnAccept()) return;
+            }
+            else {
+                OnCancel();
+            }
+
             ImGui::CloseCurrentPopup();
-            if (accepted) OnAccept();
-            else OnCancel();
+            _isOpen = false;
 
             if (Callback) Callback(accepted);
         }
@@ -244,8 +249,12 @@ namespace Inferno::Editor {
 
     protected:
         virtual void OnUpdate() = 0;
-        virtual void OnAccept() {}
+
+        // Returns true if the dialog can close
+        virtual bool OnAccept() { return true; }
         virtual void OnCancel() {}
+
+        // Return true if the dialog should open
         virtual bool OnOpen() { return true; }
 
         void AcceptButtons(const char* acceptLabel = "OK", const char* cancelLabel = "Cancel", bool canAccept = true) {

@@ -142,6 +142,13 @@ namespace Inferno::Editor {
         // Update walls
         for (auto& wall : level.Walls)
             shift(wall.Tag.Segment);
+
+        // Update environments
+        for (auto& env : level.Environments)
+            for (auto& segid : env.segments)
+                shift(segid);
+
+        RelinkEnvironments(level);
     }
 
     // Creates a 20x20 face aligned to the selected edge and centered to the source face

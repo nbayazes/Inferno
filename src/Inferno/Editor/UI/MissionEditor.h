@@ -61,7 +61,7 @@ namespace Inferno::Editor {
             return true;
         }
 
-        void OnAccept() override {
+        bool OnAccept() override {
             // write file
             try {
                 // update mission based on selections
@@ -87,6 +87,8 @@ namespace Inferno::Editor {
             catch (const std::exception& e) {
                 ShowErrorMessage(e);
             }
+
+            return true;
         }
 
         void MissionTab() {
@@ -284,7 +286,7 @@ namespace Inferno::Editor {
 
     class RenameLevelDialog : public ModalWindowBase {
     public:
-        RenameLevelDialog() : ModalWindowBase("Rename Level") {};
+        RenameLevelDialog() : ModalWindowBase("Rename Level") {}
 
         string LevelName;
 
@@ -294,9 +296,10 @@ namespace Inferno::Editor {
             return true;
         }
 
-        void OnAccept() override {
+        bool OnAccept() override {
             Game::Level.Name = LevelName;
             Inferno::Editor::History.SnapshotLevel("Rename Level");
+            return true;
         }
 
         void OnUpdate() override {

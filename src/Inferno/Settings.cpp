@@ -85,6 +85,7 @@ namespace Inferno {
         node["TerrainEditor"] << w.TerrainEditor;
         node["Scale"] << w.Scale;
         node["Debug"] << w.Debug;
+        node["Environment"] << w.Environment;
     }
 
     EditorSettings::OpenWindows LoadOpenWindows(ryml::NodeRef node) {
@@ -104,6 +105,7 @@ namespace Inferno {
         ReadValue(node["TerrainEditor"], w.TerrainEditor);
         ReadValue(node["Scale"], w.Scale);
         ReadValue(node["Debug"], w.Debug);
+        ReadValue(node["Environment"], w.Environment);
         return w;
     }
 
@@ -915,8 +917,6 @@ namespace Inferno {
                     LoadEditorBindings(bindings["Editor"]);
                     LoadGameBindings(bindings["Game"]);
                 }
-
-                Settings::Editor.Windows.Debug = true; // Always show debug window for alpha
             }
         }
         catch (const std::exception& e) {

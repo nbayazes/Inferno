@@ -64,9 +64,10 @@ namespace Inferno::Editor {
             AcceptButtons("OK", "Cancel", validFields && validSelection);
         }
 
-        void OnAccept() override {
+        bool OnAccept() override {
             NewLevelInfo info = { .Title = _title, .FileName = _fileName, .Version = Version, .AddToHog = _addToHog };
             Game::NewLevel(info);
+            return true;
         }
     };
 }

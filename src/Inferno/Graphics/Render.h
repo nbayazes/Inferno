@@ -218,5 +218,6 @@ namespace Inferno::Render {
     namespace Stats {
         inline uint16 DrawCalls = 0;
         inline uint16 PolygonCount = 0;
+        inline uint16 FogPasses = 0;
     }
 }

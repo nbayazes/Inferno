@@ -38,6 +38,9 @@ namespace Inferno::Render {
         _visibleRooms.clear();
         _roomStack.Reset();
 
+        _visibleSegments.resize(level.Segments.size());
+        ranges::fill(_visibleSegments, false);
+
         if (Settings::Editor.RenderMode == RenderMode::None) return;
 
         if (!(Game::GetState() == GameState::EscapeSequence && MineCollapsed())) {
@@ -95,6 +98,9 @@ namespace Inferno::Render {
             for (int i = 0; i < level.Rooms.size(); i++) {
                 _visibleRooms.push_back((RoomID)i);
             }
+
+            // Mark all segments as visible in editor mode
+            ranges::fill(_visibleSegments, true);
         }
         else if (!level.Objects.empty()) {
             TraverseSegments(level, camera, meshBuilder.GetWallMeshes(), Game::GetActiveCamera().Segment);
@@ -606,6 +612,7 @@ namespace Inferno::Render {
                 auto segid = _renderList[i];
                 if (segid == SegID::None) continue;
                 Game::Automap.Segments[(int)segid] = AutomapVisibility::Visible;
+                _visibleSegments[(int)segid] = true;
                 auto& info = _segInfo[(int)segid];
                 if (info.processed) continue;
 

@@ -44,7 +44,7 @@ namespace Inferno::Editor {
 
         bool OnOpen() override;
 
-        void OnAccept() override;
+        bool OnAccept() override;
 
         static void UnbindExisting(span<BindingEntry> entries, const EditorBinding& binding);
 

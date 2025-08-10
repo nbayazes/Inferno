@@ -31,8 +31,7 @@ namespace Inferno {
 
     struct FogVolume {
         List<uint16> indices;
-        Color color = Color(0.5f, 0.5f, 0.5f, 15);
-        DirectX::BoundingOrientedBox bounds;
+        EnvironmentID environment = EnvironmentID::None;
         List<SegID> segments;
     };
 
@@ -63,8 +62,8 @@ namespace Inferno {
         D3D12_INDEX_BUFFER_VIEW IndexBuffer;
         uint IndexCount;
         List<SegID> Segments;
-        //const LevelChunk* Chunk = nullptr;
-        Color color;
+        EnvironmentID environment = EnvironmentID::None;
+        DirectX::BoundingOrientedBox bounds;
 
         void Draw(ID3D12GraphicsCommandList* cmdList) const;
     };

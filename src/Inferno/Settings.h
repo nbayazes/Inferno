@@ -151,6 +151,7 @@ namespace Inferno {
             bool MaterialEditor = false;
             bool Debug = false;
             bool Bloom = false;
+            bool Environment = false;
         } Windows;
 
         bool ShowWireframe = false;

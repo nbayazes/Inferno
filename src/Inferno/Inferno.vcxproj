@@ -360,6 +360,7 @@
     <ClInclude Include="Colors.h" />
     <ClInclude Include="Difficulty.h" />
     <ClInclude Include="Editor\UI\TerrainEditor.h" />
+    <ClInclude Include="Editor\UI\EnvironmentEditor.h" />
     <ClInclude Include="Game.Automap.h" />
     <ClInclude Include="Game.Cinematics.h" />
     <ClInclude Include="CustomTextureLibrary.h" />

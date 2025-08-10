@@ -393,6 +393,7 @@ namespace Yaml {
     template <class T>
     void WriteSequence(ryml::NodeRef node, T& src) {
         node |= ryml::SEQ;
+        node |= ryml::FLOW_SL;
 
         for (auto& item : src)
             node.append_child() << item;

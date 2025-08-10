@@ -49,7 +49,7 @@ namespace Inferno::Editor {
         }
 
     private:
-        void ReactorTriggers() const {
+        static void ReactorTriggers() {
             ImGui::TableRowLabelEx("Targets to open\nwhen destroyed", "Only doors or destroyable walls are valid targets");
 
             ImGui::BeginChild("##cctriggers", { -1, 200 * Shell::DpiScale }, true);

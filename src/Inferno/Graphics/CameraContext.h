@@ -131,7 +131,7 @@ namespace Inferno {
         bool ApplyEffect(const Effect<T>& effect, bool force = false) {
             if (_activeEffect == (uintptr_t)&effect && !force) return false;
             _activeEffect = (uintptr_t)&effect;
-            assert(effect.PipelineState);
+            ASSERT(effect.PipelineState); // forgot to compile shader
             _cmdList->SetPipelineState(effect.PipelineState.Get());
             _cmdList->SetGraphicsRootSignature(effect.Shader->RootSignature.Get());
             return true;

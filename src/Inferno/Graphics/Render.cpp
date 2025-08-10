@@ -614,6 +614,7 @@ namespace Inferno::Render {
         ScopedTimer presentTimer(&Metrics::Present);
         Stats::DrawCalls = 0;
         Stats::PolygonCount = 0;
+        Stats::FogPasses = 0;
 
         GetFrameUploadBuffer()->ResetIndex();
 

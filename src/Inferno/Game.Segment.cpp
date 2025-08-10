@@ -402,4 +402,18 @@ namespace Inferno {
 
         return {};
     }
+
+    void RelinkEnvironments(Level& level) {
+        for (auto& seg : level.Segments) {
+            seg.Environment = EnvironmentID::None;
+        }
+
+        for (uint16 id = 0; id < level.Environments.size(); id++) {
+            for (auto& segid : level.Environments[id].segments) {
+                if (auto seg = level.TryGetSegment(segid)) {
+                    seg->Environment = (EnvironmentID)id;
+                }
+            }
+        }
+    }
 }

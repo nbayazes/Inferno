@@ -689,9 +689,12 @@ namespace Inferno::Render {
             return;
         }
 
+        auto env = Game::GetEnvironment(object);
+        if (!env || !env->useFog) return;
+
         // todo: handle fog on terrain
         //auto& effect = Game::OnTerrain && object.IsPlayer() ? Effects->TerrainObject : Effects->Object;
-        auto& effect = Effects->FogObject;
+        auto& effect = env->additiveFog ? Effects->AdditiveFogObject : Effects->FogObject;
         auto cmdList = ctx.GetCommandList();
 
         auto& model = Resources::GetModel(modelId);
@@ -712,10 +715,7 @@ namespace Inferno::Render {
 
         FogObjectShader::Constants constants = {};
 
-        // todo: pull from environment
-        if (auto seg = Game::Level.TryGetSegment(object.Segment)) {
-            constants.color = seg->Fog.value_or(Color(0, 0, 0, 0));
-        }
+        constants.color = env->fog;
 
         Matrix transform = Matrix::CreateScale(object.Scale) * object.GetTransform(Game::LerpAmount);
 

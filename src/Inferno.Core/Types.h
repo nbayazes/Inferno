@@ -535,6 +535,8 @@ namespace Inferno {
         auto operator<=>(const PointTag&) const = default;
     };
 
+    enum class EnvironmentID : int16 { None = -1 };
+
     // Connection between rooms
     struct Portal {
         //Portal() = default;

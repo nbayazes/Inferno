@@ -354,6 +354,8 @@ namespace Inferno::Editor {
                 ImGui::MenuItem("Material Editor", nullptr, &Settings::Editor.Windows.MaterialEditor);
                 ImGui::MenuItem("Terrain", nullptr, &Settings::Editor.Windows.TerrainEditor);
                 ImGui::MenuItem("Briefing Editor", nullptr, &Settings::Editor.Windows.BriefingEditor);
+                ImGui::MenuItem("Environment", nullptr, &Settings::Editor.Windows.Environment);
+                ImGui::MenuItem("Debug", nullptr, &Settings::Editor.Windows.Debug);
 
                 ImGui::Separator();
                 if (ImGui::MenuItem("Clean level"))

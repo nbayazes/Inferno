@@ -22,13 +22,12 @@ namespace Inferno {
     }
 
 
-    void CreateFogVolumes(const Level& level, List<FogVolume>& volumes, List<FlatVertex>& vertices) {
+    void CreateFogVolumes(const Level& level, const Environment& environment, List<FogVolume>& volumes, List<FlatVertex>& vertices) {
+        auto envid = Game::GetEnvironmentID(environment);
+        if (envid == EnvironmentID::None) return;
+
         List<uint8> visited;
         visited.resize(level.Segments.size());
-        Color white(1, 1, 1);
-
-        volumes.clear();
-        vertices.clear();
 
         struct Vertex {
             Vector3 position;
@@ -38,7 +37,7 @@ namespace Inferno {
         };
 
         List<Vertex> points;
-        uint indexOffset = 0;
+        uint16 indexOffset = (uint16)vertices.size();
 
         auto addOrUpdatePoint = [&points, &indexOffset](FogVolume& volume, const Vector3& position, PointID id, Color color, bool open) {
             auto index = Seq::findIndex(points, [id](const Vertex& v) { return v.id == id; });
@@ -48,7 +47,7 @@ namespace Inferno {
                 auto& point = points[*index];
                 point.color += color;
                 if (!open) point.usages++;
-                volume.indices.push_back((uint)*index + indexOffset);
+                volume.indices.push_back((uint16)*index + indexOffset);
                 return *index;
             }
             else {
@@ -60,7 +59,7 @@ namespace Inferno {
                 point.color = color;
                 if (!open) point.usages++;
                 point.position = position;
-                volume.indices.push_back((uint)*index + indexOffset);
+                volume.indices.push_back((uint16)*index + indexOffset);
                 return points.size() - 1;
             }
         };
@@ -68,42 +67,43 @@ namespace Inferno {
         // iterate each segment in the level, looking for those that have a fog color set
         // then find touching segments and join them together
 
-        for (size_t startseg = 0; startseg < level.Segments.size(); startseg++) {
-            if (visited[startseg]) continue; // already visited
-            //visited[startseg] = true;
+        for (auto& startseg : environment.segments) {
+            if (!Seq::inRange(visited, (int)startseg)) continue;
+            if (visited[(int)startseg]) continue; // already visited
 
-            //auto& seg = level.Segments[segid];
-            if (!level.Segments[startseg].Fog) {
-                continue; // no fog in this segment
-            }
-
-            const auto& startColor = *level.Segments[startseg].Fog;
-
-            SPDLOG_INFO("Creating new fog volume starting at {}", startseg);
+            //SPDLOG_INFO("Creating new fog volume starting at {}", startseg);
             FogVolume volume;
-            volume.color = *level.Segments[startseg].Fog;
-
+            volume.environment = envid;
             Queue<SegID> queue;
 
             queue.push((SegID)startseg);
 
             while (!queue.empty()) {
-                auto id = queue.front();
+                auto segid = queue.front();
                 queue.pop();
 
-                if (id <= SegID::None) continue;
-                if (visited[(int)id]) continue;
-                visited[(int)id] = true;
+                if (segid <= SegID::None) continue;
+                if (visited[(int)segid]) continue;
+                visited[(int)segid] = true;
 
-                const auto& seg = level.GetSegment(id);
-                SPDLOG_INFO("Fogging segment {}", id);
-                volume.segments.push_back(id);
+                const auto& seg = level.GetSegment(segid);
+                //SPDLOG_INFO("Fogging segment {}", id);
+                volume.segments.push_back(segid);
 
                 for (auto& sideid : SIDE_IDS) {
+                    bool isDoor = false;
+
+                    if (auto wall = level.TryGetWall({ segid, sideid })) {
+                        if (wall->Type == WallType::Door)
+                            isDoor = true; // split volumes at doors, otherwise the door doesn't get shaded
+                    }
+
                     auto connid = seg.GetConnection(sideid);
                     auto conn = level.TryGetSegment(connid);
 
-                    if (!conn || (conn && conn->Fog != startColor)) {
+                    auto isEdge = !Seq::contains(environment.segments, connid);
+
+                    if (!conn || isEdge || isDoor) {
                         //auto indexOffset = (uint32)vertices.size();
 
                         auto& side = seg.GetSide(sideid);
@@ -113,19 +113,6 @@ namespace Inferno {
 
                         bool open = connid > SegID::None && !seg.SideIsSolid(sideid, level);
 
-                        //if (connid > SegID::None && !seg.SideIsSolid(sideid, level)) {
-                        //    // insert open sides separately from solid sides with light calculations
-
-                        //    addOrUpdatePoint(volume, level.Vertices[vi[indices[0]]], vi[indices[0]], white);
-                        //    addOrUpdatePoint(volume, level.Vertices[vi[indices[1]]], vi[indices[1]], white);
-                        //    addOrUpdatePoint(volume, level.Vertices[vi[indices[2]]], vi[indices[2]], white);
-
-                        //    addOrUpdatePoint(volume, level.Vertices[vi[indices[3]]], vi[indices[3]], white);
-                        //    addOrUpdatePoint(volume, level.Vertices[vi[indices[4]]], vi[indices[4]], white);
-                        //    addOrUpdatePoint(volume, level.Vertices[vi[indices[5]]], vi[indices[5]], white);
-                        //}
-                        //else {
-
                         addOrUpdatePoint(volume, level.Vertices[vi[indices[0]]], vi[indices[0]], side.Light[indices[0]], open);
                         addOrUpdatePoint(volume, level.Vertices[vi[indices[1]]], vi[indices[1]], side.Light[indices[1]], open);
                         addOrUpdatePoint(volume, level.Vertices[vi[indices[2]]], vi[indices[2]], side.Light[indices[2]], open);
@@ -133,20 +120,10 @@ namespace Inferno {
                         addOrUpdatePoint(volume, level.Vertices[vi[indices[3]]], vi[indices[3]], side.Light[indices[3]], open);
                         addOrUpdatePoint(volume, level.Vertices[vi[indices[4]]], vi[indices[4]], side.Light[indices[4]], open);
                         addOrUpdatePoint(volume, level.Vertices[vi[indices[5]]], vi[indices[5]], side.Light[indices[5]], open);
-                        //}
 
-                        //volume.indices.push_back(indexOffset + indices[0]);
-                        //volume.indices.push_back(indexOffset + indices[1]);
-                        //volume.indices.push_back(indexOffset + indices[2]);
-
-                        //volume.indices.push_back(indexOffset + indices[3]);
-                        //volume.indices.push_back(indexOffset + indices[4]);
-                        //volume.indices.push_back(indexOffset + indices[5]);
-
-
-                        SPDLOG_INFO("Adding side {}", sideid);
+                        //SPDLOG_INFO("Adding side {}", sideid);
                     }
-                    else if (conn) {
+                    else if (conn && !isEdge) {
                         queue.push(connid);
                     }
                 }
@@ -156,7 +133,7 @@ namespace Inferno {
                 vertices.push_back({ p.position, p.color *= 1 / (float)p.usages });
             }
 
-            indexOffset = (uint)vertices.size();
+            indexOffset = (uint16)vertices.size();
 
             points.clear();
 
@@ -387,7 +364,7 @@ namespace Inferno {
         chunk.Bounds.Extents = (max - min) / 2;
     }
 
-    void UpdateBounds(FogVolume& chunk, span<FlatVertex> vertices) {
+    DirectX::BoundingOrientedBox GetBounds(const FogVolume& chunk, span<FlatVertex> vertices) {
         Vector3 min(FLT_MAX, FLT_MAX, FLT_MAX), max(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
         for (auto& index : chunk.indices) {
@@ -396,8 +373,10 @@ namespace Inferno {
             max = Vector3::Max(v.Position, max);
         }
 
-        chunk.bounds.Center = (min + max) / 2;
-        chunk.bounds.Extents = (max - min) / 2;
+        DirectX::BoundingOrientedBox bounds;
+        bounds.Center = (min + max) / 2;
+        bounds.Extents = (max - min) / 2;
+        return bounds;
     }
 
     // unfinished UV fix for non-tiling textures. Emissive mipmaps still cause problems
@@ -672,14 +651,25 @@ namespace Inferno {
     void LevelMeshBuilder::UpdateFog(const Level& level, PackedBuffer& buffer) {
         buffer.ResetIndex();
         _fogMeshes.clear();
-        CreateFogVolumes(level, _geometry.FogVolumes, _geometry.FogVertices);
+        _geometry.FogVolumes.clear();
+        _geometry.FogVertices.clear();
+
+        for (auto& environment : level.Environments) {
+            CreateFogVolumes(level, environment, _geometry.FogVolumes, _geometry.FogVertices);
+        }
 
         auto vbv = buffer.PackVertices(span{ _geometry.FogVertices });
 
         for (auto& fog : _geometry.FogVolumes) {
-            //UpdateBounds(fog, _geometry.FogVertices);
             auto ibv = buffer.PackIndices(span{ fog.indices });
-            _fogMeshes.emplace_back(FogMesh{ vbv, ibv, (uint)fog.indices.size(), fog.segments, fog.color });
+            _fogMeshes.emplace_back(FogMesh{
+                vbv,
+                ibv,
+                (uint)fog.indices.size(),
+                fog.segments,
+                fog.environment,
+                GetBounds(fog, _geometry.FogVertices)
+            });
         }
     }
 

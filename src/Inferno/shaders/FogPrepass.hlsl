@@ -3,7 +3,7 @@
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0)"
 
-struct FogVertex {
+struct FlatVertex {
     float3 pos : POSITION;
     float4 col : COLOR0;
 };
@@ -16,7 +16,7 @@ struct PS_INPUT {
 ConstantBuffer<FrameConstants> Frame : register(b0);
 
 [RootSignature(RS)]
-PS_INPUT vsmain(FogVertex input) {
+PS_INPUT vsmain(FlatVertex input) {
     PS_INPUT output;
     output.pos = mul(Frame.ViewProjectionMatrix, float4(input.pos, 1));
     //output.depth = output.pos.z / output.pos.w;

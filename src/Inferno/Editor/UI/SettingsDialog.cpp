@@ -490,7 +490,7 @@ namespace Inferno::Editor {
         return true;
     }
 
-    void SettingsDialog::OnAccept() {
+    bool SettingsDialog::OnAccept() {
         CopyBindingEntries(_bindingEntries);
 
         bool resourcesChanged = false;
@@ -535,5 +535,7 @@ namespace Inferno::Editor {
             Graphics::LoadLevelTextures(Game::Level, true);
             Graphics::ReloadResources();
         }
+
+        return true;
     }
 }

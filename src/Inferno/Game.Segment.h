@@ -25,4 +25,5 @@ namespace Inferno {
     // Returns true if a new object at the given position and radius would intersect with an existing object
     bool NewObjectIntersects(const Level& level, const Segment& seg, const Vector3& position, float radius, ObjectMask mask);
     Tag FindExit(Level& level);
+    void RelinkEnvironments(Level& level);
 }

@@ -854,7 +854,9 @@ namespace Inferno {
 
         Effect<FogPrepassShader> FogPrepass = { &_shaders->FogPrepass, { BlendMode::Opaque, CullMode::Clockwise, DepthMode::Read, StencilMode::PortalRead } };
         Effect<FogShader> Fog = { &_shaders->Fog, { BlendMode::StraightAlpha, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
+        Effect<FogShader> AdditiveFog = { &_shaders->Fog, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
         Effect<FogObjectShader> FogObject = { &_shaders->FogObject, { BlendMode::StraightAlpha, CullMode::None, DepthMode::Read, StencilMode::PortalRead } };
+        Effect<FogObjectShader> AdditiveFogObject = { &_shaders->FogObject, { BlendMode::Additive, CullMode::None, DepthMode::Read, StencilMode::PortalRead } };
 
         Effect<AutomapShader> Automap = { &_shaders->Automap, { BlendMode::Opaque, CullMode::CounterClockwise, DepthMode::ReadWrite } };
         Effect<AutomapShader> AutomapTransparent = { &_shaders->Automap, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
@@ -945,9 +947,11 @@ namespace Inferno {
             compileEffect(LevelWall);
             compileEffect(LevelWallAdditive);
 
-            compileEffect(Fog);
             compileEffect(FogPrepass);
+            compileEffect(Fog);
+            compileEffect(AdditiveFog);
             compileEffect(FogObject);
+            compileEffect(AdditiveFogObject);
 
             compileEffect(Depth);
             compileEffect(DepthObject);

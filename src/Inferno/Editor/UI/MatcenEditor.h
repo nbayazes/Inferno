@@ -1,4 +1,6 @@
 #pragma once
+#include <utility>
+
 #include "WindowBase.h"
 #include "Game.h"
 #include "../Editor.h"
@@ -62,7 +64,7 @@ namespace Inferno::Editor {
                         : _robots2 & (1 << (i % 32)));
 
                     if (!flagged) {
-                        if (ImGui::Selectable(Resources::GetRobotName(i).c_str(), selectedAddRobot == (int)i,
+                        if (ImGui::Selectable(Resources::GetRobotName(i).c_str(), std::cmp_equal(selectedAddRobot, i),
                                               ImGuiSelectableFlags_AllowDoubleClick)) {
                             selectedAddRobot = i;
                             if (ImGui::IsMouseDoubleClicked(0)) AddRobot();
@@ -85,7 +87,7 @@ namespace Inferno::Editor {
                         : _robots2 & (1 << (i % 32)));
 
                     if (flagged) {
-                        if (ImGui::Selectable(Resources::GetRobotName(i).c_str(), selectedDelRobot == (int)i,
+                        if (ImGui::Selectable(Resources::GetRobotName(i).c_str(), std::cmp_equal(selectedDelRobot, i),
                                               ImGuiSelectableFlags_AllowDoubleClick)) {
                             selectedDelRobot = i;
                             if (ImGui::IsMouseDoubleClicked(0)) RemoveRobot();
@@ -118,7 +120,7 @@ namespace Inferno::Editor {
             //ImGui::PopStyleVar();
         }
 
-        void OnAccept() override {
+        bool OnAccept() override {
             if (auto matcen = Game::Level.TryGetMatcen(ID)) {
                 matcen->Robots = _robots;
                 matcen->Robots2 = _robots2;
@@ -136,6 +138,8 @@ namespace Inferno::Editor {
 
                 Editor::History.SnapshotLevel("Change matcen robots");
             }
+
+            return true;
         }
     };
 }

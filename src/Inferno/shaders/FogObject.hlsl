@@ -50,21 +50,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     fog *= ExpFog(depth, density);
 
     float3 ambient = pow(Args.Ambient.rgb * Args.Ambient.a, 2.2);
-    fog.rgb = lerp(fog.rgb, pow(max(fog.rgb * ambient, 0), 1), 0.5);
+    fog.rgb = lerp(fog.rgb, fog.rgb * ambient, 0.75);
 
     return fog;
-
-    //float front = Depth.Sample(Sampler, (input.pos.xy + 0.5) / Frame.Size).x;
-    //float back = LinearizeDepth(Frame.NearClip, Frame.FarClip, input.pos.z);
-    //float depth = max(back - front, 0);
-    ////float4 fog = float4(0.05, 0.01, 0.05, 1);
-    ////fog *= 1 - max(LinearFog2(depth, 0 / Frame.FarClip, 50 / Frame.FarClip), 0.03);
-    ////fog *= ExpFog(depth, 100);
-    //discard;
-
-    //float4 fog = float4(.2, 0.2, 0.0, 1);
-    //fog *= ExpFog(depth, 20);
-    //return fog;
-    //return LinearizeDepth(Frame.NearClip, Frame.FarClip, input.pos.z);
-    //return 1.xxxx;
 }

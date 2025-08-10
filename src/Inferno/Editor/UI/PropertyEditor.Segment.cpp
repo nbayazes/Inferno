@@ -857,84 +857,6 @@ namespace Inferno::Editor {
         return snapshot;
     }
 
-    bool EnvironmentSettings(Segment& seg) {
-        bool levelChanged = false;
-        bool snapshot = false;
-
-        if (ImGui::TableBeginTreeNode("Environment")) {
-            //ImGui::TableRowLabel("Reverb");
-
-            //auto reverb = (Sound::Reverb)seg.Reverb;
-
-            //if (ImGui::BeginCombo("##Reverb", Sound::REVERB_LABELS.at(reverb), ImGuiComboFlags_HeightLarge)) {
-            //    for (const auto& item : Sound::REVERB_LABELS | views::keys) {
-            //        if (ImGui::Selectable(Sound::REVERB_LABELS.at(item), item == reverb)) {
-            //            reverb = item;
-
-            //            for (auto& marked : GetSelectedSegments())
-            //                if (auto markedSeg = Game::Level.TryGetSegment(marked))
-            //                    markedSeg->Reverb = (uint8)reverb;
-
-            //            changed = snapshot = true;
-            //        }
-            //    }
-
-            //    ImGui::EndCombo();
-            //}
-
-            ImGui::TableNextColumn();
-
-            bool hasFog = seg.Fog.has_value();
-            auto fog = seg.Fog.value_or(Color(0.5, 0.5, 0.5, 15));
-
-            if (ImGui::Checkbox("Fog", &hasFog)) {
-                for (auto& marked : GetSelectedSegments())
-                    if (auto markedSeg = Game::Level.TryGetSegment(marked))
-                        markedSeg->Fog = hasFog ? Option(fog) : std::nullopt;
-
-                levelChanged = true;
-            }
-
-            if (ImGui::IsItemDeactivatedAfterEdit()) {
-                snapshot = true;
-            }
-
-            ImGui::TableNextColumn();
-            ImGui::SetNextItemWidth(-1);
-            DisableControls disable(!seg.Fog);
-            if (ImGui::ColorEdit3("##fog", &fog.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float)) {
-                for (auto& marked : GetSelectedSegments())
-                    if (auto markedSeg = Game::Level.TryGetSegment(marked))
-                        markedSeg->Fog = hasFog ? Option(fog) : std::nullopt;
-
-                levelChanged = true;
-            }
-
-            if (ImGui::IsItemDeactivatedAfterEdit()) {
-                snapshot = true;
-            }
-
-            ImGui::TableRowLabel("Density");
-
-            if (ImGui::DragFloat("##fogdensity", &fog.w, 0.5f, 1, 100, "%.1f")) {
-                for (auto& marked : GetSelectedSegments())
-                    if (auto markedSeg = Game::Level.TryGetSegment(marked))
-                        markedSeg->Fog = hasFog ? Option(fog) : std::nullopt;
-
-                levelChanged = true;
-            }
-
-            if (ImGui::IsItemDeactivatedAfterEdit()) {
-                snapshot = true;
-            }
-
-            ImGui::TreePop();
-        }
-
-        if (levelChanged) Events::LevelChanged();
-        return snapshot;
-    }
-
     bool WallTypeDropdown(Level& level, const char* label, WallType& value) {
         static const char* wallTypeLabels[] = {
             "None", "Destroyable", "Door", "Illusion", "Fly-Through", "Closed", "Wall Trigger", "Cloaked"
@@ -1618,7 +1540,6 @@ namespace Inferno::Editor {
         TextureProperties("Overlay texture", side.TMap2, true);
         snapshot |= SideLighting(level, seg, side);
         snapshot |= SideUVs(side);
-        snapshot |= EnvironmentSettings(seg);
 
         ImGui::TableRowLabel("Segment size");
         ImGui::Text("%.2f x %.2f x %.2f",
