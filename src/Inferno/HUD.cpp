@@ -96,7 +96,7 @@ namespace Inferno {
             }
 
             if (_state == FadeOut) {
-                Opacity -= dt * player.RearmTime * 2;
+                Opacity -= dt * (2.0f / player.Ship.RearmTime);
                 if (Opacity <= 0) {
                     Opacity = 0;
                     _state = FadeIn;
@@ -109,7 +109,7 @@ namespace Inferno {
                     _state = FadeOut; // weapon was changed while swapping
                 }
                 else {
-                    Opacity += dt * player.RearmTime * 2;
+                    Opacity += dt * (2.0f / player.Ship.RearmTime);
                     if (Opacity >= 1) {
                         _state = FadeNone;
                         Opacity = 1;
