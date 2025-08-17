@@ -120,7 +120,7 @@ namespace Inferno::Graphics {
             _bitMask.AddShaderResourceView();
         }
 
-        void SetLightConstants(uint2 size);
+        void SetLightConstants(const uint2& size);
 
         void SetLights(const GraphicsContext& ctx, span<LightData> lights);
 

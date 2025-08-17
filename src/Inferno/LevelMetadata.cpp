@@ -159,7 +159,9 @@ namespace Inferno {
                 auto child = node.append_child();
                 child |= ryml::MAP;
                 child["ID"] << segid;
-                child["LockVolumeLight"] << seg.LockVolumeLight;
+
+                if (seg.LockVolumeLight)
+                    child["LockVolumeLight"] << seg.LockVolumeLight;
             }
         }
     }
@@ -175,6 +177,56 @@ namespace Inferno {
                 if (child.has_child("LockVolumeLight"))
                     ReadValue(child["LockVolumeLight"], seg->LockVolumeLight);
             }
+        }
+    }
+
+    void SaveEnvironments(ryml::NodeRef node, const Level& level) {
+        node |= ryml::SEQ;
+
+        for (auto& env : level.Environments) {
+            auto child = node.append_child();
+            child |= ryml::MAP;
+
+            child["name"] << env.name;
+
+            if (env.secret)
+                child["secret"] << env.secret;
+
+            auto segs = Seq::map(env.segments, [](auto x) { return (int)x; });
+            Yaml::WriteSequence(child["segments"], segs);
+
+            if (env.useFog) {
+                child["fog"] << Yaml::EncodeColor(env.fog);
+
+                if (env.additiveFog)
+                    child["additiveFog"] << env.additiveFog;
+            }
+
+            if (env.wind != Vector3::Zero)
+                child["wind"] << Yaml::EncodeVector(env.wind);
+        }
+    }
+
+    void ReadEnvironments(ryml::NodeRef node, Level& level) {
+        if (!node.readable()) return;
+
+        for (const auto& child : node.children()) {
+            Environment env{};
+
+            ReadValue2(child, "name", env.name);
+            if (env.name.empty()) continue;
+
+            ReadValue2(child, "secret", env.secret);
+
+            Yaml::ReadSequence(child, "segments", env.segments);
+
+            if (ReadValue2(child, "fog", env.fog))
+                env.useFog = true;
+
+            ReadValue2(child, "wind", env.wind);
+            ReadValue2(child, "additiveFog", env.additiveFog);
+
+            level.Environments.push_back(env);
         }
     }
 
@@ -402,6 +454,7 @@ namespace Inferno {
 
             doc["Version"] << 1;
             SaveLightSettings(doc["Lighting"], lightSettings);
+            SaveEnvironments(doc["Environments"], level);
             SaveSegmentInfo(doc["Segments"], level);
             SaveSideInfo(doc["Sides"], level);
             SaveWallInfo(doc["Walls"], level);
@@ -454,6 +507,7 @@ namespace Inferno {
                 ReadValue(root["CameraUp"], level.CameraUp);
                 ReadVertexOverrides(root["VertexOverrides"], level);
                 ReadLevelLighting(root["LevelLighting"], level);
+                ReadEnvironments(root["Environments"], level);
 
                 for (auto& [i, v] : level.VertexOverrides) {
                     if (Seq::inRange(level.Vertices, i)) {

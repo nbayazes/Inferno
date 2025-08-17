@@ -194,12 +194,18 @@ namespace Inferno {
             return false;
         }
 
-        obj.Segment = id;
+        auto ref = Game::GetObjectRef(obj);
+        if (auto prevSeg = level.TryGetSegment(obj.Segment)) {
+            prevSeg->RemoveObject(ref.Id);
+        }
 
-        // Leave the last known seg id if nothing contains the object
+        RelinkObject(level, obj, id);
+        //obj.Segment = id;
+
         if (auto seg = level.TryGetSegment(obj.Segment)) {
             auto transitionTime = Game::GetState() == GameState::Game ? 0.5f : 0;
             obj.Ambient.SetTarget(seg->VolumeLight, Game::Time, transitionTime);
+            //seg->AddObject(ref.Id);
         }
 
         return true;
@@ -261,10 +267,12 @@ namespace Inferno {
         }
 
         // Update object pointers
-        prevSeg.RemoveObject(ref.Id);
-        auto& seg = level.GetSegment(obj.Segment);
-        seg.AddObject(ref.Id);
-        obj.Ambient.SetTarget(seg.VolumeLight, Game::Time, 0.25f);
+        //prevSeg.RemoveObject(ref.Id);
+        //auto& seg = level.GetSegment(obj.Segment);
+        //seg.AddObject(ref.Id);
+        //obj.Ambient.SetTarget(seg.VolumeLight, Game::Time, 0.25f);
+
+        RelinkObject(level, obj, obj.Segment);
     }
 
     const std::set BOSS_IDS = { 17, 23, 31, 45, 46, 52, 62, 64, 75, 76 };

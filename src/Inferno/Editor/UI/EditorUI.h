@@ -17,6 +17,7 @@
 #include "SoundBrowser.h"
 #include "DiagnosticWindow.h"
 #include "BriefingEditor.h"
+#include "EnvironmentEditor.h"
 #include "ScaleWindow.h"
 #include "TextureEditor.h"
 #include "MaterialEditor.h"
@@ -50,8 +51,9 @@ namespace Inferno::Editor {
             AcceptButtons("OK", "Cancel");
         }
 
-        void OnAccept() override {
+        bool OnAccept() override {
             Editor::Selection.SetSelection({ (SegID)_value });
+            return true;
         }
     };
 
@@ -82,8 +84,9 @@ namespace Inferno::Editor {
             AcceptButtons("OK", "Cancel");
         }
 
-        void OnAccept() override {
+        bool OnAccept() override {
             Editor::Selection.SetSelection((ObjID)_value);
+            return true;
         }
     };
 
@@ -114,9 +117,11 @@ namespace Inferno::Editor {
             AcceptButtons("OK", "Cancel");
         }
 
-        void OnAccept() override {
+        bool OnAccept() override {
             if (auto wall = Game::Level.TryGetWall((WallID)_value))
                 Editor::Selection.SetSelection(wall->Tag);
+
+            return true;
         }
     };
 
@@ -146,11 +151,13 @@ namespace Inferno::Editor {
             AcceptButtons("OK", "Cancel");
         }
 
-        void OnAccept() override {
+        bool OnAccept() override {
             for (size_t i = 0; i < Game::Level.Segments.size(); i++) {
                 if (Game::Level.Segments[i].Room == (RoomID)_value)
                     Editor::Selection.SetSelection({ (SegID)i });
             }
+
+            return true;
         }
     };
 
@@ -197,6 +204,7 @@ namespace Inferno::Editor {
             RegisterDialog<GotoWallDialog>(DialogType::GotoWall);
             RegisterDialog<GotoRoomDialog>(DialogType::GotoRoom);
             RegisterDialog<RenameLevelDialog>(DialogType::RenameLevel);
+            RegisterDialog<RenameEnvironmentDialog>(DialogType::RenameEnvironment);
             RegisterDialog<MissionEditor>(DialogType::MissionEditor);
             RegisterDialog<NewLevelDialog>(DialogType::NewLevel);
             RegisterDialog<HogEditor>(DialogType::HogEditor);
@@ -221,6 +229,7 @@ namespace Inferno::Editor {
             //RegisterWindow<InsetFacesWindow>();
             RegisterWindow<TerrainEditor>();
             RegisterWindow<MaterialEditor>();
+            RegisterWindow<EnvironmentEditor>();
 
             Events::ShowDialog += [this](DialogType type) {
                 // Don't show another dialog if one is already open as it will confuse imgui state

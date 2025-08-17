@@ -3,7 +3,7 @@
 #include "Types.h"
 
 namespace Inferno::Editor {
-    template <class...TArgs>
+    template <class... TArgs>
     class Event {
         using TFunc = std::function<void(TArgs...)>;
         std::vector<TFunc> _subscribers;
@@ -12,22 +12,22 @@ namespace Inferno::Editor {
         void Subscribe(TFunc fn) { _subscribers.push_back(fn); }
         void operator+=(TFunc fn) { Subscribe(fn); }
 
-        template<class...TForwardArgs>
-        void operator()(TForwardArgs&&...args) const {
-            for (auto fn : _subscribers)
-                fn(std::forward<TForwardArgs>(args)...);
+        void operator()(auto&&... args) const {
+            for (auto& fn : _subscribers)
+                fn(std::forward<decltype(args)>(args)...);
         }
     };
 
-    enum class DialogType { 
-        HogEditor, 
+    enum class DialogType {
+        HogEditor,
         MissionEditor,
         GotoSegment,
         GotoObject,
         GotoWall,
         GotoRoom,
-        NewLevel, 
+        NewLevel,
         RenameLevel,
+        RenameEnvironment,
         Settings,
         Help,
         About,

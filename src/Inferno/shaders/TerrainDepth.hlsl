@@ -27,10 +27,6 @@ PS_INPUT vsmain(ObjectVertex input) {
     return output;
 }
 
-float LinearizeDepth(float near, float far, float depth) {
-    return near / (far + depth * (near - far));
-}
-
 float psmain(PS_INPUT input) : SV_Target {
     return LinearizeDepth(Frame.NearClip, Frame.FarClip, input.pos.z);
 }

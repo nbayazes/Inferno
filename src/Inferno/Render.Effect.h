@@ -45,6 +45,8 @@ namespace Inferno::Render {
             ASSERT(Queue == RenderQueueType::Transparent); // must provide a depth prepass if not transparent
         }
 
+        virtual void DrawFog(GraphicsContext&) {}
+
         virtual void OnExpire() {}
         virtual void OnInit() {}
 

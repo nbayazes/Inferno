@@ -149,6 +149,7 @@ namespace Inferno::Render {
         Set<SegID> _visited;
         std::queue<SegDepth> _search;
         List<RoomID> _visibleRooms;
+        List<uint8> _visibleSegments;
         RoomStack _roomStack = { 50 };
 
         struct ObjDepth {
@@ -178,12 +179,18 @@ namespace Inferno::Render {
         //span<RenderCommand> Distortion() { return _distortionQueue; }
         span<RoomID> GetVisibleRooms() { return _visibleRooms; }
 
+        bool SegmentIsVisible(SegID id) {
+            if (!Seq::inRange(_visibleSegments, (int)id)) return false;
+            return (bool)_visibleSegments[(int)id];
+        }
+
         void ProcessSegment(const Camera& camera, const Level& level, SegID segid, const Window& parentWindow);
         void TraverseSegments(Level& level, const Camera& camera, span<LevelMesh> wallMeshes, SegID startSeg);
 
         // When false, uses per-segment lighting.
         // Segment lighting causes more popin, but room lighting causes more bleeding.
-        bool UseRoomLighting = true; 
+        bool UseRoomLighting = true;
+
     private:
         void QueueEditorObject(Object& obj, float lerp, const Camera& camera);
         void QueueSegmentObjects(Level& level, const Segment& seg, const Camera& camera, bool clearObjects = true);

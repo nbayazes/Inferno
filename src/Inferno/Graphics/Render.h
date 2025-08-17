@@ -119,6 +119,7 @@ namespace Inferno::Render {
                             const Vector3* up);
 
     extern bool LevelChanged;
+    inline bool UpdateFogFlag = true;
     //PackedBuffer* GetLevelMeshBuffer();
     //const TerrainMesh* GetTerrainMesh();
 
@@ -172,6 +173,7 @@ namespace Inferno::Render {
     struct LevelGpuResources {
         Ptr<TerrainMesh> TerrainMesh;
         Ptr<PackedBuffer> LevelMeshes;
+        Ptr<PackedBuffer> FogMeshes;
         Ptr<MeshBuffer> ObjectMeshes;
         Ptr<AutomapMeshes> AutomapMeshes;
     };
@@ -217,5 +219,6 @@ namespace Inferno::Render {
     namespace Stats {
         inline uint16 DrawCalls = 0;
         inline uint16 PolygonCount = 0;
+        inline uint16 FogPasses = 0;
     }
 }

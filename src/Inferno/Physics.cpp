@@ -101,6 +101,12 @@ namespace Inferno {
         if (HasFlag(obj.Physics.Flags, PhysicsFlag::Gravity))
             pd.Velocity += Game::Gravity * dt;
 
+        if (auto env = Game::GetEnvironment(obj)) {
+            if (env->wind != Vector3::Zero) {
+                pd.Velocity += env->wind * env->windSpeed * dt;
+            }
+        }
+
         // Apply weapon thrust
         if (HasFlag(obj.Physics.Flags, PhysicsFlag::UseThrust) && weapon && weapon->Thrust != 0)
             pd.Thrust = obj.Rotation.Forward() * weapon->Thrust * dt;
@@ -1213,7 +1219,7 @@ namespace Inferno {
                             r2 *= 0.66f;
                         }
 
-                        if(other->IsReactor())
+                        if (other->IsReactor())
                             r2 *= 0.66f;
 
                         // Make powerups a consistent size regardless of their render size
@@ -1238,7 +1244,7 @@ namespace Inferno {
 
                             // Move players and robots when they collide with something
                             if (((obj.IsRobot() || obj.IsPlayer()) &&
-                                (other->IsRobot() || other->IsPlayer())) || 
+                                 (other->IsRobot() || other->IsPlayer())) ||
                                 other->IsReactor()) {
                                 auto nDotVel = info.Normal.Dot(obj.Physics.Velocity);
                                 hit.Speed = abs(nDotVel);

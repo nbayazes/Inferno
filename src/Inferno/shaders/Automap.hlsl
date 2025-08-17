@@ -64,10 +64,6 @@ struct PS_INPUT {
     float3 world : TEXCOORD2;
 };
 
-float Luminance(float3 v) {
-    return dot(v, float3(0.2126f, 0.7152f, 0.0722f));
-}
-
 float Vignette(float2 uv) {
     uv *= 1.0 - uv;
     float vig = uv.x * uv.y * 300.0;

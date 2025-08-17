@@ -27,15 +27,19 @@ namespace ImGui {
     }
 
     // Identical to TextInput but fills horizontal space
-    inline bool TextInputWide(const std::string& label, std::string& str, int maxSize) {
-        maxSize += 1; // add one for null
-        if (str.size() < maxSize)
-            str.resize(maxSize);
-
+    template <unsigned int TSize = 64>
+    bool TextInputWide(const std::string& label, std::string& str) {
+        std::array<char, TSize + 1> buffer{ 0 };
+        str.copy(buffer.data(), buffer.size() - 1); // leave room for null terminator
         ImGui::Text(label.c_str());
         std::string id("##");
         id.append(label);
-        return ImGui::InputTextEx(id.data(), nullptr, str.data(), maxSize, { -1, 0 }, 0);
+
+        auto changed = ImGui::InputTextEx(id.c_str(), nullptr, buffer.data(), TSize + 1, { -1, 0 }, 0);
+        if (changed)
+            str = { buffer.data() };
+
+        return changed;
     }
 
     template <class... TArgs>
@@ -231,10 +235,15 @@ namespace Inferno::Editor {
         }
 
         void Close(bool accepted = false) {
-            _isOpen = false;
+            if (accepted) {
+                if (!OnAccept()) return;
+            }
+            else {
+                OnCancel();
+            }
+
             ImGui::CloseCurrentPopup();
-            if (accepted) OnAccept();
-            else OnCancel();
+            _isOpen = false;
 
             if (Callback) Callback(accepted);
         }
@@ -244,8 +253,12 @@ namespace Inferno::Editor {
 
     protected:
         virtual void OnUpdate() = 0;
-        virtual void OnAccept() {}
+
+        // Returns true if the dialog can close
+        virtual bool OnAccept() { return true; }
         virtual void OnCancel() {}
+
+        // Return true if the dialog should open
         virtual bool OnOpen() { return true; }
 
         void AcceptButtons(const char* acceptLabel = "OK", const char* cancelLabel = "Cancel", bool canAccept = true) {

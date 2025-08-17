@@ -154,11 +154,10 @@ namespace Inferno {
         ubyte StationIndex{};
         ubyte Value{}; // related to fuel center numbers, unused
         SoundFlag AmbientSound{};
-        uint8 Reverb = 0;
+        EnvironmentID Environment = EnvironmentID::None;
 
         List<ObjID> Objects;
         List<EffectID> Effects;
-        Option<Color> Fog;
 
         // If bit n (1 << n) is set, then side #n in segment has had light subtracted from original (editor-computed) value.
         uint8 LightSubtracted;

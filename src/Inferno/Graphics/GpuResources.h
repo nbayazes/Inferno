@@ -331,6 +331,8 @@ namespace Inferno {
             else {
                 commandList->ResolveSubresource(Get(), 0, src.Get(), 0, src._desc.Format);
             }
+
+            src.Transition(commandList, D3D12_RESOURCE_STATE_COMMON);
         }
     };
 

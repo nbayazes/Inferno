@@ -651,6 +651,7 @@ Robots:
   - id: 5
     Name: Cloaked Driller
     DevName: Cloak Vulcan
+    Weapon: driller vulcan
     CircleDistance: 100 # sniper
     Mass: 5.5 # Heavier than regular due to cloaking device
     Drag: 0.03
@@ -727,9 +728,9 @@ Robots:
     HitPoints: 120 # Was 150 for some reason, too much for their size
   - id: 11
     Name: Laser Platform
-    DevName: Bird  
+    DevName: Laser Bird  
     CircleDistance: 50
-    Mass: 2.5
+    Mass: 3
     Multishot: 2 # shotgun
     # FireDelay: [ 1.5, 1.25, 0.8, 0.6, 0.4 ]
     FireDelay: [ 1.5, 1.4, 1.25, 1.25, 1.25 ] # originaly 1.5, 1.25, 1, 1, 1
@@ -758,7 +759,7 @@ Robots:
     CircleDistance: 70
     GetBehind: 1
     Aim: 220
-    Mass: 3.0
+    Mass: 3.5
     Drag: 0.03
     SuppressChance: 0.3
     Curiosity: 0.25 # Usually hold position

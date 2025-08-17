@@ -116,6 +116,23 @@ namespace Inferno {
     constexpr auto MAX_LIGHT_DELTAS = 32000; // Rebirth limit. Original D2: 10000
     constexpr int DEFAULT_REACTOR_COUNTDOWN = 30;
 
+    struct Environment {
+        string name;
+        //Sound::Reverb reverb = Sound::Reverb::Off;
+        uint8 reverb = 0;
+        bool secret = false; // mark environment as a secret area
+        bool discovered = false; // runtime, secret was discovered
+        bool useFog = false;
+        bool additiveFog = false; // Use additive blending for fog
+        Color fog = Color(0.5, 0.5, 0.5, 15);
+        Vector3 wind;
+        float windSpeed = 0;
+        float damage = 0;
+        string damageSound;
+        string ambientSound;
+        List<SegID> segments;
+    };
+
     struct Level {
         string Palette = "groupa.256";
         SegID SecretExitReturn = SegID(0);
@@ -130,6 +147,7 @@ namespace Inferno {
         List<Matcen> Matcens;
         List<FlickeringLight> FlickeringLights; // Vertigo flickering lights
         List<Room> Rooms;
+        List<Environment> Environments;
         Dictionary<PointID, Vector3> VertexOverrides;
 
         // Reactor stuff

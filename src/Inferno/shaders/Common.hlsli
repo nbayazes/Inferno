@@ -137,6 +137,24 @@ float3 SampleNormal(Texture2D tex, float2 uv, SamplerState texSampler, int filte
 //     tex.Sample(texSampler, uv + dx + dy).rgb) * 0.25; // bottom right
 //return clamp(color * 2 - 1, -1, 1);
 
+
+float LinearizeDepth(float near, float far, float depth) {
+    return near / (far + depth * (near - far));
+}
+
+// Exponential fog factor
+float ExpFog(float depth, float density) {
+    return 1 - exp(-depth * density);
+}
+
+float ExpFog2(float depth, float density) {
+    return 1 - exp(-pow(depth * density, 2));
+}
+
+float Luminance(float3 v) {
+    return dot(v, float3(0.2126f, 0.7152f, 0.0722f));
+}
+
 #define SPRITE_RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0),"\
     "RootConstants(b1, num32BitConstants = 3), " \

@@ -476,6 +476,11 @@ namespace Inferno::Render {
 
         _levelMeshBuilder.Update(level, *LevelResources.LevelMeshes.get());
 
+        if (Render::UpdateFogFlag) {
+            _levelMeshBuilder.UpdateFog(level, *LevelResources.FogMeshes.get());
+            Render::UpdateFogFlag = false;
+        }
+
         for (auto& room : level.Rooms) {
             room.WallMeshes.clear();
         }
@@ -744,6 +749,81 @@ namespace Inferno::Render {
                 PIXScopedEvent(cmdList, PIX_COLOR_INDEX(2), "Transparent queue");
                 for (auto& cmd : _renderQueue.Transparent())
                     ExecuteRenderCommand(ctx, cmd, RenderPass::Transparent);
+            }
+
+            // todo: transparent objects (powerups) need to come after fog and have a fog shader
+
+            for (auto& fog : _levelMeshBuilder.GetFogMeshes()) {
+                if (!Settings::Graphics.EnableFog) continue;
+
+                auto environment = Game::GetEnvironment(fog.environment);
+                if (!environment || !environment->useFog) continue;
+
+                if (!ctx.Camera.Frustum.Contains(fog.bounds))
+                    continue; // only draw fog in frustum
+
+                bool visible = false;
+                for (auto& seg : fog.Segments) {
+                    if (_renderQueue.SegmentIsVisible(seg)) {
+                        visible = true;
+                        break;
+                    }
+                }
+
+                if (!visible) continue; // only draw fog in active segments
+
+                Stats::FogPasses++;
+
+                {
+                    PIXScopedEvent(cmdList, PIX_COLOR_INDEX(3), "Fog prepass");
+
+                    auto& depthTexture = Adapter->GetLinearDepthBuffer();
+                    Color clearColor(1, 1, 1); // clear to 1, otherwise the fog volumes have an outline at a distance
+                    ctx.ClearColor(depthTexture, nullptr, &clearColor);
+                    depthTexture.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+                    ctx.SetRenderTarget(depthTexture.GetRTV(), Adapter->GetDepthBuffer().GetDSV());
+
+                    auto& effect = Effects->FogPrepass;
+                    ctx.ApplyEffect(effect);
+                    ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+                    fog.Draw(cmdList);
+
+                    if (Settings::Graphics.MsaaSamples > 1) {
+                        // must resolve MS target to allow shader sampling
+                        Adapter->LinearizedDepthBuffer.ResolveFromMultisample(cmdList, Adapter->MsaaLinearizedDepthBuffer);
+                    }
+                }
+
+                {
+                    PIXScopedEvent(cmdList, PIX_COLOR_INDEX(3), "Fog");
+                    auto& depthTexture = Adapter->LinearizedDepthBuffer;
+                    depthTexture.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+                    ctx.SetRenderTarget(renderTarget.GetRTV(), Adapter->GetDepthBuffer().GetDSV());
+
+                    auto& effect = environment->additiveFog ? Effects->AdditiveFog : Effects->Fog;
+                    ctx.ApplyEffect(effect);
+                    ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+                    effect.Shader->SetConstants(cmdList, { environment->fog });
+
+                    effect.Shader->SetDepthTexture(ctx.GetCommandList(), depthTexture.GetSRV());
+                    fog.Draw(cmdList);
+
+                    for (auto& segid : fog.Segments) {
+                        if (auto seg = level.TryGetSegment(segid)) {
+                            for (auto& objid : seg->Objects) {
+                                if (auto obj = level.TryGetObject(objid)) {
+                                    DrawFoggedObject(ctx, *obj, RenderPass::Opaque);
+                                }
+                            }
+
+                            for (auto effectID : seg->Effects) {
+                                if (auto vfx = GetEffect(effectID)) {
+                                    vfx->DrawFog(ctx);
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             //ctx.SetViewportAndScissor(UINT(target.GetWidth() * Settings::Graphics.RenderScale), UINT(target.GetHeight() * Settings::Graphics.RenderScale));

@@ -38,6 +38,8 @@ namespace Inferno {
         node["ForegroundFpsLimit"] << s.ForegroundFpsLimit;
         node["BackgroundFpsLimit"] << s.BackgroundFpsLimit;
         node["UseVsync"] << s.UseVsync;
+        node["EnableProcedurals"] << s.EnableProcedurals;
+        node["EnableFog"] << s.EnableFog;
         node["FilterMode"] << (int)s.FilterMode;
         node["FieldOfView"] << s.FieldOfView;
         node["Brightness"] << s.Brightness;
@@ -57,6 +59,8 @@ namespace Inferno {
         ReadValue(node["ForegroundFpsLimit"], s.ForegroundFpsLimit);
         ReadValue(node["BackgroundFpsLimit"], s.BackgroundFpsLimit);
         ReadValue(node["UseVsync"], s.UseVsync);
+        ReadValue(node["EnableProcedurals"], s.EnableProcedurals);
+        ReadValue(node["EnableFog"], s.EnableFog);
         ReadValue(node["FilterMode"], (int&)s.FilterMode);
 
         ReadValue(node["FieldOfView"], s.FieldOfView);
@@ -85,6 +89,7 @@ namespace Inferno {
         node["TerrainEditor"] << w.TerrainEditor;
         node["Scale"] << w.Scale;
         node["Debug"] << w.Debug;
+        node["Environment"] << w.Environment;
     }
 
     EditorSettings::OpenWindows LoadOpenWindows(ryml::NodeRef node) {
@@ -104,6 +109,7 @@ namespace Inferno {
         ReadValue(node["TerrainEditor"], w.TerrainEditor);
         ReadValue(node["Scale"], w.Scale);
         ReadValue(node["Debug"], w.Debug);
+        ReadValue(node["Environment"], w.Environment);
         return w;
     }
 
@@ -915,8 +921,6 @@ namespace Inferno {
                     LoadEditorBindings(bindings["Editor"]);
                     LoadGameBindings(bindings["Game"]);
                 }
-
-                Settings::Editor.Windows.Debug = true; // Always show debug window for alpha
             }
         }
         catch (const std::exception& e) {

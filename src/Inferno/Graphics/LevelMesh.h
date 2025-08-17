@@ -29,9 +29,10 @@ namespace Inferno {
         }
     };
 
-    struct HeatVolume {
-        List<uint16> Indices;
-        List<FlatVertex> Vertices;
+    struct FogVolume {
+        List<uint16> indices;
+        EnvironmentID environment = EnvironmentID::None;
+        List<SegID> segments;
     };
 
     struct LevelGeometry {
@@ -49,10 +50,23 @@ namespace Inferno {
 
         // Technically vertices are no longer needed after being uploaded
         List<LevelVertex> Vertices;
-        HeatVolume HeatVolumes;
+
+        List<FlatVertex> FogVertices;
+        List<FogVolume> FogVolumes;
     };
 
     using ChunkCache = Dictionary<uint32, LevelChunk>;
+
+    struct FogMesh {
+        D3D12_VERTEX_BUFFER_VIEW VertexBuffer;
+        D3D12_INDEX_BUFFER_VIEW IndexBuffer;
+        uint IndexCount;
+        List<SegID> Segments;
+        EnvironmentID environment = EnvironmentID::None;
+        DirectX::BoundingOrientedBox bounds;
+
+        void Draw(ID3D12GraphicsCommandList* cmdList) const;
+    };
 
     struct LevelMesh {
         D3D12_VERTEX_BUFFER_VIEW VertexBuffer;
@@ -109,6 +123,7 @@ namespace Inferno {
         LevelGeometry _geometry;
         List<LevelMesh> _meshes;
         List<LevelMesh> _wallMeshes, _decalMeshes;
+        List<FogMesh> _fogMeshes;
         ChunkCache _chunks, _decals;
         LevelMesh _exitPortal{};
 
@@ -116,9 +131,12 @@ namespace Inferno {
         span<LevelMesh> GetMeshes() { return _meshes; }
         span<LevelMesh> GetDecals() { return _decalMeshes; }
         span<LevelMesh> GetWallMeshes() { return _wallMeshes; }
+        span<FogMesh> GetFogMeshes() { return _fogMeshes; }
         LevelMesh& GetExitPortal() { return _exitPortal; }
 
         void Update(Level& level, PackedBuffer& buffer);
+        void UpdateFog(const Level& level, PackedBuffer& buffer);
+
     private:
         void CreateLevelGeometry(Level& level);
         void UpdateBuffers(PackedBuffer& buffer);

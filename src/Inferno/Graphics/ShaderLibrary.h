@@ -371,6 +371,76 @@ namespace Inferno {
         }
     };
 
+    // Draws the faces of a fog hull to a linearized depth texture
+    class FogPrepassShader : public IShader {
+        enum RootParameterIndex : uint {
+            FrameConstants,
+            RootConstants
+        };
+
+    public:
+        constexpr static auto OutputFormat = DXGI_FORMAT_R16_FLOAT;
+
+        FogPrepassShader(const ShaderInfo& info) : IShader(info) {
+            Format = OutputFormat;
+            InputLayout = FlatVertex::Layout;
+        }
+    };
+
+    // Draws the faces of a fog hull to a linearized depth texture
+    class FogObjectShader : public IShader {
+        enum RootParameterIndex : uint {
+            FrameConstants,
+            RootConstants,
+            Depth // Linearized depth texture for front of fog volume
+        };
+
+    public:
+        FogObjectShader(const ShaderInfo& info) : IShader(info) {
+            InputLayout = ObjectVertex::Layout;
+        }
+
+        struct Constants {
+            Matrix World;
+            Color color; // Fog color. Alpha is density.
+            Color ambient; // Ambient light color
+        };
+
+        static void SetDepthTexture(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
+            commandList->SetGraphicsRootDescriptorTable(Depth, texture);
+        }
+
+        static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
+            Render::BindTempConstants(commandList, consts, RootConstants);
+        }
+    };
+
+    // Draws the faces of a fog hull to a linearized depth texture
+    class FogShader : public IShader {
+        enum RootParameterIndex : uint {
+            FrameConstants,
+            RootConstants,
+            Depth // Linearized depth texture for front of fog volume
+        };
+
+    public:
+        struct Constants {
+            Color color; // Fog color. Alpha is density.
+        };
+
+        FogShader(const ShaderInfo& info) : IShader(info) {
+            InputLayout = FlatVertex::Layout;
+        }
+
+        static void SetDepthTexture(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
+            commandList->SetGraphicsRootDescriptorTable(Depth, texture);
+        }
+
+        static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& constants) {
+            commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof(constants) / 4, &constants, 0);
+        }
+    };
+
     class SpriteShader : public IShader {
         enum RootParameterIndex : uint {
             FrameConstants,
@@ -765,6 +835,9 @@ namespace Inferno {
         AsteroidShader Asteroid = ShaderInfo{ "shaders/Asteroid.hlsl" };
         MenuSunShader MenuSun = ShaderInfo{ "shaders/MenuSun.hlsl" };
         ComposeShader Composition = ShaderInfo{ "shaders/Compose.hlsl" };
+        FogShader Fog = ShaderInfo{ "shaders/Fog.hlsl" };
+        FogPrepassShader FogPrepass = ShaderInfo{ "shaders/FogPrepass.hlsl" };
+        FogObjectShader FogObject = ShaderInfo{ "shaders/FogObject.hlsl" };
     };
 
     class EffectResources {
@@ -778,6 +851,12 @@ namespace Inferno {
         Effect<LevelShader> LevelWallAdditive = { &_shaders->Level, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
         Effect<FlatLevelShader> LevelFlat = { &_shaders->LevelFlat, { BlendMode::Opaque, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
         Effect<FlatLevelShader> LevelWallFlat = { &_shaders->LevelFlat, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
+
+        Effect<FogPrepassShader> FogPrepass = { &_shaders->FogPrepass, { BlendMode::Opaque, CullMode::Clockwise, DepthMode::Read, StencilMode::PortalRead } };
+        Effect<FogShader> Fog = { &_shaders->Fog, { BlendMode::StraightAlpha, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
+        Effect<FogShader> AdditiveFog = { &_shaders->Fog, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read, StencilMode::PortalRead } };
+        Effect<FogObjectShader> FogObject = { &_shaders->FogObject, { BlendMode::StraightAlpha, CullMode::None, DepthMode::Read, StencilMode::PortalRead } };
+        Effect<FogObjectShader> AdditiveFogObject = { &_shaders->FogObject, { BlendMode::Additive, CullMode::None, DepthMode::Read, StencilMode::PortalRead } };
 
         Effect<AutomapShader> Automap = { &_shaders->Automap, { BlendMode::Opaque, CullMode::CounterClockwise, DepthMode::ReadWrite } };
         Effect<AutomapShader> AutomapTransparent = { &_shaders->Automap, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
@@ -824,6 +903,7 @@ namespace Inferno {
         Effect<ComposeShader> Compose = { &_shaders->Composition, { .Blend = BlendMode::Alpha, .Culling = CullMode::None, .Depth = DepthMode::None, .EnableMultisample = false } };
 
         void Compile(ID3D12Device* device, uint msaaSamples) {
+            SPDLOG_INFO("Compiling shaders");
             CompileShader(&_shaders->Flat);
             CompileShader(&_shaders->Level);
             CompileShader(&_shaders->LevelFlat);
@@ -847,8 +927,13 @@ namespace Inferno {
             CompileShader(&_shaders->Asteroid);
             CompileShader(&_shaders->MenuSun);
             CompileShader(&_shaders->Composition);
+            CompileShader(&_shaders->Fog);
+            CompileShader(&_shaders->FogPrepass);
+            CompileShader(&_shaders->FogObject);
 
-            auto compile = [&](auto& effect, bool useStencil = true, uint renderTargets = 1) {
+            SPDLOG_INFO("Compiling shader effects");
+
+            auto compileEffect = [&](auto& effect, bool useStencil = true, uint renderTargets = 1) {
                 try {
                     auto psoDesc = BuildPipelineStateDesc(effect.Settings, effect.Shader, useStencil, msaaSamples, renderTargets);
                     ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&effect.PipelineState)));
@@ -858,55 +943,61 @@ namespace Inferno {
                 }
             };
 
-            compile(Level);
-            compile(LevelWall);
-            compile(LevelWallAdditive);
+            compileEffect(Level);
+            compileEffect(LevelWall);
+            compileEffect(LevelWallAdditive);
 
-            compile(Depth);
-            compile(DepthObject);
-            compile(DepthObjectFlipped);
-            compile(DepthCutout);
+            compileEffect(FogPrepass);
+            compileEffect(Fog);
+            compileEffect(AdditiveFog);
+            compileEffect(FogObject);
+            compileEffect(AdditiveFogObject);
 
-            compile(LevelFlat);
-            compile(LevelWallFlat);
-            compile(Automap);
-            compile(AutomapTransparent);
-            compile(AutomapObject);
-            compile(AutomapOutline);
+            compileEffect(Depth);
+            compileEffect(DepthObject);
+            compileEffect(DepthObjectFlipped);
+            compileEffect(DepthCutout);
 
-            compile(Terrain);
-            compile(TerrainDepth);
-            compile(TerrainPortal);
-            compile(TerrainObject);
-            compile(TerrainDepthObject);
+            compileEffect(LevelFlat);
+            compileEffect(LevelWallFlat);
+            compileEffect(Automap);
+            compileEffect(AutomapTransparent);
+            compileEffect(AutomapObject);
+            compileEffect(AutomapOutline);
 
-            compile(Object);
-            compile(ObjectGlow);
-            compile(ObjectDistortion);
-            compile(BriefingObject, false);
-            compile(Sprite);
-            compile(SpriteTerrain);
+            compileEffect(Terrain);
+            compileEffect(TerrainDepth);
+            compileEffect(TerrainPortal);
+            compileEffect(TerrainObject);
+            compileEffect(TerrainDepthObject);
+
+            compileEffect(Object);
+            compileEffect(ObjectGlow);
+            compileEffect(ObjectDistortion);
+            compileEffect(BriefingObject, false);
+            compileEffect(Sprite);
+            compileEffect(SpriteTerrain);
             //compile(SpriteOpaque);
-            compile(SpriteAdditive);
-            compile(SpriteAdditiveTerrain);
-            compile(SpriteMultiply);
+            compileEffect(SpriteAdditive);
+            compileEffect(SpriteAdditiveTerrain);
+            compileEffect(SpriteMultiply);
             //compile(SpriteAdditiveBiased);
 
-            compile(Flat);
-            compile(FlatAdditive);
-            compile(EditorSelection);
-            compile(Line);
+            compileEffect(Flat);
+            compileEffect(FlatAdditive);
+            compileEffect(EditorSelection);
+            compileEffect(Line);
 
-            compile(UserInterface, false);
-            compile(Briefing, false);
-            compile(Hud);
-            compile(HudAdditive);
+            compileEffect(UserInterface, false);
+            compileEffect(Briefing, false);
+            compileEffect(Hud);
+            compileEffect(HudAdditive);
 
-            compile(Stars);
-            compile(Sun);
-            compile(MenuSun);
-            compile(Asteroid);
-            compile(Compose, false);
+            compileEffect(Stars);
+            compileEffect(Sun);
+            compileEffect(MenuSun);
+            compileEffect(Asteroid);
+            compileEffect(Compose, false);
         }
     };
 }

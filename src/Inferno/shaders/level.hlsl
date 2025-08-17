@@ -111,13 +111,6 @@ float4 Specular(float3 lightDir, float3 eyeDir, float3 normal, float power) {
     return float4(specular, 0);
 }
 
-//float4 ApplyLinearFog(float4 pixel, float4 pos, float start, float end, float4 fogColor) {
-//    float depth = Depth.Sample(LinearSampler, (pos.xy + 0.5) / Frame.Size).x;
-//    float f = saturate((((end - start) / Frame.FarClip) - depth) / ((end - start) / Frame.FarClip));
-//    //float f = saturate(1 / exp(pow(depth * 5, 2)));
-//    return f * pixel + (1 - f) * fogColor;
-//}
-
 float rand(float2 co) {
     float dt = dot(co.xy, float2(12.9898, 78.233));
     float sn = fmod(dt, 3.14);
@@ -257,8 +250,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
         // align normals
         float3x3 tbn = float3x3(input.tangent, input.bitangent, input.normal);
         normal = normalize(mul(normal, tbn));
-        //return ApplyLinearFog(base * lighting, input.pos, 10, 500, float4(0.25, 0.35, 0.75, 1));
-
         //material.SpecularStrength *= 1 + material.Metalness * 2;
         //material.LightReceived *= 1 - material.Metalness * 0.91;
 

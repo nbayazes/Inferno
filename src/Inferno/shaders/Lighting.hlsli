@@ -76,11 +76,6 @@ float HalfLambert(float3 normal, float3 lightDir) {
     return saturate(nDotL);
 }
 
-float Luminance(float3 v) {
-    //0.299,0.587,0.114
-    return dot(v, float3(0.2126f, 0.7152f, 0.0722f));
-}
-
 float3 ApplyLightCommon(
     float3 diffuseColor, // Diffuse albedo
     float3 specularColor, // Specular albedo

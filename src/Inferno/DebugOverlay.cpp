@@ -75,12 +75,13 @@ namespace Inferno {
             //ImGui::Text("Objects: %d", Game::Level.Objects.size());
             ImGui::Text("Live Objects: %d", Game::Debug::LiveObjects);
             ImGui::Text("Active robots: %d", Game::Debug::ActiveRobots);
-            ImGui::Text("Active rooms: %d", Game::ActiveRooms.size());
+            //ImGui::Text("Active rooms: %d", Game::ActiveRooms.size());
             ImGui::Text("Segments: %d", Game::Debug::VisibleSegments);
             //ImGui::Text("Total Effects: %d", Render::Stats::EffectDraws);
             ImGui::Text("Queue Size (T): %d", Render::GetTransparentQueueSize());
             ImGui::Text("Collision segs: %d", Debug::SegmentsChecked);
             ImGui::Text("Dynamic Lights: %d", Graphics::Lights.GetCount());
+            ImGui::Text("Fog passes: %d", Render::Stats::FogPasses);
 
             ImGui::Text("Free upload memory: %d kb", Render::GetFreeUploadBufferMemory() / 1024);
         }

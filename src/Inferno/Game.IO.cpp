@@ -159,6 +159,7 @@ namespace Inferno::Game {
             Level.Rooms = CreateRooms(Level, start);
             Navigation = NavigationNetwork(Level);
             LevelNumber = GetLevelNumber(Level.FileName);
+            RelinkEnvironments(Level);
 
             if (forceReload || Resources::CustomTextures.Any()) // Check for custom textures before or after load
                 Graphics::UnloadTextures();
@@ -457,12 +458,12 @@ namespace Inferno::Game {
                 level.Path = info.Path;
 
                 // Load metadata from IED file
-                filesystem::path metadataFile = info.Path;
-                metadataFile.replace_extension(METADATA_EXTENSION);
-                if (auto metadata = File::ReadAllText(metadataFile); !metadata.empty()) {
-                    SPDLOG_INFO("Loaded level metadata from: {}", metadataFile.string());
-                    LoadLevelMetadata(level, metadata, Editor::EditorLightSettings);
-                }
+                //filesystem::path metadataFile = info.Path;
+                //metadataFile.replace_extension(METADATA_EXTENSION);
+                //if (auto metadata = File::ReadAllText(metadataFile); !metadata.empty()) {
+                //    SPDLOG_INFO("Loaded level metadata from: {}", metadataFile.string());
+                //    LoadLevelMetadata(level, metadata, Editor::EditorLightSettings);
+                //}
             }
             else if (version == 0) {
                 // Hog file

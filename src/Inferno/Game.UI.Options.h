@@ -266,6 +266,7 @@ namespace Inferno::UI {
             _useVsync = Settings::Graphics.UseVsync;
             panel->AddChild<Checkbox>("VSync", _useVsync);
             panel->AddChild<Checkbox>("Procedural textures", Settings::Graphics.EnableProcedurals);
+            panel->AddChild<Checkbox>("Fog", Settings::Graphics.EnableFog);
 
             auto renderScale = panel->AddChild<SliderFloat>("Render scale", 0.05f, 1.0f, Settings::Graphics.RenderScale, 2);
             //renderScale->LabelWidth = 300;
@@ -307,7 +308,6 @@ namespace Inferno::UI {
             auto msaa = panel->AddChild<OptionSpinner>("MSAA", std::initializer_list<string_view>{ "None", "2x", "4x", "8x" }, _msaaSamples);
             msaa->LabelWidth = 340;
 
-            panel->AddChild<Label>("");
             panel->AddChild<Label>("Framerate limits", FontSize::MediumBlue);
             panel->AddChild<Checkbox>("Enable Foreground Limit", Inferno::Settings::Graphics.EnableForegroundFpsLimit);
 

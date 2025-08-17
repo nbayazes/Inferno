@@ -39,10 +39,6 @@ PS_INPUT vsmain(ObjectVertex input) {
     return output;
 }
 
-float LinearizeDepth(float near, float far, float depth) {
-    return near / (far + depth * (near - far));
-}
-
 float psmain(PS_INPUT input) : SV_Target {
     if (Object.DissolveAmount > 0) {
         float dissolveTex = 1 - Sample2D(DissolveTexture, input.uv + float2(Object.TimeOffset, Object.TimeOffset), Sampler, Frame.FilterMode).r;
