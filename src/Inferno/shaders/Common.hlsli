@@ -148,7 +148,7 @@ float ExpFog(float depth, float density) {
 }
 
 float ExpFog2(float depth, float density) {
-    return 1 - 1 / exp(pow(depth * density, 2));
+    return 1 - exp(-pow(depth * density, 2));
 }
 
 float Luminance(float3 v) {

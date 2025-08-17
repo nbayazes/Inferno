@@ -475,7 +475,11 @@ namespace Inferno::Render {
         if (!LevelResources.LevelMeshes) return;
 
         _levelMeshBuilder.Update(level, *LevelResources.LevelMeshes.get());
-        _levelMeshBuilder.UpdateFog(level, *LevelResources.FogMeshes.get());
+
+        if (Render::UpdateFogFlag) {
+            _levelMeshBuilder.UpdateFog(level, *LevelResources.FogMeshes.get());
+            Render::UpdateFogFlag = false;
+        }
 
         for (auto& room : level.Rooms) {
             room.WallMeshes.clear();
@@ -750,6 +754,8 @@ namespace Inferno::Render {
             // todo: transparent objects (powerups) need to come after fog and have a fog shader
 
             for (auto& fog : _levelMeshBuilder.GetFogMeshes()) {
+                if (!Settings::Graphics.EnableFog) continue;
+
                 auto environment = Game::GetEnvironment(fog.environment);
                 if (!environment || !environment->useFog) continue;
 
@@ -807,6 +813,12 @@ namespace Inferno::Render {
                             for (auto& objid : seg->Objects) {
                                 if (auto obj = level.TryGetObject(objid)) {
                                     DrawFoggedObject(ctx, *obj, RenderPass::Opaque);
+                                }
+                            }
+
+                            for (auto effectID : seg->Effects) {
+                                if (auto vfx = GetEffect(effectID)) {
+                                    vfx->DrawFog(ctx);
                                 }
                             }
                         }

@@ -679,7 +679,7 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawFoggedModel(GraphicsContext& ctx,
+    void DrawFoggedObject(GraphicsContext& ctx,
                          const Object& object,
                          ModelID modelId,
                          RenderPass pass,
@@ -699,9 +699,6 @@ namespace Inferno::Render {
 
         auto& model = Resources::GetModel(modelId);
         if (model.DataSize == 0) {
-            if (Game::GetState() == GameState::Editor && !Settings::Editor.HideUI)
-                DrawObjectOutline(object, ctx.Camera);
-
             return;
         }
 
@@ -755,7 +752,7 @@ namespace Inferno::Render {
         auto& frameConstants = Adapter->GetFrameConstants();
 
         if (object.Render.Type == RenderType::Model) {
-            DrawFoggedModel(ctx, object, object.Render.Model.ID, pass, frameConstants);
+            DrawFoggedObject(ctx, object, object.Render.Model.ID, pass, frameConstants);
         }
     }
 

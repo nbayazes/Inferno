@@ -94,7 +94,7 @@ namespace Inferno {
                     bool isDoor = false;
 
                     if (auto wall = level.TryGetWall({ segid, sideid })) {
-                        if (wall->Type == WallType::Door)
+                        if (wall->Type == WallType::Door || wall->Type == WallType::Closed || wall->Type == WallType::Destroyable)
                             isDoor = true; // split volumes at doors, otherwise the door doesn't get shaded
                     }
 

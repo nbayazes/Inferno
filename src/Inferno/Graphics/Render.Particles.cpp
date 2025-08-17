@@ -179,7 +179,6 @@ namespace Inferno::Render {
         auto& model = Resources::GetModel(Info.Model);
         if (model.DataSize == 0) return;
         if (!Seq::inRange(model.Submodels, Info.Submodel)) return;
-        auto& meshHandle = GetMeshHandle(Info.Model);
         auto cmdList = ctx.GetCommandList();
         auto& effect = Effects->Object;
 
@@ -198,18 +197,16 @@ namespace Inferno::Render {
             effect.Shader->SetMatcap(cmdList, Render::Materials->Matcap.GetSRV());
         }
 
-        auto& seg = Game::Level.GetSegment(Segment);
+        auto seg = Game::Level.TryGetSegment(Segment);
         ObjectShader::Constants constants = {};
-        constants.Ambient = Settings::Editor.RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
+        constants.Ambient = Settings::Editor.RenderMode == RenderMode::Shaded && seg ? seg->VolumeLight : Color(1, 1, 1);
         constants.EmissiveLight = Vector4::Zero;
         constants.TexIdOverride = (int)Info.TexOverride;
-
-        Matrix transform = Matrix::Lerp(PrevTransform, Transform, Game::LerpAmount);
-        //transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
-        constants.World = transform;
+        constants.World = Matrix::Lerp(PrevTransform, Transform, Game::LerpAmount);
         effect.Shader->SetConstants(cmdList, constants);
 
         // get the mesh associated with the submodel
+        auto& meshHandle = GetMeshHandle(Info.Model);
         auto& subMesh = meshHandle.Meshes[Info.Submodel];
 
         for (int i = 0; i < subMesh.size(); i++) {
@@ -222,6 +219,47 @@ namespace Inferno::Render {
 
             //const Material2D& material = tid == TexID::None ? Materials->White : Materials->Get(tid);
             //effect.Shader->SetMaterial(cmdList, material);
+
+            cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
+            cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
+            cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
+            Stats::DrawCalls++;
+        }
+    }
+
+    void Debris::DrawFog(GraphicsContext& ctx) {
+        auto& model = Resources::GetModel(Info.Model);
+        if (model.DataSize == 0) return;
+
+        auto env = Game::GetEnvironment(Segment);
+        if (!env || !env->useFog) return;
+
+        auto& effect = env->additiveFog ? Effects->AdditiveFogObject : Effects->FogObject;
+        auto cmdList = ctx.GetCommandList();
+
+        auto& depthTexture = Adapter->LinearizedDepthBuffer;
+        depthTexture.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+        if (ctx.ApplyEffect(effect)) {
+            ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+            effect.Shader->SetDepthTexture(cmdList, depthTexture.GetSRV());
+        }
+
+        auto seg = Game::Level.TryGetSegment(Segment);
+
+        FogObjectShader::Constants constants = {};
+        constants.color = env->fog;
+        constants.ambient = Settings::Editor.RenderMode == RenderMode::Shaded && seg ? seg->VolumeLight : Color(1, 1, 1);
+        constants.World = Matrix::Lerp(PrevTransform, Transform, Game::LerpAmount);
+
+        // get the mesh associated with the submodel
+        auto& meshHandle = GetMeshHandle(Info.Model);
+        auto& subMesh = meshHandle.Meshes[Info.Submodel];
+        effect.Shader->SetConstants(cmdList, constants);
+
+        for (int i = 0; i < subMesh.size(); i++) {
+            auto mesh = subMesh[i];
+            if (!mesh) continue;
 
             cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
             cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
@@ -246,7 +284,6 @@ namespace Inferno::Render {
         }
 
         Matrix transform = Matrix::Lerp(PrevTransform, Transform, Game::LerpAmount);
-        //transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
 
         ObjectDepthShader::Constants constants = {};
         constants.World = transform;

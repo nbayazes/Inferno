@@ -2,7 +2,7 @@
 #include <d3d12.h>
 
 namespace Inferno {
-    enum class BlendMode { Opaque, Alpha, StraightAlpha, Additive, Multiply };
+    enum class BlendMode { Opaque, Alpha, StraightAlpha, Additive, Multiply }; // "Alpha" is premultiplied
     enum class CullMode { None, CounterClockwise, Clockwise, Wireframe };
     enum class DepthMode { ReadWrite, Read, ReadDecalBiased, ReadSpriteBiased, ReadEqual, None };
     enum class StencilMode { None, PortalRead, PortalReadNeq, PortalWrite };

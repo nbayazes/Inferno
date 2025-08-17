@@ -3,11 +3,14 @@
 #include "Editor/Editor.Selection.h"
 #include "Game.Segment.h"
 
+namespace Inferno::Render {
+    extern bool RebuildFogFlag;
+}
+
 namespace Inferno::Editor {
     class RenameEnvironmentDialog : public ModalWindowBase {
         friend class EnvironmentEditor;
         inline static Environment* _environment = nullptr;
-        //char _name[64]{};
         string _name;
 
     public:
@@ -43,13 +46,8 @@ namespace Inferno::Editor {
         }
 
         void OnUpdate() override {
-            //char name[Level::MAX_NAME_LENGTH]{};
-            //Name.copy(name, std::min((int)Name.size(), Level::MAX_NAME_LENGTH));
-
             SetInitialFocus();
-            ImGui::TextInputWide("Environment name", _name, 64);
-            //if (ImGui::InputTextEx("##rename", nullptr, name, Level::MAX_NAME_LENGTH, { -1, 0 }, 0))
-            //Name = string(name);
+            ImGui::TextInputWide<64>("Environment name", _name);
             EndInitialFocus();
 
             AcceptButtons();
@@ -57,7 +55,6 @@ namespace Inferno::Editor {
     };
 
     class EnvironmentEditor final : public WindowBase {
-        //Environment* _environment = nullptr;
         uint _index = 0;
 
     public:
@@ -117,7 +114,7 @@ namespace Inferno::Editor {
                     DisableControls disable(!environment);
 
                     if (ImGui::Button("Remove", btnSize)) {
-                        auto msg = fmt::format("Are you sure you want to remove environment `{}`?", environment->name);
+                        auto msg = fmt::format(R"(Are you sure you want to remove environment '{}'?)", environment->name);
                         if (ShowYesNoMessage(msg, "Inferno Editor")) {
                             Seq::removeAt(level.Environments, _index);
                             environment = nullptr;
@@ -126,6 +123,11 @@ namespace Inferno::Editor {
                             Events::LevelChanged();
                         }
                     }
+                }
+
+                if (ImGui::Button("Update fog mesh")) {
+                    Render::UpdateFogFlag = true;
+                    Events::LevelChanged();
                 }
             }
 
@@ -216,7 +218,7 @@ namespace Inferno::Editor {
                 {
                     DisableControls disable(!environment->useFog);
                     ImGui::TableRowLabel("Additive");
-                    ImGui::Checkbox("##additivefog", &environment->additiveFog);
+                    snapshot |= ImGui::Checkbox("##additivefog", &environment->additiveFog);
                 }
 
                 //{
@@ -266,6 +268,7 @@ namespace Inferno::Editor {
             env.segments = segids;
 
             RelinkEnvironments(level);
+            Render::UpdateFogFlag = true;
             Editor::Events::LevelChanged();
         }
 
@@ -276,6 +279,7 @@ namespace Inferno::Editor {
             env.segments = Seq::ofSet(set);
 
             RelinkEnvironments(level);
+            Render::UpdateFogFlag = true;
             Editor::Events::LevelChanged();
         }
     };

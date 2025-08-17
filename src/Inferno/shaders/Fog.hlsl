@@ -183,14 +183,14 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //depth *= (n * n * n) * 2 + 0.2;
     //depth *= g;
 
-    float4 fog = float4(pow(max(Args.Color.rgb, 0), 2.2), 1);
+    float3 fog = pow(max(Args.Color.rgb, 0), 2.2);
     float density = Args.Color.a;
     //return float4(ex.rrr, 1);
 
-    fog *= ExpFog(depth, density);
+    //fog *= ExpFog(depth, density);
     //fog *= 1 - LinearFog2(depth, 0, 0.0075 * density);
 
-    float3 ambient = input.color.rgb;
+    float3 ambient = max(input.color.rgb, 0);
     // clamp ambient light to prevent oversaturation
     //ambient = clamp(ambient, 0, 2);
 
@@ -200,14 +200,18 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //return float4(Luminance(ambient).xxx, 1);
     //return float4(smoothstep(-1, 2, Luminance(ambient).xxx), 1);
 
-    float3 normal = normalize(cross(ddx(input.world), ddy(input.world)));
-
-    fog.rgb = lerp(fog.rgb, fog.rgb * smoothstep(-1, 2, Luminance(ambient)), 0.5);
-    float3 dir = normalize(input.world - Frame.Eye);
-    float d = saturate(pow(dot(normal, -dir), 2) * 4);
+    //float3 normal = normalize(cross(ddx(input.world), ddy(input.world)));
+    float lum = Luminance(ambient);
+    float alpha = saturate(ExpFog(depth, density));
+    float alpha2 = saturate(ExpFog(depth, density * .95));
+    //fog = lerp(fog, fog * smoothstep(-1, 2, lum), depth);
+    fog = lerp(fog, fog * lerp(ambient, lum, 0.5), saturate(1 - alpha - 0.5));
+    //float3 dir = normalize(input.world - Frame.Eye);
+    //float d = saturate(pow(dot(normal, -dir), 2) * 4);
     //fog.rgb *= d;
-    //return float4(d.xxx, 1);
+    //return float4(fog, 1);
     //fog.rgb = lerp(fog.rgb, fog.rgb * smoothstep(-1, 2, ambient), 0.5);
     //fog.rgb = lerp(fog.rgb, fog.rgb * smoothstep(0, 3, ambient), 0.5);
-    return fog;
+    //return float4(fog, saturate(ExpFog2(depth, 2.5 * density * (0.5 + lum * 0.5))));
+    return float4(fog, alpha);
 }

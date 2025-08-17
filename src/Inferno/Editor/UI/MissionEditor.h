@@ -94,7 +94,7 @@ namespace Inferno::Editor {
         void MissionTab() {
             if (!ImGui::BeginTabItem("Mission")) return;
 
-            ImGui::TextInputWide("Name", _mission.Name, MissionInfo::MaxNameLength);
+            ImGui::TextInputWide<MissionInfo::MaxNameLength>("Name", _mission.Name);
 
             bool isSinglePlayer = _mission.Type == "normal";
             if (ImGui::RadioButton("Single player##type", isSinglePlayer))
@@ -111,8 +111,8 @@ namespace Inferno::Editor {
 
             if (Game::Mission && Game::Mission->IsDescent1()) {
                 ImGui::Dummy({ 0, 10 * Shell::DpiScale });
-                ImGui::TextInputWide("Briefing TEX/TXB", _mission.Metadata["briefing"], 12); // 8.3 file name
-                ImGui::TextInputWide("Ending TEX/TXB", _mission.Metadata["ending"], 12);  // 8.3 file name
+                ImGui::TextInputWide<12>("Briefing TEX/TXB", _mission.Metadata["briefing"]); // 8.3 file name
+                ImGui::TextInputWide<12>("Ending TEX/TXB", _mission.Metadata["ending"]);  // 8.3 file name
             }
 
             {
@@ -191,13 +191,13 @@ namespace Inferno::Editor {
         void AuthorTab() {
             if (!ImGui::BeginTabItem("Author")) return;
 
-            ImGui::TextInputWide("Author", _mission.Metadata["author"], 128);
-            ImGui::TextInputWide("Editor", _mission.Metadata["editor"], 128);
-            ImGui::TextInputWide("Build time", _mission.Metadata["build_time"], 128);
-            ImGui::TextInputWide("Date", _mission.Metadata["date"], 128);
-            ImGui::TextInputWide("Revision", _mission.Metadata["revision"], 128);
-            ImGui::TextInputWide("Email", _mission.Metadata["email"], 128);
-            ImGui::TextInputWide("Website", _mission.Metadata["web_site"], 128);
+            ImGui::TextInputWide<128>("Author", _mission.Metadata["author"]);
+            ImGui::TextInputWide<128>("Editor", _mission.Metadata["editor"]);
+            ImGui::TextInputWide<128>("Build time", _mission.Metadata["build_time"]);
+            ImGui::TextInputWide<128>("Date", _mission.Metadata["date"]);
+            ImGui::TextInputWide<128>("Revision", _mission.Metadata["revision"]);
+            ImGui::TextInputWide<128>("Email", _mission.Metadata["email"]);
+            ImGui::TextInputWide<128>("Website", _mission.Metadata["web_site"]);
 
             ImGui::Text("Custom assets:");
             MetadataCheckbox("Textures", "custom_textures");

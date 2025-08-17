@@ -115,6 +115,7 @@ namespace Inferno::Render {
         DebrisInfo Info;
 
         void Draw(GraphicsContext&) override;
+        void DrawFog(GraphicsContext&) override;
         void DepthPrepass(GraphicsContext&) override;
         void OnFixedUpdate(float dt, EffectID) override;
         void OnExpire() override;

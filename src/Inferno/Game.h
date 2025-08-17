@@ -188,6 +188,14 @@ namespace Inferno::Game {
         return Seq::tryItem(Game::Level.Environments, (int)id);
     }
 
+    inline Environment* GetEnvironment(SegID id) {
+        if (auto seg = Level.TryGetSegment(id)) {
+            return Seq::tryItem(Level.Environments, (int)seg->Environment);
+        }
+
+        return nullptr;
+    }
+
     inline Environment* GetEnvironment(const Object& obj) {
         if (auto seg = Level.TryGetSegment(obj.Segment)) {
             return Seq::tryItem(Level.Environments, (int)seg->Environment);

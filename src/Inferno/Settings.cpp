@@ -38,6 +38,8 @@ namespace Inferno {
         node["ForegroundFpsLimit"] << s.ForegroundFpsLimit;
         node["BackgroundFpsLimit"] << s.BackgroundFpsLimit;
         node["UseVsync"] << s.UseVsync;
+        node["EnableProcedurals"] << s.EnableProcedurals;
+        node["EnableFog"] << s.EnableFog;
         node["FilterMode"] << (int)s.FilterMode;
         node["FieldOfView"] << s.FieldOfView;
         node["Brightness"] << s.Brightness;
@@ -57,6 +59,8 @@ namespace Inferno {
         ReadValue(node["ForegroundFpsLimit"], s.ForegroundFpsLimit);
         ReadValue(node["BackgroundFpsLimit"], s.BackgroundFpsLimit);
         ReadValue(node["UseVsync"], s.UseVsync);
+        ReadValue(node["EnableProcedurals"], s.EnableProcedurals);
+        ReadValue(node["EnableFog"], s.EnableFog);
         ReadValue(node["FilterMode"], (int&)s.FilterMode);
 
         ReadValue(node["FieldOfView"], s.FieldOfView);

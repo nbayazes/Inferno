@@ -355,7 +355,6 @@ namespace Inferno::Editor {
                 ImGui::MenuItem("Terrain", nullptr, &Settings::Editor.Windows.TerrainEditor);
                 ImGui::MenuItem("Briefing Editor", nullptr, &Settings::Editor.Windows.BriefingEditor);
                 ImGui::MenuItem("Environment", nullptr, &Settings::Editor.Windows.Environment);
-                ImGui::MenuItem("Debug", nullptr, &Settings::Editor.Windows.Debug);
 
                 ImGui::Separator();
                 if (ImGui::MenuItem("Clean level"))
@@ -370,12 +369,12 @@ namespace Inferno::Editor {
 
                 ImGui::Separator();
 
+                ImGui::MenuItem("Debug", nullptr, &Settings::Editor.Windows.Debug);
+
                 if (ImGui::MenuItem("Bloom", nullptr, _bloomWindow.IsOpen()))
                     _bloomWindow.ToggleIsOpen();
 
 #ifdef _DEBUG
-                if (ImGui::MenuItem("Debug", nullptr, _debugWindow.IsOpen()))
-                    _debugWindow.ToggleIsOpen();
 
                 ImGui::Separator();
                 if (ImGui::MenuItem("Enable Physics", nullptr, &Settings::Editor.EnablePhysics)) {

@@ -181,7 +181,7 @@ namespace Inferno::Render {
 
         bool SegmentIsVisible(SegID id) {
             if (!Seq::inRange(_visibleSegments, (int)id)) return false;
-            return _visibleSegments[(int)id];
+            return (bool)_visibleSegments[(int)id];
         }
 
         void ProcessSegment(const Camera& camera, const Level& level, SegID segid, const Window& parentWindow);

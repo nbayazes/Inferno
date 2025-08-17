@@ -392,6 +392,7 @@ namespace Inferno::Render {
 
         Graphics::Lights = {};
         ResetEffects();
+        UpdateFogFlag = true;
         LevelChanged = true;
     }
 

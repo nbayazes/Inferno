@@ -119,6 +119,7 @@ namespace Inferno::Render {
                             const Vector3* up);
 
     extern bool LevelChanged;
+    inline bool UpdateFogFlag = true;
     //PackedBuffer* GetLevelMeshBuffer();
     //const TerrainMesh* GetTerrainMesh();
 
