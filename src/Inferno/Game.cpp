@@ -1235,7 +1235,7 @@ namespace Inferno::Game {
             if (IsBossRobot(obj))
                 Level.HasBoss = true;
 
-            if (obj.Type == ObjectType::Hostage) {
+            if (obj.Type == ObjectType::Hostage && !RestartingLevel) {
                 Player.stats.hostagesOnLevel++;
                 Player.stats.totalHostages++;
             }
