@@ -172,25 +172,27 @@ namespace Inferno::Editor {
             auto baseName = String::NameWithoutExtension(level.FileName);
             auto metadataName = baseName + METADATA_EXTENSION;
             HogWriter writer(tempPath); // write to temp
-            HogReader reader(mission.Path);
 
-            fmt::print("Writing existing HOG files:\n");
+            if (filesystem::exists(mission.Path)) {
+                HogReader reader(mission.Path);
 
-            for (auto& entry : mission.Entries) {
-                // Does the file match the level name?
-                if (entry.NameWithoutExtension() == baseName) {
-                    // Skip files serialized later
-                    constexpr std::array skippedExtensions = { ".dtx", ".pog", ".rl2", ".rdl", ".ied" };
-                    auto ext = String::ToLower(entry.Extension());
-                    if (Seq::contains(skippedExtensions, ext))
-                        continue;
+                fmt::print("Writing existing HOG files:\n");
+
+                for (auto& entry : mission.Entries) {
+                    // Does the file match the level name?
+                    if (entry.NameWithoutExtension() == baseName) {
+                        // Skip files serialized later
+                        constexpr std::array skippedExtensions = { ".dtx", ".pog", ".rl2", ".rdl", ".ied" };
+                        auto ext = String::ToLower(entry.Extension());
+                        if (Seq::contains(skippedExtensions, ext))
+                            continue;
+                    }
+
+                    auto data = reader.ReadEntry(entry.Name);
+                    writer.WriteEntry(entry.Name, data);
+                    fmt::print("{}:{}\n", entry.Name, data.size());
                 }
-
-                auto data = reader.ReadEntry(entry.Name);
-                writer.WriteEntry(entry.Name, data);
-                fmt::print("{}:{}\n", entry.Name, data.size());
             }
-
 
             fmt::print("\nWriting new files: ");
 

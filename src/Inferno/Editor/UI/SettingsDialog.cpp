@@ -123,11 +123,22 @@ namespace Inferno::Editor {
 
             ImGui::NextColumn();
 
-            ImGui::ColumnLabel("Invert orbit Y");
-            ImGui::Checkbox("##invert-orbit", &_editor.InvertOrbitY);
-            ImGui::NextColumn();
+            {
+                ImGui::ColumnLabel("Invert orbit");
 
+                ImGui::AlignTextToFramePadding();
+                ImGui::Text("X");
+                ImGui::SameLine();
+                ImGui::Checkbox("##invert-orbit-x", &_editor.InvertOrbitX);
 
+                ImGui::SameLine(0, 20);
+                ImGui::AlignTextToFramePadding();
+                ImGui::Text("Y");
+                ImGui::SameLine();
+                ImGui::Checkbox("##invert-orbit-y", &_editor.InvertOrbitY);
+
+                ImGui::NextColumn();
+            }
             ImGui::ColumnLabelEx("Sensitivity", "How sensitive the camera is in mouselook mode");
             ImGui::SetNextItemWidth(-1);
 

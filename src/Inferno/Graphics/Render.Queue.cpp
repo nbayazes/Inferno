@@ -611,7 +611,11 @@ namespace Inferno::Render {
             for (size_t i = 0; i < renderListSize && i < Game::Automap.Segments.size(); i++) {
                 auto segid = _renderList[i];
                 if (segid == SegID::None) continue;
-                Game::Automap.Segments[(int)segid] = AutomapVisibility::Visible;
+
+                // Only reveal automap in game mode. Photo mode was revealing automap.
+                if (Game::GetState() == GameState::Game)
+                    Game::Automap.Segments[(int)segid] = AutomapVisibility::Visible;
+
                 _visibleSegments[(int)segid] = true;
                 auto& info = _segInfo[(int)segid];
                 if (info.processed) continue;
@@ -633,9 +637,11 @@ namespace Inferno::Render {
             }
         }
 
+        bool needResize = false;
+
         // extend past the visible segments so lights and objects don't get clipped
         auto growVisible = [&, this] {
-            for (auto& segid : _renderList) {
+            for (SegID segid : _renderList) {
                 const auto& seg = level.GetSegment(segid);
 
                 for (auto& sideid : SIDE_IDS) {
@@ -656,7 +662,13 @@ namespace Inferno::Render {
                     if (Settings::Graphics.OutlineVisibleRooms)
                         Render::Debug::OutlineSegment(level, level.GetSegment(connid), Color(0.65f, 0.65f, 1, 0.5f));
 
-                    _renderList.push_back(connid);
+                    if (_renderList.size() + 1 < _renderList.capacity()) {
+                        _renderList.push_back(connid);
+                    }
+                    else {
+                        needResize = true;
+                        return;
+                    }
                 }
             }
         };
@@ -664,6 +676,9 @@ namespace Inferno::Render {
         // expand visible segments twice to reduce light and object popin
         growVisible();
         growVisible();
+
+        if (needResize)
+            _renderList.reserve(_renderList.capacity() + 500);
 
         // Mark the visible rooms for object updates
         for (int i = 0; i < _roomList.size(); i++) {
