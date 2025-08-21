@@ -1568,6 +1568,7 @@ Ships:
     TurnRollRate: 0.7854 # FixToFloat(0x2000) * 2PI
     DamageTaken: 1.0 # Multiplier on damage taken
     EnergyMultiplier: 1.0
+    RearmTime: 1.0
     Gunpoints: # NOTE: these gunpoints are overridden if a custom model containing gunpoints is loaded!
       - 2.22798157, -0.911682129, -0.545593262
       - -2.25032043, -0.913879395, -0.525360107
