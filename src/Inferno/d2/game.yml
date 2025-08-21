@@ -21,6 +21,7 @@ Weapons:
     Name: super laser level 5
     FullName: Super Laser Cannon Level 5
     HudName: "laser\nlvl: 5"
+    PickupMessage: "super boost to laser level 5"
     Mass: 0.25
     FireDelay: 0.25
     Glow: 1, .55, .09, 12.5
@@ -41,6 +42,7 @@ Weapons:
     Name: super laser level 6
     FullName: Super Laser Cannon Level 6
     HudName: "laser\nlvl: 6"
+    PickupMessage: "super boost to laser level 6"
     Mass: 0.25
     FireDelay: 0.25
     Glow: .5, .5, 1, 7.5

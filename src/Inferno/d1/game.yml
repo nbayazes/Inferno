@@ -24,6 +24,7 @@ Weapons:
     Name: laser level 2
     FullName: Laser Cannon Level 2
     HudName: "laser\nlvl: 2"
+    PickupMessage: "laser cannon boosted to 2"
     RobotHitVClip: 2
     Mass: 0.2
     FireDelay: 0.25
@@ -47,6 +48,7 @@ Weapons:
     Name: laser level 3
     FullName: Laser Cannon Level 3
     HudName: "laser\nlvl: 3"
+    PickupMessage: "laser cannon boosted to 3"
     RobotHitVClip: 2
     Mass: 0.2
     FireDelay: 0.25
@@ -70,6 +72,7 @@ Weapons:
     Name: laser level 4
     FullName: Laser Cannon Level 4
     HudName: "laser\nlvl: 4"
+    PickupMessage: "laser cannon boosted to 4"
     RobotHitVClip: 2
     Mass: 0.2
     FireDelay: 0.25

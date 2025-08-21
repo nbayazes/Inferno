@@ -1336,10 +1336,6 @@ namespace Inferno {
                     LaserLevel++;
                     AddScreenFlash(FLASH_LASER_POWERUP);
                     auto& weaponInfo = Resources::GetWeapon(GetPrimaryWeaponID(PrimaryWeaponIndex::Laser));
-                    if (weaponInfo.Extended.PickupMessage == "") {
-                        auto msg = fmt::format("laser cannon boosted to {}", LaserLevel + 1);
-                        PrintHudMessage(msg);
-                    }
                     PickUpPrimary(PrimaryWeaponIndex::Laser);
                     used = true;
                 }
@@ -1412,9 +1408,6 @@ namespace Inferno {
 
                     LaserLevel++;
                     AddScreenFlash(FLASH_LASER_POWERUP);
-                    if (weaponInfo.Extended.PickupMessage == "") {
-                        PrintHudMessage(fmt::format("super boost to laser level {}", LaserLevel + 1));
-                    }
                     used = true;
                 }
                 break;
@@ -1565,11 +1558,9 @@ namespace Inferno {
         }
 
         if (weaponInfo.Extended.PickupMessage == "") {
-            if (index != PrimaryWeaponIndex::Laser) {
-                PrintHudMessage(fmt::format("{}!", weaponInfo.Extended.FullName));
-            }
+            PrintHudMessage(fmt::format("{}!", weaponInfo.Extended.FullName));
         }
-        else             {
+        else {
             PrintHudMessage(fmt::format("{}", weaponInfo.Extended.PickupMessage));
         }
 
