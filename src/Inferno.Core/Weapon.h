@@ -107,8 +107,10 @@ namespace Inferno {
         WeaponID ID; // Associate with this existing weapon ID in the HAM
         string Name; // Name to reference entry by
         string FullName; // Name for the message log
+        string PickupMessage = ""; //Custom HUD message on pickup, applies to primaries and secondaries of multiple quantites
         string HudName; // Name in cockpit window
         string Behavior; // Function to call when firing this weapon. Fusion, Omega, Spreadfire, Helix, Mass Driver (zoom)
+        float RearmTime = -1; // Time to swap between specific weapon and being able to fire, -1 defaults to ship's RearmTime
         string Decal = "scorchA"; // Texture to apply to walls when hit
         float DecalRadius = 1; // Radius of decals. 0 uses a ratio of impact size.
         string ModelName; // Name of a model file to load (D3 OOF)

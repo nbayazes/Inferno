@@ -157,9 +157,14 @@ namespace Inferno {
         auto& weaponInfo = Resources::GetWeapon(GetPrimaryWeaponID((PrimaryWeaponIndex)weapon));
 
         if (!HasWeapon((PrimaryWeaponIndex)weapon)) {
-            auto msg = fmt::format("you don't have the {}!", weaponInfo.Extended.FullName);
-            PrintHudMessage(msg);
-            Sound::Play2D({ SoundID::SelectFail });
+            if (weaponInfo.Extended.SilentSelectFail == false) {
+                auto msg = fmt::format("you don't have the {}!", weaponInfo.Extended.FullName);
+                PrintHudMessage(msg);
+                Sound::Play2D({ SoundID::SelectFail });
+            }
+            else {
+                Sound::Play2D({ SoundID::AlreadySelected });
+            }
             return;
         }
 
@@ -171,7 +176,12 @@ namespace Inferno {
 
         ReleaseFusionCharge(); // Release fusion in case it's being charged while switching weapons
 
-        PrimaryDelay = RearmTime;
+        if (weaponInfo.Extended.RearmTime != -1){
+            PrimaryDelay = weaponInfo.Extended.RearmTime;
+        }
+        else {
+            PrimaryDelay = Ship.RearmTime;
+        }
         Primary = (PrimaryWeaponIndex)weapon;
         PrimaryWasSuper[weapon % SUPER_WEAPON] = weapon >= SUPER_WEAPON;
         PrintHudMessage(fmt::format("{} selected!", weaponInfo.Extended.FullName));
@@ -205,9 +215,14 @@ namespace Inferno {
         auto& weaponInfo = Resources::GetWeapon(GetSecondaryWeaponID((SecondaryWeaponIndex)weapon));
 
         if (!CanFireSecondary((SecondaryWeaponIndex)weapon)) {
-            auto msg = fmt::format("you have no {}s!", weaponInfo.Extended.FullName);
-            PrintHudMessage(msg);
-            Sound::Play2D({ SoundID::SelectFail });
+            if (weaponInfo.Extended.SilentSelectFail == false) {
+                auto msg = fmt::format("you have no {}s!", weaponInfo.Extended.FullName);
+                PrintHudMessage(msg);
+                Sound::Play2D({ SoundID::SelectFail });
+            }
+            else {
+                Sound::Play2D({ SoundID::AlreadySelected });
+            }
             return;
         }
 
@@ -217,7 +232,12 @@ namespace Inferno {
         else
             Sound::Play2D(SoundID::SelectSecondary);
 
-        SecondaryDelay = RearmTime;
+        if (weaponInfo.Extended.RearmTime != -1) {
+            SecondaryDelay = weaponInfo.Extended.RearmTime;
+        }
+        else {
+            SecondaryDelay = Ship.RearmTime;
+        }
         Secondary = (SecondaryWeaponIndex)weapon;
         SecondaryWasSuper[weapon % SUPER_WEAPON] = weapon >= SUPER_WEAPON;
         PrintHudMessage(fmt::format("{} selected!", weaponInfo.Extended.FullName));
@@ -1315,8 +1335,7 @@ namespace Inferno {
                 else {
                     LaserLevel++;
                     AddScreenFlash(FLASH_LASER_POWERUP);
-                    auto msg = fmt::format("laser cannon boosted to {}", LaserLevel + 1);
-                    PrintHudMessage(msg);
+                    auto& weaponInfo = Resources::GetWeapon(GetPrimaryWeaponID(PrimaryWeaponIndex::Laser));
                     PickUpPrimary(PrimaryWeaponIndex::Laser);
                     used = true;
                 }
@@ -1368,13 +1387,20 @@ namespace Inferno {
                     used = PickUpEnergy();
                 }
                 else {
+                    auto& weaponInfo = Resources::GetWeapon(GetPrimaryWeaponID(PrimaryWeaponIndex::Laser));
+
                     if (LaserLevel <= MAX_LASER_LEVEL) {
                         LaserLevel = MAX_LASER_LEVEL;
 
                         if (Primary == PrimaryWeaponIndex::Laser) {
                             // Fake a weapon swap if the laser is already selected and super laser is picked up
                             Sound::Play2D({ SoundID::SelectPrimary });
-                            PrimaryDelay = RearmTime;
+                            if (weaponInfo.Extended.RearmTime != -1) {
+                                PrimaryDelay = weaponInfo.Extended.RearmTime;
+                            }
+                            else {
+                                PrimaryDelay = Ship.RearmTime;
+                            }
                         }
                         else
                             PrimaryPickupAutoselect(PrimaryWeaponIndex::Laser);
@@ -1382,7 +1408,6 @@ namespace Inferno {
 
                     LaserLevel++;
                     AddScreenFlash(FLASH_LASER_POWERUP);
-                    PrintHudMessage(fmt::format("super boost to laser level {}", LaserLevel + 1));
                     used = true;
                 }
                 break;
@@ -1455,9 +1480,11 @@ namespace Inferno {
                         amount = PickUpAmmo((PrimaryWeaponIndex)ammoType, powerup.Ammo);
 
                         if (amount > 0) {
-                            AddScreenFlash(FLASH_PRIMARY * 0.66f);
-                            PrintHudMessage(fmt::format("{} {}!", amount, battery.AmmoName));
-                            used = true;
+                            if (used == false) {
+                                AddScreenFlash(FLASH_PRIMARY * 0.66f);
+                                PrintHudMessage(fmt::format("{} {}!", amount, battery.AmmoName));
+                                used = true;
+                            }
                         }
                         else {
                             PrintHudMessage(fmt::format("you already have {} {}!", PrimaryAmmo[(uint8)ammoType], battery.AmmoName));
@@ -1530,8 +1557,12 @@ namespace Inferno {
             return false;
         }
 
-        if (index != PrimaryWeaponIndex::Laser)
+        if (weaponInfo.Extended.PickupMessage == "") {
             PrintHudMessage(fmt::format("{}!", weaponInfo.Extended.FullName));
+        }
+        else {
+            PrintHudMessage(fmt::format("{}", weaponInfo.Extended.PickupMessage));
+        }
 
         GiveWeapon(index);
         AddScreenFlash(FLASH_PRIMARY);
@@ -1569,12 +1600,22 @@ namespace Inferno {
 
         if (pickedUp > 1) {
             AddScreenFlash(FLASH_WHITE * 0.9f);
-            auto msg = fmt::format("{} {}s!", pickedUp, name);
-            PrintHudMessage(msg);
+            if (weaponInfo.Extended.PickupMessage == "") {
+                auto msg = fmt::format("{} {}s!", pickedUp, name);
+                PrintHudMessage(msg);
+            }
+            else {
+                PrintHudMessage(fmt::format("{}", weaponInfo.Extended.PickupMessage));
+            }
         }
         else {
             AddScreenFlash(FLASH_WHITE * 0.66f);
-            PrintHudMessage(fmt::format("{}!", name));
+            if (weaponInfo.Extended.PickupMessage == "") {
+                PrintHudMessage(fmt::format("{}!", name));
+            }
+            else {
+                PrintHudMessage(fmt::format("{}", weaponInfo.Extended.PickupMessage));
+            }
         }
 
         if (!CanFireSecondary(Secondary) || startAmmo == 0)

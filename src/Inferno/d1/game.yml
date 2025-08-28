@@ -24,6 +24,7 @@ Weapons:
     Name: laser level 2
     FullName: Laser Cannon Level 2
     HudName: "laser\nlvl: 2"
+    PickupMessage: "laser cannon boosted to 2"
     RobotHitVClip: 2
     Mass: 0.2
     FireDelay: 0.25
@@ -47,6 +48,7 @@ Weapons:
     Name: laser level 3
     FullName: Laser Cannon Level 3
     HudName: "laser\nlvl: 3"
+    PickupMessage: "laser cannon boosted to 3"
     RobotHitVClip: 2
     Mass: 0.2
     FireDelay: 0.25
@@ -70,6 +72,7 @@ Weapons:
     Name: laser level 4
     FullName: Laser Cannon Level 4
     HudName: "laser\nlvl: 4"
+    PickupMessage: "laser cannon boosted to 4"
     RobotHitVClip: 2
     Mass: 0.2
     FireDelay: 0.25
@@ -1565,6 +1568,7 @@ Ships:
     TurnRollRate: 0.7854 # FixToFloat(0x2000) * 2PI
     DamageTaken: 1.0 # Multiplier on damage taken
     EnergyMultiplier: 1.0
+    RearmTime: 1.0
     Gunpoints: # NOTE: these gunpoints are overridden if a custom model containing gunpoints is loaded!
       - 2.22798157, -0.911682129, -0.545593262
       - -2.25032043, -0.913879395, -0.525360107
