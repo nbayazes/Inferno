@@ -69,8 +69,6 @@ namespace Inferno {
         float Energy = 100;
         float Shields = 100;
 
-        float RearmTime = 1.0f; // Time to swap between weapons and being able to fire
-
         PrimaryWeaponIndex Primary = PrimaryWeaponIndex::Laser;
         SecondaryWeaponIndex Secondary = SecondaryWeaponIndex::Concussion;
         bool PrimaryWasSuper[10]{};

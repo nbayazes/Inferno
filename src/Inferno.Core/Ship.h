@@ -51,6 +51,7 @@ namespace Inferno {
         float EnergyMultiplier = 1.0f;
         float TurnRollScale = 2.0f;
         float TurnRollRate = 0.8f;
+        float RearmTime = 1.0f; // Time to swap between weapons and being able to fire
 
         std::array<WeaponBattery, MAX_WEAPONS> Weapons; // 10 primaries, 10 secondaries
     };

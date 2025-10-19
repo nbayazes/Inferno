@@ -113,6 +113,7 @@ namespace Inferno {
         READ_PROP(Piercing);
         READ_PROP(Model);
         READ_PROP(ModelInner);
+        READ_PROP(WeaponVClip);
         READ_PROP(FlashVClip);
         READ_PROP(FlashSound);
         READ_PROP(FireCount);
@@ -162,6 +163,7 @@ namespace Inferno {
         READ_PROP_EXT(FlashColor);
         READ_PROP_EXT(Name);
         READ_PROP_EXT(HudName);
+        READ_PROP_EXT(PickupMessage);
 
         if (!READ_PROP_EXT(FullName))
             weapon.Extended.FullName = weapon.Extended.Name;
@@ -173,7 +175,9 @@ namespace Inferno {
         READ_PROP_EXT(Size);
         READ_PROP_EXT(Chargable);
         READ_PROP_EXT(Spread);
-
+        if (READ_PROP_EXT(RearmTime)) {
+            weapon.Extended.RearmTime = std::max(0.0001f, weapon.Extended.RearmTime);
+        }
         READ_PROP_EXT(Decal);
         READ_PROP_EXT(DecalRadius);
 
@@ -217,6 +221,7 @@ namespace Inferno {
         READ_PROP_EXT(RicochetChance);
         READ_PROP_EXT(RicochetAngle);
         READ_PROP_EXT(RicochetMetalMultiplier);
+        READ_PROP_EXT(SilentSelectFail);
 
 
 #undef READ_PROP_EXT
@@ -227,6 +232,7 @@ namespace Inferno {
         if (!Seq::inRange(ham.Powerups, id)) return;
 
         auto& powerup = ham.Powerups[id];
+        Yaml::ReadValue(node["VClip"], powerup.VClip);
         Yaml::ReadValue(node["LightRadius"], powerup.LightRadius);
         Yaml::ReadValue(node["LightColor"], powerup.LightColor);
         Yaml::ReadValue(node["LightMode"], (int&)powerup.LightMode);
@@ -390,6 +396,9 @@ namespace Inferno {
         READ_PROP(Model);
         READ_PROP(ModelName);
         READ_PROP(DestroyedModelName);
+        if (READ_PROP(RearmTime)) {
+            ship.RearmTime = std::max(0.0001f, ship.RearmTime);
+        }
 #undef READ_PROP
 
         if (!node["Gunpoints"].invalid() && node["Gunpoints"].readable() && node["Gunpoints"].has_children()) {
