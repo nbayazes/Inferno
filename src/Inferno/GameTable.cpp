@@ -175,8 +175,8 @@ namespace Inferno {
         READ_PROP_EXT(Size);
         READ_PROP_EXT(Chargable);
         READ_PROP_EXT(Spread);
-        if (READ_PROP_EXT(RearmTime)) {
-            weapon.Extended.RearmTime = std::max(0.0001f, weapon.Extended.RearmTime);
+        if (READ_PROP_EXT(RearmDelay)) {
+            weapon.Extended.RearmDelay = std::max(0.0001f, weapon.Extended.RearmDelay);
         }
         READ_PROP_EXT(Decal);
         READ_PROP_EXT(DecalRadius);
@@ -396,8 +396,8 @@ namespace Inferno {
         READ_PROP(Model);
         READ_PROP(ModelName);
         READ_PROP(DestroyedModelName);
-        if (READ_PROP(RearmTime)) {
-            ship.RearmTime = std::max(0.0001f, ship.RearmTime);
+        if (READ_PROP(RearmDelay)) {
+            ship.RearmDelay = std::max(0.0001f, ship.RearmDelay);
         }
 #undef READ_PROP
 

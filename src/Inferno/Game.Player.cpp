@@ -176,11 +176,11 @@ namespace Inferno {
 
         ReleaseFusionCharge(); // Release fusion in case it's being charged while switching weapons
 
-        if (weaponInfo.Extended.RearmTime != -1){
-            PrimaryDelay = weaponInfo.Extended.RearmTime;
+        if (weaponInfo.Extended.RearmDelay != -1){
+            PrimaryDelay = weaponInfo.Extended.RearmDelay;
         }
         else {
-            PrimaryDelay = Ship.RearmTime;
+            PrimaryDelay = Ship.RearmDelay;
         }
         Primary = (PrimaryWeaponIndex)weapon;
         PrimaryWasSuper[weapon % SUPER_WEAPON] = weapon >= SUPER_WEAPON;
@@ -232,11 +232,11 @@ namespace Inferno {
         else
             Sound::Play2D(SoundID::SelectSecondary);
 
-        if (weaponInfo.Extended.RearmTime != -1) {
-            SecondaryDelay = weaponInfo.Extended.RearmTime;
+        if (weaponInfo.Extended.RearmDelay != -1) {
+            SecondaryDelay = weaponInfo.Extended.RearmDelay;
         }
         else {
-            SecondaryDelay = Ship.RearmTime;
+            SecondaryDelay = Ship.RearmDelay;
         }
         Secondary = (SecondaryWeaponIndex)weapon;
         SecondaryWasSuper[weapon % SUPER_WEAPON] = weapon >= SUPER_WEAPON;
@@ -1394,11 +1394,11 @@ namespace Inferno {
                         if (Primary == PrimaryWeaponIndex::Laser) {
                             // Fake a weapon swap if the laser is already selected and super laser is picked up
                             Sound::Play2D({ SoundID::SelectPrimary });
-                            if (weaponInfo.Extended.RearmTime != -1) {
-                                PrimaryDelay = weaponInfo.Extended.RearmTime;
+                            if (weaponInfo.Extended.RearmDelay != -1) {
+                                PrimaryDelay = weaponInfo.Extended.RearmDelay;
                             }
                             else {
-                                PrimaryDelay = Ship.RearmTime;
+                                PrimaryDelay = Ship.RearmDelay;
                             }
                         }
                         else
