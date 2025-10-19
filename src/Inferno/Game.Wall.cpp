@@ -799,11 +799,11 @@ namespace Inferno {
             ClearFlag(trigger.FlagsD1, TriggerFlagD1::On);
         }
 
-        if (trigger.HasFlag(TriggerFlagD1::Exit)) {
+        if (trigger.HasFlag(TriggerFlagD1::Exit) && Game::GetState() != GameState::EscapeSequence) {
             StartEscapeSequence(src);
         }
 
-        if (trigger.HasFlag(TriggerFlagD1::SecretExit)) {
+        if (trigger.HasFlag(TriggerFlagD1::SecretExit) && Game::GetState() != GameState::EscapeSequence) {
             if (auto mission = Game::GetCurrentMissionInfo()) {
                 if (mission->FindSecretLevel(Game::LevelNumber))
                     Game::LoadSecretLevel = true;

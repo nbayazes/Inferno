@@ -157,13 +157,13 @@ namespace Inferno {
         auto& weaponInfo = Resources::GetWeapon(GetPrimaryWeaponID((PrimaryWeaponIndex)weapon));
 
         if (!HasWeapon((PrimaryWeaponIndex)weapon)) {
-            if (weaponInfo.Extended.SilentSelectFail == false) {
+            if (weaponInfo.Extended.SilentSelectFail) {
+                Sound::Play2D({ SoundID::AlreadySelected });
+            }
+            else {
                 auto msg = fmt::format("you don't have the {}!", weaponInfo.Extended.FullName);
                 PrintHudMessage(msg);
                 Sound::Play2D({ SoundID::SelectFail });
-            }
-            else {
-                Sound::Play2D({ SoundID::AlreadySelected });
             }
             return;
         }
@@ -1335,7 +1335,6 @@ namespace Inferno {
                 else {
                     LaserLevel++;
                     AddScreenFlash(FLASH_LASER_POWERUP);
-                    auto& weaponInfo = Resources::GetWeapon(GetPrimaryWeaponID(PrimaryWeaponIndex::Laser));
                     PickUpPrimary(PrimaryWeaponIndex::Laser);
                     used = true;
                 }
@@ -1558,7 +1557,7 @@ namespace Inferno {
             return false;
         }
 
-        if (weaponInfo.Extended.PickupMessage == "") {
+        if (weaponInfo.Extended.PickupMessage.empty()) {
             PrintHudMessage(fmt::format("{}!", weaponInfo.Extended.FullName));
         }
         else {
@@ -1606,7 +1605,7 @@ namespace Inferno {
                 PrintHudMessage(msg);
             }
             else {
-                PrintHudMessage(fmt::format("{}", weaponInfo.Extended.PickupMessage));
+                PrintHudMessage(weaponInfo.Extended.PickupMessage);
             }
         }
         else {
@@ -1615,7 +1614,7 @@ namespace Inferno {
                 PrintHudMessage(fmt::format("{}!", name));
             }
             else {
-                PrintHudMessage(fmt::format("{}", weaponInfo.Extended.PickupMessage));
+                PrintHudMessage(weaponInfo.Extended.PickupMessage);
             }
         }
 
