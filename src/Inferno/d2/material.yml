@@ -492,8 +492,8 @@ Materials:
     Roughness: 0.4
     SpecularColor: '0.297, 0.356, 1, 1'
   - Name: rock293
-    NormalStrength: 0.192
-    Roughness: 0.555
+    NormalStrength: 0.59
+    Roughness: 0.479
   - Name: rock294
     NormalStrength: 0.201
     Roughness: 0.349
@@ -632,12 +632,15 @@ Materials:
   - Name: rock339
     NormalStrength: 0.338
     Roughness: 0.487
+    SpecularColor: '0.393, 0.794, 1, 1'
   - Name: rock340
     Metalness: 0.102
     Roughness: 0.65
   - Name: rock341
     NormalStrength: 0.198
-    Roughness: 0.46
+    Metalness: 0.501
+    Roughness: 0.366
+    SpecularColor: '0.67, 1, 0.896, 1'
   - Name: rock342
     NormalStrength: 0.351
     Roughness: 0.319
@@ -1505,3 +1508,8 @@ Materials:
     Metalness: 1
     Roughness: 0.563
     EmissiveStrength: 2
+  - Name: 'door41#0'
+    NormalStrength: 0.198
+    Metalness: 0.501
+    Roughness: 0.366
+    SpecularColor: '0.67, 1, 0.896, 1'

@@ -5,7 +5,6 @@
 #include "Game.h"
 #include "WindowsDialogs.h"
 #include "Render.h"
-#include "Resources.h"
 
 namespace Inferno::PostFx {
     void ScanlineCS::Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, PixelBuffer& dest) const {

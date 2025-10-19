@@ -58,8 +58,8 @@ namespace Inferno {
         string_view GetName() { return _name; }
 
         // Returns the original state
-        D3D12_RESOURCE_STATES Transition(ID3D12GraphicsCommandList* cmdList, D3D12_RESOURCE_STATES state) {
-            if (_state == state) return _state;
+        D3D12_RESOURCE_STATES Transition(ID3D12GraphicsCommandList* cmdList, D3D12_RESOURCE_STATES state, bool force = false) {
+            if (_state == state && !force) return _state;
             DirectX::TransitionResource(cmdList, _resource.Get(), _state, state);
 
             if (state == D3D12_RESOURCE_STATE_UNORDERED_ACCESS) {
@@ -840,6 +840,7 @@ namespace Inferno {
             _srvDesc.Texture2D.MipLevels = 1;
             _srvDesc.Texture2D.MostDetailedMip = 0;
             _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            _state = D3D12_RESOURCE_STATE_COMMON;
             //AddShaderResourceView(&srvDesc);
         }
     };
