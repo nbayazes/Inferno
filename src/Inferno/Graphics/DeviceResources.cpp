@@ -488,6 +488,7 @@ namespace Inferno {
 
             Render::Effects->Compile(m_d3dDevice.Get(), Settings::Graphics.MsaaSamples);
             Scanline.Load("shaders/ScanlineCS.hlsl");
+            //Render::LinearizeDepth->Load("shaders/LinearizeDepthCS.hlsl");
             Render::Adapter->LightGrid.Load("shaders/FillLightGridCS.hlsl");
             Render::ToneMapping->ReloadShaders();
 
@@ -641,10 +642,13 @@ namespace Inferno {
         LinearizedDepthBuffer.AddShaderResourceView();
         LinearizedDepthBuffer.AddUnorderedAccessView();
         LinearizedDepthBuffer.AddRenderTargetView();
+
         SceneColorBuffer.Create("Scene color buffer", scaledWidth, scaledHeight, SceneBufferFormat, clearColor, 1);
         SceneColorBuffer.AddUnorderedAccessView();
+
         DistortionBuffer.Create("Scene distortion buffer", scaledWidth, scaledHeight, SceneBufferFormat, 1);
         DistortionBuffer.AddShaderResourceView();
+
         SceneDepthBuffer.Create("Scene depth buffer", scaledWidth, scaledHeight, m_depthBufferFormat, 1);
 
         BlurBufferTemp.Create("Temporary blur buffer", width, height, SceneBufferFormat, clearColor, 1);
@@ -667,6 +671,7 @@ namespace Inferno {
         CompositionBuffer.Create("Composition buffer", width, height, SceneBufferFormat);
         CompositionBuffer.AddUnorderedAccessView();
         CompositionBuffer.AddShaderResourceView();
+        CompositionBuffer.ClearColor = Color(0, 0, 0, 0);
 
         // Double the briefing resolution so that downsampling at low resolution looks better
         uint briefingWidth = 640 * 2;
@@ -694,6 +699,7 @@ namespace Inferno {
 
             SceneColorBufferMsaa.Create("MSAA Color Buffer", scaledWidth, scaledHeight, SceneBufferFormat, clearColor, Settings::Graphics.MsaaSamples);
             SceneDepthBufferMsaa.Create("MSAA Depth Buffer", scaledWidth, scaledHeight, m_depthBufferFormat, Settings::Graphics.MsaaSamples);
+
             MsaaLinearizedDepthBuffer.Create("MSAA Linear depth buffer", scaledWidth, scaledHeight, DepthShader::OutputFormat, Settings::Graphics.MsaaSamples);
             MsaaLinearizedDepthBuffer.AddRenderTargetView();
             MsaaLinearizedDepthBuffer.AddShaderResourceView();

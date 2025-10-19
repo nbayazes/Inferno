@@ -749,20 +749,19 @@ Robots:
     Name:  Missile Platform
     DevName: Missile Bird
     FireDelay: [ 1.5, 1.5, 1.25, 1.25, 1 ]
-    Shots: [ 2, 3, 3, 4, 5 ]
+    Shots: [ 2, 3, 3, 4, 4 ] # originally 2, 3, 3, 4, 5
     Speed: [ 20, 30, 40, 45, 50 ] # was 15, 15, 20, 30, 40. Overall firepower was reduced due to concussion nerf, add mobility in exchange
     #  a volley of 5 shots at 1/8s + 1s wait = 1.625 / 5 -> 0.325s avg delay per shot on insane
     # FireDelay: [ 0.875, 0.625, .55, 0.4375, .325 ] # originally 1.5, 1.5, 1.25, 1.25, 1
     #FireDelay: [ 0.9, 0.65, .55, 0.45, .35 ] # originally 1.5, 1.5, 1.25, 1.25, 1
-    #Shots: 1 # originally 2, 3, 3, 4, 5
     BurstDelay: 0.175 # default of 0.125
     CircleDistance: 70
     GetBehind: 1
-    Aim: 220
+    Aim: 245
     Mass: 3.5
     Drag: 0.03
     SuppressChance: 0.3
-    Curiosity: 0.25 # Usually hold position
+    Curiosity: 0.5
     AimAngle: 20 # Looks odd to lead much
     HitPoints: 110 # Reduced from 150. Was too high for their frequency, size, and score
     StunResist: 0.75
