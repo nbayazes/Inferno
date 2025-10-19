@@ -207,7 +207,7 @@ namespace Inferno::Editor {
 
                     ImGui::SameLine();
                     ImGui::SetNextItemWidth(-1);
-                    ImGui::DragFloat("##fogdensity", &environment->fog.w, 0.5f, 1, 100, "%.1f");
+                    ImGui::DragFloat("##fogdensity", &environment->fog.w, 0.25f, 1, 100, "%.2f");
 
                     if (ImGui::IsItemDeactivatedAfterEdit())
                         snapshot = true;
@@ -244,17 +244,17 @@ namespace Inferno::Editor {
                 //    }
                 //}
 
-                ImGui::TableRowLabel("Damage");
-                ImGui::SetNextItemWidth(-1);
-                ImGui::DragFloat("##damage", &environment->damage, 1, 0, 0, "%.2f");
+                //ImGui::TableRowLabel("Damage");
+                //ImGui::SetNextItemWidth(-1);
+                //ImGui::DragFloat("##damage", &environment->damage, 1, 0, 0, "%.2f");
 
-                ImGui::TableRowLabel("Damage sound");
-                ImGui::SetNextItemWidth(-1);
-                ImGui::InputText("##damagesound", environment->damageSound.data(), environment->damageSound.capacity());
+                //ImGui::TableRowLabel("Damage sound");
+                //ImGui::SetNextItemWidth(-1);
+                //ImGui::InputText("##damagesound", environment->damageSound.data(), environment->damageSound.capacity());
 
-                ImGui::TableRowLabel("Ambient sound");
-                ImGui::SetNextItemWidth(-1);
-                ImGui::InputText("##ambientsound", environment->ambientSound.data(), environment->ambientSound.capacity());
+                //ImGui::TableRowLabel("Ambient sound");
+                //ImGui::SetNextItemWidth(-1);
+                //ImGui::InputText("##ambientsound", environment->ambientSound.data(), environment->ambientSound.capacity());
 
                 ImGui::EndTable();
             }
