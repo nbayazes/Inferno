@@ -1447,12 +1447,13 @@ namespace Inferno {
                     // Ammo based weapon
                     if (powerup.Ammo > 0) {
                         auto& battery = GetWeaponBattery(powerup.Primary);
-
                         auto ammoType = battery.AmmoType; // powerup.PrimaryAmmo != PrimaryWeaponIndex::None ? powerup.PrimaryAmmo : powerup.Primary;
                         if (ammoType >= 10) ammoType = 1; // default to vulcan
 
+                        // use the ammo stored on weapon powerups (should be set on drop or level start)
+                        const uint16 ammo = powerup.IsAmmo ? powerup.Ammo : (uint16)obj.Control.Powerup.Count;
                         int amount = 0;
-                        amount = PickUpAmmo((PrimaryWeaponIndex)ammoType, powerup.Ammo);
+                        amount = PickUpAmmo((PrimaryWeaponIndex)ammoType, ammo);
 
                         if (amount > 0) {
                             AddScreenFlash(FLASH_PRIMARY * 0.66f);
@@ -1645,28 +1646,56 @@ namespace Inferno {
         dropPowerup(PowerupFlag::Headlight, PowerupID::Headlight);
         TurnOffHeadlight(false);
 
-        auto maybeDropWeapon = [this, &player](PrimaryWeaponIndex weapon, int ammo = 0) {
+        // scan primary weapons for shared ammo
+        std::array<uint16, MAX_PRIMARY_WEAPONS> ammoPerSlot{};
+
+        auto splitAmmo = [this, &ammoPerSlot](PrimaryWeaponIndex weapon) {
+            // check how many weapons are using this ammo type
+            uint16 count = 0;
+            for (size_t i = 0; i < MAX_PRIMARY_WEAPONS; i++) {
+                auto& battery = GetWeaponBattery(weapon);
+                if (battery.AmmoType == (int)weapon) {
+                    count++;
+                    ammoPerSlot[(int)weapon] += PrimaryAmmo[(int)weapon];
+                }
+            }
+
+            if (count != 0)
+                ammoPerSlot[(int)weapon] /= count;
+        };
+
+        for (size_t i = 0; i < MAX_PRIMARY_WEAPONS; i++) {
+            splitAmmo((PrimaryWeaponIndex)i);
+        }
+
+        auto maybeDropWeapon = [this, &player, &ammoPerSlot](PrimaryWeaponIndex weapon) {
             if (!HasWeapon(weapon)) return;
             auto powerup = PrimaryWeaponToPowerup(weapon);
             auto ref = Game::DropPowerup(powerup, player.Position, player.Segment);
-            if (auto obj = Game::GetObject(ref))
-                obj->Control.Powerup.Count = ammo;
+
+            auto& battery = GetWeaponBattery(weapon);
+            auto ammoType = battery.AmmoType;
+
+            if (auto obj = Game::GetObject(ref); obj && Seq::inRange(PrimaryAmmo, ammoType))
+                obj->Control.Powerup.Count = ammoPerSlot[ammoType];
 
             RemoveWeapon(weapon);
         };
 
-        auto vulcanAmmo = PrimaryAmmo[(int)PrimaryWeaponIndex::Vulcan];
-        if (HasWeapon(PrimaryWeaponIndex::Gauss) && HasWeapon(PrimaryWeaponIndex::Vulcan))
-            vulcanAmmo /= 2; // split ammo between both guns
+        //auto vulcanAmmo = PrimaryAmmo[(int)PrimaryWeaponIndex::Vulcan];
+        //if (HasWeapon(PrimaryWeaponIndex::Gauss) && HasWeapon(PrimaryWeaponIndex::Vulcan))
+        //    vulcanAmmo /= 2; // split ammo between both guns
 
-        maybeDropWeapon(PrimaryWeaponIndex::Vulcan, vulcanAmmo);
-        maybeDropWeapon(PrimaryWeaponIndex::Gauss, vulcanAmmo);
+        maybeDropWeapon(PrimaryWeaponIndex::Vulcan);
+        maybeDropWeapon(PrimaryWeaponIndex::Gauss);
         maybeDropWeapon(PrimaryWeaponIndex::Spreadfire);
         maybeDropWeapon(PrimaryWeaponIndex::Plasma);
         maybeDropWeapon(PrimaryWeaponIndex::Fusion);
         maybeDropWeapon(PrimaryWeaponIndex::Helix);
         maybeDropWeapon(PrimaryWeaponIndex::Phoenix);
         maybeDropWeapon(PrimaryWeaponIndex::Omega);
+
+        auto vulcanAmmo = PrimaryAmmo[(int)PrimaryWeaponIndex::Vulcan];
 
         if (!HasWeapon(PrimaryWeaponIndex::Gauss) && !HasWeapon(PrimaryWeaponIndex::Vulcan) && vulcanAmmo > 0) {
             // Has vulcan ammo but neither weapon, drop the ammo

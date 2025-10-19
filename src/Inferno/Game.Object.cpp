@@ -883,7 +883,7 @@ namespace Inferno {
         ASSERT(IsNormalized(direction));
 
         auto goal = direction;
-        goal *= Game::TICK_RATE / rate;
+        if (rate > 0) goal *= Game::TICK_RATE / rate; // mini-reactors have a zero turn rate
         goal += obj.Rotation.Forward();
         auto mag = goal.Length();
         goal.Normalize();

@@ -210,6 +210,8 @@ namespace Inferno {
     void ReadEnvironments(ryml::NodeRef node, Level& level) {
         if (!node.readable()) return;
 
+        level.Environments.clear();
+
         for (const auto& child : node.children()) {
             Environment env{};
 
