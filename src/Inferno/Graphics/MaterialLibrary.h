@@ -140,8 +140,12 @@ namespace Inferno::Render {
     void EndTextureUpload(DirectX::ResourceUploadBatch&, ID3D12CommandQueue*);
 
     void GetTexturesForModel(ModelID id, Set<TexID>& ids);
-    Set<TexID> GetLevelTextures(const Level& level, bool preloadDoors);
-    Set<TexID> GetLevelSegmentTextures(const Level& level);
+
+    // Returns all textures used by a level, including robots
+    Set<TexID> GetLevelTextures(const Level& level, bool preloadDoors, bool includeAnimations = true);
+
+    // Returns all textures applied to level segments, including animated frames
+    Set<TexID> GetLevelSegmentTextures(const Level& level, bool includeAnimations = true);
 
     inline Ptr<MaterialLibrary> Materials;
 }

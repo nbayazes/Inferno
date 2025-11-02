@@ -159,94 +159,18 @@ namespace Inferno {
     //    return output;
     //}
 
-    bool ResizeImage(const DirectX::Image& src, DirectX::ScratchImage& dest, bool wrapU, bool wrapV, uint8 width = 64, uint8 height = 64) {
-        using namespace DirectX;
-        auto flags = TEX_FILTER_DEFAULT;
-        if (wrapU) flags |= TEX_FILTER_WRAP_U;
-        if (wrapV) flags |= TEX_FILTER_WRAP_V;
-
-        if (SUCCEEDED(Resize(src, width, height, flags, dest)))
-            return true;
-
-        return false;
-    }
-
-    bool LoadDDS(string_view filename, PigBitmap& dest, bool wrapU, bool wrapV, uint8 size = 64) {
-        using namespace DirectX;
-        ScratchImage dds, decompressed, resized;
-        TexMetadata metadata;
-
-        //auto filepath = Inferno::FileSystem::TryFindFile(filename);
-        //if (!filepath) return false;
-
-        //if (FAILED(LoadFromDDSFile(filepath->wstring().c_str(), DDS_FLAGS_NONE, &metadata, dds)))
-        //    return false;
-
-        auto data = Inferno::FileSystem::ReadAsset(string(filename));
-        if (!data) return false;
-
-        if (FAILED(LoadFromDDSMemory(data->data(), data->size(), DDS_FLAGS_NONE, &metadata, dds)))
-            return false;
-
-        if (FAILED(Decompress(*dds.GetImage(0, 0, 0), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, decompressed)))
-            return false;
-
-        auto image = decompressed.GetImage(0, 0, 0);
-
-        if (metadata.width != size || metadata.height != size) {
-            if (ResizeImage(*image, resized, wrapU, wrapV, size))
-                image = resized.GetImage(0, 0, 0);
-        }
-
-        dest.Data.resize(image->slicePitch / 4);
-        memcpy(dest.Data.data(), image->pixels, image->slicePitch);
-        dest.Info.Width = (uint16)image->width;
-        dest.Info.Height = (uint16)image->height;
-        return true;
-    }
-
     class ProceduralWater : public ProceduralTextureBase {
         PigBitmap _baseTexture;
         List<int16> _waterBuffer[2]{};
         MaterialInfo _material;
 
     public:
-        ProceduralWater(const Outrage::TextureInfo& info, TexID baseTexture)
+        ProceduralWater(const Outrage::TextureInfo& info, TexID baseTexture, const PigBitmap* image)
             : ProceduralTextureBase(info, baseTexture) {
             _waterBuffer[0].resize(_totalSize);
             _waterBuffer[1].resize(_totalSize);
-
-            auto& ti = Resources::GetTextureInfo(baseTexture);
-
             _material = Resources::GetMaterial(baseTexture);
-            bool wrapu = HasFlag(_material.Flags, MaterialFlags::WrapU);
-            bool wrapv = HasFlag(_material.Flags, MaterialFlags::WrapV);
-            constexpr int size = 128;
-
-            // Search for a DDS file
-            if (LoadDDS(ti.Name + ".dds", _baseTexture, wrapu, wrapv, size))
-                return;
-
-            // Fallback to built in data
-            auto& texture = Resources::GetBitmap(baseTexture);
-            ASSERT(texture.Info.Width > 0);
-            ASSERT(texture.Info.Height > 0);
-
-            size_t rowPitch, slicePitch;
-            if (SUCCEEDED(DirectX::ComputePitch(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, texture.Info.Width, texture.Info.Height, rowPitch, slicePitch))) {
-                DirectX::ScratchImage resized;
-                DirectX::Image image(texture.Info.Width, texture.Info.Height,
-                                     DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
-                                     rowPitch, slicePitch, (uint8*)texture.Data.data());
-
-                if (ResizeImage(image, resized, wrapu, wrapv, size, size)) {
-                    image = *resized.GetImage(0, 0, 0);
-                    _baseTexture.Data.resize(image.slicePitch / 4);
-                    memcpy(_baseTexture.Data.data(), image.pixels, image.slicePitch);
-                    _baseTexture.Info.Width = _resolution;
-                    _baseTexture.Info.Height = _resolution;
-                }
-            }
+            _baseTexture = PigBitmap(*image); // copy
         }
 
     protected:
@@ -689,10 +613,10 @@ namespace Inferno {
         }
     };
 
-    Ptr<ProceduralTextureBase> CreateProceduralWater(Outrage::TextureInfo& texture, TexID dest) {
+    Ptr<ProceduralTextureBase> CreateProceduralWater(Outrage::TextureInfo& texture, TexID dest, const PigBitmap* image) {
         if (WaterProcTableLo.empty() || WaterProcTableHi.empty())
             InitWaterTables();
 
-        return make_unique<ProceduralWater>(texture, dest);
+        return make_unique<ProceduralWater>(texture, dest, image);
     }
 }

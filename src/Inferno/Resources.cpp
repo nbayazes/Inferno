@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Resources.h"
+#include <DirectXTex.h>
 #include <fstream>
 #include <mutex>
 #include "BitmapTable.h"
@@ -24,7 +25,12 @@ namespace Inferno {
     LoadFlag GetLevelLoadFlag(const Level& level) {
         return level.IsDescent1() ? LoadFlag::Descent1 : LoadFlag::Descent2;
     }
+
+    namespace Render {
+        bool LoadPng(span<ubyte> png, DirectX::ScratchImage& result, DirectX::TexMetadata& metadata, bool srgb);
+    }
 }
+
 
 namespace Inferno::Resources {
     namespace {
@@ -1278,30 +1284,105 @@ namespace Inferno::Resources {
         return {};
     }
 
+    bool ResizeImage(const DirectX::Image& src, DirectX::ScratchImage& dest, bool wrapU, bool wrapV, uint8 width = 64, uint8 height = 64) {
+        using namespace DirectX;
+        auto flags = TEX_FILTER_DEFAULT;
+        if (wrapU) flags |= TEX_FILTER_WRAP_U;
+        if (wrapV) flags |= TEX_FILTER_WRAP_V;
+
+        if (SUCCEEDED(Resize(src, width, height, flags, dest)))
+            return true;
+
+        return false;
+    }
+
+    void CopyScratchImageToBitmap(const DirectX::Image& image, PigBitmap& dest) {
+        dest.Data.resize(image.slicePitch / 4);
+        memcpy(dest.Data.data(), image.pixels, image.slicePitch);
+        dest.Info.Width = (uint16)image.width;
+        dest.Info.Height = (uint16)image.height;
+    }
+
+    bool LoadDDS(string_view filename, PigBitmap& dest, bool wrapU, bool wrapV, uint8 size = 64) {
+        using namespace DirectX;
+        ScratchImage dds, decompressed, resized;
+        TexMetadata metadata;
+
+        auto data = Inferno::FileSystem::ReadAsset(string(filename));
+        if (!data) return false;
+
+        if (FAILED(LoadFromDDSMemory(data->data(), data->size(), DDS_FLAGS_NONE, &metadata, dds)))
+            return false;
+
+        if (FAILED(Decompress(*dds.GetImage(0, 0, 0), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, decompressed)))
+            return false;
+
+        auto image = decompressed.GetImage(0, 0, 0);
+
+        if (metadata.width != size || metadata.height != size) {
+            if (ResizeImage(*image, resized, wrapU, wrapV, size))
+                image = resized.GetImage(0, 0, 0);
+        }
+
+        CopyScratchImageToBitmap(*image, dest);
+        return true;
+    }
+
     // Enables procedural textures for a level
-    void EnableProcedurals(span<MaterialInfo> materials) {
-        // todo: this should only add procedurals for textures used in the level
-        for (size_t texId = 0; texId < materials.size(); texId++) {
-            auto& material = materials[texId];
+    void LoadProcedurals(span<MaterialInfo> materials, span<TexID> levelTexIds) {
+        FreeProceduralTextures();
 
-            // todo: reset all procedurals first
-            // todo: if IsWater changes, recreate procedural
+        for (auto& texid : levelTexIds) {
+            auto material = Seq::tryItem(materials, (int)texid);
+            if (!material || material->Procedural.Elements.empty()) continue; // not a procedural
 
-            if (!material.Procedural.Elements.empty()) {
-                if (auto existing = GetProcedural(TexID(texId))) {
-                    existing->Info.Procedural = material.Procedural;
+            Outrage::TextureInfo ti{};
+            ti.Procedural = material->Procedural;
+            ti.Name = Resources::GetTextureInfo(texid).Name;
+            SetFlag(ti.Flags, Outrage::TextureFlag::Procedural);
+
+            if (material->Procedural.IsWater) {
+                PigBitmap waterImage;
+                SetFlag(ti.Flags, Outrage::TextureFlag::WaterProcedural);
+
+                bool wrapu = HasFlag(material->Flags, MaterialFlags::WrapU);
+                bool wrapv = HasFlag(material->Flags, MaterialFlags::WrapV);
+                constexpr int size = 128;
+
+                // Search for DDS and PNG files in the VFS
+                if (LoadDDS(ti.Name + ".dds", waterImage, wrapu, wrapv, size)) {}
+                else if (auto png = FileSystem::ReadAsset(ti.Name + ".png")) {
+                    DirectX::TexMetadata metadata{};
+                    DirectX::ScratchImage pngImage;
+                    if (Render::LoadPng(*png, pngImage, metadata, true)) {
+                        auto image = pngImage.GetImage(0, 0, 0);
+                        CopyScratchImageToBitmap(*image, waterImage);
+                    }
                 }
                 else {
-                    // Insert new procedural
-                    Outrage::TextureInfo ti{};
-                    ti.Procedural = material.Procedural;
-                    ti.Name = Resources::GetTextureInfo(TexID(texId)).Name;
-                    SetFlag(ti.Flags, Outrage::TextureFlag::Procedural);
-                    if (material.Procedural.IsWater)
-                        SetFlag(ti.Flags, Outrage::TextureFlag::WaterProcedural);
+                    // Use game data
+                    auto& texture = Resources::GetBitmap(texid);
+                    ASSERT(texture.Info.Width > 0);
+                    ASSERT(texture.Info.Height > 0);
 
-                    AddProcedural(ti, TexID(texId));
+                    size_t rowPitch, slicePitch;
+                    if (SUCCEEDED(DirectX::ComputePitch(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, texture.Info.Width, texture.Info.Height, rowPitch, slicePitch))) {
+                        DirectX::ScratchImage resized;
+                        DirectX::Image image(texture.Info.Width, texture.Info.Height,
+                                             DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+                                             rowPitch, slicePitch, (uint8*)texture.Data.data());
+
+                        if (ResizeImage(image, resized, wrapu, wrapv, size, size)) {
+                            image = *resized.GetImage(0, 0, 0);
+                            CopyScratchImageToBitmap(image, waterImage);
+                        }
+                    }
                 }
+
+                AddProcedural(ti, texid, &waterImage);
+            }
+            else {
+                AddProcedural(ti, texid);
             }
         }
     }
@@ -1409,7 +1490,9 @@ namespace Inferno::Resources {
         LoadMaterialTables(level);
         MergeMaterials(level);
 
-        EnableProcedurals(IndexedMaterials.Data());
+        auto textures = Render::GetLevelTextures(level, false, false);
+        auto ids = Seq::ofSet(textures);
+        LoadProcedurals(IndexedMaterials.Data(), ids);
     }
 
     span<JointPos> GetRobotJoints(int robotId, uint gun, Animation state) {
@@ -1479,7 +1562,7 @@ namespace Inferno::Resources {
             FileSystem::MountLevel(level, missionPath);
 
             if (Game::Mission)
-                MountAddonData(Game::Mission->Path);
+                MountAddonData(missionPath);
 
             //Resources::LoadSounds();
 
@@ -1523,7 +1606,7 @@ namespace Inferno::Resources {
 
                 // Load VHAMs
                 if (level.IsVertigo()) {
-                    std::filesystem::path vhamPath = Game::Mission->Path;
+                    std::filesystem::path vhamPath = missionPath;
                     vhamPath.replace_extension(".ham");
                     auto vham = TryReadMissionFile(vhamPath);
                     if (!vham.empty()) {

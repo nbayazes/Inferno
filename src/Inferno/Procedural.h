@@ -4,7 +4,6 @@
 #include "Graphics/GpuResources.h"
 
 namespace Inferno {
-    Texture2D& GetNextTexture();
     int GetProceduralCount();
 
     constexpr auto MAX_PROCEDURALS = 30;
@@ -38,29 +37,28 @@ namespace Inferno {
         std::atomic<Texture2D*> _availableBuffer = &_textureBuffers[2];
         std::atomic<bool> _readAvailable = false;
         bool _shouldSwapBuffers = false; // Signals the procedural changed and needs to be copied to GPU
-        Texture2D* _latestTexture = nullptr;
+        D3D12_GPU_DESCRIPTOR_HANDLE _gpuHandle = {};
+
     public:
         Outrage::TextureInfo Info;
         TexID ID; // Texture slot to replace with this procedural effect
-        std::mutex CopyMutex;
         bool Enabled = false;
 
         ProceduralTextureBase(const Outrage::TextureInfo& info, TexID baseTexture);
 
-        //D3D12_GPU_DESCRIPTOR_HANDLE GetHandle() const { return _textures[_copyIndex].GetSRV(); }
         D3D12_GPU_DESCRIPTOR_HANDLE GetHandle() const;
 
         // Copies from buffer texture to main texture. Must call from main thread. (consumes buffer)
-        bool CopyToMainThread(ID3D12GraphicsCommandList* cmdList) {
+        bool CopyToTexture(ID3D12GraphicsCommandList* cmdList, Texture2D& dest) {
             if (!_readAvailable) return false; // Can't read yet
 
             _readAvailable = false;
 
             _readBuffer = _availableBuffer.exchange(_readBuffer);
-            _latestTexture = &GetNextTexture();
-            _latestTexture->Transition(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
-            _latestTexture->CopyFrom(cmdList, *_readBuffer);
-            _latestTexture->Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            _gpuHandle = dest.GetSRV();
+            dest.Transition(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+            dest.CopyFrom(cmdList, *_readBuffer);
+            dest.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
             return true;
         }
 
@@ -109,7 +107,8 @@ namespace Inferno {
     };
 
     ProceduralTextureBase* GetProcedural(TexID id);
-    void AddProcedural(Outrage::TextureInfo& info, TexID dest);
+    // Only water procedurals need an image
+    void AddProcedural(Outrage::TextureInfo& info, TexID dest, const PigBitmap* image = nullptr);
     void EnableProcedural(TexID id, bool enabled = true);
     void CopyProceduralsToMainThread();
     void StartProceduralWorker();

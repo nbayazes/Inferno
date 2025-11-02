@@ -107,13 +107,18 @@ namespace Inferno::Render {
         return ids;
     }
 
-    Set<TexID> GetLevelSegmentTextures(const Inferno::Level& level) {
+    Set<TexID> GetLevelSegmentTextures(const Inferno::Level& level, bool includeAnimations) {
         Set<TexID> ids;
 
-        auto insertEClip = [&ids](EClipID id) {
+        auto insertEClip = [&ids, includeAnimations](EClipID id) {
             if (id == EClipID::None) return;
             auto& clip = Resources::GetEffectClip(id);
-            Seq::insert(ids, clip.VClip.GetFrames());
+            auto frames = clip.VClip.GetFrames();
+
+            if (includeAnimations)
+                Seq::insert(ids, frames);
+            else if (!frames.empty())
+                ids.insert(frames[0]);
         };
 
         for (auto& seg : level.Segments) {
@@ -121,20 +126,32 @@ namespace Inferno::Render {
                 auto& side = seg.GetSide(sideId);
                 if (!seg.SideHasConnection(sideId) || seg.SideIsWall(sideId)) {
                     ids.insert(Resources::LookupTexID(side.TMap));
-                    auto& eclip = Resources::GetEffectClip(side.TMap);
-                    Seq::insert(ids, eclip.VClip.GetFrames());
-                    insertEClip(eclip.CritClip);
-                    insertEClip(eclip.DestroyedEClip);
+                    if (includeAnimations) {
+                        auto& eclip = Resources::GetEffectClip(side.TMap);
+                        Seq::insert(ids, eclip.VClip.GetFrames());
+                        insertEClip(eclip.CritClip);
+                        insertEClip(eclip.DestroyedEClip);
+                    }
                 }
 
                 if (side.HasOverlay()) {
                     ids.insert(Resources::LookupTexID(side.TMap2));
                     auto& eclip = Resources::GetEffectClip(side.TMap2);
-                    Seq::insert(ids, eclip.VClip.GetFrames());
+
                     auto& destroyed = Resources::GetVideoClip(eclip.DestroyedVClip);
-                    Seq::insert(ids, destroyed.GetFrames());
                     insertEClip(eclip.CritClip);
                     insertEClip(eclip.DestroyedEClip);
+                    auto vclipFrames = eclip.VClip.GetFrames();
+                    auto destroyedFrames = destroyed.GetFrames();
+
+                    if (includeAnimations) {
+                        Seq::insert(ids, vclipFrames);
+                        Seq::insert(ids, destroyedFrames);
+                    }
+                    else {
+                        if (!vclipFrames.empty()) ids.insert(vclipFrames[0]);
+                        if (!destroyedFrames.empty()) ids.insert(destroyedFrames[0]);
+                    }
 
                     ids.insert(Resources::LookupTexID(eclip.DestroyedTexture));
                 }
@@ -143,7 +160,13 @@ namespace Inferno::Render {
                 if (auto wall = level.TryGetWall(side.Wall)) {
                     auto& wclip = Resources::GetDoorClip(wall->Clip);
                     auto wids = Seq::map(wclip.GetFrames(), Resources::LookupTexID);
-                    Seq::insert(ids, wids);
+
+                    if (includeAnimations) {
+                        Seq::insert(ids, wids);
+                    }
+                    else if (!wids.empty()) {
+                        ids.insert(wids[0]);
+                    }
                 }
             }
         }
@@ -240,11 +263,11 @@ namespace Inferno::Render {
         return ids;
     }
 
-    Set<TexID> GetLevelTextures(const Level& level, bool preloadDoors) {
+    Set<TexID> GetLevelTextures(const Level& level, bool preloadDoors, bool includeAnimations) {
         if (!Resources::HasGameData()) return {};
 
         Set<TexID> ids;
-        Seq::insert(ids, GetLevelSegmentTextures(level));
+        Seq::insert(ids, GetLevelSegmentTextures(level, includeAnimations));
         Seq::insert(ids, GetLevelModelTextures(level));
         Seq::insert(ids, GetVClipTextures(level));
         if (preloadDoors)
@@ -664,8 +687,6 @@ namespace Inferno::Render {
         ranges::fill(_keepLoaded, false);
         auto ids = GetLevelTextures(level, PreloadDoors);
 
-        for (auto& id : ids)
-            EnableProcedural(id);
 
         if (auto exit = Seq::tryItem(Resources::GameData.Models, (int)Resources::GameData.ExitModel)) {
             for (int16 i = 0; i < exit->TextureCount; i++) {

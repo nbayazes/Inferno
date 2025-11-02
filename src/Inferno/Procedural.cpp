@@ -32,6 +32,35 @@ namespace Inferno {
         }
     };
 
+    template <uint TCapacity>
+    class TextureDoubleBuffer {
+        Array<Texture2D, TCapacity * 2> _textures;
+        Array<std::atomic_bool, TCapacity> _slot; // 0 or 1
+        DescriptorRange<1>* _descriptors;
+
+    public:
+        TextureDoubleBuffer(uint resolution, DescriptorRange<1>* descriptors) : _descriptors(descriptors) {
+            for (int i = 0; i < std::size(_textures); i++) {
+                auto name = fmt::format("double buffer {}", i);
+                auto& texture = _textures[i];
+                texture.SetDesc(resolution, resolution);
+                texture.CreateOnDefaultHeap(name);
+                texture.AddShaderResourceView(descriptors->GetHandle(i));
+            }
+        }
+
+        Texture2D& Get(size_t index) {
+            return _textures[index * 2 + _slot[index]];
+        }
+
+        void Swap(size_t index) {
+            _slot[index] = !_slot[index];
+        }
+    };
+
+    namespace {
+        Ptr<TextureDoubleBuffer<MAX_PROCEDURAL_HANDLES>> ProceduralBuffer;
+    }
 
     // Long running worker that executes a task at a given poll rate
     class Worker {
@@ -102,7 +131,7 @@ namespace Inferno {
         }
     };
 
-    Ptr<ProceduralTextureBase> CreateProceduralWater(Outrage::TextureInfo& texture, TexID dest);
+    Ptr<ProceduralTextureBase> CreateProceduralWater(Outrage::TextureInfo& texture, TexID dest, const PigBitmap* image);
     Ptr<ProceduralTextureBase> CreateProceduralFire(Outrage::TextureInfo& texture, TexID dest);
 
     class ProceduralWorker {
@@ -110,6 +139,7 @@ namespace Inferno {
         Ptr<CommandContext> _uploadCommands, _copyCommands;
         double _prevTime = 0;
         Worker _worker = { std::bind_front(&ProceduralWorker::Task, this), "Procedural", 1ms };
+        std::mutex _mutex;
 
     public:
         List<Ptr<ProceduralTextureBase>> Procedurals;
@@ -140,28 +170,38 @@ namespace Inferno {
 
         void FreeTextures() {
             _worker.Pause(true);
-            Procedurals.clear();
+            {
+                std::scoped_lock lock(_mutex);
+                Procedurals.clear();
+            }
             _worker.Pause(false);
         }
 
-        void AddProcedural(Outrage::TextureInfo& info, TexID dest) {
+        void AddProcedural(Outrage::TextureInfo& info, TexID dest, const PigBitmap* image) {
+            std::scoped_lock lock(_mutex);
+
             if (Seq::exists(Procedurals, [dest](auto& p) { return p->ID == dest; })) {
                 SPDLOG_WARN("Procedural texture already exists for texid {}", dest);
                 return;
             }
 
-            auto procedural = info.IsWaterProcedural() ? CreateProceduralWater(info, dest) : CreateProceduralFire(info, dest);
+            auto procedural = info.IsWaterProcedural() ? CreateProceduralWater(info, dest, image) : CreateProceduralFire(info, dest);
+            procedural->Enabled = true;
+            SPDLOG_INFO("Enabling procedural {} in slot {}", info.Name, dest);
             Procedurals.push_back(std::move(procedural));
         }
 
-        void CopyProceduralsToMainThread() const {
+        void CopyProceduralsToMainThread() {
             if (!IsEnabled()) return;
             _copyCommands->Reset();
             {
                 PIXScopedEvent(_copyCommands->GetCommandList(), PIX_COLOR_INDEX(0), "Copy procedurals");
 
-                for (auto& proc : Procedurals) {
-                    proc->CopyToMainThread(_copyCommands->GetCommandList());
+                std::scoped_lock lock(_mutex);
+                for (int i = 0; i < Procedurals.size(); ++i) {
+                    auto& latestTexture = ProceduralBuffer->Get(i);
+                    if (Procedurals[i]->CopyToTexture(_copyCommands->GetCommandList(), latestTexture))
+                        ProceduralBuffer->Swap(i);
                 }
             }
 
@@ -199,9 +239,7 @@ namespace Inferno {
 
 
     Ptr<ProceduralWorker> ProcWorker;
-    Ptr<TextureRingBuffer<MAX_PROCEDURAL_HANDLES>> ProceduralBuffer;
 
-    Texture2D& GetNextTexture() { return ProceduralBuffer->GetNext(); }
 
     int GetProceduralCount() { return (int)ProcWorker->Procedurals.size(); }
 
@@ -213,17 +251,15 @@ namespace Inferno {
         if (ProcWorker) ProcWorker->FreeTextures();
     }
 
-    void AddProcedural(Outrage::TextureInfo& info, TexID dest) {
-        if (ProcWorker) ProcWorker->AddProcedural(info, dest);
+    void AddProcedural(Outrage::TextureInfo& info, TexID dest, const PigBitmap* image) {
+        if (ProcWorker) ProcWorker->AddProcedural(info, dest, image);
     }
 
     void EnableProcedural(TexID id, bool enabled) {
         if (id == TexID::None) return;
 
         if (auto proc = GetProcedural(id)) {
-            // Don't enable procedurals for custom textures
-            auto& ti = Resources::GetTextureInfo(id);
-            proc->Enabled = ti.Custom ? false : enabled;
+            proc->Enabled = enabled;
         }
     }
 
@@ -243,10 +279,10 @@ namespace Inferno {
     }
 
     D3D12_GPU_DESCRIPTOR_HANDLE ProceduralTextureBase::GetHandle() const {
-        if (!_latestTexture)
+        if (!_gpuHandle.ptr)
             return Render::Heaps->Materials.GetGpuHandle((int)ID * Material2D::Count);
 
-        return _latestTexture->GetSRV();
+        return _gpuHandle;
     }
 
     ProceduralTextureBase* GetProcedural(TexID id) {
@@ -263,7 +299,7 @@ namespace Inferno {
     }
 
     void StartProceduralWorker() {
-        ProceduralBuffer = MakePtr<TextureRingBuffer<MAX_PROCEDURAL_HANDLES>>(128, &Render::Heaps->Procedurals);
+        ProceduralBuffer = MakePtr<TextureDoubleBuffer<MAX_PROCEDURAL_HANDLES>>(128, &Render::Heaps->Procedurals);
         ProcWorker = MakePtr<ProceduralWorker>(Render::Device);
     }
 
