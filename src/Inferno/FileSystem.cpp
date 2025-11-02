@@ -227,7 +227,7 @@ namespace Inferno::FileSystem {
         return {};
     }
 
-    void MountZip(const std::filesystem::path& path) {
+    void MountZip(const std::filesystem::path& path, string_view levelName = "") {
         auto zip = ZipFile::Open(path);
 
         if (!zip) {
@@ -237,10 +237,37 @@ namespace Inferno::FileSystem {
 
         SPDLOG_INFO("Mounting zip: {}", path.string());
 
+        auto levelFolder = String::NameWithoutExtension(levelName) + "/";
+
         for (auto& entry : zip->GetEntries()) {
-            //auto key = fmt::format("{}:{}", path.filename().string(), entry);
+            if (entry.ends_with("/")) continue; // skip folders
+
             auto key = String::ToLower(entry);
-            Assets[key] = ResourceHandle::FromZip(path, entry);
+
+            auto specialFolder =
+                key.starts_with("models") ||
+                key.starts_with("textures") ||
+                key.starts_with("sounds") ||
+                key.starts_with("music");
+
+            // Skip any folders that are not a special folder
+            if (String::Contains(key, "/") && !specialFolder) continue;
+
+            auto fileName = filesystem::path{ key }.filename().string();
+            Assets[key] = ResourceHandle::FromZip(path, fileName);
+            //SPDLOG_INFO("Mounting {}", fileName);
+        }
+
+        for (auto& entry : zip->GetEntries()) {
+            if (entry.ends_with("/")) continue; // skip folders
+
+            auto key = String::ToLower(entry);
+            if (!String::Contains(key, levelFolder)) continue; // skip non level files
+
+            // Add all subfolders in a level folder
+            auto fileName = filesystem::path{ key }.filename().string();
+            Assets[key] = ResourceHandle::FromZip(path, fileName);
+            //SPDLOG_INFO("Mounting {}", fileName);
         }
     }
 
@@ -452,18 +479,34 @@ namespace Inferno::FileSystem {
                 MountModZip(level, zipPath);
         }
 
-        if (!missionPath.empty()) {
+        if (missionPath.empty()) {
+            // Mount the level folder (loose mission)
+            filesystem::path levelPath = level.Path;
+            levelPath.replace_extension("");
+
+            if (filesystem::exists(levelPath))
+                MountDirectory(levelPath, true);
+        }
+        else {
             Mount(missionPath);
 
+            // Mount the mission addon zip [path/mission.zip]
             filesystem::path addon = missionPath;
             addon.replace_extension(".zip");
             if (filesystem::exists(addon))
-                MountZip(addon);
+                MountZip(addon, level.FileName);
 
+            // Mount the mission addon folder [path/mission]
             addon.replace_extension("");
-            if (filesystem::exists(addon) && filesystem::is_directory(addon)) {
+            if (filesystem::exists(addon) && filesystem::is_directory(addon))
                 MountDirectory(addon, true);
-            }
+
+            // Mount the level subfolder. [path/mission/level]
+            filesystem::path levelFolder = addon / level.FileName;
+            levelFolder.replace_extension("");
+
+            if (filesystem::exists(levelFolder))
+                MountDirectory(levelFolder, true);
         }
 
         //for (auto& [key, value] : Assets)
