@@ -750,6 +750,7 @@ namespace Inferno {
         node |= ryml::MAP;
 
         node["ShipWiggle"] << (int)settings.ShipWiggle;
+        node["ShipRoll"] << (int)settings.ShipRoll;
         node["AutomapMode"] << (int)settings.AutomapMode;
         node["AutomapInvertX"] << settings.AutomapInvertX;
         node["AutomapInvertY"] << settings.AutomapInvertY;
@@ -792,6 +793,7 @@ namespace Inferno {
         if (node.is_seed()) return;
 
         ReadValue2(node, "ShipWiggle", settings.ShipWiggle);
+        ReadValue2(node, "ShipRoll", settings.ShipRoll);
         ReadValue2(node, "AutomapMode", settings.AutomapMode);
         ReadValue2(node, "AutomapInvertX", settings.AutomapInvertX);
         ReadValue2(node, "AutomapInvertY", settings.AutomapInvertY);
