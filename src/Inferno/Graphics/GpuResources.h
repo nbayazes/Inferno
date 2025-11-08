@@ -840,7 +840,7 @@ namespace Inferno {
             _srvDesc.Texture2D.MipLevels = 1;
             _srvDesc.Texture2D.MostDetailedMip = 0;
             _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-            _state = D3D12_RESOURCE_STATE_COMMON;
+            _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
             //AddShaderResourceView(&srvDesc);
         }
     };

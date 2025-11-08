@@ -642,6 +642,13 @@ namespace Inferno {
         LinearizedDepthBuffer.AddShaderResourceView();
         LinearizedDepthBuffer.AddUnorderedAccessView();
         LinearizedDepthBuffer.AddRenderTargetView();
+        LinearizedDepthBuffer.ClearColor = Color(1, 1, 1);
+
+        FogDepthBuffer.Create("Fog depth buffer", scaledWidth, scaledHeight, DepthShader::OutputFormat);
+        FogDepthBuffer.AddShaderResourceView();
+        FogDepthBuffer.AddUnorderedAccessView();
+        FogDepthBuffer.AddRenderTargetView();
+        FogDepthBuffer.ClearColor = Color(1, 1, 1);
 
         SceneColorBuffer.Create("Scene color buffer", scaledWidth, scaledHeight, SceneBufferFormat, clearColor, 1);
         SceneColorBuffer.AddUnorderedAccessView();
@@ -688,9 +695,6 @@ namespace Inferno {
         BriefingRobot.AddShaderResourceView();
         BriefingRobotDepth.Create("Briefing robot depth", BRIEFING_ROBOT_WIDTH, BRIEFING_ROBOT_HEIGHT);
 
-        MsaaLinearizedDepthBuffer.ClearColor = Color(1, 1, 1);
-        LinearizedDepthBuffer.ClearColor = Color(1, 1, 1);
-
         if (Settings::Graphics.MsaaSamples > 1) {
             BriefingRobotMsaa.Create("MSAA Briefing robot", BRIEFING_ROBOT_WIDTH, BRIEFING_ROBOT_HEIGHT, SceneBufferFormat, emptyColor, Settings::Graphics.MsaaSamples);
             BriefingRobotMsaa.AddRenderTargetView();
@@ -703,6 +707,12 @@ namespace Inferno {
             MsaaLinearizedDepthBuffer.Create("MSAA Linear depth buffer", scaledWidth, scaledHeight, DepthShader::OutputFormat, Settings::Graphics.MsaaSamples);
             MsaaLinearizedDepthBuffer.AddRenderTargetView();
             MsaaLinearizedDepthBuffer.AddShaderResourceView();
+            MsaaLinearizedDepthBuffer.ClearColor = Color(1, 1, 1);
+
+            MsaaFogDepthBuffer.Create("MSAA Fog depth buffer", scaledWidth, scaledHeight, DepthShader::OutputFormat, Settings::Graphics.MsaaSamples);
+            MsaaFogDepthBuffer.AddRenderTargetView();
+            MsaaFogDepthBuffer.AddShaderResourceView();
+            MsaaFogDepthBuffer.ClearColor = Color(1, 1, 1);
         }
         else {
             BriefingRobotMsaa.Release();
@@ -710,6 +720,7 @@ namespace Inferno {
             SceneDepthBufferMsaa.Release();
             MsaaLinearizedDepthBuffer.Release();
             BriefingRobotDepthMsaa.Release();
+            MsaaFogDepthBuffer.Release();
         }
 
         {

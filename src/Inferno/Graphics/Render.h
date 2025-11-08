@@ -87,15 +87,16 @@ namespace Inferno::Render {
     }
 
     struct BillboardInfo {
-        float Ratio;
-        float Radius;
-        Color Color;
-        bool Additive = false;
-        float Rotation = 0;
-        const Vector3* Up = nullptr;
-        bool Terrain = false;
-        float DepthBias = 0;
-        float Softness = 0;
+        float ratio;
+        float radius;
+        Color color;
+        Color fog = Color(0, 0, 0, 0);
+        bool additive = false;
+        float rotation = 0;
+        const Vector3* up = nullptr;
+        bool terrain = false;
+        float depthBias = 0;
+        float softness = 0;
     };
 
     void DrawBillboard(GraphicsContext& ctx,

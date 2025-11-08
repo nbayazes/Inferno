@@ -392,7 +392,7 @@ namespace Inferno {
         enum RootParameterIndex : uint {
             FrameConstants,
             RootConstants,
-            Depth // Linearized depth texture for front of fog volume
+            FogDepth // Linearized depth texture for front of fog volume
         };
 
     public:
@@ -406,8 +406,8 @@ namespace Inferno {
             Color ambient; // Ambient light color
         };
 
-        static void SetDepthTexture(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
-            commandList->SetGraphicsRootDescriptorTable(Depth, texture);
+        static void SetFogDepthTexture(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
+            commandList->SetGraphicsRootDescriptorTable(FogDepth, texture);
         }
 
         static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
@@ -447,11 +447,13 @@ namespace Inferno {
             RootConstants,
             Diffuse,
             Depth,
+            FogDepth,
             Sampler
         };
 
     public:
         struct Constants {
+            Color FogColor = Color(0, 0, 0, 0); // Fog color, a = 0 to skip
             float DepthBias = 0; // Size in world units to bias the sprite towards the camera. Positive values appear in front of other geometry.
             float Softness = 0; // Value between 0 and 1 to soften the edge of the sprite when intersecting geometry. Higher is softer.
             TextureFilterMode FilterMode = {}; // Need to be able to force smooth filtering even in point or enhanced mode
@@ -471,6 +473,10 @@ namespace Inferno {
 
         static void SetDepthTexture(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
             commandList->SetGraphicsRootDescriptorTable(Depth, texture);
+        }
+
+        static void SetFogDepthTexture(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
+            commandList->SetGraphicsRootDescriptorTable(FogDepth, texture);
         }
 
         static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& constants) {

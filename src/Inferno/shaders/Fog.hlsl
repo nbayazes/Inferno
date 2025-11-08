@@ -203,7 +203,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //float3 normal = normalize(cross(ddx(input.world), ddy(input.world)));
     float lum = Luminance(ambient);
     float alpha = saturate(ExpFog(depth, density));
-    float alpha2 = saturate(ExpFog(depth, density * .95));
     //fog = lerp(fog, fog * smoothstep(-1, 2, lum), depth);
     fog = lerp(fog, fog * lerp(ambient, lum, 0.5), saturate(1 - alpha - 0.5));
     //float3 dir = normalize(input.world - Frame.Eye);

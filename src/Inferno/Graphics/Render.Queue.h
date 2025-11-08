@@ -7,7 +7,7 @@
 
 namespace Inferno::Render {
     enum class RenderCommandType {
-        LevelMesh, Object, Effect
+        LevelMesh, Object, Effect, Fog
     };
 
     struct Bounds2D {
@@ -21,7 +21,7 @@ namespace Inferno::Render {
             if (max.x <= min.x || max.y <= min.y)
                 return {}; // no intersection
 
-            return { min, max, CrossesPlane };
+            return { .Min = min, .Max = max, .CrossesPlane = CrossesPlane };
         }
 
         constexpr bool Empty() const {
@@ -54,33 +54,39 @@ namespace Inferno::Render {
                     crossesPlane = true;
             }
 
-            return { min, max, crossesPlane };
+            return { .Min = min, .Max = max, .CrossesPlane = crossesPlane };
         }
     };
 
     struct RenderCommand {
-        float Depth; // Scene depth for sorting
-        RenderCommandType Type;
+        float depth; // Scene depth for sorting
+        RenderCommandType type;
 
         union Data {
-            struct Object* Object;
-            Inferno::LevelMesh* LevelMesh;
-            EffectBase* Effect;
-        } Data{};
+            Object* object;
+            Inferno::LevelMesh* levelMesh;
+            EffectBase* effect;
+            FogMesh* fog;
+        } data{};
 
         RenderCommand(Object* obj, float depth)
-            : Depth(depth), Type(RenderCommandType::Object) {
-            Data.Object = obj;
+            : depth(depth), type(RenderCommandType::Object) {
+            data.object = obj;
         }
 
         RenderCommand(LevelMesh* mesh, float depth)
-            : Depth(depth), Type(RenderCommandType::LevelMesh) {
-            Data.LevelMesh = mesh;
+            : depth(depth), type(RenderCommandType::LevelMesh) {
+            data.levelMesh = mesh;
         }
 
         RenderCommand(EffectBase* effect, float depth)
-            : Depth(depth), Type(RenderCommandType::Effect) {
-            Data.Effect = effect;
+            : depth(depth), type(RenderCommandType::Effect) {
+            data.effect = effect;
+        }
+
+        RenderCommand(FogMesh* fog, float depth)
+            : depth(depth), type(RenderCommandType::Fog) {
+            data.fog = fog;
         }
     };
 
@@ -144,7 +150,8 @@ namespace Inferno::Render {
 
         List<RenderCommand> _opaqueQueue;
         List<RenderCommand> _decalQueue;
-        List<RenderCommand> _transparentQueue;
+        List<RenderCommand> _transparentQueue; // includes walls, powerups, particles, effects etc. sorted by segment and depth.
+
         //List<RenderCommand> _distortionQueue;
         Set<SegID> _visited;
         std::queue<SegDepth> _search;

@@ -126,14 +126,14 @@ namespace Inferno::Render {
 
         auto tid = vclip.GetFrameClamped(GetElapsedTime());
         BillboardInfo info = {
-            .Radius = Info.Radius,
-            .Color = color,
-            .Additive = true,
-            .Rotation = Info.Rotation,
-            .Up = up,
-            .Terrain = Segment == SegID::Terrain,
-            .DepthBias = Info.Radius,
-            .Softness = Info.Radius > 10 ? 0.8f : 0.15f, // Make very large explosions softer
+            .radius = Info.Radius,
+            .color = color,
+            .additive = true,
+            .rotation = Info.Rotation,
+            .up = up,
+            .terrain = Segment == SegID::Terrain,
+            .depthBias = Info.Radius,
+            .softness = Info.Radius > 10 ? 0.8f : 0.15f, // Make very large explosions softer
         };
 
         DrawBillboard(ctx, tid, Position, info);
@@ -237,12 +237,12 @@ namespace Inferno::Render {
         auto& effect = env->additiveFog ? Effects->AdditiveFogObject : Effects->FogObject;
         auto cmdList = ctx.GetCommandList();
 
-        auto& depthTexture = Adapter->LinearizedDepthBuffer;
+        auto& depthTexture = Adapter->FogDepthBuffer;
         depthTexture.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
         if (ctx.ApplyEffect(effect)) {
             ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-            effect.Shader->SetDepthTexture(cmdList, depthTexture.GetSRV());
+            effect.Shader->SetFogDepthTexture(cmdList, depthTexture.GetSRV());
         }
 
         auto seg = Game::Level.TryGetSegment(Segment);
@@ -444,17 +444,24 @@ namespace Inferno::Render {
         auto cmdList = ctx.GetCommandList();
         effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
         effect.Shader->SetSampler(cmdList, Heaps->States.AnisotropicClamp());
-        effect.Shader->SetConstants(cmdList, { halfWidth, 0.1f, TextureFilterMode::Smooth });
+
+        SpriteShader::Constants constants{
+            .DepthBias = halfWidth,
+            .Softness = 0.1f,
+            .FilterMode = TextureFilterMode::Smooth
+        };
+
+        effect.Shader->SetConstants(cmdList, constants);
 
         if (!Info.Texture.empty()) {
             auto& material = Render::Materials->Get(Info.Texture);
             effect.Shader->SetDiffuse(cmdList, material.Handle());
             g_SpriteBatch->Begin(cmdList);
 
-            ObjectVertex v0{ head + up, { 0, 1 }, color };
-            ObjectVertex v1{ head - up, { 1, 1 }, color };
-            ObjectVertex v2{ tail - up, { 1, 0 }, color };
-            ObjectVertex v3{ tail + up, { 0, 0 }, color };
+            ObjectVertex v0{ .Position = head + up, .UV = { 0, 1 }, .Color = color };
+            ObjectVertex v1{ .Position = head - up, .UV = { 1, 1 }, .Color = color };
+            ObjectVertex v2{ .Position = tail - up, .UV = { 1, 0 }, .Color = color };
+            ObjectVertex v3{ .Position = tail + up, .UV = { 0, 0 }, .Color = color };
             g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
             g_SpriteBatch->End();
             Stats::DrawCalls++;
@@ -470,10 +477,10 @@ namespace Inferno::Render {
             constexpr float BLOB_OFFSET = 0.25f; // tracer textures are thickest about a quarter from the end
             auto blob = head - Direction * Info.Length * BLOB_OFFSET * lenMult;
 
-            ObjectVertex v0{ blob + up - right, { 0, 0 }, color };
-            ObjectVertex v1{ blob - up - right, { 1, 0 }, color };
-            ObjectVertex v2{ blob - up + right, { 1, 1 }, color };
-            ObjectVertex v3{ blob + up + right, { 0, 1 }, color };
+            ObjectVertex v0{ .Position = blob + up - right, .UV = { 0, 0 }, .Color = color };
+            ObjectVertex v1{ .Position = blob - up - right, .UV = { 1, 0 }, .Color = color };
+            ObjectVertex v2{ .Position = blob - up + right, .UV = { 1, 1 }, .Color = color };
+            ObjectVertex v3{ .Position = blob + up + right, .UV = { 0, 1 }, .Color = color };
             g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
             g_SpriteBatch->End();
             Stats::DrawCalls++;
@@ -494,10 +501,10 @@ namespace Inferno::Render {
         const auto up = decal.Bitangent * radius;
         const auto right = decal.Tangent * radius;
 
-        ObjectVertex v0{ pos - up, { 0, 1 }, color };
-        ObjectVertex v1{ pos - right, { 1, 1 }, color };
-        ObjectVertex v2{ pos + up, { 1, 0 }, color };
-        ObjectVertex v3{ pos + right, { 0, 0 }, color };
+        ObjectVertex v0{ .Position = pos - up, .UV = { 0, 1 }, .Color = color };
+        ObjectVertex v1{ .Position = pos - right, .UV = { 1, 1 }, .Color = color };
+        ObjectVertex v2{ .Position = pos + up, .UV = { 1, 0 }, .Color = color };
+        ObjectVertex v3{ .Position = pos + right, .UV = { 0, 0 }, .Color = color };
         batch.DrawQuad(v0, v1, v2, v3);
     }
 
@@ -539,7 +546,14 @@ namespace Inferno::Render {
                     ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
                     effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
                     effect.Shader->SetSampler(cmdList, Render::GetWrappedTextureSampler());
-                    effect.Shader->SetConstants(cmdList, { 2, 0.1f, Settings::Graphics.FilterMode });
+
+                    SpriteShader::Constants constants{
+                        .DepthBias = 2,
+                        .Softness = 0.1f,
+                        .FilterMode = Settings::Graphics.FilterMode
+                    };
+
+                    effect.Shader->SetConstants(cmdList, constants);
                 }
 
                 decal.Update(dt, EffectID(0));
@@ -671,7 +685,14 @@ namespace Inferno::Render {
         effect.Shader->SetSampler(cmdList, Heaps->States.AnisotropicClamp());
         auto& material = Render::Materials->Get(Info.Texture);
         effect.Shader->SetDiffuse(cmdList, material.Handle());
-        effect.Shader->SetConstants(cmdList, { Info.Width.Max * 0.5f, 0.1f, TextureFilterMode::Smooth });
+
+        SpriteShader::Constants constants{
+            .DepthBias = Info.Width.Max * 0.5f,
+            .Softness = 0.1f,
+            .FilterMode = TextureFilterMode::Smooth
+        };
+
+        effect.Shader->SetConstants(cmdList, constants);
         g_SpriteBatch->Begin(cmdList);
 
         auto remaining = GetRemainingTime();

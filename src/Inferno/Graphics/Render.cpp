@@ -73,40 +73,42 @@ namespace Inferno::Render {
                        Inferno::Camera& camera,
                        const Vector3& position,
                        BillboardInfo& info) {
-        auto transform = info.Up ? Matrix::CreateConstrainedBillboard(position, camera.Position, *info.Up) : Matrix::CreateBillboard(position, camera.Position, camera.Up);
+        auto transform = info.up ? Matrix::CreateConstrainedBillboard(position, camera.Position, *info.up) : Matrix::CreateBillboard(position, camera.Position, camera.Up);
 
-        if (info.Rotation != 0)
-            transform = Matrix::CreateRotationZ(info.Rotation) * transform;
+        if (info.rotation != 0)
+            transform = Matrix::CreateRotationZ(info.rotation) * transform;
 
         // create quad and transform it
-        auto h = info.Radius * info.Ratio;
-        auto w = info.Radius;
+        auto h = info.radius * info.ratio;
+        auto w = info.radius;
         auto p0 = Vector3::Transform({ -w, h, 0 }, transform); // bl
         auto p1 = Vector3::Transform({ w, h, 0 }, transform); // br
         auto p2 = Vector3::Transform({ w, -h, 0 }, transform); // tr
         auto p3 = Vector3::Transform({ -w, -h, 0 }, transform); // tl
 
-        ObjectVertex v0(p0, { 0, 0 }, info.Color);
-        ObjectVertex v1(p1, { 1, 0 }, info.Color);
-        ObjectVertex v2(p2, { 1, 1 }, info.Color);
-        ObjectVertex v3(p3, { 0, 1 }, info.Color);
+        ObjectVertex v0(p0, { 0, 0 }, info.color);
+        ObjectVertex v1(p1, { 1, 0 }, info.color);
+        ObjectVertex v2(p2, { 1, 1 }, info.color);
+        ObjectVertex v3(p3, { 0, 1 }, info.color);
 
         auto cmdList = ctx.GetCommandList();
 
-        auto& effect = info.Terrain
-            ? (info.Additive ? Effects->SpriteAdditiveTerrain : Effects->SpriteTerrain)
-            : (info.Additive ? Effects->SpriteAdditive : Effects->Sprite);
+        auto& effect = info.terrain
+            ? (info.additive ? Effects->SpriteAdditiveTerrain : Effects->SpriteTerrain)
+            : (info.additive ? Effects->SpriteAdditive : Effects->Sprite);
 
         ctx.ApplyEffect(effect);
         ctx.SetConstantBuffer(0, frameConstants);
         effect.Shader->SetDiffuse(cmdList, texture);
         effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
+        effect.Shader->SetFogDepthTexture(cmdList, Adapter->FogDepthBuffer.GetSRV());
         auto sampler = Render::GetClampedTextureSampler();
         effect.Shader->SetSampler(cmdList, sampler);
 
         SpriteShader::Constants constants{
-            .DepthBias = info.DepthBias,
-            .Softness = info.Softness,
+            .FogColor = info.fog,
+            .DepthBias = info.depthBias,
+            .Softness = info.softness,
             .FilterMode = Settings::Graphics.FilterMode
         };
 
@@ -124,7 +126,7 @@ namespace Inferno::Render {
                        const Vector3& position,
                        BillboardInfo& info) {
         auto& ti = Resources::GetTextureInfo(tid);
-        info.Ratio = (float)ti.Height / (float)ti.Width;
+        info.ratio = (float)ti.Height / (float)ti.Width;
         auto& material = Materials->Get(tid);
 
         DrawBillboard(ctx, material.Handle(), Adapter->GetFrameConstants().GetGPUVirtualAddress(), ctx.Camera, position, info);

@@ -13,6 +13,8 @@
 #include "Resources.h"
 
 namespace Inferno::Render {
+    extern LevelMeshBuilder _levelMeshBuilder;
+
     bool ShouldDrawObject(const Object& obj) {
         if (!obj.IsAlive()) return false;
         bool gameModeHidden = obj.Type == ObjectType::Coop || obj.Type == ObjectType::SecretExitReturn;
@@ -59,6 +61,12 @@ namespace Inferno::Render {
         if (Game::GetState() == GameState::Editor) {
             UpdateAllEffects(Game::FrameTime);
 
+            for (auto& fog : _levelMeshBuilder.GetFogMeshes()) {
+                // only draw fog in frustum
+                if (camera.Frustum.Contains(fog.bounds))
+                    _transparentQueue.push_back({ &fog, 0 }); // submit fog at min depth - good enough for editor view
+            }
+
             for (auto& mesh : meshBuilder.GetWallMeshes()) {
                 if (!camera.Frustum.Contains(mesh.Chunk->Bounds)) continue;
                 float depth = Vector3::DistanceSquared(camera.Position, mesh.Chunk->Center);
@@ -77,7 +85,7 @@ namespace Inferno::Render {
             //QueueParticles();
             //QueueDebris();
             Seq::sortBy(_transparentQueue, [](const RenderCommand& l, const RenderCommand& r) {
-                return l.Depth > r.Depth;
+                return l.depth > r.depth;
             });
 
             for (int i = 0; i < level.Segments.size(); i++) {
@@ -695,6 +703,46 @@ namespace Inferno::Render {
                 }
             }
         }
+
+        // if there's any fog in the level, determine if it is in the render list.
+        // if it is, insert AFTER all objects in those segments so they are fogged correctly after flipping order
+        for (auto& fog : _levelMeshBuilder.GetFogMeshes()) {
+            if (!camera.Frustum.Contains(fog.bounds))
+                continue; // only draw fog in frustum
+
+            int lastIndex = -1;
+            // find the LAST index in the render list that contains fog
+            for (int i = _transparentQueue.size() - 1; i >= 0; --i) {
+                auto& item = _transparentQueue[i];
+                if (item.type == RenderCommandType::Object) {
+                    if (Seq::contains(fog.Segments, item.data.object->Segment))
+                        lastIndex = i + 1;
+                }
+                else if (item.type == RenderCommandType::LevelMesh) {
+                    if (!item.data.levelMesh || !item.data.levelMesh->Chunk) continue;
+                    if (Seq::contains(fog.Segments, item.data.levelMesh->Chunk->Tag.Segment))
+                        lastIndex = i + 1;
+                }
+            }
+
+            if (lastIndex == -1) {
+                // fog did not have any objects or walls touching it, best guess its depth based on the bounding box center
+                lastIndex = std::max((int)_transparentQueue.size() - 1, 0);
+
+                auto depth = Vector3::DistanceSquared(camera.Position, fog.bounds.Center);
+                for (int i = _transparentQueue.size() - 1; i >= 0; --i) {
+                    auto& item = _transparentQueue[i];
+                    if (item.depth > depth) {
+                        lastIndex = i;
+                    }
+                }
+            }
+
+            if (lastIndex > -1) {
+                _transparentQueue.insert(_transparentQueue.begin() + lastIndex, RenderCommand{ &fog, 0 });
+            }
+        }
+
 
         ranges::reverse(_transparentQueue); // reverse the queue so it draws back to front
 

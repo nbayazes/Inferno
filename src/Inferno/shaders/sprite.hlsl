@@ -1,6 +1,7 @@
 #include "Common.hlsli"
 
 struct Arguments {
+    float4 FogColor;
     float DepthBias;
     float Softness;
     int FilterMode;
@@ -11,6 +12,7 @@ ConstantBuffer<Arguments> Args : register(b1);
 SamplerState Sampler : register(s0);
 Texture2D Diffuse : register(t0);
 Texture2D Depth : register(t1);
+Texture2D FogDepth : register(t2); // front of fog linearized depth
 
 struct VS_INPUT {
     float3 pos : POSITION;
@@ -64,6 +66,19 @@ float4 psmain(PS_INPUT input) : SV_Target {
     if (Args.Softness != 0) {
         float depthScale = clamp(1 - Args.Softness, 0.05, 1); // sprite turns invisible under 0.05
         diffuse.a *= SaturateSoft((sceneDepth - pixelDepth) * Frame.FarClip * depthScale, DEPTH_EXPONENT);
+    }
+
+    if (Args.FogColor.a > 0) {
+        float front = FogDepth.Sample(Sampler, (input.pos.xy) / Frame.Size).x;
+        if (front == 1) front = 0;
+        float depth = saturate(pixelDepth - front);
+        float3 fog = pow(max(Args.FogColor.rgb, 0), 2.2);
+        float density = Args.FogColor.a;
+        float lum = Luminance(input.col);
+        float alpha = saturate(ExpFog(depth, density));
+        //diffuse.rgb = lerp(diffuse.rgb, fog * lerp(input.col, lum, 0.5), saturate(1 - alpha - 0.5));
+        //diffuse.rgb = lerp(diffuse.rgb, fog * lerp(input.col, lum, 0.5), 1);
+        diffuse.rgb = lerp(diffuse.rgb, fog, alpha * diffuse.a);
     }
 
     return diffuse;

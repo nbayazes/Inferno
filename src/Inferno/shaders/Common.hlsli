@@ -157,9 +157,10 @@ float Luminance(float3 v) {
 
 #define SPRITE_RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0),"\
-    "RootConstants(b1, num32BitConstants = 3), " \
+    "RootConstants(b1, num32BitConstants = 7), " \
     "DescriptorTable(SRV(t0), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t1), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t2), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL)"
 
 #endif

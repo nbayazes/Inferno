@@ -24,7 +24,7 @@ struct Arguments {
 
 ConstantBuffer<FrameConstants> Frame : register(b0);
 ConstantBuffer<Arguments> Args : register(b1);
-Texture2D Depth : register(t0); // front of fog linearized depth
+Texture2D FogDepth : register(t0); // front of fog linearized depth
 SamplerState Sampler : register(s0);
 
 [RootSignature(RS)]
@@ -40,7 +40,7 @@ float4 LinearFog2(float depth, float start, float end) {
 }
 
 float4 psmain(PS_INPUT input) : SV_Target {
-    float front = Depth.Sample(Sampler, (input.pos.xy) / Frame.Size).x;
+    float front = FogDepth.Sample(Sampler, (input.pos.xy) / Frame.Size).x;
     if (front == 1) front = 0;
     float back = LinearizeDepth(Frame.NearClip, Frame.FarClip, input.pos.z);
     float depth = saturate(back - front);

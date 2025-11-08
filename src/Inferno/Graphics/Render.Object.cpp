@@ -48,12 +48,13 @@ namespace Inferno::Render {
             // Randomize sprite animation
             auto tid = vclip.GetFrame(Game::Time + GetTimeOffset(object));
             BillboardInfo info = {
-                .Radius = object.Radius,
-                .Color = color,
-                .Additive = additive,
-                .Rotation = object.Render.Rotation,
-                .Up = up,
-                .Terrain = object.Segment == SegID::Terrain
+                .radius = object.Radius,
+                .color = color,
+                .fog = env && env->useFog ? env->fog : Color(0, 0, 0, 0),
+                .additive = additive,
+                .rotation = object.Render.Rotation,
+                .up = up,
+                .terrain = object.Segment == SegID::Terrain
             };
             DrawBillboard(ctx, tid, pos, info);
         }
@@ -61,12 +62,13 @@ namespace Inferno::Render {
             // "laser" is used for still-image "blobs" like spreadfire
             auto& weapon = Resources::GetWeapon((WeaponID)object.ID);
             BillboardInfo info = {
-                .Radius = object.Radius,
-                .Color = color,
-                .Additive = additive,
-                .Rotation = object.Render.Rotation,
-                .Up = up,
-                .Terrain = object.Segment == SegID::Terrain
+                .radius = object.Radius,
+                .color = color,
+                .fog = env && env->useFog ? env->fog : Color(0, 0, 0, 0),
+                .additive = additive,
+                .rotation = object.Render.Rotation,
+                .up = up,
+                .terrain = object.Segment == SegID::Terrain
             };
             DrawBillboard(ctx, weapon.BlobBitmap, pos, info);
         }
@@ -702,12 +704,12 @@ namespace Inferno::Render {
             return;
         }
 
-        auto& depthTexture = Adapter->LinearizedDepthBuffer;
+        auto& depthTexture = Adapter->FogDepthBuffer;
         depthTexture.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
         if (ctx.ApplyEffect(effect)) {
             ctx.SetConstantBuffer(0, frameConstants.GetGPUVirtualAddress());
-            effect.Shader->SetDepthTexture(cmdList, depthTexture.GetSRV());
+            effect.Shader->SetFogDepthTexture(cmdList, depthTexture.GetSRV());
         }
 
         FogObjectShader::Constants constants = {};
@@ -753,7 +755,23 @@ namespace Inferno::Render {
 
         if (object.Render.Type == RenderType::Model) {
             DrawFoggedObject(ctx, object, object.Render.Model.ID, pass, frameConstants);
+            return;
         }
+
+        switch (object.Type) {
+            case ObjectType::Hostage: {
+                //if (pass != RenderPass::Transparent) return;
+                auto up = object.Rotation.Up();
+                DrawSprite(ctx, object, false, &up, Settings::Editor.RenderMode == RenderMode::Shaded);
+                break;
+            }
+
+            case ObjectType::Powerup: {
+                //if (pass != RenderPass::Transparent) return;
+                DrawSprite(ctx, object, false, nullptr, Settings::Editor.RenderMode == RenderMode::Shaded);
+                break;
+        }
+    }
     }
 
     void DrawObject(GraphicsContext& ctx, const Object& object, RenderPass pass) {

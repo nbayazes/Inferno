@@ -9,6 +9,7 @@ ConstantBuffer<Arguments> Args : register(b1);
 SamplerState Sampler : register(s0);
 Texture2D Diffuse : register(t0);
 Texture2D Depth : register(t1);
+Texture2D FogDepth : register(t2);
 
 struct VS_INPUT {
     float3 pos : POSITION;

@@ -22,10 +22,12 @@
 
 namespace Inferno::Render {
     using namespace Graphics;
+    void ExecuteRenderCommand(GraphicsContext& ctx, const RenderCommand& cmd, RenderPass pass, bool decals = false);
+    LevelMeshBuilder _levelMeshBuilder;
 
     namespace {
         RenderQueue _renderQueue;
-        LevelMeshBuilder _levelMeshBuilder;
+        //LevelMeshBuilder _levelMeshBuilder;
 
         List<SegmentLight> SegmentLights;
     }
@@ -93,8 +95,8 @@ namespace Inferno::Render {
     }
 
     void LevelDepthCutout(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd) {
-        assert(cmd.Type == RenderCommandType::LevelMesh);
-        auto& mesh = *cmd.Data.LevelMesh;
+        assert(cmd.type == RenderCommandType::LevelMesh);
+        auto& mesh = *cmd.data.levelMesh;
         if (!mesh.Chunk) return;
         auto& chunk = *mesh.Chunk;
         if (chunk.Blend == BlendMode::Additive) return;
@@ -192,16 +194,16 @@ namespace Inferno::Render {
 
         // Opaque geometry prepass
         for (auto& cmd : _renderQueue.Opaque()) {
-            switch (cmd.Type) {
+            switch (cmd.type) {
                 case RenderCommandType::LevelMesh:
                     ctx.ApplyEffect(Effects->Depth);
                     ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-                    cmd.Data.LevelMesh->Draw(cmdList);
+                    cmd.data.levelMesh->Draw(cmdList);
                     break;
 
                 case RenderCommandType::Object: {
                     // Models
-                    auto& object = *cmd.Data.Object;
+                    auto& object = *cmd.data.object;
                     if (object.Render.Type == RenderType::Model) {
                         if (object.IsCloaked() && Game::GetState() != GameState::Editor)
                             continue; // Don't depth prepass cloaked objects unless in editor mode
@@ -214,7 +216,7 @@ namespace Inferno::Render {
                             OutrageModelDepthPrepass(ctx, object);
                         }
                         else {
-                            if (cmd.Data.Object->Type == ObjectType::Robot)
+                            if (cmd.data.object->Type == ObjectType::Robot)
                                 model = Resources::GetRobotInfo(object.ID).Model;
 
                             // todo: fix bug with this causing *all* objects to be rendered as flipped after firing lasers
@@ -251,7 +253,7 @@ namespace Inferno::Render {
                 }
 
                 case RenderCommandType::Effect: {
-                    cmd.Data.Effect->DepthPrepass(ctx);
+                    cmd.data.effect->DepthPrepass(ctx);
                     break;
                 }
 
@@ -266,7 +268,7 @@ namespace Inferno::Render {
             ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
 
             for (auto& cmd : _renderQueue.Transparent()) {
-                if (cmd.Type != RenderCommandType::LevelMesh) continue;
+                if (cmd.type != RenderCommandType::LevelMesh) continue;
                 LevelDepthCutout(cmdList, cmd);
             }
         }
@@ -378,77 +380,6 @@ namespace Inferno::Render {
         mesh.Draw(cmdList);
     }
 
-    void ExecuteRenderCommand(GraphicsContext& ctx, const RenderCommand& cmd, RenderPass pass, bool decals = false) {
-        switch (cmd.Type) {
-            case RenderCommandType::LevelMesh: {
-                auto& mesh = *cmd.Data.LevelMesh;
-
-                if (Settings::Editor.RenderMode == RenderMode::Flat) {
-                    if (mesh.Chunk->Blend == BlendMode::Alpha || mesh.Chunk->Blend == BlendMode::Additive) {
-                        if (pass != RenderPass::Walls) return;
-                        ctx.ApplyEffect(Effects->LevelWallFlat);
-                    }
-                    else {
-                        if (pass != RenderPass::Opaque && pass != RenderPass::Decals) return;
-                        ctx.ApplyEffect(Effects->LevelFlat);
-                    }
-
-                    ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-                    cmd.Data.LevelMesh->Draw(ctx.GetCommandList());
-                }
-                else {
-                    bool effectChanged = false;
-
-                    if (mesh.Chunk->Blend == BlendMode::Alpha) {
-                        if (pass != RenderPass::Walls) return;
-                        effectChanged = ctx.ApplyEffect(Effects->LevelWall);
-                    }
-                    else if (mesh.Chunk->Blend == BlendMode::Additive) {
-                        if (pass != RenderPass::Transparent) return;
-                        effectChanged = ctx.ApplyEffect(Effects->LevelWallAdditive);
-                    }
-                    else {
-                        if (pass == RenderPass::Opaque)
-                            effectChanged = ctx.ApplyEffect(Effects->Level);
-                        else if (pass == RenderPass::Decals)
-                            effectChanged = ctx.ApplyEffect(Effects->LevelWall); // Level wall has alpha enabled
-                        else
-                            return;
-                    }
-
-                    ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-                    auto cmdList = ctx.GetCommandList();
-                    if (effectChanged) {
-                        Shaders->Level.SetSampler(cmdList, GetWrappedTextureSampler());
-                        Shaders->Level.SetNormalSampler(cmdList, GetNormalSampler());
-                        auto cubeSrv = Render::Materials->EnvironmentCube.GetCubeSRV().GetGpuHandle();
-                        if (!cubeSrv.ptr) cubeSrv = Render::Adapter->NullCube.GetGpuHandle();
-                        Shaders->Level.SetEnvironment(cmdList, cubeSrv);
-
-                        Shaders->Level.SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
-                        Shaders->Level.SetMaterialInfoBuffer(cmdList, MaterialInfoBuffer->GetSRV());
-                        Shaders->Level.SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
-                    }
-
-                    DrawLevelMesh(ctx, *cmd.Data.LevelMesh, decals);
-                }
-
-                break;
-            }
-            case RenderCommandType::Object:
-                DrawObject(ctx, *cmd.Data.Object, pass);
-                break;
-
-            case RenderCommandType::Effect:
-                if ((pass == RenderPass::Opaque && cmd.Data.Effect->Queue == RenderQueueType::Opaque) ||
-                    (pass == RenderPass::Transparent && cmd.Data.Effect->Queue == RenderQueueType::Transparent)) {
-                    if (cmd.Data.Effect->ShouldDraw())
-                        cmd.Data.Effect->Draw(ctx);
-                }
-                break;
-        }
-    }
-
     void DrawLevelDebug(const Level& level, const Camera& camera) {
         //Debug::DrawPoint(Inferno::Debug::ClosestPoint, Color(1, 0, 0));
         if (Settings::Editor.EnablePhysics) {
@@ -511,7 +442,14 @@ namespace Inferno::Render {
             auto& effect = terrain.SatelliteAdditive ? Effects->Sun : Effects->SpriteTerrain;
             ctx.ApplyEffect(effect);
             ctx.SetConstantBuffer(0, Adapter->GetTerrainConstants().GetGPUVirtualAddress());
-            effect.Shader->SetConstants(cmdList, { 0, 0, Settings::Graphics.FilterMode });
+
+            SpriteShader::Constants constants{
+                .DepthBias = 0,
+                .Softness = 0,
+                .FilterMode = Settings::Graphics.FilterMode
+            };
+
+            effect.Shader->SetConstants(cmdList, constants);
             effect.Shader->SetDepthTexture(ctx.GetCommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
             effect.Shader->SetSampler(ctx.GetCommandList(), Render::GetClampedTextureSampler());
 
@@ -635,6 +573,98 @@ namespace Inferno::Render {
         }
     }
 
+    void DrawFogMesh(GraphicsContext& ctx, Level& level, const FogMesh& fog, const RenderTarget& renderTarget, bool skipCameraEnv) {
+        auto cmdList = ctx.GetCommandList();
+
+        //for (auto& fog : _levelMeshBuilder.GetFogMeshes()) {
+        if (!Settings::Graphics.EnableFog) return;
+
+        auto environment = Game::GetEnvironment(fog.environment);
+        if (!environment || !environment->useFog) return;
+
+        //if (!ctx.Camera.Frustum.Contains(fog.bounds))
+        //    return; // only draw fog in frustum
+
+        //bool cameraInEnv = false;
+        //bool visible = false;
+
+        //for (auto& seg : fog.Segments) {
+        //    if (_renderQueue.SegmentIsVisible(seg)) {
+        //        visible = true;
+        //    }
+
+        //    if (ctx.Camera.Segment == seg) {
+        //        cameraInEnv = true;
+        //    }
+        //}
+
+        //if (cameraInEnv) {
+        //    if (skipCameraEnv)
+        //        return; // only draw envs the camera isn't in
+        //}
+        //else {
+        //    if (!skipCameraEnv)
+        //        return; // only draw envs the camera is in
+        //}
+        //if (cameraInEnv && skipCameraEnv) continue; // only draw envs the camera isn't in
+        //if (cameraInEnv == false && skipCameraEnv == false) continue; // only draw envs the camera is in
+
+        //if (!visible) return; // only draw fog in active segments
+
+        Stats::FogPasses++;
+
+        {
+            PIXScopedEvent(cmdList, PIX_COLOR_INDEX(3), "Fog prepass");
+
+            auto& depthTexture = Adapter->GetFogDepthBuffer();
+            Color clearColor(1, 1, 1); // clear to 1, otherwise the fog volumes have an outline at a distance
+            ctx.ClearColor(depthTexture, nullptr, &clearColor);
+            depthTexture.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+            ctx.SetRenderTarget(depthTexture.GetRTV(), Adapter->GetDepthBuffer().GetDSV());
+
+            auto& effect = Effects->FogPrepass;
+            ctx.ApplyEffect(effect);
+            ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+            fog.Draw(cmdList);
+
+            if (Settings::Graphics.MsaaSamples > 1) {
+                // must resolve MS target to allow shader sampling
+                Adapter->FogDepthBuffer.ResolveFromMultisample(cmdList, Adapter->MsaaFogDepthBuffer);
+            }
+        }
+
+        {
+            PIXScopedEvent(cmdList, PIX_COLOR_INDEX(3), "Fog");
+            auto& depthTexture = Adapter->FogDepthBuffer;
+            depthTexture.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            ctx.SetRenderTarget(renderTarget.GetRTV(), Adapter->GetDepthBuffer().GetDSV());
+
+            auto& effect = environment->additiveFog ? Effects->AdditiveFog : Effects->Fog;
+            ctx.ApplyEffect(effect);
+            ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+            effect.Shader->SetConstants(cmdList, { environment->fog });
+
+            effect.Shader->SetDepthTexture(ctx.GetCommandList(), depthTexture.GetSRV());
+            fog.Draw(cmdList);
+
+            for (auto& segid : fog.Segments) {
+                if (auto seg = level.TryGetSegment(segid)) {
+                    for (auto& objid : seg->Objects) {
+                        if (auto obj = level.TryGetObject(objid)) {
+                            DrawFoggedObject(ctx, *obj, RenderPass::Opaque);
+                        }
+                    }
+
+                    for (auto effectID : seg->Effects) {
+                        if (auto vfx = GetEffect(effectID)) {
+                            vfx->DrawFog(ctx);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     void DrawLevel(GraphicsContext& ctx, Level& level) {
         if (Settings::Editor.ShowFlickeringLights)
             UpdateFlickeringLights(level, (float)Game::Time, Game::FrameTime);
@@ -751,93 +781,11 @@ namespace Inferno::Render {
                     ExecuteRenderCommand(ctx, cmd, RenderPass::Transparent);
             }
 
-            // todo: transparent objects (powerups) need to come after fog and have a fog shader
 
-            for (auto& fog : _levelMeshBuilder.GetFogMeshes()) {
-                if (!Settings::Graphics.EnableFog) continue;
 
-                auto environment = Game::GetEnvironment(fog.environment);
-                if (!environment || !environment->useFog) continue;
-
-                if (!ctx.Camera.Frustum.Contains(fog.bounds))
-                    continue; // only draw fog in frustum
-
-                bool visible = false;
-                for (auto& seg : fog.Segments) {
-                    if (_renderQueue.SegmentIsVisible(seg)) {
-                        visible = true;
-                        break;
-                    }
-                }
-
-                if (!visible) continue; // only draw fog in active segments
-
-                Stats::FogPasses++;
-
-                {
-                    PIXScopedEvent(cmdList, PIX_COLOR_INDEX(3), "Fog prepass");
-
-                    auto& depthTexture = Adapter->GetLinearDepthBuffer();
-                    Color clearColor(1, 1, 1); // clear to 1, otherwise the fog volumes have an outline at a distance
-                    ctx.ClearColor(depthTexture, nullptr, &clearColor);
-                    depthTexture.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-                    ctx.SetRenderTarget(depthTexture.GetRTV(), Adapter->GetDepthBuffer().GetDSV());
-
-                    auto& effect = Effects->FogPrepass;
-                    ctx.ApplyEffect(effect);
-                    ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-                    fog.Draw(cmdList);
-
-                    if (Settings::Graphics.MsaaSamples > 1) {
-                        // must resolve MS target to allow shader sampling
-                        Adapter->LinearizedDepthBuffer.ResolveFromMultisample(cmdList, Adapter->MsaaLinearizedDepthBuffer);
-                    }
-                }
-
-                {
-                    PIXScopedEvent(cmdList, PIX_COLOR_INDEX(3), "Fog");
-                    auto& depthTexture = Adapter->LinearizedDepthBuffer;
-                    depthTexture.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-                    ctx.SetRenderTarget(renderTarget.GetRTV(), Adapter->GetDepthBuffer().GetDSV());
-
-                    auto& effect = environment->additiveFog ? Effects->AdditiveFog : Effects->Fog;
-                    ctx.ApplyEffect(effect);
-                    ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-                    effect.Shader->SetConstants(cmdList, { environment->fog });
-
-                    effect.Shader->SetDepthTexture(ctx.GetCommandList(), depthTexture.GetSRV());
-                    fog.Draw(cmdList);
-
-                    for (auto& segid : fog.Segments) {
-                        if (auto seg = level.TryGetSegment(segid)) {
-                            for (auto& objid : seg->Objects) {
-                                if (auto obj = level.TryGetObject(objid)) {
-                                    DrawFoggedObject(ctx, *obj, RenderPass::Opaque);
-                                }
-                            }
-
-                            for (auto effectID : seg->Effects) {
-                                if (auto vfx = GetEffect(effectID)) {
-                                    vfx->DrawFog(ctx);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            //ctx.SetViewportAndScissor(UINT(target.GetWidth() * Settings::Graphics.RenderScale), UINT(target.GetHeight() * Settings::Graphics.RenderScale));
-
-            //for (auto& cmd : _renderQueue.Distortion())
-            //    ExecuteRenderCommand(ctx, cmd, RenderPass::Distortion);
 
             LegitProfiler::AddCpuTask(std::move(queue));
 
-            //for (auto& cmd : _transparentQueue) // draw transparent geometry on models
-            //    ExecuteRenderCommand(cmdList, cmd, true);
-
-            // Draw heat volumes
-            //    _levelResources->Volumes.Draw(cmdList);
         }
     }
 
@@ -847,5 +795,81 @@ namespace Inferno::Render {
 
     span<RoomID> GetVisibleRooms() {
         return _renderQueue.GetVisibleRooms();
+    }
+
+    void ExecuteRenderCommand(GraphicsContext& ctx, const RenderCommand& cmd, RenderPass pass, bool decals) {
+        switch (cmd.type) {
+            case RenderCommandType::LevelMesh: {
+                auto& mesh = *cmd.data.levelMesh;
+
+                if (Settings::Editor.RenderMode == RenderMode::Flat) {
+                    if (mesh.Chunk->Blend == BlendMode::Alpha || mesh.Chunk->Blend == BlendMode::Additive) {
+                        if (pass != RenderPass::Walls) return;
+                        ctx.ApplyEffect(Effects->LevelWallFlat);
+                    }
+                    else {
+                        if (pass != RenderPass::Opaque && pass != RenderPass::Decals) return;
+                        ctx.ApplyEffect(Effects->LevelFlat);
+                    }
+
+                    ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+                    cmd.data.levelMesh->Draw(ctx.GetCommandList());
+                }
+                else {
+                    bool effectChanged = false;
+
+                    if (mesh.Chunk->Blend == BlendMode::Alpha) {
+                        if (pass != RenderPass::Walls) return;
+                        effectChanged = ctx.ApplyEffect(Effects->LevelWall);
+                    }
+                    else if (mesh.Chunk->Blend == BlendMode::Additive) {
+                        if (pass != RenderPass::Transparent) return;
+                        effectChanged = ctx.ApplyEffect(Effects->LevelWallAdditive);
+                    }
+                    else {
+                        if (pass == RenderPass::Opaque)
+                            effectChanged = ctx.ApplyEffect(Effects->Level);
+                        else if (pass == RenderPass::Decals)
+                            effectChanged = ctx.ApplyEffect(Effects->LevelWall); // Level wall has alpha enabled
+                        else
+                            return;
+                    }
+
+                    ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+                    auto cmdList = ctx.GetCommandList();
+                    if (effectChanged) {
+                        Shaders->Level.SetSampler(cmdList, GetWrappedTextureSampler());
+                        Shaders->Level.SetNormalSampler(cmdList, GetNormalSampler());
+                        auto cubeSrv = Render::Materials->EnvironmentCube.GetCubeSRV().GetGpuHandle();
+                        if (!cubeSrv.ptr) cubeSrv = Render::Adapter->NullCube.GetGpuHandle();
+                        Shaders->Level.SetEnvironment(cmdList, cubeSrv);
+
+                        Shaders->Level.SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
+                        Shaders->Level.SetMaterialInfoBuffer(cmdList, MaterialInfoBuffer->GetSRV());
+                        Shaders->Level.SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
+                    }
+
+                    DrawLevelMesh(ctx, *cmd.data.levelMesh, decals);
+                }
+
+                break;
+            }
+            case RenderCommandType::Object:
+                DrawObject(ctx, *cmd.data.object, pass);
+                break;
+
+            case RenderCommandType::Effect:
+                if ((pass == RenderPass::Opaque && cmd.data.effect->Queue == RenderQueueType::Opaque) ||
+                    (pass == RenderPass::Transparent && cmd.data.effect->Queue == RenderQueueType::Transparent)) {
+                    if (cmd.data.effect->ShouldDraw())
+                        cmd.data.effect->Draw(ctx);
+                }
+                break;
+
+            case RenderCommandType::Fog:
+                if (pass == RenderPass::Transparent) {
+                    DrawFogMesh(ctx, Game::Level, *cmd.data.fog, Adapter->GetRenderTarget(), false);
+                }
+        }
     }
 }

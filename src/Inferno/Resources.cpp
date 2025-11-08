@@ -1328,6 +1328,10 @@ namespace Inferno::Resources {
         return true;
     }
 
+        CopyScratchImageToBitmap(*image, dest);
+        return true;
+    }
+
     // Enables procedural textures for a level
     void LoadProcedurals(span<MaterialInfo> materials, span<TexID> levelTexIds) {
         FreeProceduralTextures();
