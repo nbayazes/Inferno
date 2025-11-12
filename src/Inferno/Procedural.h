@@ -1,6 +1,5 @@
 #pragma once
 #include "OutrageTable.h"
-#include "DirectX.h"
 #include "Graphics/GpuResources.h"
 
 namespace Inferno {

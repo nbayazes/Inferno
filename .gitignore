@@ -375,3 +375,4 @@ dxc.exe
 !/src/Inferno/mods/*.md
 *.HAM
 *.S22
+/src/Inferno/assets/*

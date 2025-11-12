@@ -8,7 +8,6 @@
 #include "BitmapCache.h"
 #include "Mesh.h"
 #include "Render.Canvas.h"
-#include "Lighting.h"
 
 class CommandListManager;
 class ContextManager;
@@ -17,7 +16,6 @@ namespace Inferno::Render {
     constexpr DXGI_FORMAT BackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 
     // Smart pointers in a namespace makes no sense as they will never trigger
-    inline Ptr<DeviceResources> Adapter;
     inline Ptr<ShaderResources> Shaders;
     inline Ptr<EffectResources> Effects;
     inline Ptr<Inferno::PostFx::ToneMapping> ToneMapping;
@@ -72,8 +70,8 @@ namespace Inferno::Render {
     MeshIndex& GetOutrageMeshHandle(ModelID);
     void UpdateFrameConstants(const Inferno::Camera& camera, UploadBuffer<FrameConstants>& dest, float renderScale = 1);
 
-    inline ID3D12Device* Device;
-
+    inline ID3D12Device* Device = nullptr;
+    inline D3D12MA::Allocator* Allocator = nullptr;
     // Camera needs to be swappable (pointer).
     // Editor could have multiple cameras (switch between first person and edit)
     // Also need to switch camera for drawing sub-views, like guided missiles or rear view.

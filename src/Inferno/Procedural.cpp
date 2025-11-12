@@ -22,7 +22,7 @@ namespace Inferno {
                 auto name = fmt::format("ring buffer {}", i);
                 auto& texture = _textures[i];
                 texture.SetDesc(resolution, resolution);
-                texture.CreateOnDefaultHeap(name);
+                texture.CreateOnDefaultHeap(name); 
                 texture.AddShaderResourceView(descriptors->GetHandle(i));
             }
         }
@@ -274,7 +274,9 @@ namespace Inferno {
 
         for (int i = 0; i < std::size(_textureBuffers); i++) {
             _textureBuffers[i].SetDesc(_resolution, _resolution);
-            _textureBuffers[i].CreateOnDefaultHeap(Info.Name + " Buffer");
+            // there is a bug that requires allocating procedurals as committed resources, otherwise they get corrupted when loading all textures.
+            // it is not a syncing issue, as mutexes do not help
+            _textureBuffers[i].CreateOnDefaultHeap(Info.Name + " Buffer", nullptr, true);
         }
     }
 

@@ -175,6 +175,9 @@ namespace Inferno {
 
     protected:
         void OnUpdate(double currentTime) override {
+            if (_baseTexture.Info.Width == 0 || _baseTexture.Info.Height == 0)
+                return;
+
             for (auto& elem : Info.Procedural.Elements) {
                 switch (elem.WaterType) {
                     case Outrage::WaterProceduralType::HeightBlob:

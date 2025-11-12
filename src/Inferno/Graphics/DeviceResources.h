@@ -11,10 +11,9 @@
 #include "IDeviceNotify.h"
 #include "PostProcess.h"
 #include "ShaderLibrary.h"
+#include <D3D12MemAlloc.h>
 
 namespace Inferno {
-    constexpr uint PROBE_RESOLUTION = 128;
-
     inline void ReportLiveObjects() {
 #ifdef _DEBUG
         ComPtr<IDXGIDebug1> dxgiDebug;
@@ -29,6 +28,7 @@ namespace Inferno {
     class DeviceResources {
         bool _typedUAVLoadSupport_R11G11B10_FLOAT = false;
         float _renderScale = 1;
+        ComPtr<D3D12MA::Allocator> _allocator;
 
     public:
         static constexpr unsigned int c_AllowTearing = 0x1;
@@ -168,7 +168,7 @@ namespace Inferno {
             //return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
         }
 
-        static void PrintMemoryUsage();
+        void PrintMemoryUsage() const;
 
         // Note that 4x MSAA and 8x MSAA is required for Direct3D Feature Level 11.0 or better
         bool CheckMsaaSupport(uint samples, DXGI_FORMAT backBufferFormat) const;
@@ -221,4 +221,8 @@ namespace Inferno {
         // The IDeviceNotify can be held directly as it owns the DeviceResources.
         IDeviceNotify* m_deviceNotify;
     };
+}
+
+namespace Inferno::Render {
+    inline Ptr<DeviceResources> Adapter;
 }

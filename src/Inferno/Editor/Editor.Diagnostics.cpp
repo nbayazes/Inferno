@@ -48,16 +48,48 @@ namespace Inferno::Editor {
     }
 
     void FixWalls(Level& level) {
-        // Relink walls
+        std::set<WallID> wallids;
+        std::set<Tag> walltags;
+
+        for (int i = 0; i < level.Walls.size(); ++i) {
+            auto& wall = level.Walls[i];
+            if (walltags.contains(wall.Tag))
+                SPDLOG_WARN("Wall {} already assigned to {}", i, wall.Tag);
+
+            walltags.insert(wall.Tag);
+        }
+
+        // Fix sides set to the same wall id
         for (int segid = 0; segid < level.Segments.size(); segid++) {
             for (auto& sid : SIDE_IDS) {
                 Tag tag((SegID)segid, sid);
                 auto& side = level.GetSide(tag);
                 if (side.Wall == WallID::None) continue;
 
+                if (wallids.contains(side.Wall)) {
+                    SPDLOG_WARN("Duplicate wall {} set on segment {}:{}, creating new wall", side.Wall, (int)tag.Segment, (int)tag.Side);
+                    if (auto wall = level.TryGetWall(side.Wall)) {
+                        // copy the existing wall and relink it
+                        side.Wall = (WallID)level.Walls.size();
+                        level.Walls.push_back(*wall);
+                        level.Walls.back().Trigger = TriggerID::None; // remove triggers, if any
+                    }
+                }
+                else {
+                    wallids.insert(side.Wall);
+                }
+            }
+        }
+
+        // Relink walls
+        for (int segid = 0; segid < level.Segments.size(); segid++) {
+            for (auto& sid : SIDE_IDS) {
+                Tag tag((SegID)segid, sid);
+                auto& side = level.GetSide(tag);
+                if (side.Wall == WallID::None) continue;
                 if (auto wall = level.TryGetWall(side.Wall)) {
                     if (wall->Tag != tag) {
-                        SPDLOG_WARN("Fixing mismatched wall tag on segment {}:{}", (int)tag.Segment, (int)tag.Side);
+                        SPDLOG_WARN("Fixing mismatched wall tag {} on segment {}:{}", side.Wall, (int)tag.Segment, (int)tag.Side);
                         wall->Tag = tag;
                     }
                 }

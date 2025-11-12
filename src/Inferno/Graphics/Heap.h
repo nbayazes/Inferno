@@ -65,14 +65,14 @@ namespace Inferno {
         auto DescriptorSize() const { return _descriptorSize; }
 
         // Gets a specific handle by index.
-        DescriptorHandle GetHandle(int index) const {
-            if (index >= (int)Size() || index < 0)
+        DescriptorHandle GetHandle(uint index) const {
+            if (index >= Size())
                 throw Exception("Out of space in descriptor range");
 
             return _start.Offset(index, _descriptorSize);
         }
 
-        DescriptorHandle operator[](int index) const { return GetHandle(index); }
+        DescriptorHandle operator[](uint index) const { return GetHandle(index); }
 
         void SetName(string_view name) const {
             ThrowIfFailed(_heap->SetName(Widen(name).c_str()));
@@ -100,20 +100,20 @@ namespace Inferno {
     };
 
     // stride is the number of indices to allocate at once
-    template <uint TStride = 1>
+    template <uint TStride>
     class DescriptorRange {
         UserDescriptorHeap* _heap;
         uint _start, _size;
         uint _index = 0;
         std::mutex _indexLock;
-        List<bool> _free; // number of "free slots" based on stride
+        std::vector<uint8> _free; // number of "free slots" based on stride
 
     public:
         DescriptorRange(UserDescriptorHeap& heap, uint size, uint offset = 0)
             : _heap(&heap), _start(offset), _size(size), _free(size / TStride) {
             assert(offset + size <= heap.Size());
             SPDLOG_INFO("Created heap with offset: {} and size: {}", offset, size);
-            std::fill(_free.begin(), _free.end(), true);
+            ranges::fill(_free, true);
         }
 
         // Allocates consecutive indices based on TStride
@@ -121,7 +121,7 @@ namespace Inferno {
             return FindFreeIndex();
         }
 
-        uint GetFreeDescriptors() {
+        uint GetFreeDescriptors() const {
             uint i = 0;
             for (auto free : _free)
                 i += free;

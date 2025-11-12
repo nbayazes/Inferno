@@ -205,6 +205,20 @@ namespace Inferno {
 
         Render::Device = m_d3dDevice.Get();
 
+        using namespace D3D12MA;
+        ALLOCATOR_DESC desc = {
+            .Flags = ALLOCATOR_FLAG_NONE,
+            .pDevice = m_d3dDevice.Get(),
+            .PreferredBlockSize = 32 * 1024 * 1024,
+            .pAdapter = adapter.Get()
+        };
+
+        if (FAILED(D3D12MA::CreateAllocator(&desc, _allocator.GetAddressOf()))) {
+            throw Exception("Unable to create D3D12MA::Allocator");
+        }
+
+        Render::Allocator = _allocator.Get();
+
         // Create the command queues
         CommandQueue = make_unique<Inferno::CommandQueue>(m_d3dDevice.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT, "DeviceResources Command Queue");
         BatchUploadQueue = make_unique<Inferno::CommandQueue>(m_d3dDevice.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT, "DeviceResources Batch Queue");
@@ -521,7 +535,7 @@ namespace Inferno {
                      adapterIndex,
                      DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
                      IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf())));
-                 adapterIndex++) {
+                     adapterIndex++) {
                 DXGI_ADAPTER_DESC1 desc;
                 ThrowIfFailed(adapter->GetDesc1(&desc));
 
@@ -543,7 +557,7 @@ namespace Inferno {
                  SUCCEEDED(m_dxgiFactory->EnumAdapters1(
                      adapterIndex,
                      adapter.ReleaseAndGetAddressOf()));
-                 ++adapterIndex) {
+                     ++adapterIndex) {
                 DXGI_ADAPTER_DESC1 desc;
                 ThrowIfFailed(adapter->GetDesc1(&desc));
 
@@ -736,7 +750,7 @@ namespace Inferno {
         }
     }
 
-    void DeviceResources::PrintMemoryUsage() {
+    void DeviceResources::PrintMemoryUsage() const {
         try {
             ComPtr<IDXGIFactory4> dxgiFactory;
             ThrowIfFailed(CreateDXGIFactory1(IID_PPV_ARGS(&dxgiFactory)));
@@ -764,6 +778,13 @@ namespace Inferno {
             SPDLOG_INFO("Graphics memory usage: {} / {} MB",
                         info.CurrentUsage / 1024 / 1024,
                         info.Budget / 1024 / 1024);
+
+            D3D12MA::TotalStatistics stats;
+            _allocator->CalculateStatistics(&stats);
+            auto& defaultStats = stats.HeapType[D3D12_HEAP_TYPE_DEFAULT - 1].Stats;
+            SPDLOG_INFO("Graphics allocator default memory usage: {} MB {} objects",
+                        defaultStats.AllocationBytes / 1024 / 1024,
+                        defaultStats.AllocationCount);
         }
         catch (...) {
             SPDLOG_ERROR("Error querying GPU memory usage");

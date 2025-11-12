@@ -3,9 +3,15 @@
 #include "DirectX.h"
 #include "Types.h"
 #include "Heap.h"
+#include "Image.h"
 #include "Utility.h"
+#include <D3D12MemAlloc.h>
 
 using Microsoft::WRL::ComPtr;
+
+namespace Inferno::Render {
+    extern D3D12MA::Allocator* Allocator;
+}
 
 namespace Inferno {
     // Handle for a resource mapped to the GPU and CPU
@@ -19,6 +25,7 @@ namespace Inferno {
     class GpuResource {
     protected:
         ComPtr<ID3D12Resource> _resource;
+        ComPtr<D3D12MA::Allocation> _allocation;
         D3D12_RESOURCE_STATES _state = D3D12_RESOURCE_STATE_COMMON;
         D3D12_RESOURCE_DESC _desc = {};
         D3D12_HEAP_TYPE _heapType = {};
@@ -69,6 +76,7 @@ namespace Inferno {
                 barrier.UAV.pResource = _resource.Get();
                 cmdList->ResourceBarrier(1, &barrier);
             }
+
             auto originalState = _state;
             _state = state;
             return originalState;
@@ -86,29 +94,12 @@ namespace Inferno {
             cmdList->CopyResource(Get(), src._resource.Get());
         }
 
-        void CreateOnUploadHeap(string_view name, const D3D12_CLEAR_VALUE* clearValue = nullptr) {
-            Create(D3D12_HEAP_TYPE_UPLOAD, name, clearValue);
+        void CreateOnUploadHeap(string_view name, const D3D12_CLEAR_VALUE* clearValue = nullptr, bool forceComitted = false) {
+            Create(D3D12_HEAP_TYPE_UPLOAD, name, clearValue, forceComitted);
         }
 
-        void CreateOnDefaultHeap(string_view name, const D3D12_CLEAR_VALUE* clearValue = nullptr) {
-            Create(D3D12_HEAP_TYPE_DEFAULT, name, clearValue);
-        }
-
-        // Creates a resource at a specific location in a heap
-        CD3DX12_RESOURCE_BARRIER CreatePlacedResource(ID3D12Device* device,
-                                                      ID3D12Heap* heap,
-                                                      size_t offset,
-                                                      string_view name) {
-            ThrowIfFailed(device->CreatePlacedResource(
-                heap,
-                offset,
-                &_desc,
-                D3D12_RESOURCE_STATE_COMMON,
-                nullptr,
-                IID_PPV_ARGS(&_resource)));
-
-            ThrowIfFailed(_resource->SetName(Widen(name).c_str()));
-            return CD3DX12_RESOURCE_BARRIER::Aliasing(nullptr, _resource.Get());
+        void CreateOnDefaultHeap(string_view name, const D3D12_CLEAR_VALUE* clearValue = nullptr, bool forceComitted = false) {
+            Create(D3D12_HEAP_TYPE_DEFAULT, name, clearValue, forceComitted);
         }
 
         // If desc is null then default initialization is used. Not supported for all resources.
@@ -150,16 +141,27 @@ namespace Inferno {
         }
 
     private:
-        void Create(D3D12_HEAP_TYPE heapType, string_view name, const D3D12_CLEAR_VALUE* clearValue) {
+        void Create(/*const D3D12_RESOURCE_DESC& desc,*/ D3D12_HEAP_TYPE heapType, string_view name, const D3D12_CLEAR_VALUE* clearValue, bool forceComitted) {
             _heapType = heapType;
-            CD3DX12_HEAP_PROPERTIES props(_heapType);
-            ThrowIfFailed(Render::Device->CreateCommittedResource(
-                &props,
-                D3D12_HEAP_FLAG_NONE,
+
+            D3D12MA::ALLOCATION_DESC allocDesc = {};
+            allocDesc.HeapType = heapType;
+            if (forceComitted) allocDesc.Flags = D3D12MA::ALLOCATION_FLAG_COMMITTED; // procedurals are running into an issue when copying resources to aliased textures
+
+            // Enable aliasing on small textures (this is done automatically by the allocator)
+            // Placed resources save memory as long as the resolution is 64x64
+            //if (!forceComitted && _desc.Width <= 128 && _desc.Height <= 128) {
+            //    allocDesc.Flags = D3D12MA::ALLOCATION_FLAG_CAN_ALIAS;
+            //}
+
+            ThrowIfFailed(Render::Allocator->CreateResource(
+                &allocDesc,
                 &_desc,
                 D3D12_RESOURCE_STATE_COMMON,
                 clearValue,
-                IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())));
+                _allocation.ReleaseAndGetAddressOf(),
+                IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())
+            ));
 
             SetName(name);
         }
@@ -178,13 +180,15 @@ namespace Inferno {
             _srvDesc.Buffer.NumElements = elementCount;
             _srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
-            CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
-            ThrowIfFailed(Render::Device->CreateCommittedResource(
-                &heapProps,
-                D3D12_HEAP_FLAG_NONE,
+            D3D12MA::ALLOCATION_DESC allocDesc = {};
+            allocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+
+            ThrowIfFailed(Render::Allocator->CreateResource(
+                &allocDesc,
                 &_desc,
                 _state,
                 nullptr,
+                _allocation.ReleaseAndGetAddressOf(),
                 IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())
             ));
 
@@ -205,15 +209,15 @@ namespace Inferno {
             _srvDesc.Buffer.NumElements = elementCount / 4;
             _srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
 
-            //m_SRV = AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+            D3D12MA::ALLOCATION_DESC allocDesc = {};
+            allocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
 
-            CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
-            ThrowIfFailed(Render::Device->CreateCommittedResource(
-                &heapProps,
-                D3D12_HEAP_FLAG_NONE,
+            ThrowIfFailed(Render::Allocator->CreateResource(
+                &allocDesc,
                 &_desc,
                 D3D12_RESOURCE_STATE_COMMON,
                 nullptr,
+                _allocation.ReleaseAndGetAddressOf(),
                 IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())
             ));
 
@@ -227,13 +231,7 @@ namespace Inferno {
             //if (!_uav) _uav = Render::Heaps->Reserved.Allocate();
             SetName(name);
 
-            //m_ElementCount = NumElements;
-            //m_ElementSize = ElementSize;
-            //m_BufferSize = NumElements * ElementSize;
-
             //D3D12_RESOURCE_DESC ResourceDesc = DescribeBuffer();
-
-            //m_UsageState = D3D12_RESOURCE_STATE_COMMON;
 
             //D3D12_HEAP_PROPERTIES HeapProps;
             //HeapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
@@ -242,20 +240,12 @@ namespace Inferno {
             //HeapProps.CreationNodeMask = 1;
             //HeapProps.VisibleNodeMask = 1;
 
-            //ASSERT_SUCCEEDED(g_Device->CreateCommittedResource(&HeapProps, D3D12_HEAP_FLAG_NONE,
-            //                                                   &ResourceDesc, m_UsageState, nullptr, MY_IID_PPV_ARGS(&m_pResource)));
-
-            //m_GpuVirtualAddress = m_pResource->GetGPUVirtualAddress();
 
             //if (initialData)
             //    CommandContext::InitializeBuffer(*this, initialData, m_BufferSize);
 
-            //if (m_UAV.ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN)
-            //m_UAV = AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
             //Render::Device->CreateUnorderedAccessView(Get(), nullptr, &uavDesc, _uav.GetCpuHandle());
             //_resource->SetName(name.data());
-            //g_Device->CreateUnorderedAccessView(m_pResource.Get(), nullptr, &UAVDesc, m_UAV);
         }
     };
 
@@ -274,9 +264,6 @@ namespace Inferno {
             _srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
             if (!_srv) _srv = Render::Heaps->Reserved.Allocate();
-            //if (m_SRV.ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN)
-            //m_SRV = AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-            //g_Device->CreateShaderResourceView(m_pResource.Get(), &SRVDesc, m_SRV);
 
             _uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
             _uavDesc.Format = DXGI_FORMAT_UNKNOWN;
@@ -285,22 +272,21 @@ namespace Inferno {
             _uavDesc.Buffer.StructureByteStride = elementSize;
             _uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
 
-            CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
-            ThrowIfFailed(Render::Device->CreateCommittedResource(
-                &heapProps,
-                D3D12_HEAP_FLAG_NONE,
+            D3D12MA::ALLOCATION_DESC allocDesc = {};
+            allocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+
+            ThrowIfFailed(Render::Allocator->CreateResource(
+                &allocDesc,
                 &_desc,
                 D3D12_RESOURCE_STATE_COMMON,
                 nullptr,
+                _allocation.ReleaseAndGetAddressOf(),
                 IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())
             ));
 
             SetName(name);
 
             //_counterBuffer.Create("StructuredBuffer::Counter", 1, 4);
-
-            //if (m_UAV.ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN)
-            //m_UAV = AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
         }
     };
 
@@ -384,7 +370,7 @@ namespace Inferno {
                   string_view name,
                   bool enableMips = true,
                   DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
-            assert(data);
+            ASSERT(data);
             if (!data) return;
 
             auto mips = enableMips && width == 64 && height == 64 ? 7u : 1u; // enable mips on standard level textures
@@ -409,6 +395,50 @@ namespace Inferno {
                 batch.GenerateMips(resource);
         }
 
+        void Load(DirectX::ResourceUploadBatch& batch,
+                  const Image& image,
+                  string_view name,
+                  bool srgb = false) {
+            auto& metadata = image.GetMetadata();
+            auto format = srgb ? DirectX::MakeSRGB(metadata.format) : metadata.format;
+
+            //if (DirectX::IsCompressed(image.metadata.format)) {
+            //    LoadDDS(batch, image.GetPixels(), srgb);
+            //    return;
+            //}
+
+            //assert(data);
+            //if (!data) return;
+
+            //auto mips = enableMips && width == 64 && height == 64 ? 7u : 1u; // enable mips on standard level textures
+            SetDesc((uint)metadata.width, (uint)metadata.height, (uint16)metadata.mipLevels, format);
+
+            //uint64 bpp = format == DXGI_FORMAT_R8_UNORM ? 1 : 4;
+
+            /*D3D12_SUBRESOURCE_DATA upload = {};
+            upload.pData = image.GetPixels().data();
+            upload.RowPitch = GetWidth() * bpp;
+            upload.SlicePitch = upload.RowPitch * GetHeight();
+            image.GetPitch(upload.RowPitch, upload.SlicePitch);*/
+
+            auto upload = image.GetSubresourceData();
+            if (!upload.pData) return;
+
+            if (!_resource)
+                CreateOnDefaultHeap(name);
+
+            auto resource = _resource.Get();
+            batch.Transition(resource, _state, D3D12_RESOURCE_STATE_COPY_DEST);
+            batch.Upload(resource, 0, &upload, 1);
+            batch.Transition(resource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+
+            //auto mips = enableMips && image.metadata.width == 64 && image.metadata.height == 64 ? 7u : 1u; // enable mips on standard level textures
+
+            //if (mips > 1)
+            //    batch.GenerateMips(resource);
+        }
+
         // Uploads a resource with mipmaps
         void LoadMipped(DirectX::ResourceUploadBatch& batch,
                         const void* data,
@@ -416,8 +446,8 @@ namespace Inferno {
                         string_view name,
                         uint16 mips,
                         DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
-            assert(data);
-            assert(mips >= 1);
+            ASSERT(data);
+            ASSERT(mips >= 1);
             if (!data) return;
 
             SetDesc(width, height, mips, format);
@@ -482,6 +512,7 @@ namespace Inferno {
             return info;
         }
 
+        // Loads a raw DDS texture file
         bool LoadDDS(DirectX::ResourceUploadBatch& batch, span<uint8> data, bool srgb = false) {
             try {
                 auto loadFlags = srgb ? DirectX::DDS_LOADER_FORCE_SRGB : DirectX::DDS_LOADER_DEFAULT;
@@ -545,15 +576,18 @@ namespace Inferno {
         void CreateUploadBuffer() {
             const uint64 uploadBufferSize = GetRequiredIntermediateSize(_resource.Get(), 0, 1);
             auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
-            CD3DX12_HEAP_PROPERTIES props(D3D12_HEAP_TYPE_UPLOAD);
 
-            ThrowIfFailed(Render::Device->CreateCommittedResource(
-                &props,
-                D3D12_HEAP_FLAG_NONE,
+            D3D12MA::ALLOCATION_DESC allocDesc = {};
+            allocDesc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
+
+            ThrowIfFailed(Render::Allocator->CreateResource(
+                &allocDesc,
                 &bufferDesc,
                 D3D12_RESOURCE_STATE_GENERIC_READ,
                 nullptr,
-                IID_PPV_ARGS(&_uploadBuffer)));
+                _allocation.ReleaseAndGetAddressOf(),
+                IID_PPV_ARGS(_uploadBuffer.ReleaseAndGetAddressOf())
+            ));
         }
     };
 
@@ -871,12 +905,16 @@ namespace Inferno {
             clearValue.DepthStencil.Depth = ClearDepth;
             clearValue.DepthStencil.Stencil = 0;
 
-            ThrowIfFailed(Render::Device->CreateCommittedResource(
-                &depthHeapProperties,
-                D3D12_HEAP_FLAG_NONE,
+            D3D12MA::ALLOCATION_DESC allocDesc = {};
+            allocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+            allocDesc.Flags = D3D12MA::ALLOCATION_FLAG_COMMITTED;
+
+            ThrowIfFailed(Render::Allocator->CreateResource(
+                &allocDesc,
                 &_desc,
                 _state,
                 &clearValue,
+                _allocation.ReleaseAndGetAddressOf(),
                 IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())
             ));
 
@@ -959,16 +997,18 @@ namespace Inferno {
 
             D3D12_CLEAR_VALUE clearValue = {};
             clearValue.Format = format;
-            memcpy(clearValue.Color, clearColor, sizeof(float) * 4);
+            memcpy(clearValue.Color, clearColor, sizeof(clearColor));
 
-            // Create on default hep
-            CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
-            ThrowIfFailed(Render::Device->CreateCommittedResource(
-                &heapProperties,
-                D3D12_HEAP_FLAG_NONE,
+            D3D12MA::ALLOCATION_DESC allocDesc = {};
+            allocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+            allocDesc.Flags = D3D12MA::ALLOCATION_FLAG_COMMITTED;
+
+            ThrowIfFailed(Render::Allocator->CreateResource(
+                &allocDesc,
                 &_desc,
                 _state,
                 &clearValue,
+                _allocation.ReleaseAndGetAddressOf(),
                 IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())
             ));
 
