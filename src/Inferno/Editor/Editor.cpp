@@ -13,6 +13,7 @@
 #include "Editor.Wall.h"
 #include "Convert.h"
 #include "Editor.Clipboard.h"
+#include "Editor.Diagnostics.h"
 #include "Editor.Geometry.h"
 #include "Editor.IO.h"
 #include "Editor.Undo.h"
@@ -592,6 +593,8 @@ namespace Inferno::Editor {
                 SPDLOG_WARN("Trigger {} belongs to more than one wall", tid);
             }
         }
+
+        FixLevel(level);
     }
 
     void InitEditor() {
