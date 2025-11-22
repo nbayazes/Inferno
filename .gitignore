@@ -365,3 +365,5 @@ dxc.exe
 /src/Inferno/d2
 *.bak
 *.flac
+/src/Inferno/assets
+/src/Inferno/mods
