@@ -210,8 +210,15 @@ namespace Inferno {
 
         auto biggestSide = SideID::None;
 
+        uint biggestSideIterations = 0;
+
         do {
             biggestSide = SideID::None;
+            if (biggestSideIterations++ > 50) {
+                // Rarely the trace function can get completely stuck finding the biggest side
+                SPDLOG_ERROR("Trace depth biggest side iteration limit reached, something is wrong");
+                return SegID::None;
+            }
 
             auto seg = level.TryGetSegment(start);
             float biggestVal = 0;
