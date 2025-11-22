@@ -958,6 +958,7 @@ Powerups:
   - id: 3
     Name: Laser
     Primary: 0
+    Model: laser.pof
 
   - id: 4
     Name: Blue Key
@@ -988,24 +989,29 @@ Powerups:
     Name: Vulcan Cannon
     Primary: 1
     Ammo: 250
+    Model: vulcan.pof
 
   - id: 22
     Name: Vulcan Ammo
     IsAmmo: true
     Ammo: 125
     Primary: 1
+    Model: vulcanammo.pof
 
   - id: 14
     Name: Spreadfire
     Primary: 2
+    Model: spreadfire.pof
 
   - id: 15
     Name: Plasma Cannon
     Primary: 3
+    Model: plasma.pof
 
   - id: 16
     Name: Fusion Cannon
     Primary: 4
+    Model: fusion.pof
 
   - id: 17
     Name: Proximity Bombs

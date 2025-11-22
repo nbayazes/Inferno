@@ -130,6 +130,13 @@ float4 psmain(PS_INPUT input) : SV_Target {
             float specularMask = Sample2D(TextureTable[NonUniformResourceIndex(texid * 5 + 3)], input.uv, Sampler, Frame.FilterMode).r;
 
             MaterialInfo material = Materials[matid];
+            // todo: material for powerups
+            //material.Metalness = 1;
+            //material.Roughness = 0.3;
+            //material.NormalStrength = 0.5;
+            //material.SpecularStrength = 1;
+            //material.LightReceived = 1.75;
+
             float3 normal = SampleNormal(TextureTable[NonUniformResourceIndex(texid * 5 + 4)], input.uv, NormalSampler, Frame.FilterMode);
             normal.xy *= material.NormalStrength;
             normal = normalize(normal);

@@ -573,7 +573,7 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawFogMesh(GraphicsContext& ctx, Level& level, const FogMesh& fog, const RenderTarget& renderTarget, bool skipCameraEnv) {
+    void DrawFogMesh(GraphicsContext& ctx, Level& level, const FogMesh& fog, const RenderTarget& renderTarget) {
         auto cmdList = ctx.GetCommandList();
 
         //for (auto& fog : _levelMeshBuilder.GetFogMeshes()) {
@@ -868,7 +868,7 @@ namespace Inferno::Render {
 
             case RenderCommandType::Fog:
                 if (pass == RenderPass::Transparent) {
-                    DrawFogMesh(ctx, Game::Level, *cmd.data.fog, Adapter->GetRenderTarget(), false);
+                    DrawFogMesh(ctx, Game::Level, *cmd.data.fog, Adapter->GetRenderTarget());
                 }
         }
     }

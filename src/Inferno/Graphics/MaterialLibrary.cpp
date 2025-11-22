@@ -5,11 +5,9 @@
 #include "Formats/PCX.h"
 #include "Game.h"
 #include "NormalMap.h"
-#include "Procedural.h"
 #include "Render.h"
 #include "Resources.h"
 #include "ScopedTimer.h"
-#include <DirectXTex.h>
 
 using namespace DirectX;
 
@@ -327,26 +325,6 @@ namespace Inferno::Render {
         }
     }
 
-    bool LoadPng(span<ubyte> png, DirectX::ScratchImage& result, TexMetadata& metadata, bool srgb) {
-        size_t rowPitch, slicePitch;
-        List<uint8> pixels;
-
-        auto flags = srgb ? WIC_FLAGS_DEFAULT_SRGB : WIC_FLAGS_FORCE_LINEAR;
-
-        DirectX::ScratchImage pngData, premultiplied;
-        if (!SUCCEEDED(DirectX::LoadFromWICMemory(png.data(), png.size(), flags, &metadata, pngData)))
-            return false;
-
-        auto format = srgb ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
-
-        if (!SUCCEEDED(DirectX::ComputePitch(format, metadata.width, metadata.height, rowPitch, slicePitch)))
-            return false;
-
-        DirectX::Image image(metadata.width, metadata.height, format, rowPitch, slicePitch, pngData.GetPixels());
-
-        return SUCCEEDED(PremultiplyAlpha(image, TEX_PMALPHA_DEFAULT, result));
-    }
-
     Option<Material2D> UploadMaterial(ResourceUploadBatch& batch,
                                       const MaterialUpload& upload,
                                       const TextureMapCache& cache,
@@ -375,16 +353,20 @@ namespace Inferno::Render {
 
         // Reads a custom image from a dds, then a png
         auto readCustomImage = [&batch, &material](const string& name, int slot, bool srgb = false) {
-            if (auto dds = FileSystem::ReadAsset(name + ".dds")) {
-                material.Textures[slot].LoadDDS(batch, *dds, srgb);
+            if (auto image = FileSystem::ReadImage(name, srgb)) {
+                material.Textures[slot].Load(batch, *image, name, srgb);
             }
-            else if (auto png = FileSystem::ReadAsset(name + ".png")) {
-                DirectX::TexMetadata metadata{};
-                ScratchImage pngImage;
-                if (LoadPng(*png, pngImage, metadata, srgb)) {
-                    material.Textures[slot].Load(batch, pngImage.GetPixels(), (uint)metadata.width, (uint)metadata.height, material.Name);
-                }
-            }
+
+            //if (auto dds = FileSystem::ReadAsset(name + ".dds")) {
+            //    material.Textures[slot].LoadDDS(batch, *dds, srgb);
+            //}
+            //else if (auto png = FileSystem::ReadAsset(name + ".png")) {
+            //    DirectX::TexMetadata metadata{};
+            //    ScratchImage pngImage;
+            //    if (LoadPng(*png, pngImage, metadata, srgb)) {
+            //        material.Textures[slot].Load(batch, pngImage.GetPixels(), (uint)metadata.width, (uint)metadata.height, material.Name);
+            //    }
+            //}
         };
 
         readCustomImage(material.Name, Material2D::Diffuse, true);
@@ -466,7 +448,7 @@ namespace Inferno::Render {
         return material;
     }
 
-    Material2D UploadBitmap(ResourceUploadBatch& batch, const string& name, const Texture2D& defaultTex) {
+    Material2D UploadBitmap(ResourceUploadBatch& batch, const string& name, const Texture2D& /*defaultTex*/) {
         Material2D material;
         material.UploadIndex = Render::Uploads->AllocateIndex();
 
@@ -474,14 +456,75 @@ namespace Inferno::Render {
         for (int i = 0; i < Material2D::Count; i++)
             material.Handles[i] = Render::Uploads->GetGpuHandle(material.UploadIndex + i);
 
+        PigBitmap diffuse;
+
+        //auto readCustomImage = [&batch, &material](const string& name, int slot, bool srgb = false) {
+        //    if (auto image = FileSystem::ReadImage(name, srgb)) {
+        //        material.Textures[slot].Load(batch, *image, name);
+        //    }
+        //};
+
         material.Name = name;
-        if (auto path = FileSystem::ReadAsset(name + ".dds"))
-            material.Textures[Material2D::Diffuse].LoadDDS(batch, *path, true);
+        //if (auto path = FileSystem::ReadAsset(name + ".dds"))
+        //    material.Textures[Material2D::Diffuse].LoadDDS(batch, *path, true);
+
+        if (auto image = FileSystem::ReadImage(name, true)) {
+            material.Textures[Material2D::Diffuse].Load(batch, *image, name, true);
+            image->CopyToPigBitmap(diffuse);
+        }
+
+        //readCustomImage(name, Material2D::Diffuse, true);
+        //readCustomImage(name + "_s", Material2D::Specular);
+        //readCustomImage(name + "_n", Material2D::Normal);
+
+        //if (auto path = FileSystem::ReadAsset(name + ".png")) {
+        //    DirectX::TexMetadata metadata{};
+        //    DirectX::ScratchImage pngImage;
+        //    if (Render::LoadPng(*path, pngImage, metadata, true)) {
+        //        auto image = pngImage.GetImage(0, 0, 0);
+        //        //CopyScratchImageToBitmap(*image, dest);
+        //        // todo: create mips fails if BGR
+        //        material.Textures[Material2D::Diffuse].Load(batch, image->pixels, image->width, image->height, name, false, metadata.format);
+        //    }
+        //}
+
+        auto width = diffuse.Info.Width;
+        auto height = diffuse.Info.Height;
+        bool genMaps = (width == 64 && height == 64) || (width == 128 && height == 128);
+
+        if (!material.Textures[Material2D::Specular] && genMaps && !diffuse.Data.empty()) {
+            auto specular = CreateSpecularMap(diffuse);
+            material.Textures[Material2D::Specular].Load(batch, specular.data(), width, height, material.Name, true, DXGI_FORMAT_R8_UNORM);
+        }
+
+        if (!material.Textures[Material2D::Normal] && genMaps && !diffuse.Data.empty()) {
+            auto normal = CreateNormalMap(diffuse);
+            material.Textures[Material2D::Normal].Load(batch, normal.data(), width, height, material.Name, true, DXGI_FORMAT_R8G8B8A8_UNORM);
+        }
 
         // Set default secondary textures
+        //for (uint i = 0; i < std::size(material.Textures); i++) {
+        //    auto handle = Render::Uploads->GetCpuHandle(material.UploadIndex + i);
+        //    auto texture = material.Textures[i] ? &material.Textures[i] : &defaultTex;
+        //    texture->CreateShaderResourceView(handle);
+        //}
+
         for (uint i = 0; i < std::size(material.Textures); i++) {
             auto handle = Render::Uploads->GetCpuHandle(material.UploadIndex + i);
-            auto texture = material.Textures[i] ? &material.Textures[i] : &defaultTex;
+            Texture2D* texture = nullptr;
+
+            if (material.Textures[i]) {
+                texture = &material.Textures[i];
+            }
+            else {
+                if (i == Material2D::Normal)
+                    texture = &Render::StaticTextures->Normal;
+                else if (i == Material2D::Emissive || i == Material2D::Specular)
+                    texture = &Render::StaticTextures->White;
+                else
+                    texture = &Render::StaticTextures->Black;
+            }
+
             texture->CreateShaderResourceView(handle);
         }
 
@@ -727,7 +770,7 @@ namespace Inferno::Render {
             if (_namedMaterials.contains(name) && !force) continue; // skip loaded
             Material2D material;
 
-            if (FileSystem::AssetExists(name + ".dds")) {
+            if (FileSystem::AssetExists(name + ".dds") || FileSystem::AssetExists(name + ".png")) {
                 material = UploadBitmap(batch, name, Render::StaticTextures->Black);
             }
             else if (auto bitmap = Resources::ReadOutrageBitmap(name)) {

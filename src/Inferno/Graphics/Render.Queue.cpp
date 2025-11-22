@@ -707,12 +707,23 @@ namespace Inferno::Render {
         // if there's any fog in the level, determine if it is in the render list.
         // if it is, insert AFTER all objects in those segments so they are fogged correctly after flipping order
         for (auto& fog : _levelMeshBuilder.GetFogMeshes()) {
+            bool visible = false;
+            for (auto& fogSeg : fog.Segments) {
+                if (Seq::contains(_renderList, fogSeg)) {
+                    visible = true;
+                    break;
+                }
+            }
+
+            if (!visible)
+                continue; // fog not in any visible segments
+
             if (!camera.Frustum.Contains(fog.bounds))
                 continue; // only draw fog in frustum
 
             int lastIndex = -1;
             // find the LAST index in the render list that contains fog
-            for (int i = _transparentQueue.size() - 1; i >= 0; --i) {
+            for (int i = (int)_transparentQueue.size() - 1; i >= 0; --i) {
                 auto& item = _transparentQueue[i];
                 if (item.type == RenderCommandType::Object) {
                     if (Seq::contains(fog.Segments, item.data.object->Segment))
@@ -730,7 +741,7 @@ namespace Inferno::Render {
                 lastIndex = std::max((int)_transparentQueue.size() - 1, 0);
 
                 auto depth = Vector3::DistanceSquared(camera.Position, fog.bounds.Center);
-                for (int i = _transparentQueue.size() - 1; i >= 0; --i) {
+                for (int i = (int)_transparentQueue.size() - 1; i >= 0; --i) {
                     auto& item = _transparentQueue[i];
                     if (item.depth > depth) {
                         lastIndex = i;

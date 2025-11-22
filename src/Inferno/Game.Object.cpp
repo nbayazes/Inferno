@@ -1112,10 +1112,23 @@ namespace Inferno {
                 break;
 
             case ObjectType::Powerup: {
-                obj.Control.Type = ControlType::Powerup;
-                obj.Render.Type = RenderType::Powerup;
                 auto& info = Resources::GetPowerup((PowerupID)id);
-                obj.Render.VClip = { .ID = info.VClip };
+
+                obj.Control.Type = ControlType::Powerup;
+
+                if (info.runtime.model == ModelID::None) {
+                    obj.Render.Type = RenderType::Powerup;
+                    obj.Render.VClip = { .ID = info.VClip };
+                }
+                else {
+                    obj.Render.Type = RenderType::Model;
+                    obj.Render.Model.ID = info.runtime.model;
+                    obj.Movement = MovementType::Spinning;
+                    obj.Physics.AngularVelocity.y = 0.75;
+                    obj.Physics.AngularVelocity = info.AngularVelocity;
+                    obj.Physics.Flags |= PhysicsFlag::FixedAngVel;
+                }
+
                 obj.Radius = info.Size;
                 obj.Light.Radius = info.LightRadius;
                 obj.Light.Color = info.LightColor;

@@ -40,7 +40,7 @@ namespace Inferno {
 
     struct Reactor {
         static constexpr auto GunCount = 8;
-        ModelID Model{};
+        ModelID Model = ModelID::None;
         int Guns{};
         Array<Vector3, GunCount> GunPoints;
         Array<Vector3, GunCount> GunDirs;
@@ -51,6 +51,7 @@ namespace Inferno {
 
     struct Powerup {
         VClipID VClip = VClipID::None;
+        string Model;
         SoundID HitSound; // sound when picked up
         float Size;
         float Light; // unused: HAM light value (radius?)
@@ -63,6 +64,11 @@ namespace Inferno {
         bool IsAmmo = false; // Only gives primary weapon ammo, not the weapon
         PrimaryWeaponIndex Primary = PrimaryWeaponIndex::None; // Primary weapon to pick up or give ammo for
         SecondaryWeaponIndex Secondary = SecondaryWeaponIndex::None; // Secondary weapon to pick up or give ammo for
+        Vector3 AngularVelocity = { 0, 3.14f / 8, 0 };
+
+        struct {
+            ModelID model = ModelID::None;
+        } runtime;
     };
 
     // Stores Texture, Sound, and Animation metadata

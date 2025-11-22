@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "FileSystem.h"
+#include <DirectXTex.h>
 #include <fstream>
 #include <ranges>
 #include <unordered_dense.h>
@@ -13,6 +14,76 @@
 #include "Settings.h"
 
 namespace Inferno {
+    namespace {
+        bool ResizeImage(const DirectX::Image& src, DirectX::ScratchImage& dest, bool wrapU, bool wrapV, uint8 width = 64, uint8 height = 64) {
+            using namespace DirectX;
+            auto flags = TEX_FILTER_DEFAULT;
+            if (wrapU) flags |= TEX_FILTER_WRAP_U;
+            if (wrapV) flags |= TEX_FILTER_WRAP_V;
+
+            if (SUCCEEDED(Resize(src, width, height, flags, dest)))
+                return true;
+
+            return false;
+        }
+
+        //void CopyScratchImageToBitmap(const DirectX::Image& image, PigBitmap& dest) {
+        //    dest.Data.resize(image.slicePitch / 4);
+        //    memcpy(dest.Data.data(), image.pixels, image.slicePitch);
+        //    dest.Info.Width = (uint16)image.width;
+        //    dest.Info.Height = (uint16)image.height;
+        //}
+
+        //bool LoadPng(span<ubyte> png, DirectX::ScratchImage& result, DirectX::TexMetadata& metadata, bool srgb) {
+        //    size_t rowPitch, slicePitch;
+        //    List<uint8> pixels;
+
+        //    auto flags = srgb ? DirectX::WIC_FLAGS_DEFAULT_SRGB : DirectX::WIC_FLAGS_FORCE_LINEAR;
+
+        //    DirectX::ScratchImage pngData, premultiplied;
+        //    if (!SUCCEEDED(DirectX::LoadFromWICMemory(png.data(), png.size(), flags, &metadata, pngData)))
+        //        return false;
+
+        //    auto format = srgb ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
+
+        //    if (!SUCCEEDED(DirectX::ComputePitch(format, metadata.width, metadata.height, rowPitch, slicePitch)))
+        //        return false;
+
+        //    DirectX::Image image(metadata.width, metadata.height, format, rowPitch, slicePitch, pngData.GetPixels());
+
+        //    return SUCCEEDED(PremultiplyAlpha(image, DirectX::TEX_PMALPHA_DEFAULT, result));
+        //}
+
+
+        //bool LoadDDS(string_view filename, PigBitmap& dest, bool wrapU, bool wrapV, uint8 size = 64) {
+        //    using namespace DirectX;
+        //    ScratchImage dds, decompressed, resized;
+        //    TexMetadata metadata;
+
+        //    auto data = Inferno::FileSystem::ReadAsset(string(filename));
+        //    if (!data) return false;
+
+        //    if (FAILED(LoadFromDDSMemory(data->data(), data->size(), DDS_FLAGS_NONE, &metadata, dds)))
+        //        return false;
+
+        //    if (FAILED(Decompress(*dds.GetImage(0, 0, 0), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, decompressed)))
+        //        return false;
+
+        //    auto image = decompressed.GetImage(0, 0, 0);
+
+        //    if (metadata.width != size || metadata.height != size) {
+        //        if (ResizeImage(*image, resized, wrapU, wrapV, size))
+        //            image = resized.GetImage(0, 0, 0);
+        //    }
+
+        //    CopyScratchImageToBitmap(*image, dest);
+
+        //    
+        //    return true;
+        //}
+    }
+
+
     class ZipFile final : public IZipFile {
         zip_t* _zip = nullptr;
         List<string> _entries;
@@ -434,6 +505,38 @@ namespace Inferno::FileSystem {
         else {
             MountArchive(path);
         }
+    }
+
+    Option<Image> ReadImage(const string& name, bool srgb) {
+        auto ext = String::ToLower(String::Extension(name));
+        Image image;
+
+        if (ext.empty()) {
+            // prioritize dds
+            if (auto dds = FileSystem::ReadAsset(name + ".dds")) {
+                image.LoadDDS(*dds, srgb);
+            }
+            else if (auto png = FileSystem::ReadAsset(name + ".png")) {
+                image.LoadWIC(*png, srgb);
+            }
+            else if (auto tga = FileSystem::ReadAsset(name + ".tga")) {
+                image.LoadTGA(*tga, srgb);
+            }
+        }
+        else if (auto data = FileSystem::ReadAsset(name)) {
+            if (ext == ".dds") {
+                image.LoadDDS(*data, srgb);
+            }
+            else if (ext == ".png") {
+                image.LoadWIC(*data, srgb);
+            }
+            else if (ext == ".tga") {
+                image.LoadTGA(*data, srgb);
+            }
+        }
+
+        if (!image.GetPixels()) return {};
+        return image;
     }
 
     void Unmount() {

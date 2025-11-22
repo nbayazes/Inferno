@@ -1406,6 +1406,14 @@ namespace Inferno {
 
         if (!obj.IsAlive() && obj.Type != ObjectType::Reactor) return;
         if (obj.Type == ObjectType::Player && obj.ID > 0) return; // singleplayer only
+
+        // for powerups with models
+        if (obj.Movement == MovementType::Spinning) {
+            AngularPhysics(obj, dt * STEPS);
+            obj.PrevRotation = obj.Rotation;
+            return;
+        }
+
         if (obj.Movement != MovementType::Physics) {
             obj.PrevPosition = obj.Position;
             obj.PrevRotation = obj.Rotation;

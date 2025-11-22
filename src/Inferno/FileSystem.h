@@ -1,6 +1,8 @@
 #pragma once
 
+#include "Pig.h"
 #include "Types.h"
+#include "Image.h"
 
 namespace Inferno {
     struct ResourceHandle;
@@ -21,7 +23,6 @@ namespace Inferno {
         virtual IZipFile& operator=(const IZipFile&) = delete;
         IZipFile& operator=(IZipFile&&) = default;
     };
-
 }
 
 namespace Inferno::File {
@@ -35,8 +36,6 @@ namespace Inferno::File {
     void WriteAllBytes(const std::filesystem::path& path, span<ubyte> data);
     string ReadAllText(const filesystem::path& path);
     std::vector<std::string> ReadLines(const filesystem::path& path);
-
-
 }
 
 /*
@@ -47,12 +46,17 @@ namespace Inferno::FileSystem {
     void AddDataDirectory(const std::filesystem::path&);
     Option<std::filesystem::path> TryFindFile(const std::filesystem::path&);
 
+    // Mounts assets required to display the main menu
     void MountMainMenu();
 
     // Mounts custom assets for a level from the filesystem
     void MountLevel(const Level& level, const filesystem::path& missionPath = {});
 
     Option<List<ubyte>> ReadAsset(string name);
+
+    // Helper to read image assets based on the extension. Supports DDS, TGA, and WIC formats (PNG).
+    Option<Image> ReadImage(const string& name, bool srgb = true);
+
     bool AssetExists(string name);
     Option<ResourceHandle> FindAsset(string name);
     filesystem::path FindFile(const std::filesystem::path&);

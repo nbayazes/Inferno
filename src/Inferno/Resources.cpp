@@ -466,7 +466,7 @@ namespace Inferno::Resources {
         }
     }
 
-    void LoadCustomModel(FullGameData& data, string_view fileName, LoadFlag flags) {
+    bool LoadCustomModel(FullGameData& data, string_view fileName, LoadFlag flags) {
         auto modelData = ReadBinaryFile(fileName, flags);
         if (modelData) {
             auto model = ReadPof(*modelData, &data.palette);
@@ -474,13 +474,18 @@ namespace Inferno::Resources {
             model.FirstTexture = (uint16)data.ObjectBitmaps.size();
             data.ObjectBitmapPointers.push_back(model.FirstTexture);
 
+            Graphics::LoadTextures(model.Textures);
+
             for (auto& texture : model.Textures) {
                 auto id = data.pig.Find(texture);
                 data.ObjectBitmaps.push_back(id);
             }
 
             data.Models.push_back(model);
+            return true;
         }
+
+        return false;
     }
 
     // Load custom models. Note this requires the D1 ham for proper texturing.
@@ -551,6 +556,19 @@ namespace Inferno::Resources {
         LoadCustomModel(data, "debris1.pof", flags);
         LoadCustomModel(data, "debris2.pof", flags);
         LoadCustomModel(data, "debris3.pof", flags);
+
+        for (auto& powerup : data.Powerups) {
+            if (powerup.Model.empty()) continue;
+
+            if (LoadCustomModel(data, powerup.Model, flags)) {
+                powerup.runtime.model = (ModelID)(data.Models.size() - 1);
+            }
+            //if (auto modelData = ReadBinaryFile(powerup.Model, flags)) {
+            //    auto model = ReadPof(*modelData, &data.palette);
+            //    model.FileName = powerup.Model;
+            //    data.Models.push_back(model);
+            //}
+        }
     }
 
     bool LoadDescent1Data() {
@@ -1284,54 +1302,6 @@ namespace Inferno::Resources {
         return {};
     }
 
-    bool ResizeImage(const DirectX::Image& src, DirectX::ScratchImage& dest, bool wrapU, bool wrapV, uint8 width = 64, uint8 height = 64) {
-        using namespace DirectX;
-        auto flags = TEX_FILTER_DEFAULT;
-        if (wrapU) flags |= TEX_FILTER_WRAP_U;
-        if (wrapV) flags |= TEX_FILTER_WRAP_V;
-
-        if (SUCCEEDED(Resize(src, width, height, flags, dest)))
-            return true;
-
-        return false;
-    }
-
-    void CopyScratchImageToBitmap(const DirectX::Image& image, PigBitmap& dest) {
-        dest.Data.resize(image.slicePitch / 4);
-        memcpy(dest.Data.data(), image.pixels, image.slicePitch);
-        dest.Info.Width = (uint16)image.width;
-        dest.Info.Height = (uint16)image.height;
-    }
-
-    bool LoadDDS(string_view filename, PigBitmap& dest, bool wrapU, bool wrapV, uint8 size = 64) {
-        using namespace DirectX;
-        ScratchImage dds, decompressed, resized;
-        TexMetadata metadata;
-
-        auto data = Inferno::FileSystem::ReadAsset(string(filename));
-        if (!data) return false;
-
-        if (FAILED(LoadFromDDSMemory(data->data(), data->size(), DDS_FLAGS_NONE, &metadata, dds)))
-            return false;
-
-        if (FAILED(Decompress(*dds.GetImage(0, 0, 0), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, decompressed)))
-            return false;
-
-        auto image = decompressed.GetImage(0, 0, 0);
-
-        if (metadata.width != size || metadata.height != size) {
-            if (ResizeImage(*image, resized, wrapU, wrapV, size))
-                image = resized.GetImage(0, 0, 0);
-        }
-
-        CopyScratchImageToBitmap(*image, dest);
-        return true;
-    }
-
-        CopyScratchImageToBitmap(*image, dest);
-        return true;
-    }
-
     // Enables procedural textures for a level
     void LoadProcedurals(span<MaterialInfo> materials, span<TexID> levelTexIds) {
         FreeProceduralTextures();
@@ -1353,15 +1323,9 @@ namespace Inferno::Resources {
                 bool wrapv = HasFlag(material->Flags, MaterialFlags::WrapV);
                 constexpr int size = 128;
 
-                // Search for DDS and PNG files in the VFS
-                if (LoadDDS(ti.Name + ".dds", waterImage, wrapu, wrapv, size)) {}
-                else if (auto png = FileSystem::ReadAsset(ti.Name + ".png")) {
-                    DirectX::TexMetadata metadata{};
-                    DirectX::ScratchImage pngImage;
-                    if (Render::LoadPng(*png, pngImage, metadata, true)) {
-                        auto image = pngImage.GetImage(0, 0, 0);
-                        CopyScratchImageToBitmap(*image, waterImage);
-                    }
+                if (auto image = FileSystem::ReadImage(ti.Name, true)) {
+                    image->Resize(wrapu, wrapv, size, size);
+                    image->CopyToPigBitmap(waterImage);
                 }
                 else {
                     // Use game data
@@ -1369,18 +1333,23 @@ namespace Inferno::Resources {
                     ASSERT(texture.Info.Width > 0);
                     ASSERT(texture.Info.Height > 0);
 
-                    size_t rowPitch, slicePitch;
-                    if (SUCCEEDED(DirectX::ComputePitch(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, texture.Info.Width, texture.Info.Height, rowPitch, slicePitch))) {
-                        DirectX::ScratchImage resized;
-                        DirectX::Image image(texture.Info.Width, texture.Info.Height,
-                                             DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
-                                             rowPitch, slicePitch, (uint8*)texture.Data.data());
+                    Image bitmapImage;
+                    bitmapImage.LoadPigBitmap(texture);
+                    bitmapImage.Resize(wrapu, wrapv, size, size);
+                    bitmapImage.CopyToPigBitmap(waterImage);
 
-                        if (ResizeImage(image, resized, wrapu, wrapv, size, size)) {
-                            image = *resized.GetImage(0, 0, 0);
-                            CopyScratchImageToBitmap(image, waterImage);
-                        }
-                    }
+                    //size_t rowPitch, slicePitch;
+                    //if (SUCCEEDED(DirectX::ComputePitch(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, texture.Info.Width, texture.Info.Height, rowPitch, slicePitch))) {
+                    //    DirectX::ScratchImage resized;
+                    //    DirectX::Image image(texture.Info.Width, texture.Info.Height,
+                    //                         DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+                    //                         rowPitch, slicePitch, (uint8*)texture.Data.data());
+
+                    //    if (ResizeImage(image, resized, wrapu, wrapv, size, size)) {
+                    //        image = *resized.GetImage(0, 0, 0);
+                    //        CopyScratchImageToBitmap(image, waterImage);
+                    //    }
+                    //}
                 }
 
                 AddProcedural(ti, texid, &waterImage);

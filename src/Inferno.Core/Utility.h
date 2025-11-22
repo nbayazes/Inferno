@@ -574,7 +574,7 @@ namespace Inferno {
     constexpr int MIN_FIX = -32769; // Minimum fixed point value
 
     constexpr fix FloatToFix(float f) {
-        assert(f < MAX_FIX&& f > MIN_FIX); // out of range
+        assert(f < MAX_FIX && f > MIN_FIX); // out of range
         return (fix)(f * (1 << 16));
     }
 
@@ -701,6 +701,10 @@ namespace Inferno {
         }
 
         constexpr bool HasExtension(const string& str) { return !Extension(str).empty(); }
+
+        inline bool HasExtension(const string& str, string_view ext) {
+            return InvariantEquals(Extension(str), ext);
+        }
 
         const string Whitespace = " \n\r\t\f\v";
 

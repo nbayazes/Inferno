@@ -397,6 +397,7 @@
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='DebugGpu|x64'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
     </None>
+    <ClInclude Include="Image.h" />
     <ClInclude Include="Mods.h" />
     <ClInclude Include="Resources.Common.h" />
     <ClInclude Include="TextureCache.h" />

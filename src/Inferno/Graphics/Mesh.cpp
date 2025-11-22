@@ -63,6 +63,9 @@ namespace Inferno::Render {
                 }
                 else {
                     texId = Resources::LookupModelTexID(model, p.TexSlot);
+                    if (texId == TexID::None) {
+                        texId = Render::Materials->Find(model.Textures[p.TexSlot]);
+                    }
                     isTransparent |= Resources::GetTextureInfo(texId).Transparent;
                     auto vclip = Resources::GetEffectClipID(texId);
                     v.TexID = vclip > EClipID::None ? VCLIP_RANGE + (int)vclip : (int)texId;
@@ -122,7 +125,7 @@ namespace Inferno::Render {
             Dictionary<int, SubmodelMesh> smMeshes;
             auto tid = TexID::None; // purposely snapshot last face's texture
             // todo: split meshes based on transparency - were the original models designed with this in mind?
-            
+
             // combine uvs from faces with the vertices
             for (auto& face : submodel.Faces) {
                 if (face.TexNum == -1) continue; // Skip untextured faces as they are metadata

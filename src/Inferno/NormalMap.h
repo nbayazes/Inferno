@@ -1,10 +1,11 @@
 #pragma once
+#include <utility>
 #include "Pig.h"
 #include "Types.h"
 
 namespace Inferno {
     inline float GetIntensity(const Palette::Color& color, bool invert = false) {
-#if defined(_DEBUG)
+#ifdef _DEBUG
         // assumes color is clamped 0..1
         // hsv calculation is very expensive in debug builds, fallback to luminance
         Vector3 rgb = { (float)color.r / 255.0f, (float)color.g / 255.0f, (float)color.b / 255.0f };
@@ -23,8 +24,8 @@ namespace Inferno {
 
         //uint8 min = 255, max = 0;
 
-        for (int y = 0; y < image.Info.Height; y++) {
-            for (int x = 0; x < image.Info.Width; x++) {
+        for (int y = 0; std::cmp_less(y, image.Info.Height); y++) {
+            for (int x = 0; std::cmp_less(x, image.Info.Width); x++) {
                 auto color = image.Data[y * image.Info.Width + x].ToColor();
                 if (invert) color.Negate();
                 color.AdjustSaturation(0);
@@ -66,14 +67,14 @@ namespace Inferno {
         const float strengthInv = 1 / options.Strength;
 
         auto pixelAt = [&](int x, int y) {
-            if (x >= image.Info.Width) {
+            if (std::cmp_greater_equal(x, image.Info.Width)) {
                 x = options.Tileable ? 0 : image.Info.Width - 1;
             }
             else if (x < 0) {
                 x = options.Tileable ? image.Info.Width - 1 : 0;
             }
 
-            if (y >= image.Info.Height) {
+            if (std::cmp_greater_equal(y, image.Info.Height)) {
                 y = options.Tileable ? 0 : image.Info.Height - 1;
             }
             else if (y < 0) {
@@ -83,8 +84,8 @@ namespace Inferno {
             return image.Data[y * width + x];
         };
 
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
+        for (int y = 0; std::cmp_less(y, height); y++) {
+            for (int x = 0; std::cmp_less(x, width); x++) {
                 const auto topLeft = pixelAt(x - 1, y - 1);
                 const auto top = pixelAt(x, y - 1);
                 const auto topRight = pixelAt(x + 1, y - 1);

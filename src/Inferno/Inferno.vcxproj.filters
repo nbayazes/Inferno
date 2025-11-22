@@ -291,6 +291,7 @@
     <ClInclude Include="Mods.h" />
     <ClInclude Include="Game.Weapon.h" />
     <ClInclude Include="Editor\UI\EnvironmentEditor.h" />
+    <ClInclude Include="Image.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />

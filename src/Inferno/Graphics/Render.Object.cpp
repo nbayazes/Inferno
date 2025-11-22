@@ -34,6 +34,8 @@ namespace Inferno::Render {
         color += object.Render.VClip.DirectLight;
         auto pos = object.GetPosition(Game::LerpAmount);
 
+        auto env = Game::GetEnvironment(object.Segment);
+
         if (object.Render.Type == RenderType::WeaponVClip ||
             object.Render.Type == RenderType::Powerup ||
             object.Render.Type == RenderType::Hostage) {
@@ -682,10 +684,10 @@ namespace Inferno::Render {
     }
 
     void DrawFoggedObject(GraphicsContext& ctx,
-                         const Object& object,
-                         ModelID modelId,
-                         RenderPass pass,
-                         const UploadBuffer<FrameConstants>& frameConstants) {
+                          const Object& object,
+                          ModelID modelId,
+                          RenderPass pass,
+                          const UploadBuffer<FrameConstants>& frameConstants) {
         if (object.IsCloaked() && Game::GetState() != GameState::Editor) {
             //DrawCloakedModel(ctx, object, modelId, pass);
             return;
@@ -770,8 +772,8 @@ namespace Inferno::Render {
                 //if (pass != RenderPass::Transparent) return;
                 DrawSprite(ctx, object, false, nullptr, Settings::Editor.RenderMode == RenderMode::Shaded);
                 break;
+            }
         }
-    }
     }
 
     void DrawObject(GraphicsContext& ctx, const Object& object, RenderPass pass) {
@@ -793,8 +795,14 @@ namespace Inferno::Render {
             }
 
             case ObjectType::Powerup: {
-                if (pass != RenderPass::Transparent) return;
-                DrawSprite(ctx, object, false, nullptr, Settings::Editor.RenderMode == RenderMode::Shaded);
+                auto& info = Resources::GetPowerup((PowerupID)object.ID);
+                if (info.runtime.model != ModelID::None) {
+                    DrawModel(ctx, object, info.runtime.model, pass, frameConstants);
+                }
+                else {
+                    if (pass != RenderPass::Transparent) return;
+                    DrawSprite(ctx, object, false, nullptr, Settings::Editor.RenderMode == RenderMode::Shaded);
+                }
                 break;
             }
 
