@@ -8,7 +8,7 @@
 namespace Inferno {
     // A chunk of level geometry grouped by texture maps
     struct LevelChunk {
-        List<uint16> Indices; // Indices into the LevelGeometry buffer (NOT level vertices)
+        List<uint32> Indices; // Indices into the LevelGeometry buffer (NOT level vertices)
         LevelTexID TMap1, TMap2;
         uint ID = 0;
         EClipID EffectClip1 = EClipID::None;
@@ -20,16 +20,12 @@ namespace Inferno {
         BlendMode Blend = BlendMode::Opaque;
         bool Cloaked = false;
 
-        void AddQuad(uint16 index, const SegmentSide& side) {
+        void AddQuad(uint32 index, const SegmentSide& side) {
             for (auto i : side.GetRenderIndices())
                 Indices.push_back(index + i);
         }
     };
 
-    struct HeatVolume {
-        List<uint16> Indices;
-        List<FlatVertex> Vertices;
-    };
 
     struct LevelGeometry {
         // Static meshes
@@ -38,7 +34,6 @@ namespace Inferno {
         List<LevelChunk> Walls;
         // Technically vertices are no longer needed after being uploaded
         List<LevelVertex> Vertices;
-        HeatVolume HeatVolumes;
     };
 
     using ChunkCache = Dictionary<uint32, LevelChunk>;
@@ -68,37 +63,6 @@ namespace Inferno {
         // Submits meshes to the queue
         void Draw();
     };
-
-    class LevelMeshWorker : public WorkerThread {
-        PackedUploadBuffer _upload[2]{};
-        LevelResources _resources[2]{};
-        std::atomic<int> _index;
-        Level _level;
-        std::atomic<bool> _hasNewData = false;
-    public:
-        auto& GetLevelResources() {
-            //SPDLOG_INFO("Reading index {}", _index % 2);
-            return _resources[_index % 2];
-        }
-
-        void CopyLevel(Level level) { _level = level; }
-
-        void Draw() {
-            _resources[_index % 2].Draw();
-        }
-
-        void SwapBuffer() {
-            _hasNewData = false;
-            _index++;
-            //SPDLOG_INFO("Swapped to index {}", index);
-        }
-
-        bool HasNewData() { return _hasNewData; }
-
-    protected:
-        void Work() override;
-    };
-
 
     class LevelMeshBuilder {
         int _lastSegCount = 0, _lastVertexCount = 0, _lastWallCount = 0;

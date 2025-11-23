@@ -5,92 +5,6 @@
 namespace Inferno {
     using namespace DirectX;
 
-    constexpr bool TMapIsLava(LevelTexID id) {
-        constexpr std::array tids = { 291, 378, 404, 405, 406, 407, 408, 409 };
-        return Seq::contains(tids, (int)id);
-    }
-
-    bool SegHasLava(Segment& seg) {
-        for (auto& side : seg.Sides) {
-            if (TMapIsLava(side.TMap)) return true;
-        }
-        return false;
-    }
-
-    HeatVolume CreateHeatVolumes(Level& level) {
-        // Discover all verts with lava on them
-        Set<uint16> heatIndices;
-        for (auto& seg : level.Segments) {
-            for (auto& sideId : SideIDs) {
-                auto& side = seg.GetSide(sideId);
-                if (!TMapIsLava(side.TMap)) continue;
-                auto indicesForSide = seg.GetVertexIndices(sideId);
-                for (int16 i : indicesForSide)
-                    heatIndices.insert(i);
-            }
-        }
-
-        // Discover all segments that touch
-        Set<SegID> heatSegs;
-        for (int sid = -1; auto & seg : level.Segments) {
-            sid++;
-            for (auto i : seg.Indices)
-                if (Seq::contains(heatIndices, i))
-                    heatSegs.insert(SegID(sid));
-        }
-
-        // Create volumes from segments containing lava verts
-        List<uint16> indices;
-        List<FlatVertex> vertices;
-
-        for (auto& segId : heatSegs) {
-            auto& seg = level.GetSegment(segId);
-
-            for (auto& sideId : SideIDs) {
-                // cull faces that connect to another segment containing lava. UNLESS has a wall
-                // to do this properly, external facing should be culled on lava falls, otherwise Z fighting will occur
-                // ALSO: only closed walls / doors should count (not triggers)
-                if (auto cseg = level.TryGetSegment(seg.GetConnection(sideId))) {
-                    if (Seq::contains(heatSegs, segId) &&
-                        !level.TryGetWall({ (SegID)segId, sideId }))
-                        continue;
-                }
-
-                Array<FlatVertex, 4> sideVerts;
-
-                bool isLit = false;
-
-                for (int i = 0; auto & v : seg.GetVertexIndices(sideId)) {
-                    sideVerts[i].Position = level.Vertices[v];
-                    if (Seq::contains(heatIndices, v)) {
-                        sideVerts[i].Color = Color{ 1, 1, 1, 1 };
-                        isLit = true;
-                    }
-                    else {
-                        sideVerts[i].Color = Color{ 1, 1, 1, 0 };
-                    }
-                    i++;
-                }
-
-                if (!isLit) continue;
-
-                auto indexOffset = (uint16)vertices.size();
-                indices.push_back(indexOffset + 0);
-                indices.push_back(indexOffset + 1);
-                indices.push_back(indexOffset + 2);
-
-                // Triangle 2
-                indices.push_back(indexOffset + 0);
-                indices.push_back(indexOffset + 2);
-                indices.push_back(indexOffset + 3);
-                for (auto& v : sideVerts)
-                    vertices.push_back(v);
-            }
-        }
-
-        return { indices, vertices };
-    }
-
     Vector2 GetOverlayRotation(SegmentSide& side, Vector2 uv) {
         float overlayAngle = [&side]() {
             switch (side.OverlayRotation) {
@@ -111,7 +25,7 @@ namespace Inferno {
                     LevelChunk& chunk,
                     SegmentSide& side) {
         auto startIndex = geo.Vertices.size();
-        chunk.AddQuad((uint16)startIndex, side);
+        chunk.AddQuad((uint32)startIndex, side);
 
         // create vertices for this face
         for (int i = 0; i < 4; i++) {
@@ -319,38 +233,6 @@ namespace Inferno {
             float depth = (mesh.Chunk->Center - Render::Camera.Position).LengthSquared();
             Render::DrawTransparent(Render::RenderCommand{ &mesh, depth });
         }
-    }
-
-    void LevelMeshWorker::Work() {
-        auto index = (_index + 1) % 2;
-        auto& upload = _upload[index];
-        auto& resources = _resources[index];
-        resources = {};
-        ChunkCache chunks;
-        CreateLevelGeometry(_level, chunks, resources.Geometry);
-
-        if (HasWork()) return;
-
-        upload.Reset();
-        // Upload the new geometry to the unused resource buffer
-        auto vbv = upload.PackVertices(resources.Geometry.Vertices);
-        if (HasWork()) return;
-
-        for (auto& c : resources.Geometry.Chunks) {
-            auto ibv = upload.PackIndices(c.Indices);
-            resources.Meshes.push_back(LevelMesh{ vbv, ibv, (uint)c.Indices.size(), &c });
-        }
-
-        if (HasWork()) return;
-
-        for (auto& c : resources.Geometry.Walls) {
-            auto ibv = upload.PackIndices(c.Indices);
-            resources.WallMeshes.push_back(LevelMesh{ vbv, ibv, (uint)c.Indices.size(), &c });
-        }
-
-        if (HasWork()) return;
-
-        _hasNewData = true;
     }
 
     void LevelMeshBuilder::Update(Level& level, PackedBuffer& buffer) {
