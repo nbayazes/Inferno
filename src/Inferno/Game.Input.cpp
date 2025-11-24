@@ -11,6 +11,7 @@
 #include "Graphics.h"
 #include "HUD.h"
 #include "SoundSystem.h"
+#include "SystemClock.h"
 
 namespace Inferno {
     using Keys = Input::Keys;

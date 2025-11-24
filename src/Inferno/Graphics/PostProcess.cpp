@@ -5,6 +5,7 @@
 #include "Game.h"
 #include "WindowsDialogs.h"
 #include "Render.h"
+#include "VirtualFileSystem.h"
 
 namespace Inferno::PostFx {
     void ScanlineCS::Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, PixelBuffer& dest) const {
@@ -279,11 +280,15 @@ namespace Inferno::PostFx {
     }
 
     void ToneMapping::LoadResources(DirectX::ResourceUploadBatch& batch) {
-        auto data = File::ReadAllBytes("assets/textures/tony_mc_mapface.dds");
-        TonyMcMapFace.LoadDDS(batch, data);
-        TonyMcMapFace.AddShaderResourceView();
+        if (auto data = vfs::ReadAsset("tony_mc_mapface.dds")) {
+            TonyMcMapFace.LoadDDS(batch, *data);
+            TonyMcMapFace.AddShaderResourceView();
+        }
+        else {
+            throw Exception("Required file tony_mc_mapface.dds not found");
+        }
 
-        if (auto cockpit = FileSystem::ReadAsset("cockpit-dirt.dds")) {
+        if (auto cockpit = vfs::ReadAsset("cockpit-dirt.dds")) {
             Dirt.LoadDDS(batch, *cockpit);
             Dirt.AddShaderResourceView();
         }

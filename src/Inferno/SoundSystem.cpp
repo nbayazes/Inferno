@@ -10,6 +10,8 @@
 #include "Physics.h"
 #include "Resources.h"
 #include "Settings.h"
+#include "SystemClock.h"
+#include "VirtualFileSystem.h"
 
 using namespace DirectX::SimpleMath;
 using namespace std::chrono;
@@ -918,7 +920,7 @@ namespace Inferno::Sound {
 
             // Prioritize reading wavs from filesystem
             if (auto info = Seq::tryItem(_soundsD1.Sounds, id)) {
-                if (auto data = FileSystem::ReadAsset(info->Name + ".wav")) {
+                if (auto data = vfs::ReadAsset(info->Name + ".wav")) {
                     //if (auto data = Resources::ReadBinaryFile(info->Name + ".wav", LoadFlag::Default | LoadFlag::Descent1)) {
                     return (_effectsD1[int(id)] = make_unique<SoundEffect>(CreateSoundEffectWav(*_engine, *data))).get();
                 }
@@ -948,7 +950,7 @@ namespace Inferno::Sound {
 
             // Prioritize reading wavs from filesystem
             if (auto info = Seq::tryItem(_soundsD2.Sounds, id)) {
-                if (auto data = FileSystem::ReadAsset(info->Name + ".wav")) {
+                if (auto data = vfs::ReadAsset(info->Name + ".wav")) {
                     //if (auto data = Resources::ReadBinaryFile(info->Name + ".wav", LoadFlag::Default | LoadFlag::Descent2)) {
                     return (_effectsD2[int(id)] = make_unique<SoundEffect>(CreateSoundEffectWav(*_engine, *data))).get();
                 }
@@ -973,7 +975,7 @@ namespace Inferno::Sound {
 
             if (_soundsD3[fileName]) return _soundsD3[fileName].get();
 
-            if (auto data = FileSystem::ReadAsset(fileName)) {
+            if (auto data = vfs::ReadAsset(fileName)) {
                 return (_soundsD3[fileName] = make_unique<SoundEffect>(CreateSoundEffectWav(*_engine, *data))).get();
             }
 

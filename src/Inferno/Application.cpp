@@ -13,6 +13,7 @@
 #include "Graphics/Render.h"
 #include "Graphics/Render.MainMenu.h"
 #include "Version.h"
+#include "VirtualFileSystem.h"
 
 using namespace Inferno;
 using namespace Inferno::Editor;
@@ -147,6 +148,9 @@ void Application::Initialize(int width, int height) {
     Game::MainCamera.Target = MenuCameraTarget;
 
     Inferno::Input::Initialize(Shell::Hwnd);
+
+    vfs::Mount("assets"); // for textures used by shaders (tony)
+
     Render::Initialize(Shell::Hwnd, width, height);
 
     Sound::Init(Shell::Hwnd);

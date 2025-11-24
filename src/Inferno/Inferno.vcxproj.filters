@@ -119,6 +119,8 @@
     <ClCompile Include="Game.Matcen.cpp" />
     <ClCompile Include="Hog.IO.cpp" />
     <ClCompile Include="Mods.cpp" />
+    <ClCompile Include="VirtualFileSystem.cpp" />
+    <ClCompile Include="ZipFile.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\Audio.h" />
@@ -292,6 +294,8 @@
     <ClInclude Include="Game.Weapon.h" />
     <ClInclude Include="Editor\UI\EnvironmentEditor.h" />
     <ClInclude Include="Image.h" />
+    <ClInclude Include="VirtualFileSystem.h" />
+    <ClInclude Include="ZipFile.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />

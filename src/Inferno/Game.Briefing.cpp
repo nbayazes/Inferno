@@ -7,6 +7,7 @@
 #include "Hog.IO.h"
 #include "Input.h"
 #include "Resources.h"
+#include "VirtualFileSystem.h"
 
 namespace Inferno {
     void BriefingState::Forward() {
@@ -123,7 +124,7 @@ namespace Inferno {
                 files.insert(screen.Background);
             }
             else if (Resources::Find(background.string(), LoadFlag::Mission | LoadFlag::Dxa | LoadFlag::BaseHog | LoadFlag::LevelType | loadFlags) ||
-                     FileSystem::AssetExists(background.string())) {
+                     vfs::AssetExists(background.string())) {
                 files.insert(background.string()); // Check for high res image
                 screen.Background = background.string();
             }

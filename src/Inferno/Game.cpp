@@ -31,6 +31,7 @@
 #include "LegitProfiler.h"
 #include "Resources.h"
 #include "SoundSystem.h"
+#include "VirtualFileSystem.h"
 
 using namespace DirectX;
 
@@ -394,7 +395,10 @@ namespace Inferno::Game {
                 Sound::SetMusicVolume(Settings::Inferno.MusicVolume);
                 Input::SetMouseMode(Input::MouseMode::Normal);
                 Game::ScreenGlow.SetTarget(Color(0, 0, 0, 0), Game::Time, 0);
-                FileSystem::MountMainMenu();
+                vfs::Mount("d1/", { ".dxa" }); // for music and fonts
+                vfs::Mount("assets");
+                vfs::Print();
+
                 PlayMainMenuMusic();
 
                 Graphics::UnloadTextures();
@@ -1144,7 +1148,7 @@ namespace Inferno::Game {
         // Reset resources
         ResetCountdown();
         StuckObjects = {};
-        FileSystem::MountLevel(Game::Level, Mission ? Mission->Path : "");
+        Resources::MountLevel(Game::Level, Mission ? Mission->Path : "");
         Sound::WaitInitialized();
         Sound::StopAllSounds();
         Resources::LoadDataTables(Game::Level);

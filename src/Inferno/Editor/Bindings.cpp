@@ -1,14 +1,20 @@
 #include "pch.h"
 #include "Bindings.h"
+#include <imgui.h>
+#include <Inferno/Settings.h>
+#include <string>
+#include "Command.h"
 #include "Editor.Clipboard.h"
 #include "Editor.Geometry.h"
 #include "Editor.h"
-#include "Input.h"
-#include "imgui_local.h"
-#include "Editor.Texture.h"
-#include "Editor.Segment.h"
 #include "Editor.IO.h"
+#include "Editor.Segment.h"
+#include "Editor.Selection.h"
+#include "Editor.Texture.h"
+#include "Events.h"
 #include "Game.h"
+#include "Input.h"
+#include "SystemClock.h"
 
 using namespace DirectX;
 

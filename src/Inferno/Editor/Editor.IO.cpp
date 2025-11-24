@@ -13,6 +13,8 @@
 #include "logging.h"
 #include "Resources.h"
 #include "Settings.h"
+#include "SystemClock.h"
+#include "VirtualFileSystem.h"
 
 namespace Inferno::Editor {
     size_t SaveLevel(Level& level, StreamWriter& writer) {
@@ -101,12 +103,12 @@ namespace Inferno::Editor {
         try {
             //if (mission.ContainsFileType(".ham")) return; // Already has ham data
             if (!Resources::FoundVertigo()) {
-                SPDLOG_WARN("Level is marked as Vertigo but has no .ham and d2x.hog was not found");
+                SPDLOG_WARN("Level is marked as Vertigo but d2x.hog was not found");
                 return;
             }
 
             // Insert vertigo data
-            HogReader xhog(FileSystem::FindFile("d2x.hog"));
+            HogReader xhog(D2_FOLDER / "missions" / "d2x.hog");
 
             if (auto vertigoData = xhog.TryReadEntry("d2x.ham")) {
                 writer.WriteEntry(hamName, *vertigoData);

@@ -11,6 +11,7 @@
 #include "Intersect.h"
 #include "Resources.h"
 #include "SoundSystem.h"
+#include "SystemClock.h"
 
 //#define DEBUG_OBJ_OUTLINE
 // #define DEBUG_LEVEL_OUTLINE

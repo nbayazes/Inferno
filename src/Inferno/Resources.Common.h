@@ -71,27 +71,36 @@ namespace Inferno {
 
     struct ResourceHandle {
         static ResourceHandle FromHog(const filesystem::path& path, string_view name) {
-            return {
+            ResourceHandle handle = {
                 .path = path,
                 .name = string(name),
                 .source = Source::Hog
             };
+
+            handle.path.make_preferred();
+            return handle;
         }
 
         static ResourceHandle FromZip(const filesystem::path& path, string_view name) {
-            return {
+            ResourceHandle handle = {
                 .path = path,
                 .name = string(name),
                 .source = Source::Zip
             };
+
+            handle.path.make_preferred();
+            return handle;
         }
 
         static ResourceHandle FromFilesystem(const filesystem::path& path) {
-            return {
+            ResourceHandle handle = {
                 .path = path,
                 //.name = string(name),
                 .source = Source::Filesystem
             };
+
+            handle.path.make_preferred();
+            return handle;
         }
 
         filesystem::path path; // path on filesystem

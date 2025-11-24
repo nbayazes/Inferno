@@ -247,6 +247,7 @@
     <ClCompile Include="Game.UI.Options.cpp" />
     <ClCompile Include="Mods.cpp" />
     <ClCompile Include="TextureCache.cpp" />
+    <ClCompile Include="VirtualFileSystem.cpp" />
     <ClCompile Include="VisualEffects.cpp" />
     <ClCompile Include="Formats\BBM.cpp" />
     <ClCompile Include="CustomTextureLibrary.cpp" />
@@ -342,6 +343,7 @@
     <ClCompile Include="Editor\UI\TextureBrowserUI.cpp" />
     <ClCompile Include="Shell.cpp" />
     <ClCompile Include="SoundTypes.cpp" />
+    <ClCompile Include="ZipFile.cpp" />
     <ClCompile Include="zip\zip.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugGpu|x64'">NotUsing</PrecompiledHeader>
@@ -401,6 +403,7 @@
     <ClInclude Include="Mods.h" />
     <ClInclude Include="Resources.Common.h" />
     <ClInclude Include="TextureCache.h" />
+    <ClInclude Include="VirtualFileSystem.h" />
     <ClInclude Include="VisualEffects.h" />
     <ClInclude Include="Formats\BBM.h" />
     <ClInclude Include="Game.AI.h" />
@@ -538,6 +541,7 @@
     <ClInclude Include="Shell.h" />
     <ClInclude Include="Editor\UI\TextureBrowserUI.h" />
     <ClInclude Include="Yaml.h" />
+    <ClInclude Include="ZipFile.h" />
     <ClInclude Include="zip\miniz.h" />
     <ClInclude Include="zip\zip.h" />
     <None Include="shaders\Utility.hlsli">

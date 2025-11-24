@@ -10,7 +10,6 @@
 #include "Intersect.h"
 #include "Level.h"
 #include "Mission.h"
-#include "SystemClock.h"
 #include "Game.State.h"
 #include "Difficulty.h"
 #include "Game.IO.h"

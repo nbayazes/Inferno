@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <string>
 #include <chrono>
+#include "SystemClock.h"
 
 namespace LegitProfiler {
     using DirectX::SimpleMath::Vector2;

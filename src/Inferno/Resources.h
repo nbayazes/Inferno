@@ -134,6 +134,8 @@ namespace Inferno::Resources {
     // Tries to read a binary file by checking the mission, the game specific directory, the shared directory, and finally the game HOG
     Option<List<byte>> ReadBinaryFile(string_view fileName, LoadFlag flags = LoadFlag::Default);
 
+    Option<Image> ReadImage(const string& name, bool srgb);
+
     // Loads the corresponding resources for a level
     void LoadLevel(Level&);
 
@@ -167,6 +169,8 @@ namespace Inferno::Resources {
     }
 
     void MountDescent3();
+
+    void MountLevel(const Level& level, const filesystem::path& missionPath);
 
     // Mounts the addon data for a mission. Returns true if found.
     bool MountAddonData(filesystem::path path);

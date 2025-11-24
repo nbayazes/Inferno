@@ -887,8 +887,6 @@ namespace Inferno {
         float ClearDepth = 1.0f;
 
         void Create(string_view name, UINT width, UINT height, DXGI_FORMAT format = DXGI_FORMAT_D32_FLOAT, UINT samples = 1) {
-            CD3DX12_HEAP_PROPERTIES depthHeapProperties(D3D12_HEAP_TYPE_DEFAULT);
-
             _desc = CD3DX12_RESOURCE_DESC::Tex2D(
                 format,
                 width,

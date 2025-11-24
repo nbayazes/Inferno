@@ -1,5 +1,6 @@
 #include <pch.h>
 #include "Mods.h"
+#include "FileSystem.h"
 #include "Level.h"
 #include "Resources.Common.h"
 #include "Yaml.h"

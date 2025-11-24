@@ -8,6 +8,7 @@
 #include "Render.h"
 #include "Resources.h"
 #include "ScopedTimer.h"
+#include "VirtualFileSystem.h"
 
 using namespace DirectX;
 
@@ -353,7 +354,7 @@ namespace Inferno::Render {
 
         // Reads a custom image from a dds, then a png
         auto readCustomImage = [&batch, &material](const string& name, int slot, bool srgb = false) {
-            if (auto image = FileSystem::ReadImage(name, srgb)) {
+            if (auto image = Resources::ReadImage(name, srgb)) {
                 material.Textures[slot].Load(batch, *image, name, srgb);
             }
 
@@ -468,7 +469,7 @@ namespace Inferno::Render {
         //if (auto path = FileSystem::ReadAsset(name + ".dds"))
         //    material.Textures[Material2D::Diffuse].LoadDDS(batch, *path, true);
 
-        if (auto image = FileSystem::ReadImage(name, true)) {
+        if (auto image = Resources::ReadImage(name, true)) {
             material.Textures[Material2D::Diffuse].Load(batch, *image, name, true);
             image->CopyToPigBitmap(diffuse);
         }
@@ -770,7 +771,7 @@ namespace Inferno::Render {
             if (_namedMaterials.contains(name) && !force) continue; // skip loaded
             Material2D material;
 
-            if (FileSystem::AssetExists(name + ".dds") || FileSystem::AssetExists(name + ".png")) {
+            if (vfs::AssetExists(name + ".dds") || vfs::AssetExists(name + ".png")) {
                 material = UploadBitmap(batch, name, Render::StaticTextures->Black);
             }
             else if (auto bitmap = Resources::ReadOutrageBitmap(name)) {
@@ -778,7 +779,7 @@ namespace Inferno::Render {
                 material = UploadOutrageMaterial(batch, *bitmap, Render::StaticTextures->Black);
             }
             else {
-                if (auto data = FileSystem::ReadAsset(name)) {
+                if (auto data = vfs::ReadAsset(name)) {
                     if (name.ends_with(".bbm")) {
                         auto bbm = ReadBbm(*data);
                         material = UploadBitmap(batch, name, bbm, Render::StaticTextures->Black);

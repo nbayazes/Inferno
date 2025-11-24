@@ -10,7 +10,7 @@ namespace Yaml {
     // Returns a value only if the node exists and is a map
     inline std::optional<ryml::ConstNodeRef> GetNode(ryml::ConstNodeRef node, ryml::csubstr name) {
         //return node.has_child(name) ? node[name] : std::optional<ryml::ConstNodeRef>{};
-        if (!node.has_child(name)) return {};
+        if (!node.readable() || !node.has_val() || node.val() == "" || !node.has_child(name)) return {};
         auto child = node[name];
         if (!child.is_map()) return {};
         return child;
@@ -18,7 +18,7 @@ namespace Yaml {
 
     // Returns a value only if the node exists and is a sequence
     inline std::optional<ryml::ConstNodeRef> GetSequenceNode(ryml::ConstNodeRef node, ryml::csubstr name) {
-        if (!node.has_child(name)) return {};
+        if (!node.readable() || !node.has_val() || node.val() == "" || !node.has_child(name)) return {};
         auto child = node[name];
         if (!child.is_seq()) return {};
         return child;

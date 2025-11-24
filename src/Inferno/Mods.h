@@ -1,7 +1,7 @@
 #pragma once
 
-#include "FileSystem.h"
 #include "Utility.h"
+#include "ZipFile.h"
 
 namespace Inferno {
     struct Level;
