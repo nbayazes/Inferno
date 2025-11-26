@@ -3,6 +3,7 @@
 #include "Game.h"
 #include <SDL3/SDL_filesystem.h>
 #include <SDL3/SDL_time.h>
+#include "WindowsDialogs.h"
 #include "Yaml.h"
 
 using namespace Yaml;

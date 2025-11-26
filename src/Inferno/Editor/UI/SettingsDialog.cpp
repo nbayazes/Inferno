@@ -5,6 +5,7 @@
 #include "Game.h"
 #include "Graphics.h"
 #include "Resources.h"
+#include "WindowsDialogs.h"
 
 namespace Inferno::Editor {
     void SettingsDialog::OnUpdate() {
@@ -69,7 +70,7 @@ namespace Inferno::Editor {
     void SettingsDialog::MainOptionsTab() {
         if (!ImGui::BeginTabItem("Options")) return;
 
-        static constexpr COMDLG_FILTERSPEC filter[] = { { L"Executable", L"*.exe" } };
+        static constexpr DialogFilter filter[] = { { L"Executable", L"*.exe" } };
 
         ImGui::Text("Descent 1 executable");
 

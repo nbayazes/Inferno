@@ -8,6 +8,7 @@
 #include "Graphics.h"
 #include "PropertyEditor.h"
 #include "SoundSystem.h"
+#include "WindowsDialogs.h"
 
 namespace Inferno::Editor {
     // Sets snapshot to true when the previous item finishes editing

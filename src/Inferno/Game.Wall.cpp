@@ -590,7 +590,7 @@ namespace Inferno {
         return true;
     }
 
-    void HitWall(Level& level, const Vector3& point, const Object& src, const Wall& wall) {
+    void HitWall(Level& level, const Vector3& /*point*/, const Object& src, const Wall& wall) {
         auto parent = level.TryGetObject(src.Parent);
         bool isPlayerSource = src.IsPlayer() || (parent && parent->IsPlayer());
         // Should robots only be able to open doors by touching them?

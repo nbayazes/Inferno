@@ -3,12 +3,13 @@
 #include "Editor/Editor.Undo.h"
 #include "Editor/Events.h"
 #include "Graphics/MaterialLibrary.h"
+#include "WindowsDialogs.h"
 
 namespace Inferno::Editor {
     void OnExport(TexID id) {
         try {
             auto& bmp = Resources::GetBitmap(id);
-            static constexpr COMDLG_FILTERSPEC filter[] = { { L"256 Color Bitmap", L"*.BMP" } };
+            static constexpr DialogFilter filter[] = { { L"256 Color Bitmap", L"*.BMP" } };
             if (auto path = SaveFileDialog(filter, 0, bmp.Info.Name + ".bmp", "Export BMP")) {
                 WriteBmp(*path, Resources::GetPalette(), bmp);
             }
@@ -259,7 +260,7 @@ namespace Inferno::Editor {
 
     void TextureEditor::OnImport(const PigEntry& entry) {
         try {
-            static constexpr COMDLG_FILTERSPEC filter[] = { { L"256 Color Bitmap", L"*.BMP" }, };
+            static constexpr DialogFilter filter[] = { { L"256 Color Bitmap", L"*.BMP" }, };
             if (auto file = OpenFileDialog(filter, "Import custom texture")) {
                 Resources::CustomTextures.ImportBmp(*file, _useTransparency, entry, Game::Level.IsDescent1(), _whiteAsTransparent);
                 std::array ids{ _selection };

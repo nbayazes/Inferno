@@ -7,6 +7,7 @@
 #include "Editor.Wall.h"
 #include "Face.h"
 #include "Logging.h"
+#include "WindowsDialogs.h"
 
 namespace Inferno::Editor {
     struct SideClipboardData {

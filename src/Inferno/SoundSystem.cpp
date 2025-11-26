@@ -12,6 +12,7 @@
 #include "Settings.h"
 #include "SystemClock.h"
 #include "VirtualFileSystem.h"
+#include "WindowsDialogs.h"
 
 using namespace DirectX::SimpleMath;
 using namespace std::chrono;

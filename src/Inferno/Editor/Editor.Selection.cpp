@@ -3,6 +3,8 @@
 #include "Editor.Segment.h"
 #include "Game.h"
 #include "Game.Segment.h"
+#include "Input.h"
+#include "WindowsDialogs.h"
 
 namespace Inferno::Editor {
     // Returns a random connected segment or none.

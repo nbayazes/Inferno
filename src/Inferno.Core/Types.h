@@ -682,6 +682,16 @@ namespace Inferno {
         const auto end() const { return _data.begin() + _count; }
     };
 
+    // Helper to allow appending string views to each other. This being global might be a bad idea.
+    inline string operator+(string_view a, string_view b) {
+        string dest(a.size() + b.size(), '\0');
+        a.copy(dest.data(), a.size());
+        b.copy(dest.data() + a.size(), b.size());
+        //dest.append(a);
+        //dest.append(b);
+        return dest;
+    }
+
     // enum to int formatters to make fmt happy
 
     constexpr auto format_as(SegID id) { return (int)id; }

@@ -9,6 +9,7 @@
 #include "Resources.h"
 #include "ScopedTimer.h"
 #include "VirtualFileSystem.h"
+#include "WindowsDialogs.h"
 
 using namespace DirectX;
 

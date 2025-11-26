@@ -331,7 +331,7 @@ namespace Inferno::Editor {
         }
 
         void OnImport() try {
-            static const COMDLG_FILTERSPEC filter[] = {
+            static const DialogFilter filter[] = {
                 { L"Level", L"*.RL2;*.RDL" },
                 { L"Robots", L"*.HXM" },
                 { L"Textures", L"*.POG" },
@@ -390,7 +390,7 @@ namespace Inferno::Editor {
         // Imports a robot or texture file to all levels in the mission
         void OnImportToLevels() {
             try {
-                static constexpr COMDLG_FILTERSPEC filter[] = {
+                static constexpr DialogFilter filter[] = {
                     { L"Custom Data", L"*.HXM;*.POG;*.DTX" },
                     { L"Robots", L"*.HXM" },
                     { L"Textures", L"*.POG" },
@@ -491,7 +491,7 @@ namespace Inferno::Editor {
             auto entry = Seq::tryItem(_entries, _selections[0]);
             if (!entry) return;
 
-            static constexpr COMDLG_FILTERSPEC filter[] = {
+            static constexpr DialogFilter filter[] = {
                 { L"All Files", L"*.*" }
             };
 

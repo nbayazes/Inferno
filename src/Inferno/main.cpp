@@ -11,6 +11,7 @@
 #include <ryml/ryml.hpp>
 #include "logging.h"
 #include "SystemClock.h"
+#include "WindowsDialogs.h"
 
 using namespace Inferno;
 

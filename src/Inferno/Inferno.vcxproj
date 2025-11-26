@@ -343,6 +343,7 @@
     <ClCompile Include="Editor\UI\TextureBrowserUI.cpp" />
     <ClCompile Include="Shell.cpp" />
     <ClCompile Include="SoundTypes.cpp" />
+    <ClCompile Include="WindowsDialogs.cpp" />
     <ClCompile Include="ZipFile.cpp" />
     <ClCompile Include="zip\zip.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>

@@ -397,46 +397,31 @@ namespace Inferno {
 
         void Load(DirectX::ResourceUploadBatch& batch,
                   const Image& image,
-                  string_view name,
-                  bool srgb = false) {
+                  string_view name) {
             auto& metadata = image.GetMetadata();
-            auto format = srgb ? DirectX::MakeSRGB(metadata.format) : metadata.format;
-
-            //if (DirectX::IsCompressed(image.metadata.format)) {
-            //    LoadDDS(batch, image.GetPixels(), srgb);
-            //    return;
-            //}
-
-            //assert(data);
-            //if (!data) return;
-
-            //auto mips = enableMips && width == 64 && height == 64 ? 7u : 1u; // enable mips on standard level textures
-            SetDesc((uint)metadata.width, (uint)metadata.height, (uint16)metadata.mipLevels, format);
-
-            //uint64 bpp = format == DXGI_FORMAT_R8_UNORM ? 1 : 4;
-
-            /*D3D12_SUBRESOURCE_DATA upload = {};
-            upload.pData = image.GetPixels().data();
-            upload.RowPitch = GetWidth() * bpp;
-            upload.SlicePitch = upload.RowPitch * GetHeight();
-            image.GetPitch(upload.RowPitch, upload.SlicePitch);*/
-
-            auto upload = image.GetSubresourceData();
-            if (!upload.pData) return;
+            //auto format = srgb ? DirectX::MakeSRGB(metadata.format) : metadata.format;
+            SetDesc((uint)metadata.width, (uint)metadata.height, (uint16)metadata.mipLevels, metadata.format);
 
             if (!_resource)
                 CreateOnDefaultHeap(name);
 
             auto resource = _resource.Get();
             batch.Transition(resource, _state, D3D12_RESOURCE_STATE_COPY_DEST);
-            batch.Upload(resource, 0, &upload, 1);
+
+            for (int mip = 0; mip < metadata.mipLevels; ++mip) {
+                auto img = image.GetImage(mip, 0, 0);
+
+                D3D12_SUBRESOURCE_DATA subresource {
+                    .pData = img->pixels,
+                    .RowPitch = (LONG_PTR)img->rowPitch,
+                    .SlicePitch = (LONG_PTR)img->slicePitch
+                };
+
+                batch.Upload(resource, mip, &subresource, 1);
+            }
+
             batch.Transition(resource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
             _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-
-            //auto mips = enableMips && image.metadata.width == 64 && image.metadata.height == 64 ? 7u : 1u; // enable mips on standard level textures
-
-            //if (mips > 1)
-            //    batch.GenerateMips(resource);
         }
 
         // Uploads a resource with mipmaps

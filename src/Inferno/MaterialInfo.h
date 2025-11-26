@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Procedural.h"
+#include "OutrageTable.h"
 #include "Resources.Common.h"
 #include "Types.h"
 

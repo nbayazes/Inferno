@@ -121,6 +121,7 @@
     <ClCompile Include="Mods.cpp" />
     <ClCompile Include="VirtualFileSystem.cpp" />
     <ClCompile Include="ZipFile.cpp" />
+    <ClCompile Include="WindowsDialogs.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\Audio.h" />

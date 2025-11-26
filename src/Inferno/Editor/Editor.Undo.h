@@ -6,6 +6,7 @@
 #include "Level.h"
 #include "Events.h"
 #include "Editor.Selection.h"
+#include "Shell.h"
 
 namespace Inferno::Editor {
     template<class...TArgs>

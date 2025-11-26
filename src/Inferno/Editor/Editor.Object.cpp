@@ -7,6 +7,7 @@
 #include "Gizmo.h"
 #include "Graphics.h"
 #include "Resources.h"
+#include "WindowsDialogs.h"
 
 namespace Inferno::Editor {
     void DeleteObject(Level& level, ObjID id) {

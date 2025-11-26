@@ -14,7 +14,7 @@
 #include "Resources.h"
 #include "Settings.h"
 #include "SystemClock.h"
-#include "VirtualFileSystem.h"
+#include "WindowsDialogs.h"
 
 namespace Inferno::Editor {
     size_t SaveLevel(Level& level, StreamWriter& writer) {
@@ -316,7 +316,7 @@ namespace Inferno::Editor {
         if (!Resources::HasGameData()) return;
 
         auto& level = Game::Level;
-        List<COMDLG_FILTERSPEC> filter = { { L"Mission", L"*.hog" } };
+        List<DialogFilter> filter = { { L"Mission", L"*.hog" } };
 
         if (level.IsDescent1())
             filter.push_back({ L"Descent 1 Level", L"*.rdl" });
@@ -572,7 +572,7 @@ namespace Inferno::Editor {
                     return;
                 }
 
-                static constexpr COMDLG_FILTERSPEC filter[] = {
+                static constexpr DialogFilter filter[] = {
                     { L"Descent Levels", L"*.hog;*.rl2;*.rdl" },
                     { L"Missions", L"*.hog" },
                     { L"Levels", L"*.rl2;*.rdl" },

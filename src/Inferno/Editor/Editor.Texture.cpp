@@ -8,6 +8,7 @@
 #include "Face.h"
 #include "Procedural.h"
 #include "Resources.h"
+#include "WindowsDialogs.h"
 
 namespace Inferno::Editor {
     void RotateUV(Vector2& uv, const Vector2& pivot, float angle) {

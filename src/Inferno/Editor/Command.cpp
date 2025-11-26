@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Command.h"
 #include "Editor.Undo.h"
+#include "WindowsDialogs.h"
 
 void Inferno::Editor::Command::Execute() const {
     try {
