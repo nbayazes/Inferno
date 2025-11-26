@@ -172,8 +172,8 @@ namespace Inferno {
             if (selectedFilterIndex > 0) {
                 // note that filter indices are 1 based not 0 based
                 auto ext = String::Extension(wstring(filterspec[selectedFilterIndex - 1].pszSpec));
-                ext = ext.substr(1); // discard the period, as SetDefaultExtension does not want it
-                ThrowIfFailed(dialog->SetDefaultExtension(ext.c_str()));
+                auto wext = wstring(ext.substr(1)); // discard the period, as SetDefaultExtension does not want it
+                ThrowIfFailed(dialog->SetDefaultExtension(wext.c_str()));
             }
 
             ThrowIfFailed(dialog->SetFileName(Widen(defaultName).c_str()));

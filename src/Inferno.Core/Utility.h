@@ -680,24 +680,24 @@ namespace Inferno {
         }
 
         // Returns the file name without the extension. Returns original string if no extension.
-        inline string NameWithoutExtension(string_view str) {
+        inline string NameWithoutExtension(const string_view str) {
             auto i = str.find('.');
             if (i == string::npos) return string(str);
             return string(str.substr(0, i));
         }
 
         // Returns the extension with the dot. Returns empty if no extension.
-        constexpr string Extension(const string& str) {
+        constexpr string_view Extension(const string_view str) {
             auto i = str.find('.');
-            if (i == string::npos) return "";
+            if (i == string::npos) return {};
             return str.substr(i);
         }
 
         // Returns the extension with the dot. Returns empty if no extension.
-        constexpr wstring Extension(const wstring& str) {
+        constexpr wstring_view Extension(const wstring_view str) {
             auto i = str.find('.');
-            if (i == wstring::npos) return L"";
-            return str.substr(i + 1);
+            if (i == wstring::npos) return {};
+            return str.substr(i);
         }
 
         constexpr bool HasExtension(const string& str) { return !Extension(str).empty(); }
@@ -750,6 +750,18 @@ namespace Inferno {
             }
 
             return items;
+        }
+
+        string Join(auto&& strings, const string& delimiter = ", ") {
+            string result;
+            int index = 0;
+
+            for (auto& f : strings) {
+                if (index++ > 0) result += delimiter;
+                result += f;
+            }
+
+            return result;
         }
 
         // Splits a string into lines

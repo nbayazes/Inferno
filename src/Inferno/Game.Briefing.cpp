@@ -124,7 +124,7 @@ namespace Inferno {
                 files.insert(screen.Background);
             }
             else if (Resources::Find(background.string(), LoadFlag::Mission | LoadFlag::Dxa | LoadFlag::BaseHog | LoadFlag::LevelType | loadFlags) ||
-                     vfs::AssetExists(background.string())) {
+                     vfs::Exists(background.string())) {
                 files.insert(background.string()); // Check for high res image
                 screen.Background = background.string();
             }

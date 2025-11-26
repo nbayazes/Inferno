@@ -8,15 +8,10 @@
 #include <dxgiformat.h>
 #include <span>
 #include <strsafe.h>
-#include <Windows.h>
 
 namespace Inferno {
     class Image : public DirectX::ScratchImage {
     public:
-        //uint16 width = 0;
-        //uint16 height = 0;
-        //DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
-        //std::vector<ubyte> data;
         Image Clone() const {
             Image image;
             if (SUCCEEDED(image.Initialize(GetMetadata())))
@@ -24,19 +19,6 @@ namespace Inferno {
 
             return image;
         }
-
-        //const DirectX::TexMetadata& GetMetadata() const {
-        //    return _image.GetMetadata();
-        //}
-
-        //Image() {}
-
-        //Image(const DirectX::Image& image) {
-        //    data.resize(image.slicePitch);
-        //    memcpy(data.data(), image.pixels, image.slicePitch);
-        //    width = (uint16)image.width;
-        //    height = (uint16)image.height;
-        //}
 
         bool Empty() const {
             auto& metadata = GetMetadata();
@@ -46,10 +28,6 @@ namespace Inferno {
         span<uint8> GetPixels2() const {
             return { GetPixels(), GetPixelsSize() };
         }
-
-        //const DirectX::Image* GetImage(size_t mip, size_t item, size_t slice) const {
-        //    return _image.GetImage(mip, item, slice);
-        //}
 
         bool GetPitch(size_t& rowPitch, size_t& slicePitch) const {
             auto& metadata = GetMetadata();
@@ -71,19 +49,6 @@ namespace Inferno {
             //    .Layout = ,
             //    .Flags = 
             //}
-        }
-
-        D3D12_SUBRESOURCE_DATA GetSubresourceData() const {
-            size_t rowPitch, slicePitch;
-            auto& metadata = GetMetadata();
-            if (!SUCCEEDED(DirectX::ComputePitch(metadata.format, metadata.width, metadata.height, rowPitch, slicePitch)))
-                return {};
-
-            return {
-                .pData = GetPixels(),
-                .RowPitch = (LONG_PTR)rowPitch,
-                .SlicePitch = (LONG_PTR)slicePitch
-            };
         }
 
         bool CopyToPigBitmap(PigBitmap& dest) const {

@@ -2,7 +2,6 @@
 #include "Resources.h"
 #include <DirectXTex.h>
 #include <fstream>
-#include <mutex>
 #include "BitmapTable.h"
 #include "Editor/Editor.h"
 #include "FileSystem.h"
@@ -12,24 +11,21 @@
 #include "Graphics/MaterialLibrary.h"
 #include "Hog.IO.h"
 #include "LevelMetadata.h"
-#include "logging.h"
 #include "Pig.h"
 #include "Settings.h"
 #include "Sound.h"
 #include "SoundSystem.h"
 #include "MaterialInfo.h"
 #include "Mods.h"
+#include "Procedural.h"
 #include "VirtualFileSystem.h"
 #include "VisualEffects.h"
+#include "WindowsDialogs.h"
 #include "ZipFile.h"
 
 namespace Inferno {
     LoadFlag GetLevelLoadFlag(const Level& level) {
         return level.IsDescent1() ? LoadFlag::Descent1 : LoadFlag::Descent2;
-    }
-
-    namespace Render {
-        bool LoadPng(span<ubyte> png, DirectX::ScratchImage& result, DirectX::TexMetadata& metadata, bool srgb);
     }
 }
 
@@ -108,7 +104,7 @@ namespace Inferno::Resources {
         return DClipID::None;
     }
 
-    EffectClip DEFAULT_EFFECT_CLIP = {};
+    constexpr EffectClip DEFAULT_EFFECT_CLIP = {};
 
     const EffectClip& GetEffectClip(EClipID id) {
         if (!Seq::inRange(GameData.Effects, (int)id)) return DEFAULT_EFFECT_CLIP;
@@ -161,7 +157,6 @@ namespace Inferno::Resources {
         if (GameData.VClips.size() <= (int)id) return DEFAULT_VCLIP;
         return GameData.VClips[(int)id];
     }
-
 
     const Inferno::Model& GetModel(ModelID id) {
         if (!Seq::inRange(GameData.Models, (int)id)) return DEFAULT_MODEL;
@@ -1100,7 +1095,7 @@ namespace Inferno::Resources {
         }
 
         if (HasFlag(flags, LoadFlag::Asset)) {
-            if (auto asset = vfs::FindAsset(string(fileName)))
+            if (auto asset = vfs::Find(string(fileName)))
                 return asset;
         }
 
@@ -1248,7 +1243,7 @@ namespace Inferno::Resources {
         }
 
         if (HasFlag(flags, LoadFlag::Asset)) {
-            if (auto asset = vfs::ReadAsset(string(fileName)))
+            if (auto asset = vfs::Read(string(fileName)))
                 return asset;
         }
 
@@ -1527,23 +1522,23 @@ namespace Inferno::Resources {
         return {};
     }
 
-    Option<Image> ReadImage(const string& name, bool srgb) {
+    Option<Image> ReadImage(string_view name, bool srgb) {
         auto ext = String::ToLower(String::Extension(name));
         Image image;
 
         if (ext.empty()) {
             // prioritize dds
-            if (auto dds = vfs::ReadAsset(name + ".dds")) {
+            if (auto dds = vfs::Read(name + ".dds")) {
                 image.LoadDDS(*dds, srgb);
             }
-            else if (auto png = vfs::ReadAsset(name + ".png")) {
+            else if (auto png = vfs::Read(name + ".png")) {
                 image.LoadWIC(*png, srgb);
             }
-            else if (auto tga = vfs::ReadAsset(name + ".tga")) {
+            else if (auto tga = vfs::Read(name + ".tga")) {
                 image.LoadTGA(*tga, srgb);
             }
         }
-        else if (auto data = vfs::ReadAsset(name)) {
+        else if (auto data = vfs::Read(name)) {
             if (ext == ".dds") {
                 image.LoadDDS(*data, srgb);
             }
@@ -1597,7 +1592,7 @@ namespace Inferno::Resources {
 
                 if (!paletteData) {
                     // Wasn't in hog, find on filesystem
-                    if (auto path256 = vfs::FindAsset(level.Palette)) {
+                    if (auto path256 = vfs::Find(level.Palette)) {
                         paletteData = File::ReadAllBytes(path256->path);
                         pigPath = path256->path.replace_extension(".pig");
                     }
@@ -1755,10 +1750,10 @@ namespace Inferno::Resources {
     }
 
     bool FoundDescent3() {
-        return vfs::FindAsset("d3.hog").has_value();
+        return vfs::Find("d3.hog").has_value();
     }
     bool FoundMercenary() {
-        return vfs::FindAsset("merc.hog").has_value();
+        return vfs::Find("merc.hog").has_value();
     }
 
     // Opens a file stream from the data paths or the loaded hogs
@@ -1806,71 +1801,80 @@ namespace Inferno::Resources {
         }
     }
 
+    void MountMod(string_view mod, const Level& level) {
+        auto zipPath = MOD_FOLDER / mod;
+        zipPath.replace_extension(".zip");
+        auto path = MOD_FOLDER / mod;
+
+        // Prioritize the unpacked directory
+        if (filesystem::exists(path)) {
+            auto manifestPath = path / MOD_MANIFEST_FILE;
+
+            if (!filesystem::exists(manifestPath)) {
+                SPDLOG_WARN("Mod {} is missing manifest.yml", path.string());
+                return;
+            }
+
+            auto text = File::ReadAllText(manifestPath);
+            auto manifest = ReadModManifest(text);
+            if (!manifest.SupportsLevel(level))
+                return;
+
+            vfs::Mount(path);
+        }
+        else if (filesystem::exists(zipPath)) {
+            {
+                auto zip = OpenZip(path);
+
+                if (!zip) {
+                    SPDLOG_WARN("Unable to open zip {}", path.string());
+                    return;
+                }
+
+                if (auto manifest = ReadModManifest(*zip)) {
+                    if (!manifest->SupportsLevel(level)) return;
+                }
+                else {
+                    SPDLOG_WARN("Mod {} is missing manifest.yml", path.string());
+                    return;
+                }
+            }
+
+            SPDLOG_INFO("Mounting mod: {}", path.string());
+            vfs::Mount(path);
+        }
+    }
+
     void Resources::MountLevel(const Level& level, const filesystem::path& missionPath) {
         vfs::Reset();
 
         if (level.IsDescent1()) {
-            vfs::Mount("d1/", { ".dxa" });
+            vfs::Mount("d2/descent2.hog"); // mount d2 data first so it is available but d1 gets priority
+            vfs::Mount("d2/", { ".dxa" });
             vfs::Mount("d1/descent.hog");
+            vfs::Mount("d1/", { ".dxa" });
             vfs::Mount("assets/");
-            vfs::Mount("d1/");
+            // Game specific assets get priority over common ones. Skip dxa and hogs as they were already mounted.
+            vfs::Mount("d1/", { "!.dxa", "!.hog" }); 
         }
         else {
-            vfs::Mount("d2/", { ".dxa" });
+            vfs::Mount("d1/descent.hog");
+            vfs::Mount("d1/", { ".dxa" });
             vfs::Mount("d2/descent2.hog");
+            vfs::Mount("d2/", { ".dxa" });
             vfs::Mount("assets/");
-            vfs::Mount("d2/");
+            vfs::Mount("d2/", { "!.dxa", "!.hog" });
         }
 
         if (Settings::Inferno.Descent3Enhanced)
             vfs::Mount(Settings::Inferno.Descent3Path);
 
         for (auto& mod : ReadModOrder(MOD_INDEX_FILE)) {
-            auto zipPath = MOD_FOLDER / mod;
-            zipPath.replace_extension(".zip");
-            auto path = MOD_FOLDER / mod;
-
-            // Prioritize the unpacked directory
-            if (filesystem::exists(path)) {
-                auto manifestPath = path / MOD_MANIFEST_FILE;
-
-                if (!filesystem::exists(manifestPath)) {
-                    SPDLOG_WARN("Mod {} is missing manifest.yml", path.string());
-                    return;
-                }
-
-                auto text = File::ReadAllText(manifestPath);
-                auto manifest = ReadModManifest(text);
-                if (!manifest.SupportsLevel(level))
-                    return;
-
-                vfs::Mount(path);
-            }
-            else if (filesystem::exists(zipPath)) {
-                {
-                    auto zip = OpenZip(path);
-
-                    if (!zip) {
-                        SPDLOG_WARN("Unable to open zip {}", path.string());
-                        return;
-                    }
-
-                    if (auto manifest = ReadModManifest(*zip)) {
-                        if (!manifest->SupportsLevel(level)) return;
-                    }
-                    else {
-                        SPDLOG_WARN("Mod {} is missing manifest.yml", path.string());
-                        return;
-                    }
-                }
-
-                SPDLOG_INFO("Mounting mod: {}", path.string());
-                vfs::Mount(path);
-            }
+            MountMod(mod, level);
         }
 
         if (missionPath.empty()) {
-            // Mount the level folder (loose mission)
+            // Mount the level folder (for unpacked levels)
             filesystem::path levelPath = level.Path;
             levelPath.replace_extension("");
 
@@ -1884,7 +1888,7 @@ namespace Inferno::Resources {
             filesystem::path addon = missionPath;
             addon.replace_extension(".zip");
             if (filesystem::exists(addon))
-                vfs::Mount(addon, {}, level.FileName); // path/mission.zip/level/
+                vfs::Mount(addon, {}, level.FileName); // [path/mission.zip/level/]
 
             // Mount the mission addon folder [path/mission]
             addon.replace_extension("");

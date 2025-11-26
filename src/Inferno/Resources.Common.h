@@ -104,7 +104,7 @@ namespace Inferno {
         }
 
         filesystem::path path; // path on filesystem
-        string name; // resource name
+        string name; // resource name inside archive or folder
         Source source;
     };
 }

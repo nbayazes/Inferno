@@ -92,7 +92,7 @@ namespace Inferno {
         DoorClipFlag Flags{};
         string Filename;
 
-        DoorClip() {
+        constexpr DoorClip() {
             Frames.fill(LevelTexID::None);
         }
 

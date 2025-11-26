@@ -14,6 +14,10 @@
 #include "Resources.Common.h"
 
 
+namespace Inferno {
+    class Image;
+}
+
 // Abstraction for game resources
 namespace Inferno::Resources {
     inline SoundFile Sounds = {}; // sounds for the current level
@@ -134,7 +138,7 @@ namespace Inferno::Resources {
     // Tries to read a binary file by checking the mission, the game specific directory, the shared directory, and finally the game HOG
     Option<List<byte>> ReadBinaryFile(string_view fileName, LoadFlag flags = LoadFlag::Default);
 
-    Option<Image> ReadImage(const string& name, bool srgb);
+    Option<Image> ReadImage(string_view name, bool srgb);
 
     // Loads the corresponding resources for a level
     void LoadLevel(Level&);

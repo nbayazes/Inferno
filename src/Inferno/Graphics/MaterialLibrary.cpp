@@ -356,7 +356,7 @@ namespace Inferno::Render {
         // Reads a custom image from a dds, then a png
         auto readCustomImage = [&batch, &material](const string& name, int slot, bool srgb = false) {
             if (auto image = Resources::ReadImage(name, srgb)) {
-                material.Textures[slot].Load(batch, *image, name, srgb);
+                material.Textures[slot].Load(batch, *image, name);
             }
 
             //if (auto dds = FileSystem::ReadAsset(name + ".dds")) {
@@ -471,24 +471,14 @@ namespace Inferno::Render {
         //    material.Textures[Material2D::Diffuse].LoadDDS(batch, *path, true);
 
         if (auto image = Resources::ReadImage(name, true)) {
-            material.Textures[Material2D::Diffuse].Load(batch, *image, name, true);
+            material.Textures[Material2D::Diffuse].Load(batch, *image, name);
             image->CopyToPigBitmap(diffuse);
         }
 
+        // todo: generate special maps for level and object textures
         //readCustomImage(name, Material2D::Diffuse, true);
         //readCustomImage(name + "_s", Material2D::Specular);
         //readCustomImage(name + "_n", Material2D::Normal);
-
-        //if (auto path = FileSystem::ReadAsset(name + ".png")) {
-        //    DirectX::TexMetadata metadata{};
-        //    DirectX::ScratchImage pngImage;
-        //    if (Render::LoadPng(*path, pngImage, metadata, true)) {
-        //        auto image = pngImage.GetImage(0, 0, 0);
-        //        //CopyScratchImageToBitmap(*image, dest);
-        //        // todo: create mips fails if BGR
-        //        material.Textures[Material2D::Diffuse].Load(batch, image->pixels, image->width, image->height, name, false, metadata.format);
-        //    }
-        //}
 
         auto width = diffuse.Info.Width;
         auto height = diffuse.Info.Height;
@@ -772,7 +762,7 @@ namespace Inferno::Render {
             if (_namedMaterials.contains(name) && !force) continue; // skip loaded
             Material2D material;
 
-            if (vfs::AssetExists(name + ".dds") || vfs::AssetExists(name + ".png")) {
+            if (vfs::Exists(name + ".dds") || vfs::Exists(name + ".png")) {
                 material = UploadBitmap(batch, name, Render::StaticTextures->Black);
             }
             else if (auto bitmap = Resources::ReadOutrageBitmap(name)) {
@@ -780,7 +770,7 @@ namespace Inferno::Render {
                 material = UploadOutrageMaterial(batch, *bitmap, Render::StaticTextures->Black);
             }
             else {
-                if (auto data = vfs::ReadAsset(name)) {
+                if (auto data = vfs::Read(name)) {
                     if (name.ends_with(".bbm")) {
                         auto bbm = ReadBbm(*data);
                         material = UploadBitmap(batch, name, bbm, Render::StaticTextures->Black);

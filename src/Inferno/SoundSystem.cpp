@@ -921,7 +921,7 @@ namespace Inferno::Sound {
 
             // Prioritize reading wavs from filesystem
             if (auto info = Seq::tryItem(_soundsD1.Sounds, id)) {
-                if (auto data = vfs::ReadAsset(info->Name + ".wav")) {
+                if (auto data = vfs::Read(info->Name + ".wav")) {
                     //if (auto data = Resources::ReadBinaryFile(info->Name + ".wav", LoadFlag::Default | LoadFlag::Descent1)) {
                     return (_effectsD1[int(id)] = make_unique<SoundEffect>(CreateSoundEffectWav(*_engine, *data))).get();
                 }
@@ -951,7 +951,7 @@ namespace Inferno::Sound {
 
             // Prioritize reading wavs from filesystem
             if (auto info = Seq::tryItem(_soundsD2.Sounds, id)) {
-                if (auto data = vfs::ReadAsset(info->Name + ".wav")) {
+                if (auto data = vfs::Read(info->Name + ".wav")) {
                     //if (auto data = Resources::ReadBinaryFile(info->Name + ".wav", LoadFlag::Default | LoadFlag::Descent2)) {
                     return (_effectsD2[int(id)] = make_unique<SoundEffect>(CreateSoundEffectWav(*_engine, *data))).get();
                 }
@@ -976,7 +976,7 @@ namespace Inferno::Sound {
 
             if (_soundsD3[fileName]) return _soundsD3[fileName].get();
 
-            if (auto data = vfs::ReadAsset(fileName)) {
+            if (auto data = vfs::Read(fileName)) {
                 return (_soundsD3[fileName] = make_unique<SoundEffect>(CreateSoundEffectWav(*_engine, *data))).get();
             }
 
