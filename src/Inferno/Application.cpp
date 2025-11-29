@@ -12,6 +12,7 @@
 #include "SystemClock.h"
 #include "Graphics/Render.h"
 #include "Graphics/Render.MainMenu.h"
+#include "Graphics/TextureAllocator.h"
 #include "Version.h"
 #include "VirtualFileSystem.h"
 
@@ -56,6 +57,7 @@ void LoadAllD3Models() {
 }
 
 Application::~Application() {
+    Inferno::textures::Shutdown();
     Render::Shutdown();
     Sound::Shutdown();
     Input::Shutdown();
@@ -232,7 +234,7 @@ void Application::OnActivated() {
 
     Input::ResetState();
     _isForeground = true;
-    GetFpsLimit();
+    //GetFpsLimit();
 }
 
 void Application::OnDeactivated() {
@@ -240,7 +242,7 @@ void Application::OnDeactivated() {
     Input::SetMouseMode(Input::MouseMode::Normal);
     Input::ResetState();
     _isForeground = false;
-    GetFpsLimit();
+    //GetFpsLimit();
 }
 
 void Application::OnSuspending() {

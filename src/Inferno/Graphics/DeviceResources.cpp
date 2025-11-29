@@ -207,9 +207,9 @@ namespace Inferno {
 
         using namespace D3D12MA;
         ALLOCATOR_DESC desc = {
-            .Flags = ALLOCATOR_FLAG_NONE,
+            .Flags = ALLOCATOR_FLAG_MSAA_TEXTURES_ALWAYS_COMMITTED,
             .pDevice = m_d3dDevice.Get(),
-            .PreferredBlockSize = 32 * 1024 * 1024,
+            .PreferredBlockSize = 64 * 1024 * 1024,
             .pAdapter = adapter.Get()
         };
 
@@ -483,6 +483,8 @@ namespace Inferno {
             auto height = m_outputSize.bottom;
             CreateBuffers(width, height);
         }
+
+        Render::Allocator->SetCurrentFrameIndex(m_backBufferIndex);
     }
 
     // Wait for pending GPU work to complete.
@@ -493,7 +495,7 @@ namespace Inferno {
     void DeviceResources::ReloadResources() {
         int64 time = {};
         {
-            ScopedTimer timer(&time);
+            ScopedTimer timer(time);
 
             WaitForGpu();
 

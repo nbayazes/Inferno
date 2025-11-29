@@ -22,12 +22,12 @@ namespace Inferno {
             return TextureType::Level;
 
         for (auto& filter : ROBOT_TEXTURES) {
-            if (String::InvariantEquals(entry.Name, filter, strlen(filter)))
+            if (String::EqualsIgnoreCase(entry.Name, filter, strlen(filter)))
                 return TextureType::Robot;
         }
 
         for (auto& filter : POWERUP_TEXTURES) {
-            if (String::InvariantEquals(entry.Name, filter, strlen(filter)))
+            if (String::EqualsIgnoreCase(entry.Name, filter, strlen(filter)))
                 return TextureType::Powerup;
         }
 

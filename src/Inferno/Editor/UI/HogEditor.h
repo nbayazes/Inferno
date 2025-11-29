@@ -60,10 +60,10 @@ namespace Inferno::Editor {
 
                     // when renaming a level also rename aux files (pog, hxm, ...)
                     if (original.IsLevel()) {
-                        if (String::InvariantEquals(original.NameWithoutExtension(), entry.NameWithoutExtension()))
+                        if (String::EqualsIgnoreCase(original.NameWithoutExtension(), entry.NameWithoutExtension()))
                             name = String::NameWithoutExtension(newName) + entry.Extension();
                     }
-                    else if (String::InvariantEquals(original.Name, entry.Name)) {
+                    else if (String::EqualsIgnoreCase(original.Name, entry.Name)) {
                         name = newName;
                     }
 
@@ -97,11 +97,6 @@ namespace Inferno::Editor {
 
             Seq::sortDescending(_selections);
             for (auto& i : _selections) {
-                //if (String::InvariantEquals(entries[i].Name, Game::Level.FileName)) {
-                //    if (!ShowYesNoMessage("Are you sure you want to delete the currently opened level?", "Confirm delete"))
-                //        continue;
-                //}
-
                 SPDLOG_INFO("Deleting entry {}", entries[i].Name);
                 Seq::removeAt(entries, i);
             }
@@ -357,7 +352,7 @@ namespace Inferno::Editor {
                     // check if the imported file matches an existing entry and update it
                     auto importPath = Seq::find(files, [&entry](const filesystem::path& path) {
                         auto shortName = FormatShortFileName(path.filename().string());
-                        return String::InvariantEquals(entry.Name, shortName);
+                        return String::EqualsIgnoreCase(entry.Name, shortName);
                     });
 
                     if (importPath) {
@@ -505,7 +500,7 @@ namespace Inferno::Editor {
 
         static HogEntry* FindEntry(string_view name, span<HogEntry> entries) {
             return Seq::find(entries, [&name](const HogEntry& e) {
-                return String::InvariantEquals(e.Name, name);
+                return String::EqualsIgnoreCase(e.Name, name);
             });
         }
     };

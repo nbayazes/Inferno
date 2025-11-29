@@ -5,6 +5,7 @@
 #include "Concurrent.h"
 #include "OutrageTable.h"
 #include "Graphics/GpuResources.h"
+#include "Hashing.h"
 
 namespace Inferno {
     // Handle to a material, which is a combination of textures and has a GPU handle
@@ -67,7 +68,7 @@ namespace Inferno {
 
     // Tracks textures uploaded to the GPU
     class TextureGpuCache {
-        std::unordered_map<string, Ref<Texture2D>, std::hash<string>, InvariantEquals> _textures;
+        std::unordered_map<string, Ref<Texture2D>, std::hash<string>, StringEqualsIgnoreCase> _textures;
 
         std::mutex _lock;
 

@@ -436,7 +436,7 @@ namespace Inferno::Outrage {
 
         TextureInfo* FindTexture(string_view name) {
             for (auto& tex : Textures) {
-                if (String::InvariantEquals(tex.Name, name))
+                if (String::EqualsIgnoreCase(tex.Name, name))
                     return &tex;
             }
 

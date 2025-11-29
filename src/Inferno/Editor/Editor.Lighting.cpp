@@ -994,7 +994,7 @@ namespace Inferno::Editor {
             level.LightDeltaIndices.clear();
             level.LightDeltas.clear();
 
-            ScopedTimer timer(&Metrics::LightCalculationTime);
+            ScopedTimer timer(Metrics::LightCalculationTime);
 
             auto hardwareThreads = std::thread::hardware_concurrency();
             SPDLOG_INFO("Lighting level. {} available threads.", hardwareThreads);

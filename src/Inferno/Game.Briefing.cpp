@@ -119,12 +119,14 @@ namespace Inferno {
             background.replace_filename(background.stem().string() + "h");
             background.replace_extension(ext);
 
+            // todo: replace this entire if/else block with vfs::Find(), then test orion nebula and retail for high res briefings
             if (Game::Mission && !Game::Mission->IsRetailMission() && Game::Mission->TryFindEntry(screen.Background)) {
                 // search user mission HOG before checking high res in case it provides custom backgrounds
                 files.insert(screen.Background);
             }
             else if (Resources::Find(background.string(), LoadFlag::Mission | LoadFlag::Dxa | LoadFlag::BaseHog | LoadFlag::LevelType | loadFlags) ||
-                     vfs::Exists(background.string())) {
+                     vfs::Find(background.string())) {
+                // todo: this will fail to load after replacing resource loading with vfs and the resource is inside an archive
                 files.insert(background.string()); // Check for high res image
                 screen.Background = background.string();
             }

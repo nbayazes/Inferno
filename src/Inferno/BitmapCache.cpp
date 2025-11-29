@@ -110,12 +110,12 @@ namespace Inferno {
 
     int TextureCache::Resolve(const string& name) {
         for (int i = 0; i < _textures.size(); i++) {
-            if (String::InvariantEquals(_textures[i].Name, name))
+            if (String::EqualsIgnoreCase(_textures[i].Name, name))
                 return i; // Already loaded
         }
 
         for (auto& tex : Resources::GameTable.Textures) {
-            if (String::InvariantEquals(tex.Name, name)) {
+            if (String::EqualsIgnoreCase(tex.Name, name)) {
                 return AllocTextureInfo({ tex });
             }
         }
@@ -125,12 +125,12 @@ namespace Inferno {
 
     int TextureCache::ResolveFileName(string_view fileName) {
         for (int i = 0; i < _textures.size(); i++) {
-            if (String::InvariantEquals(_textures[i].FileName, fileName))
+            if (String::EqualsIgnoreCase(_textures[i].FileName, fileName))
                 return i; // Already exists
         }
 
         for (auto& tex : Resources::GameTable.Textures) {
-            if (String::InvariantEquals(tex.FileName, fileName))
+            if (String::EqualsIgnoreCase(tex.FileName, fileName))
                 return AllocTextureInfo({ tex });
         }
 
@@ -175,7 +175,7 @@ namespace Inferno {
         for (int id = 0; id < Resources::VClips.size(); id++) {
             auto& vclip = Resources::VClips[id];
             for (auto& frame : vclip.Frames) {
-                if (String::InvariantEquals(frame.Name, frameName)) {
+                if (String::EqualsIgnoreCase(frame.Name, frameName)) {
                     RuntimeTextureInfo ti;
                     ti.FileName = frame.Name;
                     ti.VClip = id;

@@ -5,14 +5,12 @@
 #include "Editor/Editor.h"
 #include "Buffers.h"
 #include "Mesh.h"
-#include "Render.Gizmo.h"
 #include "Render.Debug.h"
 #include "Render.Editor.h"
 #include "Settings.h"
 #include "DirectX.h"
 #include "Render.Particles.h"
 #include "Game.Text.h"
-#include "Editor/UI/BriefingEditor.h"
 #include "Graphics.h"
 #include "HUD.h"
 #include "ScopedTimer.h"
@@ -70,9 +68,9 @@ namespace Inferno::Render {
     void DrawBillboard(GraphicsContext& ctx,
                        D3D12_GPU_DESCRIPTOR_HANDLE texture,
                        D3D12_GPU_VIRTUAL_ADDRESS frameConstants,
-                       Inferno::Camera& camera,
+                       const Inferno::Camera& camera,
                        const Vector3& position,
-                       BillboardInfo& info) {
+                       const BillboardInfo& info) {
         auto transform = info.up ? Matrix::CreateConstrainedBillboard(position, camera.Position, *info.up) : Matrix::CreateBillboard(position, camera.Position, camera.Up);
 
         if (info.rotation != 0)
@@ -424,7 +422,7 @@ namespace Inferno::Render {
 
     void DrawImguiBatch(GraphicsContext& ctx) {
         PIXScopedEvent(ctx.GetCommandList(), PIX_COLOR_INDEX(9), "UI");
-        ScopedTimer imguiTimer(&Metrics::ImGui);
+        ScopedTimer imguiTimer(Metrics::ImGui);
         Canvas->Render(ctx);
         // Imgui batch modifies render state greatly. Normal geometry will likely not render correctly afterwards.
         g_ImGuiBatch->Render(ctx.GetCommandList());
@@ -614,7 +612,7 @@ namespace Inferno::Render {
     }
 
     void Present(const Camera& camera) {
-        ScopedTimer presentTimer(&Metrics::Present);
+        ScopedTimer presentTimer(Metrics::Present);
         Stats::DrawCalls = 0;
         Stats::PolygonCount = 0;
         Stats::FogPasses = 0;

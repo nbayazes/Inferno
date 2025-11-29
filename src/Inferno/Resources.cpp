@@ -5,6 +5,7 @@
 #include "BitmapTable.h"
 #include "Editor/Editor.h"
 #include "FileSystem.h"
+#include "Formats/PCX.h"
 #include "Game.h"
 #include "GameTable.h"
 #include "Graphics.h"
@@ -283,7 +284,8 @@ namespace Inferno::Resources {
     }
 
     TexID LookupModelTexID(const Model& m, int16 i) {
-        if (i >= m.TextureCount || m.FirstTexture + i >= (int16)GameData.ObjectBitmapPointers.size()) return TexID::None;
+        if (std::cmp_greater_equal(i, m.TextureCount) || m.FirstTexture + i >= (int16)GameData.ObjectBitmapPointers.size())
+            return TexID::None;
         //if (i < 0 || i >= m.TextureCount || m.FirstTexture + i >= Current.ObjectBitmapPointers.size()) return TexID::None;
         auto ptr = GameData.ObjectBitmapPointers[m.FirstTexture + i];
         return GameData.ObjectBitmaps[ptr];
@@ -1057,7 +1059,7 @@ namespace Inferno::Resources {
             //auto name = string(fileName);
             auto& path = item.path();
 
-            if (String::InvariantEquals(path.extension().string(), ".dxa")) {
+            if (String::EqualsIgnoreCase(path.extension().string(), ".dxa")) {
                 auto zip = OpenZip(path);
                 if (zip->Contains(fileName))
                     return ResourceHandle(path, string(fileName));
@@ -1140,7 +1142,7 @@ namespace Inferno::Resources {
 
             auto& filePath = file.path();
 
-            if (String::InvariantEquals(filePath.extension().string(), ".dxa")) {
+            if (String::EqualsIgnoreCase(filePath.extension().string(), ".dxa")) {
                 auto zip = OpenZip(filePath);
                 if (auto data = zip->TryReadEntry(name))
                     return data;
@@ -1332,6 +1334,8 @@ namespace Inferno::Resources {
 
                     Image bitmapImage;
                     bitmapImage.LoadPigBitmap(texture);
+                    bitmapImage.Load<Palette::Color>(texture.Data, texture.Info.Width, texture.Info.Height, DXGI_FORMAT_R8_UNORM);
+
                     bitmapImage.Resize(wrapu, wrapv, size, size);
                     bitmapImage.CopyToPigBitmap(waterImage);
 
@@ -1475,9 +1479,23 @@ namespace Inferno::Resources {
         return span{ &joints, (uint)animStates.Count };
     }
 
-    MaterialInfo& Resources::GetMaterial(TexID id) {
+    MaterialInfo& GetMaterial(TexID id) {
         if (!Seq::inRange(IndexedMaterials.Data(), (int)id)) return DEFAULT_MATERIAL;
         return IndexedMaterials.Data()[(int)id];
+    }
+
+    MaterialInfo* TryGetMaterial(string_view name) {
+        // trim the frame number, as materials only define the base texture
+        if (auto index = String::IndexOf(name, "#")) {
+            name = name.substr(0, *index);
+        }
+
+        for (auto& material : IndexedMaterials.Data()) {
+            if (material.Name == name)
+                return &material;
+        }
+
+        return nullptr;
     }
 
     MaterialInfo* Resources::TryGetMaterial(TexID id) {
@@ -1537,6 +1555,15 @@ namespace Inferno::Resources {
             else if (auto tga = vfs::Read(name + ".tga")) {
                 image.LoadTGA(*tga, srgb);
             }
+            // don't scan for pcx or bbm automatically
+            //else if (auto pcxData = vfs::Read(name + ".pcx")) {
+            //    auto pcx = ReadPCX(*pcxData);
+            //    image.LoadBitmap2D(pcx);
+            //}
+            //else if (auto bbmData = vfs::Read(name + ".bbm")) {
+            //    auto bbm = ReadBbm(*bbmData);
+            //    image.LoadBitmap2D(bbm);
+            //}
         }
         else if (auto data = vfs::Read(name)) {
             if (ext == ".dds") {
@@ -1547,6 +1574,26 @@ namespace Inferno::Resources {
             }
             else if (ext == ".tga") {
                 image.LoadTGA(*data, srgb);
+            }
+            else if (ext == ".pcx") {
+                auto pcx = ReadPCX(*data);
+                image.Load<Palette::Color>(pcx.Data, pcx.Width, pcx.Height);
+            }
+            else if (ext == ".bbm") {
+                auto bbm = ReadBbm(*data);
+                image.Load<Palette::Color>(bbm.Data, bbm.Width, bbm.Height);
+            }
+        }
+
+        // use game data
+        if (!image.GetPixels()) {
+            for (auto& bitmap : GameData.bitmaps) {
+                if (String::EqualsIgnoreCase(bitmap.Info.Name, name)) {
+                    if (bitmap.Info.Name != "default") {
+                        image.Load<Palette::Color>(bitmap.Data, bitmap.Info.Width, bitmap.Info.Height);
+                    }
+                    break;
+                }
             }
         }
 
@@ -1592,9 +1639,9 @@ namespace Inferno::Resources {
 
                 if (!paletteData) {
                     // Wasn't in hog, find on filesystem
-                    if (auto path256 = vfs::Find(level.Palette)) {
-                        paletteData = File::ReadAllBytes(path256->path);
-                        pigPath = path256->path.replace_extension(".pig");
+                    if (auto resource = vfs::Find(level.Palette)) {
+                        paletteData = vfs::Read(*resource);
+                        pigPath = resource->path.replace_extension(".pig");
                     }
                     else {
                         // Give up and load groupa, but fail if it's not found
@@ -1752,6 +1799,7 @@ namespace Inferno::Resources {
     bool FoundDescent3() {
         return vfs::Find("d3.hog").has_value();
     }
+
     bool FoundMercenary() {
         return vfs::Find("merc.hog").has_value();
     }
@@ -1846,7 +1894,7 @@ namespace Inferno::Resources {
     }
 
     void Resources::MountLevel(const Level& level, const filesystem::path& missionPath) {
-        vfs::Reset();
+        vfs::Unmount();
 
         if (level.IsDescent1()) {
             vfs::Mount("d2/descent2.hog"); // mount d2 data first so it is available but d1 gets priority
@@ -1855,7 +1903,7 @@ namespace Inferno::Resources {
             vfs::Mount("d1/", { ".dxa" });
             vfs::Mount("assets/");
             // Game specific assets get priority over common ones. Skip dxa and hogs as they were already mounted.
-            vfs::Mount("d1/", { "!.dxa", "!.hog" }); 
+            vfs::Mount("d1/", { "!.dxa", "!.hog" });
         }
         else {
             vfs::Mount("d1/descent.hog");
@@ -1929,8 +1977,8 @@ namespace Inferno::Resources {
     Option<Outrage::Bitmap> ReadOutrageBitmap(const string& fileName) {
         for (auto& tex : GameTable.Textures) {
             string name;
-            if (String::InvariantEquals(tex.FileName, fileName)) name = fileName;
-            else if (String::InvariantEquals(tex.FileName, fileName + ".ogf")) name = fileName + ".ogf";
+            if (String::EqualsIgnoreCase(tex.FileName, fileName)) name = fileName;
+            else if (String::EqualsIgnoreCase(tex.FileName, fileName + ".ogf")) name = fileName + ".ogf";
             else continue;
 
             if (auto data = Descent3Hog.ReadEntry(name)) {
@@ -1994,8 +2042,8 @@ namespace Inferno::Resources {
 
         try {
             for (auto& file : filesystem::directory_iterator(directory)) {
-                if (String::InvariantEquals(file.path().extension().string(), ".msn") ||
-                    String::InvariantEquals(file.path().extension().string(), ".mn2")) {
+                if (String::EqualsIgnoreCase(file.path().extension().string(), ".msn") ||
+                    String::EqualsIgnoreCase(file.path().extension().string(), ".mn2")) {
                     MissionInfo mission{};
                     std::ifstream missionFile(file.path());
                     if (mission.Read(missionFile)) {
@@ -2016,57 +2064,4 @@ namespace Inferno::Resources {
 
         return missions;
     }
-
-    //int ResolveVClip(string frameName) {
-    //    for (int id = 0; id < Resources::VClips.size(); id++) {
-    //        auto& vclip = Resources::VClips[id];
-    //        for (auto& frame : vclip.Frames) {
-    //            if (String::InvariantEquals(frame.Name, frameName)) {
-    //                RuntimeTextureInfo ti;
-    //                ti.FileName = frame.Name;
-    //                ti.VClip = id;
-    //                return AllocTextureInfo(std::move(ti));
-    //            }
-    //        }
-    //    }
-
-    //    return -1;
-    //}
-
-    //const string& ResolveOutrageFileName(string_view fileName) {
-    //    //for (int i = 0; i < _textures.size(); i++) {
-    //    //    if (String::InvariantEquals(_textures[i].FileName, fileName))
-    //    //        return i; // Already exists
-    //    //}
-
-    //    // Check the D3 game table
-    //    for (auto& tex : GameTable.Textures) {
-    //        if (String::InvariantEquals(tex.FileName, fileName))
-    //            return tex.Name;
-    //            //return AllocTextureInfo({ tex });
-    //    }
-
-    //    //if (auto id = ResolveVClip(fileName); id != -1)
-    //    //    return id;
-
-    //    //return -1;
-    //}
-
-    //const Outrage::Model* ReadOutrageModel(const string& name) {
-    //    // name -> index -> 500 + model ID
-    //    if (name.empty()) return nullptr;
-
-    //    if (OutrageModels.contains(name))
-    //        return &OutrageModels[name];
-
-    //    if (auto model = TryReadOutrageModel(name)) {
-    //        for (auto& texture : model->Textures) {
-    //            model->TextureHandles.push_back(Render::NewTextureCache->ResolveFileName(texture));
-    //        }
-    //        OutrageModels[name] = std::move(*model);
-    //        return &OutrageModels[name];
-    //    }
-
-    //    return nullptr;
-    //}
 };

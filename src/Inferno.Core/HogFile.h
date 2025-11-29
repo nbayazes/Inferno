@@ -27,15 +27,15 @@ namespace Inferno {
 
         bool IsLevel() const {
             auto ext = Extension();
-            return String::InvariantEquals(ext, ".rl2") || String::InvariantEquals(ext, ".rdl") || String::InvariantEquals(ext, ".sdl");
+            return String::EqualsIgnoreCase(ext, ".rl2") || String::EqualsIgnoreCase(ext, ".rdl") || String::EqualsIgnoreCase(ext, ".sdl");
         }
 
         bool IsBriefing() const {
-            return String::InvariantEquals(Extension(), ".txb");
+            return String::EqualsIgnoreCase(Extension(), ".txb");
         }
 
         bool IsHam() const {
-            return String::InvariantEquals(Extension(), ".ham");
+            return String::EqualsIgnoreCase(Extension(), ".ham");
         }
     };
 
@@ -75,7 +75,7 @@ namespace Inferno {
 
         // Returns true if the HOG is descent.hog or descent2.hog
         bool IsRetailMission() const {
-            return String::InvariantEquals(Path.filename().string(), "descent.hog") || String::InvariantEquals(Path.filename().string(), "descent2.hog");
+            return String::EqualsIgnoreCase(Path.filename().string(), "descent.hog") || String::EqualsIgnoreCase(Path.filename().string(), "descent2.hog");
         }
 
         // Gets the path to the corresponding mission description file

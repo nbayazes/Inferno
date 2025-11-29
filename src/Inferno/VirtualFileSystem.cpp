@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "VirtualFileSystem.h"
 #include "FileSystem.h"
+#include "Hashing.h"
 #include "Hog.IO.h"
 #include "Hog2.h"
 #include "Resources.Common.h"
@@ -10,34 +11,7 @@
 
 namespace Inferno::vfs {
     namespace {
-        // hash that works with any string compatible with string_view
-        struct string_hash {
-            using is_transparent = void; // enable heterogeneous overloads
-            using is_avalanching = void; // mark class as high quality avalanching hash
-
-            [[nodiscard]] uint64_t operator()(std::string_view str) const noexcept {
-                return ankerl::unordered_dense::hash<std::string_view>{}(str);
-            }
-        };
-
-        struct invariant_equal_to {
-            [[nodiscard]] bool operator()(string_view left, string_view&& right) const noexcept {
-                return String::InvariantEquals(left, right);
-            }
-
-            using is_transparent = int;
-        };
-
-        struct invariant_string_hash {
-            using is_transparent = void; // enable heterogeneous overloads
-            using is_avalanching = void; // mark class as high quality avalanching hash
-
-            [[nodiscard]] uint64_t operator()(std::string_view str) const noexcept {
-                return ankerl::unordered_dense::hash<std::string_view>{}(String::ToLower(str));
-            }
-        };
-
-        ankerl::unordered_dense::map<string, ResourceHandle, invariant_string_hash, invariant_equal_to> Assets;
+        ankerl::unordered_dense::map<string, ResourceHandle, StringHashIgnoreCase, StringEqualsIgnoreCase> Assets;
     }
 
     // Returns true if filter is empty or value exists in the filter
@@ -55,15 +29,15 @@ namespace Inferno::vfs {
         }
 
         for (auto exclusion : exclusions) {
-            if (String::InvariantEquals(value, exclusion))
+            if (String::EqualsIgnoreCase(value, exclusion))
                 return false;
         }
 
-        if (inclusions.empty()) 
+        if (inclusions.empty())
             return true; // include everything remaining
 
         for (auto inclusion : inclusions) {
-            if (String::InvariantEquals(value, inclusion))
+            if (String::EqualsIgnoreCase(value, inclusion))
                 return true;
         }
 
@@ -141,7 +115,7 @@ namespace Inferno::vfs {
         auto ext = path.extension().string();
         if (!PassesFilter(ext, filter)) return false;
 
-        if (String::InvariantEquals(ext, ".hog")) {
+        if (String::EqualsIgnoreCase(ext, ".hog")) {
             // try mounting a D1, D2, or D3 hog
 
             if (HogFile::IsHog(path)) {
@@ -176,7 +150,7 @@ namespace Inferno::vfs {
                 SPDLOG_WARN("Tried to read unknown hog type: {}", path.string());
             }
         }
-        else if (String::InvariantEquals(ext, ".zip") || String::InvariantEquals(ext, ".dxa")) {
+        else if (String::EqualsIgnoreCase(ext, ".zip") || String::EqualsIgnoreCase(ext, ".dxa")) {
             MountZip(path, levelName);
             return true;
         }
@@ -255,49 +229,47 @@ namespace Inferno::vfs {
         return resource != Assets.end() ? Option(resource->second) : std::nullopt;
     }
 
-    Option<List<ubyte>> ReadInternal(string_view name) {
-        if (auto asset = Find(name)) {
-            switch (asset->source) {
-                case Filesystem:
-                    return File::ReadAllBytes(asset->path);
-                case Hog:
-                {
-                    HogReader hog(asset->path);
-                    return hog.TryReadEntry(name);
+    Option<List<ubyte>> Read(const ResourceHandle& asset) {
+        switch (asset.source) {
+            case Filesystem:
+                return File::ReadAllBytes(asset.path);
+            case Hog:
+            {
+                HogReader hog(asset.path);
+                return hog.TryReadEntry(asset.name);
+            }
+            case Zip:
+            {
+                if (auto zip = OpenZip(asset.path)) {
+                    return zip->TryReadEntry(asset.name);
                 }
-                case Zip:
-                {
-                    if (auto zip = OpenZip(asset->path)) {
-                        return zip->TryReadEntry(asset->name);
-                    }
-                    else {
-                        SPDLOG_ERROR("Unable to read {} from {}", name, asset->path.string());
-                    }
-                    break;
-                }
-                default:
-                {
-                    SPDLOG_WARN("Unknown asset source {}:{}", (int)asset->source, asset->name);
+                else {
+                    SPDLOG_ERROR("Unable to read {} from {}", asset.name, asset.path.string());
+                    return {};
                 }
             }
+            default:
+            {
+                SPDLOG_WARN("Unknown asset source {}:{}", (int)asset.source, asset.name);
+                return {};
+            }
         }
-
-        //SPDLOG_WARN("Asset not found {}", name);
-        return {};
     }
 
     Option<List<ubyte>> Read(string_view name) {
-        if (String::Contains(name, ",")) {
-            auto split = String::Split(string(name), ',', true);
+        List<string> search;
 
-            for (auto& assetName : split) {
-                if (auto asset = ReadInternal(assetName)) {
+        if (String::Contains(name, ","))
+            search = String::Split(string(name), ',', true);
+        else
+            search = { string(name) };
+
+        for (auto& assetName : search) {
+            if (auto handle = Find(assetName)) {
+                if (auto asset = Read(*handle)) {
                     return asset;
                 }
             }
-        }
-        else {
-            return ReadInternal(name);
         }
 
         return {};
@@ -325,7 +297,7 @@ namespace Inferno::vfs {
         if (delta > 0) SPDLOG_INFO("Found {} assets", delta);
     }
 
-    void Reset() {
+    void Unmount() {
         Assets.clear();
     }
 

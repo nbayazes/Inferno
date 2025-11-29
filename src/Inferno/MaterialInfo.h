@@ -172,6 +172,6 @@ namespace Inferno {
     };
 
     // Materials loaded from the game data folders. Only contains entries that exist in the file.
-    // Refer to Resources::Materials for the merged table
+    // Refer to Resources::GetMaterial() to fetch from the merged materials
     inline MaterialTable Descent1Materials, Descent2Materials, MissionMaterials, LevelMaterials;
 }

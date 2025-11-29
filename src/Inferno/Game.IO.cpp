@@ -134,7 +134,7 @@ namespace Inferno::Game {
                 NeedsResourceReload ||
                 sharewareReload ||
                 Resources::CustomTextures.Any() ||
-                !String::InvariantEquals(level.Palette, Level.Palette);
+                !String::EqualsIgnoreCase(level.Palette, Level.Palette);
 
             if (sharewareReload) {
                 Sound::UnloadD1Sounds();

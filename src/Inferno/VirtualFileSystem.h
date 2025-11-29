@@ -2,7 +2,6 @@
 
 namespace Inferno {
     struct ResourceHandle;
-    struct Level;
 }
 
 /* Inferno virtual file system
@@ -16,7 +15,8 @@ namespace Inferno {
  * is also indexed. All other subfolders are ignored.
  *
  * Assets are prefixed with d1: d2: or d3: depending on their source, in addition to adding the
- * un-prefixed version to the dictionary. This is so game specific assets can be referenced.
+ * un-prefixed version to the dictionary. This is so game specific assets can be referenced outside
+ * of the current game. For example D1 robot sounds in D2.
  *
  * Assets are mounted in the following order:
  * - Base d1/descent.hog or d2/descent2.hog
@@ -33,22 +33,22 @@ namespace Inferno {
  * - mission/mission/level
  */
 namespace Inferno::vfs {
-    // Tries to read a file from the mounted paths.
-    // Supports comma separated resource names which will try to load until an asset is found.
+    // Tries to read a resource. Supports comma separated resource names.
     Option<List<ubyte>> Read(string_view name);
 
-    // Helper to read image assets based on the extension. Supports DDS, TGA, and WIC formats (PNG).
-    //Option<Image> ReadImage(const string& name, bool srgb = true);
+    // Reads a resource handle
+    Option<List<ubyte>> Read(const ResourceHandle& resource);
 
-    bool Exists(string_view name);
+    // Tries to find a resource. Supports comma separated resource names.
     Option<ResourceHandle> Find(string_view name);
 
     // Mounts a directory, zip, hog or file. Level name is used to search for folders inside of zips or directories.
     void Mount(const std::filesystem::path& path, std::initializer_list<string_view> filter = {}, string_view levelName = {});
 
     // Unmounts all directories and archives
-    void Reset();
+    void Unmount();
 
     // Prints all of the mounted resources
     void Print();
 }
+

@@ -70,6 +70,10 @@ namespace Inferno {
     };
 
     struct ResourceHandle {
+        filesystem::path path; // path on filesystem
+        string name; // resource name inside archive or folder
+        Source source; // where the file is stored (filesystem, game archive, or zip)
+
         static ResourceHandle FromHog(const filesystem::path& path, string_view name) {
             ResourceHandle handle = {
                 .path = path,
@@ -95,16 +99,12 @@ namespace Inferno {
         static ResourceHandle FromFilesystem(const filesystem::path& path) {
             ResourceHandle handle = {
                 .path = path,
-                //.name = string(name),
+                .name = path.filename().string(),
                 .source = Source::Filesystem
             };
 
             handle.path.make_preferred();
             return handle;
         }
-
-        filesystem::path path; // path on filesystem
-        string name; // resource name inside archive or folder
-        Source source;
     };
 }

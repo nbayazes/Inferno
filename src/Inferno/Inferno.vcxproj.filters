@@ -121,6 +121,7 @@
     <ClCompile Include="Mods.cpp" />
     <ClCompile Include="VirtualFileSystem.cpp" />
     <ClCompile Include="ZipFile.cpp" />
+    <ClCompile Include="Graphics\TextureAllocator.cpp" />
     <ClCompile Include="WindowsDialogs.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -297,6 +298,8 @@
     <ClInclude Include="Image.h" />
     <ClInclude Include="VirtualFileSystem.h" />
     <ClInclude Include="ZipFile.h" />
+    <ClInclude Include="Graphics\TextureAllocator.h" />
+    <ClInclude Include="Hashing.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />

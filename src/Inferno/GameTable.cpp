@@ -101,7 +101,7 @@ namespace Inferno {
             if (Seq::inRange(ham.Weapons, id)) return ham.Weapons[id];
 
             if (!name.empty()) {
-                if (auto index = Seq::findIndex(ham.Weapons, [&name](auto& w) { return String::InvariantEquals(w.Extended.Name, name); }))
+                if (auto index = Seq::findIndex(ham.Weapons, [&name](auto& w) { return String::EqualsIgnoreCase(w.Extended.Name, name); }))
                     return ham.Weapons[*index];
             }
 
@@ -477,13 +477,13 @@ namespace Inferno {
         string weapon;
 
         if (Yaml::ReadValue(node["Weapon"], weapon)) {
-            if (auto index = Seq::findIndex(ham.Weapons, [&weapon](auto& w) { return String::InvariantEquals(w.Extended.Name, weapon); })) {
+            if (auto index = Seq::findIndex(ham.Weapons, [&weapon](auto& w) { return String::EqualsIgnoreCase(w.Extended.Name, weapon); })) {
                 robot.WeaponType = (WeaponID)*index;
             }
         }
 
         if (Yaml::ReadValue(node["Weapon2"], weapon)) {
-            if (auto index = Seq::findIndex(ham.Weapons, [&weapon](auto& w) { return String::InvariantEquals(w.Extended.Name, weapon); })) {
+            if (auto index = Seq::findIndex(ham.Weapons, [&weapon](auto& w) { return String::EqualsIgnoreCase(w.Extended.Name, weapon); })) {
                 robot.WeaponType2 = (WeaponID)*index;
             }
         }

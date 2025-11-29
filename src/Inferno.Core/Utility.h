@@ -628,11 +628,11 @@ namespace Inferno {
     }
 
     namespace String {
-        constexpr bool Contains(const string_view str, const string_view value) {
+        constexpr bool Contains(string_view str, string_view value) {
             return str.find(value) != string::npos;
         }
 
-        constexpr Option<size_t> IndexOf(const string_view str, const string_view value) {
+        constexpr Option<size_t> IndexOf(string_view str, string_view value) {
             auto p = str.find(value);
             if (p == string::npos) return {};
             return p;
@@ -654,74 +654,72 @@ namespace Inferno {
         //}
 
         // Returns true if two strings are equal ignoring capitalization
-        inline bool InvariantEquals(const string_view s1, const string_view s2) {
-            // string views might not be null terminated
-            return _stricmp(string{ s1 }.c_str(), string{ s2 }.c_str()) == 0;
-        }
-
-        // Returns true if two strings are equal ignoring capitalization
-        inline bool InvariantEquals(const string& s1, const string& s2) {
-            return _stricmp(s1.c_str(), s2.c_str()) == 0;
+        inline bool EqualsIgnoreCase(string_view s1, string_view s2) {
+            if (s1.size() != s2.size()) return false;
+            return _strnicmp(s1.data(), s2.data(), std::min(s1.size(), s2.size())) == 0;
         }
 
         // Returns true if two strings are equal ignoring capitalization, up to a number of characters
-        inline bool InvariantEquals(const string_view s1, const string_view s2, size_t maxCount) {
-            return _strnicmp(string{ s1 }.c_str(), string{ s2 }.c_str(), maxCount) == 0;
+        inline bool EqualsIgnoreCase(string_view s1, string_view s2, size_t maxCount) {
+            //if (s1.size() < maxCount || s2.size() < maxCount) return false;
+            return _strnicmp(s1.data(), s2.data(), std::min({ maxCount, s1.size(), s2.size() })) == 0;
         }
 
         // Returns true if two strings are equal ignoring capitalization
-        inline bool InvariantEquals(const wstring_view s1, const wstring_view s2) {
-            return _wcsicmp(wstring{ s1 }.c_str(), wstring{ s2 }.c_str()) == 0;
+        inline bool EqualsIgnoreCase(wstring_view s1, wstring_view s2) {
+            if (s1.size() != s2.size()) return false;
+            return _wcsnicmp(s1.data(), s2.data(), std::min(s1.size(), s2.size())) == 0;
         }
 
         // Returns < 0 when s1 < s2, 0 if equal, and > 0 when s2 > s1
-        inline int InvariantComparison(const string_view s1, const string_view s2) {
-            return _stricmp(string{ s1 }.c_str(), string{ s2 }.c_str());
+        inline int CompareIgnoreCase(string_view s1, string_view s2) {
+            if (s1.size() != s2.size()) return false;
+            return _strnicmp(s1.data(), s2.data(), std::min(s1.size(), s2.size()));
         }
 
         // Returns the file name without the extension. Returns original string if no extension.
-        inline string NameWithoutExtension(const string_view str) {
+        inline string NameWithoutExtension(string_view str) {
             auto i = str.find('.');
             if (i == string::npos) return string(str);
             return string(str.substr(0, i));
         }
 
         // Returns the extension with the dot. Returns empty if no extension.
-        constexpr string_view Extension(const string_view str) {
+        constexpr string_view Extension(string_view str) {
             auto i = str.find('.');
             if (i == string::npos) return {};
             return str.substr(i);
         }
 
         // Returns the extension with the dot. Returns empty if no extension.
-        constexpr wstring_view Extension(const wstring_view str) {
+        constexpr wstring_view Extension(wstring_view str) {
             auto i = str.find('.');
             if (i == wstring::npos) return {};
             return str.substr(i);
         }
 
-        constexpr bool HasExtension(const string& str) { return !Extension(str).empty(); }
+        constexpr bool HasExtension(string_view str) { return !Extension(str).empty(); }
 
-        inline bool HasExtension(const string& str, string_view ext) {
-            return InvariantEquals(Extension(str), ext);
+        inline bool HasExtension(string_view str, string_view ext) {
+            return EqualsIgnoreCase(Extension(str), ext);
         }
 
         const string Whitespace = " \n\r\t\f\v";
 
         // Remove whitespace from the beginning
-        inline string TrimStart(const string& s, const string& token = Whitespace) {
+        inline string TrimStart(string_view s, string_view token = Whitespace) {
             auto start = s.find_first_not_of(token);
-            return start == string::npos ? "" : s.substr(start);
+            return start == string::npos ? "" : string(s.substr(start));
         }
 
         // Remove whitespace from the end
-        inline string TrimEnd(const string& s, const string& token = Whitespace) {
+        inline string TrimEnd(string_view s, string_view token = Whitespace) {
             auto end = s.find_last_not_of(token);
-            return end == string::npos ? "" : s.substr(0, end + 1);
+            return end == string::npos ? "" : string(s.substr(0, end + 1));
         }
 
         // Remove whitespace from both ends
-        inline string Trim(const string& s, const string& token = Whitespace) {
+        inline string Trim(string_view s, string_view token = Whitespace) {
             return TrimStart(TrimEnd(s, token), token);
         }
 
@@ -789,13 +787,6 @@ namespace Inferno {
             return hash;
         }
     }
-
-    // Comparator for invariant equality of strings
-    struct InvariantEquals {
-        bool operator()(const string& a, const string& b) const {
-            return String::InvariantEquals(a, b);
-        }
-    };
 
     // Flags a type as non-copyable
     struct NonCopyable {
@@ -990,15 +981,12 @@ namespace Inferno {
         }
 
         // Specialization to filter a collection of strings by a value. Causes heap allocation.
-        [[nodiscard]] List<string> filter(const auto& xs, string value, bool invariant) {
-            if (invariant) {
-                value = String::ToLower(value);
-                return filter(xs, [&](const string& e) {
-                    return String::ToLower(e).find(value) != string::npos;
-                });
+        [[nodiscard]] List<string> filter(const auto& xs, string value, bool caseSensitive) {
+            if (caseSensitive) {
+                return filter(xs, [&](const string& e) { return e.find(value) != string::npos; });
             }
             else {
-                return filter(xs, [&](const string& e) { return e.find(value) != string::npos; });
+                return filter(xs, [&](const string& e) { return String::EqualsIgnoreCase(e, value); });
             }
         }
     }
@@ -1018,7 +1006,18 @@ namespace Inferno {
         if (!path.has_extension()) return false;
         if (!ext.starts_with('.')) ext.insert(0, ".");
 
-        return String::InvariantEquals(path.extension().string(), ext);
+        return String::EqualsIgnoreCase(path.extension().string(), ext);
+    }
+
+    // Formats time in seconds into h:mm:ss or mm:ss
+    inline string FormatDisplayTime(double time) {
+        auto hours = int(time / 3600);
+        time -= hours * 3600;
+
+        if (hours > 0)
+            return fmt::format("{}:{:02}:{:02}", hours, int(time) / 60, int(time) % 60);
+        else
+            return fmt::format("{}:{:02}", int(time) / 60, int(time) % 60);
     }
 
     class ScopedBool {
@@ -1033,16 +1032,6 @@ namespace Inferno {
         ScopedBool& operator=(ScopedBool&&) = default;
     };
 
-    // Formats time in seconds into h:mm:ss or mm:ss
-    inline string FormatDisplayTime(double time) {
-        auto hours = int(time / 3600);
-        time -= hours * 3600;
-
-        if (hours > 0)
-            return fmt::format("{}:{:02}:{:02}", hours, int(time) / 60, int(time) % 60);
-        else
-            return fmt::format("{}:{:02}", int(time) / 60, int(time) % 60);
-    }
 
     // Asserts single threaded access of this scope
 #define ASSERT_STA() static std::atomic staGuard = false; ASSERT(!staGuard); ScopedBool staScope(staGuard);

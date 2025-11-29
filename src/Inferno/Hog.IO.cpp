@@ -43,7 +43,7 @@ namespace Inferno {
                 HogReader reader(path);
 
                 for (auto& entry : reader.Entries()) {
-                    if (String::InvariantEquals(entry.Name, name)) {
+                    if (String::EqualsIgnoreCase(entry.Name, name)) {
                         SPDLOG_INFO("Replacing existing entry {}", entry.Name);
                         writer.WriteEntry(entry.Name, data);
                         existing = true;
@@ -81,7 +81,7 @@ namespace Inferno {
             HogReader reader(path);
 
             for (auto& entry : reader.Entries()) {
-                if (String::InvariantEquals(entry.Name, name)) {
+                if (String::EqualsIgnoreCase(entry.Name, name)) {
                     found = true;
                     SPDLOG_INFO("Removing entry {}", entry.Name);
                 }

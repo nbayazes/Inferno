@@ -8,6 +8,7 @@
 #include <dxgiformat.h>
 #include <span>
 #include <strsafe.h>
+#include "Formats/BBM.h"
 
 namespace Inferno {
     class Image : public DirectX::ScratchImage {
@@ -57,7 +58,8 @@ namespace Inferno {
             auto& metadata = GetMetadata();
 
             if (DirectX::IsCompressed(metadata.format)) {
-                if (FAILED(Decompress(*GetImage(0, 0, 0), metadata.format, decompressed)))
+                // DXGI_FORMAT_UNKNOWN picks an output format based on the input image format
+                if (FAILED(Decompress(*GetImage(0, 0, 0), DXGI_FORMAT_UNKNOWN, decompressed)))
                     //if (FAILED(Decompress(*_buffer.GetImage(0, 0, 0), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, decompressed)))
                     return false;
 
@@ -71,13 +73,18 @@ namespace Inferno {
             return true;
         }
 
+        bool HasMipmaps() const {
+            return GetMetadata().mipLevels > 1;
+        }
+
         bool GenerateMipmaps(bool wrapu = true, bool wrapv = true) {
+            if (Empty()) return false;
+
             using namespace DirectX;
             auto flags = TEX_FILTER_DEFAULT;
             if (wrapu) flags |= TEX_FILTER_WRAP_U;
             if (wrapv) flags |= TEX_FILTER_WRAP_V;
 
-            // copy
             ScratchImage source;
             if (!SUCCEEDED(source.InitializeFromImage(*GetImage(0, 0, 0))))
                 return false;
@@ -121,7 +128,17 @@ namespace Inferno {
                 return false;
 
             return true;
-            //_buffer.Initialize2D(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, texture.Info.Width, texture.Info.Height, 
+        }
+
+        // loads raw data into an image
+        template<class TData>
+        bool Load(span<const TData> data, size_t width, size_t height, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
+            size_t rowPitch, slicePitch;
+            if (FAILED(DirectX::ComputePitch(format, width, height, rowPitch, slicePitch)))
+                return false;
+
+            DirectX::Image image(width, height, format, rowPitch, slicePitch, (uint8*)data.data());
+            return SUCCEEDED(InitializeFromImage(image));
         }
 
         // SRGB indicates whether to treat the source image as SRGB or linear

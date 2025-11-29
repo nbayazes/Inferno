@@ -716,7 +716,7 @@ namespace Inferno::Render {
                 //cmdList->OMSetStencilRef(1);
             }
 
-            ScopedTimer execTimer(&Metrics::ExecuteRenderCommands);
+            ScopedTimer execTimer(Metrics::ExecuteRenderCommands);
 
             depthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
 

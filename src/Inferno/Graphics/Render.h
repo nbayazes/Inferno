@@ -100,9 +100,9 @@ namespace Inferno::Render {
     void DrawBillboard(GraphicsContext& ctx,
                        D3D12_GPU_DESCRIPTOR_HANDLE texture,
                        D3D12_GPU_VIRTUAL_ADDRESS frameConstants,
-                       Inferno::Camera& camera,
+                       const Inferno::Camera& camera,
                        const Vector3& position,
-                       BillboardInfo& info);
+                       const BillboardInfo& info);
 
     void DrawBillboard(GraphicsContext& ctx,
                        TexID tid,

@@ -288,7 +288,7 @@ namespace Inferno::Editor {
 
             for (auto& entry : Game::Mission->Entries) {
                 // Copy any matching files from the HOG as loose files
-                if (String::InvariantEquals(entry.NameWithoutExtension(), originalName)) {
+                if (String::EqualsIgnoreCase(entry.NameWithoutExtension(), originalName)) {
                     auto data = reader.ReadEntry(entry.Name);
                     auto fpath = folder / (newFileName + entry.Extension());
                     try {
@@ -467,13 +467,13 @@ namespace Inferno::Editor {
                 if (Seq::contains(skippedExtensions, ext))
                     continue; // skip custom textures and the level as they are written after
 
-                if (String::InvariantEquals(entry.NameWithoutExtension(), baseName)) {
+                if (String::EqualsIgnoreCase(entry.NameWithoutExtension(), baseName)) {
                     auto data = reader.ReadEntry(entry.Name);
                     writer.WriteEntry("_test" + entry.Extension(), data);
                 }
 
                 // Copy HAM if present
-                if (entry.IsHam() && String::InvariantEquals(entry.NameWithoutExtension(), missionFileName)) {
+                if (entry.IsHam() && String::EqualsIgnoreCase(entry.NameWithoutExtension(), missionFileName)) {
                     auto data = reader.ReadEntry(entry.Name);
                     writer.WriteEntry("_test.ham", data);
                     wroteHam = true;

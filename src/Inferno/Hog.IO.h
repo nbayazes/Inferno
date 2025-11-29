@@ -58,7 +58,7 @@ namespace Inferno {
 
         const Option<HogEntry> TryFindEntry(string_view entry) const {
             for (auto& e : _entries)
-                if (String::InvariantEquals(e.Name, entry)) return e;
+                if (String::EqualsIgnoreCase(e.Name, entry)) return e;
 
             return {};
         }

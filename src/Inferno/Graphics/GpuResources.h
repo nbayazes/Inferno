@@ -408,10 +408,10 @@ namespace Inferno {
             auto resource = _resource.Get();
             batch.Transition(resource, _state, D3D12_RESOURCE_STATE_COPY_DEST);
 
-            for (int mip = 0; mip < metadata.mipLevels; ++mip) {
+            for (uint mip = 0; mip < metadata.mipLevels; ++mip) {
                 auto img = image.GetImage(mip, 0, 0);
 
-                D3D12_SUBRESOURCE_DATA subresource {
+                D3D12_SUBRESOURCE_DATA subresource{
                     .pData = img->pixels,
                     .RowPitch = (LONG_PTR)img->rowPitch,
                     .SlicePitch = (LONG_PTR)img->slicePitch
@@ -422,6 +422,41 @@ namespace Inferno {
 
             batch.Transition(resource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
             _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+        }
+
+        // Uploads an Image resource.
+        void Load(ID3D12GraphicsCommandList* copyCmdList,
+                  ID3D12Resource* intermediate,
+                  const Image& image,
+                  string_view name) {
+            if (image.Empty()) {
+                __debugbreak(); // why upload an empty image?
+                return;
+            }
+
+            auto& metadata = image.GetMetadata();
+            SetDesc((uint)metadata.width, (uint)metadata.height, (uint16)metadata.mipLevels, metadata.format);
+
+            if (!_resource)
+                CreateOnDefaultHeap(name);
+
+            Transition(copyCmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+
+            std::vector<D3D12_SUBRESOURCE_DATA> subresources;
+
+            for (uint mip = 0; mip < metadata.mipLevels; ++mip) {
+                auto img = image.GetImage(mip, 0, 0);
+
+                subresources.push_back({
+                    .pData = img->pixels,
+                    .RowPitch = (LONG_PTR)img->rowPitch,
+                    .SlicePitch = (LONG_PTR)img->slicePitch
+                });
+            }
+
+            UpdateSubresources(copyCmdList, _resource.Get(), intermediate, 0, 0, (uint)subresources.size(), subresources.data());
+
+            Transition(copyCmdList, D3D12_RESOURCE_STATE_COMMON);
         }
 
         // Uploads a resource with mipmaps

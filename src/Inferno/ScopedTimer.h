@@ -1,25 +1,19 @@
 #pragma once
 
 #include <chrono>
+#include "gsl/pointers.h"
 
 namespace Inferno {
     class ScopedTimer {
         using SteadyClock = std::chrono::steady_clock;
-        const char* _name = nullptr;
         std::chrono::time_point<SteadyClock> _begin;
-        int64_t* _value;
+        gsl::strict_not_null<int64_t*> _value;
     public:
-        ScopedTimer(const char* name, int64_t* value) : _name(name), _value(value) {
-            assert(value);
+        ScopedTimer(int64_t& value) : _value(&value) {
             _begin = SteadyClock::now();
         }
 
-        ScopedTimer(int64_t* value) : _value(value) {
-            assert(value);
-            _begin = SteadyClock::now();
-        }
-
-        ~ScopedTimer() 	{
+        ~ScopedTimer() {
             auto end = SteadyClock::now();
             auto elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(end - _begin).count();
             *_value += elapsedTime;

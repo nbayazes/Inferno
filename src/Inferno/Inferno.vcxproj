@@ -246,6 +246,7 @@
     <ClCompile Include="Icosphere.cpp" />
     <ClCompile Include="Game.UI.Options.cpp" />
     <ClCompile Include="Mods.cpp" />
+    <ClCompile Include="Graphics\TextureAllocator.cpp" />
     <ClCompile Include="TextureCache.cpp" />
     <ClCompile Include="VirtualFileSystem.cpp" />
     <ClCompile Include="VisualEffects.cpp" />
@@ -392,6 +393,7 @@
     <ClInclude Include="Graphics\Render.Automap.h" />
     <ClInclude Include="Graphics\Render.Briefing.h" />
     <ClInclude Include="Graphics\Render.MainMenu.h" />
+    <ClInclude Include="Hashing.h" />
     <ClInclude Include="Hog.IO.h" />
     <ClInclude Include="Icosphere.h" />
     <None Include="shaders\MenuSun.hlsl">
@@ -403,6 +405,7 @@
     <ClInclude Include="Image.h" />
     <ClInclude Include="Mods.h" />
     <ClInclude Include="Resources.Common.h" />
+    <ClInclude Include="Graphics\TextureAllocator.h" />
     <ClInclude Include="TextureCache.h" />
     <ClInclude Include="VirtualFileSystem.h" />
     <ClInclude Include="VisualEffects.h" />

@@ -8,6 +8,7 @@
 #include "Render.h"
 #include "Resources.h"
 #include "ScopedTimer.h"
+#include "TextureAllocator.h"
 #include "VirtualFileSystem.h"
 #include "WindowsDialogs.h"
 
@@ -716,12 +717,29 @@ namespace Inferno::Render {
         return Get(id);
     }
 
+    void UploadTextures(span<TexID> ids) {
+        Inferno::textures::BeginUpload();
+
+        for (auto& id : ids) {
+            auto& ti = Resources::GetTextureInfo(id);
+            if (ti.Name.empty()) continue;
+            Inferno::textures::QueueLoadMaterial(ti.Name);
+        }
+
+        auto stats = Inferno::textures::EndUpload();
+        spdlog::info("uploaded {} textures\nread: {:.3f}s\ngenerated {:.3f}s mips/spec/norm {}/{}/{}\nupload time: {:.3f}s",
+                     stats.uploads,
+                     stats.elapsedRead / 1000000.0f,
+                     stats.elapsedGen / 1000000.0f, stats.genMips, stats.genSpecular, stats.genNormals,
+                     stats.elapsedUpload / 1000000.0f);
+        //SPDLOG_INFO("uploaded {} textures in {}ms", ids.size(), Clock.GetTotalMilliseconds() - start);
+    }
+
     void MaterialLibrary::LoadLevelTextures(const Inferno::Level& level, bool force) {
         SPDLOG_INFO("Load level textures. Force {}", force);
         Render::Adapter->WaitForGpu();
         ranges::fill(_keepLoaded, false);
         auto ids = GetLevelTextures(level, PreloadDoors);
-
 
         if (auto exit = Seq::tryItem(Resources::GameData.Models, (int)Resources::GameData.ExitModel)) {
             for (int16 i = 0; i < exit->TextureCount; i++) {
@@ -739,6 +757,9 @@ namespace Inferno::Render {
 
         auto tids = Seq::ofSet(ids);
         LoadMaterials(tids, force);
+        UploadTextures(tids);
+        UploadTextures(tids);
+        UploadTextures(tids);
     }
 
     void MaterialLibrary::LoadTextures(span<const string> names, LoadFlag /*loadFlags*/, bool force) {
@@ -762,7 +783,7 @@ namespace Inferno::Render {
             if (_namedMaterials.contains(name) && !force) continue; // skip loaded
             Material2D material;
 
-            if (vfs::Exists(name + ".dds") || vfs::Exists(name + ".png")) {
+            if (vfs::Find(name + ".dds") || vfs::Find(name + ".png")) {
                 material = UploadBitmap(batch, name, Render::StaticTextures->Black);
             }
             else if (auto bitmap = Resources::ReadOutrageBitmap(name)) {

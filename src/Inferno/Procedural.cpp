@@ -217,7 +217,7 @@ namespace Inferno {
             auto currentTime = Clock.GetTotalTimeSeconds();
 
             {
-                PIXScopedEvent(_uploadCommands->GetCommandList(), PIX_COLOR_INDEX(1), "Update procedurals");
+                //PIXScopedEvent(_uploadCommands->GetCommandList(), PIX_COLOR_INDEX(1), "Update procedurals");
                 for (auto& proc : Procedurals) {
                     if (proc->Update(_uploadCommands->GetCommandList(), currentTime)) {
                         didWork = true;

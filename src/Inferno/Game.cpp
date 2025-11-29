@@ -395,7 +395,7 @@ namespace Inferno::Game {
                 Sound::SetMusicVolume(Settings::Inferno.MusicVolume);
                 Input::SetMouseMode(Input::MouseMode::Normal);
                 Game::ScreenGlow.SetTarget(Color(0, 0, 0, 0), Game::Time, 0);
-                vfs::Reset();
+                vfs::Unmount();
                 vfs::Mount("d1/", { ".dxa" }); // for music and fonts
                 vfs::Mount("assets");
                 PlayMainMenuMusic();
