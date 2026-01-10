@@ -21,13 +21,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v145</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v145</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -72,6 +72,7 @@
       <EnforceTypeConversionRules>
       </EnforceTypeConversionRules>
       <AdditionalOptions>/Zc:__cplusplus /we4715 /w34800 /utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -93,6 +94,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <AdditionalOptions>/Zc:__cplusplus /we4715 /w34800 /utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -113,6 +115,7 @@
     <ClInclude Include="Face.h" />
     <ClInclude Include="Fonts.h" />
     <ClInclude Include="HamFile.h" />
+    <ClInclude Include="UnorderedMap.h" />
     <ClInclude Include="Hog2.h" />
     <ClInclude Include="HogFile.h" />
     <ClInclude Include="Level.h" />
@@ -134,6 +137,7 @@
     <ClInclude Include="Streams.h" />
     <ClInclude Include="StringTable.h" />
     <ClInclude Include="Types.h" />
+    <ClInclude Include="unordered_dense.h" />
     <ClInclude Include="Utility.h" />
     <ClInclude Include="Wall.h" />
     <ClInclude Include="Weapon.h" />

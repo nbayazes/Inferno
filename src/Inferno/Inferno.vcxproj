@@ -28,7 +28,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v145</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugGpu|x64'" Label="Configuration">
@@ -40,7 +40,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v145</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -393,7 +393,6 @@
     <ClInclude Include="Graphics\Render.Automap.h" />
     <ClInclude Include="Graphics\Render.Briefing.h" />
     <ClInclude Include="Graphics\Render.MainMenu.h" />
-    <ClInclude Include="Hashing.h" />
     <ClInclude Include="Hog.IO.h" />
     <ClInclude Include="Icosphere.h" />
     <None Include="shaders\MenuSun.hlsl">
@@ -497,7 +496,6 @@
       <FileType>HLSL</FileType>
     </None>
     <ClInclude Include="SoundTypes.h" />
-    <ClInclude Include="unordered_dense.h" />
     <ClInclude Include="Version.h" />
     <ClInclude Include="VertexTypes.h" />
     <ClInclude Include="WindowsDialogs.h" />

@@ -1,1 +1,4 @@
 #define IID_PPV_ARGS(ppType) __uuidof(**(ppType)), IID_PPV_ARGS_Helper(ppType)
+#define SUCCEEDED(hr)   (((HRESULT)(hr)) >= 0)
+#define FAILED(hr)      (((HRESULT)(hr)) < 0)
+#define ASSERT(x) (void)( (!!(x)) || (__debugbreak(), 0))

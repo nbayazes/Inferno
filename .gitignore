@@ -348,7 +348,7 @@ healthchecksdb
 /descent2.ham
 
 /data
-/vcpkg_installed/x64-windows
+/vcpkg_installed/*
 inferno.cfg
 imgui.ini
 dxil.dll
