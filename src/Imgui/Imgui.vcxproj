@@ -16,6 +16,7 @@
     <ProjectGuid>{5fe11e2d-bc68-4ec0-b8d3-f91797ac795a}</ProjectGuid>
     <RootNamespace>Imgui</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>Imgui</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
