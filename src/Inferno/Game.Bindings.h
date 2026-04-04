@@ -335,9 +335,6 @@ namespace Inferno {
             deviceBinding.path = path;
             deviceBinding.type = type;
 
-            if (type == Input::InputType::Gamepad)
-                ResetGamepadBindings(deviceBinding);
-
             _devices.push_back(deviceBinding);
             return _devices.back();
         }
