@@ -76,6 +76,7 @@ namespace Inferno::Editor {
                     }
                 }
 
+                _mission.Enhancement = Game::Level.IsVertigo() ? MissionEnhancement::VertigoHam : MissionEnhancement::Standard;
                 _mission.Write(Game::Mission->GetMissionPath());
             }
             catch (const std::exception& e) {

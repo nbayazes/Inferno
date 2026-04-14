@@ -349,7 +349,7 @@ healthchecksdb
 /descent2.ham
 
 /data
-/vcpkg_installed/x64-windows
+/vcpkg_installed/**
 inferno.cfg
 imgui.ini
 /src/Inferno/tony_mc_mapface.dds
