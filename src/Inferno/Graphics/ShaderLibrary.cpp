@@ -24,7 +24,7 @@ namespace Inferno {
             SPDLOG_ERROR(e.what());
             if (!shader->VertexShader || !shader->PixelShader) {
                 auto msg = fmt::format("Unable to compile {}\n\n{}", shader->Info.File, e.what());
-                throw std::exception(msg.c_str()); // never initialized, crash
+                throw std::runtime_error(msg.c_str()); // never initialized, crash
             }
         }
     }

@@ -52,7 +52,7 @@ namespace Inferno {
         ComPtr<IDxcBlobUtf8> pErrors;
         ThrowIfFailed(result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(pErrors.GetAddressOf()), nullptr));
         if (pErrors && pErrors->GetStringLength() > 0) {
-            throw std::exception((char*)pErrors->GetBufferPointer());
+            throw std::runtime_error((char*)pErrors->GetBufferPointer());
         }
     }
 
