@@ -29,7 +29,7 @@ namespace Inferno {
 
             _fenceEvent.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
             if (!_fenceEvent.IsValid())
-                throw std::exception("CreateEvent");
+                throw std::runtime_error("CreateEvent");
         }
 
         bool IsFenceComplete(uint64 value) {

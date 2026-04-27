@@ -304,7 +304,7 @@ namespace Inferno {
         // Copies a MSAA source into a non-sampled buffer
         void ResolveFromMultisample(ID3D12GraphicsCommandList* commandList, PixelBuffer& src) {
             if (!src.IsMultisampled())
-                throw std::exception("Source must be multisampled");
+                throw std::runtime_error("Source must be multisampled");
 
             src.Transition(commandList, D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
             Transition(commandList, D3D12_RESOURCE_STATE_RESOLVE_DEST);
