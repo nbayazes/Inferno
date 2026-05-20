@@ -75,7 +75,9 @@ namespace Inferno::Editor {
         MakeCoplanar,
         HideMarks,
         InsertAlignedSegment,
-        AveragePoints
+        AveragePoints,
+        PlanarMap,
+        CubeMap,
     };
 
     const Command& GetCommandForAction(EditorAction action);

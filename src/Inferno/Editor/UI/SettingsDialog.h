@@ -16,8 +16,6 @@ namespace Inferno::Editor {
         InfernoSettings _inferno;
         GraphicsSettings _graphics;
 
-        EditorBindings _bindings;
-
         struct BindingEntry {
             EditorAction Action{};
             string Label;

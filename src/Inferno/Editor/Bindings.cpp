@@ -200,9 +200,10 @@ namespace Inferno::Editor {
             case EditorAction::AlignMarked: return Commands::AlignMarked;
             case EditorAction::ResetUVs: return Commands::ResetUVs;
             case EditorAction::FitUVs: return Commands::FitUVs;
+            case EditorAction::PlanarMap: return Commands::PlanarMapping;
+            case EditorAction::CubeMap: return Commands::CubeMapping;
             case EditorAction::CycleRenderMode: return Commands::CycleRenderMode;
             case EditorAction::ToggleWireframe: return Commands::ToggleWireframe;
-
             case EditorAction::CopyUVsToFaces: return Commands::CopyUVsToFaces;
             case EditorAction::ConnectSides: return Commands::ConnectSides;
             case EditorAction::JoinPoints: return Commands::JoinPoints;
@@ -461,6 +462,9 @@ namespace Inferno::Editor::Bindings {
         bindings.Add({ .Action = EditorAction::ResetUVs, .Key = Keys::R, .Control = true });
         bindings.Add({ .Action = EditorAction::CopyUVsToFaces, .Key = Keys::O });
         bindings.Add({ .Action = EditorAction::ToggleMark, .Key = Keys::Space });
+        bindings.Add({ .Action = EditorAction::FitUVs });
+        bindings.Add({ .Action = EditorAction::PlanarMap });
+        bindings.Add({ .Action = EditorAction::CubeMap });
 
         bindings.Add({ .Action = EditorAction::CycleRenderMode, .Key = Keys::F4 });
         bindings.Add({ .Action = EditorAction::ToggleWireframe, .Key = Keys::F3 });
