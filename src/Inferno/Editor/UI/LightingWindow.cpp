@@ -101,7 +101,10 @@ namespace Inferno::Editor {
 
             ImGui::SameLine();
             ImGui::Checkbox("Multithread", &settings.Multithread);
-            ImGui::HelpMarker("Enables multithread calculations");
+            ImGui::HelpMarker("Enables multithreaded calculations");
+
+            ImGui::Checkbox("Use selection", &settings.UseSelectionFilter);
+            ImGui::HelpMarker("Only light segments that are selected or marked\n\nNOTE:\nDynamic D2 lighting will only work for the last calculated selection.\nThe entire level should be lit at once for release.");
 
             /*ImGui::Checkbox("Check Coplanar", &_settings.CheckCoplanar);
                 ImGui::HelpMarker("Causes co-planar light sources to have a consistent brightness");*/

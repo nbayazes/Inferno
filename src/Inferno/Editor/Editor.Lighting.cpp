@@ -3,7 +3,6 @@
 #include "Level.h"
 #include "Utility.h"
 #include "Resources.h"
-#include "Game.h"
 #include "Editor.h"
 #include "ScopedTimer.h"
 #include "WindowsDialogs.h"
@@ -11,7 +10,8 @@
 namespace Inferno::Editor {
     namespace {
         std::thread LightWorkerThread;
-        inline Option<Level> LightLevelResults; // New level lighting
+        Option<Level> LightLevelResults; // New level lighting
+        List<SegID> SelectionFilter;
     }
 
     constexpr float PLANE_TOLERANCE = -0.01f;
@@ -143,7 +143,7 @@ namespace Inferno::Editor {
         }
 
         // Initial lighting pass from direct light sources
-        void EmitDirectLight(Level& level);
+        void EmitDirectLight(Level& level, span<SegID> filter);
     };
 
     // checks that there's enough light to bother saving. Prevents wasteful raycasts.
@@ -237,8 +237,7 @@ namespace Inferno::Editor {
             case WallType::WallTrigger: // triggers are always on a solid wall
                 return false;
 
-            default:
-            {
+            default: {
                 // Check if the textures are transparent
                 auto& tmap1 = Resources::GetTextureInfo(side.TMap);
                 bool transparent = tmap1.Transparent;
@@ -298,7 +297,7 @@ namespace Inferno::Editor {
 
     // Returns segments that are within range and visible from the source surface.
     // Culls segments that are behind the plane of src.
-    Set<SegID> GetSegmentsInRange(Level& level, Tag src, float distanceThreshold) {
+    Set<SegID> GetSegmentsInRange(Level& level, Tag src, float distanceThreshold, span<SegID> filter) {
         auto srcFace = Face::FromSide(level, src);
 
         Set<SegID> segmentsToLight;
@@ -317,6 +316,10 @@ namespace Inferno::Editor {
                 if (!LightPassesThroughSide(level, seg, sideId)) continue;
                 auto connection = seg.GetConnection(sideId);
                 if (segmentsToLight.contains(connection)) continue; // Don't add visited connections
+
+                if (!filter.empty() && !Seq::contains(filter, connection)) {
+                    continue; // skip unmarked segments
+                }
 
                 if (src.Segment == segId) {
                     // always search valid connections from source (fix for zero volume segments)
@@ -549,7 +552,7 @@ namespace Inferno::Editor {
         }
     }
 
-    LightRayCast& CastBounces(Level& level, LightRayCast& cast, LightContext& ctx) {
+    LightRayCast& CastBounces(Level& level, LightRayCast& cast, LightContext& ctx, span<SegID> filter) {
         cast.UpdateMaxValueFromPass(ctx.Settings.Reflectance);
 
         // Use the previous pass targets as the light sources
@@ -563,7 +566,7 @@ namespace Inferno::Editor {
             // don't emit from open connections (from accurate volumes setting)
             if (srcSeg.SideHasConnection(src.Side) && !srcSeg.SideIsWall(src.Side)) continue;
 
-            Set<SegID> segmentsToLight = GetSegmentsInRange(level, src, ctx.Settings.DistanceThreshold);
+            Set<SegID> segmentsToLight = GetSegmentsInRange(level, src, ctx.Settings.DistanceThreshold, filter);
             Color tmapColor = Resources::GetTextureInfo(srcSide.TMap).AverageColor;
             tmapColor.AdjustSaturation(2); // boost saturation to look nicer
             ScaleColor2(tmapColor, 1); // 100% brightness
@@ -577,8 +580,8 @@ namespace Inferno::Editor {
         return cast;
     }
 
-    LightRayCast& CastDirectLight(Level& level, const LightSource& light, const LightSettings& settings, LightContext& ctx) {
-        Set<SegID> segmentsToLight = GetSegmentsInRange(level, light.Tag, settings.DistanceThreshold);
+    LightRayCast& CastDirectLight(Level& level, const LightSource& light, const LightSettings& settings, LightContext& ctx, span<SegID> filter) {
+        Set<SegID> segmentsToLight = GetSegmentsInRange(level, light.Tag, settings.DistanceThreshold, filter);
 
         auto& cast = ctx.RayCasts[light.Tag];
         cast.Source = &light;
@@ -635,7 +638,7 @@ namespace Inferno::Editor {
     }
 
     // Gathers all light sources in the level
-    List<LightSource> GatherLightSources(Level& level, const LightSettings& settings) {
+    List<LightSource> GatherLightSources(Level& level, const LightSettings& settings, span<SegID> filter) {
         List<Tag> triggeredLights;
 
         for (auto& trigger : level.Triggers) {
@@ -649,6 +652,10 @@ namespace Inferno::Editor {
         List<LightSource> sources;
 
         for (int i = 0; i < level.Segments.size(); i++) {
+            if (!filter.empty() && !Seq::contains(filter, (SegID)i)) {
+                continue; // skip unmarked segments
+            }
+
             auto segId = SegID(i);
             auto& seg = level.Segments[i];
 
@@ -678,10 +685,10 @@ namespace Inferno::Editor {
         return sources;
     }
 
-    void LightContext::EmitDirectLight(Level& level) {
+    void LightContext::EmitDirectLight(Level& level, span<SegID> filter) {
         for (auto& source : Lights) {
             if (RequestCancelLighting) return;
-            auto& cast = CastDirectLight(level, source, Settings, *this);
+            auto& cast = CastDirectLight(level, source, Settings, *this, filter);
             cast.AccumulatePass();
         }
     }
@@ -886,9 +893,12 @@ namespace Inferno::Editor {
 
             SetAmbientLight(level, settings.Ambient);
 
+            List<SegID> filter;
+            if (settings.UseSelectionFilter) Seq::append(filter, Editor::GetSelectedSegments());
+
             // Limit the min bucket size, otherwise multithreaded bucketing can fail.
             // One segment can have 6 lights.
-            auto lights = GatherLightSources(level, settings);
+            auto lights = GatherLightSources(level, settings, filter);
             auto bucketSize = (int)std::max(lights.size() / availThreads, size_t(6));
 
             if (settings.CheckCoplanar)
@@ -963,9 +973,9 @@ namespace Inferno::Editor {
                 ctx.Id = activeThreads++;
 
                 // Accumulate radiosity bounces
-                ctx.Thread = std::thread([&ctx, &level] {
+                ctx.Thread = std::thread([&ctx, &level, &filter] {
                     SPDLOG_INFO("Dispatching thread {} with {} lights", ctx.Id, ctx.Lights.size());
-                    ctx.EmitDirectLight(level);
+                    ctx.EmitDirectLight(level, filter);
                     DoneLightWork++;
 
                     if (RequestCancelLighting) return;
@@ -975,7 +985,7 @@ namespace Inferno::Editor {
                     for (int i = 0; i < bounces; i++) {
                         for (auto& light : ctx.RayCasts | views::values) {
                             if (RequestCancelLighting) return;
-                            auto& info = CastBounces(level, light, ctx);
+                            auto& info = CastBounces(level, light, ctx, filter);
                             info.AccumulatePass(!(ctx.Settings.SkipFirstPass && i == 0));
                         }
                         DoneLightWork += BOUNCE_PROGRESS_WEIGHT;
@@ -1015,6 +1025,7 @@ namespace Inferno::Editor {
             SetVolumeLight(level, settings.AccurateVolumes);
             LightWorkerRunning = false;
             LightLevelResults = level;
+            SelectionFilter = filter;
         }
         catch (const std::exception& e) {
             ShowErrorMessage(e);
@@ -1039,19 +1050,30 @@ namespace Inferno::Editor {
         if (LightLevelResults->Segments.size() != level.Segments.size()) {
             ShowErrorMessage(L"Level segment count doesn't match lighting segment count.\nAvoid adding or removing segments during lighting.");
             LightLevelResults = {}; // Clear for next run
+            SelectionFilter = {};
             return;
         }
 
-        // Copy results from the light worker
-        for (uint i = 0; i < LightLevelResults->Segments.size() && i < level.Segments.size(); i++) {
-            auto& src = LightLevelResults->Segments[i];
-            auto& dest = level.Segments[i];
+        auto copyLight = [&level](uint id) {
+            auto& src = LightLevelResults->Segments[id];
+            auto& dest = level.Segments[id];
             dest.VolumeLight = src.VolumeLight;
 
             for (uint side = 0; side < 6; side++) {
                 dest.Sides[side].Light = src.Sides[side].Light;
             }
+        };
+
+        // Copy results from the light worker
+        if (SelectionFilter.empty()) {
+            for (uint i = 0; i < LightLevelResults->Segments.size() && i < level.Segments.size(); i++)
+                copyLight(i);
         }
+        else {
+            for (auto& id : SelectionFilter)
+                copyLight((int)id);
+        }
+
 
         level.LightDeltas = LightLevelResults->LightDeltas;
         level.LightDeltaIndices = LightLevelResults->LightDeltaIndices;
