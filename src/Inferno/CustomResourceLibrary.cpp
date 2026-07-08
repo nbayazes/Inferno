@@ -17,7 +17,9 @@ namespace Inferno {
     };
 
     TextureType ClassifyTexture(const PigEntry& entry) {
-        if (Resources::GameData.LevelTexIdx[(int)entry.ID] != LevelTexID(255))
+        auto texid = Seq::tryItem(Resources::GameData.LevelTexIdx, (int)entry.ID);
+
+        if (texid && *texid != LevelTexID(255))
             return TextureType::Level;
 
         for (auto& filter : ROBOT_TEXTURES) {

@@ -171,7 +171,7 @@ namespace Inferno {
         }*/
 
         ~PigBitmap() = default;
-        PigBitmap(const PigBitmap&) = delete;
+        explicit PigBitmap(const PigBitmap&) = default;
         PigBitmap(PigBitmap&&) = default;
         PigBitmap& operator=(const PigBitmap&) = delete;
         PigBitmap& operator=(PigBitmap&&) = default;

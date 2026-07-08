@@ -79,8 +79,7 @@ namespace Inferno::Render {
         // Textures for each object
         for (auto& object : level.Objects) {
             switch (object.Type) {
-                case ObjectType::Robot:
-                {
+                case ObjectType::Robot: {
                     auto& info = Resources::GetRobotInfo(object.ID);
                     GetTexturesForModel(info.Model, ids);
 
@@ -351,7 +350,7 @@ namespace Inferno::Render {
         if (upload.ID <= TexID::Invalid) return {};
         Material2D material;
         material.ID = upload.ID;
-        material.Name = upload.Bitmap->Info.Name;
+        material.Name = upload.Bitmap.Info.Name;
         material.UploadIndex = Render::Uploads->AllocateIndex();
 
         // allocate a new heap range for the material
@@ -363,8 +362,8 @@ namespace Inferno::Render {
         if (auto i = baseName.find("#"); i > 0)
             baseName = baseName.substr(0, i);
 
-        const auto width = upload.Bitmap->Info.Width;
-        const auto height = upload.Bitmap->Info.Height;
+        const auto width = upload.Bitmap.Info.Width;
+        const auto height = upload.Bitmap.Info.Height;
 
         //SPDLOG_INFO("Loading texture `{}` to heap index: {}", ti->Name, material.Index);
         if (Settings::Graphics.HighRes) {
@@ -377,7 +376,7 @@ namespace Inferno::Render {
         }
 
         if (!material.Textures[Material2D::Diffuse]) {
-            material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap->Data.data(), width, height, Convert::ToWideString(material.Name));
+            material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap.Data.data(), width, height, Convert::ToWideString(material.Name));
             //if (upload.Bitmap->Info.Transparent) {
             //    List<Palette::Color> data = upload.Bitmap->Data; // copy mask, as modifying the original would affect collision
             //    //ExpandDiffuse(upload.Bitmap->Info, data);
@@ -389,13 +388,18 @@ namespace Inferno::Render {
         }
 
         if (!material.Textures[Material2D::SuperTransparency] && upload.SuperTransparent) {
-            List<uint8> mask;
-            mask.resize(upload.Bitmap->Mask.size());
-            for (size_t i = 0; i < upload.Bitmap->Mask.size(); i++)
-                mask[i] = upload.Bitmap->Mask[i].r;
+            if (upload.Bitmap.Mask.size() > 0) {
+                List<uint8> mask;
+                mask.resize(upload.Bitmap.Mask.size());
+                for (size_t i = 0; i < upload.Bitmap.Mask.size(); i++)
+                    mask[i] = upload.Bitmap.Mask[i].r;
 
-            ExpandMask(upload.Bitmap->Info, mask);
-            material.Textures[Material2D::SuperTransparency].Load(batch, mask.data(), width, height, Convert::ToWideString(material.Name), true, DXGI_FORMAT_R8_UNORM);
+                ExpandMask(upload.Bitmap.Info, mask);
+                material.Textures[Material2D::SuperTransparency].Load(batch, mask.data(), width, height, Convert::ToWideString(material.Name), true, DXGI_FORMAT_R8_UNORM);
+            }
+            else {
+                SPDLOG_WARN("Texture {} is marked as supertransparent, but the mask was empty. No mask uploaded.", material.Name);
+            }
         }
 
         if (auto path = FileSystem::TryFindFile(baseName + "_e.dds"))
@@ -526,7 +530,7 @@ namespace Inferno::Render {
 
             List<Material2D> uploads;
             for (auto& upload : queuedUploads) {
-                if (!upload.Bitmap || upload.Bitmap->Info.Width == 0 || upload.Bitmap->Info.Height == 0)
+                if (upload.Bitmap.Info.Width == 0 || upload.Bitmap.Info.Height == 0)
                     continue;
 
                 if (auto material = UploadMaterial(batch, upload))
@@ -613,7 +617,7 @@ namespace Inferno::Render {
             return {};
 
         MaterialUpload upload;
-        upload.Bitmap = &bitmap;
+        upload.Bitmap = PigBitmap(bitmap);
         upload.ID = id;
         upload.SuperTransparent = Resources::GetTextureInfo(id).SuperTransparent;
         slot.State = TextureState::PagingIn;
