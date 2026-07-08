@@ -4,7 +4,6 @@
 #include "Level.h"
 #include "Events.h"
 #include "Editor.Selection.h"
-#include "spdlog/spdlog.h"
 
 namespace Inferno::Editor {
     template<class...TArgs>
@@ -44,6 +43,7 @@ namespace Inferno::Editor {
         std::list<Snapshot>::iterator _snapshot; // pointer to the current snapshot
         int _undoLevels;
 
+        static constexpr size_t UNSET_ID = (size_t)-1;
     public:
         EditorHistory(Level* level, int undoLevels = 50) : _level(level), _undoLevels(undoLevels) {
             if (_undoLevels < 10) _undoLevels = 10;
@@ -54,7 +54,7 @@ namespace Inferno::Editor {
             if (auto snapshot = FindDataSnapshot())
                 _cleanId = snapshot->ID;
             else
-                _cleanId = (size_t)-1;
+                _cleanId = UNSET_ID;
 
             UpdateWindowTitle();
         }
@@ -83,7 +83,7 @@ namespace Inferno::Editor {
         }
 
         // Snapshots everything
-        void SnapshotLevel(string name) {
+        void SnapshotLevel(const string& name) {
             if (!_level) return;
 
             // Copy the current level state into the lambda used to restore this snapshot
@@ -135,7 +135,7 @@ namespace Inferno::Editor {
         auto Snapshots() const { return _snapshots.size(); }
 
         bool Dirty() {
-            if (_cleanId == -1) return true;
+            if (_cleanId == UNSET_ID) return true;
 
             if (auto snapshot = FindDataSnapshot())
                 return _cleanId != snapshot->ID;
@@ -172,7 +172,7 @@ namespace Inferno::Editor {
             return _snapshot->Data & flag;
         }
 
-        void AddSnapshot(string name, Snapshot::Flag flag, const std::function<void(Level&)>&& apply) {
+        void AddSnapshot(const string& name, Snapshot::Flag flag, const std::function<void(Level&)>&& apply) {
             //SPDLOG_INFO("Snapshotting {}", name);
             Snapshot snapshot{ _currentId++, name, apply, Editor::Selection.Tag(), Marked, flag };
 

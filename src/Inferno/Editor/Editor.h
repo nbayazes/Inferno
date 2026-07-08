@@ -51,7 +51,7 @@ namespace Inferno::Editor {
         Editor::Gizmo.UpdatePosition();
     }
 
-    // Text to show in status bar. Limited to string due to imgui.
+    // Text to show in status bar.
     inline string StatusText = "Ready";
 
     template<class...TArgs>
@@ -65,13 +65,6 @@ namespace Inferno::Editor {
     void SetStatusMessageWarn(const string_view format, TArgs&&...args) {
         SetStatusMessage(format, std::forward<TArgs>(args)...);
         PlaySound(L"SystemAsterisk", nullptr, SND_ASYNC);
-    }
-
-    template<class...TArgs>
-    void SetStatusMessage(const wstring_view format, TArgs&&...args) {
-        auto str = fmt::vformat(fmt::wstring_view(format), fmt::make_wformat_args(std::forward<TArgs>(args)...));
-        SPDLOG_INFO(L"{}", str);
-        StatusText = Convert::ToString(str);
     }
 
     void Initialize();

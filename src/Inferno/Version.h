@@ -1,6 +1,6 @@
 #pragma once
 
 namespace Inferno {
-    constexpr auto VERSION_STRING = "1.0.30";
-    constexpr auto APP_TITLE = "Inferno Editor 1.0.30";
+    constexpr auto VERSION_STRING = "1.0.31";
+    constexpr auto APP_TITLE = "Inferno Editor 1.0.31";
 }

@@ -19,7 +19,7 @@ namespace Inferno::PostFx {
         ComputeShader(UINT numThreadsX, UINT numThreadsY)
             : _numThreadsX(numThreadsX), _numThreadsY(numThreadsY) {}
 
-        void Load(wstring file, string entryPoint = "main") {
+        void Load(const wstring& file/*, string entryPoint = "main"*/) {
             LoadComputeShader(file, _rootSignature, _pso);
         }
 
@@ -63,8 +63,8 @@ namespace Inferno::PostFx {
 
         float BloomThreshold = 1.90f; // how high value needs to be to bloom. Setting to 0 causes exposure to have no effect.
         float Exposure = 1.4f; // exposure adjustment on source image for bloom sampling
-        const float InitialMinLog = -12.0f;
-        const float InitialMaxLog = 4.0f;
+        float InitialMinLog = -12.0f;
+        float InitialMaxLog = 4.0f;
 
         void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, PixelBuffer& destBloom, PixelBuffer& destLuma) {
             source.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);

@@ -63,7 +63,7 @@ namespace Inferno::Editor {
         level.CameraTarget = Render::Camera.Target;
         level.CameraUp = Render::Camera.Up;
         SaveLevelMetadata(level, metadata, EditorLightSettings);
-        SetStatusMessage(L"Saved level to {}", path.wstring());
+        SetStatusMessage("Saved level to {}", path.string());
 
         // Save custom textures
         if (Resources::CustomResources.Any()) {
@@ -436,7 +436,7 @@ namespace Inferno::Editor {
             assert(level.FileName != "");
             WriteHog(level, *Game::Mission, Game::Mission->Path);
             Game::LoadMission(Game::Mission->Path);
-            SetStatusMessage(L"Mission saved to {}", Game::Mission->Path.filename().wstring());
+            SetStatusMessage("Mission saved to {}", Game::Mission->Path.filename().string());
             Settings::Editor.AddRecentFile(Game::Mission->Path);
         }
         else {

@@ -292,7 +292,7 @@ namespace Inferno {
         }
 
         // Creates a buffer for use with unordered access
-        void CreateUnorderedAccess(wstring name, uint size,
+        void CreateUnorderedAccess(wstring /*name*/, uint size,
                                    DXGI_FORMAT format = DXGI_FORMAT_R32_TYPELESS,
                                    D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE,
                                    UINT64 alignment = 0) {
