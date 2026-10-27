@@ -4,8 +4,6 @@
 #define MAGIC_ENUM_RANGE_MAX 256
 
 #include <Settings.h>
-#include <ryml/ryml_std.hpp>
-#include <ryml/ryml.hpp>
 #include <fstream>
 #include <magic_enum/magic_enum.hpp>
 #include <spdlog/spdlog.h>

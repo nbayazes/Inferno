@@ -4,6 +4,7 @@
 
 namespace Inferno {
     struct LevelHit;
+    struct Level;
 }
 
 namespace Inferno::Game {

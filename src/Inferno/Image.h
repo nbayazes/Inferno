@@ -184,13 +184,7 @@ namespace Inferno {
             auto& metadata = GetMetadata();
             if (srgb) OverrideFormat(MakeSRGB(metadata.format));
 
-            //if(metadata.miscFlags
-            //if (FAILED(Decompress(*dds.GetImage(0, 0, 0), metadata.format, _buffer)))
-            //    return false;
-
             return true;
-            //auto image = decompressed.GetImage(0, 0, 0);
-            //return SUCCEEDED(_buffer.InitializeFromImage(*image));
         }
     };
 }

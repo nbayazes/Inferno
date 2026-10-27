@@ -198,7 +198,7 @@ namespace Inferno {
         pig.Path = file;
 
         //make sure pig is valid type file & is up-to-date
-        auto sig = (uint)reader.ReadInt32();
+        auto sig = reader.ReadUInt32();
         auto version = reader.ReadInt32();
         if (sig != MakeFourCC("PPIG") || version != PIGFILE_VERSION)
             throw Exception("PIG file is not valid");

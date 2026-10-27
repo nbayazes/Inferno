@@ -250,8 +250,6 @@ namespace Inferno {
     };
 
     class StructuredBuffer final : public GpuBuffer {
-        ByteAddressBuffer _counterBuffer;
-
     public:
         void Create(string_view name, uint32 elementSize, uint32 elementCount) {
             _desc = CD3DX12_RESOURCE_DESC::Buffer(elementSize * elementCount, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);

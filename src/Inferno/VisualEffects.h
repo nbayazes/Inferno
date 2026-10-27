@@ -5,6 +5,7 @@
 
 namespace Inferno {
     enum class BeamFlag {
+        None,
         SineNoise = 1 << 0, // Sine noise when true, Fractal noise when false
         RandomEnd = 1 << 1, // Uses a random world end point
         FadeStart = 1 << 2, // fades the start of the beam to 0 transparency

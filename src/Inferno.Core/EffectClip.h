@@ -75,6 +75,7 @@ namespace Inferno {
     };
 
     enum class DoorClipFlag : int16 {
+        None = 0,
         Explodes = 1, // door explodes when opening (hostage door)
         Blastable = 2, // this is a blastable wall
         TMap1 = 4, // Door uses primary tmap, not tmap2
@@ -88,7 +89,7 @@ namespace Inferno {
         float PlayTime{};
         int16 NumFrames{};
         Array<LevelTexID, 50> Frames{};
-        SoundID OpenSound{}, CloseSound{};
+        SoundID OpenSound{ SoundID::None }, CloseSound{ SoundID::None };
         DoorClipFlag Flags{};
         string Filename;
 

@@ -228,6 +228,7 @@
     <ClCompile Include="Game.UI.cpp" />
     <ClCompile Include="Game.UI.ScoreScreen.cpp" />
     <ClCompile Include="Graphics.Debug.cpp" />
+    <None Include="..\..\..\..\neon\src\neon\shaders\ObjectVertex.hlsli" />
     <None Include="d1\game.yml" />
     <None Include="d1\lights.yml" />
     <None Include="d1\material.yml" />
@@ -393,6 +394,7 @@
     <ClInclude Include="Graphics\Render.Automap.h" />
     <ClInclude Include="Graphics\Render.Briefing.h" />
     <ClInclude Include="Graphics\Render.MainMenu.h" />
+    <ClInclude Include="Hashing.h" />
     <ClInclude Include="Hog.IO.h" />
     <ClInclude Include="Icosphere.h" />
     <None Include="shaders\MenuSun.hlsl">

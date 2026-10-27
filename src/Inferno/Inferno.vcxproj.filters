@@ -201,7 +201,6 @@
     <ClInclude Include="Procedural.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="SoundTypes.h" />
-    <ClInclude Include="unordered_dense.h" />
     <ClInclude Include="Version.h" />
     <ClInclude Include="WindowsDialogs.h" />
     <ClInclude Include="Editor\Gizmo.h" />
@@ -363,5 +362,6 @@
     <None Include="shaders\Fog.hlsl" />
     <None Include="shaders\FogPrepass.hlsl" />
     <None Include="shaders\FogObject.hlsl" />
+    <None Include="..\..\..\..\neon\src\neon\shaders\ObjectVertex.hlsli" />
   </ItemGroup>
 </Project>

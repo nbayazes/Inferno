@@ -115,7 +115,6 @@
     <ClInclude Include="Face.h" />
     <ClInclude Include="Fonts.h" />
     <ClInclude Include="HamFile.h" />
-    <ClInclude Include="UnorderedMap.h" />
     <ClInclude Include="Hog2.h" />
     <ClInclude Include="HogFile.h" />
     <ClInclude Include="Level.h" />

@@ -12,6 +12,7 @@
 #include "SoundSystem.h"
 #include "Resources.h"
 #include "Settings.h"
+#include "Level.h"
 
 namespace Inferno::Game {
     void CreateWeaponExplosion(const Object& obj, const Weapon& weapon, float scale = 1) {
