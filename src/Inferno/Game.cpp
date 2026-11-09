@@ -1141,9 +1141,6 @@ namespace Inferno::Game {
         Game::FailedEscape = false;
         Game::ScreenFlash = Color(0, 0, 0);
 
-        // Activate game mode
-        State = GameState::Game;
-
         // Reset resources
         ResetCountdown();
         StuckObjects = {};
