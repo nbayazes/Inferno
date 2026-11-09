@@ -727,6 +727,18 @@ namespace Inferno::UI {
                 Game::SetState(GameState::PhotoMode);
             }, AlignH::Center);
 
+            panel->AddChild<Button>("Unstuck", [] {
+                auto& player = Game::GetPlayerObject();
+
+                if (auto segment = Game::Level.TryGetSegment(player.Segment)) {
+                    TeleportObject(player, player.Segment, &segment->Center);
+                } else if (auto spawn = Game::Level.TryGetSegment(Game::Player.SpawnSegment)) {
+                    TeleportObject(player, Game::Player.SpawnSegment, &spawn->Center);
+                }
+
+                Game::SetState(GameState::Game);
+            }, AlignH::Center);
+
             panel->AddChild<Button>("Quit", [this] {
                 auto confirmDialog = make_unique<ConfirmDialog>("abort mission?");
                 confirmDialog->CloseCallback = [this](CloseState state) {
