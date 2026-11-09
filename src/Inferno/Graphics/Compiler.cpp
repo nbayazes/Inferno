@@ -5,6 +5,7 @@
 #include "Compiler.h"
 #include "Render.h"
 #include "Logging.h"
+#include "Convert.h"
 
 namespace Inferno {
     namespace {
@@ -72,7 +73,7 @@ namespace Inferno {
 
         args.push_back(L"-Zi"); // Debug, profiling
         args.push_back(DXC_ARG_OPTIMIZATION_LEVEL0);
-#if defined(_DEBUG)
+#ifdef _DEBUG
 #else
         //args.push_back(L"-Qstrip_debug");
         //args.push_back(L"-Qstrip_reflect");

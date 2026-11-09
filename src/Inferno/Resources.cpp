@@ -556,18 +556,18 @@ namespace Inferno::Resources {
         LoadCustomModel(data, "debris2.pof", flags);
         LoadCustomModel(data, "debris3.pof", flags);
 
-        for (auto& powerup : data.Powerups) {
-            if (powerup.Model.empty()) continue;
+        //for (auto& powerup : data.Powerups) {
+        //    if (powerup.Model.empty()) continue;
 
-            if (LoadCustomModel(data, powerup.Model, flags)) {
-                powerup.runtime.model = (ModelID)(data.Models.size() - 1);
-            }
-            //if (auto modelData = ReadBinaryFile(powerup.Model, flags)) {
-            //    auto model = ReadPof(*modelData, &data.palette);
-            //    model.FileName = powerup.Model;
-            //    data.Models.push_back(model);
-            //}
-        }
+        //    if (LoadCustomModel(data, powerup.Model, flags)) {
+        //        powerup.runtime.model = (ModelID)(data.Models.size() - 1);
+        //    }
+        //    //if (auto modelData = ReadBinaryFile(powerup.Model, flags)) {
+        //    //    auto model = ReadPof(*modelData, &data.palette);
+        //    //    model.FileName = powerup.Model;
+        //    //    data.Models.push_back(model);
+        //    //}
+        //}
     }
 
     bool LoadDescent1Data() {
