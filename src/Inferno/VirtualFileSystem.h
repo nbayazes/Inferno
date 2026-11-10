@@ -43,7 +43,8 @@ namespace Inferno::vfs {
     Option<ResourceHandle> Find(string_view name);
 
     // Mounts a directory, zip, hog or file. Level name is used to search for folders inside of zips or directories.
-    void Mount(const std::filesystem::path& path, std::initializer_list<string_view> filter = {}, string_view levelName = {});
+    // Returns true if any files are mounted.
+    bool Mount(const std::filesystem::path& path, std::initializer_list<string_view> filter = {}, string_view levelName = {});
 
     // Unmounts all directories and archives
     void Unmount();

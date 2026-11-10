@@ -303,7 +303,7 @@ vaporization of the facility.
                 SetD1BriefingBackgrounds(briefing, isShareware);
             }
 
-            if (mission.Name == Game::FIRST_STRIKE_NAME && levelNumber == 1) {
+            if (mission.Name.starts_with(Game::FIRST_STRIKE_NAME) && levelNumber == 1) {
                 AddPyroAndReactorPages(briefing);
             }
 

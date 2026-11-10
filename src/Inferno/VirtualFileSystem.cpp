@@ -280,10 +280,10 @@ namespace Inferno::vfs {
         return resource != Assets.end();
     }
 
-    void Mount(const std::filesystem::path& path, std::initializer_list<string_view> filter, string_view levelName) {
+    bool Mount(const std::filesystem::path& path, std::initializer_list<string_view> filter, string_view levelName) {
         //auto start = Clock.GetTotalTimeSeconds();
         auto startSize = Assets.size();
-        if (path.empty()) return;
+        if (path.empty()) return false;
 
         if (is_directory(path)) {
             MountDirectory(path, true, filter, levelName);
@@ -295,6 +295,7 @@ namespace Inferno::vfs {
         //SPDLOG_INFO("Mounted {} in {:.2f}s", path.string(), Clock.GetTotalTimeSeconds() - start);
         auto delta = Assets.size() - startSize;
         if (delta > 0) SPDLOG_INFO("Found {} assets", delta);
+        return delta > 0;
     }
 
     void Unmount() {

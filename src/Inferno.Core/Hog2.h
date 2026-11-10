@@ -21,6 +21,7 @@ namespace Inferno {
         List<Entry> Entries;
 
         static bool IsHog2(const filesystem::path& path) {
+            if (!filesystem::exists(path)) return false;
             StreamReader reader(path);
             auto id = reader.ReadString(4);
             return id == "HOG2";

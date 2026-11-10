@@ -1561,7 +1561,7 @@ Effects:
 
 Ships:
   - Name: Pyro-GX
-    Model: 43
+    # Model: 43 # Take care when setting this, as it conflicts with demo data which uses a different model number
     ModelName: ship.pof
     DestroyedModelName: shipd.pof
     ExplosionVClip: 58

@@ -76,8 +76,8 @@ namespace Inferno::Resources {
 
     bool Init() {
         // Load some default resources.
-        bool foundData = Resources::LoadDescent2Data();
-        if (!foundData) foundData = Resources::LoadDescent1Data();
+        Resources::LoadDescent2Data();
+        bool foundData = Resources::LoadDescent1Data();
 
         if (!foundData) {
             foundData = Resources::LoadDescent1DemoData();
@@ -85,7 +85,6 @@ namespace Inferno::Resources {
         }
 
         //Game::DemoMode = true; // TESTING
-
         return foundData;
     }
 
@@ -516,7 +515,9 @@ namespace Inferno::Resources {
             }
         }
 
-        if (data.PlayerShip.Model != ModelID::None) {
+        //if (data.PlayerShip.Model != ModelID::None) 
+        {
+            // always reload player ship if present so the gunpoints override the game table
             auto file = data.PlayerShip.ModelName.empty() ? "ship.pof" : data.PlayerShip.ModelName;
             if (auto modelData = ReadBinaryFile(file, flags)) {
                 auto model = ReadPof(*modelData, &data.palette);
@@ -726,40 +727,6 @@ namespace Inferno::Resources {
             return false;
         }
     }
-
-    struct TextureSource {
-        PigFile pig;
-        Palette palette;
-        filesystem::path path;
-    };
-
-
-    //class PigCache {
-    //    Dictionary<filesystem::path, TextureSource> _sources;
-
-    //public:
-    //    void Load(const string& palette, const HogFile& hog) {
-    //        // Find the 256 for the palette first. In most cases it is located inside of the d2 hog.
-    //        // But for custom palettes it is on the filesystem
-    //        auto paletteData = hog.TryReadEntry(palette);
-    //        auto pigName = ReplaceExtension(palette, ".pig");
-    //        auto pigPath = FileSystem::FindFile(pigName);
-
-    //        if (paletteData.empty()) {
-    //            // Wasn't in hog, find on filesystem
-    //            if (auto path256 = FileSystem::TryFindFile(palette)) {
-    //                paletteData = File::ReadAllBytes(*path256);
-    //                pigPath = path256->replace_extension(".pig");
-    //            }
-    //            else {
-    //                // Give up and load groupa
-    //                paletteData = hog.ReadEntry("GROUPA.256");
-    //            }
-    //        }
-
-    //        //_sources[];
-    //    }
-    //};
 
     void LoadPalette(FullGameData& data, string_view palette, HogReader& hog) {
         // Find the 256 for the palette first. In most cases it is located inside of the hog.
@@ -1467,6 +1434,7 @@ namespace Inferno::Resources {
         auto textures = Render::GetLevelTextures(level, false, false);
         auto ids = Seq::ofSet(textures);
         LoadProcedurals(IndexedMaterials.Data(), ids);
+        LoadCustomModels(GameData); // models can override gunpoints defined in game table
     }
 
     span<JointPos> GetRobotJoints(int robotId, uint gun, Animation state) {
@@ -1751,7 +1719,7 @@ namespace Inferno::Resources {
                 LoadLevelMetadata(level, metadata, Editor::EditorLightSettings);
 
             LoadDataTables(level);
-            LoadCustomModels(GameData); // Load models before tables, so the custom model gunpoints are used
+            //LoadCustomModels(GameData); // models can override gunpoints defined in game table
 
             LoadStringTable(GameData.hog);
             UpdateAverageTextureColor();
@@ -1899,14 +1867,17 @@ namespace Inferno::Resources {
         if (level.IsDescent1()) {
             vfs::Mount("d2/descent2.hog"); // mount d2 data first so it is available but d1 gets priority
             vfs::Mount("d2/", { ".dxa" });
-            vfs::Mount("d1/descent.hog");
+
+            if (!vfs::Mount("d1/descent.hog")) {
+                vfs::Mount("d1/demo/descent.hog");
+            }
+
             vfs::Mount("d1/", { ".dxa" });
             vfs::Mount("assets/");
             // Game specific assets get priority over common ones. Skip dxa and hogs as they were already mounted.
             vfs::Mount("d1/", { "!.dxa", "!.hog" });
         }
         else {
-            vfs::Mount("d1/descent.hog");
             vfs::Mount("d1/", { ".dxa" });
             vfs::Mount("d2/descent2.hog");
             vfs::Mount("d2/", { ".dxa" });
@@ -1951,7 +1922,8 @@ namespace Inferno::Resources {
                 vfs::Mount(levelFolder);
         }
 
-        vfs::Print();
+        // printing is slow with hundreds of files
+        //vfs::Print();
     }
 
     bool Resources::MountAddonData(filesystem::path path) {

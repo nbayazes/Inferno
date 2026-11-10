@@ -206,9 +206,6 @@ namespace Inferno::Resources {
 
     void ExpandAnimatedFrames(TexID id = TexID::None);
 
-    //bool LoadLightTables(LoadFlag flags);
-    //bool LoadMaterialTables(LoadFlag flags);
-    //void LoadDataTables(LoadFlag flags);
     void LoadDataTables(const Level& level);
 
     span<JointPos> GetRobotJoints(int robotId, uint gun, Animation state);

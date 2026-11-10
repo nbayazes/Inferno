@@ -86,6 +86,7 @@ namespace Inferno {
         }
 
         static bool IsHog(const filesystem::path& path) {
+            if (!filesystem::exists(path)) return false;
             StreamReader reader(path);
             auto id = reader.ReadString(3);
             return id == "DHF";
