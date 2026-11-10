@@ -51,5 +51,8 @@ namespace Inferno {
     void StopCinematic();
 
     void UpdateDeathSequence(float dt);
+
+    // Applies death sequence physics to the player ship. Call once per game tick before objects are updated.
+    void FixedUpdateDeathSequence();
 }
 

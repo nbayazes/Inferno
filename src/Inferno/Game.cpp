@@ -213,6 +213,7 @@ namespace Inferno::Game {
 
         HandleFixedUpdateInput(dt);
         Player.Update(dt);
+        FixedUpdateDeathSequence();
         BeginAIFrame();
 
         UpdateAmbientSounds();

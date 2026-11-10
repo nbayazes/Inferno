@@ -322,9 +322,6 @@ namespace Inferno {
 
         auto& player = Game::Level.Objects[0];
         auto& physics = player.Physics;
-        // Reset previous inputs
-        physics.Thrust = Vector3::Zero;
-        physics.AngularThrust = Vector3::Zero;
 
         if (!Input::HasFocus || Game::Player.IsDead)
             return; // No player input without focus or while dead
@@ -483,7 +480,12 @@ namespace Inferno {
                 GenericCameraController(Game::MainCamera, 90);
                 break;
 
-            case GameState::Game:
+            case GameState::Game: {
+                // Reset previous inputs
+                auto& player = Game::GetPlayerObject();
+                player.Physics.Thrust = Vector3::Zero;
+                player.Physics.AngularThrust = Vector3::Zero;
+
                 if (!Game::Player.IsDead) {
                     if (Game::Bindings.Pressed(GameAction::Automap)) {
                         Game::SetState(GameState::Automap);
@@ -497,6 +499,7 @@ namespace Inferno {
                     HandleWeaponKeys();
                 }
                 break;
+            }
 
             case GameState::EscapeSequence:
                 if (Game::Bindings.Pressed(GameAction::Pause)) {

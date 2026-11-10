@@ -911,6 +911,7 @@ namespace Inferno {
         player.Physics.AngularVelocity = Vector3::Zero;
         player.Physics.AngularThrust = Vector3::Zero;
         player.Physics.AngularAcceleration = Vector3::Zero;
+        player.Physics.Thrust = Vector3::Zero;
         player.Physics.BankState = PhysicsData().BankState;
         player.Physics.TurnRoll = 0;
         player.Physics.Velocity = Vector3::Zero;

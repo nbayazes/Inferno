@@ -79,11 +79,6 @@ namespace Inferno {
         }
         ASSERT(camera->Type == ObjectType::Camera);
 
-        auto rollSpeed = std::max(0.0f, PLAYER_DEATH_EXPLODE_TIME - state.TimeDead);
-        player.Physics.AngularVelocity.x = rollSpeed / 4;
-        player.Physics.AngularVelocity.y = rollSpeed / 2;
-        player.Physics.AngularVelocity.z = rollSpeed / 3;
-
         auto playerPos = player.GetPosition(Game::LerpAmount);
 
         DrawCutsceneLetterbox();
@@ -180,6 +175,19 @@ namespace Inferno {
 
             Game::MoveCameraToObject(Game::MainCamera, *camera, Game::LerpAmount);
         }
+    }
+
+    void FixedUpdateDeathSequence() {
+        auto& state = Game::Player;
+        if (!state.IsDead) return;
+
+        // Spin the destroyed ship. This must happen on the fixed tick so that the
+        // spin is consistent regardless of how many ticks occur per frame.
+        auto& player = Game::GetPlayerObject();
+        auto rollSpeed = std::max(0.0f, PLAYER_DEATH_EXPLODE_TIME - state.TimeDead);
+        player.Physics.AngularVelocity.x = rollSpeed / 4;
+        player.Physics.AngularVelocity.y = rollSpeed / 2;
+        player.Physics.AngularVelocity.z = rollSpeed / 3;
     }
 
     void UpdateDeathSequence(float dt) {
