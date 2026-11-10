@@ -888,7 +888,7 @@ Robots:
     MeleeDamage: [ 5, 5, 6, 7, 8 ]
     # Speed: [ 45, 50, 60, 70, 80 ] # Reduce insane speed from 90
     ChaseChance: 0.5
-    SeeSound: 179
+    # SeeSound: 179 # Keep quiet alert sound
     Score: 750 # Was 800
     GetBehind: 1
     Evasion: 1 # Lower evasion so they don't bounce off the walls at higher difficulty
