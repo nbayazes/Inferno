@@ -1392,10 +1392,11 @@ namespace Inferno {
         Debug::SegmentsChecked = 0;
 
         // At least two steps are necessary to prevent jitter in sharp corners (including against objects)
+        // However, sub-steps are not implemented correctly so they have been disabled.
 #ifdef _DEBUG
         constexpr int STEPS = 1;
 #else
-        constexpr int STEPS = 2;
+        constexpr int STEPS = 1;
 #endif;
 
         dt /= STEPS;
