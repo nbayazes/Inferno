@@ -139,6 +139,7 @@ rem set /p "NAME=release name: "
 .\publish\7z.exe a publish\publish.zip ..\..\bin\Inferno\x64\Release\Inferno.exe
 .\publish\7z.exe a publish\publish.zip ..\..\bin\Inferno\x64\Release\fmt.dll
 .\publish\7z.exe a publish\publish.zip ..\..\bin\Inferno\x64\Release\SDL3.dll
+.\publish\7z.exe a publish\publish.zip ..\..\bin\Inferno\x64\Release\D3D12MA.dll
 
 rem add demo data and dxcompiler
 cd publish

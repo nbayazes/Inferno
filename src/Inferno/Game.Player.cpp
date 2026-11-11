@@ -975,7 +975,7 @@ namespace Inferno {
         // difficulty specific concussion count is odd, and some levels are nearly impossible when cold start on insane
         // when only having basic lasers
         //concussions = std::max(concussions, uint16(2 + (int)DifficultyLevel::Count - (int)Game::Difficulty));
-        concussions = 7; 
+        concussions = std::max(concussions, uint16(7));
 
         if (Settings::Cheats.Invulnerable)
             Game::MakeInvulnerable(player, -1, false);
