@@ -1093,8 +1093,12 @@ namespace Inferno::Resources {
 
         // Base HOG file
         if (HasFlag(flags, LoadFlag::BaseHog)) {
-            if (HasFlag(flags, LoadFlag::Descent1) && Descent1.hog.Exists(file))
-                return ResourceHandle{ Descent1.hog.Path, string(fileName) };
+            if (HasFlag(flags, LoadFlag::Descent1)) {
+                if (Descent1.hog.Exists(file))
+                    return ResourceHandle{ Descent1.hog.Path, string(fileName) };
+                if (Descent1Demo.hog.Exists(file))
+                    return ResourceHandle{ Descent1Demo.hog.Path, string(fileName) };
+            }
 
             if (HasFlag(flags, LoadFlag::Descent2) && Descent2.hog.Exists(file))
                 return ResourceHandle{ Descent2.hog.Path, string(fileName) };
@@ -1245,10 +1249,17 @@ namespace Inferno::Resources {
 
         // Base HOG file
         if (HasFlag(flags, LoadFlag::BaseHog)) {
-            if (HasFlag(flags, LoadFlag::Descent1) && Descent1.hog.Exists(file)) {
-                SPDLOG_INFO("Reading {} from descent1.hog", file);
-                HogReader hog(Descent1.hog.Path);
-                return hog.TryReadEntry(file);
+            if (HasFlag(flags, LoadFlag::Descent1)) {
+                if (Descent1.hog.Exists(file)) {
+                    SPDLOG_INFO("Reading {} from Descent 1 hog", file);
+                    HogReader hog(Descent1.hog.Path);
+                    return hog.TryReadEntry(file);
+                }
+                if (Descent1Demo.hog.Exists(file)) {
+                    SPDLOG_INFO("Reading {} from Descent 1 demo hog", file);
+                    HogReader hog(Descent1Demo.hog.Path);
+                    return hog.TryReadEntry(file);
+                }
             }
 
             if (HasFlag(flags, LoadFlag::Descent2) && Descent2.hog.Exists(file)) {
@@ -1865,21 +1876,20 @@ namespace Inferno::Resources {
         vfs::Unmount();
 
         if (level.IsDescent1()) {
-            vfs::Mount("d2/descent2.hog"); // mount d2 data first so it is available but d1 gets priority
+            if (!Descent2.hog.Path.empty())
+                vfs::Mount(Descent2.hog.Path); // mount d2 data first so it is available but d1 gets priority
             vfs::Mount("d2/", { ".dxa" });
-
-            if (!vfs::Mount("d1/descent.hog")) {
-                vfs::Mount("d1/demo/descent.hog");
-            }
-
+            vfs::Mount("d1/descent.hog");
             vfs::Mount("d1/", { ".dxa" });
             vfs::Mount("assets/");
             // Game specific assets get priority over common ones. Skip dxa and hogs as they were already mounted.
             vfs::Mount("d1/", { "!.dxa", "!.hog" });
         }
         else {
+            vfs::Mount("d1/descent.hog");
             vfs::Mount("d1/", { ".dxa" });
-            vfs::Mount("d2/descent2.hog");
+            if (!Descent2.hog.Path.empty())
+                vfs::Mount(Descent2.hog.Path);
             vfs::Mount("d2/", { ".dxa" });
             vfs::Mount("assets/");
             vfs::Mount("d2/", { "!.dxa", "!.hog" });

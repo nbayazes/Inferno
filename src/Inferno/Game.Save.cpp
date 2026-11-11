@@ -118,7 +118,7 @@ namespace Inferno {
     SaveGameInfo ReadSave(ryml::ConstNodeRef node) {
         SaveGameInfo save{};
 
-#define READ_PROP(name) ReadValue2(node, #name, save.##name)
+#define READ_PROP(name) ReadValue2(node, #name, save.name)
         READ_PROP(version);
         READ_PROP(dateTime);
         READ_PROP(autosave);
@@ -149,7 +149,7 @@ namespace Inferno {
         READ_PROP(lives);
 #undef READ_PROP
 
-#define READ_STAT(name) ReadValue2(node, #name, save.stats.##name)
+#define READ_STAT(name) ReadValue2(node, #name, save.stats.name)
         READ_STAT(score);
         READ_STAT(totalKills);
         READ_STAT(totalTime);
@@ -175,7 +175,7 @@ namespace Inferno {
         }
 
         //auto mission = Game::GetMissionInfo();
-#define WRITE_PROP(name) doc[#name] << save.##name
+#define WRITE_PROP(name) doc[#name] << save.name
         WRITE_PROP(version);
         WRITE_PROP(dateTime);
         WRITE_PROP(autosave);
@@ -203,7 +203,7 @@ namespace Inferno {
         WRITE_PROP(lives);
 #undef WRITE_PROP
 
-#define WRITE_STAT(name) doc[#name] << save.stats.##name
+#define WRITE_STAT(name) doc[#name] << save.stats.name
         WRITE_STAT(score);
         WRITE_STAT(totalKills);
         WRITE_STAT(totalTime);

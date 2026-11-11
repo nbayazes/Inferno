@@ -108,7 +108,7 @@ namespace Inferno {
             return ham.Weapons.emplace_back();
         }();
 
-#define READ_PROP(name) Yaml::ReadValue(node[#name], weapon.##name)
+#define READ_PROP(name) Yaml::ReadValue(node[#name], weapon.name)
         READ_PROP(RenderType);
         READ_PROP(Piercing);
         READ_PROP(Model);
@@ -159,7 +159,7 @@ namespace Inferno {
         ReadArray<float>(node["Damage"], weapon.Damage);
         ReadArray<float>(node["Speed"], weapon.Speed);
 
-#define READ_PROP_EXT(name) Yaml::ReadValue(node[#name], weapon.Extended.##name)
+#define READ_PROP_EXT(name) Yaml::ReadValue(node[#name], weapon.Extended.name)
         READ_PROP_EXT(FlashColor);
         READ_PROP_EXT(Name);
         READ_PROP_EXT(HudName);
@@ -266,7 +266,7 @@ namespace Inferno {
     void ReadBeamInfo(ryml::NodeRef node, Dictionary<string, BeamInfo>& beams) {
         BeamInfo info{};
 
-#define READ_PROP(name) Yaml::ReadValue(node[#name], info.##name)
+#define READ_PROP(name) Yaml::ReadValue(node[#name], info.name)
         ReadRange(node["Radius"], info.Radius);
         ReadRange(node["Width"], info.Width);
         READ_PROP(Color);
@@ -299,7 +299,7 @@ namespace Inferno {
     void ReadSparkInfo(ryml::NodeRef node, Dictionary<string, SparkEmitterInfo>& sparks) {
         SparkEmitterInfo info;
 
-#define READ_PROP(name) Yaml::ReadValue(node[#name], info.##name)
+#define READ_PROP(name) Yaml::ReadValue(node[#name], info.name)
         READ_PROP(Color);
         READ_PROP(Restitution);
         READ_PROP(Texture);
@@ -384,7 +384,7 @@ namespace Inferno {
     }
 
     void ReadShip(ryml::NodeRef node, ShipInfo& ship) {
-#define READ_PROP(name) Yaml::ReadValue(node[#name], ship.##name)
+#define READ_PROP(name) Yaml::ReadValue(node[#name], ship.name)
         READ_PROP(Name);
         READ_PROP(DamageTaken);
         READ_PROP(EnergyMultiplier);
@@ -465,7 +465,7 @@ namespace Inferno {
         ReadArray<Vector3>(node["GunPoints"], robot.GunPoints);
         ReadArray<ubyte>(node["GunSubmodels"], robot.GunSubmodels);
 
-#define READ_PROP(name) Yaml::ReadValue(node[#name], robot.##name)
+#define READ_PROP(name) Yaml::ReadValue(node[#name], robot.name)
         READ_PROP(Model);
         READ_PROP(ExplosionClip1);
         READ_PROP(ExplosionClip2);
@@ -584,7 +584,7 @@ namespace Inferno {
 
         auto& effect = ham.Effects[id];
 
-#define READ_PROP(name) Yaml::ReadValue(node[#name], effect.##name)
+#define READ_PROP(name) Yaml::ReadValue(node[#name], effect.name)
         READ_PROP(DestroyedTexture);
         READ_PROP(DestroyedEClip);
 #undef READ_PROP

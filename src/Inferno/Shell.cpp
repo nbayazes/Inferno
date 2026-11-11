@@ -256,7 +256,7 @@ Inferno::Shell::~Shell() {
 
 int Inferno::Shell::Show(uint2 position, uint2 size, int nCmdShow) const {
     if (!RegisterWindowClass(_hInstance))
-        throw std::exception("Failed to register window class");
+        throw std::runtime_error("Failed to register window class");
 
     ClampWindowPosition(position, size);
 
@@ -273,7 +273,7 @@ int Inferno::Shell::Show(uint2 position, uint2 size, int nCmdShow) const {
                                nullptr, nullptr, _hInstance, nullptr);
 
     if (!hwnd)
-        throw std::exception("Failed to create window");
+        throw std::runtime_error("Failed to create window");
 
     Shell::DpiScale = (float)GetDpiForWindow(hwnd) / 96.0f;
 

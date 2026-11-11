@@ -23,7 +23,7 @@ namespace Inferno {
             if (!std::filesystem::exists(file)) {
                 auto msg = fmt::format("Shader {} not found", file.string());
                 SPDLOG_ERROR(msg);
-                throw std::exception(msg.c_str()); // never initialized, crash
+                throw std::runtime_error(msg.c_str()); // never initialized, crash
             }
 
             try {
@@ -33,7 +33,7 @@ namespace Inferno {
                 SPDLOG_ERROR(e.what());
                 if (!_pso || !_rootSignature) {
                     auto msg = fmt::format("Unable to compile {}\n\n{}", file.string(), e.what());
-                    throw std::exception(msg.c_str()); // never initialized, crash
+                    throw std::runtime_error(msg.c_str()); // never initialized, crash
                 }
             }
         }
