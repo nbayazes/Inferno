@@ -6,7 +6,7 @@ Weapons:
     RobotHitVClip: 2
     Mass: 0.2
     FireDelay: 0.25
-    Size: 0.6
+    Size: 0.7
     ExplosionSound: LazorHitshrt
     ExplosionTexture: RedLaserHit
     ExplosionSize: 1.75
@@ -31,7 +31,7 @@ Weapons:
     Glow: 1, 0.0, 0.333, 20
     ModelName: PurpleLaser.OOF
     ModelScale: 0.7
-    Size: 0.6
+    Size: 0.7
     ExplosionTexture: PurpleLaserHit
     ExplosionSound: LazorHitshrt
     ExplosionSize: 1.75
@@ -55,7 +55,7 @@ Weapons:
     Glow: .125, .125, 1, 30
     ModelName: bluelaser.OOF
     ModelScale: 0.7
-    Size: 0.6
+    Size: 0.7
     ExplosionSound: LazorHitshrt
     ExplosionTexture: BlueLaserHit
     ExplosionSize: 1.75
@@ -79,7 +79,7 @@ Weapons:
     Glow: 0, 1, 0, 14
     ModelName: GreenLaser.OOF
     ModelScale: 0.7
-    Size: 0.6
+    Size: 0.7
     ExplosionSound: LazorHitshrt
     ExplosionTexture: GreenLaserHit
     ExplosionSize: 1.75
@@ -119,7 +119,7 @@ Weapons:
     FireDelay: 0.25
     ModelName: bluelaser.OOF
     ModelScale: 0.7
-    Size: 0.5
+    Size: 0.6
     ExplosionSound: LazorHitshrt
     ExplosionTexture: BlueLaserHit
     ExplosionSize: 1.75
@@ -661,7 +661,7 @@ Robots:
     SuppressChance: .05
     ChaseChance: .8
     ChaseDistance: 60 # Only chase if the player gets close
-    Score: 1000 # Was 600, less than the regular driller
+    Score: 1200 # Was 600, less than the regular driller
     Curiosity: 0.3 # Don't want these moving around too much
     AimAngle: 20 # Don't let drillers lead very much for balance reasons
     Aim: 200 # Make slightly inaccurate
@@ -859,7 +859,7 @@ Robots:
     SuppressChance: .2
     ChaseChance: 1 # they angy
     ChaseDistance: 100 # Only chase if the player gets close
-    Score: 900 # Was 1000, but are quite flimsy. Moved down to make cloak drillers 1000.
+    Score: 1000 # Was 1000, but are quite flimsy. Moved down to make cloak drillers 1000.
     AimAngle: 20 # Don't let drillers lead very much for balance reasons
     Aim: 200 # Make slightly inaccurate
     GetBehind: 1
@@ -885,7 +885,7 @@ Robots:
     DevName: "4-Claw"
     CircleDistance: 12
     Mass: 9
-    MeleeDamage: [ 5, 5, 6, 7, 8 ]
+    MeleeDamage: [ 6, 7, 10, 12, 14 ]
     # Speed: [ 45, 50, 60, 70, 80 ] # Reduce insane speed from 90
     ChaseChance: 0.5
     # SeeSound: 179 # Keep quiet alert sound
