@@ -377,6 +377,7 @@ namespace Inferno::Render {
         Shaders->Level.SetMaterial2(cmdList, *mat2);
         Shaders->Level.SetInstanceConstants(cmdList, constants);
         Shaders->Level.SetLightGrid(cmdList, Render::Adapter->LightGrid);
+        Shaders->Level.SetLevelVertices(cmdList, mesh.VertexBuffer.BufferLocation);
         mesh.Draw(cmdList);
     }
 

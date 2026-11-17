@@ -325,6 +325,7 @@
     <None Include="shaders\levelflat.hlsl" />
     <None Include="shaders\LightGrid.hlsli" />
     <None Include="shaders\Lighting.hlsli" />
+    <None Include="shaders\QuadInterpolation.hlsli" />
     <None Include="shaders\LinearizeDepthCS.hlsl" />
     <None Include="shaders\object.hlsl" />
     <None Include="shaders\ScanlineCS.hlsl" />

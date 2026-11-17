@@ -300,7 +300,15 @@ namespace Inferno {
             MaterialInfoBuffer, // t14
             Environment, // t15
             LightGrid, // t11, t12, t13, b2
+            LevelVertices = LightGrid + 4, // t16, raw vertex buffer for bilinear quad interpolation
         };
+
+        // level.hlsl reads LevelVertex fields from a raw buffer using these offsets
+        static_assert(sizeof(LevelVertex) == 92);
+        static_assert(offsetof(LevelVertex, UV) == 12);
+        static_assert(offsetof(LevelVertex, Color) == 20);
+        static_assert(offsetof(LevelVertex, UV2) == 36);
+        static_assert(offsetof(LevelVertex, LightDir) == 80);
 
     public:
         struct InstanceConstants {
@@ -368,6 +376,11 @@ namespace Inferno {
 
         static void SetEnvironment(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
             commandList->SetGraphicsRootDescriptorTable(Environment, handle);
+        }
+
+        // Binds the level vertex buffer so the vertex shader can fetch all four corners of a side
+        static void SetLevelVertices(ID3D12GraphicsCommandList* commandList, D3D12_GPU_VIRTUAL_ADDRESS vertexBuffer) {
+            commandList->SetGraphicsRootShaderResourceView(LevelVertices, vertexBuffer);
         }
     };
 

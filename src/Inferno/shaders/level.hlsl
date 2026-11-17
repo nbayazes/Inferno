@@ -1,5 +1,6 @@
 #include "Lighting.hlsli"
 #include "Common.hlsli"
+#include "QuadInterpolation.hlsli"
 
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0),"\
@@ -17,7 +18,14 @@
     "DescriptorTable(SRV(t11), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t12), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t13), visibility=SHADER_VISIBILITY_PIXEL), " \
-    "CBV(b2), "
+    "CBV(b2), " \
+    "SRV(t16, visibility=SHADER_VISIBILITY_VERTEX), "
+
+// Interpolation mode for level sides.
+// true: bilinear interpolation across the whole quad (removes the seam along the triangle split)
+// false: original per-triangle (barycentric) interpolation
+static const bool QUAD_BILINEAR = true;
+
 Texture2D TextureTable[] : register(t0, space1);
 Texture2D Diffuse : register(t0);
 //Texture2D StMask : register(t1); // not used but reserved for descriptor table
@@ -82,13 +90,14 @@ struct PS_INPUT {
     centroid float3 bitangent : BITANGENT;
     float3 world : TEXCOORD2;
     float3 lightDir: LIGHTDIR; // Light direction for ambient
+    QuadInterpolants quad; // Bilinear quad interpolation (only used when QUAD_BILINEAR is set)
 };
 
 /*
     Combined level shader
 */
 [RootSignature(RS)]
-PS_INPUT vsmain(LevelVertex input) {
+PS_INPUT vsmain(LevelVertex input, uint vertexId : SV_VertexID) {
     PS_INPUT output;
     output.pos = mul(Frame.ViewProjectionMatrix, float4(input.pos, 1));
     //output.col = float4(input.col.rgb, 1);
@@ -101,6 +110,11 @@ PS_INPUT vsmain(LevelVertex input) {
     output.bitangent = input.bitangent;
     output.world = input.pos; // level geometry is already in world coordinates
     output.lightDir = input.lightDir;
+    output.quad = (QuadInterpolants)0;
+
+    if (QUAD_BILINEAR)
+        output.quad = GetQuadInterpolants(vertexId, Args.Scroll * Frame.Time, Args.Scroll2 * Frame.Time);
+
     return output;
 }
 
@@ -215,18 +229,29 @@ Texture2D GetTexture(int index, int slot) {
 
 //[earlydepthstencil]
 float4 psmain(PS_INPUT input) : SV_Target {
+    // Interpolated attributes. Either per-triangle from the rasterizer or bilinear across the quad.
+    float2 uv = input.uv;
+    float2 uv2 = input.uv2;
+    float4 col = input.col;
+    float3 lightDir = input.lightDir;
+
+    if (QUAD_BILINEAR)
+        InterpolateQuad(input.quad, uv, uv2, col, lightDir);
+
     float3 viewDir = normalize(input.world - Frame.Eye);
-    float2 uvs = Args.IsOverlay ? input.uv2 : input.uv;
+    float2 uvs = Args.IsOverlay ? uv2 : uv;
     float4 diffuse = Sample2D(Diffuse, uvs, Sampler, Frame.FilterMode);
     float3 lighting = float3(0, 0, 0);
 
-    float3 ambient = max(0, input.col.rgb);
+    float3 ambient = max(0, col.rgb);
     ambient.rgb = pow(ambient.rgb, 2.2); // sRGB to linear
     ambient = lerp(1, ambient, Args.LightingScale);
 
+    //return float4(ambient, 1);
+
     if (Args.HasOverlay) {
-        float overlay = Sample2D(Diffuse2, input.uv2, Sampler, Frame.FilterMode).a;
-        float mask = Sample2D(StMask, input.uv2, Sampler, Frame.FilterMode).r;
+        float overlay = Sample2D(Diffuse2, uv2, Sampler, Frame.FilterMode).a;
+        float mask = Sample2D(StMask, uv2, Sampler, Frame.FilterMode).r;
         
         if (mask > 0 || overlay == 1)
             discard; // Don't draw opaque pixels under overlay
@@ -285,8 +310,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
             ambient *= Frame.GlobalDimming;
         }
 
-        if (any(input.lightDir))
-            ambient *= pow(Lambert(normal, input.lightDir) * 1, 3); // Apply ambient light directions (stronger directionality)
+        if (any(lightDir))
+            ambient *= pow(Lambert(normal, lightDir) * 1, 3); // Apply ambient light directions (stronger directionality)
         //ambient *= pow(Lambert(normal, input.lightDir) * 1.3, 3); // Apply ambient light directions (stronger directionality)
         //ambient *= pow(Lambert(normal, input.lightDir) * 1.3, 2); // Apply ambient light directions
 
