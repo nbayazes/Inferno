@@ -492,8 +492,8 @@ Materials:
     Roughness: 0.4
     SpecularColor: '0.297, 0.356, 1, 1'
   - Name: rock293
-    NormalStrength: 0.59
-    Roughness: 0.479
+    NormalStrength: 0.274
+    Roughness: 0.385
   - Name: rock294
     NormalStrength: 0.201
     Roughness: 0.349

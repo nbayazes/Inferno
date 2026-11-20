@@ -468,7 +468,7 @@ namespace Inferno {
 
     // Creates random shrapnel at a location
     void CreateDebris(SegID segment, const Vector3& position, const Vector3& force, float randomScale) {
-        if (Game::Level.IsShareware)
+        if (Game::Level.IsShareware || Resources::GameData.Debris == ModelID::None)
             return; // Shareware data doesn't have the textures for debris. Don't create them to prevent rendering problems.
 
         DebrisInfo debris;
@@ -482,6 +482,13 @@ namespace Inferno {
         auto duration = 2.5f + Random() * 2.0f;
         auto i = RandomInt(0, 4);
         debris.Model = ModelID((int)Resources::GameData.Debris + i);
+
+        // There is a crash where debris are created with invalid model ids
+        if (!Seq::inRange(Resources::GameData.Models, (int)debris.Model)) {
+            __debugbreak();
+            return;
+        }
+
         auto world = Matrix::CreateTranslation(position);
         AddDebris(debris, world, segment, velocity, angularVelocity, duration);
     }
@@ -1090,6 +1097,8 @@ namespace Inferno {
                 obj.Movement = MovementType::Physics;
                 obj.Physics.Mass = ri.Mass;
                 obj.Physics.Drag = ri.Drag;
+                // Robots must use sphere collision against the player, otherwise they can shove the player outside of the world
+                SetFlag(obj.Physics.Flags, PhysicsFlag::SphereCollidePlayer);
                 obj.Render.Type = RenderType::Model;
                 obj.HitPoints = ri.HitPoints;
                 obj.Render.Model.ID = ri.Model;
