@@ -71,6 +71,11 @@ void Application::Initialize(int width, int height) {
         SPDLOG_ERROR("Error initializing SDL: {}", SDL_GetError());
     }
 
+    // Force feedback joysticks. Initialized separately so a failure doesn't affect other input.
+    if (!SDL_InitSubSystem(SDL_INIT_HAPTIC)) {
+        SPDLOG_WARN("Unable to initialize SDL haptics, force feedback disabled: {}", SDL_GetError());
+    }
+
     SDL_SetAppMetadata(Inferno::APP_TITLE, Inferno::VERSION_STRING, nullptr);
 
     Input::AddJoystickCallback = [](const Input::InputDevice& device) {

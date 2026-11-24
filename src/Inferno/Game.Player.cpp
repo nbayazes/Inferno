@@ -653,6 +653,10 @@ namespace Inferno {
         SecondaryAmmo[(int)Secondary] -= battery.AmmoUsage;
         LastSecondaryFireTime = Game::Time;
 
+        // Recoil kick on the joystick pitch axis
+        // todo: limit to missiles
+        Input::PlayJoystickPitchForce(0.6f, 0.15f);
+
         AlertRobotsOfNoise(Game::GetPlayerObject(), GetWeaponAlertRadius(weapon), weapon.Extended.Noise * 2.0f);
 
         if (!CanFireSecondary(Secondary))

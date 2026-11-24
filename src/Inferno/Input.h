@@ -306,6 +306,14 @@ namespace Inferno::Input {
     // Filters to devices enabled in the global settings by default.
     InputDevice* GetExactDevice(string_view path, bool enabled = true);
 
+    // Returns true if the device is a joystick with an open force feedback (haptic) device
+    bool HasForceFeedback(const InputDevice& device);
+
+    // Plays a short force on the pitch axis of all force feedback joysticks.
+    // Strength is -1 to 1. Positive pushes the stick towards the user (nose up), negative pushes it away.
+    // Duration is in seconds.
+    void PlayJoystickPitchForce(float strength, float duration);
+
     // Called when a new joystick or gamepad is connected
     inline std::function<void(InputDevice&)> AddJoystickCallback;
 

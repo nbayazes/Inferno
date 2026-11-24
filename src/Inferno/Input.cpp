@@ -3,6 +3,8 @@
 #include <bitset>
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_gamepad.h>
+#include <SDL3/SDL_haptic.h>
+#include <SDL3/SDL_init.h>
 #include <vector>
 #include "Game.h"
 #include "imgui_local.h"
@@ -181,8 +183,49 @@ namespace Inferno::Input {
         return ranges::all_of(guid, [](char c) { return c == '0'; });
     }
 
+    string HapticFeaturesToString(uint32 features) {
+        constexpr std::pair<uint32, const char*> names[] = {
+            { SDL_HAPTIC_CONSTANT, "constant" },
+            { SDL_HAPTIC_SINE, "sine" },
+            { SDL_HAPTIC_SQUARE, "square" },
+            { SDL_HAPTIC_TRIANGLE, "triangle" },
+            { SDL_HAPTIC_SAWTOOTHUP, "sawtooth up" },
+            { SDL_HAPTIC_SAWTOOTHDOWN, "sawtooth down" },
+            { SDL_HAPTIC_RAMP, "ramp" },
+            { SDL_HAPTIC_SPRING, "spring" },
+            { SDL_HAPTIC_DAMPER, "damper" },
+            { SDL_HAPTIC_INERTIA, "inertia" },
+            { SDL_HAPTIC_FRICTION, "friction" },
+            { SDL_HAPTIC_LEFTRIGHT, "left/right" },
+            { SDL_HAPTIC_CUSTOM, "custom" },
+            { SDL_HAPTIC_GAIN, "gain" },
+            { SDL_HAPTIC_AUTOCENTER, "autocenter" },
+            { SDL_HAPTIC_STATUS, "status" },
+            { SDL_HAPTIC_PAUSE, "pause" },
+        };
+
+        string result;
+        for (auto& [flag, name] : names) {
+            if (!(features & flag)) continue;
+            if (!result.empty()) result += ", ";
+            result += name;
+        }
+
+        return result.empty() ? "none" : result;
+    }
+
+    struct HapticDevice {
+        SDL_Haptic* handle = nullptr;
+        uint32 features = 0;
+        int axes = 0;
+        int pitchEffect = -1; // Effect slot for pitch axis forces, created on first use
+        uint16 pitchEffectType = 0;
+    };
+
     class DeviceManager {
         std::list<InputDevice> _devices;
+        // Force feedback handles for joysticks. Kept separate from InputDevice because devices are copied.
+        Dictionary<SDL_JoystickID, HapticDevice> _haptics;
 
     public:
         InputDevice* GetFromGuid(string_view guid) {
@@ -220,7 +263,86 @@ namespace Inferno::Input {
                 AddJoystick(id);
         }
 
+        SDL_Haptic* GetHaptic(SDL_JoystickID id) {
+            auto iter = _haptics.find(id);
+            return iter != _haptics.end() ? iter->second.handle : nullptr;
+        }
+
+        // Closes all force feedback devices. Must be called before the joysticks are closed.
+        void CloseHaptics() {
+            for (auto& [id, haptic] : _haptics) {
+                SPDLOG_INFO("Closing force feedback for joystick {}", id);
+                SDL_CloseHaptic(haptic.handle); // Also destroys any effects
+            }
+
+            _haptics.clear();
+        }
+
+        // Plays a force on the pitch (Y) axis of all force feedback joysticks.
+        // Positive strength pushes the stick towards the user, negative pushes it away.
+        void PlayPitchForce(float strength, float duration) {
+            strength = std::clamp(strength, -1.0f, 1.0f);
+            if (strength == 0 || duration <= 0) return;
+
+            for (auto& [id, haptic] : _haptics) {
+                if (haptic.axes < 2) continue; // Single axis devices have no pitch axis
+
+                SDL_HapticEffect effect{};
+                auto length = (uint32)(duration * 1000);
+                // Direction is where the force comes from. North (0, -1) is away from the user.
+                SDL_HapticDirection direction{ .type = SDL_HAPTIC_CARTESIAN, .dir = { 0, strength > 0 ? -1 : 1, 0 } };
+                auto level = (int16)(std::abs(strength) * 32767);
+
+                if (haptic.features & SDL_HAPTIC_CONSTANT) {
+                    effect.type = SDL_HAPTIC_CONSTANT;
+                    effect.constant.type = SDL_HAPTIC_CONSTANT;
+                    effect.constant.direction = direction;
+                    effect.constant.length = length;
+                    effect.constant.level = level;
+                    effect.constant.fade_length = (uint16)(length / 2); // Ease off for a softer kick
+                    effect.constant.fade_level = 0;
+                }
+                else if (haptic.features & SDL_HAPTIC_SINE) {
+                    // Fallback for devices without constant force. Half a period gives a single push.
+                    effect.type = SDL_HAPTIC_SINE;
+                    effect.periodic.type = SDL_HAPTIC_SINE;
+                    effect.periodic.direction = direction;
+                    effect.periodic.length = length;
+                    effect.periodic.period = (uint16)std::min(length * 2, 65535u);
+                    effect.periodic.magnitude = level;
+                }
+                else {
+                    continue;
+                }
+
+                // Effect type is fixed at creation, recreate it if the type changes
+                if (haptic.pitchEffect >= 0 && haptic.pitchEffectType != effect.type) {
+                    SDL_DestroyHapticEffect(haptic.handle, haptic.pitchEffect);
+                    haptic.pitchEffect = -1;
+                }
+
+                if (haptic.pitchEffect < 0) {
+                    haptic.pitchEffect = SDL_CreateHapticEffect(haptic.handle, &effect);
+                    haptic.pitchEffectType = effect.type;
+
+                    if (haptic.pitchEffect < 0) {
+                        SPDLOG_WARN("Unable to create pitch force feedback effect for joystick {}: {}", id, SDL_GetError());
+                        continue;
+                    }
+                }
+                else if (!SDL_UpdateHapticEffect(haptic.handle, haptic.pitchEffect, &effect)) {
+                    SPDLOG_WARN("Unable to update pitch force feedback effect for joystick {}: {}", id, SDL_GetError());
+                    continue;
+                }
+
+                if (!SDL_RunHapticEffect(haptic.handle, haptic.pitchEffect, 1))
+                    SPDLOG_WARN("Unable to play pitch force feedback effect for joystick {}: {}", id, SDL_GetError());
+            }
+        }
+
         void Remove(SDL_JoystickID id) {
+            CloseHaptic(id); // haptic must be closed before its joystick
+
             if (SDL_IsGamepad(id)) {
                 SPDLOG_INFO("Remove gamepad {}", id);
                 auto gamepad = SDL_GetGamepadFromID(id);
@@ -325,6 +447,46 @@ namespace Inferno::Input {
             string uhid = "Universal Human Interface Device";
             if (device->name.starts_with(uhid) && device->name.size() > uhid.size() + 1)
                 device->name = device->name.substr(uhid.size() + 1);
+
+            OpenHaptic(id, joystick, device->name);
+        }
+
+        void OpenHaptic(SDL_JoystickID id, SDL_Joystick* joystick, const string& name) {
+            if (!SDL_WasInit(SDL_INIT_HAPTIC)) return;
+
+            if (!SDL_IsJoystickHaptic(joystick)) {
+                SPDLOG_INFO("Joystick {} ({}) does not support force feedback", id, name);
+                return;
+            }
+
+            auto haptic = SDL_OpenHapticFromJoystick(joystick);
+            if (!haptic) {
+                SPDLOG_WARN("Unable to open force feedback for joystick {} ({}): {}", id, name, SDL_GetError());
+                return;
+            }
+
+            CloseHaptic(id); // In case of a stale handle
+
+            auto features = SDL_GetHapticFeatures(haptic);
+            auto axes = SDL_GetNumHapticAxes(haptic);
+            _haptics[id] = { .handle = haptic, .features = features, .axes = axes };
+
+            auto hapticName = SDL_GetHapticName(haptic);
+            SPDLOG_INFO("Opened force feedback for joystick {} ({}): {}\nAxes: {} Max effects: {} Max playing: {}\nFeatures: {}",
+                        id, name, hapticName ? hapticName : "unknown",
+                        axes,
+                        SDL_GetMaxHapticEffects(haptic),
+                        SDL_GetMaxHapticEffectsPlaying(haptic),
+                        HapticFeaturesToString(features));
+        }
+
+        void CloseHaptic(SDL_JoystickID id) {
+            auto iter = _haptics.find(id);
+            if (iter == _haptics.end()) return;
+
+            SPDLOG_INFO("Closing force feedback for joystick {}", id);
+            SDL_CloseHaptic(iter->second.handle); // Also destroys any effects
+            _haptics.erase(iter);
         }
     };
 
@@ -344,6 +506,15 @@ namespace Inferno::Input {
         }
 
         return device;
+    }
+
+    bool HasForceFeedback(const InputDevice& device) {
+        return Devices.GetHaptic(device.id) != nullptr;
+    }
+
+    void PlayJoystickPitchForce(float strength, float duration) {
+        if (!Settings::Inferno.EnableJoystick) return;
+        Devices.PlayPitchForce(strength, duration);
     }
 
     InputDevice* GetExactDevice(string_view path, bool enabled) {
@@ -714,7 +885,9 @@ namespace Inferno::Input {
             SDL_SetGamepadEventsEnabled(true);
     }
 
-    void Shutdown() {}
+    void Shutdown() {
+        Devices.CloseHaptics();
+    }
 
     bool IsKeyDown(Keys key) {
         return _keyboard.pressed[key] || _keyboard.previous[key];
