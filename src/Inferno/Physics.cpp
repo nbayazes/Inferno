@@ -266,7 +266,7 @@ namespace Inferno {
         };
 
         setEntry(ObjectType::Player, ObjectType::Wall, CollisionType::SphereRoom);
-        setEntry(ObjectType::Player, ObjectType::Robot, CollisionType::SpherePoly);
+        setEntry(ObjectType::Player, ObjectType::Robot, CollisionType::SphereSphere);
         setEntry(ObjectType::Player, ObjectType::Wall, CollisionType::SphereSphere);
         setEntry(ObjectType::Player, ObjectType::Powerup, CollisionType::SphereSphere);
         setEntry(ObjectType::Player, ObjectType::Clutter, CollisionType::SpherePoly);
@@ -277,7 +277,7 @@ namespace Inferno {
         //setEntry(ObjectType::Player, ObjectType::Weapon, CollisionType::SphereSphere); // Weapons can hit players but players can't hit weapons? Simplify logic...
         setEntry(ObjectType::Powerup, ObjectType::Player, CollisionType::SphereSphere);
 
-        setEntry(ObjectType::Robot, ObjectType::Player, CollisionType::PolySphere);
+        setEntry(ObjectType::Robot, ObjectType::Player, CollisionType::SphereSphere);
         setEntry(ObjectType::Robot, ObjectType::Robot, CollisionType::SphereSphere);
         setEntry(ObjectType::Robot, ObjectType::Wall, CollisionType::SphereRoom);
         setEntry(ObjectType::Robot, ObjectType::Building, CollisionType::SpherePoly);
