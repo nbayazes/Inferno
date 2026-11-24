@@ -480,7 +480,7 @@ namespace Inferno {
         debris.Mass = .05f;
         debris.Drag = 0.002f;
         auto duration = 2.5f + Random() * 2.0f;
-        auto i = RandomInt(0, 4);
+        auto i = RandomInt(0, 3);
         debris.Model = ModelID((int)Resources::GameData.Debris + i);
 
         // There is a crash where debris are created with invalid model ids
