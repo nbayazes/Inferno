@@ -186,12 +186,13 @@ namespace Inferno {
 
         auto id = TraceSegment(level, obj.Segment, obj.Position);
 
-        if ((id == SegID::None || id == SegID::Exit) && obj.Segment == Game::Terrain.ExitTag.Segment) {
-            id = SegID::Terrain; // Assume that the object has entered the terrain
-        }
-        else if (id == SegID::None) {
-            SetFlag(obj.Flags, ObjectFlag::OutOfBounds);
-            return false;
+        if (id == SegID::None || id == SegID::Exit) {
+            if (obj.Segment == Game::Terrain.ExitTag.Segment)
+                id = SegID::Terrain; // Assume that the object has entered the terrain
+            else {
+                SetFlag(obj.Flags, ObjectFlag::OutOfBounds);
+                return false;
+            }
         }
 
         auto ref = Game::GetObjectRef(obj);
